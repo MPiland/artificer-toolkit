@@ -458,6 +458,23 @@ Done on `ci/spells-33-t3a2` (closes SPELLS-33.1).
 
 - Death Dog's Perception advantage is folded as a `SKILL_MODIFIER` grant, but no Creature check path reads roll modes yet (contests read `checkTotals` only), so it has no effect until one does.
 
+## T6m1: checks against the holder
+
+Done on `ci/spells-33-t6m1`.
+
+- `SPELL_SCHOOL_IMMUNITY` and `CHECKS_AGAINST_HOLDER` are core options (see `rules-runtime.md`). Inscrutable (Gynosphinx, Androsphinx) is `inscrutableGrants` in `creatures/shared.ts`; Mind Blank's divination clause is a third grant on its effect. The kinds `CREATURE_GYNOSPHINX_INSCRUTABLE`, `CREATURE_INSCRUTABLE` and `CREATURE_INVISIBLE_STALKER_FAULTLESS_TRACKER` are deleted.
+- The Invisible Stalker's Faultless Tracker is description-only (class C): the GM tells the player the direction and distance. No relationship or UI.
+- Gate: an area action leaves out an immune creature as it does a creature-type exclusion; a single target or a chosen list with an immune creature is refused.
+- Proof: `spellSchoolImmunity.test.ts` (folds, Mind Blank, sphinxes, the gate) and `nativeRoomSpellSchoolImmunity.test.ts` (a cone with a Mind Blank holder).
+
+### Deferred edge cases
+
+- Thought-reading and emotion-sensing beyond divination spells, and the "unless it wishes" opt-out, are not modelled; the GM applies them.
+- A Creature's spell actions carry no school, so they aren't gated.
+- Insight checks have no subject, so Inscrutable's disadvantage isn't enforced and the GM applies it.
+- A chosen list that includes an immune creature is refused instead of skipping that creature.
+- The Faultless Tracker quarry is not tracked (future-enhancements).
+
 ## T6j token light (implemented)
 
 No LIGHT_EMISSION kind: the MANIFEST OBJECT `light` (SOURCE attachment) that equipment torches and lanterns and the Light, Continual Flame and Prismatic Wall spells already author is the one home. The Nightmare and Will-o'-wisp author it (`shedLightEffect`), their two closed rule kinds are deleted, and passive creature light is composed onto tokens at runtime for D108 illumination and drawing (see [rules-runtime](../architecture/rules-runtime.md)). The wisp is fixed at bright 20 / dim 20 more (orchestrator ruling); no setter. Activated torches, lanterns and spell lights are still not consumed by the runtime. Proofs: `creatureLightAuthoringParity.test.ts`, `creatureLight.test.ts`, `turnCaptureTokenLights.test.ts`, the token-light cases in `vtt-scene-combat-perception.test.ts`, `vtt-scene.test.ts`, `vtt-scene-contracts.test.ts` and `nativeTurnEffectPerception.test.ts`.
@@ -475,6 +492,16 @@ Mummy and Mummy Lord Dreadful Glare grant SOURCE_IMMUNITY per source, so a targe
 
 ### T6e: Deferred edge cases
 
-- Zone, melee-retaliation and occupant-aura damage do not end the target's effects that end on damage (`targetEndedEffects`), and do not create triggered grants. Each of those three roots computes the target transition in its planner and checks it, with the receipt, by checksum in persistence; the releases change both, so wiring them needs plan, evidence and persistence changes per root, not a call to the shared seam. Move to future-enhancements (Deferred edge cases) at merge.
+- Zone and melee-retaliation damage ended no until-damaged effect (T6e4 wired both: see `spatialDamageEnds`). Occupant save auras deal no damage, so they are not a damage root. Spatial movement contacts (`planNativeSpatialMovementPrefix` without `damageEnds`) still end nothing; they are the one root left.
 - T6e1 (Balor Death Throes): a death-throes defeat does not retrigger `ON_HP_ZERO`.
 - T6e3 (Flesh Golem Aversion of Fire, Water Elemental Freeze) is the passive damage-type trigger that creates a timed self grant on every damage root; it needs effect-creation slots, receipts, persistence and revert per root.
+
+## T4c: Knight Leadership and Lamia Intoxicating Touch
+
+Class B (core options), branch `spells-33-t4c`, pushed to `ci/spells-33-t4c`. Both kinds deleted.
+
+- Lamia Intoxicating Touch is an ON_HIT apply-grant of Wisdom save and ability check disadvantage for 1 hour, authored with existing options only.
+- Knight Leadership is a Bless-style d4 grant (attack rolls and saving throws) on chosen willing creatures within 30 feet, 1 minute, one charge. It carries the new end trigger `{ event: 'INCAPACITATED', of: 'SOURCE' }` (orchestrator ruling), evaluated with the Concentration end fan-out, not the holder path; see `rules-runtime.md`.
+- Parity proof: `creatureCurseAuthoringParity.test.ts` normalizes both creatures through the creature node map unchanged.
+- Deferred edge cases for the orchestrator to move at merge (already in future-enhancements): "one Leadership die at a time" and "can hear and understand".
+- Open gap (tracked until SPELLS-33.T4c2): persistence scans holders for an omitted source-bound end only when a damaged source's end was sent, so a planner that sends no end at all commits silently. Gating on each damaged actor's committed reason threw in `resolveRuleCapabilityAvailability` (suppressions keyed by the authored grant id), so T4c2 fixes that collision and restores the committed-reason gate and its "sends none, refused" test.

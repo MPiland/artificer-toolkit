@@ -11153,7 +11153,7 @@
                 "size": 5,
                 "after": ["SPELLS-31.T1", "SPELLS-31.T4l1", "SPELLS-4.T2l"]
               },
-              "text": "Join SPELLS-4.T2l: Martial Arts, Open Hand Technique, Horde Breaker, Retaliation. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2l: Martial Arts, Open Hand Technique, Horde Breaker, Retaliation. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Also owns the Monk Ki-Empowered Strikes room journey moved from T4e: an unarmed strike deals full damage to a nonmagical-resistant target while a weapon attack is resisted (2026-10-19 ruling)."
             },
             {
               "id": "SPELLS-31.T4m",
@@ -11772,7 +11772,7 @@
             },
             {
               "id": "SPELLS-33.T4c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11782,20 +11782,35 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2c2"]
               },
               "text": "Knight Leadership, Lamia Intoxicating Touch (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "Merged m176 (1edc18197)."
+            },
+            {
+              "id": "SPELLS-33.T4c2",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 5,
+                "size": 2,
+                "after": ["SPELLS-33.T4c"]
+              },
+              "text": "new (bug): encounterActiveGrantCapabilitySuppressions keys suppressions by authored grantId, so resolveRuleCapabilityAvailability throws on overlapping contributions for a Character such as the D99 room fixture when its capability state is read off the holder path. Confirm the cause of the ~130 failures from T4c's committed-reason gate, key suppressions by grant instance with a regression test that fails before the fix, then restore the persistence gate (a commit that incapacitates a source must end every holder's source-bound grant, including when the plan sends none) and its test (2026-10-19 ruling; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4de",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 1,
+                "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2d", "SPELLS-4.T2e"]
               },
-              "text": "Invisible Stalker Invisibility, Magic Weapons (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Invisible Stalker Invisibility, Magic Weapons (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Re-scored 1->3 (2026-10-19 ruling): Magic Weapons wires the creature ATTACK_TRAIT reader through the shared modifier path; Invisibility adds an innate-condition CONDITION option read through one effective-conditions accessor.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4gh",
@@ -12177,7 +12192,7 @@
             },
             {
               "id": "SPELLS-33.T6e4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12187,11 +12202,11 @@
                 "after": ["SPELLS-33.T6e"]
               },
               "text": "Bug: damage from the turn-zone, melee-retaliation and occupant-aura roots does not end the target's \"until it takes damage\" effects, so Sleep or Hypnotic Pattern survive Spirit Guardians or Fire Shield damage. Wire targetEndedEffects into each root's plan, evidence and persistence checksum, with a regression test per root that fails before the fix (split from SPELLS-33.T6e; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m174 (ea25b4c4c)."
             },
             {
               "id": "SPELLS-33.T6e3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12200,7 +12215,8 @@
                 "size": 5,
                 "after": ["SPELLS-33.T6e"]
               },
-              "text": "Flesh Golem Aversion of Fire (disadvantage on attacks and checks) and Water Elemental Freeze (-20 ft speed), part a: a passive damage-type trigger whose outcome is a generic timed self grant, returned by the one damage-taken seam alongside ended effects ({endedEffects, releases, grants}; releases first, then grants), refreshed by source feature rather than stacked, wired end to end on the action damage root with receipt, persistence verify, revert and a room journey. Authoring-parity proofs for both grant kinds; deletes its kinds (2026-10-19 ruling; T6e3b wires the other roots; workbook slice-spells-33.md)."
+              "text": "Flesh Golem Aversion of Fire (disadvantage on attacks and checks) and Water Elemental Freeze (-20 ft speed), part a: a passive damage-type trigger whose outcome is a generic timed self grant, returned by the one damage-taken seam alongside ended effects ({endedEffects, releases, grants}; releases first, then grants), refreshed by source feature rather than stacked, wired end to end on the action damage root with receipt, persistence verify, revert and a room journey. Authoring-parity proofs for both grant kinds; deletes its kinds (2026-10-19 ruling; T6e3b wires the other roots; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6e3b",
@@ -12343,11 +12359,24 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": ["SPELLS-33.T6k2"]
               },
-              "text": "new: Whirlwind collision part 2 (D159): a `collision` block with per-mover damage of floor(feet/10) dice, the struck creature's save pause on the AREA_PENDING pattern with damage and PRONE, per-entry area plans, the authoring-parity proof, and deleting CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION (workbook slice-spells-33.md).",
+              "text": "Whirlwind collision part 2 (D159): own-space area for a Self area action with no shape, the authored `collision` block (schema, node map, compiler port, spatial echo) and the mover's own collision damage of floor(feet/10) dice at full distance or on an object or creature stop; the struck-creature effect fails closed or stays on the old kind until T6k2b2 (2026-10-19 split; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6k2b2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T6k2b"]
+              },
+              "text": "new: Whirlwind collision part 3 (D159): the struck creature's Dex save as a second compiled plan and sealed pending step (rolled ray plus struck save; player rolls their own) with damage and PRONE, answer routing through the snapshot schema, actionAreaPending and areaCommitPersistence, replay/revert fences and snapshot determinism; the two-mover landing-order test with actor-id tie-break; deletes CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION with the authoring-parity proof (2026-10-19 split; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6k3",
@@ -12364,7 +12393,7 @@
             },
             {
               "id": "SPELLS-33.T6m1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12374,7 +12403,7 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "new: checks against the holder (auto-fail, divination immunity, quarry tracking) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m175 (08a377f64)."
             },
             {
               "id": "SPELLS-33.T6m2",

@@ -53,6 +53,8 @@ export type CharacterSpellCastActions = {
   candidates: readonly CharacterActionCandidate[]
   decisions: readonly ActionDecision[]
   compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
+  /** The magic school of each spell the casts name, which a target's school immunity is checked against. */
+  magicSchoolIdBySpellId: ReadonlyMap<string, string>
 }
 
 /** The slot a policy slot key names, with the uses the Character has already spent from it. */

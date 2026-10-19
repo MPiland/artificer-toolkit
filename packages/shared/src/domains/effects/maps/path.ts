@@ -428,6 +428,7 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
     const isDamageTaken = event.eq('DAMAGE_TAKEN')
     const isAgainstEnemy = logic.or([event.eq('ATTACK_ROLL'), event.eq('SPELL_CAST')])
     const isActionUsed = event.eq('ACTION_USED_ON_HOLDER')
+    const isIncapacitated = event.eq('INCAPACITATED')
 
     map
       .set(
@@ -444,7 +445,8 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
               {
                 code: 'ACTION_USED_ON_HOLDER',
                 label: 'Another creature uses an action on the holder'
-              }
+              },
+              { code: 'INCAPACITATED', label: 'The effect source is incapacitated or defeated' }
             ]
           },
           { requiredIf: true }
@@ -484,6 +486,15 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
           'Against',
           { kind: 'INLINE_OPTIONS', options: [{ code: 'ENEMY', label: 'An enemy of the holder' }] },
           { requiredIf: isAgainstEnemy, showIf: isAgainstEnemy }
+        )
+      )
+      .set(
+        'of',
+        selectSingle(
+          ['of'],
+          'Whose Incapacitation',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'SOURCE', label: 'The effect source' }] },
+          { requiredIf: isIncapacitated, showIf: isIncapacitated }
         )
       )
       .set(

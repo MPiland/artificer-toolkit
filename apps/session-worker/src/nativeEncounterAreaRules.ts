@@ -66,6 +66,7 @@ import {
   settleEncounterAreaAction
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   encounterActionTargetKind,
   encounterZoneChoiceTarget,
@@ -823,12 +824,19 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     if (!actor || !token) throw new Error('Encounter rules input binding mismatch.')
     return { actor, token }
   })
+  for (const { actor } of inAreaActors)
+    if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
   const unaffectedActorIds = inAreaActors.flatMap(({ actor }) => {
     const creatureTypeId = snapshotCreatureTypeId(actor)
     return encounterSourceImmunityLabel({
       source: base.source,
       holderEffects: input.activeEffectsByActorId.get(actor.id) ?? []
     }) !== null ||
+      encounterSpellSchoolImmunity({
+        source: base.source,
+        sourceFacts: casterFacts,
+        target: movementTargets.get(actor.id)!
+      }) ||
       (creatureTypeId !== null &&
         targetingExcludesCreatureType(targetPolicy.targeting, creatureTypeId))
       ? [actor.id]
@@ -836,8 +844,6 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   })
   const caughtInArea = inAreaActors.filter(({ actor }) => !unaffectedActorIds.includes(actor.id))
   const caughtActorIds = caughtInArea.map(({ actor }) => actor.id)
-  for (const { actor } of caughtInArea)
-    if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
   // An area with a hit-point pool affects the creatures the pool covers, lowest hit points first.
   const contents =
     targetPolicy.targeting?.selectionKind === 'AREA_CONTENTS' ? targetPolicy.targeting : null
@@ -960,6 +966,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       areaSnapshot: null,
       caughtChecksum: encounterChosenActorsChecksum(caught.map(({ actor }) => actor.id)),
       removedActorIds: [],
+      unaffectedActorIds,
       placement: null,
       occurrenceVersion: window.occurrenceVersion,
       response: window.response,
@@ -1766,6 +1773,7 @@ export async function planNativeLiveEncounterAreaCommit(
     areaSnapshot,
     caughtChecksum: context.caughtChecksum,
     removedActorIds: context.removedActorIds,
+    unaffectedActorIds: context.unaffectedActorIds ?? [],
     placement: base.placement,
     occurrenceVersion: resumed ? resumed.expectedOccurrenceVersion + 1 : 0,
     response: input.response,
@@ -1894,6 +1902,7 @@ export async function completeAreaCommit(args: {
   areaSnapshot: ServerAggregateChoicePendingSnapshotDto | null
   caughtChecksum: string
   removedActorIds: readonly string[]
+  unaffectedActorIds: readonly string[]
   /** The zone an action leaves at the picked point, with the area it fills. */
   placement: AreaReach['placement']
   occurrenceVersion: number
@@ -1923,6 +1932,7 @@ export async function completeAreaCommit(args: {
     areaSnapshot,
     caughtChecksum,
     removedActorIds,
+    unaffectedActorIds,
     placement,
     occurrenceVersion,
     response,
@@ -2456,6 +2466,7 @@ export async function completeAreaCommit(args: {
     response,
     removal,
     area: areaSnapshot,
+    unaffectedActorIds: [...unaffectedActorIds],
     prepared: { actors },
     occurredAt,
     initialDefinitionId:
@@ -2516,6 +2527,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     targets: plan.targets,
     rollsPerTarget: plan.rollsPerTarget,
     area: plan.area,
+    unaffectedActorIds: plan.unaffectedActorIds,
     placedZones: plan.placedZones,
     zoneSourceGrant: plan.zoneSourceGrant,
     forcedMovements: plan.forcedMovements,

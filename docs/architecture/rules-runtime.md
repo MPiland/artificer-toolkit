@@ -587,6 +587,11 @@ A component's `requiredSight` (`OCCUPANT_SEES_SOURCE`, `SOURCE_SEES_OCCUPANT`; S
 gates a save-bearing turn trigger on mutual sight: the Worker's turn preparation reads live perception through
 `loadSourceSight` and `prepareEncounterTurnZoneEffects` injects `zoneSightRequirementMet` into the contact's derived facts, and
 the compiled save evaluator treats a false value as an unrolled success. Convex persistence trusts the planned executions.
+Damage a turn zone or a melee retaliation deals ends the target's effects that end on damage (SPELLS-33.T6e4): the planner
+passes `damageEnds` to `planNativeSpatialMovementPrefix`, and both it and persistence call `spatialDamageEnds` over the same
+held effects. The releases (`CONDITION_REMOVE`, `TEMPORARY_HIT_POINTS_RELEASE`) append to the target's one mechanics batch after
+the zones' applications, persistence checks them against `targetStateAfterEndedEffects` and deletes the ended effects with
+`deleteGrants`. Occupant save auras lend bonuses and deal no damage; spatial movement contacts do not pass `damageEnds` yet.
 A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
 `heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
 decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.
@@ -1525,6 +1530,7 @@ SPELLS-27.T4b wires every other damage root and adds the actions that end an eff
 
 **Sequential composition (SPELLS-4.T2t, D156).** The dnd5e compiler accepts one cast of two or more DIRECT `SEQUENTIAL` `ON_USE` entries that share target, test, duration and maintenance, holding at most one grant, at most one recurring entry and at most one immediate heal, as one active effect (`sequentialComposition`). The immediate heal, else the grant, compiles as the cast graph. A recurring entry accepts minute and hour durations, does not fire at cast (`recurrenceDeferred`) and builds its own graph; a `FIXED` recurring heal can add ability modifiers, settled at cast into the `dnd5e.recurring-heal-amount` fact, which `castFactKeys` copies from the cast evidence into the effect's adapter facts. A plan with `ownsTemporaryHitPoints` gives its effect the ownership contribution. The compiled active-effect plan carries all three fields as optional (`characterMechanics`), absent on every other plan. Heroism, Enhance Ability (one `CHOICE` option holding a grant beside temporary hit points) and Regenerate compile this way.
 SPELLS-27.T12 adds `{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds }` (Sleep, authored with the SRD Rouse basic action): `actionUsedOnHolderEndedEffects` ends, on the target of a basic action another creature uses, the effects whose trigger names that action's definition, and releases the conditions only they held in the target's own mechanics batch, beside the damage ends in the same receipt. Only the single-target action path (`nativeEncounterRules`) consumes it today; the area, legendary, movement-reaction and turn-resource paths do not.
+SPELLS-33.T4c adds `{ event: 'INCAPACITATED', of: 'SOURCE' }` (Knight Leadership): the effect ends on every holder when its Encounter source is incapacitated or defeated, which is the source's Concentration end reason, not the holder's `ON_INCAPACITATED` event. `grantsEndedBySourceState` selects the grants (`sourceBoundGrants` lists the candidates). `planNativeConcentration` plans them beside the holder-state ends in `endedGrants`, from each changed actor's reason, so they commit with the source's incapacitation under the same revert fence. `persistEncounterConcentrationChildren` re-derives the source's reason from committed state, refuses a sent grant it does not end, and, when a damaged source's grant end was sent, refuses a commit that omits another holder's grant of that source. No index answers "which grants did this actor apply", so the scan of holders runs only then; a fan-out that sends nothing is the planner's contract (`nativeEncounterConcentration` tests), not a persistence read on every damage commit. The trigger needs an Encounter origin with a source actor.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
 where movement targets and Cleaving facts are built. A fixed `SKILL_MODIFIER` grant (Pass without
 Trace's +10 Stealth) raises that skill's stat block total through `withCreatureActiveGrantSkillTotal`,
@@ -1842,6 +1848,19 @@ D154's highest-of terrain, zones and passage applies. A passage through blocking
 the server from the same prepared targets, and the room's Scene read model marks the token
 `passesBlockingBarriers` from the same resolved passage (`roomSceneVision`) so the client's drag
 validation (`sceneTokenMovementIndex`) cannot drift from it.
+
+**Spell school immunity and checks against the holder (current, SPELLS-33.T6m1).** Two authored `ADD_OPTION`
+modifier grants. `SPELL_SCHOOL_IMMUNITY` (`magicSchoolId`) folds into `spellSchoolImmunityIds`, a required
+field of the folded target protection: a Character's from its rule policy (`characterDefenses`), a Creature's
+from its feature grants and its active effects (`withCreatureActiveGrantProtection`). A Character's spell
+cast carries the school of each spell it can cast (`CharacterSpellCastActions.magicSchoolIdBySpellId`), and
+`encounterSpellSchoolImmunity` compares it with the target's. An area action leaves an immune creature out
+with the creature-type exclusions (caught, no save, "was unaffected" in the GM's line); the other creatures
+resolve. One target or a list of chosen creatures that includes an immune one is refused, like a source
+immunity. A Creature's spell actions carry no school and are not gated. `CHECKS_AGAINST_HOLDER` (`skillId`)
+folds into a Creature's feature modifiers and lists beneficially on the holder; it implies disadvantage on
+the named skill's checks made against the holder, and is not enforced, since a check has no subject. The
+Gynosphinx and Androsphinx Inscrutable and Mind Blank's divination clause are authored with them.
 
 **Creature passive save grants (current, SPELLS-33.T3a2).** A Creature feature's condition-scoped
 `SAVING_THROW_MODIFIER` advantage or disadvantage grant is authored with the Character option and accepted by the

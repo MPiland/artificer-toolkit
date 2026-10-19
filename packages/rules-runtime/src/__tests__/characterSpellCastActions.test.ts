@@ -2081,7 +2081,8 @@ describe('a day-long grant (SPELLS-4.T2a3, D156)', () => {
       modifierGrantContribution: {
         modifiers: [
           { valueDomainCode: 'DAMAGE_IMMUNITY' },
-          { valueDomainCode: 'CONDITION_IMMUNITY' }
+          { valueDomainCode: 'CONDITION_IMMUNITY' },
+          { valueDomainCode: 'SPELL_SCHOOL_IMMUNITY' }
         ]
       }
     })

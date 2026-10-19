@@ -1,4 +1,5 @@
 import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -7,6 +8,8 @@ import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-
 import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import {
   grantsEndedByHolderState,
+  grantsEndedBySourceState,
+  sourceBoundGrants,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { dnd5eAbilityCode } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
@@ -177,7 +180,30 @@ export async function persistEncounterConcentrationChildren(
     ))
       spentDice.add(die.id)
   }
-  // The grants the holder's state ends must be stored as sent and be ones the committed state ends.
+  // The committed reason an actor that applied a grant can't act, read once.
+  const sourceReasons = new Map<string, Awaited<ReturnType<typeof readHolderEndState>>['reason']>()
+  async function readSourceReason(sourceActorId: string) {
+    const cached = sourceReasons.get(sourceActorId)
+    if (cached !== undefined) return cached
+    const source = actors.find((actor) => actor.id === sourceActorId)
+    const reason = source
+      ? (await readHolderEndState(ctx, { state, actor: source, userId: args.userId })).reason
+      : null
+    sourceReasons.set(sourceActorId, reason)
+    return reason
+  }
+  // The Encounter actor that applied a source-bound grant; any other grant doesn't follow one.
+  const sourceActorOf = (grant: ActiveRuleEffectRecord) =>
+    sourceBoundGrants([grant]).length > 0 && grant.definition.origin.kind === 'ENCOUNTER'
+      ? (grant.definition.origin.sourceActorId ?? null)
+      : null
+  async function endedBySourceState(grant: ActiveRuleEffectRecord) {
+    const sourceActorId = sourceActorOf(grant)
+    if (sourceActorId === null) return false
+    await readSourceReason(sourceActorId)
+    return grantsEndedBySourceState([grant], sourceReasons).length > 0
+  }
+  // The grants the holder's or source's state ends must be stored as sent and be ones the committed state ends.
   for (const grant of args.endedGrants) {
     const stored = await store.findById(grant.owner, grant.id)
     const holder = actors.find(
@@ -192,7 +218,9 @@ export async function persistEncounterConcentrationChildren(
       !stored ||
       checksumCanonicalJson(stored) !== checksumCanonicalJson(grant) ||
       !holderState ||
-      (!spentDice.has(grant.id) && !grantsEndedByHolderState([stored], holderState).length)
+      (!spentDice.has(grant.id) &&
+        !grantsEndedByHolderState([stored], holderState).length &&
+        !(await endedBySourceState(stored)))
     )
       throw new Error('Live Session grant end is unexpected.')
   }
@@ -213,6 +241,23 @@ export async function persistEncounterConcentrationChildren(
       if (grantsEndedByHolderState(stateBound, holderState).some(({ id }) => !sent.has(id)))
         throw new Error('Live Session grant end is missing.')
     }
+    // A damaged source whose grant end was sent can't act, so it ends every grant it applied, on
+    // whichever actor holds them. No index answers "which grants did this actor apply", so only
+    // such a source pays for a scan of the Encounter's holders.
+    const endedSources = new Set(
+      args.endedGrants.flatMap((grant) => {
+        const sourceActorId = sourceActorOf(grant)
+        return sourceActorId !== null && args.damagedActorIds.has(sourceActorId)
+          ? [sourceActorId]
+          : []
+      })
+    )
+    if (endedSources.size)
+      for (const holder of actors) {
+        const held = sourceBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
+        if (grantsEndedBySourceState(held, sourceReasons).some(({ id }) => !sent.has(id)))
+          throw new Error('Live Session grant end is missing.')
+      }
   }
   for (const { end, slot, holder } of ends) {
     actors = await callbacks.applyCleanup({

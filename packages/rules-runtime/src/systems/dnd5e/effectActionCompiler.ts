@@ -2633,6 +2633,7 @@ function modifierGrantEntryPlan(input: {
     turnAnchor,
     consumeOnFirstEvents = [],
     endOnEvents = [],
+    endOnTriggers = [],
     endOnConditionIds = [],
     holderEnd = null,
     fromSourceOnly = false,
@@ -2676,6 +2677,7 @@ function modifierGrantEntryPlan(input: {
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
+    endOnTriggers.some(({ event }) => event !== 'INCAPACITATED') ||
     !UUID.test(entry.entryId)
   )
     return null
@@ -2683,6 +2685,9 @@ function modifierGrantEntryPlan(input: {
     authoredEffectId: action.effectId,
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'modifier-grant',
+    ...(endOnTriggers.length > 0 && {
+      lifecycle: { endOnTriggers: canonicalEndTriggers(endOnTriggers) }
+    }),
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: untilEndEvent ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
@@ -9650,9 +9655,14 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
       }
     })
   }
-  // A TEST whose every outcome its active-effect plan carries (a creature form or a timed grant
-  // after a failed save) selects no OUTCOME graph: the plan runs from the TEST's result path.
-  if (outcomes.length === 0 && creatureFormPlan(action) === null && saveGrantPlan(action) === null)
+  // A TEST whose every outcome its active-effect plan carries (a creature form, or a timed grant
+  // after a failed save or on an attack's hit) selects no OUTCOME graph: the plan runs from the
+  // TEST's result path.
+  if (
+    outcomes.length === 0 &&
+    creatureFormPlan(action) === null &&
+    modifierGrantPlan(action) === null
+  )
     unsupported('D&D test action has no specialized outcome path.')
   return outcomes
 }

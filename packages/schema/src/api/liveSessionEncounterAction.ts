@@ -369,6 +369,8 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
    */
   rollsPerTarget: boolean
   area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
+  /** The caught creatures the action had no effect on, which took no save. */
+  unaffectedActorIds: string[]
   /** The GM removal that left the area settled, when it rather than an answer committed it. */
   removal: RemoveAreaTargetInputDto | null
   /**
@@ -402,6 +404,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       rollsPerTarget: z.boolean(),
       area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
+      unaffectedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       removal: z.nullable(removeAreaTargetInputDtoSchema),
       placedZones: z.array(liveSessionPlacedSpatialEffectSchema).check(z.maxLength(5)),
       zoneSourceGrant: z.nullable(activeRuleEffectRecordSchema),

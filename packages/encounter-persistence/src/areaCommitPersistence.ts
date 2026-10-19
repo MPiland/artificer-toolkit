@@ -249,7 +249,7 @@ export async function persistEncounterAreaCommit(
       targets: reachedActorIds.map((actorId) => ({ actorId, perceivedByCaster: true })),
       caughtChecksum: encounterChosenActorsChecksum(reachedActorIds),
       removedActorIds: [],
-      unaffectedActorIds: [],
+      unaffectedActorIds: input.unaffectedActorIds,
       zoneSceneId: null
     }
   } else {

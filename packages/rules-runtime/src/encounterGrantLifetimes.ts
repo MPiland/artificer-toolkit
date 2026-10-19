@@ -175,6 +175,39 @@ export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
   })
 }
 
+/** Grants that end when the Encounter actor that applied them is incapacitated or defeated. */
+export function sourceBoundGrants<Effect extends ActiveRuleEffectRecord>(
+  effects: readonly Effect[]
+) {
+  return effects.filter(
+    (effect) =>
+      isModifierGrant(effect) &&
+      effect.definition.schemaVersion === 2 &&
+      effect.definition.origin.kind === 'ENCOUNTER' &&
+      effect.definition.recurrence.endOnTriggers.some(
+        (trigger) => trigger.event === 'INCAPACITATED' && trigger.of === 'SOURCE'
+      )
+  )
+}
+
+/**
+ * The grants, held by any actor, that their source's committed state ends: those with an
+ * `INCAPACITATED` end trigger of `SOURCE` whose source is incapacitated or defeated. `sourceReasons`
+ * maps an actor id to why its Concentration would end now (see `encounterConcentrationEndReason`);
+ * a source it does not name is unchanged and ends nothing.
+ */
+export function grantsEndedBySourceState<Effect extends ActiveRuleEffectRecord>(
+  effects: readonly Effect[],
+  sourceReasons: ReadonlyMap<string, Exclude<ConcentrationEndReason, 'CHOSEN'> | null>
+) {
+  return sourceBoundGrants(effects).filter(({ definition }) => {
+    const sourceActorId =
+      definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
+    const reason = sourceActorId === null ? null : sourceReasons.get(sourceActorId)
+    return reason === 'INCAPACITATED' || reason === 'DEFEATED'
+  })
+}
+
 /**
  * The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied
  * it. A source-anchored grant carried in from an earlier Run has no source here, so its holder

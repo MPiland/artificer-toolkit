@@ -56,6 +56,7 @@ import {
   SRD_DAMAGE_TYPES,
   SRD_DARKVISION_SENSE_ID,
   SRD_LANGUAGES,
+  SRD_MAGIC_SCHOOLS,
   SRD_SKILLS,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
@@ -280,6 +281,43 @@ export function advantageGrants(
       id: grantId(creatureIndex, firstLocalIndex + order),
       order
     }))
+  }
+}
+
+/**
+ * A sphinx's Inscrutable: immunity to divination spells, and disadvantage on Wisdom (Insight) checks
+ * made to read it. The grants take the IDs `grantId(creatureIndex, firstLocalIndex)` onward.
+ */
+export function inscrutableGrants(
+  creatureIndex: number,
+  firstLocalIndex: number
+): NonNullable<FeatureAuthored['grants']> {
+  const common = {
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    modifierKind: MODIFIER_KIND.ADD_OPTION,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    domain: {}
+  } as const
+  return {
+    modifiers: [
+      {
+        ...common,
+        id: grantId(creatureIndex, firstLocalIndex),
+        valueDomainCode: VALUE_DOMAIN_CODE.SPELL_SCHOOL_IMMUNITY,
+        payload: {
+          magicSchoolId: magicSchoolId('DIVINATION')
+        },
+        order: 0
+      },
+      {
+        ...common,
+        id: grantId(creatureIndex, firstLocalIndex + 1),
+        valueDomainCode: VALUE_DOMAIN_CODE.CHECKS_AGAINST_HOLDER,
+        payload: { skillId: skillId('INSIGHT') },
+        order: 1
+      }
+    ]
   }
 }
 
@@ -683,6 +721,12 @@ export function sneakAttackEffects(
       ]
     }
   })
+}
+
+function magicSchoolId(code: string) {
+  const entry = SRD_MAGIC_SCHOOLS.find((school) => school.code === code)
+  if (!entry) throw new Error(`SRD magic school vocabulary entry for ${code} required.`)
+  return entry.id
 }
 
 export function skillId(code: string) {

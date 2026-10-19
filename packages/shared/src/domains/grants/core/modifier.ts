@@ -359,6 +359,10 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   CONDITION_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
+  SPELL_SCHOOL_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+
+  CHECKS_AGAINST_HOLDER: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+
   ATTRIBUTE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION]
 } as const satisfies Record<ValueDomainCode, readonly ModifierKind[]>
 
@@ -382,6 +386,10 @@ export type ModifierValueDomainOptionPayloadByDomain = {
   CONDITION: { conditionTypeId: string }
 
   CONDITION_IMMUNITY: { conditionTypeId: string }
+
+  SPELL_SCHOOL_IMMUNITY: { magicSchoolId: string }
+
+  CHECKS_AGAINST_HOLDER: { skillId: string }
 
   ATTRIBUTE: { attributeId: string }
 
