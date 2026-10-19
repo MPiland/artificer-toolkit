@@ -8169,7 +8169,7 @@
             },
             {
               "id": "SPELLS-4.T2c3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8179,7 +8179,7 @@
                 "after": ["SPELLS-4.T2c1"]
               },
               "text": "MINIMUM_ROLL d20 floor option (Reliable Talent can reuse it); converts GLIBNESS (truth clause stays description-only). Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m180 (d6a457d34)."
             },
             {
               "status": "DONE",
@@ -11827,7 +11827,7 @@
             },
             {
               "id": "SPELLS-33.T4de",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11837,7 +11837,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2d", "SPELLS-4.T2e"]
               },
               "text": "Invisible Stalker Invisibility, Magic Weapons (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Re-scored 1->3 (2026-10-19 ruling): Magic Weapons wires the creature ATTACK_TRAIT reader through the shared modifier path; Invisibility adds an innate-condition CONDITION option read through one effective-conditions accessor.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m182 (4376f9d46)."
             },
             {
               "id": "SPELLS-33.T4gh",
@@ -11880,6 +11880,20 @@
             },
             {
               "id": "SPELLS-33.T4k",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2k"]
+              },
+              "text": "four Parry reactions (4 kinds), part 1: generic creature reaction discovery on the Character pin/choice path (GM decides for creatures), ATTACKED_SELF qualifiers attackRange MELEE and requiresSight (existing perception seam), the AC bonus on Shield's one-attack ARMOR_CLASS BONUS with per-creature amounts; parity proof per kind, a room journey (parried hit becomes a miss; ranged and unseen attackers not offered), each kind deleted (2026-10-19 ruling; T4k2 has Heated Body; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T4k2",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -11887,9 +11901,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2k"]
+                "after": ["SPELLS-33.T4k"]
               },
-              "text": "four Parry reactions, Remorhaz Heated Body (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: Remorhaz Heated Body (1 kind): a passive creature melee-retaliation trait with no zone, reusing selectMeleeRetaliationContacts, planEncounterMeleeRetaliation and T6e4's damage-ends seam; melee hit within 5 ft only (touch contact deferred); parity proof, kind deleted (2026-10-19 split; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T4l1",

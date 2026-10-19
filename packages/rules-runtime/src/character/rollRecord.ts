@@ -1,8 +1,9 @@
 import { rollRecordDtoSchema, type RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
-import { withAddedDiceTerms } from '../encounterRuleCheckRolls.js'
+import { withAddedDiceTerms, withMinimumRoll } from '../encounterRuleCheckRolls.js'
 
 /**
  * The retained record of one Campaign or Character roll, shared by Convex and the live room. The
@@ -20,16 +21,13 @@ export function createRollRecord(input: {
   }
   /** Dice the roll adds beside its d20, rolled after advantage keeps one (D156). */
   addedDice?: readonly D20AddedDieDto[]
+  /** The floor on the d20 the roll keeps (Glibness); the record raises a lower face to it. */
+  minimumRoll?: D20MinimumRollDto
   nextInt: (maxExclusive: number) => number
 }) {
   const { system, resolved } = input
-  return rollRecordDtoSchema.parse({
-    id: crypto.randomUUID(),
-    characterId: input.characterId,
-    characterLabel: input.label,
-    source: resolved.source,
-    ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
-    ...withAddedDiceTerms(
+  const { evaluated, ruleCheck } = withMinimumRoll(
+    withAddedDiceTerms(
       evaluateRollExpression(
         parseRollExpression(resolved.expression),
         { nextInt: input.nextInt },
@@ -40,6 +38,16 @@ export function createRollRecord(input: {
         rolledFaces: Array.from({ length: die.count }, () => input.nextInt(die.faces) + 1)
       }))
     ),
+    input.minimumRoll
+  )
+  return rollRecordDtoSchema.parse({
+    id: crypto.randomUUID(),
+    characterId: input.characterId,
+    characterLabel: input.label,
+    source: resolved.source,
+    ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+    ...evaluated,
+    ...(ruleCheck && { ruleCheck }),
     createdAt: new Date().toISOString()
   })
 }

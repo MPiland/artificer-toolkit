@@ -5,6 +5,7 @@ import {
   AUTHORING_SELECTION_KIND,
   CHARGE_RESET_KIND,
   CLOSED_RULE_KIND,
+  DAMAGE_DEFENSE_BYPASS_CODE,
   type AbilityCode,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -316,6 +317,50 @@ export function inscrutableGrants(
         valueDomainCode: VALUE_DOMAIN_CODE.CHECKS_AGAINST_HOLDER,
         payload: { skillId: skillId('INSIGHT') },
         order: 1
+      }
+    ]
+  }
+}
+
+/** A feature that makes all the Creature's attacks magical (Magic Weapons): one ATTACK_TRAIT grant. */
+export function magicWeaponsGrants(
+  creatureIndex: number,
+  localIndex: number
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: [
+      {
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        modifierKind: MODIFIER_KIND.ENABLE,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        id: grantId(creatureIndex, localIndex),
+        valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+        domain: { trait: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL },
+        order: 0
+      }
+    ]
+  }
+}
+
+/** A feature that gives the Creature a condition it always has (Invisible Stalker's Invisibility). */
+export function innateConditionGrants(
+  creatureIndex: number,
+  localIndex: number,
+  conditionCode: SrdConditionCode
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: [
+      {
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        modifierKind: MODIFIER_KIND.ADD_OPTION,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        id: grantId(creatureIndex, localIndex),
+        valueDomainCode: VALUE_DOMAIN_CODE.CONDITION,
+        domain: {},
+        payload: { conditionTypeId: vocabularyId(SRD_CONDITION_TYPES, conditionCode) },
+        order: 0
       }
     ]
   }

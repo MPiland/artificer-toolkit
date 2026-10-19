@@ -2,6 +2,7 @@ import type { LiveSessionEncounterEscapeResponseCommitInput } from '@artificer-t
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { settledCheckD20MatchesFrozen } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { basicActionCheckRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { findStoredEscape } from './escapeEffectVerification.js'
 import { endEncounterEscapedEffect } from './escapedEffectEndPersistence.js'
@@ -54,10 +55,7 @@ export async function settleEncounterEscapeCheck(
     output.activeEffectId !== context.activeEffectId ||
     output.check.checkDefinitionId !== context.check.checkDefinitionId ||
     output.check.dc !== context.check.dc ||
-    output.d20.modifier !== context.d20.modifier ||
-    output.d20.derivedRollMode !== context.d20.rollMode ||
-    output.d20.contributorChecksum !== context.d20.contributorChecksum ||
-    output.d20.total !== output.d20.selectedNatural + context.d20.modifier
+    !settledCheckD20MatchesFrozen(output.d20, context.d20)
   )
     throw new Error('Live Session escape check scope mismatch.')
   const stillHeld =

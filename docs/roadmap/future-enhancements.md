@@ -87,12 +87,15 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Parry and Heated Body (SPELLS-33.T4k, T4k2):** Parry is offered without checking that the creature wields a melee weapon (a disarmed parrier still parries), and Heated Body triggers on melee hits only, not on a creature touching or grappling the Remorhaz. Both are rare; the GM can decline the reaction or apply the damage by hand.
+
 - **Movement-contact damage (SPELLS-33.T6e4, T6e3b):** damage a creature takes from a zone it moves or is moved into (`encounterSpatialMovementPreparation`, `encounterMovementActionResponse`) does not end its "until it takes damage" effects or create damage-triggered grants; the turn-zone and melee-retaliation roots do. An until-damaged holder being moved into a damaging zone is rare, and the GM can end the effect by hand.
 
 - **Bound-item spells (D156, SPELLS-4.T2e):** Shillelagh recast on a new club does not end the first; a Magic Weapon handed to another creature keeps its bonus with the creature it was cast on; a fire-immune creature still gets Heat Metal's disadvantage; unattended objects can't be chosen; Shillelagh on an off-hand club is not modeled apart from the main hand; a Sheet-side unequip ends a bound grant only at the next Encounter action; a Creature can't bind a grant to an item. Each is rare, and the GM can end or adjust the effect by hand.
 - **Magic Weapon's Concentration (SPELLS-4.T2e):** the SRD data for Magic Weapon carries no Concentration attribute, so casting it does not start or break Concentration. Fixing the source data is a corpus change outside T2e; the GM tracks it by hand until then.
 - **Creature bound-item casts (SPELLS-4.T2e):** a Creature acting with a bound-grant action is offered no items (Creatures have no chosen-item loadout yet), and its missing-item refusal reads UNAVAILABLE because its plan is known only after its roll. Creature casters of these spells are rare in the SRD; the GM applies the effect by hand.
 - **Bonus-die spends outside saves (SPELLS-4.T2c2b):** an attack-roll die is spent without narrowing by attack domain. Contests roll no held dice and spend none, and a cast-reaction check carries no dice. All three are rare, and the GM adds the die by hand.
+- **d20 floor outside ability checks (SPELLS-4.T2c3):** Glibness's `MINIMUM_ROLL` floors the d20 of Sheet and Encounter ability checks only. Contests, saving throws, attack rolls and cast-reaction checks carry no floor, and no authored spell asks for one. All are rare, and the GM raises the roll by hand.
 - **Knight Leadership limits (SPELLS-33.T4c):** a creature can benefit from only one Leadership die at a time (a second Knight's die stacks), and the die is not limited to creatures that can hear and understand the Knight. Leadership is a Bless-style grant on chosen willing creatures within 30 feet when used, ended by the Knight's incapacitation.
 - **Added damage dice on other attack paths (D156, SPELLS-4.T2d):** ON_HIT bonus dice (Divine Favor, Hex, Hunter's Mark, Enlarge) are consumed and added only on the single-target attack path. Early-return branches add no dice, and Reduce's d4 penalty floors damage at 0 rather than 1. Multi-target attack actions with an active rider are uncommon, and the GM adds the die by hand.
 - **Passage edge cases (SPELLS-33.T6k1):** a creature that ends its turn inside an object (Incorporeal Movement) takes no 1d10 force damage, so the GM applies it. The Tiny creature and two-sizes-apart crossings wait on Q26. The drag-route label doesn't show the passage multiplier.
@@ -477,3 +480,7 @@ lifecycle and Encounter Blueprint model are accepted.
 - Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
 - **Creature forms, later pieces (SPELLS-28):** the form's defenses, speeds, senses and proficiency merge (rest of T4d), a per-form authorable retained-ability set (Polymorph replaces mental scores), object forms, True Polymorph permanence and Shapechange re-form.
 - Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.
+
+- **Innate conditions on Character actors in the Encounter list (SPELLS-33.T4de).** A Character's innate
+  condition (a custom feature's `CONDITION` option) is read by every rule through `heldConditionIds`, but
+  the Encounter projection appends innate rows for Creature actors only; a Character's shows on its Sheet.

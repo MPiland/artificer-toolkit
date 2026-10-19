@@ -1,3 +1,8 @@
+import {
+  dnd5eAttackTraitGrants,
+  type Dnd5eAttackTraitGrant
+} from './systems/dnd5e/attackDamageDefenses.js'
+import { dnd5eAcceptedModifierApplicability } from './systems/dnd5e/modifierApplicability.js'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
@@ -17,6 +22,7 @@ import {
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
   withCreatureActiveGrantArmorClass,
+  creatureInnateConditionIds,
   withCreatureActiveGrantProtection,
   withCreatureActiveGrantSaves,
   encounterSavingThrowAddedDice
@@ -38,6 +44,7 @@ import {
   scalarValuesDiffer
 } from './encounterScalarReductions.js'
 import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { innateConditionIds } from './encounterInnateConditions.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import {
   bindEncounterActorRuleOutputToFacts,
@@ -111,6 +118,10 @@ export type MovementTarget<
   /** Defenses that apply only to attacks without their bypassing traits. */
   qualifiedDefenses: readonly Dnd5eQualifiedDamageDefense[]
   conditionImmunityIds: readonly string[]
+  /** Conditions the actor always has (see `heldConditionIds`); `state.conditions` holds only those applied to it. */
+  innateConditionIds: readonly string[]
+  /** The actor's accepted grant-fold modifiers: a Character's fold, a Creature's feature grants. */
+  attackTraitGrants: readonly Dnd5eAttackTraitGrant[]
   /** Magic schools whose spells have no effect on the actor. */
   spellSchoolImmunityIds: readonly string[]
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
@@ -476,6 +487,11 @@ export function buildMovementTarget<
       defenses: effectiveRulePolicyOutput.defenses,
       qualifiedDefenses: [],
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+      attackTraitGrants: dnd5eAttackTraitGrants(
+        effectiveRulePolicyOutput.grantFold.modifiers,
+        dnd5eAcceptedModifierApplicability
+      ),
+      innateConditionIds: innateConditionIds(effectiveRulePolicyOutput.grantFold.modifiers),
       spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds,
       attackAgainstContributors: [],
       sourceSightSaves: [],
@@ -554,6 +570,11 @@ export function buildMovementTarget<
     defenses: targetProtection.defenses,
     qualifiedDefenses: targetProtection.qualifiedDefenses,
     conditionImmunityIds: targetProtection.conditionImmunityIds,
+    attackTraitGrants: dnd5eAttackTraitGrants(
+      creatureFacts?.modifiers ?? [],
+      dnd5eAcceptedModifierApplicability
+    ),
+    innateConditionIds: creatureInnateConditionIds(activeEffects, creatureFacts?.modifiers ?? []),
     spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,
     attackAgainstContributors: [],
     sourceSightSaves: [],

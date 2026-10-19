@@ -5,7 +5,11 @@ import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 import { savingThrowSpentEffects } from '../encounterEndedEffectRelease.js'
 import { effectsEndedBy } from '../encounterGrantLifetimes.js'
-import { activeAbilityCheckDice, activeSavingThrowDice } from './activeEffectGrantTotals.js'
+import {
+  activeAbilityCheckDice,
+  activeAbilityCheckMinimumRoll,
+  activeSavingThrowDice
+} from './activeEffectGrantTotals.js'
 
 type ResolvedRoll = {
   expression: string
@@ -182,14 +186,16 @@ export function carriedTestDice(
   activeEffects: readonly ActiveRuleEffectRecord[]
 ) {
   const { abilityCode } = resolved
-  if (abilityCode === undefined) return { addedDice: [], spent: [] }
+  if (abilityCode === undefined) return { addedDice: [], spent: [], minimumRoll: null }
   if (resolved.source.kind === 'SAVING_THROW')
     return {
       addedDice: activeSavingThrowDice(activeEffects, abilityCode),
-      spent: savingThrowSpentEffects(activeEffects, abilityCode)
+      spent: savingThrowSpentEffects(activeEffects, abilityCode),
+      minimumRoll: null
     }
   return {
     addedDice: activeAbilityCheckDice(activeEffects, abilityCode),
-    spent: effectsEndedBy(activeEffects, { event: 'ON_ABILITY_CHECK', abilityCode })
+    spent: effectsEndedBy(activeEffects, { event: 'ON_ABILITY_CHECK', abilityCode }),
+    minimumRoll: activeAbilityCheckMinimumRoll(activeEffects, abilityCode)
   }
 }
