@@ -6403,8 +6403,9 @@
             {
               "id": "ATTACK-7.T7",
               "text": "Slice G: drag at double movement cost unless two or more sizes smaller; blocked destinations refused; no opportunity attacks.",
-              "status": "TODO",
-              "closes": ["ATTACK-7.5"]
+              "status": "DONE",
+              "closes": ["ATTACK-7.5"],
+              "note": "Merged m144 (ca268807d)."
             },
             {
               "id": "ATTACK-7.T7b",
