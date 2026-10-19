@@ -1,5 +1,6 @@
 import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
 
+import type { CharacterGrantFoldModifier } from '../api/characterGrantFoldRules.js'
 import { z, lazySchema } from '../zod.js'
 
 /** The natural d20 that scores a critical hit when no source lowers it. */
@@ -24,12 +25,25 @@ export type AttackCriticalRulesDto = z.infer<typeof attackCriticalRulesDtoSchema
 
 /**
  * The critical rules of the grants that apply to an attack: the lowest threshold wins and extra
- * dice add. `thresholds` and `extraDice` are the amounts those grants carry.
+ * dice add. The caller passes only the modifiers that apply, by its own rule (a Character's
+ * applicability, a Creature's active effects); this reads the two critical domains from them.
  */
 export function attackCriticalRules(
-  thresholds: readonly number[],
-  extraDice: readonly number[]
+  applying: readonly Pick<CharacterGrantFoldModifier, 'valueDomainCode' | 'payload'>[]
 ): AttackCriticalRulesDto {
+  const thresholds = applying.flatMap(({ valueDomainCode, payload }) =>
+    valueDomainCode === 'CRITICAL_HIT_THRESHOLD' && payload !== undefined && 'amount' in payload
+      ? [payload.amount]
+      : []
+  )
+  const extraDice = applying.flatMap(({ valueDomainCode, payload }) =>
+    valueDomainCode === 'CRITICAL_EXTRA_DICE' &&
+    payload !== undefined &&
+    'valueKind' in payload &&
+    payload.valueKind === 'FIXED'
+      ? [payload.amount]
+      : []
+  )
   return {
     threshold: Math.min(DEFAULT_CRITICAL_HIT_THRESHOLD, ...thresholds),
     extraDice: extraDice.reduce((sum, amount) => sum + amount, 0)

@@ -26,18 +26,5 @@ export function dnd5eAttackCriticalRules(
       modifier.domain.attackDomain === attackKind &&
       dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
   )
-  const thresholds = applying.flatMap(({ valueDomainCode, payload }) =>
-    valueDomainCode === 'CRITICAL_HIT_THRESHOLD' && payload !== undefined && 'amount' in payload
-      ? [payload.amount]
-      : []
-  )
-  const extraDice = applying.flatMap(({ valueDomainCode, payload }) =>
-    valueDomainCode === 'CRITICAL_EXTRA_DICE' &&
-    payload !== undefined &&
-    'valueKind' in payload &&
-    payload.valueKind === 'FIXED'
-      ? [payload.amount]
-      : []
-  )
-  return attackCriticalRules(thresholds, extraDice)
+  return attackCriticalRules(applying)
 }

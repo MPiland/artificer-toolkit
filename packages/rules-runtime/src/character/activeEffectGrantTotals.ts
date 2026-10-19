@@ -308,21 +308,7 @@ export function activeAttackCriticalRules(
     .filter(
       (modifier) => modifier.scope === 'GLOBAL' && modifier.domain.attackDomain === attackDomain
     )
-  return attackCriticalRules(
-    applying.flatMap(({ valueDomainCode, payload }) =>
-      valueDomainCode === 'CRITICAL_HIT_THRESHOLD' && payload !== undefined && 'amount' in payload
-        ? [payload.amount]
-        : []
-    ),
-    applying.flatMap(({ valueDomainCode, payload }) =>
-      valueDomainCode === 'CRITICAL_EXTRA_DICE' &&
-      payload !== undefined &&
-      'valueKind' in payload &&
-      payload.valueKind === 'FIXED'
-        ? [payload.amount]
-        : []
-    )
-  )
+  return attackCriticalRules(applying)
 }
 
 /**
