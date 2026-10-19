@@ -83,7 +83,8 @@ export async function setupReactionMovementScene<
     hidden: false,
     locked: false,
     label: index === 1 ? 'Mover' : `Reactor ${index + 1}`,
-    position: { x, y: 50 },
+    // A reactor ahead of the mover stands one cell off its path, which the mover may not walk through.
+    position: { x, y: index !== 1 && x > 150 ? 150 : 50 },
     rotationDegrees: 0,
     senses: [],
     vision: null

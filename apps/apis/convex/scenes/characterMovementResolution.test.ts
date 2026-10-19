@@ -351,7 +351,8 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
           : index === 1 && futurePlayer
             ? 'Future Character reactor'
             : 'GM mover',
-      position: { x, y: 50 },
+      // The future reactor stands one cell off the mover's path, which the mover may not walk through.
+      position: { x, y: x === 250 ? 150 : 50 },
       rotationDegrees: 0,
       senses: [],
       vision: null
