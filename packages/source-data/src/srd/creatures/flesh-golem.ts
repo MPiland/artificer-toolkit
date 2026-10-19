@@ -59,16 +59,22 @@ export const fleshGolem: CreatureAuthored = {
       description:
         'Aversion of Fire. If the golem takes fire damage, it has disadvantage on attack rolls and ability checks until the end of its next turn.',
       effects: [
-        S.closedRuleEffect({
-          id: S.actionId(103, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(103, 1202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FLESH_GOLEM_AVERSION_OF_FIRE
-        })
+        S.incomingDamageGrantEffect(
+          S.actionId(103, 202),
+          ['FIRE'],
+          [
+            ...Object.values(S.ATTACK_DOMAIN_CODE).map((attackDomain) => ({
+              valueDomainCode: S.VALUE_DOMAIN_CODE.ATTACK_ROLL,
+              domain: { attackDomain },
+              modifierKind: S.MODIFIER_KIND.DISADVANTAGE
+            })),
+            {
+              valueDomainCode: S.VALUE_DOMAIN_CODE.ABILITY_CHECK,
+              domain: {},
+              modifierKind: S.MODIFIER_KIND.DISADVANTAGE
+            }
+          ]
+        )
       ],
       order: 2
     },
