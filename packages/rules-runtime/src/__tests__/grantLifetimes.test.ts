@@ -20,6 +20,7 @@ import { conditionTypeId } from '@artificer-toolkit/source-data/srd/equipment/sh
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { colorSpray } from '@artificer-toolkit/source-data/srd/spells/color-spray.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
+import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
@@ -870,6 +871,65 @@ describe('effectsEndedBy', () => {
     expect(
       effectsEndedBy([plain, check, both, attackOnly], 'ON_ABILITY_CHECK').map(({ id }) => id)
     ).toEqual([check.id, both.id])
+  })
+})
+
+describe('effectsEndedBy for an ability check (D156)', () => {
+  /** The real Guidance effect, its die limited to one ability when `ability` is given. */
+  function dieEffect(spell: SpellAuthored, ability?: 'STRENGTH') {
+    const effect = structuredClone(onlyEffect(spell.effects))
+    for (const path of effect.paths)
+      if (path.selectionKind === 'FIXED')
+        for (const outcome of path.resultBlock.outcomes)
+          if (outcome.effectKind === 'APPLY_GRANT' && ability)
+            for (const modifier of outcome.grants.modifiers ?? []) modifier.domain = { ability }
+    return effect
+  }
+  const heldDie = (id: number, spell: SpellAuthored, ability?: 'STRENGTH') =>
+    grantRecord(
+      storedGrant({
+        lifecycle: {},
+        currentActorId: null,
+        effect: dieEffect(spell, ability)
+      }),
+      { id, holderId: TARGET_ID }
+    )
+  const idsOf = (effects: readonly ActiveRuleEffectRecord[]) => effects.map(({ id }) => id)
+
+  it('spends a die on any ability check when it names no ability', () => {
+    const die = heldDie(0xc360, guidance)
+    for (const abilityCode of ['STRENGTH', 'DEXTERITY'])
+      expect(idsOf(effectsEndedBy([die], { event: 'ON_ABILITY_CHECK', abilityCode }))).toEqual([
+        die.id
+      ])
+  })
+
+  it('does not spend a Strength die on a Dexterity check, but does on a Strength check', () => {
+    const die = heldDie(0xc361, guidance, 'STRENGTH')
+    expect(
+      idsOf(effectsEndedBy([die], { event: 'ON_ABILITY_CHECK', abilityCode: 'DEXTERITY' }))
+    ).toEqual([])
+    expect(
+      idsOf(effectsEndedBy([die], { event: 'ON_ABILITY_CHECK', abilityCode: 'STRENGTH' }))
+    ).toEqual([die.id])
+  })
+
+  it('does not spend a held die on a bare ability-check event', () => {
+    const die = heldDie(0xc362, guidance)
+    expect(idsOf(effectsEndedBy([die], 'ON_ABILITY_CHECK'))).toEqual([])
+  })
+
+  it('spends an effect with no grant in the test’s domain whenever it lists the event', () => {
+    const wholly = grantRecord(
+      storedGrant({
+        lifecycle: { consumeOnFirstEvents: ['ON_ABILITY_CHECK'] },
+        currentActorId: null
+      }),
+      { id: 0xc366, holderId: TARGET_ID }
+    )
+    expect(
+      idsOf(effectsEndedBy([wholly], { event: 'ON_ABILITY_CHECK', abilityCode: 'DEXTERITY' }))
+    ).toEqual([wholly.id])
   })
 })
 

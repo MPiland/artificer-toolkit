@@ -111,7 +111,7 @@ type RolledDieGrant = {
  */
 function activeRolledDieGrants(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER' | 'DAMAGE',
+  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER' | 'ABILITY_CHECK' | 'DAMAGE',
   applies: DomainFilter
 ): RolledDieGrant[] {
   const dice = new Map<string, RolledDieGrant>()
@@ -143,7 +143,7 @@ function activeRolledDieGrants(
 /** The dice a holder's active grants add to, or subtract from, one d20 test of a value domain. */
 function activeRolledDice(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER',
+  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER' | 'ABILITY_CHECK',
   applies: DomainFilter
 ): D20AddedDieDto[] {
   return activeRolledDieGrants(effects, valueDomainCode, applies).map(
@@ -227,6 +227,21 @@ export function activeSavingThrowDice(
   return activeRolledDice(
     effects,
     'SAVING_THROW_MODIFIER',
+    (domain) => domain.ability === undefined || domain.ability === abilityCode
+  )
+}
+
+/**
+ * The dice a holder's active grants add to its ability checks with one ability ("STRENGTH"), or to
+ * an ability-less check when `abilityCode` is null. A grant naming no ability covers every check.
+ */
+export function activeAbilityCheckDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityCode: string | null
+): D20AddedDieDto[] {
+  return activeRolledDice(
+    effects,
+    'ABILITY_CHECK',
     (domain) => domain.ability === undefined || domain.ability === abilityCode
   )
 }

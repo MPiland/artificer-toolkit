@@ -429,6 +429,22 @@ Open points for the ruling:
 4. Night Hag Etherealness moves from C to T4gh with Ghost Etherealness, because decision 256 recorded Succubus Etherealness as a mechanics follow-up rather than description-only. Ruling needed if planes stay out of scope (then all three are C).
 5. Flyby joins the opportunity-attack qualifier that SPELLS-31.T4k2 introduces instead of a new SPELLS-33 group.
 
+## T6k1: movement passage
+
+Done on `ci/spells-33-t6k1` (ruling: union combination, highest multiplier, combined with terrain and zones per D154).
+
+- New `MOVEMENT_PASSAGE` value domain and modifier payload (authorable from the modifier grant form).
+- Creature feature grants fold through the Character grant fold (holder kind `CREATURE`), stored as `ruleFacts.modifiers`.
+- Ghost, Specter, Wraith and Will-o'-Wisp Incorporeal Movement (`ANY`, may not end inside, passes barriers, ×2), Air and Water Form (`ANY`, may end inside, ×1) and Halfling Nimbleness (`LARGER_THAN_SELF`) are grants; their seven closed-rule kinds are deleted (D156). Will-o'-Wisp's 1d10 force effect is removed with its kind.
+- Gap 1 fixed: walking through a hostile creature with no passage and no offered contest is refused `MOVEMENT_BLOCKED` (regression test in `nativeMovementPlanning.test.ts`). Four `nativeMovementEvidence` fixtures walked through hostile reactors and now place them one cell off the path.
+- Barrier passage: the server checks barriers after preparing targets, from the mover's resolved passage; the read model marks the token `passesBlockingBarriers` from the same passage.
+
+### Deferred edge cases
+
+- The 1d10 force damage for ending a turn inside an object (Incorporeal Movement) stays in the description (Q2 ruling). Barrier crossings cost nothing extra.
+- A Tiny creature or one two sizes apart crossing a hostile creature is not yet allowed (Q4 gap 1 ruling); no size-difference relation exists.
+- The tabletop drag-route label prices zones from `movementCostZones` and does not show the passage multiplier inside a passed creature; the room charges it.
+
 ## T6j token light (implemented)
 
 No LIGHT_EMISSION kind: the MANIFEST OBJECT `light` (SOURCE attachment) that equipment torches and lanterns and the Light, Continual Flame and Prismatic Wall spells already author is the one home. The Nightmare and Will-o'-wisp author it (`shedLightEffect`), their two closed rule kinds are deleted, and passive creature light is composed onto tokens at runtime for D108 illumination and drawing (see [rules-runtime](../architecture/rules-runtime.md)). The wisp is fixed at bright 20 / dim 20 more (orchestrator ruling); no setter. Activated torches, lanterns and spell lights are still not consumed by the runtime. Proofs: `creatureLightAuthoringParity.test.ts`, `creatureLight.test.ts`, `turnCaptureTokenLights.test.ts`, the token-light cases in `vtt-scene-combat-perception.test.ts`, `vtt-scene.test.ts`, `vtt-scene-contracts.test.ts` and `nativeTurnEffectPerception.test.ts`.
@@ -436,6 +452,9 @@ No LIGHT_EMISSION kind: the MANIFEST OBJECT `light` (SOURCE attachment) that equ
 ## Status
 
 T1 classification and proposed split recorded; waiting on the orchestrator's ruling.
+
+**T3a6 (done on `ci/spells-33-t3a6`):** the two rows above are now CHOICE paths (Damage / Grapple); creature discovery and the drawer compile and offer the options through `compileCastChoicePlans`; both kinds are deleted. No-prompt flows take the first authored option.
+Deferred edge cases for the orchestrator to move at merge: "Grapple on an opportunity attack" (added to future-enhancements) and "Legendary cast pick (Vampire legendary Unarmed Strike grapple)": a Legendary use of a CHOICE action runs its first authored option because the `LEGENDARY_OPTION` command carries no pick; pinned in `creatureCastChoiceDiscovery.test.ts`.
 
 ### T7b: Deferred edge case
 

@@ -38,7 +38,7 @@ const modifierGrantDomain = buildNodeMap<ModifierDomain>()
 const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
   'modifierGrantDomain',
   ({ map, nodes, cond, data, logic }) => {
-    const { selectSingle, number, toggle } = nodes
+    const { selectSingle, selectMulti, number, toggle } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const { and, or } = logic
     const { table } = data
@@ -133,6 +133,21 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         toggle(['requiresHolderSeesAttacker'], 'Only Attackers The Holder Can See', {
           showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST')
         })
+      )
+      .set(
+        'exemptAttackerSenseDefinitionIds',
+        selectMulti(
+          ['exemptAttackerSenseDefinitionIds'],
+          'Attackers Seeing Through These Senses Are Unaffected',
+          {
+            kind: 'DATA',
+            relationship: table('senses', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
       )
       .set(
         'againstEffectSource',
@@ -255,7 +270,7 @@ const modifierPayload = buildNodeMap<ModifierPayload>()
 const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
   'modifierGrantPayload',
   ({ map, nodes, cond, data, logic }) => {
-    const { text, number, selectSingle, selectMulti, groupArray, groupObject } = nodes
+    const { text, number, toggle, selectSingle, selectMulti, groupArray, groupObject } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const local = cond.local()
     const { and, or, not } = logic
@@ -263,6 +278,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const isBonus = parent.field(['modifierKind']).eq('BONUS')
     const isPenalty = parent.field(['modifierKind']).eq('PENALTY')
     const isMultiply = parent.field(['modifierKind']).eq('MULTIPLY')
+    const isMovementPassage = parent.field(['valueDomainCode']).eq('MOVEMENT_PASSAGE')
     const isRolledDie = parent.field(['modifierKind']).eq('ADD_BONUS_DIE')
     const isDamageDie = and([parent.field(['valueDomainCode']).eq('DAMAGE'), isRolledDie])
     // A speed or sense range is a typed length, never a value source (D111); a fraction is not.
@@ -515,6 +531,50 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'movementModeId',
         text(['movementModeId'], 'Movement Mode ID', {
           showIf: parent.field(['valueDomainCode']).eq('MOVEMENT_MODE')
+        })
+      )
+      .set(
+        'creatures',
+        selectSingle(
+          ['creatures'],
+          'Hostile Creatures',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'NONE', label: 'None', description: 'Hostile creatures block the holder.' },
+              {
+                code: 'ANY',
+                label: 'Any',
+                description: 'The holder may move through any hostile creature.'
+              },
+              {
+                code: 'LARGER_THAN_SELF',
+                label: 'Larger than the holder',
+                description: 'The holder may move through hostile creatures larger than itself.'
+              }
+            ]
+          },
+          { showIf: isMovementPassage, requiredIf: true }
+        )
+      )
+      .set(
+        'mayEndInCreature',
+        toggle(['mayEndInCreature'], 'May End Its Move Inside A Creature', {
+          showIf: isMovementPassage
+        })
+      )
+      .set(
+        'blockingBarriers',
+        toggle(['blockingBarriers'], 'Moves Through Walls And Objects', {
+          showIf: isMovementPassage
+        })
+      )
+      .set(
+        'costMultiplier',
+        number(['costMultiplier'], 'Cost Multiplier Inside What It Passes', {
+          constraints: { minimum: 1, maximum: 2 },
+          showIf: isMovementPassage,
+          requiredIf: true
         })
       )
       .set(

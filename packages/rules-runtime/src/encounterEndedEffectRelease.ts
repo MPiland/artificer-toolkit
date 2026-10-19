@@ -7,7 +7,11 @@ import type {
 } from './characterRuleActionSystemAdapter.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
-import { effectsEndedBy } from './encounterGrantLifetimes.js'
+import {
+  effectEventScope,
+  effectsEndedBy,
+  isInEffectEventScope
+} from './encounterGrantLifetimes.js'
 
 /**
  * What event-ended effects release from their holder: the conditions they alone held, then the
@@ -101,6 +105,8 @@ export function targetEndedEffects(input: {
   held: readonly ActiveRuleEffectRecord[]
   /** Whether the action made an attack roll against the holder. */
   attacked: boolean
+  /** The actor whose turn it is, which an effect active only on one turn compares. */
+  turnActorId: string | null
   /** The outcome applications this action settles on the holder. */
   applications: readonly CharacterRuleActionApplication[]
   /** Who dealt the damage; null when nobody did, so only `ANYONE` triggers meet it. */
@@ -122,7 +128,19 @@ export function targetEndedEffects(input: {
         input.dispositions.get(input.damagerActorId) ?? 'NEUTRAL',
         input.dispositions.get(sourceActorId) ?? 'NEUTRAL'
       ) === 'ALLIED')
-  const attackConsumed = input.attacked ? effectsEndedBy(input.held, 'ON_ATTACKED') : []
+  // An attack consumes only the effects whose event scope admits the attacker on this turn.
+  const attackConsumed = input.attacked
+    ? effectsEndedBy(input.held, 'ON_ATTACKED').filter((effect) => {
+        const scope = effectEventScope(effect, input.holderActorId)
+        return (
+          scope !== null &&
+          isInEffectEventScope(scope, {
+            actorId: input.damagerActorId,
+            turnActorId: input.turnActorId
+          })
+        )
+      })
+    : []
   const endedEffects = input.held.filter((effect) => {
     const { definition } = effect
     if (attackConsumed.includes(effect)) return true

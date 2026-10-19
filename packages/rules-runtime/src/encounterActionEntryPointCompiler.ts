@@ -195,7 +195,7 @@ function assertDescriptorAlignment(input: {
 /** The plans that run an action: its execution plan and its at most one active-effect plan. */
 function compileActionPlans(
   adapter: CharacterRuleActionSystemAdapter,
-  descriptor: CharacterActionCapabilityDescriptor
+  descriptor: EffectActionCapabilityDescriptor
 ) {
   const source = buildCompiledActionCompilerSource(descriptor)
   const executionPlan = adapter.compileExecutionPlan?.({
@@ -230,6 +230,71 @@ function compileActionPlans(
     )
   }
   return { activeEffectPlan: activeEffectPlans[0] ?? null, executionPlan }
+}
+
+/**
+ * The test every option of a pick shares: a TEST/OUTCOME plan's own, else the one the System derives
+ * for an attack or save that a single graph runs whole (a hit that only holds its target); null for
+ * an action with no test.
+ */
+function sharedTestKey(
+  adapter: CharacterRuleActionSystemAdapter,
+  descriptor: EffectActionCapabilityDescriptor,
+  executionPlan: ReturnType<typeof compileActionPlans>['executionPlan']
+) {
+  if (executionPlan.kind === 'TEST_OUTCOME') return executionPlan.test
+  try {
+    return (
+      adapter.compileTestTemplate?.({
+        compilerSource: buildCompiledActionCompilerSource(descriptor)
+      }) ?? null
+    )
+  } catch (error) {
+    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
+    throw error
+  }
+}
+
+/**
+ * The plans of an action and, when it authors a cast pick (D148), one pair per option. The
+ * action's own plans are its first option's. Throws `CharacterRuleActionUnsupportedCompilationError`
+ * when the options cannot be picked between at use. Every entry point that compiles an action
+ * (Character, Creature feature) calls this, so the pick's invariants have one home.
+ */
+export function compileCastChoicePlans(
+  adapter: CharacterRuleActionSystemAdapter,
+  descriptor: EffectActionCapabilityDescriptor,
+  targetPolicy: ReturnType<typeof buildCompiledActionTargetPolicy>
+) {
+  const compiled = castChoiceOptions(descriptor.compiledEffect)?.map((option) => {
+    const optionDescriptor = { ...descriptor, compiledEffect: option.compiledEffect }
+    const plans = compileActionPlans(adapter, optionDescriptor)
+    return {
+      option: { optionId: option.optionId, label: option.label, ...plans },
+      sharedTest: sharedTestKey(adapter, optionDescriptor, plans.executionPlan)
+    }
+  })
+  const options = compiled?.map(({ option }) => option)
+  // The pick is made at cast on the creatures targeted, after the test and Concentration
+  // are settled (D148); only a creature target carries it.
+  if (options && !['ACTOR', 'ACTORS'].includes(encounterActionChoiceTarget(targetPolicy).kind))
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'Only a cast at chosen creatures carries a pick.'
+    )
+  if (
+    compiled &&
+    new Set(
+      compiled.map(({ option, sharedTest }) =>
+        checksumCanonicalJson([sharedTest, option.activeEffectPlan?.maintenance ?? null])
+      )
+    ).size !== 1
+  )
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'The options a cast picks between share their test and their Concentration.'
+    )
+  const { activeEffectPlan, executionPlan } =
+    options?.[0] ?? compileActionPlans(adapter, descriptor)
+  return { activeEffectPlan, executionPlan, choice: options ? { options } : null }
 }
 
 export function compileCharacterActionEntryPoints(
@@ -326,36 +391,11 @@ export function compileCharacterActionEntryPoints(
             }
           }
         }
-        const options = castChoiceOptions(descriptor.compiledEffect)?.map((option) => ({
-          optionId: option.optionId,
-          label: option.label,
-          ...compileActionPlans(adapter, { ...descriptor, compiledEffect: option.compiledEffect })
-        }))
-        // The pick is made at cast on the creatures targeted, after the test and Concentration
-        // are settled (D148); only a creature target carries it.
-        if (
-          options &&
-          !['ACTOR', 'ACTORS'].includes(encounterActionChoiceTarget(exactTargetPolicy).kind)
+        const { activeEffectPlan, executionPlan, choice } = compileCastChoicePlans(
+          adapter,
+          descriptor,
+          exactTargetPolicy
         )
-          throw new CharacterRuleActionUnsupportedCompilationError(
-            'Only a cast at chosen creatures carries a pick.'
-          )
-        if (
-          options &&
-          new Set(
-            options.map(({ activeEffectPlan, executionPlan }) =>
-              checksumCanonicalJson([
-                executionPlan.kind === 'TEST_OUTCOME' ? executionPlan.test : null,
-                activeEffectPlan?.maintenance ?? null
-              ])
-            )
-          ).size !== 1
-        )
-          throw new CharacterRuleActionUnsupportedCompilationError(
-            'The options a cast picks between share their test and their Concentration.'
-          )
-        const { activeEffectPlan, executionPlan } =
-          options?.[0] ?? compileActionPlans(adapter, descriptor)
         return {
           schemaVersion: 4,
           kind: 'CHARACTER_ACTION',
@@ -367,7 +407,7 @@ export function compileCharacterActionEntryPoints(
             resourceBinding: compiledResourceBinding(candidate),
             activeEffectPlan,
             zonePlacement: null,
-            choice: options ? { options } : null,
+            choice,
             executionPlan
           }
         }

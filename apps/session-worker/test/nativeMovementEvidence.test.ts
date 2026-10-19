@@ -389,10 +389,12 @@ describe('used automatic reactions of a Creature walking east', () => {
   }, 60_000)
 
   it('settles a spatial prefix between a used reaction and the later choice', async () => {
+    // The later reactor stands one cell off the path: walking through a hostile creature with no
+    // way to pass it is refused (SPELLS-33.T6k1).
     const room = await reactionRoom(
       [
         { x: 50, y: 150 },
-        { x: 250, y: 150 }
+        { x: 250, y: 250 }
       ],
       [{ center: { x: 450, y: 150 }, radius: 5 }]
     )
@@ -503,7 +505,10 @@ describe('a used automatic Character mutation at the next choice', () => {
         ],
         moverActorId: MOVER_ID,
         positions: {
-          ...Object.fromEntries(ids.map((id, index) => [id, { x: 50 + index * 100, y: 150 }])),
+          // The third reactor stands one cell off the path, which the mover may not walk through.
+          ...Object.fromEntries(
+            ids.map((id, index) => [id, { x: 50 + index * 100, y: index === 2 ? 250 : 150 }])
+          ),
           [MOVER_ID]: MOVER_START
         },
         autoRoll: 'GAME_MASTER',
@@ -617,8 +622,10 @@ describe('a moving spatial effect shared by a Concentration Character and a late
         moverActorId: MOVER_ID,
         positions: {
           [REACTOR_NEAR]: { x: 100, y: 150 },
-          [CHARACTER_ACTOR_ID]: { x: 300, y: 150 },
-          [REACTOR_FAR]: { x: 400, y: 150 },
+          // One cell off the path, which the mover may not walk through (SPELLS-33.T6k1); the effect
+          // reaches them across the shared token edge.
+          [CHARACTER_ACTOR_ID]: { x: 300, y: 250 },
+          [REACTOR_FAR]: { x: 400, y: 250 },
           [MOVER_ID]: MOVER_START
         },
         autoRoll: 'BOTH',
@@ -626,7 +633,9 @@ describe('a moving spatial effect shared by a Concentration Character and a late
         concentrationOwnerActorId: CHARACTER_ACTOR_ID,
         concentrationDependentActorIds: [CHARACTER_ACTOR_ID],
         // The effect is anchored to the mover's token and lies far from every target until it moves.
-        spatialEffects: [{ center: { x: 900, y: 900 }, radius: 5, moving: { activation, hidden } }],
+        spatialEffects: [
+          { center: { x: 900, y: 900 }, radius: 55, moving: { activation, hidden } }
+        ],
         // Every die rolls its minimum: each reaction's attack misses and the Concentration save fails.
         fallbackRoll: 0
       })

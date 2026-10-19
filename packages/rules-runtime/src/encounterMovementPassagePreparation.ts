@@ -3,6 +3,8 @@ import {
   mergedRollContributors,
   withCreatureActiveGrantSkillTotal
 } from './encounterActiveGrants.js'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { activeAbilityCheckDice } from './character/activeEffectGrantTotals.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
 import type {
   OptionalCombatPassageChoicePendingContextDto,
@@ -56,6 +58,8 @@ export type ContestFacts = {
   modifier: number | null
   rollMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
   size: string | null
+  /** The dice the actor's active effects add to this check (D156). */
+  addedDice: D20AddedDieDto[]
 }
 
 type PassagePreparationInput<TCharacterFacts extends CharacterMovementFacts> = {
@@ -136,8 +140,12 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
   const target = input.targets.get(input.actorId)
   if (!target || target.actor.id !== input.actorId || target.actor.systemId !== input.gameSystemId)
     throw new Error('Movement passage actor facts are stale.')
-  const withConditions = (facts: ContestFacts): ContestFacts => ({
+  const withConditions = (facts: Omit<ContestFacts, 'addedDice'>): ContestFacts => ({
     ...facts,
+    addedDice: activeAbilityCheckDice(
+      target.activeEffects,
+      checkAbilityCode(input.system, input.checkKind, input.checkDefinitionId)
+    ),
     ...withEncounterConditionCheckContributors({
       holderActorId: target.actor.id,
       mechanics: target.conditionMechanics,

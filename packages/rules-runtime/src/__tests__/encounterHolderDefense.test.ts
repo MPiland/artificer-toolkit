@@ -97,7 +97,8 @@ describe('ATTACKS_AGAINST on a Creature holder', () => {
           targetSeesAttacker,
           attackerSeesTarget: 'SEES',
           targetSenseLabels: [],
-          attackerSenseLabels: []
+          attackerSenseLabels: [],
+          attackerSenseDefinitionIds: []
         },
         attacksAgainst: melee
       }).map(({ sourceId }) => sourceId)

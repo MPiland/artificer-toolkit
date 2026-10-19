@@ -27,7 +27,11 @@ afterEach(() => {
  * target holds the real planned grant of `spell` (Bless or Bane). `rolls` are the app's raw dice
  * (a face less one): the d20 first, then the added die.
  */
-async function addedDieSaveRoom(spell: SpellAuthored, rolls: readonly number[] = []) {
+async function addedDieSaveRoom(
+  spell: SpellAuthored,
+  rolls: readonly number[] = [],
+  resultPath?: 'ON_SAVE_FAIL'
+) {
   const biter = biteWolf('SAVE')
   const biterActor = srdCreatureActor({ id: BITER_ID, creature: biter })
   const room = await actionRoom({
@@ -39,7 +43,8 @@ async function addedDieSaveRoom(spell: SpellAuthored, rolls: readonly number[] =
       holderActorId: TARGET_ID,
       lifecycle: {},
       effect: spell.effects?.[0],
-      sourceLabel: spell.label
+      sourceLabel: spell.label,
+      resultPath
     })
   })
   const { answer } = await room.startAction(TARGET_ID, [])
@@ -73,7 +78,7 @@ describe('a rolled-die grant on an Encounter saving throw (SPELLS-4.T2c1, D156)'
 
   it('rolls Bane’s d4 with an app-rolled d20, records it as a subtracted term and fails the save', async () => {
     // The app rolls a natural 10 and Bane's 4: 10 + 2 - 4 is 8, short of DC 10.
-    const { room, decision, request } = await addedDieSaveRoom(bane, [9, 3])
+    const { room, decision, request } = await addedDieSaveRoom(bane, [9, 3], 'ON_SAVE_FAIL')
     expect(request.addedDice).toEqual([{ label: 'Bane', count: 1, faces: 4, sign: 'SUBTRACT' }])
     const before = await targetHitPoints(room)
 

@@ -718,8 +718,9 @@ function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind 
 /**
  * Outcomes a test action leaves to its active-effect plan rather than its TEST/OUTCOME graphs: an
  * actor relationship, a grant an attack's hit applies (Shocking Grasp's "can't take reactions"),
- * and a grant a failed save applies beside the timed conditions the same effect owns (Hypnotic
- * Pattern's speed of 0). Any other failed-save grant stays an ordinary test outcome. A source
+ * a grant a failed save applies beside the timed conditions the same effect owns (Hypnotic
+ * Pattern's speed of 0), and a timed grant that is a failed save's only outcome (Enthrall's
+ * disadvantage on Perception). Any other failed-save grant stays an ordinary test outcome. A source
  * immunity is always the plan's (see `sourceImmunityPlan`).
  */
 function isActiveEffectPlanOutcome(
@@ -734,7 +735,7 @@ function isActiveEffectPlanOutcome(
       (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT')) ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       entry.pathCode === 'ON_SAVE_FAIL' &&
-      timedConditionPlan(action) !== null) ||
+      (timedConditionPlan(action) !== null || saveFailureGrantPlan(action) !== null)) ||
     (entry.outcome.effectKind === 'MANIFEST' &&
       entry.outcome.manifestKind === 'CREATURE' &&
       entry.pathCode === 'ON_SAVE_FAIL')
@@ -1156,7 +1157,7 @@ function sequentialCompositionPlan(
   if (!composition) return null
   const { grant, recurring, immediate } = composition
   const grantPlan = grant
-    ? modifierGrantEntryPlan({ action, entry: grant, attack: false, untilEndEvent: false })
+    ? modifierGrantEntryPlan({ action, entry: grant, resultGated: false, untilEndEvent: false })
     : null
   if (grant && !grantPlan?.modifierGrantContribution)
     unsupported('D&D composed grant must be a timed modifier grant.')
@@ -2137,7 +2138,7 @@ function timedConditionPlan(
     ? modifierGrantEntryPlan({
         action,
         entry: { ...grantEntry, lifecycle: undefined },
-        attack: false,
+        resultGated: false,
         untilEndEvent: false
       })?.modifierGrantContribution
     : null
@@ -2331,8 +2332,27 @@ function modifierGrantPlan(
     entries.some((entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP')
   )
     unsupported('D&D attacks apply one active effect on a hit.')
+  if (testPhaseKindOrNull(action) === 'SAVE') return saveFailureGrantPlan(action)
   const entry = attack ? hitGrants[0] : entries[0]
-  return entry ? modifierGrantEntryPlan({ action, entry, attack, untilEndEvent: false }) : null
+  return entry
+    ? modifierGrantEntryPlan({ action, entry, resultGated: attack, untilEndEvent: false })
+    : null
+}
+
+/**
+ * A save whose only outcome is a timed grant on its failure (Enthrall's disadvantage on
+ * Perception): each creature that fails holds the grant as an Encounter active effect.
+ */
+function saveFailureGrantPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const [entry, ...rest] = action.compiledEffect.entries
+  return testPhaseKindOrNull(action) === 'SAVE' &&
+    entry !== undefined &&
+    rest.length === 0 &&
+    entry.pathCode === 'ON_SAVE_FAIL'
+    ? modifierGrantEntryPlan({ action, entry, resultGated: true, untilEndEvent: false })
+    : null
 }
 
 type SlotLevelAmount = {
@@ -2391,10 +2411,11 @@ function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLev
 function modifierGrantEntryPlan(input: {
   action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
-  attack: boolean
+  /** The grant applies only on its authored result path: an attack's hit or a save's failure. */
+  resultGated: boolean
   untilEndEvent: boolean
 }): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { action, entry, attack, untilEndEvent } = input
+  const { action, entry, resultGated, untilEndEvent } = input
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const { spellCastLevel } = action
@@ -2409,6 +2430,8 @@ function modifierGrantEntryPlan(input: {
     endOnEvents = [],
     endOnConditionIds = [],
     holderEnd = null,
+    fromSourceOnly = false,
+    activeOnlyOnFinalAnchorTurn = false,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
@@ -2439,7 +2462,10 @@ function modifierGrantEntryPlan(input: {
     ) ||
     grants.proficiencies?.length ||
     (untilEndEvent
-      ? entry.duration !== undefined || endEvents.length === 0 || turnAnchor !== undefined
+      ? entry.duration !== undefined ||
+        endEvents.length === 0 ||
+        turnAnchor !== undefined ||
+        activeOnlyOnFinalAnchorTurn
       : initialRemaining === null) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
@@ -2463,9 +2489,11 @@ function modifierGrantEntryPlan(input: {
       consumeOnFirstEvents: grantConsumeEvents,
       endOnEvents: grantEndEvents,
       endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
-      holderEnd
+      holderEnd,
+      ...(fromSourceOnly && { fromSourceOnly: true }),
+      ...(activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true })
     },
-    adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
+    adapterFacts: resultGated ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
     marginRider: null
@@ -3085,7 +3113,7 @@ function zoneComponentPlan(
     ? modifierGrantEntryPlan({
         action,
         entry: grant,
-        attack: false,
+        resultGated: false,
         untilEndEvent: true
       })
     : null
@@ -3169,7 +3197,7 @@ function sourceGrantPlan(
   action: Dnd5eCompiledEffectActionSource,
   entry: CompiledEffectGroup['entries'][number]
 ): CharacterRuleActionActiveEffectPlan {
-  const plan = modifierGrantEntryPlan({ action, entry, attack: false, untilEndEvent: false })
+  const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
   if (!plan) unsupported('A zone’s placer holds a timed modifier grant.')
   return { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) }
 }
@@ -3291,7 +3319,12 @@ function repeatingDirectFollowUpSavePlan(
   const pinnedDc = pinnedSaveDc(save.savingThrow)
   const grantPlan =
     lead.effectKind === 'APPLY_GRANT'
-      ? modifierGrantEntryPlan({ action, entry: leadEntry, attack: false, untilEndEvent: false })
+      ? modifierGrantEntryPlan({
+          action,
+          entry: leadEntry,
+          resultGated: false,
+          untilEndEvent: false
+        })
       : null
   const grantContribution = grantPlan?.modifierGrantContribution
   const contribution =
@@ -9358,9 +9391,13 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
       }
     })
   }
-  // A TEST whose every outcome its active-effect plan carries (a creature form after a failed save)
-  // selects no OUTCOME graph: the plan runs from the TEST's result path.
-  if (outcomes.length === 0 && creatureFormPlan(action) === null)
+  // A TEST whose every outcome its active-effect plan carries (a creature form or a timed grant
+  // after a failed save) selects no OUTCOME graph: the plan runs from the TEST's result path.
+  if (
+    outcomes.length === 0 &&
+    creatureFormPlan(action) === null &&
+    saveFailureGrantPlan(action) === null
+  )
     unsupported('D&D test action has no specialized outcome path.')
   return outcomes
 }

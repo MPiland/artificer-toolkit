@@ -39,6 +39,7 @@ import {
 } from './encounterConditionMechanics.js'
 import { featureChargeUsed } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
+import { isInEffectEventScope } from './encounterGrantLifetimes.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   mergeCanonicalD20Contributors,
@@ -145,8 +146,16 @@ export async function prepareEncounterActionSource<
    * differently compile MANUAL), so the top-level option serves and no pick is asked for.
    */
   readsSharedTest?: boolean
+  /**
+   * A flow that cannot prompt (a reaction, an opportunity attack, a Legendary Action) names no
+   * pick; the first authored option is the no-prompt default. A pick it does name is still refused
+   * when unknown.
+   */
+  firstOptionByDefault?: boolean
 }) {
   const { state, actor, actionId, sourceFacts } = input
+  const fallsBackToFirst =
+    input.readsSharedTest || (input.firstOptionByDefault && input.choiceOptionId === undefined)
   const characterAction = sourceFacts.characterReactionSource
   const spellCast = sourceFacts.characterSpellCast
   const candidate = [
@@ -179,7 +188,7 @@ export async function prepareEncounterActionSource<
   if (
     entry &&
     (compilation?.choice
-      ? !picked && !input.readsSharedTest
+      ? !picked && !fallsBackToFirst
       : input.choiceOptionId !== undefined && !compilation?.zonePlacement)
   )
     throw new CastChoiceUnavailableError()
@@ -229,7 +238,7 @@ export async function prepareEncounterActionSource<
           pickedCastChoiceEffect(
             loaded.capability.compiledEffect,
             input.choiceOptionId,
-            input.readsSharedTest
+            fallsBackToFirst
           )
         )
   const adapter = characterRuleActionSystemAdapterRegistry.get(state.gameSystemId)
@@ -355,7 +364,10 @@ export async function prepareEncounterActionMechanics<
     sourceFacts,
     loadSource: input.loadSource,
     choiceOptionId: input.choiceOptionId,
-    readsSharedTest: input.readsSharedTest
+    readsSharedTest: input.readsSharedTest,
+    // Only RESOLVE_ACTION prompts (it reports overridable warnings); every other flow runs the
+    // first authored option of a pick it cannot ask for.
+    firstOptionByDefault: !input.overridable
   })
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
@@ -474,12 +486,18 @@ export async function prepareEncounterActionMechanics<
         : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
   // A target's active ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it
   // their advantage or disadvantage, those that require the holder to see the attacker only when it
-  // can, and so does a target beyond a ranged attack's normal range (D62). The attacker's and the
-  // target's condition mechanics add their own contributors (D94), and so does sight: an unseen
-  // attacker has advantage, an unseen target disadvantage.
+  // can and only from the attackers and on the turn their effect admits, and so does a target
+  // beyond a ranged attack's normal range (D62). The attacker's and the target's condition
+  // mechanics add their own contributors (D94), and so does sight: an unseen attacker has
+  // advantage, an unseen target disadvantage.
   const attackDomain = isDnd5eSpellAttackKind(attackKind) ? 'SPELL' : attackKind
   const attacksAgainst = targetFacts.attackAgainstContributors.filter(
-    (entry) => entry.attackDomain === attackDomain
+    (entry) =>
+      entry.attackDomain === attackDomain &&
+      isInEffectEventScope(entry.eventScope, {
+        actorId: actor.id,
+        turnActorId: state.currentActorId
+      })
   )
   const longRange = encounterActionLongRangeContributor({
     targetPolicy,

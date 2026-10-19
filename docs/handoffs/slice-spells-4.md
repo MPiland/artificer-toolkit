@@ -14,6 +14,14 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Log
 
+### T2k1 (Blur, True Strike, Enthrall; D156 T2 class B)
+
+- Blur: an `APPLY_GRANT` of `ATTACKS_AGAINST` `DISADVANTAGE` (every attack domain, `requiresHolderSeesAttacker: false`) on the caster for 1 minute under Concentration. The new `exemptAttackerSenseDefinitionIds` modifier facet exempts an attacker that sees the caster by Blindsight or Truesight; `resolveAttackSight` names only System Senses. `BLUR` leaves `CLOSED_RULE_KIND`.
+- Enthrall: a Wisdom save `TEST` whose failed path is an `APPLY_GRANT` of Perception `SKILL_MODIFIER` `DISADVANTAGE` for 1 minute. The compiler generalized: a `TEST` whose only outcome is that grant compiles `saveFailureGrantPlan`, gated by `dnd5e.grant-authored-path` (ON_SAVE_FAIL), and selects no OUTCOME graph. The charm-immunity auto-success, the advantage when the caster or companions are fighting the creature, "other than you", and the ends when the target can no longer hear or the caster can no longer speak stay description-only (accepted ruling). `ENTHRALL` leaves `CLOSED_RULE_KIND`.
+- True Strike (Option T, orchestrator ruling): an `APPLY_GRANT` of `ATTACKS_AGAINST` `ADVANTAGE` on the target, counted on the caster's turns (`turnAnchor` SOURCE, END_OF_TURN), consumed `ON_ATTACKED`, with two new generic lifecycle flags, `fromSourceOnly` and `activeOnlyOnFinalAnchorTurn`. One helper, `effectEventScope`, is read by both the contributor filter and the `ON_ATTACKED` consume (`targetEndedEffects` gains `turnActorId`). Concentration is added per SRD 5.1 (the old record omitted it). `TRUE_STRIKE` leaves `CLOSED_RULE_KIND`.
+- Proofs: `coreOptionSpells.test.ts`, `coreOptionSpellAuthoringParity.test.ts` (all three), `characterSpellCastActions.test.ts` (Blur's exempt senses and Concentration, Enthrall's grant, True Strike's lifecycle and Concentration), `encounterEndedEffectRelease.test.ts` (the scope admits only the source on its final turn; consumed by that attack, not by another attacker, another turn or before the final turn), `encounterAttackPerception.test.ts` (exempt senses), `nativeRoomBlur.test.ts` (a Wolf's Bite at disadvantage; normal by Truesight), `nativeRoomEnthrall.test.ts` (only the failing Wolf holds Perception disadvantage), `nativeRoomCoreOptionSpells.test.ts` (True Strike: same-turn Club NORMAL and kept, ally Bite NORMAL and kept, next-turn Club ADVANTAGE and used up; unused, it ends after the caster's next turn; ending Concentration removes it).
+- Deferred edge case (future-enhancements at merge): Enthrall's Perception disadvantage, as authored, also applies to perceiving the caster, which the spell excludes ("other than you").
+
 ### T2d (rolled damage dice, D156)
 
 - Contract: `ADD_BONUS_DIE` on `DAMAGE` (`{count, faces, sign, recipient, damageTypeId | damageTypeSource: 'ATTACK', countPerCastLevelAbove?}`). `recipient` is `HOLDER_DEALS` or `SOURCE_DEALS_TO_HOLDER` (a mark: only the effect's source gains the die against its holder). An effect's `lifecycle.consumeOnFirstEvents: ['ON_HIT']` ends it on the holder's first hit. `againstEffectSource` on an `ATTACK_ROLL` modifier limits it to attacks against the effect's source. Divine Favor, Branding Smite, Hunter's Mark, Enlarge/Reduce (a cast choice) and Bestow Curse (a cast choice on a failed save) author it from those options; their five closed kinds are deleted, and `grantAuthoringParity` proves each spell.
@@ -27,6 +35,20 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Transport: `addedDice` on the d20 request, `addedFaces` on `ENTER_DICE` and the held app roll, `rolledFaces` on the receipt (see `docs/architecture/transport.md`). The tabletop roll row shows one entry per added die ("+d4 Bless", "−d4 Bane") and the roll card a subtracted term.
 - Proofs: `encounterAddedDiceAttacks.test.ts` (Bless turns a miss into a hit; Bless and Bane together), `encounterActionSaves.test.ts` (Bless saves, Bane fails, advantage keeps one d20 before Bless), `encounterAddedDiceRollRecord.test.ts`, `encounterActiveGrants.test.ts` (keyed facts), `characterDeathSaves.test.ts` (added totals and naturals), `nativeRoomAddedDice.test.ts` (room journey: an entered Bless d4 saves; an app-rolled Bane d4 fails, held and carded as a subtracted term), web `dice.utils.test.ts` and `CampaignTabletopDecisionDrawer.model.test.ts`.
 - Not here: checks, contests, `ON_SAVING_THROW` and the Sheet (T2c2); `MINIMUM_ROLL` (T2c3).
+
+### T2c2 (ability-check dice and Guidance, D156; D156 ruling "T2c2a")
+
+- Scope (orchestrator ruling): ability checks, Guidance and the Sheet. Saves and Resistance moved to **SPELLS-4.T2c2b** (consumption narrowed by ability through one shared seam across every save commit site); `RESISTANCE` stays in `CLOSED_RULE_KIND` until then.
+- Contract: `ABILITY_CHECK` accepts `ADD_BONUS_DIE` (`{count, faces, sign}`, optional `ability`). Guidance is an `APPLY_GRANT` of one d4 on ability checks with `consumeOnFirstEvents: ['ON_ABILITY_CHECK']`; `GUIDANCE` leaves `CLOSED_RULE_KIND`. `grantAuthoringParity` proves it.
+- Consumption narrowing: `effectsEndedBy` takes a `ScopedAbilityCheck` (`{event: 'ON_ABILITY_CHECK', abilityCode}`) and spends only the effects whose ability-check grant applied to that check; a bare `ON_ABILITY_CHECK` never spends a die-bearing effect (a contest rolls no dice yet). Effects with no ability-check grant (Help) are spent whenever they list the event. Regression: `grantLifetimes.test.ts` "effectsEndedBy for an ability check".
+- Encounter: First Aid, Hide/Search and Escape checks (basic-action, concealment, escape) add the die through the D20 added-dice graph (`dnd5eAddedDiceNode` in the basic-check definition) and spend only the dice that applied. The die auto-spends on the first qualifying check.
+- Sheet: an ability or skill roll adds the Character's carried die (`carriedCheckDice`, `createRollRecord` `addedDice`) after advantage keeps one d20, and spends the effect in the same mutation. Proof: `rollsCarriedCheckDice.test.ts` (a carried Guidance effect). Sheet-cast effect creation is Q27 and unchanged.
+- Deferred edge cases (rare, recoverable):
+  - The roller cannot choose to save the die for a later check; it is spent on the first qualifying check.
+  - Contests (passage/contest checks) compute the die (`ContestFacts.addedDice`) but their graphs do not roll it yet; they do not spend a held die.
+  - The attack-roll `ON_ATTACK_ROLL` spend is not narrowed by attack domain or ability.
+  - The Encounter cast-reaction check carries no dice.
+  - A Sheet-consumed die whose Concentration belongs to another caster leaves that caster's Concentration standing.
 
 ### T2a5 (closed rules with existing options, D156 T2 class A)
 
