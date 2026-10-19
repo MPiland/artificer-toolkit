@@ -67,12 +67,18 @@ export async function persistEncounterGatedActionCommit(
   )
     throw new Error('Live Session terminal action is not an ordinary gated action.')
   const root = rootExecution.applicationOutputs
-  const offered = resume?.pending.context.incomingGate
+  // The failed save is lost by its roll, or by the attacker declining the retarget it earned.
+  const retarget = resume?.pending.context.attackRetarget
+  const offered = resume?.pending.context.incomingGate ?? retarget?.gate
   if (
     resume &&
     (!offered ||
       !response ||
-      (response.resolution.kind !== 'ENTER_DICE' && response.resolution.kind !== 'SYSTEM_ROLL') ||
+      (retarget
+        ? response.resolution.kind !== 'DECLINE' ||
+          checksumCanonicalJson(retarget.gate.d20) !== checksumCanonicalJson(root.gate.d20)
+        : response.resolution.kind !== 'ENTER_DICE' &&
+          response.resolution.kind !== 'SYSTEM_ROLL') ||
       offered.effectId !== root.gate.effectId ||
       offered.holderActorId !== root.gate.holderActorId ||
       offered.checkDefinitionId !== root.gate.checkDefinitionId ||

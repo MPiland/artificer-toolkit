@@ -445,7 +445,7 @@ export async function persistEncounterAreaCommit(
         batch.stateEffectTransitions.length +
         (batch.kind === 'CHARACTER_MECHANICS_BATCH'
           ? batch.reactionEffectTransitions.length
-          : 0) !==
+          : batch.grantEffectTransitions.length) !==
         createdEffects.length ||
       (input.maintainedState === null && batch.maintenanceTransition !== undefined) ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&

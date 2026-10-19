@@ -262,6 +262,106 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
   })
 })
 
+/**
+ * SPELLS-31.T4k2a: a target's grant that negates advantage (Elusive) leaves an attack at it no
+ * advantage, and a grant made on an occasion (Escape the Horde's opportunity attacks) holds only for
+ * an attack made on that occasion.
+ */
+describe('encounter attacks against: negated advantage and attack occasion', () => {
+  const negateAgainst = { ...dodgeAgainst, requiresHolderSeesAttacker: false, contributor: null }
+  const opportunityAgainst = {
+    ...dodgeAgainst,
+    requiresHolderSeesAttacker: false,
+    attackOccasion: 'OPPORTUNITY' as const
+  }
+
+  it('drops the advantage of an unseen attacker and keeps the disadvantage of an unseen target', () => {
+    const contributors = (value: Partial<EncounterAttackPerception>) =>
+      encounterAttackSightContributors({
+        perception: {
+          targetSeesAttacker: 'SEES',
+          attackerSeesTarget: 'SEES',
+          targetSenseLabels: [],
+          attackerSenseLabels: [],
+          attackerSenseDefinitionIds: [],
+          ...value
+        },
+        attacksAgainst: [negateAgainst]
+      }).map((contributor) => contributor.sourceId)
+    expect(contributors({ targetSeesAttacker: 'UNSEEN' })).toEqual([])
+    expect(contributors({ attackerSeesTarget: 'UNSEEN' })).toEqual([
+      ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID
+    ])
+  })
+
+  it('rolls an Invisible attacker’s attack normally against a target that negates advantage', async () => {
+    const prepared = await prepareCreatureAction({
+      actor: creatureActor({
+        id: ATTACKER_ID,
+        label: 'Quill Beast',
+        features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })],
+        conditionIds: [INVISIBLE]
+      }),
+      target: creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] }),
+      featureId: QUILL_VOLLEY_ID,
+      overridable: true,
+      attackPerception: true,
+      targetAttacksAgainst: [negateAgainst]
+    })
+    expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
+    const { execution } = await settleCreatureAction({ prepared, rolls: [5] })
+    expect(execution.d20).toMatchObject({ derivedRollMode: 'NORMAL', selectedNatural: 6 })
+  })
+
+  it('drops the advantage a Restrained target gives when the target negates advantage', async () => {
+    const restrainedTarget = (targetAttacksAgainst: readonly (typeof negateAgainst)[]) =>
+      prepareCreatureAction({
+        actor: creatureActor({
+          id: ATTACKER_ID,
+          label: 'Quill Beast',
+          features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })]
+        }),
+        target: creatureActor({
+          id: TARGET_ID,
+          label: 'Wolf',
+          features: [],
+          conditionIds: [srdConditionId('RESTRAINED')]
+        }),
+        featureId: QUILL_VOLLEY_ID,
+        overridable: true,
+        targetAttacksAgainst
+      })
+    const restrained = await settleCreatureAction({
+      prepared: await restrainedTarget([]),
+      rolls: [5, 9]
+    })
+    expect(restrained.execution.d20).toMatchObject({ derivedRollMode: 'ADVANTAGE' })
+    const negated = await settleCreatureAction({
+      prepared: await restrainedTarget([negateAgainst]),
+      rolls: [5]
+    })
+    expect(negated.execution.d20).toMatchObject({ derivedRollMode: 'NORMAL', selectedNatural: 6 })
+  })
+
+  it('applies an opportunity-only grant to an opportunity attack alone', async () => {
+    const volley = (attackOccasion?: 'OPPORTUNITY') =>
+      prepareCreatureAction({
+        actor: creatureActor({
+          id: ATTACKER_ID,
+          label: 'Quill Beast',
+          features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })]
+        }),
+        target: creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] }),
+        featureId: QUILL_VOLLEY_ID,
+        overridable: true,
+        targetAttacksAgainst: [opportunityAgainst],
+        ...(attackOccasion ? { attackOccasion } : {})
+      })
+    expect(sourceIds(await volley())).not.toContain(DODGE_SOURCE_ID)
+    expect(sourceIds(await volley('OPPORTUNITY'))).toContain(DODGE_SOURCE_ID)
+  })
+})
+
 describe('encounter attack perception: resolver', () => {
   async function resolve(input: { targetSenses: boolean }) {
     const prepared = await volleyAt({ attackerConditionIds: [INVISIBLE] })

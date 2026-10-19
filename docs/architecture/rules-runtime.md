@@ -463,7 +463,8 @@ holders only. The turn-zone, melee-retaliation, legendary and movement-reaction 
 the grants as `grantEffectTransitions` and the conditions the ended effects released as `releasedConditionIds` on its evidence (persistence
 refuses a settlement whose created grants differ; it returns the ended effects, which the action root keeps in `consumedGrants`, so undo deletes
 the new grants, then restores the ended and replaced effects and their released conditions), and
-the movement-reaction root records them as `grantEffectTransitions` beside `ended`. The area root and spatial movement contacts (opt-in via
+the movement-reaction root records them as `grantEffectTransitions` beside `ended`. Each area target's outcome calls it and creates the grants beside its other effects (`grantEffectTransitions` on its batch; the area root
+keeps the ended effects in `consumedGrants`). Spatial movement contacts (opt-in via
 `damageEnds.incomingDamageGrants`, unset for contacts) do not yet call it; contacts wait with T6e4's gap.
 A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
 source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
@@ -1057,6 +1058,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (Blur: Blindsight, Truesight). A `TEST` whose only outcome is an `APPLY_GRANT` on its failed-save path compiles a
   result-gated grant plan (`saveFailureGrantPlan`, adapter fact `dnd5e.grant-authored-path`) and no OUTCOME graph, like
   `creatureFormPlan`: each creature that fails holds the grant (Enthrall).
+- **Negated advantage and attack occasions (SPELLS-31.T4k2a, D156).** An `ATTACKS_AGAINST` `NEGATE_ADVANTAGE`
+  modifier (Elusive) carries no contributor: while it holds, the sight contributors drop `ADVANTAGE` and preparation
+  publishes `attackAdvantageNegated`, so the compiler drops every advantage from the final attack roll, the attacker's
+  own grants and flanking included. An optional `attackOccasion` (`OPPORTUNITY`, Escape the Horde) limits a modifier to
+  attacks made on that occasion; `prepareEncounterActionMechanics` takes the occasion as input, and a movement reaction
+  attack is prepared as `OPPORTUNITY`. A Character holder's feature grants come from its grant fold (holder-state
+  restrictions such as `CAN_ACT` apply), beside its active effects.
 - **Attack decoys (SPELLS-4.T2k2, D156).** An `ATTACK_DECOYS` `ENABLE` modifier (`{armorClass: {amount, abilities}, thresholds: [{id, remaining, minimumRoll}]}`)
   with a path lifecycle `uses` counts the holder's decoys in `lifecycle.remainingUses`. `attackDecoyFor` derives the
   decoy d20 from the minted occurrence id; at or above the minimum for the decoys left the attack is prepared again against
@@ -1069,6 +1077,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   d20 pause (`incomingGate` on the `ENCOUNTER_ACTION` context), anyone else is rolled server-side. A pass is remembered as
   `passedIncomingGate`, carried by every later pause so a replay skips the gate; a fail commits `ENCOUNTER_GATED_ACTION`, the
   source's spend with nothing of the action. Area effects are not gated. See the T2k3 handoff for the gaps.
+  Before a failed save loses the action (SPELLS-4.T2k3b) the attacker is offered another creature: `attackRetarget`
+  `{gate, options}` on the `ENCOUNTER_ACTION` context (`ATTACK_RETARGET_CHOICE` summary). `DECLINE` commits the same gated action;
+  `OPTION` replays the command retargeted to the chosen creature (`retargetEncounterAction`; the admission and the worker derive
+  the same command and fingerprint), so range, sight, visibility and any ward of the new target are evaluated afresh. The
+  currentness checksum is exempt for that one transition.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).

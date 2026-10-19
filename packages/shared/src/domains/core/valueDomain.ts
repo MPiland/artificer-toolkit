@@ -397,6 +397,21 @@ export const ATTACK_DOMAIN_OPTIONS = valuesOf(
   ATTACK_DOMAIN_REGISTRY
 ) as readonly AttackDomainOption[]
 
+/** The occasion an attack is made on, which a grant can limit itself to (an opportunity attack). */
+export const ATTACK_OCCASION_CODE = {
+  OPPORTUNITY: 'OPPORTUNITY'
+} as const
+
+export type AttackOccasionCode = keyof typeof ATTACK_OCCASION_CODE
+
+export const ATTACK_OCCASION_OPTIONS: readonly CoreMeta<AttackOccasionCode>[] = [
+  {
+    code: ATTACK_OCCASION_CODE.OPPORTUNITY,
+    label: 'Opportunity Attack',
+    description: 'An attack made as an opportunity attack.'
+  }
+]
+
 export type ValueDomainParamByCode = {
   /* ──────────────────────────────────────────────
    * CORE NUMERIC VALUES
@@ -422,11 +437,12 @@ export type ValueDomainParamByCode = {
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
   // holder can see (D100), and `exemptAttackerSenseDefinitionIds` excludes attackers that see the
-  // holder through one of those System Senses (Blur's Blindsight and Truesight).
+  // holder through one of those System Senses (Blur's Blindsight and Truesight). ttackOccasion`n  // limits it to attacks made on that occasion (Escape the Horde: opportunity attacks).
   ATTACKS_AGAINST: {
     attackDomain: AttackDomainCode
     requiresHolderSeesAttacker: boolean
     exemptAttackerSenseDefinitionIds?: string[]
+    attackOccasion?: AttackOccasionCode
   }
   CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
   CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }

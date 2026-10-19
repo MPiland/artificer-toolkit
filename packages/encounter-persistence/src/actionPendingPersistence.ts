@@ -135,7 +135,8 @@ export async function persistEncounterActionPending(
         context.forcedMovementDestination !== undefined ||
         (resume &&
           (snapshot.occurrenceId !== resume.occurrence.id ||
-            context.currentnessChecksum !== resume.pending.context.currentnessChecksum ||
+            (context.currentnessChecksum !== resume.pending.context.currentnessChecksum &&
+              !resume.pending.context.attackRetarget) ||
             !castPendingContinues(resume.pending.context, input.response, context)))
       )
         throw new Error('Live Session pending action root mismatch.')
@@ -210,8 +211,10 @@ export async function persistEncounterActionPending(
         snapshot.applicationContext.rollerActorId !== admission.input.actorId) ||
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||
-          snapshot.applicationContext.currentnessChecksum !==
-            resume.pending.context.currentnessChecksum ||
+          // A retarget answer turns the action on another creature, so its facts are the new creature's.
+          (snapshot.applicationContext.currentnessChecksum !==
+            resume.pending.context.currentnessChecksum &&
+            !resume.pending.context.attackRetarget) ||
           !castPendingContinues(
             resume.pending.context,
             input.response,

@@ -1,6 +1,8 @@
 import {
   ABILITY_CODE,
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  ATTACK_OCCASION_CODE,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
@@ -172,18 +174,22 @@ export const hunterConclave: ClassAuthored = {
           label: 'Escape the Horde',
           description: 'Opportunity attacks against you are made with disadvantage.',
           order: 0,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(RA, 20, 4),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.ACTIVATED,
-                range: { id: classRowId(RA, 21, 4), rangeKind: RANGE_KIND.SELF },
-                targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          grants: {
+            modifiers: Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, index) => ({
+              id: classRowId(RA, 23, index + 1),
+              grantKind: GRANT_KIND.MODIFIER_GRANT,
+              valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+              domain: {
+                attackDomain,
+                requiresHolderSeesAttacker: false,
+                attackOccasion: ATTACK_OCCASION_CODE.OPPORTUNITY
               },
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_ESCAPE_THE_HORDE
-            })
-          ]
+              modifierKind: MODIFIER_KIND.DISADVANTAGE,
+              scope: MODIFIER_SCOPE_KIND.GLOBAL,
+              selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+              order: index
+            }))
+          }
         },
         {
           id: classRowId(RA, 13, 2),

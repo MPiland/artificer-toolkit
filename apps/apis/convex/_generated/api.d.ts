@@ -127083,6 +127083,15 @@ export declare const api: {
                 }>;
               }
             | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                attackerActorId: string;
+                encounterVersion: number;
+                kind: "ATTACK_RETARGET_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ optionId: string; targetActorId: string }>;
+              }
+            | {
                 allowedResponses: Array<"FORCED_MOVEMENT">;
                 encounterVersion: number;
                 kind: "FORCED_MOVEMENT_DESTINATION";
@@ -127434,6 +127443,15 @@ export declare const api: {
                     riderId: string;
                     slotLevel: number;
                   }>;
+                }
+              | {
+                  allowedResponses: Array<"DECLINE" | "OPTION">;
+                  attackerActorId: string;
+                  encounterVersion: number;
+                  kind: "ATTACK_RETARGET_CHOICE";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{ optionId: string; targetActorId: string }>;
                 }
               | {
                   allowedResponses: Array<"FORCED_MOVEMENT">;
@@ -128308,6 +128326,15 @@ export declare const api: {
             }>;
           }
         | {
+            allowedResponses: Array<"DECLINE" | "OPTION">;
+            attackerActorId: string;
+            encounterVersion: number;
+            kind: "ATTACK_RETARGET_CHOICE";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            options: Array<{ optionId: string; targetActorId: string }>;
+          }
+        | {
             allowedResponses: Array<"FORCED_MOVEMENT">;
             encounterVersion: number;
             kind: "FORCED_MOVEMENT_DESTINATION";
@@ -129173,6 +129200,15 @@ export declare const api: {
                   riderId: string;
                   slotLevel: number;
                 }>;
+              }
+            | {
+                allowedResponses: Array<"DECLINE" | "OPTION">;
+                attackerActorId: string;
+                encounterVersion: number;
+                kind: "ATTACK_RETARGET_CHOICE";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{ optionId: string; targetActorId: string }>;
               }
             | {
                 allowedResponses: Array<"FORCED_MOVEMENT">;

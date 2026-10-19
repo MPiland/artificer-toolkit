@@ -13,7 +13,8 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   RANGE_KIND,
-  TRIGGER
+  TRIGGER,
+  type AttackOccasionCode
 } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
@@ -381,6 +382,8 @@ export async function prepareCreatureAction(input: {
   targetAttacksAgainst?: readonly EncounterAttackAgainstContributor[]
   /** The once-per-turn uses the attacker has spent this turn, as the room reads its turn record. */
   turnUses?: readonly string[]
+  /** The occasion the attack is made on, as a movement reaction sets it. */
+  attackOccasion?: AttackOccasionCode
 }) {
   const actors = input.actor.id === input.target.id ? [input.actor] : [input.actor, input.target]
   const encounter = creatureEncounter(
@@ -422,6 +425,7 @@ export async function prepareCreatureAction(input: {
     overridable: input.overridable,
     movementTargets,
     loadTurnUses: async () => input.turnUses ?? [],
+    ...(input.attackOccasion ? { attackOccasion: input.attackOccasion } : {}),
     ...(input.attackPerception
       ? {
           loadAttackPerception: async ({ sourceFacts, targetFacts }) => ({

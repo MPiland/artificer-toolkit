@@ -252,7 +252,9 @@ describe('basic action mechanics (Q11)', () => {
     expect(
       reasons({
         rollMode: 'DISADVANTAGE',
-        contributors: defended.attackAgainstContributors.map(({ contributor }) => contributor)
+        contributors: defended.attackAgainstContributors.flatMap(({ contributor }) =>
+          contributor ? [contributor] : []
+        )
       })
     ).toEqual(['Dodge'])
     expect(

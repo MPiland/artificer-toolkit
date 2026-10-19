@@ -13,6 +13,7 @@ import {
   validateEncounterOnHitOption
 } from './ruleExecutionOnHitChoice.js'
 import {
+  encounterAttackRetargetOfferDtoSchema,
   encounterCastReactionOfferDtoSchema,
   encounterFailedCounterDtoSchema,
   encounterIncomingGateOfferDtoSchema,
@@ -93,6 +94,12 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * that one d20; no action state is held, the action replays from the command once the save is rolled.
        */
       incomingGate: z.optional(encounterIncomingGateOfferDtoSchema),
+      /**
+       * Set while an action a ward stopped waits on its attacker's choice to turn it on another creature
+       * before it is lost. The roller is the attacker and the snapshot's continuation is that choice; the
+       * action replays from the command (retargeted when a creature is chosen) once it is answered.
+       */
+      attackRetarget: z.optional(encounterAttackRetargetOfferDtoSchema),
       /**
        * The ward effect whose save the attacker already passed, carried by every later pause of the action
        * so its replay does not ask for the save again.
@@ -188,6 +195,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
             value.castReaction ||
             value.onHitChoice ||
             value.forcedMovementDestination ||
+            value.attackRetarget ||
             value.twoPhase !== null ||
             value.d20Policy !== null ||
             value.contest ||
@@ -201,6 +209,29 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
               message: 'An incoming gate save belongs to an action held before it executes.'
             })
         }
+        if (
+          value.attackRetarget &&
+          (value.legendaryResistance ||
+            value.reactionChoice ||
+            value.castReaction ||
+            value.onHitChoice ||
+            value.forcedMovementDestination ||
+            value.twoPhase !== null ||
+            value.d20Policy !== null ||
+            value.contest ||
+            value.heldD20 ||
+            value.passedIncomingGate !== undefined ||
+            value.failedCounters !== undefined ||
+            value.attackRetarget.gate.holderActorId === value.rollerActorId ||
+            value.attackRetarget.options.some(
+              ({ targetActorId }) => targetActorId === value.rollerActorId
+            ))
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['attackRetarget'],
+            message: 'A retarget offer belongs to an action a ward stopped before it executed.'
+          })
         const chain = value.castReaction?.chain?.counters ?? []
         const failedReactors = (value.failedCounters ?? []).map(
           ({ reaction }) => reaction.reactorActorId

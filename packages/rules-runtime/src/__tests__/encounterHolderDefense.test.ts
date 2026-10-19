@@ -319,23 +319,33 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
       { ...activeEffect, definition: { ...activeEffect.definition, stateContributions: closed } }
     ]
     expect(
-      encounterAttackAgainstContributors(HOLDER_ID, effects, {
-        kind: 'CHARACTER',
-        creatureTypeIds: [],
-        canAct: true,
-        speedAboveZero: true,
-        freeHand: true,
-        stowableHeldItemInstanceId: null
+      encounterAttackAgainstContributors({
+        holderActorId: HOLDER_ID,
+        effects: effects,
+        grantFold: null,
+        holderState: {
+          kind: 'CHARACTER',
+          creatureTypeIds: [],
+          canAct: true,
+          speedAboveZero: true,
+          freeHand: true,
+          stowableHeldItemInstanceId: null
+        }
       })
     ).toEqual([])
     expect(
-      encounterAttackAgainstContributors(HOLDER_ID, [activeEffect], {
-        kind: 'CHARACTER',
-        creatureTypeIds: [],
-        canAct: true,
-        speedAboveZero: true,
-        freeHand: true,
-        stowableHeldItemInstanceId: null
+      encounterAttackAgainstContributors({
+        holderActorId: HOLDER_ID,
+        effects: [activeEffect],
+        grantFold: null,
+        holderState: {
+          kind: 'CHARACTER',
+          creatureTypeIds: [],
+          canAct: true,
+          speedAboveZero: true,
+          freeHand: true,
+          stowableHeldItemInstanceId: null
+        }
       })
     ).toHaveLength(ATTACK_DOMAINS.length)
   })
@@ -343,13 +353,18 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
   it('an INCLUDE predicate holds only while the state is true', () => {
     const [activeEffect] = [dodge()]
     const holds = (canAct: boolean, speedAboveZero: boolean) =>
-      encounterAttackAgainstContributors(HOLDER_ID, [activeEffect!], {
-        kind: 'CHARACTER',
-        creatureTypeIds: [],
-        canAct,
-        speedAboveZero,
-        freeHand: true,
-        stowableHeldItemInstanceId: null
+      encounterAttackAgainstContributors({
+        holderActorId: HOLDER_ID,
+        effects: [activeEffect!],
+        grantFold: null,
+        holderState: {
+          kind: 'CHARACTER',
+          creatureTypeIds: [],
+          canAct,
+          speedAboveZero,
+          freeHand: true,
+          stowableHeldItemInstanceId: null
+        }
       }).length > 0
     expect(holds(true, true)).toBe(true)
     expect(holds(false, true)).toBe(false)

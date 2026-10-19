@@ -267,6 +267,8 @@ export const chargeBonusKindSchema = lazySchema(() =>
 export const attackDomainCodeSchema = lazySchema(() =>
   z.enum(['MELEE', 'RANGED', 'SPELL', 'UNARMED'])
 )
+/** The occasion an attack is made on, which a grant can limit itself to. */
+export const attackOccasionCodeSchema = lazySchema(() => z.enum(['OPPORTUNITY']))
 /** An attack's kind: melee and ranged spell attacks both read SPELL modifiers. */
 export const attackKindSchema = lazySchema(() =>
   z.enum(['MELEE', 'RANGED', 'UNARMED', 'MELEE_SPELL', 'RANGED_SPELL'])

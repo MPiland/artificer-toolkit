@@ -84,6 +84,7 @@ export function evaluateDnd5eCharacterModifiers(
       [
         'ADVANTAGE',
         'DISADVANTAGE',
+        'NEGATE_ADVANTAGE',
         'ADD_OPTION',
         'REMOVE_OPTION',
         'ADD_BONUS_DIE',
@@ -240,7 +241,7 @@ export function evaluateDnd5eCharacterModifiers(
         group.valueDomainCode === 'ATTACKS_PER_ATTACK_ACTION'
         ? 'highest'
         : 'last'
-      : ['ADVANTAGE', 'DISADVANTAGE'].includes(group.modifierKind)
+      : ['ADVANTAGE', 'DISADVANTAGE', 'NEGATE_ADVANTAGE'].includes(group.modifierKind)
         ? 'boolean'
         : 'additive'
     const selected =
