@@ -1300,6 +1300,16 @@ hand and a two-handed item cannot sit in the off hand. Disarm moves an item from
 `CARRIED` and records the hand in the transition's `fromState`. ATTACK-18 and ATTACK-19 reuse the
 function for Characters.
 
+**Default attack (ATTACK-19, D107).** `encounterDefaultAttackActionId` (`encounterDefaultAttack.ts`)
+picks the action the tabletop drawer starts on, reported as `defaultActionId` in the action choices
+(`readEncounterActionChoices`): the open Attack action's last weapon while it still has an attack
+left, otherwise the available `ACTION` weapon attack bound to the main-hand item, otherwise the
+available `BONUS_ACTION` weapon attack bound to the off-hand item. Hands come from
+`encounterActorHeldItems` (a Character's equipped items, a Creature's loadout) through
+`resolveHandOccupancy`; an action is bound by its Character item instance or Creature loadout entry.
+The off-hand damage and its Two-Weapon Fighting restore stay the `withOffHandDamage` clamp above; the
+drawer only reads the default and never derives it.
+
 **Character equipment hands (SHEET-8, D107).** `state.equipment.equipped` is
 `{ itemId, slot: MAIN_HAND | OFF_HAND | WORN }[]`; an unequipped item is carried. `nextEquipSlot`,
 `swapHeldItems` and `promotesOffHandItem` (`packages/shared` core, beside `resolveHandOccupancy`) are the
