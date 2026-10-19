@@ -1,4 +1,5 @@
-import type { FacetAuthored, MovementPassageOption } from '@artificer-toolkit/shared/core'
+import type { FacetAuthored } from '@artificer-toolkit/shared/authored'
+import type { MovementPassageOption } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { describe, expect, it } from 'vitest'
