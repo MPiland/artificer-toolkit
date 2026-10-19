@@ -24,7 +24,6 @@ import {
 } from './nativeEncounterTargets.js'
 import { createNativeLiveTurnStages } from './nativeEncounterTurnPreparation.js'
 import {
-  resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
   withEncounterAppRoll,
   type EncounterResponseAnswer
@@ -341,15 +340,6 @@ export async function planNativeLiveEncounterTurn(
           answer: resolution,
           random: execution.random
         })
-      else if (pendingContext.kind === 'ENCOUNTER_TURN_DEATH_SAVE') {
-        const roll = resolveEncounterD20Answer({
-          derivedRollMode: 'NORMAL',
-          answer: resolution,
-          rollD20: () => execution.random(20) + 1
-        })
-        if (roll.rollMode !== 'NORMAL') throw new Error('A death save is a single d20 roll.')
-        rawDie = roll.natural
-      }
     }
   }
   if (admission.command.type === 'START' || initiativeResume) {

@@ -7,6 +7,8 @@ import {
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
+import { bane } from '@artificer-toolkit/source-data/srd/spells/bane.js'
+import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { copperDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/copper-dragon-wyrmling.js'
 import { goldDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/gold-dragon-wyrmling.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
@@ -17,6 +19,7 @@ import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass
 import { protectionFromEnergy } from '@artificer-toolkit/source-data/srd/spells/protection-from-energy.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 
+import { castChoiceOptions } from '../encounterCastChoice.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -54,15 +57,28 @@ export function grantOnly(
   }
 }
 
-/** The grant effect the real compiler plans for one authored Effect, held by the actor. */
+/**
+ * The grant effect the real compiler plans for one authored Effect, held by the actor: cast at
+ * `spellCastLevel`, as the cast-choice option labelled `choiceLabel`, by `sourceActorId`.
+ */
 export function plannedGrantEffect(input: {
   id: string
   holderActorId: string
   effect: EffectAuthored | undefined
   sourceLabel: string
+  spellCastLevel?: number
+  choiceLabel?: string
+  sourceActorId?: string
 }) {
   if (!input.effect) throw new Error(`${input.sourceLabel} has no effect.`)
-  const action = characterActionDescriptor(compileEffect({ ...input.effect, id: ACTION_EFFECT_ID }))
+  const compiled = compileEffect({ ...input.effect, id: ACTION_EFFECT_ID })
+  const picked =
+    input.choiceLabel === undefined
+      ? compiled
+      : castChoiceOptions(compiled)?.find(({ label }) => label === input.choiceLabel)
+          ?.compiledEffect
+  if (!picked) throw new Error(`${input.sourceLabel} offers no "${input.choiceLabel}".`)
+  const action = characterActionDescriptor(picked, input.spellCastLevel)
   const published = grantPublishedIdentity()
   const [plan] =
     dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({ action, published }) ?? []
@@ -75,6 +91,7 @@ export function plannedGrantEffect(input: {
       targetActorId: input.holderActorId
     },
     createdOrdinal: 1,
+    sourceActorId: input.sourceActorId ?? null,
     consumeOnFirstEvents: plan.modifierGrantContribution.consumeOnFirstEvents,
     endOnEvents: plan.modifierGrantContribution.endOnEvents,
     endOnTriggers: [],
@@ -100,6 +117,16 @@ export function antitoxinEffect(input: { id: string; holderActorId: string }) {
     effect: antitoxinVial.effects?.[0],
     sourceLabel: antitoxinVial.label
   })
+}
+
+/** The active effect the real compiler plans for the SRD Bless spell, held by a blessed creature. */
+export function blessEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({ ...input, effect: bless.effects?.[0], sourceLabel: bless.label })
+}
+
+/** The active effect the real compiler plans for a failed save against the SRD Bane spell. */
+export function baneEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({ ...input, effect: bane.effects?.[0], sourceLabel: bane.label })
 }
 
 /** The active effect the real compiler plans for the SRD Dodge action, held by the dodging actor. */

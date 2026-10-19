@@ -8,7 +8,10 @@ import type {
   SceneCurrentEntityPage,
   SceneCurrentEntityPageInput
 } from '@artificer-toolkit/schema/api/sceneRecipient'
+import { creatureTokenLights } from '@artificer-toolkit/rules-runtime/creatureLight'
+import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { EncounterReadContext } from './store.js'
+import { readRunActors } from './documents.js'
 import { readMaintainedState } from './effectStore.js'
 import { readSpatialEffect } from './spatialEffectStore.js'
 
@@ -86,12 +89,26 @@ export async function readEncounterTurnCapture(
       throw new Error('Turn effect perception binding is stale.')
     const header = await scene.readSceneHeader(binding.sceneId)
     if (header.campaignId !== state.campaignId) throw new Error('Turn effect Scene is stale.')
+    const [tokenBindings, actors] = await Promise.all([
+      ctx.db
+        .query('encounterActorTokenBindings')
+        .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', state.id))
+        .take(MAX_ENCOUNTER_ACTORS + 1),
+      readRunActors(ctx, state)
+    ])
+    if (tokenBindings.length > MAX_ENCOUNTER_ACTORS)
+      throw new Error('Turn effect perception token bindings exceed the supported bound.')
+    const tokenLights = creatureTokenLights(
+      tokenBindings.filter(({ sceneId }) => sceneId === binding.sceneId),
+      actors
+    )
     return {
       kind: request.kind,
       context: {
         header,
         observerTokenId: observerBinding.tokenId,
-        subjectTokenId: subjectBinding.tokenId
+        subjectTokenId: subjectBinding.tokenId,
+        tokenLights
       }
     }
   }

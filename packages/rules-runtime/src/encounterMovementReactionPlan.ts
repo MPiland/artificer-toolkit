@@ -237,6 +237,7 @@ function reactionEndedEffects<
       ({ id }) => !reactor.consumedGrants.some((ended) => ended.id === id)
     ),
     attacked: makesAttackRoll,
+    turnActorId: prepared.state.currentActorId,
     applications: [
       ...requireCompletedMovementReaction(input).applications,
       ...effects.effects.relationshipConditionApplications

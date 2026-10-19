@@ -66,7 +66,8 @@ export function projectNativeConcentrationPending(
       derivedRollModeReasons: reasons({
         rollMode: context.save.rollMode,
         contributors: context.save.contributors
-      })
+      }),
+      ...(context.save.addedDice ? { addedDice: context.save.addedDice } : {})
     },
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
   })

@@ -13,6 +13,7 @@ import {
   completedTurnRechargePlanDtoSchema,
   turnLegendaryActionEvidenceDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
+import { d20AddedDiceTotal } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import {
   featureChargeUsed,
   encounterRuleUsageUsed,
@@ -251,6 +252,7 @@ export async function persistEncounterTurnResources(
         ({ id }) => !consumedGrants.some((ended) => ended.id === id)
       ),
       attacked: attackRoll,
+      turnActorId: state.currentActorId,
       applications: application.applications.map((planned) => ({
         ...planned,
         targetActorId
@@ -642,7 +644,7 @@ export async function persistEncounterTurnDeathSave(
     }),
     occurredAt,
     applications: [],
-    deathSave: { rawDie: plan.rawDie },
+    deathSave: { rawDie: plan.rawDie, addedTotal: d20AddedDiceTotal(plan.addedDice) },
     effectiveMaximumHitPoints: candidate.effectiveMaximumHitPoints,
     forceVersionAdvance: true
   })
@@ -667,6 +669,7 @@ export async function persistEncounterTurnDeathSave(
   const roll = deathSaveRollRecord({
     occurrenceId,
     rawDie: plan.rawDie,
+    addedDice: plan.addedDice,
     rollerLabel: actor.label,
     ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
     createdAt: occurredAt

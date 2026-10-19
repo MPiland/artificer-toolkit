@@ -337,6 +337,36 @@ describe('VTT scene contracts', () => {
     expect(sceneStoredTokenDtoSchema.safeParse({ ...token, senses: [] }).success).toBe(true)
   })
 
+  it('lets the transport Token carry the light its actor sheds but never the stored Token', () => {
+    const token = {
+      assetId: null,
+      controlledByUserIds: [],
+      height: 1,
+      hidden: false,
+      id: ids.token,
+      label: 'Token',
+      locked: false,
+      position: { x: 1, y: 2 },
+      rotationDegrees: 0,
+      senses: [],
+      vision: null,
+      width: 1
+    }
+    const light = { brightRadius: 10, dimRadius: 20 }
+
+    expect(sceneTokenDtoSchema.safeParse({ ...token, light }).success).toBe(true)
+    expect(sceneStoredTokenDtoSchema.safeParse({ ...token, light }).error?.issues).toEqual([
+      expect.objectContaining({
+        message: 'Stored Scene tokens never carry light.',
+        path: ['light']
+      })
+    ])
+    expect(
+      sceneTokenDtoSchema.safeParse({ ...token, light: { brightRadius: 20, dimRadius: 10 } })
+        .success
+    ).toBe(false)
+  })
+
   it('accepts only the five geometry commands with full-schema parity', () => {
     const commandBase = {
       commandId: ids.campaign,

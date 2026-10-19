@@ -225,7 +225,9 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             consumeOnFirstEvents: activeGrantConsumeEventsSchema,
             endOnEvents: activeGrantEndEventsSchema,
             endOnConditionIds: activeGrantEndConditionIdsSchema,
-            holderEnd: z.nullable(activeGrantHolderEndSchema)
+            holderEnd: z.nullable(activeGrantHolderEndSchema),
+            fromSourceOnly: z.optional(z.literal(true)),
+            activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true))
           })
           .check(
             z.refine(

@@ -13,6 +13,7 @@ import {
   buildEncounterSaveD20Evidence,
   deriveEncounterActionD20Policy,
   nestedOutcomeD20Policy,
+  policyAddedDice,
   requireEncounterSaveD20EvidenceTrace
 } from './encounterMovementReactionActionExecution.js'
 import {
@@ -32,6 +33,8 @@ import {
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
+import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
   type ServerCompletedRuleExecutionDto,
@@ -125,6 +128,7 @@ export async function executeNativeActionGraphs(input: {
       requestId: string
       faces: number[]
       rollMode: EncounterD20RollMode
+      addedDice: D20RolledAddedDieDto[]
     } | null = null
     const requests = new Set<string>()
     while (result.status === 'PAUSED') {
@@ -133,7 +137,6 @@ export async function executeNativeActionGraphs(input: {
       if (requests.has(request.requestId) || requests.size >= RULE_GRAPH_LIMITS.NODES)
         throw new Error('The action evidence sequence is invalid.')
       requests.add(request.requestId)
-      let value: number
       const isNestedSave = nestedPolicy?.requestNodeId === request.nodeId
       if (
         phase === 'TEST' ||
@@ -143,24 +146,36 @@ export async function executeNativeActionGraphs(input: {
         const policy = !isNestedSave
           ? deriveEncounterActionD20Policy({ continuation, bound })
           : nestedPolicy!
+        const answer = { kind: 'AUTO_ROLL' as const, requestId: request.requestId }
         const { faces, rollMode, natural } = resolveEncounterD20Answer({
           derivedRollMode: policy.rollMode,
-          answer: { kind: 'AUTO_ROLL', requestId: request.requestId },
+          answer,
           rollD20: () => random(20) + 1
         })
-        value = natural
+        const addedDice = resolveEncounterAddedDice({
+          dice: policy.addedDice ?? [],
+          answer,
+          random
+        })
         if (!isNestedSave) {
           if (testEvidence) throw new Error('The action TEST requested more than one d20 stage.')
-          testEvidence = { policy, requestId: request.requestId, faces, rollMode }
+          testEvidence = { policy, requestId: request.requestId, faces, rollMode, addedDice }
         } else {
           if (nestedD20) throw new Error('The action OUTCOME requested more than one nested save.')
           nestedD20 = buildEncounterSaveD20Evidence({
             policy,
             requestId: request.requestId,
             faces,
-            rollMode
+            rollMode,
+            addedDice
           })
         }
+        result = await resumeEncounterD20({
+          continuation,
+          natural,
+          addedDice,
+          resume: (step) => input.runtime.resume(step)
+        })
       } else {
         const width = request.max - request.min + 1
         if (
@@ -170,14 +185,14 @@ export async function executeNativeActionGraphs(input: {
           width > 2 ** 32
         )
           throw new Error('The action outcome requested unsupported integer evidence.')
-        value = request.min + random(width)
+        const value = request.min + random(width)
         if (!Number.isSafeInteger(value) || value < request.min || value > request.max)
           throw new Error('The action outcome roll is invalid.')
+        result = await input.runtime.resume({
+          continuation,
+          response: { requestId: request.requestId, value }
+        })
       }
-      result = await input.runtime.resume({
-        continuation,
-        response: { requestId: request.requestId, value }
-      })
     }
     if (testEvidence) d20 = buildEncounterActionD20Evidence({ execution: result, ...testEvidence })
     if (nestedPolicy && nestedD20)
@@ -402,6 +417,8 @@ type SettledActionResponse = {
   faces: number[] | null
   rollMode: EncounterD20RollMode | null
   modeAdjustment?: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
+  /** The d20 policy's added dice with their faces; none for an integer request. */
+  addedDice: D20RolledAddedDieDto[]
 }
 
 type ActionResponse = SettledActionResponse | { kind: 'NEEDS_EXTRA_D20'; heldFace: number }
@@ -426,20 +443,35 @@ function actionResponse(
     throw new Error('The action evidence request is stale.')
   const rollD20 = () => input.random(20) + 1
   const { policy, resolution, sightGoverned } = input
-  if (policy !== null && sightGoverned)
-    return settleSightGovernedD20({
+  // The answer that settles the d20 carries its added dice; a held d20 waits for the next answer.
+  const addedDice = () =>
+    resolveEncounterAddedDice({
+      dice: policy?.addedDice ?? [],
+      answer: resolution,
+      random: input.random
+    })
+  if (policy !== null && sightGoverned) {
+    const settled = settleSightGovernedD20({
       appliedMode: policy.rollMode,
       sightGoverned,
       resolution,
       rollD20
     })
+    return settled.kind === 'SETTLED' ? { ...settled, addedDice: addedDice() } : settled
+  }
   if (policy !== null) {
     const d20 = resolveEncounterD20Answer({
       derivedRollMode: policy.rollMode,
       answer: resolution,
       rollD20
     })
-    return { kind: 'SETTLED', value: d20.natural, faces: d20.faces, rollMode: d20.rollMode }
+    return {
+      kind: 'SETTLED',
+      value: d20.natural,
+      faces: d20.faces,
+      rollMode: d20.rollMode,
+      addedDice: addedDice()
+    }
   }
   const { request } = input.continuation
   return {
@@ -451,7 +483,8 @@ function actionResponse(
       random: input.random
     }),
     faces: null,
-    rollMode: null
+    rollMode: null,
+    addedDice: addedDice()
   }
 }
 
@@ -532,16 +565,16 @@ async function requireNativeTestBoundary(input: {
     requestId: boundary.d20.requestId,
     faces: boundary.d20.rawFaces,
     rollMode: boundary.d20.rollMode,
-    modeAdjustment: boundary.d20.modeAdjustment
+    modeAdjustment: boundary.d20.modeAdjustment,
+    addedDice: boundary.d20.addedDice ?? []
   })
   if (checksumRuleDocument(evidence) !== checksumRuleDocument(boundary.d20))
     throw new Error('The native action TEST evidence is stale.')
-  const replayed = await input.source.runtime.resume({
+  const replayed = await resumeEncounterD20({
     continuation: boundary.continuation,
-    response: {
-      requestId: boundary.continuation.request.requestId,
-      value: boundary.d20.selectedNatural
-    }
+    natural: boundary.d20.selectedNatural,
+    addedDice: boundary.d20.addedDice ?? [],
+    resume: (step) => input.source.runtime.resume(step)
   })
   if (checksumRuleDocument(replayed) !== checksumRuleDocument(boundary.execution))
     throw new Error('The native action TEST execution is stale.')
@@ -563,6 +596,7 @@ export async function prepareNativeActionTest(
   let faces: number[] | null = null
   let rollMode: EncounterD20RollMode | null = null
   let modeAdjustment: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
+  let addedDice: D20RolledAddedDieDto[] = []
   let policy: ServerRuleExecutionD20PolicyDto | null = null
   let result: Awaited<ReturnType<RulesRuntimeService['executeResolved']>>
 
@@ -631,9 +665,12 @@ export async function prepareNativeActionTest(
     faces = response.faces
     rollMode = response.rollMode
     modeAdjustment = response.modeAdjustment
-    result = await input.runtime.resume({
+    addedDice = response.addedDice
+    result = await resumeEncounterD20({
       continuation: pending.continuation,
-      response: { requestId: pending.continuation.request.requestId, value: response.value }
+      natural: response.value,
+      addedDice,
+      resume: (step) => input.runtime.resume(step)
     })
   }
 
@@ -687,10 +724,13 @@ export async function prepareNativeActionTest(
     continuation = result.continuation
     faces = automatic.faces
     rollMode = automatic.rollMode
+    addedDice = automatic.addedDice
     policy = pendingPolicy
-    result = await input.runtime.resume({
+    result = await resumeEncounterD20({
       continuation: result.continuation,
-      response: { requestId: result.continuation.request.requestId, value: automatic.value }
+      natural: automatic.value,
+      addedDice,
+      resume: (step) => input.runtime.resume(step)
     })
   }
   if (result.status !== 'COMPLETE' || !continuation || !faces || !rollMode || !policy)
@@ -701,7 +741,8 @@ export async function prepareNativeActionTest(
     requestId: continuation.request.requestId,
     faces,
     rollMode,
-    modeAdjustment
+    modeAdjustment,
+    addedDice
   })
   const boundary: NativeActionTestBoundary = {
     kind: 'TEST_BOUNDARY',
@@ -1016,7 +1057,8 @@ export async function continueNativeActionAfterTest(
       selectedNatural: input.boundary.d20.selectedNatural,
       ...(input.boundary.d20.modeAdjustment
         ? { modeAdjustment: input.boundary.d20.modeAdjustment }
-        : {})
+        : {}),
+      ...(input.boundary.d20.addedDice ? { addedDice: input.boundary.d20.addedDice } : {})
     }
   }
   let nestedD20: ServerRuleExecutionNestedD20EvidenceDto | null = null
@@ -1068,9 +1110,11 @@ export async function continueNativeActionAfterTest(
       resolution: input.resume.resolution,
       random
     })
-    result = await input.runtime.resume({
+    result = await resumeEncounterD20({
       continuation: pending.continuation,
-      response: { requestId: pending.continuation.request.requestId, value: response.value }
+      natural: response.value,
+      addedDice: response.addedDice,
+      resume: (step) => input.runtime.resume(step)
     })
     if (policy && response.faces && response.rollMode) {
       if (nestedD20)
@@ -1079,7 +1123,8 @@ export async function continueNativeActionAfterTest(
         policy,
         requestId: pending.continuation.request.requestId,
         faces: response.faces,
-        rollMode: response.rollMode
+        rollMode: response.rollMode,
+        addedDice: response.addedDice
       })
       twoPhase = { ...twoPhase, nestedOutcomeD20Evidence: nestedD20 }
     }
@@ -1120,13 +1165,16 @@ export async function continueNativeActionAfterTest(
         policy,
         requestId: result.continuation.request.requestId,
         faces: response.faces,
-        rollMode: response.rollMode
+        rollMode: response.rollMode,
+        addedDice: response.addedDice
       })
       twoPhase = { ...twoPhase, nestedOutcomeD20Evidence: nestedD20 }
     }
-    result = await input.runtime.resume({
+    result = await resumeEncounterD20({
       continuation: result.continuation,
-      response: { requestId: result.continuation.request.requestId, value: response.value }
+      natural: response.value,
+      addedDice: response.addedDice,
+      resume: (step) => input.runtime.resume(step)
     })
   }
   if (result.status !== 'COMPLETE') throw new Error('The native action OUTCOME did not settle.')
@@ -1233,6 +1281,7 @@ export async function advanceNativeActionGraphs(input: {
       faces: number[]
       rollMode: EncounterD20RollMode
       modeAdjustment: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
+      addedDice: D20RolledAddedDieDto[]
     } | null
   } = { d20: null }
   let result: Awaited<ReturnType<RulesRuntimeService['executeResolved']>>
@@ -1278,9 +1327,11 @@ export async function advanceNativeActionGraphs(input: {
         heldD20: heldStageD20(response.heldFace, sight)
       }
     }
-    const resumed = await input.runtime.resume({
+    const resumed = await resumeEncounterD20({
       continuation,
-      response: { requestId: continuation.request.requestId, value: response.value }
+      natural: response.value,
+      addedDice: response.addedDice,
+      resume: (step) => input.runtime.resume(step)
     })
     if (policy && response.faces && response.rollMode) {
       if (phase === 'OUTCOME' && twoPhase?.phase === 'OUTCOME') {
@@ -1289,7 +1340,8 @@ export async function advanceNativeActionGraphs(input: {
           policy,
           requestId: continuation.request.requestId,
           faces: response.faces,
-          rollMode: response.rollMode
+          rollMode: response.rollMode,
+          addedDice: response.addedDice
         })
         twoPhase = { ...twoPhase, nestedOutcomeD20Evidence: nestedD20 }
       } else {
@@ -1299,7 +1351,8 @@ export async function advanceNativeActionGraphs(input: {
           policy,
           faces: response.faces,
           rollMode: response.rollMode,
-          modeAdjustment: response.modeAdjustment
+          modeAdjustment: response.modeAdjustment,
+          addedDice: response.addedDice
         }
       }
     }
@@ -1431,12 +1484,14 @@ export async function advanceNativeActionGraphs(input: {
           contributors: [...audit.contributors],
           contributorChecksum: audit.contributorChecksum,
           modifier: audit.modifier,
-          dc: audit.defenseOrDc
+          dc: audit.defenseOrDc,
+          ...policyAddedDice(audit.addedDice)
         },
         requestId: roll.requestId,
         faces: roll.rawFaces,
         rollMode: roll.rollMode,
-        modeAdjustment: roll.modeAdjustment
+        modeAdjustment: roll.modeAdjustment,
+        addedDice: roll.addedDice ?? []
       })
       const nestedPolicy = nestedOutcomeD20Policy({
         published,
@@ -1487,7 +1542,8 @@ export async function advanceNativeActionGraphs(input: {
             requestId: stage.d20.continuation.request.requestId,
             faces: stage.d20.faces,
             rollMode: stage.d20.rollMode,
-            modeAdjustment: stage.d20.modeAdjustment
+            modeAdjustment: stage.d20.modeAdjustment,
+            addedDice: stage.d20.addedDice
           })
         : null,
       nestedD20: null
@@ -1505,7 +1561,8 @@ export async function advanceNativeActionGraphs(input: {
       requestId: stage.d20.continuation.request.requestId,
       faces: stage.d20.faces,
       rollMode: stage.d20.rollMode,
-      modeAdjustment: stage.d20.modeAdjustment
+      modeAdjustment: stage.d20.modeAdjustment,
+      addedDice: stage.d20.addedDice
     })
     phaseReceipts = [
       {
@@ -1638,7 +1695,8 @@ export async function advanceNativeActionGraphs(input: {
         derivedRollMode: testD20.derivedRollMode,
         rawFaces: testD20.rawFaces,
         selectedNatural: testD20.selectedNatural,
-        ...(testD20.modeAdjustment ? { modeAdjustment: testD20.modeAdjustment } : {})
+        ...(testD20.modeAdjustment ? { modeAdjustment: testD20.modeAdjustment } : {}),
+        ...(testD20.addedDice ? { addedDice: testD20.addedDice } : {})
       }
     }
     result = await input.runtime.executeResolved({

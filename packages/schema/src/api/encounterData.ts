@@ -34,6 +34,7 @@ import { jsonValueSchema } from '../projections/identity.js'
 import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprint.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { rollRecordDtoSchema } from './rolls.js'
+import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { healthDisplayLevelDtoSchema, playerActorHealthDtoSchema } from './healthDisplay.js'
 import {
   MAX_SPATIAL_RULE_EFFECTS_PER_SCENE,
@@ -302,7 +303,9 @@ export const encounterEvidenceRollDtoSchema = lazySchema(() =>
       /** The mode the d20 was rolled with; null for any other roll. */
       rollMode: z.nullable(d20RollModeSchema),
       /** The rules-derived mode the row recommended; differs from `rollMode` when overridden. */
-      derivedRollMode: z.nullable(d20RollModeSchema)
+      derivedRollMode: z.nullable(d20RollModeSchema),
+      /** The faces of the request's added dice (D156), rolled with the d20. */
+      addedFaces: z.optional(d20AddedFacesDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -330,7 +333,8 @@ export const encounterSettledAppRollDtoSchema = lazySchema(() =>
   z.strictObject({
     rollId: uuidSchema,
     faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
-    rollMode: z.nullable(d20RollModeSchema)
+    rollMode: z.nullable(d20RollModeSchema),
+    addedFaces: z.optional(d20AddedFacesDtoSchema)
   })
 )
 export type EncounterSettledAppRollDto = z.infer<typeof encounterSettledAppRollDtoSchema>

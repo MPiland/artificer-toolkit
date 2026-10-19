@@ -14,6 +14,9 @@ import {
   resolveEncounterD20Answer,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
+import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import { derivedAddedDice } from './systems/dnd5e/d20AddedDiceGraph.js'
+import { d20AddedDiceTotal } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { concentrationDamageSourceLabel } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
@@ -148,11 +151,17 @@ export function createNativeConcentrationContext(input: {
   sourceLabels: NativeConcentrationContext['sourceLabels']
 }) {
   const { current, application } = input
+  const addedDice = derivedAddedDice(
+    current.target.targetDerivedFacts.savingThrowAddedDice,
+    DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
+  )
   const facts = resolveDnd5eConcentrationSaveFacts({
     appliedDamage: application.appliedAmount,
     targetActorId: application.targetActorId,
-    rulePolicyOutput: dnd5eConcentrationHolderSaves(current.target)
+    rulePolicyOutput: dnd5eConcentrationHolderSaves(current.target),
+    addedDice
   })
+  const saveAddedDice = addedDice.length > 0 ? { addedDice } : {}
   const maintainedState = {
     id: current.maintained.id,
     version: current.maintained.version,
@@ -181,7 +190,8 @@ export function createNativeConcentrationContext(input: {
       modifier: facts.modifier,
       rollMode: facts.rollMode,
       contributors: [...facts.contributors],
-      contributorChecksum: facts.contributorChecksum
+      contributorChecksum: facts.contributorChecksum,
+      ...saveAddedDice
     },
     contextChecksum: checksumRuleDocument({
       ...current.pins,
@@ -190,6 +200,7 @@ export function createNativeConcentrationContext(input: {
       rollMode: facts.rollMode,
       contributors: [...facts.contributors],
       contributorChecksum: facts.contributorChecksum,
+      ...saveAddedDice,
       maintainedState,
       finalizedDamageApplication: { ...application, maintainedStateId: maintainedState.id },
       finalizedDamageEnvelopeChecksum: input.finalizedDamageEnvelopeChecksum
@@ -240,9 +251,16 @@ export async function evaluateNativeConcentrationEvidence(input: {
     answer: resolution,
     rollD20: () => input.random(20) + 1
   })
-  const execution = await input.runtime.resume({
+  const addedDice = resolveEncounterAddedDice({
+    dice: context.save.addedDice ?? [],
+    answer: resolution,
+    random: input.random
+  })
+  const execution = await resumeEncounterD20({
     continuation,
-    response: { requestId: resolution.requestId, value: selectedNatural }
+    natural: selectedNatural,
+    addedDice,
+    resume: (step) => input.runtime.resume(step)
   })
   if (
     execution.status !== 'COMPLETE' ||
@@ -252,7 +270,8 @@ export async function evaluateNativeConcentrationEvidence(input: {
     execution.outputs.appliedDamage !== context.application.appliedAmount ||
     execution.outputs.contributorChecksum !== context.save.contributorChecksum ||
     execution.outputs.naturalD20 !== selectedNatural ||
-    execution.outputs.total !== selectedNatural + context.save.modifier ||
+    execution.outputs.total !==
+      selectedNatural + context.save.modifier + d20AddedDiceTotal(addedDice) ||
     (execution.outputs.resultPath !== 'ON_SAVE_SUCCESS' &&
       execution.outputs.resultPath !== 'ON_SAVE_FAIL')
   )
@@ -262,6 +281,7 @@ export async function evaluateNativeConcentrationEvidence(input: {
     rawFaces,
     rollMode,
     selectedNatural,
+    addedDice,
     failed: execution.outputs.resultPath === 'ON_SAVE_FAIL'
   }
 }
@@ -275,12 +295,22 @@ export function completeNativeConcentrationResult(input: {
   rawFaces: NativeConcentrationEvidence['rawFaces']
   rollMode: NativeConcentrationEvidence['rollMode']
   selectedNatural: NativeConcentrationEvidence['selectedNatural']
+  addedDice: NativeConcentrationEvidence['addedDice']
   failed: NativeConcentrationEvidence['failed']
   cleanup: ReturnType<typeof concentrationCheckApplicationOutputDtoSchema.parse>['cleanup']
   occurrenceVersion: number
   initialFactsChecksum: string
 }) {
-  const { context, continuation, execution, rawFaces, rollMode, selectedNatural, failed } = input
+  const {
+    context,
+    continuation,
+    execution,
+    rawFaces,
+    rollMode,
+    selectedNatural,
+    addedDice,
+    failed
+  } = input
   const nextApplication = context.remaining.find(
     (entry) => !failed || entry.maintainedStateId !== context.maintainedState.id
   )
@@ -306,7 +336,8 @@ export function completeNativeConcentrationResult(input: {
       total: execution.outputs.total,
       dc: execution.outputs.dc,
       contributors: context.save.contributors,
-      contributorChecksum: context.save.contributorChecksum
+      contributorChecksum: context.save.contributorChecksum,
+      ...(addedDice.length > 0 ? { addedDice } : {})
     },
     contextChecksum: context.contextChecksum,
     cleanup: input.cleanup,

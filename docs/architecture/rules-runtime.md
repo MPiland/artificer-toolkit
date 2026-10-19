@@ -923,7 +923,7 @@ plan carries `marginRider` (required, nullable) with its own `rider-condition-du
 encounter planner then creates a second active effect, the rider's, with the parent's duration and the
 rider's own end triggers, so waking (`DAMAGE_TAKEN`, `ACTION_USED_ON_HOLDER`) ends it and leaves the
 parent condition. A receipt may therefore carry two active-effect transitions. The rider is not linked to
-the parent: ending the parent early leaves the rider for the GM to end. Only a follow-up save takes a rider. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author it.
+the parent: ending the parent early leaves the rider for the GM to end. A follow-up save takes a rider, and so does the fixed `ON_SAVE_FAIL` result of a direct saving-throw action (SPELLS-33.T7b, D156): `failureMarginRider` on the result block ("fails by 5 or more, also paralyzed"). The TEST total is not in the OUTCOME graph, so the specializer derives `saveFailedBy` (DC minus total) from the TEST outputs (`testOutputs` on `specializeOutcomeTemplate`) and appends one result group per rider outcome only when the margin is met. `marginRiderPlan` builds the rider's second active effect for both the follow-up and the direct-save plans, and the rider applies only when one of its conditions lands. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author the follow-up form; the Mummy and Mummy Lord Dreadful Glare author the direct-save form with SOURCE_IMMUNITY. Limitation: that immunity is per source, so a save against one mummy does not make the target immune to other mummies (SRD text covers all mummies).
 
 **Source immunity (SPELLS-31.T5l, D156).** A creature can be immune to one source's use of one action.
 Two authored forms compile to the plan's `sourceImmunity` (`sourceImmunityPlan`). A `SOURCE_IMMUNITY` outcome
@@ -944,7 +944,10 @@ unaffected". A zone refuses the restriction, since its entry saves do not filter
 (excluding aberrations) authors it.
 A save condition with no authored end compiles when it lasts at most one round, since no repeat save or end
 event can fall inside that round. SRD Intimidating Presence (save immunity) and Chains of Carceri (lockout
-and creature types) author it. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
+and creature types) author it, as do the SRD Cloaker's Moan, the Nalfeshnee's Horror Nimbus, and the Frightful
+Presence of the Tarrasque and the 20 adult and ancient dragons (SPELLS-33.T7a). The creature fears share
+`minuteFearSaveEffect` in the source data: Frightened for a minute with a repeat save at the end of each of the
+target's turns. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
 spell access (SPELLS-31.T5t).
 
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
@@ -1005,6 +1008,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   to the target facts for attack and save resolution, and the target keeps the holder state it found (`holderState`), so
   `rebuildEncounterTurnTarget` re-applies the grants as they stand at each turn stage (SPELLS-20 T5d); the D100 sight rule drops the attack contributor only when the holder
   definitively can't see the attacker (`UNSEEN`). GM undo removes the grant and refunds the Action like any authored action.
+- **Exempt senses and save-failure grants (SPELLS-4.T2k1, D156).** An `ATTACKS_AGAINST` modifier's
+  `exemptAttackerSenseDefinitionIds` names the System Senses through which an attacker that sees the holder is unaffected
+  (Blur: Blindsight, Truesight). A `TEST` whose only outcome is an `APPLY_GRANT` on its failed-save path compiles a
+  result-gated grant plan (`saveFailureGrantPlan`, adapter fact `dnd5e.grant-authored-path`) and no OUTCOME graph, like
+  `creatureFormPlan`: each creature that fails holds the grant (Enthrall).
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
@@ -1476,7 +1484,12 @@ roll made against its holder, hit or miss (Guiding Bolt's mark). The roll reads 
 `targetEndedEffects` (`attacked`, the action's `makesAttackRoll`) then ends it with the target's damage-ended effects, once
 each, on the same receipt (`consumedGrants`, so GM undo restores it). Every attack root passes it: the action, an area or
 chosen-creature attack (once per creature, however many rays name it), the movement reaction attack and the Legendary window;
-turn effects pass `false`. First Aid and Escape consume at the first commit, so their pending check context freezes the used grants as `consumedGrants` and the pending read names them from it. A Creature's check grants resolve the check's governing ability from the System skill (`checkAbilityCode`). Every
+turn effects pass `false`. **Event scope (SPELLS-4.T2k1, D156):** `effectEventScope` (`encounterGrantLifetimes`) is the one
+home of whose events an effect meets and on whose turn: only its Encounter source's when the lifecycle sets
+`fromSourceOnly`, and only during its tick anchor's turn while one tick remains when it sets `activeOnlyOnFinalAnchorTurn`
+(null while dormant, or source-only with no source in the Run). The `ATTACKS_AGAINST` contributors carry it and the attack
+filters them by attacker and current turn actor; `targetEndedEffects` (`turnActorId`) consumes an `ON_ATTACKED` effect only
+within it. True Strike is authored with both; Hunter's Mark and Hex can reuse the same scope for their damage. First Aid and Escape consume at the first commit, so their pending check context freezes the used grants as `consumedGrants` and the pending read names them from it. A Creature's check grants resolve the check's governing ability from the System skill (`checkAbilityCode`). Every
 attack path consumes: ordinary actions, movement reaction attacks and Disarm record `consumedGrants` on
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
@@ -1799,6 +1812,14 @@ authoritative actor and Scene facts.
 (`pinnedSenseDefinitions` on the Character mechanics projection, `senseDefinitionId` identity), Scene
 illumination and obscurement, line of effect, and typed active-effect contributions. Unknown definitions
 fail closed to Manual/Judgment. Fog and viewer projection are never mechanics inputs.
+
+Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`
+(the same SOURCE light shape equipment torches and lanterns and the Light and Continual Flame spells author)
+sheds that light from its token. `creatureLight` reads it from the actor snapshot; nothing stores it on the
+Scene. The Worker composes it onto bound tokens (`withSceneTokenLights`) for the Scene perception capture,
+movement reactions and the room's vision display, and `resolveSceneIlluminationAt` treats each token light
+as a point light at the token, radii measured from its footprint edge, for both perception (D108) and the
+renderer. Activated item and spell lights are not consumed yet.
 
 Attack-roll perception (current, D100): the room's `RESOLVE_ACTION` passes an optional
 `loadAttackPerception` to `prepareEncounterActionMechanics`

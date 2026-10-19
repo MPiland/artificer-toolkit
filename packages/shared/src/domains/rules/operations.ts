@@ -85,6 +85,31 @@ export const optionalIntegerRangeEvidenceRuleOperation = {
   }
 } satisfies RuleOperationContract
 
+/**
+ * The signed total of the dice a holder rolls with a d20 test after advantage or disadvantage keeps
+ * one d20 (Bless's +1d4, Bane's -1d4). `min` and `max` bound the signed sum; it asks for the total
+ * only while `enabled` is true and otherwise settles at `min` (0) without a request. A key of its
+ * own keeps it apart from the d20 requests, which share the integer-range keys.
+ */
+export const addedDiceTotalEvidenceRuleOperation = {
+  key: 'evidence.added-dice-total',
+  contractVersion: 1,
+  inputs: {
+    min: RULE_VALUE_KIND.NUMBER,
+    max: RULE_VALUE_KIND.NUMBER,
+    enabled: RULE_VALUE_KIND.BOOLEAN
+  },
+  outputs: { value: RULE_VALUE_KIND.NUMBER },
+  executionKind: 'EVIDENCE',
+  evidence: {
+    kind: 'INTEGER_RANGE',
+    minInput: 'min',
+    maxInput: 'max',
+    valueOutput: 'value',
+    enabledInput: 'enabled'
+  }
+} satisfies RuleOperationContract
+
 /** Keeps one of two rolled faces by roll mode: the first on NORMAL, the higher or lower otherwise. */
 export const keepByRollModeRuleOperation = {
   key: 'number.keep-by-roll-mode',
@@ -137,6 +162,7 @@ export const coreRuleOperations = [
   compareThresholdRuleOperation,
   integerRangeEvidenceRuleOperation,
   optionalIntegerRangeEvidenceRuleOperation,
+  addedDiceTotalEvidenceRuleOperation,
   keepByRollModeRuleOperation,
   boundedChoiceIndexEvidenceRuleOperation
 ] as const satisfies readonly RuleOperationContract[]

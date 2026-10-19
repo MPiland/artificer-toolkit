@@ -12,6 +12,7 @@ import {
   spatialPointDtoSchema
 } from './spatialFacts.js'
 import { serverRuleExecutionD20PolicyDtoSchema } from './ruleExecutionEvidence.js'
+import { d20RolledAddedDiceDtoSchema } from './d20AddedDice.js'
 import {
   ruleExecutionCapabilityKeySchema as capabilityKeySchema,
   ruleExecutionChecksumSchema as checksumSchema,
@@ -70,7 +71,8 @@ const spatialCandidateEvidenceFields = lazySchemaParts(() => ({
   diceStage: z.nullable(
     z.strictObject({
       rollMode: z.enum(['ADVANTAGE', 'DISADVANTAGE', 'NORMAL']),
-      rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2))
+      rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
+      addedDice: d20RolledAddedDiceDtoSchema
     })
   )
 }))
