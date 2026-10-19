@@ -524,7 +524,13 @@ export function evaluateEncounterZoneTarget(input: {
     warnings: EncounterRuleWarningDto[]
   ) => ({ shape, regions, warnings })
   if (aim?.kind === 'CASTER_CENTERED' && target.kind === 'CASTER_CENTERED') {
-    const shape = pointAreaInSceneCoordinates(aim.area, grid)
+    const shape =
+      aim.area.kind === 'OWN_SPACE'
+        ? {
+            kind: 'CUBE' as const,
+            edgeLength: Math.max(input.sourceToken.width, input.sourceToken.height)
+          }
+        : pointAreaInSceneCoordinates(aim.area, grid)
     return shape ? placed(shape, []) : unsupported
   }
   const aimedAt = (points: readonly ScenePoint[]) => {
