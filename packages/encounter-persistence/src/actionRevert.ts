@@ -87,6 +87,10 @@ type CounteredRoot = Extract<
   ServerRuleExecutionApplicationOutputsDto,
   { kind: 'ENCOUNTER_COUNTERED_CAST' }
 >
+type GatedRoot = Extract<
+  ServerRuleExecutionApplicationOutputsDto,
+  { kind: 'ENCOUNTER_GATED_ACTION' }
+>
 type CleavingDamage = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'CLEAVING_DAMAGE' }>
 type CharacterInverse = {
   hitPoints: ActionBatch['targetTransition']['before'] | null
@@ -250,7 +254,7 @@ export async function revertLastEncounterAction(
     unavailable('This action has too many follow-up results to undo; adjust manually.')
   let batch: ActionBatch | null = null
   let areaRoot: AreaRoot | null = null
-  let counteredRoot: CounteredRoot | null = null
+  let lostRoot: CounteredRoot | GatedRoot | null = null
   const areaTargetBatches = new Map<string, ActionBatch>()
   const cleaving: CleavingDamage[] = []
   const unsupported = new Set<string>()
@@ -268,7 +272,11 @@ export async function revertLastEncounterAction(
       )
         batch = outputs
       else if (outputs?.kind === 'ENCOUNTER_AREA_ACTION') areaRoot = outputs
-      else if (outputs?.kind === 'ENCOUNTER_COUNTERED_CAST') counteredRoot = outputs
+      else if (
+        outputs?.kind === 'ENCOUNTER_COUNTERED_CAST' ||
+        outputs?.kind === 'ENCOUNTER_GATED_ACTION'
+      )
+        lostRoot = outputs
       else unsupported.add(outputs?.kind === 'CONTESTED_ACTION' ? 'a contest' : 'this action')
       continue
     }
@@ -302,7 +310,7 @@ export async function revertLastEncounterAction(
   }
   if ([...laterOccurrenceIds].some((occurrenceId) => !childOccurrenceIds.has(occurrenceId)))
     unavailable('Another decision changed the Encounter after this action; adjust manually.')
-  if (!batch && !areaRoot && !counteredRoot && !unsupported.size)
+  if (!batch && !areaRoot && !lostRoot && !unsupported.size)
     throw new Error('Stored Encounter action receipt is missing.')
   // An area's creatures undo in reverse of the order they were applied; the root's sealed ids say which.
   const targetBatches = areaRoot
@@ -344,7 +352,7 @@ export async function revertLastEncounterAction(
     unsupported.add('a replaced maintained effect')
   const spend =
     areaRoot ??
-    counteredRoot ??
+    lostRoot ??
     (batch && {
       sourceActorId: batch.sourceActorId,
       sourceApplications: batch.sourceApplications,
@@ -744,7 +752,7 @@ export async function revertLastEncounterAction(
       resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
     })
   }
-  if (counteredRoot) invertReactorSpend(counteredRoot.counter)
+  if (lostRoot && 'counter' in lostRoot) invertReactorSpend(lostRoot.counter)
   for (const failed of root.failedCounters) invertReactorSpend(failed)
 
   // A Dash's speed bonus leaves the turn's movement record.

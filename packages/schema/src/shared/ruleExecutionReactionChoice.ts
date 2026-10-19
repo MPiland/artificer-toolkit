@@ -435,6 +435,85 @@ export const encounterCounteredCastApplicationOutputDtoSchema: z.ZodMiniType<
 > = encounterCounteredCastApplicationOutputImplSchema
 
 /**
+ * The save an attacker owes before an attack or harmful spell it aims at a warded creature lands
+ * (`INCOMING_ATTACK_GATE`): the holder's gate effect, the ability and DC of the save, and the attacker's
+ * frozen d20. The pause waits on that one roll.
+ */
+export type EncounterIncomingGateOfferDto = {
+  effectId: string
+  holderActorId: string
+  checkDefinitionId: string
+  dc: number
+  d20: z.infer<typeof frozenCheckD20DtoSchema>
+}
+
+export const encounterIncomingGateOfferDtoSchema: z.ZodMiniType<EncounterIncomingGateOfferDto> =
+  lazySchema(() =>
+    z.strictObject({
+      effectId: uuidSchema,
+      holderActorId: uuidSchema,
+      checkDefinitionId: uuidSchema,
+      dc: positiveIntegerSchema,
+      d20: frozenCheckD20DtoSchema
+    })
+  )
+
+/**
+ * The root of an action a warded creature's gate stopped: its attacker failed the save, so the attack or
+ * spell is lost. The action is still spent: the receipts name the slot, resource, item and action economy
+ * the source paid, and nothing the action would have done is applied.
+ */
+const encounterGatedActionApplicationOutputImplSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_GATED_ACTION'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      sourceActorId: uuidSchema,
+      sourceCharacterId: z.nullable(uuidSchema),
+      ...sourceSpendReceiptShape(),
+      /** What the failed save cost the source. */
+      lost: z.enum(['ATTACK', 'SPELL']),
+      gate: z.strictObject({
+        effectId: uuidSchema,
+        holderActorId: uuidSchema,
+        checkDefinitionId: uuidSchema,
+        dc: positiveIntegerSchema,
+        d20: ruleCheckD20EvidenceDtoSchema
+      })
+    })
+    .check(z.superRefine(validateSourceSpendReceipts))
+)
+
+export type EncounterGatedActionApplicationOutputDto = SourceSpendReceipts & {
+  kind: 'ENCOUNTER_GATED_ACTION'
+  schemaVersion: 1
+  occurrenceId: string
+  sourceActorId: string
+  sourceCharacterId: string | null
+  lost: 'ATTACK' | 'SPELL'
+  gate: {
+    effectId: string
+    holderActorId: string
+    checkDefinitionId: string
+    dc: number
+    d20: z.infer<typeof ruleCheckD20EvidenceDtoSchema>
+  }
+}
+
+/** Named so the application-output union prints this member by name (TS7056). */
+export const encounterGatedActionApplicationOutputDtoSchema: z.ZodMiniType<
+  EncounterGatedActionApplicationOutputDto,
+  { kind: 'ENCOUNTER_GATED_ACTION' },
+  z.core.$ZodTypeInternals<
+    EncounterGatedActionApplicationOutputDto,
+    { kind: 'ENCOUNTER_GATED_ACTION' }
+  > & {
+    propValues: z.core.util.PropValues
+  }
+> = encounterGatedActionApplicationOutputImplSchema
+
+/**
  * The defense the reaction changed for the triggering attack, sealed in the evidence: the re-evaluated
  * TEST is bound to the defense after the reaction, never silently rebound.
  */

@@ -3,6 +3,7 @@ import { persistEncounterActionCommit } from '@artificer-toolkit/encounter-persi
 import { readActorFormCreature } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import { persistEncounterAreaCommit } from '@artificer-toolkit/encounter-persistence/areaCommitPersistence'
 import { persistEncounterCounteredCastCommit } from '@artificer-toolkit/encounter-persistence/counteredCastCommitPersistence'
+import { persistEncounterGatedActionCommit } from '@artificer-toolkit/encounter-persistence/gatedActionCommitPersistence'
 import {
   prepareEncounterActionMaintenance,
   persistEncounterActionEffects
@@ -25,6 +26,7 @@ import {
   buildNativeLiveEncounterActionCommitInput
 } from './nativeEncounterRules.js'
 import { buildNativeLiveEncounterCounteredCastCommitInput } from './nativeEncounterCastReaction.js'
+import { buildNativeLiveEncounterGatedActionCommitInput } from './nativeEncounterIncomingGate.js'
 import { persistRoomEncounterCheckAction } from './roomEncounterBasicActions.js'
 import { persistRoomEncounterContest } from './roomEncounterContest.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
@@ -117,11 +119,13 @@ export async function executeRoomEncounterAction(input: {
       ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)
       : plan.kind === 'AREA_COMMIT'
         ? buildNativeLiveEncounterAreaCommitInput(scope, plan)
-        : plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING'
+        : plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING' || plan.kind === 'GATE_PENDING'
           ? buildNativeLiveEncounterActionPendingInput(scope, plan)
           : plan.kind === 'COUNTERED'
             ? buildNativeLiveEncounterCounteredCastCommitInput(scope, plan)
-            : buildNativeLiveEncounterActionCommitInput(scope, plan)
+            : plan.kind === 'GATED'
+              ? buildNativeLiveEncounterGatedActionCommitInput(scope, plan)
+              : buildNativeLiveEncounterActionCommitInput(scope, plan)
   const ids = new Set(
     plan.prepared.actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
@@ -194,7 +198,13 @@ export async function executeRoomEncounterAction(input: {
       { ...buildNativeLiveEncounterCounteredCastCommitInput(scope, plan), revisions },
       callbacks
     )
-  return plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING'
+  if (plan.kind === 'GATED')
+    return persistEncounterGatedActionCommit(
+      ctx,
+      { ...buildNativeLiveEncounterGatedActionCommitInput(scope, plan), revisions },
+      callbacks
+    )
+  return plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING' || plan.kind === 'GATE_PENDING'
     ? persistEncounterActionPending(
         ctx,
         {

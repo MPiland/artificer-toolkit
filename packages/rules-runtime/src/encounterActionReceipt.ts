@@ -4,7 +4,8 @@ import {
   encounterFailedCounterReceiptDtoSchema,
   type EncounterCastReactionPinDto,
   type EncounterCounterCheckEvidenceDto,
-  type EncounterFailedCounterDto
+  type EncounterFailedCounterDto,
+  type EncounterGatedActionApplicationOutputDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
@@ -358,6 +359,57 @@ export function buildEncounterCounteredCastStoredExecution(input: {
         characterStreamVersion: counter.characterStreamVersion,
         actionEconomyTransition: actionEconomyReceipt(counter.economy)
       }
+    }
+  })
+}
+
+/**
+ * Builds the stored root of an action a warded creature's gate stopped. The source still spends its slot,
+ * resource, item and action; nothing the attack or spell would have done is applied. The gate records the
+ * failed save.
+ */
+export function buildEncounterGatedActionStoredExecution(input: {
+  occurrenceId: string
+  occurrenceVersion: number
+  actorId: string
+  sourceCharacterId: string | null
+  spend: Pick<
+    ReturnType<typeof planNativeEncounterAreaSourceSpend>,
+    | 'sourceCharacterStreamVersion'
+    | 'resourceReceipt'
+    | 'featureResourceReceipt'
+    | 'sourceItemUseStateTransition'
+    | 'itemConsumptionReceipt'
+    | 'spellConsumptionReceipt'
+    | 'sourceApplications'
+  >
+  actionEconomy: EncounterActionEconomyConsumption | null
+  /** What the failed save cost the source. */
+  lost: 'ATTACK' | 'SPELL'
+  gate: EncounterGatedActionApplicationOutputDto['gate']
+}) {
+  const { spend } = input
+  return storedRuleExecutionResultDtoSchema.parse({
+    status: 'AGGREGATE_CHOICE_COMPLETE',
+    schemaVersion: 1,
+    occurrenceId: input.occurrenceId,
+    occurrenceVersion: input.occurrenceVersion,
+    applicationOutputs: {
+      kind: 'ENCOUNTER_GATED_ACTION',
+      schemaVersion: 1,
+      occurrenceId: input.occurrenceId,
+      sourceActorId: input.actorId,
+      sourceCharacterId: input.sourceCharacterId,
+      sourceCharacterStreamVersion: spend.sourceCharacterStreamVersion,
+      resourceConsumption: spend.resourceReceipt,
+      featureResourceConsumption: spend.featureResourceReceipt,
+      sourceItemUseStateTransition: spend.sourceItemUseStateTransition,
+      sourceItemConsumption: spend.itemConsumptionReceipt,
+      spellCastConsumption: spend.spellConsumptionReceipt,
+      sourceApplications: spend.sourceApplications,
+      actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
+      lost: input.lost,
+      gate: input.gate
     }
   })
 }

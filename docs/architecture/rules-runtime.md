@@ -1058,6 +1058,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   the decoy's armor class and the binding carries `absorbedByDecoy`, which makes the TEST `TEST_ONLY` and skips reactions and on-hit holds. A hit
   or critical spends a use (`spentUseGrants`, a lifecycle CAS at commit) or, on the last, ends the effect (`consumedGrants`); the root
   receipt keeps both so an undo restores them. Single-target attack actions only; see the T2k2 handoff for the gaps.
+- **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
+  targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
+  `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
+  d20 pause (`incomingGate` on the `ENCOUNTER_ACTION` context), anyone else is rolled server-side. A pass is remembered as
+  `passedIncomingGate`, carried by every later pause so a replay skips the gate; a fail commits `ENCOUNTER_GATED_ACTION`, the
+  source's spend with nothing of the action. Area effects are not gated. See the T2k3 handoff for the gaps.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
@@ -1099,10 +1105,14 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   first, each against the Scene after the earlier landings. The report rides the commit (`forcedMovementLandings`) and
   is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
   passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
-  collision itself is not resolved yet: the Whirlwind keeps its closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION`
-  kind until T6k2b2. T6k2b1 adds the authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
-  creature save, a condition). It rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
-  echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; nothing at runtime reads it yet, and a
+  collision's mover damage (T6k2b3, D159) settles in the area commit: each mover that travelled 10 ft or more takes
+  `floor(feet/10)` times the authored dice as an unsaved damage action of the pusher (`collisionDamageCapability`), one
+  more ordinal entry after the caught creatures' (`kept`), skipped while a pick is still owed. A RANDOM ray is rolled
+  once and sealed in `context.forcedMovement.rays` when a pick is first held; a replan reuses it. The struck creature's
+  save, the Whirlwind switch and the closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION` kind's removal are T6k2b4.
+  The authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
+  creature save, a condition) rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
+  echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; a
   collision the System cannot settle (non-fixed-DC save, bonuses, non-UUID id, bad dice) fails closed.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;

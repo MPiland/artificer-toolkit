@@ -95,3 +95,14 @@ describe('the attack decoys Mirror Image grants', () => {
     expect(shown('thresholds', exclusive)).toBe(false)
   })
 })
+
+describe('the incoming attack gate Sanctuary grants', () => {
+  it('enables the gate and asks for the attacker saving throw only there', () => {
+    const gate = { valueDomainCode: 'INCOMING_ATTACK_GATE', modifierKind: 'ENABLE' }
+    const decoys = { valueDomainCode: 'ATTACK_DECOYS', modifierKind: 'ENABLE' }
+    expect(MODIFIER_KINDS_BY_DOMAIN.INCOMING_ATTACK_GATE).toEqual(['ENABLE'])
+    expect(shown('savingThrow', gate)).toBe(true)
+    expect(shown('savingThrow', decoys)).toBe(false)
+    expect(shown('thresholds', gate)).toBe(false)
+  })
+})
