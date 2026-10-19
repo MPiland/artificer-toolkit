@@ -239,8 +239,10 @@ const WEST = 6
 /** The landing report the room's last committed action recorded. */
 async function recordedLandings(room: Room) {
   const { commands } = await readRoomHistory(room.room.base.stub)
-  return commands.filter(({ commandType }) => commandType === 'RESOLVE_ACTION').at(-1)
-    ?.forcedMovementLandings
+  const resolved = commands.flatMap((command) =>
+    command.commandType === 'RESOLVE_ACTION' ? [command] : []
+  )
+  return resolved.at(-1)?.forcedMovementLandings
 }
 
 describe('a random forced movement in the room (SPELLS-33.T6k2a, D159)', () => {
