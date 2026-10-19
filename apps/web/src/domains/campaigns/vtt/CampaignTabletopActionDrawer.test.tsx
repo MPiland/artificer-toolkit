@@ -1672,6 +1672,33 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
     )
   })
 
+  it('asks for no aim when the area is the caster’s own space', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const whirlwind = validatedChoice({
+      ...breath,
+      id: 'creature-wolf:whirlwind',
+      label: 'Whirlwind',
+      target: { kind: 'CASTER_CENTERED' as const, area: { kind: 'OWN_SPACE' as const } }
+    })
+    renderDrawer(onResolve, { choices: [whirlwind], actorIdByTokenId })
+    await chooseBreath(user)
+
+    expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
+    expect(screen.getByText('Creatures sharing your space are caught.')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: whirlwind.id,
+        target: {
+          kind: 'CASTER_CENTERED',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version
+        }
+      })
+    )
+  })
+
   it('lets the caster designate unaffected creatures for a zone that offers it, and sends them', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()

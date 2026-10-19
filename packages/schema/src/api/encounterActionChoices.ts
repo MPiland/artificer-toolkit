@@ -64,12 +64,16 @@ const pointTargetSchema = lazySchema(() =>
 
 /**
  * A radius centered on the caster, measured from the edge of their space (a Self sphere, cylinder
- * or circle): the client asks for no aim and only fences the Scene version.
+ * or circle), or the caster's own space (a Self area that names no shape): the client asks for no
+ * aim and only fences the Scene version.
  */
 const casterCenteredTargetSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('CASTER_CENTERED'),
-    area: z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+    area: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
+      z.strictObject({ kind: z.literal('OWN_SPACE') })
+    ])
   })
 )
 

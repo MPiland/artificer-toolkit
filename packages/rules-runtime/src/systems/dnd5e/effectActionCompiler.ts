@@ -769,8 +769,9 @@ function isSupportedTestActivation(
  * that rolls a pool and tests no one. Either may filter by creature type: the area still catches a
  * creature of a type it has no effect on, which takes no save. Either a sphere, cylinder, circle or cube
  * centered on a point within a distance (or unlimited), or a cone, line or cube that extends from
- * the caster (a Self range). Walls, domes, a Self sphere, Touch origins and breakpoint-scaled sizes
- * stay refused. The area only decides who is caught: each caught creature runs the same
+ * the caster (a Self range), or no shape at all on a Self range (the caster's own space). Walls,
+ * domes, a Self sphere, Touch origins and breakpoint-scaled sizes stay refused. The area only
+ * decides who is caught: each caught creature runs the same
  * per-creature test plan a single target does.
  */
 function isSupportedArea(
@@ -779,7 +780,7 @@ function isSupportedArea(
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
   const { shape, targeting, range } = invocation
-  if (!shape || targeting?.selectionKind !== 'AREA_CONTENTS') return false
+  if (targeting?.selectionKind !== 'AREA_CONTENTS') return false
   const pooled = hitPointPoolIsAuthored(targeting)
   if (
     targeting.dispositionKind !== 'ANY' ||
@@ -794,6 +795,8 @@ function isSupportedArea(
     invocation.activation.amount !== 1
   )
     return false
+  // A Self action that names no shape reaches the creatures in the caster's own space.
+  if (!shape) return range.rangeKind === 'SELF' && !overZone
   // A wall is drawn only as a zone (D154): only the save made as the zone appears is tested over it.
   if (
     !(overZone && shape.shapeKind === 'WALL') &&

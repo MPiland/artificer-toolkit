@@ -66,7 +66,8 @@ export function areaMatchesTarget(
   area: NonNullable<EncounterAreaActionPendingContextDto['area']>,
   target: AreaActionTargetDto
 ) {
-  if (target.kind === 'CASTER_CENTERED') return area.shape.kind === 'RADIUS'
+  if (target.kind === 'CASTER_CENTERED')
+    return area.shape.kind === 'RADIUS' || area.shape.kind === 'CUBE'
   const origin = areaActionTargetOrigin(target)
   const { shape } = area
   return (

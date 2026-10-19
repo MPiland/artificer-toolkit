@@ -167,7 +167,8 @@ export function chosenCreaturesAreaSupported(rangeKind: string, shapeKind: strin
 
 /**
  * Which target a compiled action takes: a directed, point or caster-centered target for an
- * AREA_CONTENTS action ({@link encounterAreaTargetKind}), a resolved list of chosen creatures
+ * AREA_CONTENTS action ({@link encounterAreaTargetKind}; a Self one that names no shape takes the
+ * caster's own space), a resolved list of chosen creatures
  * ({@link chosenCreaturesCap}, inside a round area when it names one), one creature for a
  * policy that names no shape. Null is a policy this path cannot resolve (an unsupported area, or
  * per-path overrides): a hard refusal.
@@ -184,7 +185,9 @@ export function encounterActionTargetKind(
       : null
   if (policy.targeting?.selectionKind === 'AREA_CONTENTS')
     return policy.shape === null
-      ? null
+      ? policy.range.rangeKind === 'SELF'
+        ? 'CASTER_CENTERED'
+        : null
       : encounterAreaTargetKind(policy.range.rangeKind, policy.shape.shapeKind)
   return policy.shape === null ? 'ACTOR' : null
 }
@@ -332,8 +335,11 @@ export function encounterActionChoiceTarget(
       ...(formContribution?.filter ? { choosesCreatureForm: true as const } : {}),
       ...choiceOptions
     }
-  if (area?.kind === 'RADIUS' && policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
-    return { kind: 'CASTER_CENTERED', area }
+  if (policy && encounterActionTargetKind(policy) === 'CASTER_CENTERED')
+    return {
+      kind: 'CASTER_CENTERED',
+      area: area?.kind === 'RADIUS' ? area : { kind: 'OWN_SPACE' }
+    }
   if (area) return { kind: 'POINT', area }
   const directedArea = policy ? authoredDirectedArea(policy) : null
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
@@ -407,20 +413,26 @@ export function evaluateEncounterDirectedAreaTarget(input: {
 
 /**
  * Resolves a caster-centered area action from its policy: the radius to catch creatures with, drawn
- * around the caster's token. No aim is taken, so no range or sight is checked, and every creature in
+ * around the caster's token, or, for an action that names no shape, the caster's own space (a cube
+ * of the token's size). No aim is taken, so no range or sight is checked, and every creature in
  * the area is caught, so the single-target disposition rules (D99) do not apply. A refusal is hard
  * and says why: the policy takes no centered area or its size is unsupported.
  */
 export function evaluateEncounterCasterCenteredAreaTarget(input: {
   targetPolicy: CompiledActionTargetPolicy
   grid: SceneGrid
+  /** The caster's token. */
+  sourceToken: SpatialTokenFootprint
 }):
   | { shape: SpatialPointAreaShape; warnings: EncounterRuleWarningDto[] }
   | { refusal: 'UNSUPPORTED_AREA' } {
+  if (encounterActionTargetKind(input.targetPolicy) !== 'CASTER_CENTERED')
+    return { refusal: 'UNSUPPORTED_AREA' }
+  const { sourceToken } = input
   const shape =
-    encounterActionTargetKind(input.targetPolicy) === 'CASTER_CENTERED'
-      ? compileEncounterPointArea(input.targetPolicy, input.grid)
-      : null
+    input.targetPolicy.shape === null
+      ? { kind: 'CUBE' as const, edgeLength: Math.max(sourceToken.width, sourceToken.height) }
+      : compileEncounterPointArea(input.targetPolicy, input.grid)
   return shape ? { shape, warnings: [] } : { refusal: 'UNSUPPORTED_AREA' }
 }
 
