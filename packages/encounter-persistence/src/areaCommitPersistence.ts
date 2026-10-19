@@ -431,7 +431,9 @@ export async function persistEncounterAreaCommit(
       (input.maintainedState === null && batch.maintenanceTransition !== undefined) ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
         batch.targetFeatureResourceConsumption !== null) ||
-      initial.evidence.source.definitionId !== input.initialDefinitionId ||
+      // A collision entry runs the pusher's synthetic damage action, sourced by its own occurrence id.
+      initial.evidence.source.definitionId !==
+        (index < caughtActorIds.length ? input.initialDefinitionId : execution.occurrenceId) ||
       initial.evidence.source.gameSystemId !== state.gameSystemId ||
       initial.phaseReceipts?.some((phase) => phase.template.gameSystemId !== state.gameSystemId)
     )
