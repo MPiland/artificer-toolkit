@@ -314,6 +314,14 @@ const conditionTypePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ conditionTypeId: authoredIdentifierSchema })
 )
 
+const magicSchoolPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ magicSchoolId: authoredIdentifierSchema })
+)
+
+const skillPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ skillId: authoredIdentifierSchema })
+)
+
 const attributePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ attributeId: authoredIdentifierSchema })
 )
@@ -410,6 +418,8 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     damageResistancePayloadDtoSchema,
     damageImmunityPayloadDtoSchema,
     conditionTypePayloadDtoSchema,
+    magicSchoolPayloadDtoSchema,
+    skillPayloadDtoSchema,
     attributePayloadDtoSchema,
     movementModePayloadDtoSchema,
     movementPassagePayloadDtoSchema,
@@ -946,6 +956,30 @@ const buildModifierGrantVariants = () =>
       'REMOVE_OPTION',
       emptyDomainDtoSchema,
       conditionTypePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'SPELL_SCHOOL_IMMUNITY',
+      'ADD_OPTION',
+      emptyDomainDtoSchema,
+      magicSchoolPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'SPELL_SCHOOL_IMMUNITY',
+      'REMOVE_OPTION',
+      emptyDomainDtoSchema,
+      magicSchoolPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'CHECKS_AGAINST_HOLDER',
+      'ADD_OPTION',
+      emptyDomainDtoSchema,
+      skillPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'CHECKS_AGAINST_HOLDER',
+      'REMOVE_OPTION',
+      emptyDomainDtoSchema,
+      skillPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'ATTRIBUTE',

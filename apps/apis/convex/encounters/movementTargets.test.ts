@@ -364,7 +364,8 @@ describe('native movement target facts', () => {
         status: 'NORMALIZED',
         defenses: after.effectiveRulePolicyOutput!.defenses,
         qualifiedDefenses: [],
-        conditionImmunityIds: after.effectiveRulePolicyOutput!.conditionImmunityIds
+        conditionImmunityIds: after.effectiveRulePolicyOutput!.conditionImmunityIds,
+        spellSchoolImmunityIds: []
       }
     })
     await fixture.owner.caller.run((ctx) =>

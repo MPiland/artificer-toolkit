@@ -587,6 +587,11 @@ A component's `requiredSight` (`OCCUPANT_SEES_SOURCE`, `SOURCE_SEES_OCCUPANT`; S
 gates a save-bearing turn trigger on mutual sight: the Worker's turn preparation reads live perception through
 `loadSourceSight` and `prepareEncounterTurnZoneEffects` injects `zoneSightRequirementMet` into the contact's derived facts, and
 the compiled save evaluator treats a false value as an unrolled success. Convex persistence trusts the planned executions.
+Damage a turn zone or a melee retaliation deals ends the target's effects that end on damage (SPELLS-33.T6e4): the planner
+passes `damageEnds` to `planNativeSpatialMovementPrefix`, and both it and persistence call `spatialDamageEnds` over the same
+held effects. The releases (`CONDITION_REMOVE`, `TEMPORARY_HIT_POINTS_RELEASE`) append to the target's one mechanics batch after
+the zones' applications, persistence checks them against `targetStateAfterEndedEffects` and deletes the ended effects with
+`deleteGrants`. Occupant save auras lend bonuses and deal no damage; spatial movement contacts do not pass `damageEnds` yet.
 A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
 `heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
 decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.
@@ -1052,6 +1057,17 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (the same `landForcedMovements` simulation `applyRoomForcedMovements` commits with) and offers the next one's legal
   squares; each answer lands it (`landEncounterAreaForcedMovement`) and the planner re-plans the commit, which runs after
   the last answer. Exact away/toward and a movement with one legal square never pause.
+  `RANDOM` (SPELLS-33.T6k2a, D159; the Air Elemental's Whirlwind) is rolled once per plan: `interpretForcedMovements` draws
+  one of the eight `SQUARE_GRID_COMPASS_RAYS` and the room walks it with `traceSquareGridForcedMovementRay`, the same trace
+  away/toward use. It never owes a pick (`upTo` is forced off), so no held area outlives its roll, and it stops short only
+  when blocked. The trace returns what ended each walk (`DISTANCE`, `OBJECT`, or the creature in the way), from which
+  `landForcedMovements` builds the per-mover landing report: feet travelled, `stoppedBy` (`NONE`, `OBJECT` or the struck
+  creature's actor ID) and the rolled ray. A mover stops in the last free square before a creature; movers land farthest
+  first, each against the Scene after the earlier landings. The report rides the commit (`forcedMovementLandings`) and
+  is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
+  passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
+  collision itself is not resolved yet: the Whirlwind keeps its closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION`
+  kind until T6k2b.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;
   legendary and reaction actions still refuse spatial directives; an area pick after a GM removal, on an area with no
@@ -1829,6 +1845,19 @@ D154's highest-of terrain, zones and passage applies. A passage through blocking
 the server from the same prepared targets, and the room's Scene read model marks the token
 `passesBlockingBarriers` from the same resolved passage (`roomSceneVision`) so the client's drag
 validation (`sceneTokenMovementIndex`) cannot drift from it.
+
+**Spell school immunity and checks against the holder (current, SPELLS-33.T6m1).** Two authored `ADD_OPTION`
+modifier grants. `SPELL_SCHOOL_IMMUNITY` (`magicSchoolId`) folds into `spellSchoolImmunityIds`, a required
+field of the folded target protection: a Character's from its rule policy (`characterDefenses`), a Creature's
+from its feature grants and its active effects (`withCreatureActiveGrantProtection`). A Character's spell
+cast carries the school of each spell it can cast (`CharacterSpellCastActions.magicSchoolIdBySpellId`), and
+`encounterSpellSchoolImmunity` compares it with the target's. An area action leaves an immune creature out
+with the creature-type exclusions (caught, no save, "was unaffected" in the GM's line); the other creatures
+resolve. One target or a list of chosen creatures that includes an immune one is refused, like a source
+immunity. A Creature's spell actions carry no school and are not gated. `CHECKS_AGAINST_HOLDER` (`skillId`)
+folds into a Creature's feature modifiers and lists beneficially on the holder; it implies disadvantage on
+the named skill's checks made against the holder, and is not enforced, since a check has no subject. The
+Gynosphinx and Androsphinx Inscrutable and Mind Blank's divination clause are authored with them.
 
 **Creature passive save grants (current, SPELLS-33.T3a2).** A Creature feature's condition-scoped
 `SAVING_THROW_MODIFIER` advantage or disadvantage grant is authored with the Character option and accepted by the

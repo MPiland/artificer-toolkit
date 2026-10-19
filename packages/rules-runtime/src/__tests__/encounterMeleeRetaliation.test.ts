@@ -6,14 +6,17 @@ import {
   planEncounterMeleeRetaliation,
   selectMeleeRetaliationContacts
 } from '../encounterMeleeRetaliation.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
   createSrdRulesRuntime,
+  srdCreatureActor,
   srdCreatureTarget,
   srdEncounterState,
   testUuid,
   TIMESTAMP
 } from '../testing/dnd5eSrdEncounter.js'
+import { SLEEP_CONDITION_ID, sleepEffectOn } from '../testing/sleepEffectFixture.js'
 import { placedFireShield } from '../testing/fireShieldZoneFixture.js'
 import {
   actors,
@@ -67,7 +70,8 @@ const select = (effects: ReturnType<typeof shield>[], x = CASTER_AT.x + 100) =>
 const state = srdEncounterState({ actors, currentActorId: GOBLIN_ID })
 function plan(
   selected: NonNullable<ReturnType<typeof select>>,
-  replay: Pick<Parameters<typeof planEncounterMeleeRetaliation>[0], 'random' | 'retained'> = {
+  replay: Pick<Parameters<typeof planEncounterMeleeRetaliation>[0], 'random' | 'retained'> &
+    Partial<Pick<Parameters<typeof planEncounterMeleeRetaliation>[0], 'attacker'>> = {
     // The lowest face: each d8 rolls 1.
     random: () => 0
   }
@@ -81,6 +85,10 @@ function plan(
     occurredAt: TIMESTAMP,
     userId: GM_USER_ID,
     runtime,
+    damageEnds: {
+      turnActorId: state.currentActorId,
+      dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition]))
+    },
     ...replay
   })
 }
@@ -146,6 +154,31 @@ describe('a melee hit setting off the zones its target holds (SPELLS-20 T6d2a, D
   it('leaves a Creature attacker’s burn without a Character span', async () => {
     const { evidence } = await plan(select([shield(0x3c0)])!)
     expect(meleeRetaliationCharacterTransition(evidence)).toBeNull()
+  })
+})
+
+describe('a melee retaliation ending the effects its damage ends on the attacker (SPELLS-33.T6e4)', () => {
+  const ASLEEP = SLEEP_CONDITION_ID
+  const sleeper = sleepEffectOn({
+    encounterId: state.id,
+    id: testUuid(0x3d0),
+    sourceActorId: SOURCE_ID,
+    holder: goblin
+  })
+  const asleepGoblin = srdCreatureActor({
+    id: GOBLIN_ID,
+    creature: srdByLabel(SRD.creatures, 'Goblin'),
+    conditionIds: [ASLEEP]
+  })
+
+  it('wakes an attacker the shield burns, releasing the condition its sleep held', async () => {
+    const { settlement, projectedAttacker } = await plan(select([shield(0x3c0)])!, {
+      random: () => 0,
+      attacker: srdCreatureTarget(asleepGoblin, [sleeper])
+    })
+    expect(settlement?.endedEffects).toEqual([sleeper])
+    expect(settlement?.plan.targetTransition.after.conditionIds).not.toContain(ASLEEP)
+    expect(projectedAttacker.activeEffects).toEqual([])
   })
 })
 

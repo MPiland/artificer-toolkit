@@ -111,6 +111,8 @@ export type MovementTarget<
   /** Defenses that apply only to attacks without their bypassing traits. */
   qualifiedDefenses: readonly Dnd5eQualifiedDamageDefense[]
   conditionImmunityIds: readonly string[]
+  /** Magic schools whose spells have no effect on the actor. */
+  spellSchoolImmunityIds: readonly string[]
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
   /**
    * Contributors attack rolls against the actor gain from its active `ATTACKS_AGAINST` grants
@@ -357,10 +359,20 @@ export function buildMovementTarget<
           decisions: spellCast.decisions.filter((d) => executableActionIds.has(d.actionId)),
           compiledActionEntryPoints: spellEntryPoints.filter((entry) =>
             executableActionIds.has(entry.actionId)
+          ),
+          magicSchoolIdBySpellId: new Map(
+            [...(characterFacts.prepared.context.spellDocumentsById ?? [])].map(
+              ([spellId, spell]) => [spellId, spell.magicSchoolId]
+            )
           )
         }
       : input.includeReactionSources
-        ? { candidates: [], decisions: [], compiledActionEntryPoints: [] }
+        ? {
+            candidates: [],
+            decisions: [],
+            compiledActionEntryPoints: [],
+            magicSchoolIdBySpellId: new Map()
+          }
         : null
     return {
       actor,
@@ -457,12 +469,14 @@ export function buildMovementTarget<
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
           qualifiedDefenses: [],
-          conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds
+          conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+          spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds
         }
       },
       defenses: effectiveRulePolicyOutput.defenses,
       qualifiedDefenses: [],
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+      spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds,
       attackAgainstContributors: [],
       sourceSightSaves: [],
       conditionDefinitions: [],
@@ -492,7 +506,8 @@ export function buildMovementTarget<
     throw new Error('Encounter actor spatial protections are not normalized.')
   const targetProtection = withCreatureActiveGrantProtection(
     actorRule.targetProtection,
-    activeEffects
+    activeEffects,
+    creatureFacts?.modifiers ?? []
   )
   const conditions = readEncounterActorConditionState(actor.conditions ?? [])
   const creatureStatBlock = snapshotStatBlock(actor)
@@ -539,6 +554,7 @@ export function buildMovementTarget<
     defenses: targetProtection.defenses,
     qualifiedDefenses: targetProtection.qualifiedDefenses,
     conditionImmunityIds: targetProtection.conditionImmunityIds,
+    spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,
     attackAgainstContributors: [],
     sourceSightSaves: [],
     conditionDefinitions: [],

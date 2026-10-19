@@ -32,6 +32,7 @@ import {
   lostActionOutcome,
   noSave
 } from '../testing/authoredZoneFixture.js'
+import { SLEEP_CONDITION_ID, sleepEffectOn } from '../testing/sleepEffectFixture.js'
 import { roundAt } from './encounterInitiativeFixtures.js'
 import {
   actorIdByTokenId,
@@ -70,6 +71,8 @@ function prepare(input: {
   actorIdByTokenId?: typeof actorIdByTokenId
   /** Whether the occupant and the zone's source see each other; both do by default. */
   sight?: { occupantSeesSource: boolean; sourceSeesOccupant: boolean }
+  /** The effects the goblin carries when the boundary starts. */
+  goblinEffects?: Parameters<typeof srdCreatureTarget>[1]
 }) {
   const sceneActors = input.actors ?? actors
   return prepareEncounterTurnZoneEffects({
@@ -87,7 +90,10 @@ function prepare(input: {
       actorIdByTokenId: input.actorIdByTokenId ?? actorIdByTokenId
     }),
     loadTarget: async (actorId) =>
-      srdCreatureTarget(sceneActors.find((actor) => actor.id === actorId)!),
+      srdCreatureTarget(
+        sceneActors.find((actor) => actor.id === actorId)!,
+        actorId === GOBLIN_ID ? input.goblinEffects : undefined
+      ),
     loadSourceSight: async () =>
       input.sight ?? { occupantSeesSource: true, sourceSeesOccupant: true },
     createRuntime: async () => runtime,
@@ -143,6 +149,33 @@ describe('a zone acting at a turn boundary (SPELLS-20 T4b2b)', () => {
       execution!.targetTransition.after.currentHitPoints
     )
     expect(hitPoints(phase.actors, SOURCE_ID)).toBe(hitPoints(actors, SOURCE_ID))
+  })
+
+  it('wakes a creature whose sleep the zone’s damage ends, and releases the condition it held (SPELLS-33.T6e4)', async () => {
+    const zone = placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE']), 1)
+    const sleeper = sleepEffectOn({
+      encounterId: ENCOUNTER_ID,
+      id: testUuid(0x3d1),
+      sourceActorId: SOURCE_ID,
+      holder: goblin
+    })
+    const asleep = srdCreatureActor({
+      id: GOBLIN_ID,
+      creature: srdByLabel(SRD.creatures, 'Goblin'),
+      conditionIds: [SLEEP_CONDITION_ID]
+    })
+    const phase = await complete(
+      prepare({
+        zones: [zone],
+        boundary: START,
+        actors: [asleep, source],
+        goblinEffects: [sleeper]
+      })
+    )
+    expect(phase.plan?.executions).toHaveLength(1)
+    const woken = phase.actors.find(({ id }) => id === GOBLIN_ID)
+    expect(woken && woken.kind !== 'CHARACTER' ? woken.conditions : null).toEqual([])
+    expect(phase.movementTargets.get(GOBLIN_ID)?.activeEffects).toEqual([])
   })
 
   it('acts only at the boundary it names', async () => {

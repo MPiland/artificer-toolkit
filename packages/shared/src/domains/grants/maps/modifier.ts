@@ -392,7 +392,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             })
           },
           {
-            showIf: local.field(['valueKind']).eq('SKILL_BONUS')
+            showIf: or([
+              local.field(['valueKind']).eq('SKILL_BONUS'),
+              parent.field(['valueDomainCode']).eq('CHECKS_AGAINST_HOLDER')
+            ])
           }
         )
       )
@@ -586,6 +589,20 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
               parent.field(['valueDomainCode']).eq('CONDITION_IMMUNITY')
             ])
           }
+        )
+      )
+      .set(
+        'magicSchoolId',
+        selectSingle(
+          ['magicSchoolId'],
+          'Magic School',
+          {
+            kind: 'DATA',
+            relationship: table('magic_schools', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { showIf: parent.field(['valueDomainCode']).eq('SPELL_SCHOOL_IMMUNITY') }
         )
       )
       .set(

@@ -73,18 +73,6 @@ export const invisibleStalker: CreatureAuthored = {
       label: 'Faultless Tracker',
       description:
         'Faultless Tracker. The stalker is given a quarry by its summoner. The stalker knows the direction and distance to its quarry as long as the two of them are on the same plane of existence. The stalker also knows the location of its summoner.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(174, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(174, 1202), rangeKind: S.RANGE_KIND.UNLIMITED },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_INVISIBLE_STALKER_FAULTLESS_TRACKER
-        })
-      ],
       order: 2
     },
     {
