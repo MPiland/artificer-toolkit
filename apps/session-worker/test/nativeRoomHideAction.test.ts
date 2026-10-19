@@ -8,6 +8,8 @@ import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolk
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
+import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
@@ -20,6 +22,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 import {
   parseReceiptExecution,
@@ -94,6 +97,7 @@ function hideRoom(
     playerHider?: boolean
     rolls?: number[]
     definitions?: ReturnType<typeof currentSrdDefinition>[]
+    seed?: Parameters<typeof actionRoom>[0]['seed']
   } = {}
 ) {
   const hider = withCheckTotals(srdCreatureActor({ id: HIDER_ID, creature: bite }), {
@@ -105,6 +109,7 @@ function hideRoom(
       : {}),
     rolls: options.rolls ?? [],
     ...(options.definitions ? { definitions: options.definitions } : {}),
+    ...(options.seed ? { seed: options.seed } : {}),
     ...(options.playerHider
       ? { playerControlledActorIds: [HIDER_ID], otherPlayerControlledActorIds: [SHARP_ID] }
       : {}),
@@ -704,5 +709,84 @@ describe('hiding again, in the room', () => {
         concealmentTotal: 25
       }
     ])
+  })
+})
+
+describe('a held d20 floor on a Hide check, in the room', () => {
+  /** Glibness's real effect with its Charisma narrowing lifted, so the floor reaches a Stealth check. */
+  const floorEffect = (() => {
+    const [effect] = glibness.effects ?? []
+    const [path] = effect?.paths ?? []
+    const [outcome] = path?.resultBlock?.outcomes ?? []
+    const [modifier] = outcome?.grants?.modifiers ?? []
+    if (!effect || !path?.resultBlock || !outcome?.grants || !modifier)
+      throw new Error('Glibness carries its floor grant.')
+    const { domain: _charisma, ...anyCheck } = modifier
+    return {
+      ...effect,
+      paths: [
+        {
+          ...path,
+          resultBlock: {
+            ...path.resultBlock,
+            outcomes: [{ ...outcome, grants: { modifiers: [anyCheck] } }]
+          }
+        }
+      ]
+    }
+  })()
+  const floorSeed = seedModifierGrant({
+    sourceActorId: HIDER_ID,
+    holderActorId: HIDER_ID,
+    lifecycle: {},
+    effect: floorEffect,
+    sourceLabel: glibness.label
+  })
+
+  it('counts a low d20 as the floor in the Stealth total, and records the floor on the roll', async () => {
+    const fixture = await hideRoom({ seed: floorSeed })
+    // d20 1 counts as 15, Stealth +5 = 20: above passive 10 and 15, level with passive 20.
+    await hide(fixture, 1)
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [SHARP_ID, KEEN_ID].sort(), concealmentTotal: 20 }
+    ])
+    const [card] = await readRoomRollCards(fixture.room.room.base.stub)
+    expect(card?.roll.ruleCheck).toEqual({
+      kind: 'D20_MINIMUM_ROLL',
+      amount: 15,
+      label: 'Glibness'
+    })
+  })
+
+  it('leaves a d20 above the floor as rolled', async () => {
+    const fixture = await hideRoom({ seed: floorSeed })
+    // d20 18 + 5 = 23: the floor of 15 raises nothing.
+    await hide(fixture, 18)
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [SHARP_ID, KEEN_ID, ALERT_ID].sort(), concealmentTotal: 23 }
+    ])
+    const [card] = await readRoomRollCards(fixture.room.room.base.stub)
+    expect(card?.roll.ruleCheck).toBeUndefined()
+  })
+
+  it('settles a check that carries an added die, and counts the die in the roll record', async () => {
+    const fixture = await hideRoom({
+      rolls: [2],
+      seed: seedModifierGrant({
+        sourceActorId: HIDER_ID,
+        holderActorId: HIDER_ID,
+        lifecycle: {},
+        effect: guidance.effects?.[0],
+        sourceLabel: guidance.label
+      })
+    })
+    // d20 10 + Stealth 5 + a d4 of 3 = 18: above passive 10 and 15, below passive 20.
+    await hide(fixture, 10)
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [SHARP_ID, KEEN_ID].sort(), concealmentTotal: 18 }
+    ])
+    const [card] = await readRoomRollCards(fixture.room.room.base.stub)
+    expect(card?.roll.evidence.terms).toHaveLength(2)
+    expect(card?.roll.evidence.total).toBe(18)
   })
 })

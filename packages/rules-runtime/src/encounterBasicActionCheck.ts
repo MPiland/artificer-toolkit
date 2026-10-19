@@ -2,6 +2,10 @@ import {
   d20AddedDiceTotal,
   type D20AddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import {
+  d20CheckTotal,
+  type D20MinimumRollDto
+} from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { basicActionCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
@@ -144,7 +148,8 @@ export function prepareEncounterBasicActionCheck<
         contributors: facts.contributors,
         contributorChecksum: checksumRuleDocument(facts.contributors),
         modifier: facts.modifier,
-        ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice })
+        ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice }),
+        ...(facts.minimumRoll && { minimumRoll: facts.minimumRoll })
       },
       consumedGrants: effectsEndedBy(helper.activeEffects, {
         event: 'ON_ABILITY_CHECK',
@@ -209,6 +214,36 @@ export function encounterBasicActionCheckPendingSnapshot(input: {
   })
 }
 
+/**
+ * Whether a settled check's d20 is the frozen check's: its modifier, mode, contributors, added dice
+ * and floor are the ones frozen, and its total counts them (the kept face raised to the floor).
+ */
+export function settledCheckD20MatchesFrozen(
+  settled: {
+    modifier: number
+    derivedRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    contributorChecksum: string
+    selectedNatural: number
+    total: number
+    addedDice?: readonly D20AddedDieDto[]
+    minimumRoll?: D20MinimumRollDto
+  },
+  frozen: EncounterD20CheckContext['d20']
+): boolean {
+  const dice = (list: readonly Pick<D20AddedDieDto, 'label' | 'count' | 'faces' | 'sign'>[] = []) =>
+    list.map(({ label, count, faces, sign }) => ({ label, count, faces, sign }))
+  return (
+    settled.modifier === frozen.modifier &&
+    settled.derivedRollMode === frozen.rollMode &&
+    settled.contributorChecksum === frozen.contributorChecksum &&
+    checksumRuleDocument(dice(settled.addedDice)) ===
+      checksumRuleDocument(dice(frozen.addedDice)) &&
+    checksumRuleDocument(settled.minimumRoll ?? null) ===
+      checksumRuleDocument(frozen.minimumRoll ?? null) &&
+    settled.total === d20CheckTotal(settled)
+  )
+}
+
 /** Rolls a frozen check's one d20: the natural die plus the roller's modifier, against no DC yet. */
 export async function rollEncounterCheck(input: {
   runtime: RulesRuntimeService
@@ -263,10 +298,16 @@ export async function rollEncounterCheck(input: {
       rawFaces: resolved.faces,
       selectedNatural: resolved.natural,
       modifier: context.d20.modifier,
-      total: resolved.natural + context.d20.modifier + addedTotal,
+      total: d20CheckTotal({
+        selectedNatural: resolved.natural,
+        modifier: context.d20.modifier,
+        addedDice,
+        minimumRoll: context.d20.minimumRoll
+      }),
       contributors: context.d20.contributors,
       contributorChecksum: context.d20.contributorChecksum,
-      ...(addedDice.length > 0 && { addedDice })
+      ...(addedDice.length > 0 && { addedDice }),
+      ...(context.d20.minimumRoll && { minimumRoll: context.d20.minimumRoll })
     }
   }
 }

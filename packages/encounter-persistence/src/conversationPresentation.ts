@@ -77,7 +77,17 @@ export function presentChatEntries(
                               ).slice(0, 160)
                       }
                     }
-                  : {})
+                  : payload.roll.ruleCheck?.kind === 'D20_MINIMUM_ROLL'
+                    ? {
+                        ruleCheck: {
+                          ...payload.roll.ruleCheck,
+                          label: presentCampaignPlainText(
+                            payload.roll.ruleCheck.label,
+                            maturity
+                          ).slice(0, 160)
+                        }
+                      }
+                    : {})
             },
       revealedByGm: payload.revealedByGm,
       authorUserId: entry.authorUserId,

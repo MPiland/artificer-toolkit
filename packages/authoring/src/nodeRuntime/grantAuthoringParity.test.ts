@@ -10,6 +10,7 @@ import { brandingSmite } from '@artificer-toolkit/source-data/srd/spells/brandin
 import { divineFavor } from '@artificer-toolkit/source-data/srd/spells/divine-favor.js'
 import { enlargeReduce } from '@artificer-toolkit/source-data/srd/spells/enlarge-reduce.js'
 import { foresight } from '@artificer-toolkit/source-data/srd/spells/foresight.js'
+import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
@@ -26,6 +27,7 @@ describe('a spell authored from core Modifier Grants through the effect node map
     ['Bane', bane],
     ['Bless', bless],
     ['Foresight', foresight],
+    ['Glibness', glibness],
     ['Guidance', guidance],
     ['Resistance', resistance],
     ['Slow', slow],

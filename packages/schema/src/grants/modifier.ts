@@ -219,6 +219,11 @@ const modifyChargeLimitPayloadDtoSchema = lazySchema(() =>
 
 const amountPayloadDtoSchema = lazySchema(() => z.strictObject({ amount: z.number() }))
 
+/** The d20 face a test treats a lower roll as (Glibness's 15): above 1, within a d20. */
+const minimumRollPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ amount: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)) })
+)
+
 /** An armor class formula: the amount plus each listed ability modifier ("10 + DEX + CON"). */
 const armorClassFormulaPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -526,6 +531,12 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema),
     buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', optionalAbilityParamDtoSchema),
     buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', optionalAbilityParamDtoSchema),
+    buildModifierGrantVariant(
+      'ABILITY_CHECK',
+      'MINIMUM_ROLL',
+      optionalAbilityParamDtoSchema,
+      minimumRollPayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'ABILITY_CHECK',
       'ADD_BONUS_DIE',

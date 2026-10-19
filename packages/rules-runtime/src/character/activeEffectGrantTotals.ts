@@ -11,6 +11,7 @@ import type {
   D20AddedDieDto,
   DamageAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 
 import { modifierLengthFeet } from '../modifierLength.js'
 import {
@@ -244,6 +245,45 @@ export function activeAbilityCheckDice(
     'ABILITY_CHECK',
     (domain) => domain.ability === undefined || domain.ability === abilityCode
   )
+}
+
+/**
+ * The floor a holder's active grants put on the d20 of its ability checks with one ability, or of
+ * an ability-less check when `abilityCode` is null; null when it has none. A grant naming no
+ * ability covers every check. Floors from several effects reduce to the highest, the lowest effect
+ * id breaking a tie, so every roll site and replay reads one source.
+ */
+export function activeAbilityCheckMinimumRoll(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityCode: string | null
+): D20MinimumRollDto | null {
+  let floor: D20MinimumRollDto | null = null
+  for (const { effectId, modifiers, sourceLabel, sourceHidden } of listActiveEffectGrants(
+    effects
+  )) {
+    for (const { valueDomainCode, modifierKind, scope, domain, payload } of modifiers) {
+      if (
+        valueDomainCode !== 'ABILITY_CHECK' ||
+        modifierKind !== 'MINIMUM_ROLL' ||
+        scope !== 'GLOBAL' ||
+        (domain.ability !== undefined && domain.ability !== abilityCode)
+      )
+        continue
+      if (payload === undefined || !('amount' in payload))
+        throw new Error('An active minimum-roll grant must carry its amount.')
+      if (
+        floor === null ||
+        payload.amount > floor.amount ||
+        (payload.amount === floor.amount && effectId < floor.sourceEffectId)
+      )
+        floor = {
+          amount: payload.amount,
+          label: sourceHidden ? 'Unseen source' : sourceLabel,
+          sourceEffectId: effectId
+        }
+    }
+  }
+  return floor
 }
 
 /**
