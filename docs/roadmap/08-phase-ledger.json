@@ -12210,7 +12210,7 @@
             },
             {
               "id": "SPELLS-33.T6j",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12220,7 +12220,7 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "new: token light emission (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m161 (10b03d8fa)."
             },
             {
               "id": "SPELLS-33.T6k1",
