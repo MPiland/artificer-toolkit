@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { dnd5eCharacterActionTarget } from '../systems/dnd5e/modifierApplicability.js'
 import { dnd5eAttackCriticalRules } from '../systems/dnd5e/characterCriticalRules.js'
-import { evaluateSrdCharacter, itemAction } from '../testing/dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter, itemAction, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
 type AttackKind = 'MELEE' | 'RANGED'
 
@@ -24,10 +24,34 @@ function criticalRules(
   )
 }
 
+/** A Champion who has taken every subclass feature up to `level`. */
 const champion = (level: number) => ({
   abilities: { STRENGTH: 16, DEXTERITY: 16 },
-  classes: [{ label: 'Fighter', level, subclass: 'Champion' }]
+  classes: [{ label: 'Fighter', level, subclass: 'Champion' }],
+  features: [
+    srdFeature({
+      owner: 'SUBCLASS',
+      classLabel: 'Fighter',
+      subclassLabel: 'Champion',
+      featureLabel: 'Improved Critical',
+      level: 3
+    }),
+    ...(level >= 15
+      ? [
+          srdFeature({
+            owner: 'SUBCLASS',
+            classLabel: 'Fighter',
+            subclassLabel: 'Champion',
+            featureLabel: 'Superior Critical',
+            level: 15
+          })
+        ]
+      : [])
+  ]
 })
+
+const brutalCritical = () =>
+  srdFeature({ owner: 'CLASS', classLabel: 'Barbarian', featureLabel: 'Brutal Critical', level: 9 })
 
 describe('Character critical rules from authored grants (D158)', () => {
   it('has the default threshold and no extra dice without a source', () => {
@@ -51,23 +75,20 @@ describe('Character critical rules from authored grants (D158)', () => {
     { level: 13, extraDice: 2 },
     { level: 17, extraDice: 3 }
   ])('gives a level $level Barbarian $extraDice extra melee dice', ({ level, extraDice }) => {
-    const barbarian = { abilities: { STRENGTH: 16 }, classes: [{ label: 'Barbarian', level }] }
+    const barbarian = {
+      abilities: { STRENGTH: 16 },
+      classes: [{ label: 'Barbarian', level }],
+      features: level >= 9 ? [brutalCritical()] : []
+    }
     expect(criticalRules(barbarian, 'Greataxe', 'MELEE').extraDice).toBe(extraDice)
   })
 
   it('gives a Barbarian no extra dice on a ranged attack', () => {
-    const barbarian = { abilities: { DEXTERITY: 16 }, classes: [{ label: 'Barbarian', level: 17 }] }
+    const barbarian = {
+      abilities: { DEXTERITY: 16 },
+      classes: [{ label: 'Barbarian', level: 17 }],
+      features: [brutalCritical()]
+    }
     expect(criticalRules(barbarian, 'Shortbow', 'RANGED').extraDice).toBe(0)
-  })
-})
-
-describe('diagnostic', () => {
-  it('lists folded domains', () => {
-    const character = evaluateSrdCharacter({
-      abilities: { STRENGTH: 16 },
-      classes: [{ label: 'Barbarian', level: 17 }]
-    })
-    const codes = [...new Set(character.output.grantFold.modifiers.map((m) => m.valueDomainCode))]
-    expect(codes.join(',')).toContain('CRITICAL')
   })
 })
