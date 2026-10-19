@@ -37,12 +37,18 @@ function pushRoom(
   others: { id: string; at: ScenePoint; creature?: typeof plainWolf }[],
   {
     feet = 10,
-    direction = 'AWAY_FROM_SOURCE'
-  }: { feet?: number; direction?: Parameters<typeof forceOnFailedSave>[1] } = {}
+    direction = 'AWAY_FROM_SOURCE',
+    rolls = []
+  }: {
+    feet?: number
+    direction?: Parameters<typeof forceOnFailedSave>[1]
+    /** The zero-based results the platform's random source serves before it falls back to real ones. */
+    rolls?: number[]
+  } = {}
 ) {
   const creature = forceOnFailedSave(biteWolf('SAVE'), direction, feet)
   return actionRoom({
-    rolls: [],
+    rolls,
     actors: [
       srdCreatureActor({ id: SOURCE_ID, creature }),
       ...others.map(({ id, creature: other = plainWolf }) =>
@@ -221,5 +227,188 @@ describe('an action’s forced movement in the room (ATTACK-7.T5a)', () => {
       type: 'COMMAND_REJECTED',
       reason: 'REVERT_UNAVAILABLE'
     })
+  })
+})
+
+/** The compass ray each draw picks: N, NE, E, SE, S, SW, W, NW are 0 to 7. */
+const NORTH = 0
+const EAST = 2
+const SOUTH = 4
+const WEST = 6
+
+/** The landing report the room's last committed action recorded. */
+async function recordedLandings(room: Room) {
+  const { commands } = await readRoomHistory(room.room.base.stub)
+  return commands.filter(({ commandType }) => commandType === 'RESOLVE_ACTION').at(-1)
+    ?.forcedMovementLandings
+}
+
+describe('a random forced movement in the room (SPELLS-33.T6k2a, D159)', () => {
+  it('rolls its direction once, moves the target along it and records the ray in the commit', async () => {
+    // A second draw would serve WEST: the target moves east only if the direction was rolled once.
+    const room = await pushRoom([{ id: NEAR_ID, at: NEAR_AT }], {
+      direction: 'RANDOM',
+      rolls: [EAST, WEST, WEST]
+    })
+    await bite(room, NEAR_ID, 1)
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 450, y: 150 })
+    expect(await recordedLandings(room)).toEqual([
+      { targetActorId: NEAR_ID, feet: 10, stoppedBy: 'NONE', ray: { x: 1, y: 0 } }
+    ])
+  })
+
+  it('moves along whichever compass ray the draw picks', async () => {
+    const room = await pushRoom([{ id: NEAR_ID, at: NEAR_AT }], {
+      direction: 'RANDOM',
+      rolls: [SOUTH]
+    })
+    await bite(room, NEAR_ID, 1)
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 250, y: 350 })
+    expect(await recordedLandings(room)).toEqual([
+      { targetActorId: NEAR_ID, feet: 10, stoppedBy: 'NONE', ray: { x: 0, y: 1 } }
+    ])
+  })
+
+  it('stops in the last free square before a creature and names it', async () => {
+    const room = await pushRoom(
+      [
+        { id: NEAR_ID, at: NEAR_AT },
+        { id: BLOCKER_ID, at: { x: 450, y: 150 } }
+      ],
+      { direction: 'RANDOM', feet: 20, rolls: [EAST] }
+    )
+    await bite(room, NEAR_ID, 1)
+    expect(tokenPositions(room)(NEAR_ID)).toEqual(FAR_AT)
+    expect(await recordedLandings(room)).toEqual([
+      { targetActorId: NEAR_ID, feet: 5, stoppedBy: BLOCKER_ID, ray: { x: 1, y: 0 } }
+    ])
+  })
+
+  it('stops at the map edge and reports an object', async () => {
+    const room = await pushRoom([{ id: NEAR_ID, at: NEAR_AT }], {
+      direction: 'RANDOM',
+      feet: 20,
+      rolls: [NORTH]
+    })
+    await bite(room, NEAR_ID, 1)
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 250, y: 50 })
+    expect(await recordedLandings(room)).toEqual([
+      { targetActorId: NEAR_ID, feet: 5, stoppedBy: 'OBJECT', ray: { x: 0, y: -1 } }
+    ])
+  })
+
+  it('stays put against the acting creature itself, travelling no feet', async () => {
+    const room = await pushRoom([{ id: NEAR_ID, at: NEAR_AT }], {
+      direction: 'RANDOM',
+      rolls: [WEST]
+    })
+    await bite(room, NEAR_ID, 1)
+    expect(tokenPositions(room)(NEAR_ID)).toEqual(NEAR_AT)
+    expect(await recordedLandings(room)).toEqual([
+      { targetActorId: NEAR_ID, feet: 0, stoppedBy: SOURCE_ID, ray: { x: -1, y: 0 } }
+    ])
+  })
+
+  it('reports a straight push that nothing stopped with no ray', async () => {
+    const room = await pushRoom([{ id: NEAR_ID, at: NEAR_AT }])
+    await bite(room, NEAR_ID, 1)
+    expect(await recordedLandings(room)).toEqual([
+      { targetActorId: NEAR_ID, feet: 10, stoppedBy: 'NONE', ray: null }
+    ])
+  })
+
+  it('lands several creatures the farthest first, each against the Scene after the earlier landings', async () => {
+    const creature = forceOnFailedSave(
+      directedAreaWolf({
+        shapeKind: 'LINE',
+        length: { amount: 15, unit: 'FEET' },
+        width: { amount: 5, unit: 'FEET' }
+      }),
+      'RANDOM',
+      20
+    )
+    const room = await actionRoom({
+      rolls: [],
+      fallbackRoll: EAST,
+      actors: [
+        srdCreatureActor({ id: SOURCE_ID, creature }),
+        srdCreatureActor({ id: NEAR_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FAR_ID, creature: plainWolf })
+      ],
+      positions: { [SOURCE_ID]: SOURCE_AT, [NEAR_ID]: NEAR_AT, [FAR_ID]: FAR_AT },
+      ownerFeatureId: creature.features.find(({ label }) => label === 'Bite')?.id
+    })
+    committed((await room.startDirectedAreaAction({ x: 200, y: 150 }, { x: 500, y: 150 })).answer)
+    await answerAllSaves(room)
+
+    // Nearest first would leave the near creature stopped by the far one's old square.
+    expect(tokenPositions(room)(FAR_ID)).toEqual({ x: 750, y: 150 })
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 650, y: 150 })
+    const east = { x: 1, y: 0 }
+    expect(await recordedLandings(room)).toEqual([
+      { targetActorId: FAR_ID, feet: 20, stoppedBy: 'NONE', ray: east },
+      { targetActorId: NEAR_ID, feet: 20, stoppedBy: 'NONE', ray: east }
+    ])
+  })
+
+  it('answers a replayed command from the record without moving the target or drawing again', async () => {
+    const room = await pushRoom([{ id: NEAR_ID, at: NEAR_AT }], {
+      direction: 'RANDOM',
+      rolls: [EAST, WEST, WEST]
+    })
+    committed((await room.startAction(NEAR_ID, ['TARGET_RANGE_UNCHECKED'])).answer)
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the save prompt.')
+    const { request } = decision.pending
+    const command = room.resolveCommand(decision, {
+      kind: 'ENTER_DICE',
+      requestId: request.requestId,
+      rawFaces: request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: request.rollMode
+    })
+    committed(await room.send(command))
+    const landings = await recordedLandings(room)
+    const commandCount = (await readRoomHistory(room.room.base.stub)).commands.length
+
+    committed(await room.send(command))
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 450, y: 150 })
+    expect(await recordedLandings(room)).toEqual(landings)
+    expect((await readRoomHistory(room.room.base.stub)).commands).toHaveLength(commandCount)
+  })
+
+  it('puts a randomly moved creature back on the undo of the action', async () => {
+    const room = await pushRoom([{ id: NEAR_ID, at: NEAR_AT }], {
+      direction: 'RANDOM',
+      rolls: [SOUTH]
+    })
+    await bite(room, NEAR_ID, 1)
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 250, y: 350 })
+
+    committed(await revertLastAction(room))
+    expect(tokenPositions(room)(NEAR_ID)).toEqual(NEAR_AT)
+  })
+
+  it('refuses the undo once the GM moved the creature again', async () => {
+    const room = await pushRoom([{ id: NEAR_ID, at: NEAR_AT }], {
+      direction: 'RANDOM',
+      rolls: [SOUTH]
+    })
+    await bite(room, NEAR_ID, 1)
+    committed(
+      await room.room.teleport(
+        [
+          { x: 250, y: 350 },
+          { x: 450, y: 350 }
+        ],
+        await room.version(),
+        room.room.scene.version + 1,
+        `f${NEAR_ID.slice(1)}`
+      )
+    )
+    expect(await revertLastAction(room)).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'REVERT_UNAVAILABLE'
+    })
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 450, y: 350 })
   })
 })

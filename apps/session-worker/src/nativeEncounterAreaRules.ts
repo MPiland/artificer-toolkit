@@ -2097,7 +2097,8 @@ export async function completeAreaCommit(args: {
         execution: complete.execution,
         occurrenceId,
         published: complete.published,
-        targetActorId: actor.id
+        targetActorId: actor.id,
+        random: input.random
       })
     )
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.

@@ -313,14 +313,14 @@ export async function persistEncounterContestCommit(
   if (checksumRuleDocument(settled.applicationOutputs) !== checksumRuleDocument(outputs))
     throw new Error('Live Session contest settlement mismatch.')
   // A won Shove's push moves its target's token on the Scene in this commit (D157).
-  const forcedMovements = input.forcedMovements.length
+  const settledMovements = input.forcedMovements.length
     ? await callbacks.applyForcedMovements({
         state,
         sourceActorId: source.id,
         commandId: root.commandId,
         movements: input.forcedMovements
       })
-    : []
+    : { moves: [], landings: [] }
   const nextActors = settled.actors
   await deleteGrants(ctx, input.consumedGrants)
   const nextState = encounterRunStateSchema.parse({
@@ -431,7 +431,8 @@ export async function persistEncounterContestCommit(
             addedConcentrationCasterId: null,
             speedBonusTurn: null,
             teleportAllowanceTurn: null,
-            forcedMovements,
+            forcedMovements: settledMovements.moves,
+            forcedMovementLandings: settledMovements.landings,
             turnUses: null
           }),
       commandFingerprint: fingerprint,

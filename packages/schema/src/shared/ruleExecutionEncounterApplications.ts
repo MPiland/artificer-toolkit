@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { forcedMovementDirectionSchema } from './enums.js'
 import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 import {
   deathSavesAfterDamage,
@@ -1028,7 +1029,7 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
         /** The push a won contest's picked outcome settles on the target (Shove, D105, D157). */
         z.strictObject({
           kind: z.literal('FORCED_MOVEMENT'),
-          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY']),
+          direction: forcedMovementDirectionSchema,
           feet: z.number().check(z.positive()),
           upTo: z.boolean()
         }),

@@ -325,7 +325,7 @@ export function frightenOnFailedSave(base: CreatureAuthored): CreatureAuthored {
  */
 export function forceOnFailedSave(
   base: CreatureAuthored,
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'ASIDE' | 'ANY',
+  direction: ForcedMovementDirection,
   feet: number,
   distanceMode: 'EXACT' | 'UP_TO' = 'EXACT'
 ): CreatureAuthored {

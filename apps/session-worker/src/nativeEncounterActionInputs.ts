@@ -9,6 +9,8 @@ import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/
 import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActionReachFeet } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
+import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
+import { SQUARE_GRID_COMPASS_RAYS } from '@artificer-toolkit/shared/vtt'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
@@ -118,7 +120,9 @@ export function refuseUnmetItemActionRequirements(
 
 /**
  * The forced movements an action's completed outcome on one target settles in its commit, each still
- * without the square its source may pick (D157); one aside stays within the action's reach.
+ * without the square its source may pick (D157); one aside stays within the action's reach. A
+ * `RANDOM` move rolls its direction now, once per plan: it never lets its source pick a shorter
+ * distance, so no pick holds an area across a replan, and it stops early only when blocked.
  */
 export function interpretForcedMovements(
   prepared: Pick<Prepared, 'adapter' | 'targetPolicy'>,
@@ -127,6 +131,7 @@ export function interpretForcedMovements(
     occurrenceId: string
     published: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['published']
     targetActorId: string
+    random?: (maximum: number) => number
   }
 ): LiveSessionForcedMovement[] {
   return (prepared.adapter.interpretSpatial?.(input) ?? []).map(
@@ -134,10 +139,16 @@ export function interpretForcedMovements(
       targetActorId,
       direction,
       feet,
-      upTo,
+      upTo: upTo && direction !== 'RANDOM',
       sourceReachFeet:
         direction === 'ASIDE' ? encounterActionReachFeet(prepared.targetPolicy) : null,
-      position: null
+      position: null,
+      ray:
+        direction === 'RANDOM'
+          ? SQUARE_GRID_COMPASS_RAYS[
+              (input.random ?? nextRollInt)(SQUARE_GRID_COMPASS_RAYS.length)
+            ]!
+          : null
     })
   )
 }
