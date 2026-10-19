@@ -12288,6 +12288,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
+              "id": "SPELLS-33.T6e3c",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T6e3b"]
+              },
+              "text": "new: route area damage (nativeEncounterAreaRules) through the T6e3 damage-taken seam ({endedEffects, releases, grants}) so area spells set off damage-triggered timed self grants (a Fireball on a Flesh Golem gives Aversion of Fire), with verification, receipt, undo and a room journey (2026-10-19, found in T6e3b review; workbook slice-spells-33.md)."
+            },
+            {
               "id": "SPELLS-33.T6e1",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
