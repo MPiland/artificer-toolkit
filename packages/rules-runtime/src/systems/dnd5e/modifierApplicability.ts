@@ -54,7 +54,7 @@ export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
 }
 
 /** The facts of one folded modifier that decide where it applies. */
-type Dnd5eModifierApplicability = {
+export type Dnd5eModifierApplicability = {
   readonly sourceId: string
   /** The item a SOURCE modifier is bound to; it applies while that item is evaluated instead. */
   readonly boundSourceId?: string
@@ -175,6 +175,21 @@ export function dnd5eAcceptedModifierApplicability(
     scope: modifier.scope,
     deferredRequirements: modifier.deferredRequirements,
     scopeSpellIds: modifier.scopeSpellIds ?? []
+  }
+}
+
+/**
+ * A Creature feature's modifier applicability: it has no grant-fold source, so a SOURCE-scoped
+ * modifier names no item the Creature wields and never applies.
+ */
+export function dnd5eCreatureModifierApplicability(
+  modifier: CharacterGrantFoldModifier
+): Dnd5eModifierApplicability {
+  return {
+    sourceId: modifier.grantId,
+    scope: modifier.scope,
+    deferredRequirements: modifier.restrictions,
+    scopeSpellIds: modifier.scopeSpellIds
   }
 }
 

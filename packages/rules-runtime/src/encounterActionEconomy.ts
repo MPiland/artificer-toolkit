@@ -25,7 +25,7 @@ import type { EncounterActionEconomyConsumption } from './encounterActionEconomy
 
 type ActionEconomyTarget = Pick<
   MovementTarget,
-  'actor' | 'state' | 'activeEffects' | 'effectiveRulePolicyOutput'
+  'actor' | 'state' | 'innateConditionIds' | 'activeEffects' | 'effectiveRulePolicyOutput'
 >
 
 /** The capabilities an actor's active relationship effects and grants (D99) suppress. */

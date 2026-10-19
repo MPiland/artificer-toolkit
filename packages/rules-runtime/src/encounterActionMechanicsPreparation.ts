@@ -479,7 +479,7 @@ export async function prepareEncounterActionMechanics<
   // Only attack damage meets "from nonmagical attacks" defenses; a Creature's attack is magical
   // when it is a spell attack or an ATTACK_TRAIT grant of its features applies (Magic Weapons).
   const creatureGranted = dnd5eGrantedAttackTraits(
-    sourceFacts.grantModifiers,
+    sourceFacts.attackTraitGrants,
     DND5E_CHARACTER_WIDE_TARGET
   )
   const attackTraits =

@@ -165,7 +165,7 @@ function target(
     sourceSightSaves: [],
     conditionDefinitions: [],
     conditionMechanics: [],
-    grantModifiers: [],
+    attackTraitGrants: [],
     innateConditionIds: []
   }
 }

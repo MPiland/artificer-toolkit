@@ -10,8 +10,15 @@ import {
   heldConditionIds,
   innateConditionIds
 } from '../encounterInnateConditions.js'
-import { dnd5eGrantedAttackTraits } from '../systems/dnd5e/attackDamageDefenses.js'
-import { DND5E_CHARACTER_WIDE_TARGET } from '../systems/dnd5e/modifierApplicability.js'
+import type { CharacterGrantFoldModifier } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import {
+  dnd5eAttackTraitGrants,
+  dnd5eGrantedAttackTraits
+} from '../systems/dnd5e/attackDamageDefenses.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eCreatureModifierApplicability
+} from '../systems/dnd5e/modifierApplicability.js'
 import { ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID } from '../encounterRollModeReasons.js'
 import {
   QUILL_VOLLEY_ID,
@@ -142,9 +149,9 @@ describe('Magic Weapons as an attack-trait grant (SPELLS-33.T4de)', () => {
     const { creatureFacts } = {
       creatureFacts: srdCreatureActor({ id: SOURCE_ID, creature: balor }).snapshot
     }
-    const modifiers = (creatureFacts as { ruleFacts: { modifiers: never[] } }).ruleFacts.modifiers
-    expect([...dnd5eGrantedAttackTraits(modifiers, DND5E_CHARACTER_WIDE_TARGET)]).toEqual([
-      'MAGICAL'
-    ])
+    const modifiers = (creatureFacts as { ruleFacts: { modifiers: CharacterGrantFoldModifier[] } })
+      .ruleFacts.modifiers
+    const grants = dnd5eAttackTraitGrants(modifiers, dnd5eCreatureModifierApplicability)
+    expect([...dnd5eGrantedAttackTraits(grants, DND5E_CHARACTER_WIDE_TARGET)]).toEqual(['MAGICAL'])
   })
 })

@@ -139,7 +139,7 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     sourceSightSaves: [],
     conditionDefinitions: [],
     conditionMechanics: [],
-    grantModifiers: [],
+    attackTraitGrants: [],
     innateConditionIds: []
   }
   return movementTarget
