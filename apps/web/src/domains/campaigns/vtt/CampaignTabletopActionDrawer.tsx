@@ -1055,7 +1055,9 @@ export function CampaignTabletopActionDrawer({
                 <Text c='dimmed' size='sm'>
                   {scene === null
                     ? 'There is no Scene for this Encounter, so an area cannot be placed.'
-                    : `Centered on you: creatures within ${formatLengthMeasurement(centeredTarget.area.radius)} of your space are caught.`}
+                    : centeredTarget.area.kind === 'OWN_SPACE'
+                      ? 'Creatures sharing your space are caught.'
+                      : `Centered on you: creatures within ${formatLengthMeasurement(centeredTarget.area.radius)} of your space are caught.`}
                 </Text>
               ) : actorsTarget ? null : (
                 <Group align='flex-end' wrap='nowrap'>

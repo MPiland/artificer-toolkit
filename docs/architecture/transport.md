@@ -368,6 +368,8 @@ request's order, and "Roll dice" (`ROLL_RULE_EVIDENCE`) rolls them with the d20 
 term per added die after the d20, a subtracted one marked `subtracted`. Contest checks carry no added dice yet (T2c2).
 Saving-throw d20 evidence (resultPath `ON_SAVE_SUCCESS` or `ON_SAVE_FAIL`) also carries `savingThrowAbilityDefinitionId` (SPELLS-4.T2c2b), the ability the save was rolled with, so the settled commit can spend the roller's saving-throw dice by ability; the schema refuses it on any other result path, and a save with no ability (a death save) omits it.
 
+D20 floor (D156, SPELLS-4.T2c3): a basic-action check (a basic action's, an escape's, a concealment's) whose roller holds an `ABILITY_CHECK` `MINIMUM_ROLL` grant (Glibness's 15) freezes `minimumRoll` (`amount`, `label`, `sourceEffectId`) beside `addedDice` on the check's `d20` context, and the settled d20 evidence repeats it. `selectedNatural` stays the face the roller kept; `total` counts the higher of it and the floor (`d20CheckTotal` in `schema/shared/d20MinimumRoll`, which also adds the signed added dice), and the schema refuses a total that does not. Settlement compares the whole settled d20 with the frozen one (`settledCheckD20MatchesFrozen`). The roll record's d20 term shows the raised number and the card carries a `D20_MINIMUM_ROLL` rule check (`amount`, `label`) only when the floor raised the roll. Contests, saving throws, attack rolls and cast-reaction checks carry no floor yet.
+
 Added damage dice (D156, SPELLS-4.T2d): `ADD_BONUS_DIE` on `DAMAGE` adds rolled dice to a hit's damage (Divine Favor,
 Branding Smite, Hunter's Mark, Enlarge/Reduce, Bestow Curse). Each die is its own damage node (`added-<k>-`), of a fixed
 damage type or the attack's, rolled with the hit's damage dice (doubled on a critical hit); a subtracted die reduces
@@ -391,7 +393,7 @@ Forced-movement destinations (D157): an action whose push has two or more legal 
 `position`); a square the summary did not offer is rejected and the pick stays open. An area action's pushes surface
 the same summary once every save settled, one creature at a time, farthest first, its `requestId` naming the creature;
 only the GM and the caster's controllers read it. The commit's
-`LiveSessionForcedMovement` carries `upTo`, `sourceReachFeet` (set only for `ASIDE`), the picked `position` and, for
+`LiveSessionForcedMovement` carries `collision` (the authored collision, or null; T6k2b1, unread until T6k2b2), `upTo`, `sourceReachFeet` (set only for `ASIDE`), the picked `position` and, for
 `RANDOM`, the unit compass `ray` the server rolled at plan time (null otherwise). Each committed `RESOLVE_ACTION`
 command records `forcedMovementLandings`, one per moved creature, farthest first: `{targetActorId, feet, stoppedBy,
 ray}` with `stoppedBy` `NONE`, `OBJECT` or the struck creature's actor ID (`encounterForcedMovementLandingSchema`).

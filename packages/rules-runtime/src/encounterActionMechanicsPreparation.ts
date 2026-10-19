@@ -1,3 +1,4 @@
+import { heldConditionIds } from './encounterInnateConditions.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
@@ -20,6 +21,7 @@ import {
   encounterAttackAddedDice,
   withSourceSightSave
 } from './encounterActiveGrants.js'
+import { withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
 import { CastChoiceUnavailableError, StaleCharacterActionError } from './encounterErrors.js'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
@@ -52,8 +54,10 @@ import {
 } from './encounterActionTargetPolicy.js'
 import {
   dnd5eAttackDamageDefenses,
-  dnd5eCharacterAttackTraits
+  dnd5eCharacterAttackTraits,
+  dnd5eGrantedAttackTraits
 } from './systems/dnd5e/attackDamageDefenses.js'
+import { DND5E_CHARACTER_WIDE_TARGET } from './systems/dnd5e/modifierApplicability.js'
 import { activeAttackCriticalRules, activeDamageDice } from './character/activeEffectGrantTotals.js'
 import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 import {
@@ -275,6 +279,12 @@ export async function prepareEncounterActionMechanics<
   /** The locked Scene positions of a RESOLVE_ACTION, for range-derived roll modes. */
   sceneContext?: EncounterActionSceneContext | null
   /**
+   * The attack targets one of the target's decoys (`attackDecoyFor`): it is rolled against the
+   * decoy's armor class and none of its OUTCOME reaches the target. Ignored for an action that
+   * makes no attack roll.
+   */
+  attackDecoy?: { armorClass: number } | null
+  /**
    * Whether each side of an attack sees the other (SRD unseen attacker/target), or whether a saver
    * sees the effect's source (`roller` TARGET, D100). Called only for an attack roll or a save with
    * a source-sight grant; omitted by flows that do not read perception, which leave sight out of
@@ -473,7 +483,12 @@ export async function prepareEncounterActionMechanics<
       : featureActionMechanic(source.capability)
   const attackKind =
     typeof actionMechanic.attackKind === 'string' ? actionMechanic.attackKind : null
-  // Only attack damage meets "from nonmagical attacks" defenses; Creature weapons are nonmagical.
+  // Only attack damage meets "from nonmagical attacks" defenses; a Creature's attack is magical
+  // when it is a spell attack or an ATTACK_TRAIT grant of its features applies (Magic Weapons).
+  const creatureGranted = dnd5eGrantedAttackTraits(
+    sourceFacts.attackTraitGrants,
+    DND5E_CHARACTER_WIDE_TARGET
+  )
   const attackTraits =
     attackKind === null
       ? null
@@ -483,7 +498,11 @@ export async function prepareEncounterActionMechanics<
             attackKind,
             policy: source.effectivePolicyOutput
           })
-        : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
+        : {
+            magical: isDnd5eSpellAttackKind(attackKind) || creatureGranted.has('MAGICAL'),
+            silvered: creatureGranted.has('SILVERED'),
+            adamantine: creatureGranted.has('ADAMANTINE')
+          }
   // A target's active ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it
   // their advantage or disadvantage, those that require the holder to see the attacker only when it
   // can and only from the attackers and on the turn their effect admits, and so does a target
@@ -589,6 +608,7 @@ export async function prepareEncounterActionMechanics<
           attack: conditionAttack
         })
   )
+  const attackDecoy = attackKind === null ? null : (input.attackDecoy ?? null)
   return {
     state,
     actor,
@@ -686,15 +706,17 @@ export async function prepareEncounterActionMechanics<
         maximum: sourceFacts.effectiveMaximumHitPoints
       },
       targetActorId: target.id,
-      targetDerivedFacts:
-        attackSight && attackKind === null && dndSource?.savingThrowAbilityDefinitionId
+      targetDerivedFacts: attackDecoy
+        ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
+        : attackSight && attackKind === null && dndSource?.savingThrowAbilityDefinitionId
           ? withSourceSightSave(
               targetFacts.targetDerivedFacts,
               dndSource.savingThrowAbilityDefinitionId,
               attackSight.trueSight
             )
           : targetFacts.targetDerivedFacts,
-      targetConditionIds: targetFacts.state.conditions,
+      ...(attackDecoy ? { absorbedByDecoy: true } : {}),
+      targetConditionIds: heldConditionIds(targetFacts),
       conditionOutcomeRules: {
         hitIsCritical:
           attackKind !== null &&

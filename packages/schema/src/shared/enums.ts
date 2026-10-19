@@ -389,6 +389,8 @@ export const pathLifecycleEndEventSchema = lazySchema(() =>
 export const pathLifecycleEndTriggerBySchema = lazySchema(() => z.enum(['ANYONE', 'SOURCE_SIDE']))
 /** Whom an action must be aimed at to end an effect: only enemies of its holder (Sanctuary). */
 export const pathLifecycleEndTriggerAgainstSchema = lazySchema(() => z.enum(['ENEMY']))
+/** Whose incapacitation ends an effect: that of the creature that applied it (Knight Leadership). */
+export const pathLifecycleEndTriggerOfSchema = lazySchema(() => z.enum(['SOURCE']))
 /**
  * The consume events a timed grant can carry (a cast does not use a grant up). ON_HIT is the
  * holder's first attack that hits: the grant counts toward that attack's damage, then is used up.

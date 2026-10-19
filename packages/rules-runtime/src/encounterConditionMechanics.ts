@@ -1,3 +1,4 @@
+import { heldConditionIds } from './encounterInnateConditions.js'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type {
   ConditionMechanicAttackRangeDto,
@@ -95,7 +96,7 @@ export function encounterConditionLevels(input: {
 
 function heldConditionLevels(target: MovementTarget, gameSystemId: string) {
   return encounterConditionLevels({
-    conditionIds: target.state.conditions,
+    conditionIds: heldConditionIds(target),
     conditionRows: target.initialConditionRows ?? [],
     exhaustionLevel: target.characterFacts?.character.state.exhaustion?.level ?? 0,
     gameSystemId

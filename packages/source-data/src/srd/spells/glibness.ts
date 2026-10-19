@@ -1,8 +1,15 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
   SUBJECT,
@@ -61,11 +68,33 @@ export const glibness: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.GLIBNESS, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.GLIBNESS, 0x213, 1),
+              durationKind: DURATION_KIND.HOUR,
+              amount: 1
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GLIBNESS, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'GLIBNESS' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.GLIBNESS, 0x215, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+                      domain: { ability: ABILITY_CODE.CHARISMA },
+                      modifierKind: MODIFIER_KIND.MINIMUM_ROLL,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      // "You can replace the number you roll with a 15" never lowers a result
+                      // (the roller replaces only a lower face), so the floor applies on its own.
+                      // The truth clause is description-only: no rule reads whether it is told.
+                      payload: { amount: 15 },
+                      order: 1
+                    }
+                  ]
+                }
               }
             ]
           }

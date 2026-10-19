@@ -70,19 +70,7 @@ export const marilith: CreatureAuthored = {
       id: S.featureId(192, 2),
       label: 'Magic Weapons',
       description: "Magic Weapons. The marilith's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(192, 502),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(192, 602), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(192, 502),
       order: 2
     },
     {

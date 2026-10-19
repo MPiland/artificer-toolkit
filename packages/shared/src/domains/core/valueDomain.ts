@@ -54,6 +54,8 @@ export const VALUE_DOMAIN_CODE = {
   DAMAGE_IMMUNITY: 'DAMAGE_IMMUNITY',
   DAMAGE_VULNERABILITY: 'DAMAGE_VULNERABILITY',
   CONDITION_IMMUNITY: 'CONDITION_IMMUNITY',
+  SPELL_SCHOOL_IMMUNITY: 'SPELL_SCHOOL_IMMUNITY',
+  CHECKS_AGAINST_HOLDER: 'CHECKS_AGAINST_HOLDER',
   ATTRIBUTE: 'ATTRIBUTE'
 } as const
 
@@ -240,6 +242,18 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     description: 'Immunity to a condition.'
   },
 
+  [VALUE_DOMAIN_CODE.SPELL_SCHOOL_IMMUNITY]: {
+    code: VALUE_DOMAIN_CODE.SPELL_SCHOOL_IMMUNITY,
+    label: 'Spell School Immunity',
+    description: 'Spells of a magic school have no effect on the holder.'
+  },
+
+  [VALUE_DOMAIN_CODE.CHECKS_AGAINST_HOLDER]: {
+    code: VALUE_DOMAIN_CODE.CHECKS_AGAINST_HOLDER,
+    label: 'Checks Against The Holder',
+    description: 'Skill checks made to read the holder have disadvantage.'
+  },
+
   [VALUE_DOMAIN_CODE.RANGE]: {
     code: VALUE_DOMAIN_CODE.RANGE,
     label: 'Range',
@@ -321,7 +335,8 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
   [VALUE_DOMAIN_CODE.CONDITION]: {
     code: VALUE_DOMAIN_CODE.CONDITION,
     label: 'Condition',
-    description: 'A status effect applied to a creature.'
+    description:
+      'A condition the holder always has (a feature adds it): held beside the conditions applied to it and never removable.'
   },
 
   [VALUE_DOMAIN_CODE.ATTRIBUTE]: {
@@ -519,6 +534,8 @@ export type ValueDomainParamByCode = {
 
   CONDITION: EmptyObject
   CONDITION_IMMUNITY: EmptyObject
+  SPELL_SCHOOL_IMMUNITY: EmptyObject
+  CHECKS_AGAINST_HOLDER: EmptyObject
   ATTRIBUTE: EmptyObject
 }
 
@@ -553,12 +570,17 @@ export type ValueDomainOptionPayloadByDomain = {
   DAMAGE_IMMUNITY: { damageTypeId: string; sourceEffectIds?: string[] }
   DAMAGE_VULNERABILITY: { damageTypeId: string }
 
-  // Your CONDITION domain is “applied conditions on character”.
-  // If you model as conditionTypeId, use that. If you model as conditionId, switch.
+  // An innate condition the holder always has.
   CONDITION: { conditionTypeId: string }
 
   // Condition immunity: prevents a specific condition from being applied
   CONDITION_IMMUNITY: { conditionTypeId: string }
+
+  // Spell school immunity: a spell of the school has no effect on the holder
+  SPELL_SCHOOL_IMMUNITY: { magicSchoolId: string }
+
+  // Checks against the holder: checks of the skill made to read the holder have disadvantage
+  CHECKS_AGAINST_HOLDER: { skillId: string }
 
   // Attribute is likely from a registry (ritual, concentration, etc.)
   ATTRIBUTE: { attributeId: string }

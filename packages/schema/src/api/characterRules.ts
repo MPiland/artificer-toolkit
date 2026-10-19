@@ -132,29 +132,33 @@ const canonicalCharacterTargetDefensesSchema = lazySchema(() =>
   )
 )
 
-const canonicalConditionImmunityIdsSchema = lazySchema(() =>
-  z.pipe(
-    z
-      .array(serverUuidIdentityDtoSchema)
-      .check(z.maxLength(100))
-      .check(
-        z.superRefine((conditionIds, ctx) => {
-          const seen = new Set<string>()
-          conditionIds.forEach((conditionId, index) => {
-            if (seen.has(conditionId)) {
-              ctx.addIssue({
-                code: 'custom',
-                message: 'Character condition immunities must be unique.',
-                path: [index]
-              })
-            }
-            seen.add(conditionId)
+const canonicalImmunityIdsSchema = (noun: string) =>
+  lazySchema(() =>
+    z.pipe(
+      z
+        .array(serverUuidIdentityDtoSchema)
+        .check(z.maxLength(100))
+        .check(
+          z.superRefine((ids, ctx) => {
+            const seen = new Set<string>()
+            ids.forEach((id, index) => {
+              if (seen.has(id)) {
+                ctx.addIssue({
+                  code: 'custom',
+                  message: `Character ${noun} immunities must be unique.`,
+                  path: [index]
+                })
+              }
+              seen.add(id)
+            })
           })
-        })
-      ),
-    z.transform((conditionIds) => [...conditionIds].sort())
+        ),
+      z.transform((ids) => [...ids].sort())
+    )
   )
-)
+
+const canonicalConditionImmunityIdsSchema = canonicalImmunityIdsSchema('condition')
+const canonicalSpellSchoolImmunityIdsSchema = canonicalImmunityIdsSchema('spell school')
 
 const characterRuleContributionInputSchema = lazySchema(() =>
   z.strictObject({
@@ -1267,6 +1271,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
     ),
     defenses: canonicalCharacterTargetDefensesSchema,
     conditionImmunityIds: z._default(canonicalConditionImmunityIdsSchema, []),
+    spellSchoolImmunityIds: z._default(canonicalSpellSchoolImmunityIdsSchema, []),
     movement: z._default(
       z.strictObject({
         speeds: z

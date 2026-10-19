@@ -41,7 +41,6 @@ import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../enc
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
-import { attackDecoysSpell } from '../testing/attackDecoysSpell.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
@@ -2081,7 +2080,8 @@ describe('a day-long grant (SPELLS-4.T2a3, D156)', () => {
       modifierGrantContribution: {
         modifiers: [
           { valueDomainCode: 'DAMAGE_IMMUNITY' },
-          { valueDomainCode: 'CONDITION_IMMUNITY' }
+          { valueDomainCode: 'CONDITION_IMMUNITY' },
+          { valueDomainCode: 'SPELL_SCHOOL_IMMUNITY' }
         ]
       }
     })
@@ -2437,8 +2437,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
   })
 
-  it('compiles three attack decoys that end the effect after three uses, which the caster can dismiss with an Action', () => {
-    const decoySpell = attackDecoysSpell()
+  it('compiles Mirror Image into three attack decoys that end the effect after three uses, which the caster can dismiss with an Action', () => {
+    const decoySpell = spell('Mirror Image')
     const plan = compiledCast(decoySpell)?.activeEffectPlan
     expect(plan).toMatchObject({
       initialRemaining: 10,

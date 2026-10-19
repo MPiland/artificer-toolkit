@@ -253,6 +253,20 @@ describe('grant and facet schema parsing', () => {
     expect(rolledDie('ATTACK_ROLL', { attackDomain: 'MELEE' }, { ...d4, faces: 20 })).toBe(false)
     expect(rolledDie('ATTACK_ROLL', { attackDomain: 'MELEE' }, { ...d4, count: 0 })).toBe(false)
     expect(rolledDie('ATTACK_ROLL', { attackDomain: 'MELEE' }, { dice: '1d4' })).toBe(false)
+    // A d20 floor is an ability-check modifier with a face in 2..20; it parses nowhere else.
+    const floor = (valueDomainCode: string, domain: object, amount: number) =>
+      modifierGrantDtoSchema.safeParse({
+        ...base,
+        valueDomainCode,
+        modifierKind: 'MINIMUM_ROLL',
+        domain,
+        payload: { amount }
+      }).success
+    expect(floor('ABILITY_CHECK', { ability: 'CHARISMA' }, 15)).toBe(true)
+    expect(floor('ABILITY_CHECK', {}, 20)).toBe(true)
+    expect(floor('ABILITY_CHECK', { ability: 'CHARISMA' }, 1)).toBe(false)
+    expect(floor('ABILITY_CHECK', { ability: 'CHARISMA' }, 21)).toBe(false)
+    expect(floor('SAVING_THROW_MODIFIER', { ability: 'WISDOM' }, 15)).toBe(false)
     for (const grant of unsupported) {
       const parsed = modifierGrantDtoSchema.safeParse(grant)
       expect(parsed.success).toBe(false)

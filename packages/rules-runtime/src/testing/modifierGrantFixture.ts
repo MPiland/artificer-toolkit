@@ -2,7 +2,11 @@ import type {
   ServerCompletedRuleExecutionDto,
   ServerPublishedRuleDefinitionDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
-import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
+import type {
+  EffectAuthored,
+  ModifierGrantAuthored,
+  PathLifecycleAuthored
+} from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
@@ -22,6 +26,24 @@ import { testUuid } from './dnd5eSrdEncounter.js'
  */
 export function grantPublishedIdentity() {
   return { id: ACTION_EFFECT_ID, checksum: 'a'.repeat(64) } as ServerPublishedRuleDefinitionDto
+}
+
+/**
+ * `effect` with each of its granted modifiers' `domain` or `payload` replaced (a copy; the authored effect is
+ * untouched), for a test that varies a real spell's grant, such as a floor's amount or ability.
+ */
+export function withGrantModifiers(
+  effect: EffectAuthored | undefined,
+  changes: Partial<Pick<ModifierGrantAuthored, 'domain' | 'payload'>>
+): EffectAuthored {
+  if (!effect) throw new Error('The effect to vary is missing.')
+  const copy = structuredClone(effect)
+  for (const path of copy.paths)
+    if (path.selectionKind === 'FIXED')
+      for (const outcome of path.resultBlock.outcomes)
+        if (outcome.effectKind === 'APPLY_GRANT' && outcome.grants.modifiers)
+          for (const modifier of outcome.grants.modifiers) Object.assign(modifier, changes)
+  return copy
 }
 
 /**

@@ -1,7 +1,11 @@
 import { escapeGrappleEffectDefinition } from '@artificer-toolkit/rules-runtime/testing/escapeGrappleEffectFixture'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { deleteGrants, restoreConsumedGrants } from '../consumedGrantPersistence.js'
+import {
+  deleteGrants,
+  restoreConsumedGrants,
+  spendEffectUses
+} from '../consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from '../effectStore.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import type { EncounterPersistenceTransaction } from '../ports.js'
@@ -82,5 +86,45 @@ describe('restoreConsumedGrants', () => {
 
     expect(await store.list(owner)).toEqual(before)
     expect((await store.list(owner)).map(({ id }) => id)).toEqual([FIRST_ID, SECOND_ID])
+  })
+
+  it('spends one use of an effect that counts them, and an undo gives the use back in place', async () => {
+    const ctx = holderContext()
+    const store = createActiveRuleEffectStore(ctx)
+    const definition = escapeGrappleEffectDefinition({
+      encounterId: ENCOUNTER_ID,
+      grapplerId: GRANTER_ID,
+      conditionIds: []
+    })
+    const counted = await store.create({
+      id: FIRST_ID,
+      owner,
+      definition,
+      lifecycle: { schemaVersion: 1 as const, remainingTicks: null, remainingUses: 3 },
+      occurredAt: '2026-01-01T00:00:00.000Z'
+    })
+
+    await spendEffectUses(ctx, [counted])
+    expect((await store.list(owner))[0]?.lifecycle.remainingUses).toBe(2)
+
+    await restoreConsumedGrants(ctx, [counted])
+    expect((await store.list(owner))[0]?.lifecycle.remainingUses).toBe(3)
+  })
+
+  it('refuses to spend a use of an effect that does not count them', async () => {
+    const ctx = holderContext()
+    const store = createActiveRuleEffectStore(ctx)
+    const uncounted = await store.create({
+      id: FIRST_ID,
+      owner,
+      definition: escapeGrappleEffectDefinition({
+        encounterId: ENCOUNTER_ID,
+        grapplerId: GRANTER_ID,
+        conditionIds: []
+      }),
+      lifecycle: { schemaVersion: 1 as const, remainingTicks: null },
+      occurredAt: '2026-01-01T00:00:00.000Z'
+    })
+    await expect(spendEffectUses(ctx, [uncounted])).rejects.toThrow('does not count uses')
   })
 })

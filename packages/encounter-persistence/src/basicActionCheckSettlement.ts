@@ -3,7 +3,10 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
-import { encounterBasicActionStabilizeApplication } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import {
+  encounterBasicActionStabilizeApplication,
+  settledCheckD20MatchesFrozen
+} from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { basicActionCheckRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -64,10 +67,7 @@ export async function settleEncounterBasicActionCheck(
     output.targetCharacterId !== context.targetCharacterId ||
     output.check.checkDefinitionId !== context.check.checkDefinitionId ||
     output.check.dc !== context.check.dc ||
-    output.d20.modifier !== context.d20.modifier ||
-    output.d20.derivedRollMode !== context.d20.rollMode ||
-    output.d20.contributorChecksum !== context.d20.contributorChecksum ||
-    output.d20.total !== output.d20.selectedNatural + context.d20.modifier ||
+    !settledCheckD20MatchesFrozen(output.d20, context.d20) ||
     (output.outcome === 'STABILIZED') !==
       (output.d20.total >= context.check.dc && output.outcome !== 'NOT_DYING')
   )
