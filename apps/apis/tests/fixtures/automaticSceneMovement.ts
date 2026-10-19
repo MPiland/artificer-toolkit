@@ -64,7 +64,12 @@ export async function setupReactionMovementScene<
   path: SceneDefinitionDto['tokens'][number]['position'][] = [
     { x: 150, y: 50 },
     { x: 450, y: 50 }
-  ]
+  ],
+  /**
+   * A reactor ahead of the mover stands one cell off its path, which the mover may not walk through,
+   * unless the test is about the hostile creature in the way.
+   */
+  reactorsOnPath = false
 ) {
   const sceneId = crypto.randomUUID()
   const definitionSaveId = crypto.randomUUID()
@@ -83,8 +88,7 @@ export async function setupReactionMovementScene<
     hidden: false,
     locked: false,
     label: index === 1 ? 'Mover' : `Reactor ${index + 1}`,
-    // A reactor ahead of the mover stands one cell off its path, which the mover may not walk through.
-    position: { x, y: index !== 1 && x > 150 ? 150 : 50 },
+    position: { x, y: index !== 1 && x > 150 && !reactorsOnPath ? 150 : 50 },
     rotationDegrees: 0,
     senses: [],
     vision: null

@@ -121,7 +121,9 @@ async function seedMovingSpatialEffect(
 ) {
   const seeded = await seedSpatialEffect(
     { ...value.base, sceneId: value.sceneId },
-    { x: 900, y: 900 }
+    { x: 900, y: 900 },
+    // Wide enough to reach a target standing one cell off the mover's path.
+    55
   )
   return value.base.t.run(async (ctx) => {
     const scope = await createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope(
