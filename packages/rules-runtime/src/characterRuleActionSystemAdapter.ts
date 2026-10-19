@@ -543,6 +543,13 @@ export interface CharacterRuleActionSystemAdapter {
     action: EffectActionCapabilityDescriptor
     published: ServerPublishedRuleDefinitionDto
   }): readonly CharacterRuleActionActiveEffectPlan[]
+  /**
+   * The timed grant a passive "when this creature takes damage" feature gives its holder, or null
+   * when the feature authors none. An unsupported grant throws the unsupported-compilation error.
+   */
+  passiveDamageGrantPlan?(input: {
+    action: EffectActionCapabilityDescriptor
+  }): CharacterRuleActionActiveEffectPlan | null
   requiresConditionDefinitionValidation?(input: {
     published: ServerPublishedRuleDefinitionDto
   }): boolean

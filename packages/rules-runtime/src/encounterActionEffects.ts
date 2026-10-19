@@ -1,3 +1,5 @@
+import { v5 as uuidv5 } from 'uuid'
+
 import {
   prepareEncounterActionEffectPlans,
   prepareRecurringActiveEffect
@@ -7,6 +9,8 @@ import { toCharacterInitiativeActorFacts } from './character/characterInitiative
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
+import type { IncomingDamageGrantTrigger } from './encounterEndedEffectRelease.js'
+import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
 import { readEncounterChosenItem } from './encounterChosenItem.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
@@ -76,6 +80,56 @@ export function prepareNativeZoneSourceGrantEffect<
   })
   if (!effect) throw new Error('A zone’s placer grant yields no effect.')
   return effect
+}
+
+const INCOMING_DAMAGE_GRANT_NAMESPACE = '8c1d4e0a-6b7f-4d2e-9a35-f0e2b7c41d68'
+
+/**
+ * The grants the action's target gives itself when it takes damage, from its Creature's passive
+ * damage-trigger features: each made now as the effect it would hold, for `targetEndedEffects` to
+ * select by the damage dealt. A Character target has no such features.
+ */
+export function prepareNativeIncomingDamageGrantTriggers<
+  TCharacterFacts extends CharacterActionMovementFacts
+>(input: {
+  prepared: Pick<PreparedMechanics<TCharacterFacts>, 'state' | 'target' | 'movementTargets'>
+  occurrenceId: string
+  commandId: string
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+}): IncomingDamageGrantTrigger[] {
+  const { prepared } = input
+  const holder = prepared.movementTargets.get(prepared.target.id)
+  if (prepared.target.kind !== 'CREATURE' || !holder) return []
+  return discoverEncounterFeatureActions({
+    actor: prepared.target,
+    conditionDefinitionIds: [],
+    abilityDefinitions: []
+  }).passiveDamageGrants.map(({ capability, damageTypeIds, plan }) => {
+    const effect = prepareRecurringActiveEffect({
+      encounterId: prepared.state.id,
+      occurrenceId: input.occurrenceId,
+      commandId: input.commandId,
+      sourceActorId: prepared.target.id,
+      sourceLabel: capability.label,
+      sourceHidden: !prepared.target.public,
+      currentActorId: prepared.state.currentActorId,
+      target: effectTarget(holder),
+      activeEffectsByActorId: input.activeEffectsByActorId,
+      activeEffectPlan: plan,
+      published: plan.frozenGraph,
+      d20: null
+    })
+    if (!effect) throw new Error('A passive damage trigger yields no effect.')
+    return {
+      id: uuidv5(
+        `${input.occurrenceId}:${prepared.target.id}:${capability.effectId}`,
+        INCOMING_DAMAGE_GRANT_NAMESPACE
+      ),
+      authoredEffectId: capability.effectId,
+      damageTypeIds,
+      effect
+    }
+  })
 }
 
 /** The active-effect plan an action's capability carries, selected by the definition that ran. */
