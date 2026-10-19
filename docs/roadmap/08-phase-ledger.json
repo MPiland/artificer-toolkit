@@ -7707,9 +7707,9 @@
             {
               "id": "ATTACK-19.T2",
               "text": "Auto-draw on attack and the release-on-draw prompt, both on the hand-occupancy function.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-19.2"],
-              "activeWorkbook": "docs/handoffs/slice-attack-19.md"
+              "note": "Merged m203 (5190200cc)."
             },
             {
               "id": "ATTACK-19.T3",
