@@ -132,8 +132,6 @@ async function decoyRoom(remaining: number, attackFace: number) {
   return { room, attack, target }
 }
 
-type Room = Awaited<ReturnType<typeof decoyRoom>>
-
 describe('Mirror Image takes an attack for a decoy (SPELLS-4.T2k2)', () => {
   it('spends a decoy and spares the target when the attack hits the decoy', async () => {
     const room = await decoyRoom(3, HITS)
