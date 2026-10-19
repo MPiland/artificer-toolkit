@@ -3199,7 +3199,7 @@ function zoneComponentPlan(
       triggers.turnTriggers ||
       triggers.retaliatesMeleeHits ||
       component.maxApplicationsPerTurn !== undefined ||
-      invocation.triggerCode === 'SAVING_THROW')
+      action.compiledEffect.invocation.triggerCode === 'SAVING_THROW')
   )
     unsupported('A zone acting per distance moved deals damage with no save to whoever enters it.')
   const placement = {
