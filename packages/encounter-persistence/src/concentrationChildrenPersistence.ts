@@ -1,13 +1,18 @@
 import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import {
   grantsEndedByHolderState,
+  grantsEndedBySourceState,
+  sourceBoundGrants,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { dnd5eAbilityCode } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   concentrationCommandId,
@@ -37,6 +42,9 @@ type ConcentrationDamageApplication = ReturnType<
   typeof nativeConcentrationDamageApplications
 >[number]
 type BoundConcentrationApplication = ConcentrationDamageApplication & { maintainedStateId: string }
+type ConcentrationCheckOutput = ReturnType<
+  typeof concentrationCheckApplicationOutputDtoSchema.parse
+>
 
 /**
  * Binds a parent's damage to the concentration each target currently maintains. The effect store
@@ -93,6 +101,8 @@ export async function persistEncounterConcentrationChildren(
      * had to end. A continuation settles the checks of damage already committed, so it names none.
      */
     damagedActorIds: ReadonlySet<string>
+    /** The check a response commit answered, whose spent saving-throw dice (D156) it also ends. */
+    answeredCheck?: ConcentrationCheckOutput
   } & Pick<
     LiveSessionEncounterActionCommitInput,
     'concentration' | 'concentrationEnds' | 'endedGrants' | 'pendingConcentration'
@@ -150,7 +160,50 @@ export async function persistEncounterConcentrationChildren(
     previousOwnerId = end.ownerActorId
     ends.push({ end, slot, holder })
   }
-  // The grants the holder's state ends must be stored as sent and be ones the committed state ends.
+  // The saving-throw dice (D156) the settled checks spend from their holders, by the same rule an
+  // action's saves use.
+  const spentDice = new Set<string>()
+  const checks = [
+    ...args.concentration.flatMap(({ result }) =>
+      result.status === 'COMPLETE' && result.applicationOutputs.kind === 'CONCENTRATION_CHECK'
+        ? [result.applicationOutputs]
+        : []
+    ),
+    ...(args.answeredCheck ? [args.answeredCheck] : [])
+  ]
+  for (const check of checks) {
+    const holder = actors.find((actor) => actor.id === check.application.targetActorId)
+    if (!holder) continue
+    for (const die of savingThrowSpentEffects(
+      await store.list(turnEffectOwner(holder, state.id)),
+      dnd5eAbilityCode(check.savingThrowAbilityDefinitionId)
+    ))
+      spentDice.add(die.id)
+  }
+  // The committed reason an actor that applied a grant can't act, read once.
+  const sourceReasons = new Map<string, Awaited<ReturnType<typeof readHolderEndState>>['reason']>()
+  async function readSourceReason(sourceActorId: string) {
+    const cached = sourceReasons.get(sourceActorId)
+    if (cached !== undefined) return cached
+    const source = actors.find((actor) => actor.id === sourceActorId)
+    const reason = source
+      ? (await readHolderEndState(ctx, { state, actor: source, userId: args.userId })).reason
+      : null
+    sourceReasons.set(sourceActorId, reason)
+    return reason
+  }
+  // The Encounter actor that applied a source-bound grant; any other grant doesn't follow one.
+  const sourceActorOf = (grant: ActiveRuleEffectRecord) =>
+    sourceBoundGrants([grant]).length > 0 && grant.definition.origin.kind === 'ENCOUNTER'
+      ? (grant.definition.origin.sourceActorId ?? null)
+      : null
+  async function endedBySourceState(grant: ActiveRuleEffectRecord) {
+    const sourceActorId = sourceActorOf(grant)
+    if (sourceActorId === null) return false
+    await readSourceReason(sourceActorId)
+    return grantsEndedBySourceState([grant], sourceReasons).length > 0
+  }
+  // The grants the holder's or source's state ends must be stored as sent and be ones the committed state ends.
   for (const grant of args.endedGrants) {
     const stored = await store.findById(grant.owner, grant.id)
     const holder = actors.find(
@@ -165,13 +218,18 @@ export async function persistEncounterConcentrationChildren(
       !stored ||
       checksumCanonicalJson(stored) !== checksumCanonicalJson(grant) ||
       !holderState ||
-      !grantsEndedByHolderState([stored], holderState).length
+      (!spentDice.has(grant.id) &&
+        !grantsEndedByHolderState([stored], holderState).length &&
+        !(await endedBySourceState(stored)))
     )
       throw new Error('Live Session grant end is unexpected.')
   }
-  // And the plan must omit none: every grant a damaged holder's committed state ends is sent.
+  // And the plan must omit none: every grant a damaged holder's committed state ends is sent,
+  // and every die a settled check spent.
   if (state.automationMode !== 'MANUAL') {
     const sent = new Set(args.endedGrants.map(({ id }) => id))
+    if ([...spentDice].some((id) => !sent.has(id)))
+      throw new Error('Live Session grant end is missing.')
     for (const holder of actors.filter(({ id }) => args.damagedActorIds.has(id))) {
       const stateBound = stateBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
       if (!stateBound.length) continue
@@ -183,6 +241,23 @@ export async function persistEncounterConcentrationChildren(
       if (grantsEndedByHolderState(stateBound, holderState).some(({ id }) => !sent.has(id)))
         throw new Error('Live Session grant end is missing.')
     }
+    // A damaged actor whose committed state can no longer act ends every grant it applied, on
+    // whichever actor holds them. No index answers "which grants did this actor apply", so only
+    // the commit that drops a creature pays for a scan of the Encounter's holders, and a source's
+    // committed reason is read only when a holder carries a grant it applied.
+    const held = (
+      await Promise.all(
+        actors.map(async (holder) =>
+          sourceBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
+        )
+      )
+    ).flat()
+    for (const source of actors.filter(({ id }) => args.damagedActorIds.has(id))) {
+      if (!held.some((grant) => sourceActorOf(grant) === source.id)) continue
+      await readSourceReason(source.id)
+    }
+    if (grantsEndedBySourceState(held, sourceReasons).some(({ id }) => !sent.has(id)))
+      throw new Error('Live Session grant end is missing.')
   }
   for (const { end, slot, holder } of ends) {
     actors = await callbacks.applyCleanup({

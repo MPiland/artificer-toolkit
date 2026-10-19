@@ -14,13 +14,13 @@ import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/e
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
   completeEncounterBasicActionCheckResult,
-  encounterBasicActionCheckLabel,
   encounterBasicActionCheckPendingSnapshot,
   encounterBasicActionStabilizeApplication,
   evaluateEncounterBasicActionCheck,
   prepareEncounterBasicActionCheck,
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
@@ -157,7 +157,8 @@ export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInpu
     const continuation = await startEncounterBasicActionCheck({
       runtime: input.runtime,
       gameSystemId: state.gameSystemId,
-      occurrenceId
+      occurrenceId,
+      addedDice: context.d20.addedDice
     })
     const { autoRoll } = input
     if (!autoRoll)
@@ -176,6 +177,7 @@ export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInpu
         continuation,
         answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
         rollD20: () => autoRoll(20) + 1,
+        random: autoRoll,
         expectedOccurrenceId: occurrenceId
       })
       const stabilized = evaluated.reachesDc

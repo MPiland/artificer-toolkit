@@ -1,31 +1,41 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
-import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type {
-  CharacterConditionRemoveOutcomeApplication,
+  CharacterEndedEffectReleaseApplication,
   CharacterRuleActionApplication
 } from './characterRuleActionSystemAdapter.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
-import { effectsEndedBy } from './encounterGrantLifetimes.js'
+import {
+  effectEventScope,
+  effectsEndedBy,
+  isInEffectEventScope
+} from './encounterGrantLifetimes.js'
+import type { prepareRecurringActiveEffect } from './encounterActionEffectPlans.js'
+import { dnd5eAbilityCode } from './systems/dnd5e/identity.js'
 
 /**
- * The conditions an event-ended effect alone held, released from its holder. A condition stays when
- * the holder had it before the effect or another effect on the holder still owns it. The holder's
+ * What event-ended effects release from their holder: the conditions they alone held, then the
+ * temporary hit points each owning effect gave (D156). A condition stays when the holder had it
+ * before the effect or another effect on the holder still owns it; temporary hit points leave only
+ * while the ended effect is still the pool's source, which the holder's fold decides. The holder's
  * mechanics batch applies these in the same transaction as the effects' deletion.
  */
-export function endedEffectConditionReleases(input: {
+export function endedEffectReleases(input: {
   holderActorId: string
   /** Every effect the holder carries before the event. */
   held: readonly ActiveRuleEffectRecord[]
   ended: readonly ActiveRuleEffectRecord[]
-}): CharacterConditionRemoveOutcomeApplication[] {
+}): CharacterEndedEffectReleaseApplication[] {
   const endedIds = new Set(input.ended.map(({ id }) => id))
   const released = endedMaintenanceConditions(
     input.ended,
     input.held.filter(({ id }) => !endedIds.has(id))
   )
-  return [...released].sort().map((conditionId) => {
+  const conditionReleases = [...released].sort().map((conditionId) => {
     const owner = input.ended.find(
       ({ definition }) =>
         definition.schemaVersion === 2 &&
@@ -36,33 +46,148 @@ export function endedEffectConditionReleases(input: {
     )
     if (!owner) throw new Error('An ended effect released a condition it does not own.')
     return {
-      kind: 'CONDITION_REMOVE',
+      kind: 'CONDITION_REMOVE' as const,
       conditionId,
       sourceActiveEffectId: owner.id,
       targetActorId: input.holderActorId,
       sourceNodeId: owner.definition.frozenGraphNodeId,
-      sourceOperationKey: ENDED_EFFECT_CONDITION_OPERATION_KEY,
+      sourceOperationKey: ENDED_EFFECT_RELEASE_OPERATION_KEY,
       authoredPath: null,
       resolvedPath: null
     }
   })
+  const temporaryReleases = input.ended
+    .filter(
+      ({ definition }) =>
+        definition.schemaVersion === 2 &&
+        definition.stateContributions.some(
+          (contribution) => contribution.kind === 'TEMPORARY_HIT_POINTS_OWNERSHIP'
+        )
+    )
+    .map((owner) => ({
+      kind: 'TEMPORARY_HIT_POINTS_RELEASE' as const,
+      sourceActiveEffectId: owner.id,
+      targetActorId: input.holderActorId,
+      sourceNodeId: owner.definition.frozenGraphNodeId,
+      sourceOperationKey: ENDED_EFFECT_RELEASE_OPERATION_KEY,
+      authoredPath: null,
+      resolvedPath: null
+    }))
+  return [...conditionReleases, ...temporaryReleases]
 }
 
 /**
- * What damage ends on its holder: the effects whose `DAMAGE_TAKEN` end trigger the outcome meets
- * (damage that survives the holder's defenses, of a type the trigger names, by someone the trigger
- * allows), and the conditions only they held. The holder's own mechanics batch applies the
- * releases in the same transaction as the effects' deletion.
+ * What an effect's own expiry at a turn boundary releases from its holder: the temporary hit points
+ * it gave (D156). Its conditions follow the turn's retained-condition rule instead.
  */
-export function damageTakenEndedEffects(input: {
+export function expiredEffectReleases(effect: ActiveRuleEffectRecord, holderActorId: string) {
+  return endedEffectReleases({ holderActorId, held: [effect], ended: [effect] }).filter(
+    (release) => release.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+  )
+}
+
+/** Names one ended-effect release, so a persisted plan can be checked against the releases it owes. */
+export function endedEffectReleaseKey(
+  release:
+    | { kind: 'CONDITION_REMOVE'; sourceActiveEffectId?: string; conditionId: string }
+    | { kind: 'TEMPORARY_HIT_POINTS_RELEASE'; sourceActiveEffectId: string }
+) {
+  return release.kind === 'CONDITION_REMOVE'
+    ? `${release.sourceActiveEffectId}:${release.conditionId}`
+    : `${release.sourceActiveEffectId}:temporary-hit-points`
+}
+
+/**
+ * The effects a holder's saving throw spends (D156): those whose die applied to a save with this
+ * ability (null for a save with none, a death save). The one place the rule lives; an action's
+ * saves, a Concentration save and a death save all spend through it.
+ */
+export function savingThrowSpentEffects(
+  held: readonly ActiveRuleEffectRecord[],
+  abilityCode: string | null
+) {
+  return effectsEndedBy(held, { event: 'ON_SAVING_THROW', abilityCode })
+}
+
+/**
+ * A timed grant a damaged creature's passive feature gives itself: the effect it would hold, made
+ * ahead of the damage, and the damage types that set it off.
+ */
+export interface IncomingDamageGrantTrigger {
+  /** The id the effect takes if the damage sets it off. */
+  id: string
+  /** The passive feature's Effect; a grant it gave before is refreshed, never stacked. */
+  authoredEffectId: string
+  damageTypeIds: readonly string[]
+  effect: NonNullable<ReturnType<typeof prepareRecurringActiveEffect>>
+}
+
+/**
+ * The held effects a refreshed damage-trigger grant replaces: those the same passive feature gave
+ * before, keyed by `authoredEffectId`. A root that persists the grants from its receipt, where the
+ * triggers are no longer at hand, ends exactly what `targetEndedEffects` ended.
+ */
+export function effectsReplacedByGrants(
+  held: readonly ActiveRuleEffectRecord[],
+  grants: readonly Pick<ActiveRuleEffectRecord['definition'], 'authoredEffectId'>[]
+) {
+  return held.filter(({ definition }) =>
+    grants.some(({ authoredEffectId }) => authoredEffectId === definition.authoredEffectId)
+  )
+}
+
+/**
+ * The records the grants `targetEndedEffects` returned become on their holder, after the effects it
+ * keeps. Every root builds them here so planning and persisting create the same records.
+ */
+export function incomingDamageGrantRecords(input: {
+  grants: ReturnType<typeof targetEndedEffects>['grants']
+  owner: ActiveRuleEffectRecord['owner']
+  /** The effects the holder carries once the ended ones are gone, plus any this root already made. */
+  current: readonly ActiveRuleEffectRecord[]
+  occurredAt: string
+}) {
+  const records: ActiveRuleEffectRecord[] = []
+  for (const { id, effect } of input.grants)
+    records.push(
+      prepareActiveRuleEffectRecord({
+        id,
+        owner: input.owner,
+        definition: effect.definition,
+        lifecycle: effect.lifecycle,
+        currentEffects: [...input.current, ...records],
+        occurredAt: input.occurredAt
+      })
+    )
+  return records
+}
+
+/**
+ * What an action ends on its target: the effects used up by an attack roll against the holder
+ * (`ON_ATTACKED`, after their modifiers applied to that roll), those whose `DAMAGE_TAKEN` end
+ * trigger the outcome meets (damage that survives the holder's defenses, of a type the trigger
+ * names, by someone the trigger allows), and the conditions only they held. The holder's own
+ * mechanics batch applies the releases in the same transaction as the effects' deletion. Damage of a
+ * type a passive grantTriggers entry names then gives its grant, replacing the one the same feature
+ * gave before; it joins after the ended effects are released, so a grant from this hit stays.
+ */
+export function targetEndedEffects(input: {
   holderActorId: string
   held: readonly ActiveRuleEffectRecord[]
+  /** Whether the action made an attack roll against the holder. */
+  attacked: boolean
+  /** The d20 evidence the action settled for the holder, whose saving throws spend their dice. */
+  testEvidence: readonly (ServerRuleExecutionD20EvidenceDto | null | undefined)[]
+  /** The actor whose turn it is, which an effect active only on one turn compares. */
+  turnActorId: string | null
   /** The outcome applications this action settles on the holder. */
   applications: readonly CharacterRuleActionApplication[]
   /** Who dealt the damage; null when nobody did, so only `ANYONE` triggers meet it. */
   damagerActorId: string | null
   /** Every Encounter actor's disposition, to tell the effect source's side from the rest. */
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+  /** The grants the holder's passive features give when it takes damage; none when omitted. */
+  grantTriggers?: readonly IncomingDamageGrantTrigger[]
 }) {
   const dealt = input.applications.filter(
     (application) =>
@@ -78,31 +203,59 @@ export function damageTakenEndedEffects(input: {
         input.dispositions.get(input.damagerActorId) ?? 'NEUTRAL',
         input.dispositions.get(sourceActorId) ?? 'NEUTRAL'
       ) === 'ALLIED')
-  const endedEffects = dealt.length
-    ? input.held.filter(({ definition }) => {
-        if (definition.schemaVersion !== 2) return false
-        const sourceActorId =
-          definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
-        return definition.recurrence.endOnTriggers.some(
-          (trigger) =>
-            trigger.event === 'DAMAGE_TAKEN' &&
-            (trigger.by === 'ANYONE' || onSourceSide(sourceActorId)) &&
-            dealt.some(
-              (application) =>
-                trigger.damageTypeIds === null ||
-                (application.kind === 'DAMAGE' &&
-                  trigger.damageTypeIds.includes(application.damageTypeId))
-            )
+  // An attack consumes only the effects whose event scope admits the attacker on this turn.
+  const attackConsumed = input.attacked
+    ? effectsEndedBy(input.held, 'ON_ATTACKED').filter((effect) => {
+        const scope = effectEventScope(effect, input.holderActorId)
+        return (
+          scope !== null &&
+          isInEffectEventScope(scope, {
+            actorId: input.damagerActorId,
+            turnActorId: input.turnActorId
+          })
         )
       })
     : []
+  const saveConsumed = input.testEvidence.flatMap((evidence) => {
+    const abilityDefinitionId = evidence?.savingThrowAbilityDefinitionId
+    return abilityDefinitionId === undefined
+      ? []
+      : savingThrowSpentEffects(input.held, dnd5eAbilityCode(abilityDefinitionId))
+  })
+  const grants = (input.grantTriggers ?? []).filter((trigger) =>
+    dealt.some(
+      (application) =>
+        application.kind === 'DAMAGE' && trigger.damageTypeIds.includes(application.damageTypeId)
+    )
+  )
+  const replaced = effectsReplacedByGrants(input.held, grants)
+  const endedEffects = input.held.filter((effect) => {
+    const { definition } = effect
+    if (replaced.includes(effect)) return true
+    if (attackConsumed.includes(effect) || saveConsumed.includes(effect)) return true
+    if (!dealt.length || definition.schemaVersion !== 2) return false
+    const sourceActorId =
+      definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
+    return definition.recurrence.endOnTriggers.some(
+      (trigger) =>
+        trigger.event === 'DAMAGE_TAKEN' &&
+        (trigger.by === 'ANYONE' || onSourceSide(sourceActorId)) &&
+        dealt.some(
+          (application) =>
+            trigger.damageTypeIds === null ||
+            (application.kind === 'DAMAGE' &&
+              trigger.damageTypeIds.includes(application.damageTypeId))
+        )
+    )
+  })
   return {
     endedEffects,
-    releases: endedEffectConditionReleases({
+    releases: endedEffectReleases({
       holderActorId: input.holderActorId,
       held: input.held,
       ended: endedEffects
-    })
+    }),
+    grants: grants.map(({ id, effect }) => ({ id, effect }))
   }
 }
 
@@ -131,7 +284,7 @@ export function actionUsedOnHolderEndedEffects(input: {
         )
   return {
     endedEffects,
-    releases: endedEffectConditionReleases({
+    releases: endedEffectReleases({
       holderActorId: input.holderActorId,
       held: input.held,
       ended: endedEffects
@@ -192,10 +345,54 @@ export function actionEndedEffects(input: {
   const consumedGrants = input.held.filter(({ id }) => ended.has(id))
   return {
     consumedGrants,
-    sourceReleases: endedEffectConditionReleases({
+    sourceReleases: endedEffectReleases({
       holderActorId: input.holderActorId,
       held: input.held,
       ended: consumedGrants
     })
   }
+}
+
+/**
+ * What the holder's attack uses up once it hits: the grants consumed `ON_HIT` (an extra damage die
+ * on the next hit), after they added to that attack, with the conditions only they held. `held`
+ * leaves out what the action already ended; a miss ends nothing.
+ */
+export function attackHitEndedEffects(input: {
+  holderActorId: string
+  held: readonly ActiveRuleEffectRecord[]
+  resultPath: string | undefined
+}) {
+  const consumedGrants =
+    input.resultPath === 'ON_HIT' || input.resultPath === 'ON_CRIT'
+      ? effectsEndedBy(input.held, 'ON_HIT')
+      : []
+  return {
+    consumedGrants,
+    sourceReleases: endedEffectReleases({
+      holderActorId: input.holderActorId,
+      held: input.held,
+      ended: consumedGrants
+    })
+  }
+}
+
+/**
+ * The applications an effect produces, with the temporary hit points it gives marked as its own when
+ * it owns them (D156), so its end releases them while it is still the pool's source.
+ */
+export function withOwnedTemporaryHitPoints<Application extends CharacterRuleActionApplication>(
+  applications: readonly Application[],
+  effect: Pick<ActiveRuleEffectRecord, 'id' | 'definition'>
+): Application[] {
+  const owns =
+    effect.definition.schemaVersion === 2 &&
+    effect.definition.stateContributions.some(
+      (contribution) => contribution.kind === 'TEMPORARY_HIT_POINTS_OWNERSHIP'
+    )
+  return applications.map((application) =>
+    owns && application.kind === 'TEMPORARY_HIT_POINTS'
+      ? { ...application, sourceActiveEffectId: effect.id }
+      : application
+  )
 }

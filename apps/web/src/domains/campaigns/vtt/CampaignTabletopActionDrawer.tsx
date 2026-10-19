@@ -17,9 +17,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
+  EncounterActionItemChoicesDto,
   EncounterEscapeChoiceDto,
   EncounterHeldGrantEndChoiceDto,
   EncounterOptionalActionChoicesDto,
+  EncounterReleaseChoiceDto,
+  GetEncounterActionItemChoicesInputDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
@@ -28,6 +31,7 @@ import type {
   EncounterPlayerProjectionDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
@@ -53,6 +57,7 @@ import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
 import { CampaignTabletopFormCreaturePicker } from './CampaignTabletopFormCreaturePicker'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
+import { CampaignTabletopReleases } from './CampaignTabletopReleases'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import {
@@ -112,7 +117,9 @@ export function CampaignTabletopActionDrawer({
   basicActionChoices,
   escapes,
   heldGrantEnds,
+  releases,
   openAttackAction,
+  defaultActionId,
   actionsLoading,
   actionChoicesError,
   unavailableActions,
@@ -138,15 +145,20 @@ export function CampaignTabletopActionDrawer({
   onResolve,
   onEscape,
   onEndHeldGrant,
-  onLoadOptionalChoices
+  onRelease,
+  onLoadOptionalChoices,
+  onLoadItemChoices
 }: {
   actions: EncounterActionChoiceDto[]
   /** The System's authored basic actions, which resolve like any action. */
   basicActionChoices: EncounterActionChoiceDto[]
   escapes: EncounterEscapeChoiceDto[]
   heldGrantEnds: EncounterHeldGrantEndChoiceDto[]
-  /** The Attack action opened this turn; its last weapon and target are preselected for the next attack. */
+  releases: EncounterReleaseChoiceDto[]
+  /** The Attack action opened this turn; its last target is preselected for the next attack. */
   openAttackAction: EncounterActionChoicesDto['openAttackAction']
+  /** The action the server picks to start on: the open Attack action's weapon, else the held weapon's (D107). */
+  defaultActionId: EncounterActionChoicesDto['defaultActionId']
   actionsLoading: boolean
   actionChoicesError: string | null
   unavailableActions: EncounterActionChoicesDto['unavailableActions']
@@ -189,11 +201,16 @@ export function CampaignTabletopActionDrawer({
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
   onEscape: (command: EscapeRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onEndHeldGrant: (command: EndHeldGrantInputDto) => Promise<EncounterCommandResultDto>
+  onRelease: (command: ReleaseRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onLoadOptionalChoices: (
     request: GetEncounterOptionalActionChoicesInputDto
   ) => Promise<EncounterOptionalActionChoicesDto>
+  /** The items of the picked creature an action that `choosesItem` may be used on. */
+  onLoadItemChoices: (
+    request: GetEncounterActionItemChoicesInputDto
+  ) => Promise<EncounterActionItemChoicesDto>
 }) {
-  // `undefined` is untouched (the open Attack action's last weapon and target apply); `null` is cleared.
+  // `undefined` is untouched (the server's default action and the open Attack action's last target apply); `null` is cleared.
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
   const [unaffectedActorIds, setUnaffectedActorIds] = useState<string[]>([])
@@ -208,6 +225,11 @@ export function CampaignTabletopActionDrawer({
   } | null>(null)
   const [optionalValues, setOptionalValues] = useState<Record<string, string>>({})
   const [optionalChoicesLoading, setOptionalChoicesLoading] = useState(false)
+  const [itemChoices, setItemChoices] = useState<{
+    requestIdentity: string
+    value: EncounterActionItemChoicesDto['items'] | string
+  } | null>(null)
+  const [pickedItemId, setPickedItemId] = useState<string | null>(null)
   const [optionalChoicesError, setOptionalChoicesError] = useState<{
     requestIdentity: string
     value: string
@@ -226,11 +248,7 @@ export function CampaignTabletopActionDrawer({
   const currentActor =
     encounter.actors.find((actor) => actor.id === encounter.currentActorId) ?? null
   const currentActorId = currentActor?.id ?? null
-  // The server marks a weapon that still fits the open Attack action with an `attackSlot`.
-  const preselectedActionId =
-    actions.find(
-      (action) => action.id === openAttackAction?.lastActionId && action.attackSlot !== null
-    )?.id ?? null
+  const preselectedActionId = actions.find((action) => action.id === defaultActionId)?.id ?? null
   const preselectedTargetActorId =
     openAttackAction?.lastTargetIds.find((id) =>
       encounter.actors.some((actor) => actor.id === id && !actor.defeated)
@@ -275,6 +293,23 @@ export function CampaignTabletopActionDrawer({
   const choiceOptions = zoneOptions ?? actionChoiceOptions
   const chosenOption = chosenZoneOption ?? chosenActionOption
   const castChoice = chosenOption ? { choiceOptionId: chosenOption.id } : {}
+  // An action used on an item (Shillelagh, Heat Metal) sends the item picked from its creature's.
+  const choosesItem = choiceTarget?.kind === 'ACTOR' && choiceTarget.choosesItem === true
+  const itemOwnerActorId = choosesItem ? targetActorId : null
+  const itemRequestIdentity = JSON.stringify([
+    encounter.id,
+    encounter.version,
+    currentActorId,
+    selectedAction?.id,
+    itemOwnerActorId
+  ])
+  const currentItemChoices =
+    itemChoices?.requestIdentity === itemRequestIdentity ? itemChoices.value : null
+  const itemOptions = Array.isArray(currentItemChoices) ? currentItemChoices : null
+  const itemChoicesError = typeof currentItemChoices === 'string' ? currentItemChoices : null
+  const chosenItemId =
+    itemOptions?.find((item) => item.id === pickedItemId)?.id ?? itemOptions?.[0]?.id ?? null
+  const itemChoice = chosenItemId ? { boundItemInstanceId: chosenItemId } : {}
   const aimedTarget = chosenZoneOption?.target ?? choiceTarget
   const areaTarget =
     aimedTarget?.kind === 'POINT' || aimedTarget?.kind === 'DIRECTED'
@@ -423,8 +458,8 @@ export function CampaignTabletopActionDrawer({
                 ...zoneChoices
               }
             : null
-          : targetActorId
-            ? { kind: 'ACTOR', actorId: targetActorId, ...castChoice }
+          : targetActorId && (!choosesItem || chosenItemId)
+            ? { kind: 'ACTOR', actorId: targetActorId, ...castChoice, ...itemChoice }
             : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
@@ -497,7 +532,11 @@ export function CampaignTabletopActionDrawer({
     actionsLoading ||
     actionChoicesError !== null
   const dependentControlsDisabled = selectionControlsDisabled || optionalChoicesLoading
-  const wieldConflict = optionalRuleId === null ? (selectedAction?.wieldConflict ?? null) : null
+  // A held-weapon stow is offered only on a basic action (D152).
+  const wieldConflict =
+    optionalRuleId === null && selectedAction?.wieldConflict?.kind === 'STOW_SHIELD'
+      ? selectedAction.wieldConflict
+      : null
   const confirmingStow =
     wieldConflict !== null && stowConfirmationIdentity === choiceRequestIdentity
   const confirmingWarnings =
@@ -573,6 +612,45 @@ export function CampaignTabletopActionDrawer({
     targetActorId
   ])
 
+  useEffect(() => {
+    if (!opened || !currentActorId || !selectedActionId || !itemOwnerActorId) return
+    let current = true
+    const requestIdentity = itemRequestIdentity
+    void onLoadItemChoices({
+      encounterId: encounter.id,
+      expectedVersion: encounter.version,
+      actorId: currentActorId,
+      actionId: selectedActionId,
+      targetActorId: itemOwnerActorId
+    })
+      .then(({ items }) => {
+        if (current)
+          setItemChoices({
+            requestIdentity,
+            value: items.length ? items : 'The target has no item this action can be used on.'
+          })
+      })
+      .catch((nextError: unknown) => {
+        if (current)
+          setItemChoices({
+            requestIdentity,
+            value: nextError instanceof Error ? nextError.message : 'Items could not be loaded.'
+          })
+      })
+    return () => {
+      current = false
+    }
+  }, [
+    currentActorId,
+    encounter.id,
+    encounter.version,
+    itemOwnerActorId,
+    itemRequestIdentity,
+    onLoadItemChoices,
+    opened,
+    selectedActionId
+  ])
+
   // An origin belongs to the action, and the zone, it was picked for.
   const chosenZoneOptionId = chosenZoneOption?.id ?? null
   useEffect(() => {
@@ -586,6 +664,7 @@ export function CampaignTabletopActionDrawer({
     setPickedChoiceOptionId(null)
     setPickedFormId(null)
     setPickedBandSide(null)
+    setPickedItemId(null)
   }, [selectedActionId])
 
   useEffect(() => {
@@ -818,7 +897,7 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedFormCreatureId}
                 />
               ) : null}
-              {actorsTarget?.allowRepeatedTargets ? (
+              {actorsTarget?.allowRepeatedTargets && actorsTarget.maxTargets !== undefined ? (
                 <CampaignTabletopProjectileTargets
                   // A defeated creature isn't a target (D63); the server still warns if one is named.
                   creatures={encounter.actors.filter((actor) => !actor.defeated)}
@@ -835,7 +914,12 @@ export function CampaignTabletopActionDrawer({
                     .filter((actor) => !actor.defeated)
                     .map((actor) => ({ label: actor.label, value: actor.id }))}
                   disabled={selectionControlsDisabled}
-                  label={`Targets (up to ${actorsTarget.maxTargets})`}
+                  // A list with no cap names each creature once (Pass without Trace).
+                  label={
+                    actorsTarget.maxTargets === undefined
+                      ? 'Targets'
+                      : `Targets (up to ${actorsTarget.maxTargets})`
+                  }
                   maxValues={actorsTarget.maxTargets}
                   searchable
                   value={pickedActorIds}
@@ -854,6 +938,17 @@ export function CampaignTabletopActionDrawer({
                   label='Option'
                   value={chosenOption?.id ?? null}
                   onChange={setPickedChoiceOptionId}
+                />
+              ) : null}
+              {itemOptions ? (
+                <Select
+                  allowDeselect={false}
+                  comboboxProps={{ withinPortal: false }}
+                  data={itemOptions.map((item) => ({ label: item.label, value: item.id }))}
+                  disabled={selectionControlsDisabled}
+                  label='Item'
+                  value={chosenItemId}
+                  onChange={setPickedItemId}
                 />
               ) : null}
               {sparesCreatures ? (
@@ -960,7 +1055,9 @@ export function CampaignTabletopActionDrawer({
                 <Text c='dimmed' size='sm'>
                   {scene === null
                     ? 'There is no Scene for this Encounter, so an area cannot be placed.'
-                    : `Centered on you: creatures within ${formatLengthMeasurement(centeredTarget.area.radius)} of your space are caught.`}
+                    : centeredTarget.area.kind === 'OWN_SPACE'
+                      ? 'Creatures sharing your space are caught.'
+                      : `Centered on you: creatures within ${formatLengthMeasurement(centeredTarget.area.radius)} of your space are caught.`}
                 </Text>
               ) : actorsTarget ? null : (
                 <Group align='flex-end' wrap='nowrap'>
@@ -1155,6 +1252,15 @@ export function CampaignTabletopActionDrawer({
               onEnd={onEndHeldGrant}
             />
           ) : null}
+          {currentActor && !actionsLoading && !actionChoicesError && releases.length ? (
+            <CampaignTabletopReleases
+              disabled={selectionControlsDisabled}
+              encounterId={encounter.id}
+              encounterVersion={encounter.version}
+              releases={releases.map((release) => ({ ...release, sourceActorId: currentActor.id }))}
+              onRelease={onRelease}
+            />
+          ) : null}
           {feedback ? (
             <Alert aria-live='polite' color='green'>
               {feedback}
@@ -1168,6 +1274,11 @@ export function CampaignTabletopActionDrawer({
           {currentOptionalChoicesError ? (
             <Alert aria-live='assertive' color='red'>
               {currentOptionalChoicesError}
+            </Alert>
+          ) : null}
+          {itemChoicesError ? (
+            <Alert aria-live='assertive' color='red'>
+              {itemChoicesError}
             </Alert>
           ) : null}
         </Stack>

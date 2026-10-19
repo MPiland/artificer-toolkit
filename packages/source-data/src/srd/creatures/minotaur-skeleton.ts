@@ -93,7 +93,7 @@ export const minotaurSkeleton: CreatureAuthored = {
                     effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
                     direction: 'AWAY_FROM_SOURCE' as const,
                     actionEconomy: 'NONE' as const,
-                    distanceMode: 'FIXED_DISTANCE' as const,
+                    distanceMode: 'EXACT' as const,
                     amount: 10,
                     unit: S.MEASUREMENT_UNIT_CODE.FEET
                   },

@@ -61,10 +61,19 @@ import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/r
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import {
   answerEncounterAreaTest,
+  bindingAfterHitPoints,
   catchEncounterAreaActorIds,
   prepareEncounterAreaTests,
   settleEncounterAreaAction
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
+import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import {
+  collisionDamageCapability,
+  collisionDamageDiceConfig,
+  collisionStruckCapability
+} from '@artificer-toolkit/rules-runtime/encounterForcedMovementCollision'
+import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   encounterActionTargetKind,
   encounterZoneChoiceTarget,
@@ -79,6 +88,10 @@ import {
   encounterAreaSettled,
   encounterChosenActorEntries,
   encounterChosenActorsChecksum,
+  encounterCollisionSaveOccurrenceId,
+  holdEncounterAreaCollisionSaves,
+  holdEncounterAreaForcedMovement,
+  landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested,
   removeEncounterAreaTargetFromSnapshot
@@ -88,6 +101,7 @@ import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runti
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { chosenZonePlacement } from '@artificer-toolkit/rules-runtime/encounterZonePlacement'
+import type { EncounterForcedMovementLanding } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
 import { actorFormEntry } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
@@ -95,6 +109,7 @@ import { creatureFormFilterRefusal } from '@artificer-toolkit/rules-runtime/enco
 import {
   encounterActiveEffectPlan,
   prepareNativeActionEffectsPlan,
+  prepareNativeIncomingDamageGrantTriggers,
   prepareNativeZoneSourceGrantEffect
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
@@ -116,6 +131,7 @@ import {
   buildEncounterAreaStoredExecution
 } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
+import { targetingExcludesCreatureType } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import { selectHitPointPoolTargets } from '@artificer-toolkit/rules-runtime/encounterHitPointPool'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -124,7 +140,7 @@ import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCa
 import {
   actionEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  targetEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import {
   planEncounterPlacedZone,
@@ -158,10 +174,14 @@ import {
   readNativeLivePointPerception,
   readNativeLivePointSight
 } from './nativeAttackPerception.js'
-import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
+import {
+  captureActionEconomyDefinitions,
+  evaluateNativeLiveActionEconomy
+} from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
+  refuseUnmetBasicActionRestrictions,
   interpretForcedMovements
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
@@ -199,10 +219,27 @@ export type ReachCastResume = {
   failedCounters: readonly EncounterFailedCounterDto[]
 }
 
+/**
+ * Where a root's forced movements land on the Encounter's Scene (D157): the pick they owe their
+ * source next (the farthest creature with two or more legal squares, the farther ones already
+ * landed; null when none is), and the landings so far, in the order they land.
+ */
+export type ForcedMovementPreview = {
+  owed: { targetActorId: string; positions: ScenePoint[] } | null
+  landings: readonly EncounterForcedMovementLanding[]
+}
+
+export type ForcedMovementPick = (input: {
+  encounterId: string
+  sourceActorId: string
+  movements: readonly LiveSessionForcedMovement[]
+}) => Promise<ForcedMovementPreview>
+
 /** What every multi-creature plan (a point area, a list of chosen creatures) reads from the room. */
 export type AreaPlanBase = {
   /** Set when the plan replays a cast that paused for another Character's counter. */
   castResume?: ReachCastResume
+  forcedMovementPick: ForcedMovementPick
   initial: LiveSessionEncounterRulesInput
   fingerprint: string
   state: EncounterRunState
@@ -259,7 +296,10 @@ const WRONG_TARGET_MESSAGES: Partial<Record<ResolveEncounterActionTargetDto['kin
  */
 export async function prepareCasterSource(
   input: AreaPlanBase & {
-    command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId' | 'target'>
+    command: Pick<
+      ResolveEncounterActionInputDto,
+      'actorId' | 'actionId' | 'target' | 'acceptedWieldConflict'
+    >
   },
   targetKind: ResolveEncounterActionTargetDto['kind']
 ) {
@@ -300,6 +340,16 @@ export async function prepareCasterSource(
       reason: 'TARGET_UNAVAILABLE',
       message: (takes && WRONG_TARGET_MESSAGES[takes]) ?? 'This action does not take that target.'
     })
+  await refuseUnmetBasicActionRestrictions(
+    { source, acceptedWieldConflict: command.acceptedWieldConflict },
+    {
+      target: casterFacts,
+      gameSystemId: state.gameSystemId,
+      definitions: captureActionEconomyDefinitions(input.capture),
+      speedDefinitions: input.system.speeds,
+      runEffectsByActorId: input.activeEffectsByActorId
+    }
+  )
   // A zone whose cast authors a save puts each creature in its area through it as it appears (D154).
   const appearSave =
     zonePlacement !== null &&
@@ -319,7 +369,7 @@ export async function prepareAreaScene(
   prepared?: Awaited<ReturnType<typeof prepareCasterSource>>
 ) {
   const { command, state, capture } = input
-  const { caster, casterFacts, movementTargets, targetPolicy, zone, appearSave } =
+  const { caster, casterFacts, movementTargets, source, targetPolicy, zone, appearSave } =
     prepared ?? (await prepareCasterSource(input, command.target.kind))
   const captured = await capture({
     kind: 'ACTION_AREA_SCENE',
@@ -364,7 +414,11 @@ export async function prepareAreaScene(
           aimSeen: (await Promise.all(aimedPoints.map(seen))).every(Boolean)
         })
       : target.kind === 'CASTER_CENTERED'
-        ? evaluateEncounterCasterCenteredAreaTarget({ targetPolicy, grid })
+        ? evaluateEncounterCasterCenteredAreaTarget({
+            targetPolicy,
+            grid,
+            sourceToken: scene.sourceToken
+          })
         : target.kind === 'DIRECTED'
           ? evaluateEncounterDirectedAreaTarget({
               targetPolicy,
@@ -406,6 +460,7 @@ export async function prepareAreaScene(
     caster,
     casterFacts,
     movementTargets,
+    source,
     targetPolicy,
     scene: { ...scene, grid },
     area: { ...area, origin },
@@ -557,23 +612,25 @@ export function prepareCasterActionOnTarget(
   action: {
     caster: EncounterRunActorState
     target: EncounterRunActorState
-    movementTargets: Awaited<ReturnType<typeof prepareAreaScene>>['movementTargets']
+    movementTargets: ReadonlyMap<string, MovementTargets>
     sceneContext: Parameters<typeof prepareEncounterActionMechanics>[0]['sceneContext']
     /** Where an area starts: its saves are made against what each creature sees of this point. */
     origin?: { point: ScenePoint; sceneId: string; sceneVersion: number }
+    /** Runs this synthetic action of the caster in place of the command action (a forced-movement collision). */
+    capability?: EncounterBasicActionCapabilityDescriptor
   }
 ) {
-  const { origin, sceneContext } = action
+  const { origin, sceneContext, capability } = action
   return prepareEncounterActionMechanics({
     state: input.state,
     actor: action.caster,
     target: action.target,
     actors: input.actors,
-    actionId: input.command.actionId,
-    choiceOptionId: castChoiceOptionId(input.command.target),
+    actionId: capability?.actionId ?? input.command.actionId,
+    choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',
-      accepted: input.command.acceptedWieldConflict
+      accepted: capability ? null : input.command.acceptedWieldConflict
     },
     overridable: true,
     movementTargets: action.movementTargets,
@@ -594,7 +651,10 @@ export function prepareCasterActionOnTarget(
               capture: input.capture
             })
         : undefined,
-    loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system }),
+    loadSource: async (source) =>
+      capability
+        ? { kind: 'BASIC_ACTION', actor: action.caster, capability }
+        : resolveEncounterActionSource({ ...source, system: input.system }),
     loadRelationshipFacts: nativeLiveRelationshipFacts({
       activeEffectsByActorId: input.activeEffectsByActorId
     })
@@ -715,7 +775,9 @@ export async function openReachCastWindow(
         occurredAt,
         prepared: lead,
         ruleOverrides,
-        currentnessChecksum
+        currentnessChecksum,
+        // Area effects are not gated by an incoming-attack ward.
+        passedIncomingGate: undefined
       }
     }
   return {
@@ -737,7 +799,10 @@ function hitPointPoolCovered<Caught extends { actor: EncounterRunActorState }>(
   caught: readonly Caught[],
   pool: number,
   targeting: CompiledActionTargetPolicy['targeting'],
-  movementTargets: ReadonlyMap<string, { state: { current: number } }>
+  movementTargets: ReadonlyMap<
+    string,
+    { state: { current: number; conditions: readonly string[] } }
+  >
 ) {
   const covered = new Set(
     selectHitPointPoolTargets(
@@ -745,7 +810,8 @@ function hitPointPoolCovered<Caught extends { actor: EncounterRunActorState }>(
       caught.map(({ actor }) => ({
         actorId: actor.id,
         currentHitPoints: movementTargets.get(actor.id)!.state.current,
-        creatureTypeId: snapshotCreatureTypeId(actor)
+        creatureTypeId: snapshotCreatureTypeId(actor),
+        conditionIds: movementTargets.get(actor.id)!.state.conditions
       })),
       targeting
     )
@@ -764,8 +830,10 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const { caster, casterFacts, movementTargets, scene, area, targetPolicy } = base
 
   // A zone is entered later, by movement; placing it puts nobody through its entry save, only
-  // through the save its cast authors for when it appears.
-  const caughtActorIds =
+  // through the save its cast authors for when it appears. A creature immune to this source's use
+  // of the action (D156), or of a creature type the action has no effect on, is caught but left
+  // out, with no save.
+  const inArea =
     base.placement && !base.placement.appearSave
       ? []
       : catchEncounterAreaActorIds({
@@ -775,14 +843,32 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
           tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
           fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
         })
-  const caughtInArea = caughtActorIds.map((actorId) => {
+  const inAreaActors = inArea.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
     if (!actor || !token) throw new Error('Encounter rules input binding mismatch.')
     return { actor, token }
   })
-  for (const { actor } of caughtInArea)
+  for (const { actor } of inAreaActors)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
+  const unaffectedActorIds = inAreaActors.flatMap(({ actor }) => {
+    const creatureTypeId = snapshotCreatureTypeId(actor)
+    return encounterSourceImmunityLabel({
+      source: base.source,
+      holderEffects: input.activeEffectsByActorId.get(actor.id) ?? []
+    }) !== null ||
+      encounterSpellSchoolImmunity({
+        source: base.source,
+        sourceFacts: casterFacts,
+        target: movementTargets.get(actor.id)!
+      }) ||
+      (creatureTypeId !== null &&
+        targetingExcludesCreatureType(targetPolicy.targeting, creatureTypeId))
+      ? [actor.id]
+      : []
+  })
+  const caughtInArea = inAreaActors.filter(({ actor }) => !unaffectedActorIds.includes(actor.id))
+  const caughtActorIds = caughtInArea.map(({ actor }) => actor.id)
   // An area with a hit-point pool affects the creatures the pool covers, lowest hit points first.
   const contents =
     targetPolicy.targeting?.selectionKind === 'AREA_CONTENTS' ? targetPolicy.targeting : null
@@ -905,6 +991,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       areaSnapshot: null,
       caughtChecksum: encounterChosenActorsChecksum(caught.map(({ actor }) => actor.id)),
       removedActorIds: [],
+      unaffectedActorIds,
       placement: null,
       occurrenceVersion: window.occurrenceVersion,
       response: window.response,
@@ -915,6 +1002,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     reach: base,
     lead: lead.prepared,
     targets: reached,
+    unaffectedActorIds,
     evaluation,
     ruleOverrides,
     window: opened.window
@@ -939,13 +1027,26 @@ export async function sealReachSaves(
     reach: AreaReach
     lead: AreaPrepared
     targets: readonly ReachTarget[]
+    /**
+     * The caught creatures the action has no effect on, which take no save: immune to this source's
+     * use of it (D156), or of a creature type it excludes.
+     */
+    unaffectedActorIds: readonly string[]
     evaluation: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>
     ruleOverrides: ReturnType<typeof reachRuleOverrides>
     window: ReachCastWindow
   }
 ) {
   const { command, state, actors, capture } = input
-  const { reach, lead, targets: reached, evaluation, ruleOverrides, window } = sealed
+  const {
+    reach,
+    lead,
+    targets: reached,
+    unaffectedActorIds,
+    evaluation,
+    ruleOverrides,
+    window
+  } = sealed
   const { economy, attackAction } = evaluation
   const actionEconomy = economy?.consumption ?? null
   const maintenance = await prepareNativeLiveActionMaintenance({
@@ -1023,41 +1124,15 @@ export async function sealReachSaves(
     scene: reach.scene && { sceneId: reach.scene.sceneId, sceneVersion: reach.scene.sceneVersion },
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
     ...(window.failedCounters.length > 0 ? { failedCounters: [...window.failedCounters] } : {}),
+    ...(unaffectedActorIds.length > 0 ? { unaffectedActorIds: [...unaffectedActorIds] } : {}),
     targets
   })
-  // An entry whose roller auto-rolls has its roll made now, so an auto-rolled failed save opens its
-  // Legendary Resistance choice. It is kept as the dice it rolled, which replay without rolling again.
-  for (const [index, target] of targets.entries()) {
-    if (
-      target.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
-      !input.requireAutoRoll(target.snapshot.applicationContext.rollerActorId)
-    )
-      continue
-    const entry = reached[index]!
-    const requestId = target.snapshot.request.requestId
-    const tested = await replayAreaTargetSave(
-      input,
-      { actor: entry.actor, target: entry },
-      target,
-      occurrenceId,
-      { kind: 'AUTO_ROLL', requestId }
-    )
-    const rolled: EncounterEvidenceAnswer = {
-      kind: 'ENTER_DICE',
-      requestId,
-      rawFaces: tested.boundary.d20.rawFaces,
-      rollMode: tested.boundary.d20.rollMode
-    }
-    snapshot = markEncounterAreaSaveTested(
-      snapshot,
-      requestId,
-      JSON.stringify(rolled),
-      offerEncounterAreaLegendaryResistance({
-        test: tested,
-        targetStateChecksum: checksumRuleDocument(entry.prepared.target)
-      })
-    )
-  }
+  for (const [index, target] of targets.entries())
+    snapshot = await autoRollAreaSave(input, snapshot, occurrenceId, {
+      actor: reached[index]!.actor,
+      prepared: reached[index]!.prepared,
+      sealed: target
+    })
   if (encounterAreaSettled(snapshot))
     return planNativeLiveEncounterAreaCommit({
       ...input,
@@ -1075,6 +1150,47 @@ export async function sealReachSaves(
     initiatorUserId,
     occurrenceId
   }
+}
+
+/**
+ * An entry whose roller auto-rolls has its roll made now, so an auto-rolled failed save opens its
+ * Legendary Resistance choice. It is kept as the dice it rolled, which replay without rolling again.
+ */
+async function autoRollAreaSave(
+  input: ReachPlanInput,
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  areaOccurrenceId: string,
+  entry: { actor: EncounterRunActorState; prepared: AreaPrepared; sealed: AreaTargetRecord }
+) {
+  const { sealed } = entry
+  if (
+    sealed.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
+    !input.requireAutoRoll(sealed.snapshot.applicationContext.rollerActorId)
+  )
+    return snapshot
+  const requestId = sealed.snapshot.request.requestId
+  const tested = await replayAreaTargetSave(
+    input,
+    { actor: entry.actor, target: entry },
+    sealed,
+    areaOccurrenceId,
+    { kind: 'AUTO_ROLL', requestId }
+  )
+  const rolled: EncounterEvidenceAnswer = {
+    kind: 'ENTER_DICE',
+    requestId,
+    rawFaces: tested.boundary.d20.rawFaces,
+    rollMode: tested.boundary.d20.rollMode
+  }
+  return markEncounterAreaSaveTested(
+    snapshot,
+    requestId,
+    JSON.stringify(rolled),
+    offerEncounterAreaLegendaryResistance({
+      test: tested,
+      targetStateChecksum: checksumRuleDocument(entry.prepared.target)
+    })
+  )
 }
 
 /**
@@ -1096,21 +1212,30 @@ export async function planNativeLiveEncounterAreaAnswer(
   const answered = context.targets.find(
     (target) => target.snapshot.request.requestId === resolution.requestId
   )
+  const caught = context.targets.filter(({ collision }) => !collision)
   if (
     !answered ||
     answered.testedJson !== undefined ||
     answered.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
     areaSnapshot.occurrenceId !== input.response.occurrenceId ||
     answered.snapshot.occurrenceId !==
-      encounterChosenActorEntries(
-        areaSnapshot.occurrenceId,
-        context.targets.map(({ actorId }) => actorId)
-      )[context.targets.indexOf(answered)]?.occurrenceId ||
+      (answered.collision
+        ? encounterCollisionSaveOccurrenceId(
+            areaSnapshot.occurrenceId,
+            answered.collision.moverActorId,
+            answered.actorId
+          )
+        : encounterChosenActorEntries(
+            areaSnapshot.occurrenceId,
+            caught.map(({ actorId }) => actorId)
+          )[caught.indexOf(answered)]?.occurrenceId) ||
     context.commandFingerprint !== input.fingerprint ||
     command.optionalCombatIntent != null
   )
     throw new Error('The pending action evidence is invalid.')
-  const revalidated = await revalidateAreaTarget(input, context, answered)
+  const revalidated = answered.collision
+    ? await revalidateStruckTarget(input, context, answered, answered.collision)
+    : await revalidateAreaTarget(input, context, answered)
   const tested = await replayAreaTargetSave(
     input,
     revalidated,
@@ -1169,10 +1294,15 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
   const context = areaSnapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
     throw new Error('The pending area action is unavailable.')
-  const decided = context.targets.find((target) => target.actorId === decision.actorId)
+  // A creature a mover struck is caught twice; its offers are decided in the order they were made.
+  const decided = context.targets.find(
+    (target) =>
+      target.actorId === decision.actorId &&
+      target.legendaryResistance &&
+      !target.legendaryResistance.decision
+  )
   if (
     !decided?.legendaryResistance ||
-    decided.legendaryResistance.decision ||
     decided.testedJson === undefined ||
     decided.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
     areaSnapshot.occurrenceId !== input.response.occurrenceId ||
@@ -1180,7 +1310,9 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
     command.optionalCombatIntent != null
   )
     throw new Error('The pending Legendary Resistance evidence is invalid.')
-  const revalidated = await revalidateAreaTarget(input, context, decided)
+  const revalidated = decided.collision
+    ? await revalidateStruckTarget(input, context, decided, decided.collision)
+    : await revalidateAreaTarget(input, context, decided)
   const resolution: EncounterEvidenceAnswer = JSON.parse(decided.testedJson)
   const tested = await replayAreaTargetSave(
     input,
@@ -1275,12 +1407,7 @@ async function revalidateAreaTarget(
 ) {
   const { command, state, actors, capture } = input
   const base = reach ?? (await prepareReach(input))
-  if (
-    base.scene?.sceneVersion !== context.scene?.sceneVersion ||
-    checksumCanonicalJson(base.area?.shape ?? null) !==
-      checksumCanonicalJson(context.area?.shape ?? null)
-  )
-    throw new Error('The pending area changed.')
+  requireAreaUnchanged(base, context)
   const actor = actors.find((candidate) => candidate.id === sealed.actorId)
   const token = base.scene?.tokens.find((candidate) => candidate.actorId === sealed.actorId) ?? null
   if (!actor || sealed.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
@@ -1302,7 +1429,10 @@ async function revalidateAreaTarget(
     actionId: command.actionId,
     sourceTarget: base.casterFacts,
     // The creatures the area first caught, as its sealed saves were prepared with.
-    targetIds: [...context.targets.map(({ actorId }) => actorId), ...context.removedActorIds],
+    targetIds: [
+      ...context.targets.flatMap(({ actorId, collision }) => (collision ? [] : [actorId])),
+      ...context.removedActorIds
+    ],
     capture
   })
   const { economy, attackAction } = evaluation
@@ -1327,10 +1457,85 @@ async function revalidateAreaTarget(
   return { actor, target, evaluation }
 }
 
+function requireAreaUnchanged(base: AreaReach, context: AreaContext) {
+  if (
+    base.scene?.sceneVersion !== context.scene?.sceneVersion ||
+    checksumCanonicalJson(base.area?.shape ?? null) !==
+      checksumCanonicalJson(context.area?.shape ?? null)
+  )
+    throw new Error('The pending area changed.')
+}
+
+/**
+ * The action a creature a mover struck runs (D159): the authored save, and on a failure the mover's
+ * collision damage and condition, as the pusher's own action against the creature on the Scene as it
+ * is now.
+ */
+async function prepareStruckTarget(
+  input: ReachPlanInput,
+  base: AreaReach,
+  struck: {
+    actor: EncounterRunActorState
+    occurrenceId: string
+    collision: NonNullable<AreaTargetRecord['collision']>
+  }
+) {
+  if (!base.movementTargets.has(struck.actor.id))
+    base.movementTargets.set(struck.actor.id, await input.loadTarget(struck.actor))
+  const prepared = await prepareCasterActionOnTarget(input, {
+    caster: base.caster,
+    target: struck.actor,
+    movementTargets: base.movementTargets,
+    sceneContext: null,
+    capability: collisionStruckCapability({
+      actorId: base.caster.id,
+      gameSystemId: input.state.gameSystemId,
+      sourceId: struck.occurrenceId,
+      struck: struck.collision
+    })
+  })
+  return {
+    prepared,
+    currentnessChecksum: encounterActionCurrentnessChecksum({
+      prepared,
+      actionEconomy: null,
+      attackAction: null,
+      maintenance: null,
+      sceneContext: null
+    })
+  }
+}
+
+/**
+ * Prepares a sealed struck creature's save again against the Scene and its facts as they are now, and
+ * refuses it if the area, the creature or the collision it was sealed against changed.
+ */
+async function revalidateStruckTarget(
+  input: ReachPlanInput,
+  context: AreaContext,
+  sealed: AreaTargetRecord,
+  collision: NonNullable<AreaTargetRecord['collision']>,
+  reach?: AreaReach
+) {
+  const base = reach ?? (await prepareReach(input))
+  requireAreaUnchanged(base, context)
+  const actor = input.actors.find((candidate) => candidate.id === sealed.actorId)
+  if (!actor || sealed.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
+    throw new Error('Encounter rules input binding mismatch.')
+  const { prepared, currentnessChecksum } = await prepareStruckTarget(input, base, {
+    actor,
+    occurrenceId: sealed.snapshot.occurrenceId,
+    collision
+  })
+  if (sealed.snapshot.applicationContext.currentnessChecksum !== currentnessChecksum)
+    throw new Error('The pending action source or target changed.')
+  return { actor, target: { prepared } }
+}
+
 /** Runs one entry's sealed roll with its answer: a creature's own save, or the caster's roll for a ray. */
 async function replayAreaTargetSave(
   input: ReachPlanInput,
-  { actor, target }: Pick<Awaited<ReturnType<typeof revalidateAreaTarget>>, 'actor' | 'target'>,
+  { actor, target }: { actor: EncounterRunActorState; target: { prepared: AreaPrepared } },
   sealed: AreaTargetRecord,
   areaOccurrenceId: string,
   resolution: EncounterEvidenceAnswer
@@ -1583,6 +1788,18 @@ export async function planNativeLiveEncounterAreaRemoval(
   })
 }
 
+/** An area held for a roller's answer or for the source's push pick, with the actors it was planned over. */
+type AreaPendingPlan = {
+  kind: 'AREA_PENDING'
+  command: ResolveEncounterActionInputDto
+  response: ResolveRuleOccurrenceInputDto | null
+  snapshot: ServerAggregateChoicePendingSnapshotDto
+  prepared: { actors: AreaPlanBase['actors'] }
+  fingerprint: string
+  initiatorUserId: string
+  occurrenceId: string
+}
+
 /**
  * Plans the commit of a settled area: every kept creature's save is replayed from the answer kept
  * with it, damage is rolled once and frozen across them, and each creature's outcome becomes its
@@ -1595,7 +1812,7 @@ export async function planNativeLiveEncounterAreaCommit(
     /** The GM removal that left nothing to wait on, when it, not an answer, settles the area. */
     removal?: RemoveAreaTargetInputDto
   }
-) {
+): Promise<Awaited<ReturnType<typeof completeAreaCommit>> | AreaPendingPlan> {
   const { command, areaSnapshot } = input
   const context = areaSnapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
@@ -1604,11 +1821,19 @@ export async function planNativeLiveEncounterAreaCommit(
   const base = await prepareReach(input)
   const { caster } = base
   const kept = []
-  for (const sealed of context.targets)
-    kept.push({
-      sealed,
-      ...(await revalidateAreaTarget(input, context, sealed, base))
-    })
+  const struck = []
+  for (const sealed of context.targets) {
+    if (sealed.collision)
+      struck.push({
+        sealed,
+        ...(await revalidateStruckTarget(input, context, sealed, sealed.collision, base))
+      })
+    else
+      kept.push({
+        sealed,
+        ...(await revalidateAreaTarget(input, context, sealed, base))
+      })
+  }
   // An area that keeps no creature (it caught nobody, or the GM removed everyone it caught) commits
   // the caster's spend alone, against the caster's own preparation of the action.
   const first = kept[0] ?? (await prepareAreaCasterLead(input, base, context.removedActorIds))
@@ -1632,19 +1857,33 @@ export async function planNativeLiveEncounterAreaCommit(
 
   // Each ray of an attack list rolls its own damage; a point area or a save list shares one roll.
   const rollsPerTarget = lead.makesAttackRoll
-  const tests = []
-  for (const entry of kept) {
-    if (entry.sealed.testedJson === undefined) throw new Error('The area roll is unanswered.')
-    const resolution: EncounterEvidenceAnswer = JSON.parse(entry.sealed.testedJson)
-    tests.push(await replayAreaTargetSave(input, entry, entry.sealed, areaOccurrenceId, resolution))
+  const replaySealedTests = async (
+    entries: readonly {
+      sealed: AreaTargetRecord
+      actor: EncounterRunActorState
+      target: { prepared: AreaPrepared }
+    }[]
+  ) => {
+    const replayed = []
+    for (const entry of entries) {
+      if (entry.sealed.testedJson === undefined) throw new Error('The area roll is unanswered.')
+      const resolution: EncounterEvidenceAnswer = JSON.parse(entry.sealed.testedJson)
+      replayed.push(
+        await replayAreaTargetSave(input, entry, entry.sealed, areaOccurrenceId, resolution)
+      )
+    }
+    return replayed
   }
-  const audits = encounterAreaLegendaryResistanceAudits(
-    new Map(
-      context.targets.flatMap(({ actorId, legendaryResistance }) =>
-        legendaryResistance ? [[actorId, legendaryResistance] as const] : []
+  const tests = await replaySealedTests(kept)
+  const legendaryResistanceAudits = (entries: readonly { sealed: AreaTargetRecord }[]) =>
+    encounterAreaLegendaryResistanceAudits(
+      new Map(
+        entries.flatMap(({ sealed: { actorId, legendaryResistance } }) =>
+          legendaryResistance ? [[actorId, legendaryResistance] as const] : []
+        )
       )
     )
-  )
+  const audits = legendaryResistanceAudits(kept)
   const settled = await settleEncounterAreaAction({
     runtime: input.runtime,
     random: input.random,
@@ -1667,7 +1906,7 @@ export async function planNativeLiveEncounterAreaCommit(
   const resumed = input.response ?? input.removal
   const occurredAt = new Date().toISOString()
   const sealedFailedCounters = context.failedCounters ?? []
-  return completeAreaCommit({
+  const plan = await completeAreaCommit({
     input,
     command,
     caster,
@@ -1692,14 +1931,219 @@ export async function planNativeLiveEncounterAreaCommit(
     rollsPerTarget,
     tests,
     audits,
+    struck: {
+      entries: struck,
+      tests: await replaySealedTests(struck),
+      audits: legendaryResistanceAudits(struck)
+    },
     areaOccurrenceId,
     areaSnapshot,
     caughtChecksum: context.caughtChecksum,
     removedActorIds: context.removedActorIds,
+    unaffectedActorIds: context.unaffectedActorIds ?? [],
+    sealedRays: context.forcedMovement?.rays,
     placement: base.placement,
     occurrenceVersion: resumed ? resumed.expectedOccurrenceVersion + 1 : 0,
     response: input.response,
     removal: input.removal ?? null
+  })
+  // A push whose source picks where its creature lands holds the settled area for that pick, the
+  // farthest creature first, each offer derived with the farther ones landed; it commits after the
+  // last answer (D157).
+  const landed = context.forcedMovement?.landed ?? []
+  const forcedMovements = plan.forcedMovements.map((movement) => ({
+    ...movement,
+    position:
+      landed.find(({ targetActorId }) => targetActorId === movement.targetActorId)?.position ?? null
+  }))
+  const { owed: pick, landings } = await input.forcedMovementPick({
+    encounterId: input.state.id,
+    sourceActorId: caster.id,
+    movements: forcedMovements
+  })
+  const rays = forcedMovements.flatMap(({ targetActorId, ray }) =>
+    ray ? [{ targetActorId, ray }] : []
+  )
+  if (pick) {
+    if (input.removal)
+      throw new Error('A removal that leaves an area push to pick is not supported yet.')
+    return {
+      kind: 'AREA_PENDING' as const,
+      command,
+      response: input.response,
+      snapshot: holdEncounterAreaForcedMovement(areaSnapshot, pick, rays),
+      prepared: { actors: input.actors },
+      fingerprint: input.fingerprint,
+      initiatorUserId: context.initiatorUserId,
+      occurrenceId: areaOccurrenceId
+    }
+  }
+  // A mover stopped by another creature strikes it (D159): that creature makes the authored save, held
+  // after the movers land. A replan finds the same landings, so it must find the same creatures sealed.
+  const strikes = landings.flatMap(({ targetActorId, feet, stoppedBy }) => {
+    const collision = forcedMovements.find(
+      (movement) => movement.targetActorId === targetActorId
+    )?.collision
+    return collision && stoppedBy !== 'NONE' && stoppedBy !== 'OBJECT'
+      ? [
+          {
+            struckActorId: stoppedBy,
+            collision: {
+              moverActorId: targetActorId,
+              damageDiceConfig: collisionDamageDiceConfig(collision.diceConfig, feet),
+              damageTypeId: collision.damageTypeId,
+              abilityDefinitionId: collision.abilityDefinitionId,
+              dc: collision.dc,
+              conditionId: collision.conditionId
+            }
+          }
+        ]
+      : []
+  })
+  const sealedStrikes = struck.map(({ sealed }) => ({
+    struckActorId: sealed.actorId,
+    collision: sealed.collision
+  }))
+  if (sealedStrikes.length === 0 && strikes.length > 0) {
+    if (input.removal)
+      throw new Error('A removal that leaves an area collision save to roll is not supported yet.')
+    return sealCollisionSaves(input, { base, context, areaSnapshot, strikes, rays })
+  }
+  if (checksumCanonicalJson(strikes) !== checksumCanonicalJson(sealedStrikes))
+    throw new Error('The pending area changed.')
+  return { ...plan, forcedMovements }
+}
+
+/**
+ * Seals the save of every creature a settled push struck (D159), one pending request each, after the
+ * movers landed. A creature whose roller auto-rolls has its roll made now; the area commits at once
+ * when every one did, and otherwise holds for the rest.
+ */
+async function sealCollisionSaves(
+  input: ReachPlanInput & { response: ResolveRuleOccurrenceInputDto | null },
+  sealed: {
+    base: AreaReach
+    context: AreaContext
+    areaSnapshot: ServerAggregateChoicePendingSnapshotDto
+    strikes: readonly {
+      struckActorId: string
+      collision: NonNullable<AreaTargetRecord['collision']>
+    }[]
+    rays: { targetActorId: string; ray: ScenePoint }[]
+  }
+) {
+  const { base, context, areaSnapshot } = sealed
+  const areaOccurrenceId = areaSnapshot.occurrenceId
+  const commandJson = JSON.stringify(input.command)
+  const entries = []
+  for (const { struckActorId, collision } of sealed.strikes) {
+    const actor = input.actors.find(({ id }) => id === struckActorId)
+    if (!actor) throw new Error('Encounter rules input binding mismatch.')
+    const occurrenceId = encounterCollisionSaveOccurrenceId(
+      areaOccurrenceId,
+      collision.moverActorId,
+      struckActorId
+    )
+    const { prepared, currentnessChecksum } = await prepareStruckTarget(input, base, {
+      actor,
+      occurrenceId,
+      collision
+    })
+    const [test] = await prepareEncounterAreaTests({
+      runtime: input.runtime,
+      random: input.random,
+      adapter: prepared.adapter,
+      plan: prepared.plan,
+      occurrenceId: areaOccurrenceId,
+      targets: [
+        {
+          actorId: struckActorId,
+          occurrenceId,
+          binding: prepared.binding,
+          attackSight: prepared.attackSight,
+          autoRoll: { SOURCE: false, TARGET: false },
+          discoverLegendaryResistance: discoverNativeLegendaryResistance(input, prepared)
+        }
+      ]
+    })
+    if (test?.kind !== 'PENDING') throw new Error('An area roll must wait for its roller.')
+    const token = base.scene?.tokens.find((candidate) => candidate.actorId === struckActorId)
+    entries.push({
+      actor,
+      prepared,
+      record: {
+        actorId: struckActorId,
+        perceivedByCaster: true,
+        token: token
+          ? {
+              tokenId: token.tokenId,
+              position: token.position,
+              width: token.width,
+              height: token.height,
+              rotationDegrees: token.rotationDegrees
+            }
+          : null,
+        collision,
+        snapshot: buildEncounterActionPendingSnapshot({
+          execution: test.pending,
+          optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+          commandJson,
+          commandFingerprint: input.fingerprint,
+          initiatorUserId: context.initiatorUserId,
+          sourceActorId: base.caster.id,
+          targetActorId: struckActorId,
+          currentnessChecksum
+        })
+      }
+    })
+  }
+  let snapshot = holdEncounterAreaCollisionSaves(
+    areaSnapshot,
+    entries.map(({ record }) => record),
+    sealed.rays
+  )
+  for (const { actor, prepared, record } of entries)
+    snapshot = await autoRollAreaSave(input, snapshot, areaOccurrenceId, {
+      actor,
+      prepared,
+      sealed: record
+    })
+  if (encounterAreaSettled(snapshot))
+    return planNativeLiveEncounterAreaCommit({ ...input, areaSnapshot: snapshot })
+  return {
+    kind: 'AREA_PENDING' as const,
+    command: input.command,
+    response: input.response,
+    snapshot,
+    prepared: { actors: input.actors },
+    fingerprint: input.fingerprint,
+    initiatorUserId: context.initiatorUserId,
+    occurrenceId: areaOccurrenceId
+  }
+}
+
+/**
+ * Plans the source's answer to a settled area's push pick (D157): the creature lands on a square the
+ * pick offered, and the area holds the next creature's pick, derived with it landed, or commits.
+ */
+export async function planNativeLiveEncounterAreaForcedMovement(
+  input: ReachPlanInput & {
+    response: ResolveRuleOccurrenceInputDto
+    areaSnapshot: ServerAggregateChoicePendingSnapshotDto
+    landing: { requestId: string; position: ScenePoint }
+  }
+) {
+  const { areaSnapshot, landing } = input
+  const context = areaSnapshot.applicationContext
+  if (
+    context.kind !== 'ENCOUNTER_AREA_ACTION' ||
+    areaSnapshot.occurrenceId !== input.response.occurrenceId ||
+    context.commandFingerprint !== input.fingerprint
+  )
+    throw new Error('The pending action evidence is invalid.')
+  return planNativeLiveEncounterAreaCommit({
+    ...input,
+    areaSnapshot: landEncounterAreaForcedMovement(areaSnapshot, landing.requestId, landing.position)
   })
 }
 
@@ -1731,6 +2175,153 @@ function advanceAreaPrepared(
       temporaryHitPoints: targetFacts.state.temporary
     }
   }
+}
+
+/**
+ * The collision damage of every mover that travelled 10 feet or more (D159): the mover takes the
+ * collision's dice for each full 10 feet, as an unsaved damage action of the pusher's, one more
+ * entry after the caught creatures' under the next ordinal occurrence id of its actor. A push whose
+ * source still owes a pick settles nothing here; the area holds for the pick and plans again. The
+ * creatures the movers struck then settle their sealed saves, one entry each after the movers', on
+ * the hit points the area and the collision damage left them.
+ */
+async function settleForcedMovementCollisions(args: {
+  input: AreaPlanBase
+  command: ResolveEncounterActionInputDto
+  caster: EncounterRunActorState
+  movementTargets: ReadonlyMap<string, MovementTargets>
+  areaSnapshot: ServerAggregateChoicePendingSnapshotDto | null
+  areaOccurrenceId: string
+  kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
+  settled: Awaited<ReturnType<typeof settleEncounterAreaAction>>
+  struck: StruckSaves
+  movements: readonly LiveSessionForcedMovement[]
+}) {
+  const { input, caster, areaOccurrenceId } = args
+  const none = {
+    kept: [] as { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[],
+    settled: [] as Awaited<ReturnType<typeof settleEncounterAreaAction>>,
+    struck: {
+      kept: [] as StruckSaves['entries'][number][],
+      settled: [] as Awaited<ReturnType<typeof settleEncounterAreaAction>>
+    }
+  }
+  if (!args.movements.some(({ collision }) => collision)) return none
+  const context = args.areaSnapshot?.applicationContext
+  if (context?.kind !== 'ENCOUNTER_AREA_ACTION')
+    throw new Error('A forced-movement collision is resolved only in an area action.')
+  const landed = context.forcedMovement?.landed ?? []
+  const { owed, landings } = await input.forcedMovementPick({
+    encounterId: input.state.id,
+    sourceActorId: caster.id,
+    movements: args.movements.map((movement) => ({
+      ...movement,
+      position:
+        landed.find(({ targetActorId }) => targetActorId === movement.targetActorId)?.position ??
+        null
+    }))
+  })
+  if (owed) return none
+  const bindings = new Map<string, AreaPrepared['binding']>()
+  for (const [index, { actor, target }] of args.kept.entries())
+    bindings.set(
+      actor.id,
+      bindingAfterHitPoints(
+        bindings.get(actor.id) ?? target.prepared.binding,
+        args.settled[index]!.complete.applications
+      )
+    )
+  const priorActorIds = args.kept.map(({ actor }) => actor.id)
+  for (const { targetActorId, feet } of landings) {
+    const collision = args.movements.find(
+      (movement) => movement.targetActorId === targetActorId
+    )?.collision
+    const diceConfig = collision && collisionDamageDiceConfig(collision.diceConfig, feet)
+    const mover = input.actors.find(({ id }) => id === targetActorId)
+    if (!collision || !diceConfig || !mover) continue
+    const occurrenceId = encounterChosenActorEntries(areaOccurrenceId, [
+      ...priorActorIds,
+      mover.id
+    ]).at(-1)!.occurrenceId
+    const prepared = await prepareCasterActionOnTarget(
+      { ...input, command: args.command },
+      {
+        caster,
+        target: mover,
+        movementTargets: args.movementTargets,
+        sceneContext: null,
+        capability: collisionDamageCapability({
+          actorId: caster.id,
+          gameSystemId: input.state.gameSystemId,
+          sourceId: occurrenceId,
+          damageTypeId: collision.damageTypeId,
+          diceConfig
+        })
+      }
+    )
+    if (prepared.plan.kind !== 'SINGLE_GRAPH')
+      throw new Error('A forced-movement collision is one damage graph.')
+    const binding = bindings.get(mover.id) ?? prepared.binding
+    const [settled] = await executeEncounterActorsAction({
+      runtime: input.runtime,
+      random: input.random,
+      adapter: prepared.adapter,
+      plan: prepared.plan,
+      occurrenceId: areaOccurrenceId,
+      rollsPerTarget: true,
+      priorActorIds,
+      targets: [{ actorId: mover.id, binding }]
+    })
+    bindings.set(mover.id, bindingAfterHitPoints(binding, settled!.complete.applications))
+    priorActorIds.push(mover.id)
+    none.kept.push({ actor: mover, target: { prepared } })
+    none.settled.push(settled!)
+  }
+  for (const [index, entry] of args.struck.entries.entries()) {
+    const { actor, target, sealed } = entry
+    const [settledSave] = await settleEncounterAreaAction({
+      runtime: input.runtime,
+      random: input.random,
+      adapter: target.prepared.adapter,
+      plan: target.prepared.plan,
+      occurrenceId: areaOccurrenceId,
+      targets: [
+        {
+          actorId: actor.id,
+          occurrenceId: sealed.snapshot.occurrenceId,
+          binding: target.prepared.binding,
+          currentBinding: bindings.get(actor.id),
+          attackSight: target.prepared.attackSight,
+          autoRoll: { SOURCE: false, TARGET: false },
+          discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
+        }
+      ],
+      tests: [args.struck.tests[index]!],
+      legendaryResistance: args.struck.audits,
+      rollsPerTarget: true
+    })
+    bindings.set(
+      actor.id,
+      bindingAfterHitPoints(
+        bindings.get(actor.id) ?? target.prepared.binding,
+        settledSave!.complete.applications
+      )
+    )
+    none.struck.kept.push(entry)
+    none.struck.settled.push(settledSave!)
+  }
+  return none
+}
+
+/** The creatures a push's movers struck (D159): their sealed saves, replayed, and their Legendary Resistance audits. */
+type StruckSaves = {
+  entries: readonly {
+    sealed: AreaTargetRecord
+    actor: EncounterRunActorState
+    target: { prepared: AreaPrepared }
+  }[]
+  tests: readonly Awaited<ReturnType<typeof replayAreaTargetSave>>[]
+  audits: ReturnType<typeof encounterAreaLegendaryResistanceAudits>
 }
 
 /**
@@ -1767,11 +2358,16 @@ export async function completeAreaCommit(args: {
   /** The settled saves; only a Legendary Resistance audit reads one. */
   tests: readonly Pick<Awaited<ReturnType<typeof replayAreaTargetSave>>, 'actorId' | 'boundary'>[]
   audits: ReturnType<typeof encounterAreaLegendaryResistanceAudits>
+  /** The creatures the area's movers struck, with the saves they sealed (none for a list of chosen creatures). */
+  struck?: StruckSaves
   areaOccurrenceId: string
   /** The pending area this commit settles; null for a list of chosen creatures that commits at once. */
   areaSnapshot: ServerAggregateChoicePendingSnapshotDto | null
   caughtChecksum: string
   removedActorIds: readonly string[]
+  unaffectedActorIds: readonly string[]
+  /** The rays random pushes rolled when a pick was first held; a replan keeps them. */
+  sealedRays?: readonly { targetActorId: string; ray: ScenePoint }[]
   /** The zone an action leaves at the picked point, with the area it fills. */
   placement: AreaReach['placement']
   occurrenceVersion: number
@@ -1788,19 +2384,22 @@ export async function completeAreaCommit(args: {
     failedCounters,
     reactionEffects,
     movementTargets,
-    kept,
+    kept: caughtKept,
     lead,
     ruleOverrides,
     actionEconomy,
     attackAction,
-    settled,
+    settled: caughtSettled,
     rollsPerTarget,
     tests,
     audits,
+    struck = { entries: [], tests: [], audits: new Map() },
     areaOccurrenceId,
     areaSnapshot,
     caughtChecksum,
     removedActorIds,
+    unaffectedActorIds,
+    sealedRays,
     placement,
     occurrenceVersion,
     response,
@@ -1809,6 +2408,40 @@ export async function completeAreaCommit(args: {
   } = args
   const { state, actors } = input
   const userId = input.initial.expectedUserId
+  const caughtEntries = encounterChosenActorEntries(
+    areaOccurrenceId,
+    caughtKept.map(({ actor }) => actor.id)
+  )
+  const forcedMovements = caughtKept.flatMap(({ actor, target }, index) => {
+    const { occurrenceId } = caughtEntries[index]!
+    const complete = caughtSettled.find((entry) => entry.occurrenceId === occurrenceId)?.complete
+    if (!complete) throw new Error('The area outcome is unavailable.')
+    return interpretForcedMovements(target.prepared, {
+      execution: complete.execution,
+      occurrenceId,
+      published: complete.published,
+      targetActorId: actor.id,
+      random: input.random,
+      sealedRays
+    })
+  })
+  // Each mover that travelled 10 feet or more takes its collision damage as one more entry after
+  // the caught creatures' (D159).
+  const collisions = await settleForcedMovementCollisions({
+    input,
+    command,
+    caster,
+    movementTargets,
+    areaSnapshot,
+    areaOccurrenceId,
+    kept: caughtKept,
+    settled: caughtSettled,
+    struck,
+    movements: forcedMovements
+  })
+  const kept = [...caughtKept, ...collisions.kept, ...collisions.struck.kept]
+  const settled = [...caughtSettled, ...collisions.settled, ...collisions.struck.settled]
+  const struckStart = caughtKept.length + collisions.kept.length
   // The caster's counters to a counter cast against its cast spend in the caster's one batch with the cast;
   // a kept creature that countered pays its slot in its own first outcome.
   const casterCounterConsumptions = counterConsumptionsOf(failedCounters, caster.id)
@@ -1819,7 +2452,6 @@ export async function completeAreaCommit(args: {
   )
   const children = []
   const createdEffects = new Map<string, ActiveRuleEffectRecord[]>()
-  const forcedMovements: LiveSessionForcedMovement[] = []
   // The cast ends the caster's effects that end on a cast (Invisibility), and releases the condition
   // each held alone: in the caster's spend batch, or on their first outcome when the area catches them.
   const dispositions = new Map(actors.map(({ id, disposition }) => [id, disposition]))
@@ -1837,10 +2469,14 @@ export async function completeAreaCommit(args: {
   // Damage an outcome deals ends the effects its target holds that end on damage; a creature named
   // again keeps what an earlier entry ended ended.
   const damageEndedEffects = new Map<string, ActiveRuleEffectRecord>()
-  const entries = encounterChosenActorEntries(
-    areaOccurrenceId,
-    kept.map(({ actor }) => actor.id)
-  )
+  // A struck creature's save ran under its own collision occurrence, sealed with it.
+  const entries = [
+    ...encounterChosenActorEntries(
+      areaOccurrenceId,
+      kept.slice(0, struckStart).map(({ actor }) => actor.id)
+    ),
+    ...collisions.struck.settled.map(({ actorId, occurrenceId }) => ({ actorId, occurrenceId }))
+  ]
   // One Concentration spans every creature the area caught: the first outcome that maintains an
   // effect creates the one maintained state (and carries the replacement of the caster's prior
   // one); each later outcome joins it.
@@ -1890,7 +2526,17 @@ export async function completeAreaCommit(args: {
   // A creature named again meets the hit points and Character record its earlier entries left it.
   const advanced = new Map<string, AreaPrepared>()
   for (const [index, { actor, target }] of kept.entries()) {
-    const prepared = advanced.get(actor.id) ?? target.prepared
+    const earlier = advanced.get(actor.id)
+    // Each entry runs its own action on the hit points and Character record its earlier entries left.
+    const prepared = earlier
+      ? {
+          ...target.prepared,
+          target: earlier.target,
+          targetFacts: earlier.targetFacts,
+          movementTargets: earlier.movementTargets,
+          binding: earlier.binding
+        }
+      : target.prepared
     const { occurrenceId } = entries[index]!
     const complete = settled.find((entry) => entry.occurrenceId === occurrenceId)?.complete
     if (!complete) throw new Error('The area outcome is unavailable.')
@@ -1917,18 +2563,41 @@ export async function completeAreaCommit(args: {
       })
     const joined = effects.maintenance ? maintainedState : null
     // A creature named again meets the effects its earlier entries left it.
-    const earlier = createdEffects.get(actor.id) ?? []
+    const earlierEffects = createdEffects.get(actor.id) ?? []
     const targetEffects = [
       ...(input.activeEffectsByActorId.get(actor.id) ?? []).filter(
         (effect) => !joined || !removedIds.has(effect.id)
       ),
-      ...earlier
+      ...earlierEffects
     ]
     const effectInput = {
       owner: nativeEffectOwner(prepared.target, state.id),
       currentEffects: targetEffects,
       occurredAt
     }
+    const applications = [...complete.applications, ...effects.relationshipConditionApplications]
+    const damageEnded = targetEndedEffects({
+      holderActorId: actor.id,
+      held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
+        ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
+      ),
+      attacked: prepared.makesAttackRoll,
+      testEvidence: [complete.d20, complete.nestedD20],
+      turnActorId: prepared.state.currentActorId,
+      applications,
+      damagerActorId: caster.id,
+      dispositions,
+      grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+        encounter: state,
+        holder: prepared.target,
+        held: prepared.targetFacts.activeEffects,
+        occurrenceId,
+        commandId,
+        ordinal: index,
+        activeEffectsByActorId: input.activeEffectsByActorId
+      })
+    })
+    for (const ended of damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
     const stateEffect =
       effects.stateEffect && createNativeActiveEffect(effects.stateEffect, effectInput)
     const recurringEffect =
@@ -1941,16 +2610,24 @@ export async function completeAreaCommit(args: {
       effects.riderEffect &&
       createNativeActiveEffect(effects.riderEffect, {
         ...effectInput,
-        maintainedEffectStateId: joined?.id
+        maintainedEffectStateId: effects.riderMaintained ? joined?.id : undefined
       })
     const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
     // The effect of a reaction the creature used on being chosen lands with its first outcome.
     const reaction = firstEntry ? reactionEffects?.get(actor.id) : undefined
     const reactionRecord =
       reaction && createNativeActiveEffect(reaction.plan, { ...effectInput, id: reaction.id })
-    const created = [stateEffect, recurringEffect, riderEffect, reactionRecord].flatMap((effect) =>
-      effect ? [effect] : []
+    // The target's own passive damage triggers make timed grants on it after its other effects.
+    const grantRecords = damageEnded.grants.map(({ id, effect }) =>
+      createNativeActiveEffect(effect, { ...effectInput, id })
     )
+    const created = [
+      stateEffect,
+      recurringEffect,
+      riderEffect,
+      reactionRecord,
+      ...grantRecords
+    ].flatMap((effect) => (effect ? [effect] : []))
     const effectTransitions = projectNativeActionEffectTransitions({
       state: stateEffect,
       recurring: recurringEffect,
@@ -1974,31 +2651,12 @@ export async function completeAreaCommit(args: {
             })
         : null
     if (joined) maintenanceCarried = true
-    createdEffects.set(actor.id, [...earlier, ...created])
-    forcedMovements.push(
-      ...interpretForcedMovements(prepared, {
-        execution: complete.execution,
-        occurrenceId,
-        published: complete.published,
-        targetActorId: actor.id
-      })
-    )
+    createdEffects.set(actor.id, [...earlierEffects, ...created])
     // A Character caster caught by their own area spends in the same Sheet write as their first outcome.
     const carriesSpend =
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
     const carriesFailedCounterSpend =
       actor.id !== caster.id && failedReactorSlots.has(actor.id) && firstEntry
-    const applications = [...complete.applications, ...effects.relationshipConditionApplications]
-    const damageEnded = damageTakenEndedEffects({
-      holderActorId: actor.id,
-      held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
-        ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
-      ),
-      applications,
-      damagerActorId: caster.id,
-      dispositions
-    })
-    for (const ended of damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
     const enterForm =
       recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
@@ -2024,10 +2682,18 @@ export async function completeAreaCommit(args: {
     )
     if (kept.some((later, laterIndex) => laterIndex > index && later.actor.id === actor.id))
       advanced.set(actor.id, advanceAreaPrepared(prepared, mechanics.targetPlan, occurredAt))
-    const audit = audits.get(actor.id)
+    // Only the cast's own entries and the creatures its movers struck made the saves a Legendary
+    // Resistance audit answers.
+    const isStruck = index >= struckStart
+    const audit =
+      index < caughtKept.length
+        ? audits.get(actor.id)
+        : isStruck
+          ? struck.audits.get(actor.id)
+          : undefined
     let resistance: ReturnType<typeof encounterTargetLegendaryResistance> | null = null
     if (audit) {
-      const test = tests.find((entry) => entry.actorId === actor.id)
+      const test = (isStruck ? struck.tests : tests).find((entry) => entry.actorId === actor.id)
       if (!test) throw new Error('The area outcome is unavailable.')
       const candidate = await discoverNativeLegendaryResistance(input, prepared)()
       const resource =
@@ -2071,7 +2737,15 @@ export async function completeAreaCommit(args: {
           state: null,
           recurring: reactionRecord ?? null,
           targetActorId: actor.id
-        }).activeEffectTransitions
+        }).activeEffectTransitions,
+        grantEffectTransitions: grantRecords.flatMap(
+          (grant) =>
+            projectNativeActionEffectTransitions({
+              state: null,
+              recurring: grant,
+              targetActorId: actor.id
+            }).activeEffectTransitions
+        )
       })
     })
   }
@@ -2331,6 +3005,7 @@ export async function completeAreaCommit(args: {
     response,
     removal,
     area: areaSnapshot,
+    unaffectedActorIds: [...unaffectedActorIds],
     prepared: { actors },
     occurredAt,
     initialDefinitionId:
@@ -2362,7 +3037,10 @@ export async function completeAreaCommit(args: {
 /** The completed area and its per-creature child contracts the room persists in one transaction. */
 export function buildNativeLiveEncounterAreaCommitInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
-  plan: Awaited<ReturnType<typeof planNativeLiveEncounterAreaCommit>> & {
+  plan: Extract<
+    Awaited<ReturnType<typeof planNativeLiveEncounterAreaCommit>>,
+    { kind: 'AREA_COMMIT' }
+  > & {
     dependencies: readonly { request: LiveSessionEncounterRulesRequest }[]
     revisions: LiveSessionRulesRevisions
   }
@@ -2388,6 +3066,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     targets: plan.targets,
     rollsPerTarget: plan.rollsPerTarget,
     area: plan.area,
+    unaffectedActorIds: plan.unaffectedActorIds,
     placedZones: plan.placedZones,
     zoneSourceGrant: plan.zoneSourceGrant,
     forcedMovements: plan.forcedMovements,

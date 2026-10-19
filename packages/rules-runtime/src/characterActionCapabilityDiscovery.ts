@@ -31,6 +31,8 @@ export interface EffectActionCapabilityDescriptor {
    * area is the zone's, so it may be a wall.
    */
   zoneAppearSave?: true
+  /** Set for an at-will grant's cast whose targets are each locked out of the grant (D156). */
+  perTargetLockout?: { grantId: string }
 }
 
 export interface CharacterActionCapabilityDescriptor extends EffectActionCapabilityDescriptor {
@@ -114,6 +116,7 @@ function assertExactCandidateMapping(input: {
       descriptor.compiledEffect !== entryPoint.compiledEffect ||
       descriptor.spellCastLevel !== entryPoint.spellCastLevel ||
       descriptor.characterLevel !== entryPoint.characterLevel ||
+      descriptor.perTargetLockout?.grantId !== entryPoint.perTargetLockout?.grantId ||
       JSON.stringify(descriptor.source) !== JSON.stringify(candidate.source) ||
       JSON.stringify(descriptor.mechanicsOwner) !== JSON.stringify(candidate.mechanicsOwner)
     ) {
@@ -124,7 +127,12 @@ function assertExactCandidateMapping(input: {
     if (actionIds.has(descriptor.actionId)) {
       throw new Error('Character action capability discovery produced a duplicate action identity.')
     }
-    const sourceEffectKey = `${descriptor.sourceId}\u0000${descriptor.effectId}`
+    // A Feature attack made with the wielded weapons is one action per weapon attack (D156), each
+    // its own action identity.
+    const sourceEffectKey =
+      candidate.activationSourceKind === 'ACTIVE_SOURCE_AND_EQUIPMENT'
+        ? descriptor.actionId
+        : `${descriptor.sourceId}\u0000${descriptor.effectId}`
     if (sourceEffectKeys.has(sourceEffectKey)) {
       throw new Error(
         'Character action capability discovery produced a duplicate source/Effect identity.'

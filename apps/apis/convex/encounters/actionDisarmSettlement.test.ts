@@ -5,7 +5,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
-import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
+import {
+  contestDefenderPolicy,
+  executeEncounterOptionalContestAction
+} from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { prepareDnd5eOptionalCombatContestPendingContext } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestPendingContext'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
@@ -14,7 +17,7 @@ import { createRulesRuntime } from '../../tests/fixtures/rulesRuntime'
 import { prepareStoredDisarm } from '../../tests/fixtures/nativeDisarm'
 import { readCharacterRecord } from '../characters/stateDocuments'
 import { useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
-import { settleDisarm } from './actionDisarmSettlement'
+import { settleContest } from './actionContestSettlement'
 
 useLocalRoomWorker()
 
@@ -46,7 +49,11 @@ async function settle(
       command: base.command,
       campaignOwnerUserId: base.owner.userId
     })
-    const { checkDefinitionId: _checkDefinitionId, ...defender } = preparation.contest.defender
+    const {
+      checkDefinitionId,
+      label: _label,
+      ...defender
+    } = contestDefenderPolicy(preparation.contest.defender, null)
     const sourceFace = 10
     const targetFace =
       sourceFace +
@@ -60,7 +67,7 @@ async function settle(
         [preparation.contest.initiator.actorId]: true,
         [preparation.contest.defender.actorId]: true
       },
-      graph: preparation.graph,
+      published: preparation.graph.published,
       initiator: { ...preparation.contest.initiator, requestNodeId: 'initiator_d20' },
       defender: { ...defender, requestNodeId: 'target_d20' },
       occurrenceId,
@@ -82,15 +89,29 @@ async function settle(
         },
         defender: {
           requestId: preparation.contest.defender.requestNodeId,
-          rawFaces: [...execution.defender.rawFaces]
+          rawFaces: [...execution.defender.rawFaces],
+          checkDefinitionId
         }
       }
     })
-    const settled = await settleDisarm(ctx, {
+    const campaign = await ctx.db
+      .query('campaigns')
+      .withIndex('by_publicId', (q) => q.eq('id', state.campaignId))
+      .unique()
+    if (!campaign) throw new Error('Missing Disarm Campaign.')
+    const settled = await settleContest(ctx, {
       state,
+      campaign,
+      actors: [actor, target],
       actor,
       target,
       contest,
+      createdEffect: null,
+      conditionApplications: [],
+      forcedMovements: [],
+      applyMechanics: () => {
+        throw new Error('A Disarm applies no target mechanics.')
+      },
       rolls: execution,
       actionEconomy: preparation.actionEconomy,
       occurrenceId,

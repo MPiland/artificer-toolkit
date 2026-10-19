@@ -13,8 +13,16 @@ import {
   ruleExecutionIdentifierSchema as identifierSchema,
   ruleExecutionIntegerSchema as integerSchema,
   ruleExecutionLocalNodeIdSchema as localNodeIdSchema,
-  ruleExecutionReceiptD20FaceSchema as receiptD20FaceSchema
+  ruleExecutionReceiptD20FaceSchema as receiptD20FaceSchema,
+  ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+import { d20MinimumRollDtoSchema } from './d20MinimumRoll.js'
+import {
+  d20AddedDiceDtoSchema,
+  d20AddedDiceTotal,
+  d20RolledAddedDiceDtoSchema,
+  type D20RolledAddedDieDto
+} from './d20AddedDice.js'
 
 export const serverRuleEvidenceResponseDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -85,7 +93,11 @@ export const frozenCheckD20DtoSchema = lazySchema(() =>
     rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
     contributors: canonicalConcentrationContributorsDtoSchema,
     contributorChecksum: checksumSchema,
-    modifier: integerSchema
+    modifier: integerSchema,
+    /** Dice the check rolls beside its d20 (D156), from the roller's active effects. */
+    addedDice: z.optional(d20AddedDiceDtoSchema),
+    /** The floor the roller's active effects put on the d20 the check counts. */
+    minimumRoll: z.optional(d20MinimumRollDtoSchema)
   })
 )
 
@@ -100,7 +112,11 @@ export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
       contributorChecksum: checksumSchema,
       modifier: integerSchema,
-      dc: integerSchema
+      dc: integerSchema,
+      /** Dice the test rolls beside its d20 (D156), from the roller's active effects. */
+      addedDice: z.optional(d20AddedDiceDtoSchema),
+      /** The ability a saving throw is made with; absent on every other test. */
+      savingThrowAbilityDefinitionId: z.optional(uuidSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -235,7 +251,14 @@ const serverRuleExecutionD20EvidenceShape = lazySchema(() =>
     total: integerSchema,
     defenseOrDc: integerSchema,
     resultPath: identifierSchema,
-    modeAdjustment: z.optional(serverRuleExecutionD20ModeAdjustmentDtoSchema)
+    modeAdjustment: z.optional(serverRuleExecutionD20ModeAdjustmentDtoSchema),
+    /** The added dice with the faces they rolled; `total` includes their signed sum. */
+    addedDice: z.optional(d20RolledAddedDiceDtoSchema),
+    /**
+     * The ability a saving throw was made with, which narrows the dice its holder's effects
+     * spend (D156); absent on every other test.
+     */
+    savingThrowAbilityDefinitionId: z.optional(uuidSchema)
   })
 )
 
@@ -250,6 +273,16 @@ function validateServerRuleExecutionD20Evidence(
       path: ['rawFaces'],
       message: 'd20 evidence face count is invalid.'
     })
+  if (
+    value.savingThrowAbilityDefinitionId !== undefined &&
+    value.resultPath !== 'ON_SAVE_SUCCESS' &&
+    value.resultPath !== 'ON_SAVE_FAIL'
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['savingThrowAbilityDefinitionId'],
+      message: 'Only saving-throw d20 evidence names an ability.'
+    })
   const expectedSelected =
     value.rollMode === 'ADVANTAGE'
       ? Math.max(...value.rawFaces)
@@ -262,7 +295,7 @@ function validateServerRuleExecutionD20Evidence(
       path: ['selectedNatural'],
       message: 'd20 evidence selected face is invalid.'
     })
-  if (value.total !== value.selectedNatural + value.modifier)
+  if (value.total !== value.selectedNatural + value.modifier + d20AddedDiceTotal(value.addedDice))
     context.addIssue({
       code: 'custom',
       path: ['total'],
@@ -329,6 +362,8 @@ export type ServerRuleExecutionD20EvidenceDto = {
   defenseOrDc: number
   resultPath: string
   modeAdjustment?: ServerRuleExecutionD20ModeAdjustmentDto
+  addedDice?: D20RolledAddedDieDto[]
+  savingThrowAbilityDefinitionId?: string
 }
 export type ServerRuleExecutionNestedD20EvidenceDto = ServerRuleExecutionD20EvidenceDto & {
   requestNodeId: string

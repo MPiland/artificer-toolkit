@@ -14,6 +14,8 @@ export type TargetingAuthored =
       dispositionKind?: TargetDispositionKind
       /** Naming the user: allowed (default), an overridable warning, or refused outright. */
       self?: TargetSelfPolicy
+      /** The largest target, in size steps above the actor's; a larger one only warns. */
+      sizeLimit?: { stepsAboveActor: number }
       allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]
     }
@@ -32,6 +34,8 @@ export type TargetingAuthored =
       /** Hit points of creatures the area affects, lowest first, rolled once per cast (Sleep). */
       hitPointPool?: { diceConfig: string }
       hitPointPoolScaling?: ScalableValueAuthored<{ diceConfig: string }>
+      /** Creatures with any of these conditions are passed over by the pool (Sleep's unconscious). */
+      hitPointPoolIgnoredConditionIds?: string[]
       allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]
     }

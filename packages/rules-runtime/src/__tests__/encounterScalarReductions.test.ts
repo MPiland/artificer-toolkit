@@ -243,7 +243,8 @@ describe('Creature movement target', () => {
         { kind: 'RESISTANCE', damageTypeId: cold }
       ].sort((left, right) => left.damageTypeId.localeCompare(right.damageTypeId)),
       qualifiedDefenses: [],
-      conditionImmunityIds: [poisoned]
+      conditionImmunityIds: [poisoned],
+      spellSchoolImmunityIds: []
     }
     expect(target).toEqual({
       actor: creature,
@@ -262,12 +263,15 @@ describe('Creature movement target', () => {
       sourceSightSaves: [],
       conditionDefinitions: [],
       conditionMechanics: [],
+      attackTraitGrants: [],
+      innateConditionIds: [],
       targetDerivedFacts: {
         actorId: CREATURE_ID,
         creatureTypeId: null,
         // Dexterity 12 drained to 7: initiative +1 becomes -2.
         initiativeModifier: -2,
         savingThrowDefinitions: savingThrows(9, 7),
+        savingThrowAddedDice: {},
         featureResources: [],
         targetProtection,
         statBlock: {
@@ -284,7 +288,8 @@ describe('Creature movement target', () => {
       },
       defenses: targetProtection.defenses,
       qualifiedDefenses: [],
-      conditionImmunityIds: [poisoned]
+      conditionImmunityIds: [poisoned],
+      spellSchoolImmunityIds: []
     })
   })
 

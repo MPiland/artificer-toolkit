@@ -1,4 +1,4 @@
-import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import {
   actionD20RollRecord,
   actionDamageRollRecord,
@@ -9,6 +9,7 @@ import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/ap
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { EncounterCounterCheckEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import { damageAddedDieOfNode } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { actionSystemRollAnswers, readAppCardedDice, type SettledDie } from './appCardedDice.js'
 import type {
   CampaignAuthority,
@@ -112,7 +113,7 @@ export async function recordActionRollCards(
     gameSystemId: string
     /** Seeds the card ids: an occurrence that cards several actions gives each its own scope. */
     rollScope: string
-    batch: Pick<MechanicsBatch, 'd20' | 'nestedD20' | 'applications'>
+    batch: Pick<MechanicsBatch, 'd20' | 'nestedD20' | 'applications' | 'damageAddedDice'>
     actionLabel: string
     source: EncounterRunActorState
     target: EncounterRunActorState
@@ -159,7 +160,10 @@ export async function recordActionRollCards(
       occurrenceId: input.rollScope,
       checkIndex: 2 + application.ordinal,
       total: application.requestedAmount,
-      actionLabel: input.actionLabel,
+      // An added die's damage is carded under its source ("Hunter's Mark"), the rest the action's.
+      actionLabel:
+        damageAddedDieOfNode(batch.damageAddedDice, application.sourceNodeId)?.label ??
+        input.actionLabel,
       damageTypeLabel:
         system.damageTypes?.find((damageType) => damageType.id === application.damageTypeId)
           ?.label ?? null,

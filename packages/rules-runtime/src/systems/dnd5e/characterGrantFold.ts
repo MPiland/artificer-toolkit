@@ -80,8 +80,13 @@ function drawnSourceState(
     : sourceState
 }
 
+/**
+ * Folds a holder's grant sources. Creatures fold their feature grants through the same option as
+ * Characters, so `holderKind` only answers `HOLDER_KIND` restrictions.
+ */
 export function evaluateDnd5e2014CharacterGrantFold(
-  input: CharacterGrantFoldInput
+  input: CharacterGrantFoldInput,
+  holderKind: 'CHARACTER' | 'CREATURE' = 'CHARACTER'
 ): CharacterGrantFoldOutput {
   const parsedInput = characterGrantFoldInputSchema.parse(input)
   const acc: CharacterGrantFoldOutput = {
@@ -221,6 +226,8 @@ export function evaluateDnd5e2014CharacterGrantFold(
           : condition.sourceState === 'EQUIPPED'
             ? sourceState?.equipped === true
             : sourceState?.attuned === true
+      case 'HOLDER_KIND':
+        return condition.requiredIds.includes(holderKind)
       case 'SIZE':
         return (
           condition.mode === 'ALL' ||
@@ -236,6 +243,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'SPEED_ABOVE_ZERO':
       case 'FREE_HAND':
       case 'ATTACK_ACTION_OTHER_WEAPON':
+      case 'CREATURE_TYPE':
       case 'UNAVAILABLE':
       case 'UNSUPPORTED':
         return false
@@ -306,7 +314,8 @@ export function evaluateDnd5e2014CharacterGrantFold(
     modifiers: CharacterGrantFoldSource['modifiers'],
     sourceId: string,
     mechanicSource: CharacterGrantFoldSource['mechanicSource'],
-    sourceState: SourceState | undefined
+    sourceState: SourceState | undefined,
+    boundSourceId?: string
   ): void => {
     for (const modifier of modifiers) {
       const deferredRequirements = modifierDeferredRequirements(
@@ -328,6 +337,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
         domain: modifier.domain,
         ...(modifier.payload === undefined ? {} : { payload: modifier.payload }),
         sourceId,
+        ...(boundSourceId !== undefined && { boundSourceId }),
         source: mechanicSource,
         ...(modifier.scopeSpellIds.length > 0 ? { scopeSpellIds: modifier.scopeSpellIds } : {}),
         ...(modifier.scopeResourceIds.length > 0
@@ -399,7 +409,13 @@ export function evaluateDnd5e2014CharacterGrantFold(
         acc.senses.push(sense)
       }
     }
-    applyModifiers(source.modifiers, source.sourceId, source.mechanicSource, undefined)
+    applyModifiers(
+      source.modifiers,
+      source.sourceId,
+      source.mechanicSource,
+      undefined,
+      source.boundSourceId
+    )
     const grantLevel = activeLevel ?? 0
     for (const operation of source.feats)
       applyScalingTargets(operation, grantLevel, acc.unlockedFeatIds)

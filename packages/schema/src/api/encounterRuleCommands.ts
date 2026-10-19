@@ -8,6 +8,7 @@ import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecuti
 import { sizeCodeSchema } from '../shared/enums.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
+import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -97,12 +98,18 @@ export const optionalCombatActionIntentDtoSchema = lazySchema(() =>
 )
 export type OptionalCombatActionIntentDto = z.infer<typeof optionalCombatActionIntentDtoSchema>
 
-/** The submitter's explicit consent to stow this exact shield for a two-handed attack. */
+/**
+ * The submitter's explicit consent to stow this exact item: its shield for a two-handed attack, or
+ * a held weapon, for free, to free the hand an action needs (D152).
+ */
+export const encounterShieldStowDtoSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('STOW_SHIELD'), shieldItemInstanceId: uuidSchema })
+)
+export const encounterHeldWeaponStowDtoSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('STOW_HELD_WEAPON'), itemInstanceId: uuidSchema })
+)
 export const encounterAcceptedWieldConflictDtoSchema = lazySchema(() =>
-  z.strictObject({
-    kind: z.literal('STOW_SHIELD'),
-    shieldItemInstanceId: uuidSchema
-  })
+  z.discriminatedUnion('kind', [encounterShieldStowDtoSchema, encounterHeldWeaponStowDtoSchema])
 )
 export type EncounterAcceptedWieldConflictDto = z.infer<
   typeof encounterAcceptedWieldConflictDtoSchema
@@ -128,7 +135,12 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       kind: z.literal('ACTOR'),
       actorId: uuidSchema,
       /** The option the caster picks at cast, for an action that offers several (D148). */
-      choiceOptionId: z.optional(postgresUuidSchema)
+      choiceOptionId: z.optional(postgresUuidSchema),
+      /**
+       * The target's equipped item the action is used on, for an action that chooses one
+       * (Shillelagh's club, Heat Metal's armor): Disarm's item choice.
+       */
+      boundItemInstanceId: z.optional(postgresUuidSchema)
     }),
     z.strictObject({
       kind: z.literal('ACTORS'),
@@ -280,7 +292,12 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
 /** A CHECK action (First Aid, Help, Dash...): it aims at one creature, never a point. */
 export const resolveCheckActionInputDtoSchema = lazySchema(() =>
   z.extend(resolveEncounterActionInputDtoSchema, {
-    target: z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema })
+    target: z.strictObject({
+      kind: z.literal('ACTOR'),
+      actorId: uuidSchema,
+      /** The outcome the actor picks with the attempt, for a basic action that offers several (D105). */
+      choiceOptionId: z.optional(postgresUuidSchema)
+    })
   })
 )
 export type ResolveCheckActionInputDto = z.infer<typeof resolveCheckActionInputDtoSchema>
@@ -333,6 +350,19 @@ export const endHeldGrantInputDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The source of an Encounter relationship lets go of the creature it holds (D152): free, and
+ * whenever it likes. `activeEffectId` names the relationship effect `heldActorId` carries.
+ */
+export const releaseRelationshipInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('RELEASE_RELATIONSHIP'),
+    actorId: uuidSchema,
+    heldActorId: uuidSchema,
+    activeEffectId: postgresUuidSchema
+  })
+)
+
 const requestIdSchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256))
 )
@@ -343,6 +373,44 @@ export const encounterD20RollModeDtoSchema = lazySchema(() =>
 )
 export type EncounterD20RollModeDto = z.infer<typeof encounterD20RollModeDtoSchema>
 
+/** Faces the roller entered ("Entered by <name>"): two for advantage or disadvantage. */
+const enterDiceResolutionDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENTER_DICE'),
+      requestId: requestIdSchema,
+      rawFaces: z
+        .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
+        .check(z.minLength(1))
+        .check(z.maxLength(2)),
+      rollMode: encounterD20RollModeDtoSchema,
+      /** The faces of the request's added dice (D156). */
+      addedFaces: z.optional(d20AddedFacesDtoSchema)
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2))
+          context.addIssue({
+            code: 'custom',
+            path: ['rawFaces'],
+            message: 'Advantage and disadvantage take two faces; a normal roll takes one.'
+          })
+      })
+    )
+)
+
+/**
+ * Settles the request with the roller's latest app roll for it ("Rolled by the app"). The server
+ * reads the recorded faces; a client never supplies an app roll's values.
+ */
+const systemRollResolutionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('SYSTEM_ROLL'),
+    requestId: requestIdSchema,
+    rollId: uuidSchema
+  })
+)
+
 export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
     type: z.literal('RESOLVE_RULE_OCCURRENCE'),
@@ -350,36 +418,29 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
     occurrenceId: uuidSchema,
     expectedOccurrenceVersion: versionSchema,
     resolution: z.discriminatedUnion('kind', [
-      /** Faces the roller entered ("Entered by <name>"): two for advantage or disadvantage. */
+      enterDiceResolutionDtoSchema,
+      systemRollResolutionDtoSchema,
+      /** A contest defender picks one of its sealed checks and rolls it in one step (D152). */
       z
         .strictObject({
-          kind: z.literal('ENTER_DICE'),
+          kind: z.literal('CONTEST_CHECK'),
           requestId: requestIdSchema,
-          rawFaces: z
-            .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
-            .check(z.minLength(1))
-            .check(z.maxLength(2)),
-          rollMode: encounterD20RollModeDtoSchema
+          checkDefinitionId: postgresUuidSchema,
+          roll: z.discriminatedUnion('kind', [
+            enterDiceResolutionDtoSchema,
+            systemRollResolutionDtoSchema
+          ])
         })
         .check(
           z.superRefine((value, context) => {
-            if (value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2))
+            if (value.roll.requestId !== value.requestId)
               context.addIssue({
                 code: 'custom',
-                path: ['rawFaces'],
-                message: 'Advantage and disadvantage take two faces; a normal roll takes one.'
+                path: ['roll', 'requestId'],
+                message: 'A contest check rolls its own request.'
               })
           })
         ),
-      /**
-       * Settles the request with the roller's latest app roll for it ("Rolled by the app"). The
-       * server reads the recorded faces; a client never supplies an app roll's values.
-       */
-      z.strictObject({
-        kind: z.literal('SYSTEM_ROLL'),
-        requestId: requestIdSchema,
-        rollId: uuidSchema
-      }),
       z.strictObject({
         kind: z.literal('ENTER_INTEGER'),
         requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
@@ -408,6 +469,12 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
           z.strictObject({ kind: z.literal('USE'), optionId: checksumSchema }),
           z.strictObject({ kind: z.literal('DECLINE') })
         ])
+      }),
+      /** The square the source chooses for a creature its action pushes, from the offered ones (D157). */
+      z.strictObject({
+        kind: z.literal('FORCED_MOVEMENT'),
+        requestId: requestIdSchema,
+        position: spatialPointDtoSchema
       }),
       z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
       z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema }),
@@ -479,6 +546,7 @@ export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
 export type EscapeRelationshipInputDto = z.infer<typeof escapeRelationshipInputDtoSchema>
 export type EndHeldGrantInputDto = z.infer<typeof endHeldGrantInputDtoSchema>
+export type ReleaseRelationshipInputDto = z.infer<typeof releaseRelationshipInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>

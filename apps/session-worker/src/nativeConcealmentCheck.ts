@@ -8,11 +8,11 @@ import type { EncounterConcealmentCheckPendingContextDto } from '@artificer-tool
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
-  encounterBasicActionCheckLabel,
   encounterBasicActionCheckPendingSnapshot,
   rollEncounterCheck,
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import {
   completeEncounterConcealmentCheckResult,
   createEncounterConcealmentEffect,
@@ -142,7 +142,8 @@ export async function planNativeLiveConcealmentCheckAction(
   const continuation = await startEncounterBasicActionCheck({
     runtime: input.runtime,
     gameSystemId: state.gameSystemId,
-    occurrenceId
+    occurrenceId,
+    addedDice: context.d20.addedDice
   })
   const { autoRoll } = input
   const check: LiveSessionEncounterBasicActionCommitInput['check'] = autoRoll
@@ -157,6 +158,7 @@ export async function planNativeLiveConcealmentCheckAction(
             continuation,
             answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
             rollD20: () => autoRoll(20) + 1,
+            random: autoRoll,
             expectedOccurrenceId: occurrenceId
           }),
           appRollId: null,

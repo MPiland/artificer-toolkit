@@ -15,6 +15,7 @@ import {
   completeEncounterEscapeCheckResult,
   encounterActorsAfterEscape,
   encounterEscapeEndedConditionIds,
+  findEncounterHolderContestEscape,
   findEncounterHolderEscape,
   prepareEncounterEscapeCheck
 } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
@@ -22,6 +23,7 @@ import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encou
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { planNativeLiveEscapeContest } from './nativeContest.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -62,6 +64,37 @@ export async function planNativeLiveEscape(
   if (!actor || !heldEffects) throw new Error('Escape actors are unavailable.')
   if (actor.kind === 'CUSTOM')
     throw new EncounterValidationError('A custom actor has no check to make.')
+  // An escape the holder contests rolls through the one contest path (D152).
+  if (effect && findEncounterHolderContestEscape(effect)) {
+    const { command: _command, ...contestReady } = ready
+    const contest = await planNativeLiveEscapeContest({
+      scope,
+      command: root,
+      root,
+      ready: contestReady,
+      priorContext: null,
+      state,
+      system,
+      actors,
+      activeEffectsByActorId,
+      loadTarget: async (entry) => {
+        const prepared = await prepareNativeLiveMovementTarget({
+          scope: initial,
+          state,
+          actor: entry,
+          activeEffectsByActorId,
+          captures: executionOptions.captures
+        })
+        reads.observe(prepared.revisions)
+        return prepared.target
+      },
+      capture,
+      runtime: executionOptions.runtime,
+      random: executionOptions.random,
+      revisions: reads.revisions
+    })
+    return { kind: 'CONTEST' as const, contest }
+  }
   const escape = effect ? findEncounterHolderEscape(effect) : null
   if (!effect || !escape)
     throw new EncounterValidationError('The creature is not held by an effect it can escape.')
@@ -97,7 +130,8 @@ export async function planNativeLiveEscape(
   const continuation = await startEncounterBasicActionCheck({
     runtime: executionOptions.runtime,
     gameSystemId: state.gameSystemId,
-    occurrenceId
+    occurrenceId,
+    addedDice: context.d20.addedDice
   })
   let check: LiveSessionEncounterEscapeCommitInput['check']
   // The holder's controller rolls unless their preference rolls for them (ADR 0034 decision 3).
@@ -117,6 +151,7 @@ export async function planNativeLiveEscape(
       continuation,
       answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
       rollD20: () => executionOptions.random(20) + 1,
+      random: executionOptions.random,
       expectedOccurrenceId: occurrenceId
     })
     const removedConditionIds = encounterEscapeEndedConditionIds(heldEffects, effect.id)

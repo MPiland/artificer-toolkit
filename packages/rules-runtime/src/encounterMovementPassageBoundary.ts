@@ -10,29 +10,38 @@ import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { discoverEncounterMovementPassageContact } from './encounterMovementPassageContacts.js'
+import {
+  movementPassageAdmits,
+  type EncounterMovementPassage
+} from './encounterMovementPassagePolicy.js'
 import type { PreparedSpatialMovementPlan } from './encounterSpatialMovementPreparation.js'
 import type {
   SpatialMovementRuleEvaluation,
   SpatialMovementRuleRoot
 } from './encounterSpatialMovementRuleService.js'
 
-/** A voluntary move the player chose to end inside a hostile footprint; the caller refuses it. */
-export class MovementEndpointOccupiedError extends Error {
-  constructor() {
-    super('Voluntary movement cannot end inside a hostile occupied footprint.')
-  }
-}
+/**
+ * A voluntary move the mover has no way to make: it ends inside a hostile footprint, or crosses one
+ * the mover can neither pass freely nor contest. The caller refuses it.
+ */
+export class MovementBlockedError extends Error {}
 
 type Movement = OptionalCombatPassageChoicePendingContextDto['movement']
 type Boundary = Extract<SpatialMovementRuleEvaluation, { kind: 'REACTION_BOUNDARY' }>
 
-/** The complete original path determines hostile footprint contacts, including its endpoint. */
+/**
+ * The complete original path determines hostile footprint contacts, including its endpoint. A
+ * hostile creature the mover's passage admits is no contact; one it may not end inside still
+ * refuses the endpoint.
+ */
 export function discoverEncounterMovementPassage(input: {
   state: EncounterRunState
   actors: readonly Pick<EncounterRunActorState, 'id' | 'disposition'>[]
   root: SpatialMovementRuleRoot
   sceneTokens: readonly SceneToken[]
   actorIdByTokenId: ReadonlyMap<string, string>
+  /** The mover's passage and each actor's size now, from the facts the move settles with. */
+  passage: { mover: EncounterMovementPassage; sizeOf: (actorId: string) => string | null }
 }) {
   if (input.state.automationMode === 'MANUAL') return null
   const { actors } = input
@@ -46,16 +55,25 @@ export function discoverEncounterMovementPassage(input: {
     tokens: input.sceneTokens.map((token) =>
       token.id === input.root.tokenId ? { ...token, position: input.root.originalPath[0]! } : token
     ),
-    isHostile: ({ blockerActorId }) => {
+    blocks: ({ blockerActorId, endsInside }) => {
       const blocker = actors.find((actor) => actor.id === blockerActorId)
+      const { mover, sizeOf } = input.passage
       // Disposition is the one source of hostility (ADR 0034, D13).
       return (
         !!blocker &&
-        encounterActorRelationship(source.disposition, blocker.disposition) === 'HOSTILE'
+        encounterActorRelationship(source.disposition, blocker.disposition) === 'HOSTILE' &&
+        !movementPassageAdmits(
+          endsInside ? mover.endInCreatures : mover.throughCreatures,
+          sizeOf(source.id),
+          sizeOf(blocker.id)
+        )
       )
     }
   })
-  if (discovery.kind === 'ENDPOINT_OCCUPIED') throw new MovementEndpointOccupiedError()
+  if (discovery.kind === 'ENDPOINT_OCCUPIED')
+    throw new MovementBlockedError(
+      'Voluntary movement cannot end inside a hostile occupied footprint.'
+    )
   if (discovery.kind !== 'CROSSING') return null
   const pin = (contact: typeof discovery.contact) => {
     const token = input.sceneTokens.find((entry) => entry.id === contact.blockerTokenId)
@@ -147,7 +165,9 @@ export async function prepareEncounterMovementPassageBoundary<
     userId: input.userId,
     targets: projectedTargets
   })
-  if (!context) return null
+  // With no way to contest the crossing, the hostile creature blocks the move outright.
+  if (!context)
+    throw new MovementBlockedError('No passage option lets the mover cross the hostile footprint.')
   return {
     kind: 'PENDING' as const,
     pendingSnapshot: serverAggregateChoicePendingSnapshotDtoSchema.parse({

@@ -2,13 +2,21 @@ import { z, lazySchema } from '../zod.js'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
-import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
+import {
+  equipmentInstanceMechanicSourceSchema,
+  modifierOperationSchema,
+  senseOperationSchema
+} from '../api/characterGrantFoldRules.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import { activationDtoSchema } from '../effects/activation.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { checkChoiceDtoSchema } from '../effects/check.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
-import { activeRuleEffectLifecycleDtoSchema } from './activeRuleEffectLifecycle.js'
+import {
+  activeRuleEffectLifecycleDtoSchema,
+  MAX_ACTIVE_EFFECT_STORED_TICKS,
+  activeEffectUsesSchema
+} from './activeRuleEffectLifecycle.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import {
   activationCodeSchema,
@@ -16,6 +24,7 @@ import {
   pathLifecycleEndEventSchema,
   pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerBySchema,
+  pathLifecycleEndTriggerOfSchema,
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
 } from './enums.js'
@@ -68,12 +77,14 @@ const activeEffectFactsSchema = lazySchema(() =>
 /**
  * Events whose consumer deletes the effect without releasing the condition it owns. A
  * condition-owning effect may not list one; a consumer leaves this set once it plans the release
- * (`endedEffectConditionReleases`).
+ * (`endedEffectReleases`).
  */
 const NON_RELEASING_EFFECT_EVENTS: ReadonlySet<string> = new Set([
   'ON_ABILITY_CHECK',
+  'ON_SAVING_THROW',
   'ON_HIT_POINTS_REGAINED',
-  'ON_INCAPACITATED'
+  'ON_INCAPACITATED',
+  'ON_CHOSEN_ITEM_RELEASED'
 ])
 
 const activeEffectOriginDtoSchema = lazySchema(() =>
@@ -124,7 +135,9 @@ export const activeEffectEndEventsSchema = lazySchema(() =>
  * damage counts (the effect source's side, for Charm Person) and `damageTypeIds` which types do.
  * `ATTACK_ROLL` and `SPELL_CAST` end it when its holder attacks or casts at an enemy (Sanctuary).
  * `ACTION_USED_ON_HOLDER` ends it when another creature uses one of the named actions on the holder
- * (rousing a sleeper); the ids are basic-action definitions, sorted and unique.
+ * (rousing a sleeper); the ids are basic-action definitions, sorted and unique. `INCAPACITATED` ends
+ * it when the effect's source is incapacitated or defeated (`of: 'SOURCE'`, Knight Leadership),
+ * wherever the effect sits; the holder's own incapacitation is the `ON_INCAPACITATED` end event.
  */
 export const activeEffectEndTriggerSchema = lazySchema(() =>
   z.discriminatedUnion('event', [
@@ -140,6 +153,10 @@ export const activeEffectEndTriggerSchema = lazySchema(() =>
     z.strictObject({
       event: z.literal('ACTION_USED_ON_HOLDER'),
       actionDefinitionIds: basicActionFilterDtoSchema
+    }),
+    z.strictObject({
+      event: z.literal('INCAPACITATED'),
+      of: pathLifecycleEndTriggerOfSchema
     })
   ])
 )
@@ -211,12 +228,21 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       endOnTriggers: z._default(activeEffectEndTriggersSchema, []),
       endOnConditionIds: activeGrantEndConditionIdsSchema,
       holderEnd: z.nullable(activeGrantHolderEndSchema),
+      /** Only the effect's Encounter source meets its attacker grants and attack consume. */
+      fromSourceOnly: z.optional(z.literal(true)),
+      /** The effect is active only during its tick anchor's turn while one tick remains. */
+      activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
+      /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
+      uses: z.optional(activeEffectUsesSchema),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),
         z.strictObject({
           kind: z.literal('TICKS'),
-          initialRemaining: integerSchema.check(z.gte(1)).check(z.lte(10_000)),
+          // One more than the authorable bound: a grant made on its anchor's own turn gets an extra tick.
+          initialRemaining: integerSchema
+            .check(z.gte(1))
+            .check(z.lte(MAX_ACTIVE_EFFECT_STORED_TICKS)),
           decrementStage: z.enum(['START_OF_TURN', 'END_OF_TURN']),
           /** Whose turn boundary ticks the effect: its holder's, or its Encounter source actor's. */
           anchor: z.enum(['HOLDER', 'SOURCE'])
@@ -292,6 +318,8 @@ const activeRuleEffectActorRelationshipContributionDtoSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('ACTOR_RELATIONSHIP'),
     relationshipOutcomeId: uuidSchema,
+    /** The source's reach when it took hold, in feet; the hold ends once the held creature is beyond it (D152). */
+    sealedReachFeet: z.number().check(z.gte(0)),
     modules: z
       .array(actorRelationshipModuleDtoSchema)
       .check(z.minLength(1))
@@ -322,6 +350,11 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
       /** Whether the source was hidden from players when the grant was created. */
       sourceHidden: z.boolean(),
       /**
+       * The holder's item the cast chose and bound the grant to (Shillelagh's staff): its
+       * SOURCE-scoped modifiers apply to that item. Absent for an unbound grant.
+       */
+      boundItem: z.optional(equipmentInstanceMechanicSourceSchema),
+      /**
        * Only on the template a placed zone carries: the events that end the grant the zone leaves
        * on a creature. A created grant reads them from its own `recurrence.endOnEvents`.
        */
@@ -333,6 +366,14 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
         'A grant contribution grants a modifier or a sense.'
       )
     )
+)
+
+/**
+ * Temporary hit points the effect gave its holder are the effect's own (D156): the holder's pool names
+ * the effect as its source, and the effect ending takes them with it while it still is.
+ */
+const activeRuleEffectTemporaryHitPointsContributionDtoSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('TEMPORARY_HIT_POINTS_OWNERSHIP') })
 )
 
 /**
@@ -378,6 +419,22 @@ const activeRuleEffectCreatureFormContributionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The holder is immune to one source's use of one authored effect or spell grant (D156, SPELLS-31.T5l):
+ * that source's action refuses the holder as a single target and leaves it out of an area. The
+ * source is the origin's actor in its Run, and `sourceCharacterId` once the immunity is carried.
+ */
+const activeRuleEffectSourceImmunityContributionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('SOURCE_IMMUNITY'),
+    /** The authored effect whose save was made, or the spell grant whose use locks the holder out. */
+    immuneToId: uuidSchema,
+    sourceCharacterId: z.nullable(uuidSchema),
+    /** The source's Feature or action label ("Intimidating Presence"), frozen at creation. */
+    sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
+  })
+)
+
+/**
  * Version one is retained byte-faithfully for existing rows and receipts.
  * Version two adds a bounded, immutable aggregate-state contribution list.
  */
@@ -398,9 +455,11 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               activeRuleEffectConditionEscapeContributionDtoSchema,
               activeRuleEffectActorRelationshipContributionDtoSchema,
               activeRuleEffectModifierGrantContributionDtoSchema,
+              activeRuleEffectTemporaryHitPointsContributionDtoSchema,
               activeRuleEffectLocationConcealmentContributionDtoSchema,
               activeRuleEffectActorLinkContributionDtoSchema,
-              activeRuleEffectCreatureFormContributionDtoSchema
+              activeRuleEffectCreatureFormContributionDtoSchema,
+              activeRuleEffectSourceImmunityContributionDtoSchema
             ])
           )
           .check(z.minLength(1))
@@ -453,7 +512,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
         }
         if (
           definition.recurrence.endOnTriggers.some(
-            (trigger) => 'by' in trigger && trigger.by === 'SOURCE_SIDE'
+            (trigger) =>
+              ('by' in trigger && trigger.by === 'SOURCE_SIDE') || trigger.event === 'INCAPACITATED'
           ) &&
           (definition.origin.kind !== 'ENCOUNTER' || definition.origin.sourceActorId === null)
         ) {

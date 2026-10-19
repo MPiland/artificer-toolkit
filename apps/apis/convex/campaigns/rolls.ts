@@ -78,7 +78,7 @@ async function evaluateOwnerRoll(
 }
 
 async function evaluateCampaignRoll(
-  ctx: QueryCtx,
+  ctx: MutationCtx,
   campaign: Doc<'campaigns'>,
   userId: string,
   username: string,

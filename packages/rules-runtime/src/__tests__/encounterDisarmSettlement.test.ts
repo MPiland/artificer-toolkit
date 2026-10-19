@@ -1,5 +1,6 @@
+import type { CompiledActionActiveEffectPlan } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { describe, expect, it } from 'vitest'
-import type { ServerOptionalCombatContestPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ServerContestCheckPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { baseEquipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -8,10 +9,18 @@ import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { readEncounterActorOptionalContestContext } from '../encounterActorOptionalContestContext.js'
 import {
-  disarmApplicationOutputs,
-  disarmSourceWins,
+  readEncounterActorOptionalContestContext,
+  revertEncounterActorItemRelease
+} from '../encounterActorOptionalContestContext.js'
+import {
+  encounterHeldItemInstanceIds,
+  listEncounterChosenItems,
+  readEncounterChosenItem
+} from '../encounterChosenItem.js'
+import {
+  contestApplicationOutputs,
+  contestSourceWins,
   planEncounterDisarmSuccess
 } from '../encounterDisarmPreparation.js'
 import { prepareDnd5eOptionalCombatContestPendingContext } from '../systems/dnd5e/optionalCombatContestPendingContext.js'
@@ -29,7 +38,7 @@ const HELD_ITEM_INSTANCE_ID = '00000000-0000-4000-8000-00000000d109'
 const SHIELD_ITEM_INSTANCE_ID = '00000000-0000-4000-8000-00000000d10a'
 const CHARACTER_STREAM_VERSION = 7
 
-type Contest = ServerOptionalCombatContestPendingApplicationContextDto
+type Contest = ServerContestCheckPendingApplicationContextDto
 
 const heldWeapon = baseEquipmentAuthoredDtoSchema.parse(dagger)
 const carriedWeapon = baseEquipmentAuthoredDtoSchema.parse(club)
@@ -131,29 +140,38 @@ function disarmContest(input: {
 }): Contest {
   const contributors: Contest['initiator']['contributors'] = []
   return prepareDnd5eOptionalCombatContestPendingContext({
-    actionKind: 'DISARM',
+    origin: {
+      kind: 'OPTIONAL_COMBAT',
+      actionKind: 'DISARM',
+      pin: {
+        snapshotChecksum: '1'.repeat(64),
+        definitionId: '00000000-0000-4000-8000-00000000d10c',
+        definitionVersion: 1,
+        definitionChecksum: '2'.repeat(64),
+        moduleKey: 'd20.action.disarm',
+        moduleContractVersion: 1
+      },
+      optionId: '5'.repeat(64),
+      selectionContractChecksum: '6'.repeat(64),
+      resolvedSelectionChecksum: '7'.repeat(64),
+      selection: {
+        kind: 'DISARM',
+        heldItemId: input.heldItemId,
+        defenderCheckDefinitionId: DEFENDER_CHECK_ID,
+        heldItemStateChecksum: input.heldItemStateChecksum
+      }
+    },
     actionId: 'disarm',
     sourceActorId: SOURCE_ACTOR_ID,
     targetActorId: TARGET_ACTOR_ID,
     initiatorControllerCharacterId: null,
     sceneContext: null,
     positionalDependencyChecksum: null,
-    optionalCombat: {
-      snapshotChecksum: '1'.repeat(64),
-      definitionId: '00000000-0000-4000-8000-00000000d10c',
-      definitionVersion: 1,
-      definitionChecksum: '2'.repeat(64),
-      moduleKey: 'd20.action.disarm',
-      moduleContractVersion: 1
-    },
     contestGraph: {
       definitionId: '00000000-0000-4000-8000-00000000d10d',
       checksum: '3'.repeat(64),
       identityChecksum: '4'.repeat(64)
     },
-    optionId: '5'.repeat(64),
-    selectionContractChecksum: '6'.repeat(64),
-    resolvedSelectionChecksum: '7'.repeat(64),
     source: {
       kind: 'OPTIONAL_COMBAT_DEFINITION',
       definitionId: '00000000-0000-4000-8000-00000000d10c',
@@ -174,19 +192,18 @@ function disarmContest(input: {
     defender: {
       actorId: TARGET_ACTOR_ID,
       requestNodeId: 'target_d20',
-      rollMode: 'NORMAL',
-      contributors,
-      contributorChecksum: checksumRuleDocument(contributors),
-      modifier: 1,
-      checkDefinitionId: DEFENDER_CHECK_ID
+      checks: [
+        {
+          checkDefinitionId: DEFENDER_CHECK_ID,
+          label: 'Strength (Athletics)',
+          rollMode: 'NORMAL',
+          contributors,
+          contributorChecksum: checksumRuleDocument(contributors),
+          modifier: 1
+        }
+      ]
     },
     rollEvidence: { initiator: null, defender: null },
-    selection: {
-      kind: 'DISARM',
-      heldItemId: input.heldItemId,
-      defenderCheckDefinitionId: DEFENDER_CHECK_ID,
-      heldItemStateChecksum: input.heldItemStateChecksum
-    },
     actionEconomy: null
   })
 }
@@ -268,16 +285,16 @@ describe('Disarm contest winner', () => {
     'initiator $initiator vs defender $defender: source wins is $wins',
     ({ initiator, defender, wins }) => {
       expect(
-        disarmSourceWins({ initiator: { total: initiator }, defender: { total: defender } })
+        contestSourceWins({ initiator: { total: initiator }, defender: { total: defender } })
       ).toBe(wins)
     }
   )
 
   it('compares totals, not natural faces', () => {
     // Natural 10 + 4 = 14 beats natural 12 + 1 = 13.
-    expect(disarmSourceWins(rolls(10, 12))).toBe(true)
+    expect(contestSourceWins(rolls(10, 12))).toBe(true)
     // Natural 9 + 4 = 13 ties natural 12 + 1 = 13.
-    expect(disarmSourceWins(rolls(9, 12))).toBe(false)
+    expect(contestSourceWins(rolls(9, 12))).toBe(false)
   })
 })
 
@@ -476,18 +493,25 @@ describe('Disarm settlement plan', () => {
   })
 
   it('refuses a contest that is not a Disarm', () => {
+    const disarm = creatureContest()
+    const { origin } = disarm
+    if (origin.kind !== 'OPTIONAL_COMBAT')
+      throw new Error('The fixture Disarm is an optional combat contest.')
     const shove = prepareDnd5eOptionalCombatContestPendingContext({
-      ...creatureContest(),
-      actionKind: 'SHOVE_ASIDE',
-      selection: {
-        kind: 'SHOVE_ASIDE',
-        defenderCheckDefinitionId: DEFENDER_CHECK_ID,
-        destination: { x: 5, y: 0 },
-        displacement: { amount: 5, unit: 'FEET', sceneUnits: 1 },
-        sceneId: '00000000-0000-4000-8000-00000000d10e',
-        sceneVersion: 1,
-        targetTokenId: '00000000-0000-4000-8000-00000000d10f',
-        stateChecksum: 'f'.repeat(64)
+      ...disarm,
+      origin: {
+        ...origin,
+        actionKind: 'SHOVE_ASIDE',
+        selection: {
+          kind: 'SHOVE_ASIDE',
+          defenderCheckDefinitionId: DEFENDER_CHECK_ID,
+          destination: { x: 5, y: 0 },
+          displacement: { amount: 5, unit: 'FEET', sceneUnits: 1 },
+          sceneId: '00000000-0000-4000-8000-00000000d10e',
+          sceneVersion: 1,
+          targetTokenId: '00000000-0000-4000-8000-00000000d10f',
+          stateChecksum: 'f'.repeat(64)
+        }
       }
     })
     expect(() =>
@@ -533,7 +557,7 @@ describe('Disarm receipt outputs', () => {
   it('records a source win with its item transition and spent Action', () => {
     const settled = rolls(12, 10)
     expect(
-      disarmApplicationOutputs({
+      contestApplicationOutputs({
         occurrenceId: OCCURRENCE_ID,
         contest,
         rolls: settled,
@@ -557,7 +581,7 @@ describe('Disarm receipt outputs', () => {
   ])('records $name as TARGET_WIN_OR_TIE with no state change', ({ initiator, defender }) => {
     const settled = rolls(initiator, defender)
     expect(
-      disarmApplicationOutputs({
+      contestApplicationOutputs({
         occurrenceId: OCCURRENCE_ID,
         contest,
         rolls: settled,
@@ -577,7 +601,7 @@ describe('Disarm receipt outputs', () => {
 
   it('refuses an outcome whose state transition contradicts the rolls', () => {
     expect(() =>
-      disarmApplicationOutputs({
+      contestApplicationOutputs({
         occurrenceId: OCCURRENCE_ID,
         contest,
         rolls: rolls(10, 13),
@@ -587,7 +611,7 @@ describe('Disarm receipt outputs', () => {
       })
     ).toThrow('A contested-action target win or tie cannot mutate item state.')
     expect(() =>
-      disarmApplicationOutputs({
+      contestApplicationOutputs({
         occurrenceId: OCCURRENCE_ID,
         contest,
         rolls: rolls(12, 10),
@@ -603,10 +627,10 @@ describe('Disarm receipt outputs', () => {
       ...contest,
       rollEvidence: {
         initiator: { requestId: 'initiator_d20', rawFaces: [12] },
-        defender: { requestId: 'target_d20', rawFaces: [10] }
+        defender: { requestId: 'target_d20', rawFaces: [10], checkDefinitionId: DEFENDER_CHECK_ID }
       }
     })
-    const settled = disarmApplicationOutputs({
+    const settled = contestApplicationOutputs({
       occurrenceId: OCCURRENCE_ID,
       contest: withEvidence,
       rolls: rolls(12, 10),
@@ -617,4 +641,106 @@ describe('Disarm receipt outputs', () => {
     expect(settled.sealedContextChecksum).toBe(checksumRuleDocument(withEvidence))
     expect(settled.sealedContextChecksum).not.toBe(checksumRuleDocument(contest))
   })
+})
+
+describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
+  const metalItem: NonNullable<CompiledActionActiveEffectPlan['chosenItem']> = {
+    category: null,
+    requiredProperties: ['METAL'],
+    excludedProperties: [],
+    equipmentIds: [],
+    bindsGrant: false,
+    releasedOn: 'ON_SAVE_FAIL',
+    grantUnlessReleased: true
+  }
+  const daggerItem = {
+    kind: 'EQUIPMENT_INSTANCE' as const,
+    equipmentId: heldWeapon.id,
+    itemInstanceId: HELD_ENTRY_ID
+  }
+
+  it.each(['MAIN_HAND', 'OFF_HAND'] as const)(
+    "lists a Creature's metal dagger held in its %s as releasable, and not its carried club",
+    (heldState) => {
+      const target = { actor: creatureTarget(heldState), characterFacts: null }
+      expect(listEncounterChosenItems({ plan: metalItem, target })).toEqual([
+        { item: daggerItem, releasable: true }
+      ])
+      expect(encounterHeldItemInstanceIds(target.actor, undefined)).toEqual([HELD_ENTRY_ID])
+    }
+  )
+
+  it('lists nothing once the dagger is put away, and refuses to read it', () => {
+    const target = { actor: creatureTarget('CARRIED'), characterFacts: null }
+    expect(listEncounterChosenItems({ plan: metalItem, target })).toEqual([])
+    expect(() =>
+      readEncounterChosenItem({ plan: metalItem, target, itemInstanceId: HELD_ENTRY_ID })
+    ).toThrow('The chosen item is not one this action can be used on.')
+  })
+
+  it('filters by equipment, category and excluded properties', () => {
+    const target = { actor: creatureTarget(), characterFacts: null }
+    const plan = { ...metalItem, requiredProperties: [] }
+    expect(
+      listEncounterChosenItems({ plan: { ...plan, equipmentIds: [carriedWeapon.id] }, target })
+    ).toEqual([])
+    expect(
+      listEncounterChosenItems({ plan: { ...plan, equipmentIds: [heldWeapon.id] }, target })
+    ).toEqual([{ item: daggerItem, releasable: true }])
+    expect(listEncounterChosenItems({ plan: { ...plan, category: 'ARMOR' }, target })).toEqual([])
+    expect(
+      listEncounterChosenItems({ plan: { ...plan, excludedProperties: ['METAL'] }, target })
+    ).toEqual([])
+  })
+
+  it('lists no item for a grant bound to it on a Creature, whose modifiers do not read the item it attacks with', () => {
+    const target = { actor: creatureTarget(), characterFacts: null }
+    expect(listEncounterChosenItems({ plan: { ...metalItem, bindsGrant: true }, target })).toEqual(
+      []
+    )
+  })
+
+  it('reads the chosen item, and requires one exactly when the action chooses an item', () => {
+    const target = { actor: creatureTarget(), characterFacts: null }
+    expect(
+      readEncounterChosenItem({ plan: metalItem, target, itemInstanceId: HELD_ENTRY_ID })
+    ).toEqual({ item: daggerItem, releasable: true })
+    expect(() =>
+      readEncounterChosenItem({ plan: metalItem, target, itemInstanceId: undefined })
+    ).toThrow('Choose the item this action is used on.')
+    expect(() =>
+      readEncounterChosenItem({ plan: null, target, itemInstanceId: HELD_ENTRY_ID })
+    ).toThrow('This action is not used on an item.')
+    expect(readEncounterChosenItem({ plan: null, target, itemInstanceId: undefined })).toBeNull()
+  })
+
+  it.each(['MAIN_HAND', 'OFF_HAND'] as const)(
+    'puts a dropped item back in the %s it left when the release is undone',
+    (heldState) => {
+      const target = creatureTarget(heldState)
+      const before = readEncounterActorOptionalContestContext({
+        actor: target,
+        loadoutEntryId: HELD_ENTRY_ID
+      })
+      const planned = planEncounterDisarmSuccess({
+        target,
+        contest: creatureContest(heldState),
+        character: null
+      })
+      if (
+        planned.kind !== 'CREATURE' ||
+        planned.stateTransition.kind !== 'ENCOUNTER_ACTOR_ITEM_USE_STATE'
+      )
+        throw new Error('Expected a Creature loadout change.')
+      const transition = planned.stateTransition
+      const reverted = revertEncounterActorItemRelease({ actor: planned.actor, transition })
+      if (!reverted) throw new Error('The release must revert.')
+      expect(
+        readEncounterActorOptionalContestContext({ actor: reverted, loadoutEntryId: HELD_ENTRY_ID })
+          ?.stateChecksum
+      ).toBe(before?.stateChecksum)
+      // Nothing to undo on an actor that still holds the item.
+      expect(revertEncounterActorItemRelease({ actor: target, transition })).toBeNull()
+    }
+  )
 })

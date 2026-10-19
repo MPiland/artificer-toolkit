@@ -11,7 +11,7 @@ import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ru
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
-import { damageTakenEndedEffects } from './encounterEndedEffectRelease.js'
+import { targetEndedEffects } from './encounterEndedEffectRelease.js'
 
 export type TurnEffectBoundary = {
   ordinal: 0 | 1
@@ -160,13 +160,18 @@ export function turnEffectDamageEnded(input: {
   held: readonly ActiveRuleEffectRecord[]
   /** The turn's executed candidates and the effects its earlier executions ended. */
   excluded: ReadonlySet<string>
+  /** The turn effect's own d20 evidence: a repeat save spends the holder's dice (D156). */
+  testEvidence: Parameters<typeof targetEndedEffects>[0]['testEvidence']
   applications: readonly CharacterRuleActionApplication[]
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
 }) {
   const { origin } = input.effect.definition
-  return damageTakenEndedEffects({
+  return targetEndedEffects({
     holderActorId: input.holderActorId,
     held: input.held.filter(({ id }) => !input.excluded.has(id)),
+    attacked: false,
+    testEvidence: input.testEvidence,
+    turnActorId: null,
     applications: input.applications,
     damagerActorId: origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null,
     dispositions: input.dispositions

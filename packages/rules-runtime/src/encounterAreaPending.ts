@@ -36,6 +36,21 @@ export function encounterChosenActorEntries(areaOccurrenceId: string, actorIds: 
   })
 }
 
+/**
+ * The occurrence id the save of a creature a forced mover struck runs under (D159). The pair names
+ * it, so a creature the area also caught, or that two movers struck, keeps the ids of its other entries.
+ */
+export function encounterCollisionSaveOccurrenceId(
+  areaOccurrenceId: string,
+  moverActorId: string,
+  struckActorId: string
+) {
+  return uuidv5(
+    `${areaOccurrenceId}:${moverActorId}:${struckActorId}:collision-save`,
+    encounterAreaNamespace
+  )
+}
+
 /** The command id a settled creature's receipt is stored under; it has no command of its own. */
 export function encounterAreaTargetCommandId(targetOccurrenceId: string) {
   return uuidv5(`${targetOccurrenceId}:command`, encounterAreaNamespace)
@@ -59,12 +74,14 @@ export function encounterChosenActorsChecksum(actorIds: readonly string[]) {
 export function encounterAreaCaughtChecksum(input: {
   scene: AreaContext['scene']
   area: AreaContext['area']
-  caught: readonly Pick<AreaContext['targets'][number], 'actorId' | 'token'>[]
+  /** Every sealed save; a creature a forced mover struck (D159) was not caught and is left out. */
+  caught: readonly Pick<AreaContext['targets'][number], 'actorId' | 'token' | 'collision'>[]
 }) {
   return checksumRuleDocument({
     scene: input.scene,
     area: input.area,
     caught: input.caught
+      .filter(({ collision }) => collision === undefined)
       .map(({ actorId, token }) => ({ actorId, token }))
       .sort((left, right) => left.actorId.localeCompare(right.actorId))
   })
@@ -72,10 +89,11 @@ export function encounterAreaCaughtChecksum(input: {
 
 /**
  * The GM takes one creature out of a pending area, with every ray aimed at it. Only a creature whose
- * rolls are all unanswered can go; the checksum is sealed again over those still caught.
+ * rolls are all unanswered can go; the checksum is sealed again over those still caught. A creature
+ * only a forced mover struck (D159) was not caught, and its save stays.
  */
 export function removeEncounterAreaTarget<
-  Target extends Pick<AreaContext['targets'][number], 'actorId' | 'token'> & {
+  Target extends Pick<AreaContext['targets'][number], 'actorId' | 'token' | 'collision'> & {
     testedJson?: string
   }
 >(
@@ -91,10 +109,11 @@ export function removeEncounterAreaTarget<
       removedActorIds: string[]
       caughtChecksum: string
     } {
-  const removed = context.targets.filter((target) => target.actorId === actorId)
+  const isRemoved = (target: Target) => target.actorId === actorId && target.collision === undefined
+  const removed = context.targets.filter(isRemoved)
   if (removed.length === 0) return { kind: 'NOT_CAUGHT' }
   if (removed.some((target) => target.testedJson !== undefined)) return { kind: 'ANSWERED' }
-  const targets = context.targets.filter((target) => target.actorId !== actorId)
+  const targets = context.targets.filter((target) => !isRemoved(target))
   return {
     kind: 'REMOVED',
     targets,
@@ -146,13 +165,12 @@ export function removeEncounterAreaTargetFromSnapshot(
  * offer is decided. An area that keeps no creature is settled.
  */
 export function encounterAreaSettled(snapshot: ServerAggregateChoicePendingSnapshotDto) {
-  return requireAreaContext(snapshot).targets.every(
-    (target) =>
-      target.testedJson !== undefined &&
-      (target.legendaryResistance === undefined ||
-        target.legendaryResistance.decision !== undefined)
-  )
+  return requireAreaContext(snapshot).targets.every(targetSettled)
 }
+
+const targetSettled = (target: AreaTarget) =>
+  target.testedJson !== undefined &&
+  (target.legendaryResistance === undefined || target.legendaryResistance.decision !== undefined)
 
 /**
  * Records that the roller of the save with `requestId` answered it, keeping the answer to settle
@@ -198,8 +216,14 @@ export function markEncounterAreaLegendaryResistanceDecided(
   decided: NonNullable<AreaTarget['legendaryResistance']>
 ): ServerAggregateChoicePendingSnapshotDto {
   const applicationContext = requireAreaContext(snapshot)
-  const offered = applicationContext.targets.find((target) => target.actorId === actorId)
-  if (!offered?.legendaryResistance || offered.legendaryResistance.decision)
+  // A creature a mover struck is caught twice; its choices are decided in the order they were offered.
+  const offered = applicationContext.targets.find(
+    (target) =>
+      target.actorId === actorId &&
+      target.legendaryResistance &&
+      !target.legendaryResistance.decision
+  )
+  if (!offered)
     throw new Error('This creature has no Legendary Resistance choice awaiting a decision.')
   return serverAggregateChoicePendingSnapshotDtoSchema.parse({
     ...snapshot,
@@ -212,6 +236,106 @@ export function markEncounterAreaLegendaryResistanceDecided(
   })
 }
 
+type ForcedMovementPick = NonNullable<NonNullable<AreaContext['forcedMovement']>['pick']>
+
+const sealedRays = <Ray>(rays: readonly Ray[] | undefined) => (rays?.length ? { rays } : {})
+
+/**
+ * The settled area holding the push pick it owes next (D157), after the landings picked so far. The
+ * request is named for the creature, which is picked once.
+ */
+export function holdEncounterAreaForcedMovement(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  pick: Pick<ForcedMovementPick, 'targetActorId' | 'positions'>,
+  rays?: NonNullable<NonNullable<AreaContext['forcedMovement']>['rays']>
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  if (!encounterAreaSettled(snapshot) || applicationContext.forcedMovement?.pick)
+    throw new Error('Only a settled area with no pick open holds a push pick.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      forcedMovement: {
+        landed: applicationContext.forcedMovement?.landed ?? [],
+        // The first hold seals the rays; a later hold keeps them.
+        ...sealedRays(applicationContext.forcedMovement?.rays ?? rays),
+        pick: {
+          requestId: `forced-movement:${pick.targetActorId}`,
+          targetActorId: pick.targetActorId,
+          positions: pick.positions
+        }
+      }
+    }
+  })
+}
+
+/**
+ * Whether every creature the area caught has answered its save and decided its Legendary Resistance
+ * offer. The saves of creatures a forced mover struck (D159) are opened after this, so they are left out.
+ */
+export function encounterAreaCaughtSettled(snapshot: ServerAggregateChoicePendingSnapshotDto) {
+  return requireAreaContext(snapshot)
+    .targets.filter(({ collision }) => !collision)
+    .every(targetSettled)
+}
+
+/**
+ * The settled area holding the saves of the creatures its forced movers struck (D159), after the
+ * movers landed. The landings so far and the rays stay as sealed; the first hold seals the rays.
+ */
+export function holdEncounterAreaCollisionSaves(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  struck: readonly AreaTarget[],
+  rays?: NonNullable<NonNullable<AreaContext['forcedMovement']>['rays']>
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  if (
+    !encounterAreaSettled(snapshot) ||
+    applicationContext.forcedMovement?.pick ||
+    applicationContext.targets.some(({ collision }) => collision) ||
+    struck.some(({ collision }) => !collision)
+  )
+    throw new Error(
+      'Only a settled area with no pick or collision save open holds collision saves.'
+    )
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      targets: [...applicationContext.targets, ...struck],
+      forcedMovement: {
+        landed: applicationContext.forcedMovement?.landed ?? [],
+        ...sealedRays(applicationContext.forcedMovement?.rays ?? rays)
+      }
+    }
+  })
+}
+
+/** The area with its open push pick answered: the creature lands on `position`, one it offered. */
+export function landEncounterAreaForcedMovement(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  requestId: string,
+  position: { x: number; y: number }
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  const { pick, landed = [], rays } = applicationContext.forcedMovement ?? {}
+  if (
+    pick?.requestId !== requestId ||
+    !pick.positions.some(({ x, y }) => x === position.x && y === position.y)
+  )
+    throw new Error('This forced-movement destination is not on offer.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      forcedMovement: {
+        landed: [...landed, { targetActorId: pick.targetActorId, position }],
+        ...sealedRays(rays)
+      }
+    }
+  })
+}
 /** The pending occurrence of a point-area action: one sealed save per caught creature. */
 export function buildEncounterAreaPendingSnapshot(
   input: Omit<AreaContext, 'kind' | 'schemaVersion' | 'caughtChecksum' | 'removedActorIds'> & {

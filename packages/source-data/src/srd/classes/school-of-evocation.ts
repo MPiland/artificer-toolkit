@@ -36,19 +36,7 @@ export const schoolOfEvocation: ClassAuthored = {
       description:
         'Beginning when you select this school at 2nd level, the gold and time you must spend to copy an evocation spell into your spellbook is halved.',
       availableAtLevel: 2,
-      order: 0,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(WZ, 20, 1),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(WZ, 21, 1), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_EVOCATION_SAVANT
-        })
-      ]
+      order: 0
     },
     {
       id: classRowId(WZ, 11, 2),

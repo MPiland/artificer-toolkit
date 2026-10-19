@@ -42,6 +42,7 @@ export const owl: CreatureAuthored = {
       label: 'Flyby',
       description:
         "Flyby. The owl doesn't provoke opportunity attacks when it flies out of an enemy's reach.",
+      grants: S.flybyGrants(214, 1),
       order: 1
     },
     {

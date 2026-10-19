@@ -61,12 +61,20 @@ export async function readNativeEncounterActionResponseAdmission(
       ? await readNativeAreaActionPending(ctx, occurrence)
       : null
   const { resolution: answer } = response
-  // A Legendary Resistance decision names its creature; every other area answer names a save's request.
+  // A Legendary Resistance decision names its creature, an open push pick (D157) takes only its own
+  // destination, and every other area answer names a save's request.
+  const areaPick = area?.context.forcedMovement?.pick
   const areaSave = area
     ? area.targets.find((target) =>
-        answer.kind === 'AREA_LEGENDARY_RESISTANCE'
-          ? target.actorId === answer.actorId
-          : 'requestId' in answer && target.snapshot.request.requestId === answer.requestId
+        areaPick
+          ? answer.kind === 'FORCED_MOVEMENT' &&
+            answer.requestId === areaPick.requestId &&
+            target.actorId === areaPick.targetActorId
+          : answer.kind === 'AREA_LEGENDARY_RESISTANCE'
+            ? target.actorId === answer.actorId
+            : answer.kind !== 'FORCED_MOVEMENT' &&
+              'requestId' in answer &&
+              target.snapshot.request.requestId === answer.requestId
       )
     : null
   if (area && !areaSave) rejectDomain('DECISION_NOT_PENDING')
@@ -75,7 +83,8 @@ export async function readNativeEncounterActionResponseAdmission(
     : occurrence.state === 'PENDING'
       ? await readNativeActionPending(ctx, occurrence)
       : null
-  let parsed = pending?.command
+  // A contested escape resumes through the contest path, never an action's.
+  let parsed = pending?.command.type === 'RESOLVE_ACTION' ? pending.command : undefined
   if (!parsed) {
     if (rootReceipt?.commandType !== 'RESOLVE_ACTION')
       throw new Error('Stored Encounter action root mismatch.')
@@ -94,7 +103,7 @@ export async function readNativeEncounterActionResponseAdmission(
           run,
           campaign,
           membership,
-          rollerActorId: areaSave.context.rollerActorId
+          rollerActorId: areaPick ? area!.context.casterActorId : areaSave.context.rollerActorId
         })
       : await canAnswerNativeActionEvidence(ctx, { run, campaign, membership, occurrence }))
   )
@@ -163,7 +172,13 @@ export async function readNativeEncounterActionResponseAdmission(
     occurrence.expectedEncounterVersion !== run.version
   )
     rejectDomain('VERSION_STALE', 'The action occurrence version is stale.')
-  if (answer.kind === 'AREA_LEGENDARY_RESISTANCE') {
+  if (areaPick) {
+    if (
+      answer.kind !== 'FORCED_MOVEMENT' ||
+      !areaPick.positions.some(({ x, y }) => x === answer.position.x && y === answer.position.y)
+    )
+      rejectDomain('VERSION_STALE', 'The forced-movement destination is not on offer.')
+  } else if (answer.kind === 'AREA_LEGENDARY_RESISTANCE') {
     // Only a creature whose failed save offered a choice, not yet decided, can answer it.
     const offer = areaSave?.legendaryResistance
     if (!offer || offer.decision) rejectDomain('DECISION_NOT_PENDING')
@@ -206,9 +221,10 @@ export async function readNativeEncounterActionResponseAdmission(
     resolution.kind !== 'SYSTEM_ROLL' &&
     resolution.kind !== 'AREA_LEGENDARY_RESISTANCE' &&
     resolution.kind !== 'DECLINE' &&
-    resolution.kind !== 'OPTION'
+    resolution.kind !== 'OPTION' &&
+    resolution.kind !== 'FORCED_MOVEMENT'
   )
-    throw new Error('The action requires dice, integer or Legendary Resistance evidence.')
+    throw new Error('The action requires dice, integer, a decision or a destination.')
   const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, {
     occurrence,
     initiatorUserId: initiator

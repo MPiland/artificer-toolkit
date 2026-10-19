@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest'
 import {
   classifySquareGridFootprintFacingArcs,
   classifySquareGridFacingArc,
-  deriveSquareGridForcedMovementDestination,
+  deriveSquareGridForcedMovementDestinations,
   deriveSquareGridShoveAsideDestinations,
   enumerateSquareGridFootprint,
   findSquareGridCreatureCoverIntervenors,
-  findSquareGridFlankingPairs
+  findSquareGridFlankingPairs,
+  SQUARE_GRID_COMPASS_RAYS,
+  traceSquareGridForcedMovementRay
 } from '../domains/vtt/optionalCombatGeometry.js'
 import type { CampaignSceneState, SceneGrid, SceneToken } from '../domains/vtt/scene.js'
 
@@ -423,11 +425,13 @@ describe('optional combat square-grid geometry', () => {
 describe('square-grid forced movement', () => {
   const source = token({ x: 15, y: 45 })
   const push = (
-    overrides: Partial<Parameters<typeof deriveSquareGridForcedMovementDestination>[0]> = {}
+    overrides: Partial<Parameters<typeof deriveSquareGridForcedMovementDestinations>[0]> = {}
   ) =>
-    deriveSquareGridForcedMovementDestination({
+    deriveSquareGridForcedMovementDestinations({
       direction: 'AWAY_FROM_SOURCE',
       distance: 15,
+      upTo: false,
+      sourceReach: null,
       source,
       target: token({ x: 25, y: 45 }),
       occupants: [source],
@@ -436,10 +440,10 @@ describe('square-grid forced movement', () => {
     })
 
   it('moves the exact distance straight away from or toward the source', () => {
-    expect(push()).toEqual({ x: 55, y: 45 })
+    expect(push()).toEqual([{ x: 55, y: 45 }])
     expect(
       push({ direction: 'TOWARD_SOURCE', distance: 20, target: token({ x: 75, y: 45 }) })
-    ).toEqual({ x: 35, y: 45 })
+    ).toEqual([{ x: 35, y: 45 }])
     expect(
       push({
         distance: 10,
@@ -447,8 +451,8 @@ describe('square-grid forced movement', () => {
         target: token({ x: 25, y: 25 }),
         occupants: [token({ x: 15, y: 15 })]
       })
-    ).toEqual({ x: 45, y: 45 })
-    expect(push({ distance: 0 })).toEqual({ x: 25, y: 45 })
+    ).toEqual([{ x: 45, y: 45 }])
+    expect(push({ distance: 0 })).toEqual([{ x: 25, y: 45 }])
   })
 
   it('stops before the first barrier, token or map edge on its line', () => {
@@ -460,12 +464,184 @@ describe('square-grid forced movement', () => {
       id: 'wall',
       kind: 'WALL' as const
     }
-    expect(push({ state: state({ barriers: [wall] }) })).toEqual({ x: 35, y: 45 })
-    expect(push({ occupants: [source, token({ x: 45, y: 45 })] })).toEqual({ x: 35, y: 45 })
-    expect(push({ distance: 50, target: token({ x: 85, y: 45 }) })).toEqual({ x: 95, y: 45 })
+    expect(push({ state: state({ barriers: [wall] }) })).toEqual([{ x: 35, y: 45 }])
+    expect(push({ occupants: [source, token({ x: 45, y: 45 })] })).toEqual([{ x: 35, y: 45 }])
+    expect(push({ distance: 50, target: token({ x: 85, y: 45 }) })).toEqual([{ x: 95, y: 45 }])
     expect(
       push({ direction: 'TOWARD_SOURCE', distance: 25, target: token({ x: 45, y: 45 }) })
-    ).toEqual({ x: 25, y: 45 })
+    ).toEqual([{ x: 25, y: 45 }])
+  })
+
+  it('lists every square along the line for an up-to distance, staying put first', () => {
+    expect(push({ upTo: true })).toEqual([
+      { x: 25, y: 45 },
+      { x: 35, y: 45 },
+      { x: 45, y: 45 },
+      { x: 55, y: 45 }
+    ])
+    expect(push({ upTo: true, occupants: [source, token({ x: 45, y: 45 })] })).toEqual([
+      { x: 25, y: 45 },
+      { x: 35, y: 45 }
+    ])
+  })
+
+  describe('a rolled ray', () => {
+    const trace = (
+      overrides: Partial<Parameters<typeof traceSquareGridForcedMovementRay>[0]> = {}
+    ) =>
+      traceSquareGridForcedMovementRay({
+        direction: 'RAY',
+        ray: { x: 0, y: 1 },
+        distance: 15,
+        upTo: false,
+        sourceReach: null,
+        source,
+        target: token({ x: 45, y: 45 }),
+        occupants: [source],
+        state: state(),
+        ...overrides
+      })
+
+    it('lists eight unit compass rays, north first and clockwise', () => {
+      expect(SQUARE_GRID_COMPASS_RAYS).toEqual([
+        { x: 0, y: -1 },
+        { x: 1, y: -1 },
+        { x: 1, y: 0 },
+        { x: 1, y: 1 },
+        { x: 0, y: 1 },
+        { x: -1, y: 1 },
+        { x: -1, y: 0 },
+        { x: -1, y: -1 }
+      ])
+    })
+
+    it('walks the given line whatever side of the source the target is on, diagonals included', () => {
+      expect(push({ direction: 'RAY', ray: { x: 0, y: 1 } })).toEqual([{ x: 25, y: 75 }])
+      expect(push({ direction: 'RAY', ray: { x: -1, y: -1 }, distance: 10 })).toEqual([
+        { x: 5, y: 25 }
+      ])
+      expect(push({ direction: 'RAY', ray: { x: 1, y: 0 }, upTo: true, distance: 10 })).toEqual([
+        { x: 25, y: 45 },
+        { x: 35, y: 45 },
+        { x: 45, y: 45 }
+      ])
+    })
+
+    it('fails closed without a direction to follow', () => {
+      expect(trace({ ray: undefined })).toBeNull()
+      expect(trace({ ray: { x: 0, y: 0 } })).toBeNull()
+    })
+
+    it('reports a distance stop when nothing was in the way', () => {
+      expect(trace()).toEqual({
+        reached: [
+          { x: 45, y: 45 },
+          { x: 45, y: 55 },
+          { x: 45, y: 65 },
+          { x: 45, y: 75 }
+        ],
+        stop: { kind: 'DISTANCE' }
+      })
+    })
+
+    it('reports the creature, by its place among the occupants, that stopped the line', () => {
+      expect(trace({ occupants: [source, token({ x: 45, y: 65 })] })).toEqual({
+        reached: [
+          { x: 45, y: 45 },
+          { x: 45, y: 55 }
+        ],
+        stop: { kind: 'CREATURE', occupantIndex: 1 }
+      })
+    })
+
+    it('reports an object when a wall or the map edge stopped the line', () => {
+      const wall = {
+        a: { x: 40, y: 60 },
+        b: { x: 50, y: 60 },
+        blocksLight: true,
+        blocksMovement: true,
+        id: 'wall',
+        kind: 'WALL' as const
+      }
+      expect(trace({ state: state({ barriers: [wall] }) })?.stop).toEqual({ kind: 'OBJECT' })
+      expect(trace({ distance: 100, target: token({ x: 45, y: 85 }) })?.stop).toEqual({
+        kind: 'OBJECT'
+      })
+    })
+
+    it('reports a creature in the way of a straight push the same way', () => {
+      expect(
+        trace({
+          direction: 'AWAY_FROM_SOURCE',
+          ray: undefined,
+          target: token({ x: 25, y: 45 }),
+          occupants: [source, token({ x: 45, y: 45 })]
+        })
+      ).toEqual({
+        reached: [
+          { x: 25, y: 45 },
+          { x: 35, y: 45 }
+        ],
+        stop: { kind: 'CREATURE', occupantIndex: 1 }
+      })
+    })
+  })
+
+  describe('a direction the mover picks', () => {
+    const crusher = token({ x: 45, y: 55 })
+    const pick = (
+      overrides: Partial<Parameters<typeof deriveSquareGridForcedMovementDestinations>[0]> = {}
+    ) =>
+      push({
+        direction: 'ANY',
+        distance: 5,
+        source: crusher,
+        target: token({ x: 55, y: 55 }),
+        occupants: [crusher],
+        ...overrides
+      })
+
+    it('offers each free square at exactly the distance in any direction (the Crusher)', () => {
+      expect(pick()).toEqual([
+        { x: 45, y: 45 },
+        { x: 55, y: 45 },
+        { x: 65, y: 45 },
+        { x: 65, y: 55 },
+        { x: 45, y: 65 },
+        { x: 55, y: 65 },
+        { x: 65, y: 65 }
+      ])
+    })
+
+    it('offers staying put first and every nearer square for an up-to distance', () => {
+      const squares = pick({ distance: 10, upTo: true })
+      expect(squares?.[0]).toEqual({ x: 55, y: 55 })
+      expect(squares).toHaveLength(24)
+      expect(squares).not.toContainEqual({ x: 45, y: 55 })
+      expect(squares).toContainEqual({ x: 75, y: 75 })
+    })
+
+    it('leaves the target in place when no square at the distance is free', () => {
+      const ring = [45, 55, 65].flatMap((x) =>
+        [45, 55, 65].filter((y) => x !== 55 || y !== 55).map((y) => token({ x, y }))
+      )
+      expect(pick({ occupants: ring })).toEqual([{ x: 55, y: 55 }])
+    })
+
+    it('keeps an aside move within the source reach', () => {
+      expect(pick({ direction: 'ASIDE', sourceReach: 5 })).toEqual([
+        { x: 45, y: 45 },
+        { x: 55, y: 45 },
+        { x: 45, y: 65 },
+        { x: 55, y: 65 }
+      ])
+      expect(pick({ direction: 'ASIDE', sourceReach: 10 })).toHaveLength(7)
+      expect(pick({ direction: 'ASIDE', sourceReach: null })).toBeNull()
+    })
+
+    it('fails closed past the interaction bound', () => {
+      expect(pick({ distance: 100 })).toBeNull()
+    })
   })
 
   it('fails closed without a square grid or a line to follow', () => {

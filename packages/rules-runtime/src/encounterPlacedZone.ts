@@ -17,10 +17,38 @@ import {
   wallSideBandGeometry
 } from '@artificer-toolkit/shared/vtt'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { AbilityCode } from '@artificer-toolkit/shared/core'
 
 import { compileEffectGraph } from './encounterActionEffectPlans.js'
+import { selectScalingRow } from './scalingRowSelection.js'
 
 type ZoneRegionComponent = NonNullable<CompiledActionZonePlacement['regionComponents']>[number]
+type OccupantSaveBonus = NonNullable<CompiledActionZonePlacement['occupantSaveBonus']>
+
+/**
+ * What placement resolves a zone against (D155): its source's ability modifiers, by ability code,
+ * and its level in each class. A source with no level in a class is at level 0 in it.
+ */
+export interface PlacedZoneSource {
+  abilityModifier(ability: AbilityCode): number
+  classLevel(classId: string): number
+}
+
+/**
+ * A zone's shape at its source (D155): a radius scaled by class level takes the row the source's
+ * level in that class reaches, or the authored radius below every row. Any other shape is as authored.
+ */
+export function zoneShapeAtSource(
+  shape: CompiledActionZonePlacement['shape'],
+  source: PlacedZoneSource
+): CompiledActionZonePlacement['shape'] {
+  if (!('radius' in shape) || !shape.radius.scaling) return shape
+  const { scaling, ...radius } = shape.radius
+  if (scaling.scalingSource !== 'CLASS_LEVEL' || !('classId' in scaling))
+    throw new Error('A zone radius scaled by class level is resolved against its source.')
+  const row = selectScalingRow(scaling.breakpoints, source.classLevel(scaling.classId))
+  return { ...shape, radius: row ? { ...radius, ...row.value } : radius }
+}
 
 /**
  * The spatial effect an area action leaves at the point its user chose: the compiled zone fixed to
@@ -39,10 +67,6 @@ export function planEncounterPlacedZone(
 ): LiveSessionPlacedSpatialEffect {
   const { zone, point, area } = input
   if (isDirectedAreaShape(area)) throw new Error('A placed zone needs a point-origin area.')
-  // Transitional (D155): placement does not yet resolve an occupant save bonus or a radius scaled
-  // by class level against the source, so such a zone is refused rather than placed unresolved.
-  if (zone.occupantSaveBonus || ('radius' in zone.shape && zone.shape.radius.scaling))
-    throw new Error('A zone resolved against its source at placement is not placeable yet.')
   if (Boolean(zone.perDistanceMoved) !== (input.distanceStep !== undefined))
     throw new Error('A zone acting per distance moved has its step resolved, and only such a zone.')
   return placedZoneRecord(
@@ -101,6 +125,11 @@ type PlacedZoneInput = {
   saveDc: number | null
   /** The zone's per-distance-moved step in Scene distance units; absent when it acts on entry. */
   distanceStep?: number
+  /**
+   * What a zone resolved against its source is resolved against (D155); absent when it needs none.
+   * The caller sizes `area` from {@link zoneShapeAtSource}.
+   */
+  source?: PlacedZoneSource
   /** Creatures the caster designated at cast; the zone never catches them. */
   unaffectedActorIds?: readonly string[]
 }
@@ -110,7 +139,7 @@ function placedZoneRecord(
   input: PlacedZoneInput,
   id: string,
   zone: Omit<ZoneRegionComponent, 'region'> &
-    Pick<CompiledActionZonePlacement, 'retaliatesMeleeHits'>,
+    Pick<CompiledActionZonePlacement, 'retaliatesMeleeHits' | 'occupantSaveBonus'>,
   anchor: ReturnType<typeof zoneAnchor>,
   distanceStep?: number
 ): LiveSessionPlacedSpatialEffect {
@@ -181,12 +210,16 @@ function placedZoneRecord(
         ? { maxApplicationsPerTurn: zone.maxApplicationsPerTurn }
         : {}),
       ...(zone.requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+      ...(zone.requiredSight ? { requiredSight: zone.requiredSight } : {}),
       ...(zone.movementCostMultiplier
         ? { movementCostMultiplier: zone.movementCostMultiplier }
         : {}),
       ...(zone.blockingRules ? { blockingRules: zone.blockingRules } : {}),
       ...(zone.failedSaveLosesAction ? { failedSaveLosesAction: true } : {}),
       ...(zone.retaliatesMeleeHits ? { retaliatesMeleeHits: true } : {}),
+      ...(zone.occupantSaveBonus
+        ? { occupantSaveBonus: pinnedOccupantSaveBonus(zone.occupantSaveBonus, input.source) }
+        : {}),
       // A held condition's escape against its source's save DC pins the caster's DC (D146).
       ...(heldCondition
         ? {
@@ -240,6 +273,21 @@ export function plannedSpatialEffectRecord(
     createdAt: scope.createdAt,
     updatedAt: scope.createdAt
   })
+}
+
+/** A save bonus with its amount pinned (D155): fixed, or the source's modifier with its minimum. */
+function pinnedOccupantSaveBonus(
+  { domain, dispositionFilter, amount }: OccupantSaveBonus,
+  source: PlacedZoneSource | undefined
+) {
+  if (amount.kind === 'FIXED') return { domain, dispositionFilter, amount: amount.value }
+  if (!source) throw new Error('A save bonus from its source’s modifier is resolved against it.')
+  const modifier = source.abilityModifier(amount.ability)
+  return {
+    domain,
+    dispositionFilter,
+    amount: amount.minimum === null ? modifier : Math.max(modifier, amount.minimum)
+  }
 }
 
 function castSaveDc(saveDc: number | null): number {

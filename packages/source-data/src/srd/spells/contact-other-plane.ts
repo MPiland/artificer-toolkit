@@ -3,8 +3,10 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_VALUE_KIND,
   EFFECT_KIND,
   RANGE_KIND,
+  SCALING,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TRIGGER,
@@ -12,7 +14,15 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import {
+  conditionTypeId,
+  damageTypeId,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const contactOtherPlane: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.CONTACT_OTHER_PLANE,
@@ -31,7 +41,13 @@ export const contactOtherPlane: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x214, 1),
+          dcMethod: 'FIXED_DC',
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
+          baseDc: 15
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -46,28 +62,32 @@ export const contactOtherPlane: SpellAuthored = {
       },
       paths: [
         {
-          id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x212, 1),
+          id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x215, 1),
           order: 1,
-          pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x212, 1) + '__result',
+            id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x215, 1) + '__result',
             resultKind: 'SEQUENCE' as const,
+            // Insane until a long rest: no actions (incapacitated). Not understanding, reading or
+            // speaking stays with the description, and so do the answers to a made save: a GM ruling
+            // cannot follow a saving throw.
+            lifecycle: { endOnEvents: ['ON_LONG_REST' as const] },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'CONTACT_OTHER_PLANE' as const
+                id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x216, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('PSYCHIC'),
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.NONE,
+                diceConfig: '6d6'
               },
               {
-                id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: 'Answer the Questions',
-                reasonCode: 'GM_CHOICE' as const,
-                instructions:
-                  'The GM answers each question with one word, such as "yes," "no," "maybe," "never," "irrelevant," or "unclear" (if the entity doesn\u0027t know the answer to the question). If a one-word answer would be misleading, the GM might instead offer a short phrase as an answer.'
+                id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x217, 1),
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('INCAPACITATED')
               }
             ]
           }

@@ -8,7 +8,7 @@ export const splintArmor: EquipmentAuthored = {
   description:
     'This armor is made of narrow vertical strips of metal riveted to a backing of leather that is worn over cloth padding. Flexible chain mail protects the joints.',
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
-  properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY],
+  properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY, S.EQUIPMENT_PROPERTY_CODE.METAL],
   armorClass: 17,
   cost: S.gp(200),
   weight: S.lbs(60),

@@ -3,11 +3,12 @@ import type { EncounterCharacterMechanicsEventPhase } from './encounterCharacter
 import { featureChargeUsed, withFeatureChargeUsed } from './encounterActorState.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
-  CharacterConditionRemoveOutcomeApplication,
+  CharacterEndedEffectReleaseApplication,
   CharacterRuleActionApplication
 } from './characterRuleActionSystemAdapter.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { planEncounterMechanicsBatch } from './encounterMechanicsBatchPlan.js'
+import { encounterStowedItemInstanceId } from './encounterWieldConflict.js'
 import type {
   EncounterMechanicsBatchInput,
   EncounterMechanicsBatchPlan
@@ -37,23 +38,25 @@ export type NativeEncounterActionMechanicsInput = {
   applications: readonly CharacterRuleActionApplication[]
   /**
    * The conditions the source's effects that ended on this action's event held alone
-   * (`endedEffectConditionReleases`), applied to the source in the same transaction as the
+   * (`endedEffectReleases`), applied to the source in the same transaction as the
    * effects' deletion. An action that targets its own source applies them first on that one batch,
    * so the condition it releases is gone before the outcome adds its own.
    */
-  sourceReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  sourceReleases?: readonly CharacterEndedEffectReleaseApplication[]
   /**
    * The conditions released for a reacting Character that is this action's target (a Shield cast
    * against the attack on its caster), applied first on the target's batch.
    */
-  targetReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  targetReleases?: readonly CharacterEndedEffectReleaseApplication[]
   /**
    * The conditions the target's effects that this action's damage ended held alone
-   * (`damageTakenEndedEffects`), applied to the target after the outcome in the same transaction as
+   * (`targetEndedEffects`), applied to the target after the outcome in the same transaction as
    * the effects' deletion.
    */
-  damageReleases?: readonly CharacterConditionRemoveOutcomeApplication[]
+  damageReleases?: readonly CharacterEndedEffectReleaseApplication[]
   forceTargetVersionAdvance?: boolean
+  /** The item a hand of the target holds that it drops with this outcome (Heat Metal). */
+  releaseTargetItemInstanceId?: string
   /** The form the target takes with this outcome (D130), when the action created the effect holding it. */
   enterForm?: EncounterMechanicsBatchInput['enterForm']
   eventPhases?: {
@@ -112,19 +115,24 @@ function prepareNativeActionMechanicsBatches(
       ? []
       : [...(castConsumption ? [castConsumption] : []), ...(input.counterSpellConsumptions ?? [])]
   const stow = spend === 'NONE' ? undefined : prepared.acceptedWieldConflict
+  const stowMutation = stow
+    ? { stowEquippedItemInstanceId: encounterStowedItemInstanceId(stow) }
+    : {}
   const sourceMutation = {
     ...(resourceConsumption ? { characterResourceConsumption: resourceConsumption } : {}),
     ...(itemConsumption ? { characterItemConsumption: itemConsumption } : {}),
     ...(spellConsumptions.length > 0 ? { characterSpellConsumptions: spellConsumptions } : {}),
-    ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
+    ...stowMutation
   }
   const sourceReleases = input.sourceReleases ?? []
   const onTargetBatch = actor.id === target.id && spend !== 'ONLY'
+  // A Character's basic action spends nothing of its own but may stow a held weapon (D152).
   const sourceResourceBatch: EncounterMechanicsBatchInput | null =
-    (source.kind === 'CHARACTER_ACTION' &&
-      (resourceConsumption || itemConsumption || spellConsumptions.length > 0 || stow) &&
-      !onTargetBatch) ||
-    (sourceReleases.length && !onTargetBatch)
+    ((source.kind === 'CHARACTER_ACTION' &&
+      (resourceConsumption || itemConsumption || spellConsumptions.length > 0)) ||
+      stow ||
+      sourceReleases.length) &&
+    !onTargetBatch
       ? {
           encounterId: input.encounterId,
           targetActorId: actor.id,
@@ -136,12 +144,19 @@ function prepareNativeActionMechanicsBatches(
             sourceCommandId: input.sourceCommandId,
             phase: input.eventPhases?.resource ?? 'DIRECT_ACTION_RESOURCE',
             ordinal: input.ordinal ?? 0,
-            targetCharacterId: source.kind === 'CHARACTER_ACTION' ? source.characterId : actor.id
+            targetCharacterId:
+              source.kind === 'CHARACTER_ACTION'
+                ? source.characterId
+                : actor.kind === 'CHARACTER'
+                  ? actor.sourceId
+                  : actor.id
           }),
           occurredAt: input.occurredAt,
           applications: sourceReleases,
           expectedCharacterStreamVersion:
-            source.kind === 'CHARACTER_ACTION' ? source.characterStreamVersion : null,
+            source.kind === 'CHARACTER_ACTION'
+              ? source.characterStreamVersion
+              : (sourceFacts.characterFacts?.active.play.streamVersion ?? null),
           effectiveMaximumHitPoints: sourceFacts.effectiveMaximumHitPoints,
           sheetMaximumHitPoints: sourceFacts.sheetMaximumHitPoints,
           effectiveScalarValues: sourceFacts.effectiveScalarValues,
@@ -178,7 +193,10 @@ function prepareNativeActionMechanicsBatches(
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,
     ...(input.enterForm ? { enterForm: input.enterForm } : {}),
-    ...(source.kind === 'CHARACTER_ACTION' && onTargetBatch ? sourceMutation : {})
+    ...(input.releaseTargetItemInstanceId
+      ? { releaseHeldItemInstanceId: input.releaseTargetItemInstanceId }
+      : {}),
+    ...(onTargetBatch ? (source.kind === 'CHARACTER_ACTION' ? sourceMutation : stowMutation) : {})
   }
   return { sourceResourceBatch, targetBatch }
 }
@@ -190,6 +208,7 @@ type SettledMechanicsPlan = Pick<
   | 'targetTransition'
   | 'characterStreamVersion'
   | 'itemUseStateTransition'
+  | 'itemReleaseTransition'
 >
 
 /** The receipts of the source's one spend, read from what the action prepared. */
@@ -281,10 +300,10 @@ export function finishNativeActionMechanicsSettlement(
     : settledMechanicsSource
   const spendsCharacter =
     spendsSource &&
-    source.kind === 'CHARACTER_ACTION' &&
-    (prepared.characterActionState?.resourceConsumption ||
-      prepared.characterActionState?.itemConsumption ||
-      prepared.characterActionState?.spellConsumption ||
+    ((source.kind === 'CHARACTER_ACTION' &&
+      (prepared.characterActionState?.resourceConsumption ||
+        prepared.characterActionState?.itemConsumption ||
+        prepared.characterActionState?.spellConsumption)) ||
       prepared.acceptedWieldConflict) &&
     actor.id !== target.id
   const sourceCharacterStreamVersion = spendsCharacter
@@ -299,7 +318,7 @@ export function finishNativeActionMechanicsSettlement(
     spendsSource && prepared.acceptedWieldConflict
       ? ((actor.id === target.id ? mechanics : sourceResourceMechanics)?.itemUseStateTransition ??
         (() => {
-          throw new Error('The accepted shield stow was not committed.')
+          throw new Error('The accepted stow was not committed.')
         })())
       : null
   return {
@@ -308,6 +327,7 @@ export function finishNativeActionMechanicsSettlement(
     sourceResourceMechanics,
     sourceCharacterStreamVersion,
     sourceItemUseStateTransition,
+    targetItemUseStateTransition: mechanics.itemReleaseTransition,
     sourceApplications: settledSourceApplications,
     ...(spendsSource
       ? nativeSourceSpendReceipts(prepared)
@@ -384,7 +404,7 @@ export function planNativeEncounterAreaSourceSpend(
       })
     : null
   if (prepared.acceptedWieldConflict && !sourceResourcePlan?.itemUseStateTransition)
-    throw new Error('The accepted shield stow was not committed.')
+    throw new Error('The accepted stow was not committed.')
   return {
     sourceResourcePlan,
     settledSource: spendNativeSourceFeatureCharge(

@@ -5,17 +5,12 @@ import type {
 import { SPATIAL_TURN_TRIGGERS } from '@artificer-toolkit/schema/shared/spatial'
 import type {
   CompiledEffectGroup,
-  CompiledManifest,
   CompiledManifestComponent
 } from '@artificer-toolkit/shared/compilers'
 
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { castChoiceOptions } from './encounterCastChoice.js'
-
-type PlacedSpaceManifest = Exclude<
-  CompiledManifest,
-  { manifestKind: 'CREATURE' } | { manifestKind: 'SUMMON' }
->
+import { placedSpaceEntries, type PlacedSpaceManifest } from './placedSpaceEntries.js'
 
 /**
  * An authored zone an action places, with the behavior its entry runs: left at a chosen point, or
@@ -54,6 +49,11 @@ const MODELED_MANIFEST_KEYS: ReadonlySet<string> = new Set([
   'wallThickness',
   'components'
 ])
+/**
+ * The target fact a planner pins `false` when an occupant lacks the sight a zone requires of it, so the
+ * zone's save succeeds unrolled. Absent for a zone that needs no sight.
+ */
+export const ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY = 'zoneSightRequirementMet'
 const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'id',
   'order',
@@ -64,6 +64,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'choosesUnaffected',
   'maxApplicationsPerTurn',
   'requiresFullyWithin',
+  'requiredSight',
   'movementCostMultiplier',
   'perDistanceMoved',
   'blockingRules',
@@ -128,50 +129,6 @@ export function zoneAppearSave(compiledEffect: CompiledEffectGroup): CompiledEff
 }
 
 /**
- * The zone manifest of an action whose ON_USE entries are one PLACED_SPACE or SOURCE zone and at
- * most one APPLY_GRANT beside it (D153), with that grant's entry, and whose other entries are the
- * outcomes of the save its invocation makes when the zone appears; null for any other action.
- */
-function placedSpaceEntries(compiledEffect: CompiledEffectGroup): {
-  manifest: PlacedSpaceManifest
-  entry: CompiledEffectGroup['entries'][number]
-  sourceGrantEntry: CompiledEffectGroup['entries'][number] | null
-} | null {
-  const onUse = compiledEffect.entries.filter((entry) => entry.pathCode === 'ON_USE')
-  const saved = compiledEffect.invocation.triggerCode === 'SAVING_THROW'
-  if (
-    compiledEffect.entries.some(
-      (entry) =>
-        entry.pathCode !== 'ON_USE' &&
-        (!saved || (entry.pathCode !== 'ON_SAVE_FAIL' && entry.pathCode !== 'ON_SAVE_SUCCESS'))
-    )
-  )
-    return null
-  const zones = onUse.filter(
-    (entry) =>
-      'outcome' in entry &&
-      entry.outcome.effectKind === 'MANIFEST' &&
-      entry.outcome.manifestKind === 'ZONE' &&
-      (entry.outcome.attachmentKind === 'PLACED_SPACE' || entry.outcome.attachmentKind === 'SOURCE')
-  )
-  const [zone] = zones
-  const others = onUse.filter((entry) => entry !== zone)
-  if (
-    zones.length !== 1 ||
-    !zone ||
-    !('outcome' in zone) ||
-    others.length > 1 ||
-    others.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT')
-  )
-    return null
-  return {
-    manifest: zone.outcome as PlacedSpaceManifest,
-    entry: zone,
-    sourceGrantEntry: others[0] ?? null
-  }
-}
-
-/**
  * The placed zone of an action together with the one behavior its entry runs, or null when the
  * action places none. A zone that models more than a single entering behavior is refused (never
  * partly honored).
@@ -209,6 +166,14 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
         )
       return { component, behavior: null }
     }
+    // A component that only changes the cost of moving through it (Entangle's difficult terrain)
+    // is met by no creature, so it authors no behavior either (SPELLS-20 T4d).
+    if (
+      component.movementCostMultiplier !== undefined &&
+      !component.interactionKinds?.length &&
+      !component.behaviors?.length
+    )
+      return { component, behavior: null }
     if (component.behaviors?.length !== 1 || !behavior)
       throw new CharacterRuleActionUnsupportedCompilationError(
         'A placed zone component needs exactly one behavior.'

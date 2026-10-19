@@ -1,4 +1,6 @@
+import type { ForcedMovementDirection } from '@artificer-toolkit/shared/core'
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
+import { forcedMovementDirectionSchema } from '../shared/enums.js'
 import {
   activeRuleEffectDefinitionDtoSchema,
   activeRuleEffectLifecycleDtoSchema,
@@ -26,6 +28,7 @@ import {
 } from './liveSessionEncounterRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { ruleExecutionChecksumSchema } from '../shared/ruleExecutionPrimitives.js'
 import { characterResourceUsageOwnerSchema } from '../projections/characterSheetState.js'
 import { encounterTurnUseKeysSchema } from '../projections/encounterRunPersistence.js'
 import {
@@ -49,7 +52,8 @@ import {
   encounterRuleWarningsDtoSchema,
   type EncounterRuleWarningDto
 } from '../shared/encounterRuleWarnings.js'
-import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
 export const liveSessionEncounterActionPendingInputSchema = lazySchema(() =>
@@ -118,27 +122,60 @@ const liveSessionFailedCountersSchema = lazySchema(() =>
 )
 
 /**
- * A creature an action's outcome pushes away from or pulls toward the acting creature, straight and
- * by an exact distance (ATTACK-7.T5a). The room settles it on the Encounter's Scene in the commit.
+ * A creature an action's outcome moves (D139, D157): away from or toward the acting creature along
+ * the straight line, aside within its reach, or in any direction, by an exact or up-to distance. The
+ * room settles it on the Encounter's Scene in the commit, at `position` when its source chose one.
  */
-export type LiveSessionForcedMovement = {
-  targetActorId: string
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE'
-  feet: number
+export type LiveSessionForcedMovementCollision = {
+  /** The damage dice for each full 10 feet travelled, such as `1d6`. */
+  diceConfig: string
+  damageTypeId: string
+  /** The ability of the save a struck creature makes against `dc`. */
+  abilityDefinitionId: string
+  dc: number
+  /** The condition a struck creature that fails the save is left with. */
+  conditionId: string
 }
 
-const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[]> = lazySchema(
-  () =>
+export type LiveSessionForcedMovement = {
+  targetActorId: string
+  direction: ForcedMovementDirection
+  feet: number
+  upTo: boolean
+  /** The reach of the action an ASIDE move stays within; null for every other direction. */
+  sourceReachFeet: number | null
+  position: SpatialPointDto | null
+  /** The line a `RANDOM` move follows, rolled once when the action was planned; null for every other direction. */
+  ray: SpatialPointDto | null
+  /** What the move does where it strikes an object or a creature (D159); null for a move that does nothing there. */
+  collision: LiveSessionForcedMovementCollision | null
+}
+
+export const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[]> =
+  lazySchema(() =>
     z
       .array(
         z.strictObject({
           targetActorId: postgresUuidSchema,
-          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE']),
-          feet: z.number().check(z.positive())
+          direction: forcedMovementDirectionSchema,
+          feet: z.number().check(z.positive()),
+          upTo: z.boolean(),
+          sourceReachFeet: z.nullable(z.number().check(z.nonnegative())),
+          position: z.nullable(spatialPointDtoSchema),
+          ray: z.nullable(spatialPointDtoSchema),
+          collision: z.nullable(
+            z.strictObject({
+              diceConfig: authoredIdentifierSchema,
+              damageTypeId: postgresUuidSchema,
+              abilityDefinitionId: postgresUuidSchema,
+              dc: z.number().check(z.int()),
+              conditionId: postgresUuidSchema
+            })
+          )
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-)
+  )
 
 /** Bounded domain outcomes from the private DO; no Character or Run document patches. */
 export type LiveSessionEncounterActionCommitInput = Omit<
@@ -186,6 +223,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The attacker's grants this attack roll used up; its commit deletes them, its undo restores them. */
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
+  /** The target's attack decoys this attack roll destroyed without ending their effect, as they were before the use is spent. */
+  spentUseGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
   /** The once-per-turn uses this attack spent from the attacker's turn record; its undo gives them back. */
   turnUses: z.infer<typeof encounterTurnUseKeysSchema>
   /** The forced movements this action's outcomes settle on the Scene in its commit (D139). */
@@ -235,6 +274,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      spentUseGrants: z.array(activeRuleEffectRecordSchema).check(z.maxLength(1)),
       turnUses: encounterTurnUseKeysSchema,
       forcedMovements: liveSessionForcedMovementsSchema
     })
@@ -256,33 +296,60 @@ export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   | 'endedGrants'
   | 'cleaving'
   | 'turnUses'
+  | 'spentUseGrants'
   | 'forcedMovements'
 >
 
+/** What a terminal commit of an action that did nothing carries: its source's one spend and the grants it used up. */
+const lostActionCommitFields = () => ({
+  occurredAt: z.iso.datetime(),
+  initialDefinitionId: postgresUuidSchema,
+  execution: storedRuleExecutionResultDtoSchema,
+  rules: encounterActorRuleOutputSchema,
+  resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
+  itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+  spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+  label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+  ruleOverrides: encounterRuleWarningsDtoSchema,
+  consumedGrants: z
+    .array(activeRuleEffectRecordSchema)
+    .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+})
+
+const lostActionCommitBase = () =>
+  z.omit(liveSessionEncounterActionPendingInputSchema, {
+    snapshot: true,
+    maintenanceOwners: true
+  })
+
 export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<LiveSessionEncounterCounteredCastCommitInput> =
   lazySchema(() =>
-    z.extend(
-      z.omit(liveSessionEncounterActionPendingInputSchema, {
-        snapshot: true,
-        maintenanceOwners: true
-      }),
-      {
-        occurredAt: z.iso.datetime(),
-        initialDefinitionId: postgresUuidSchema,
-        execution: storedRuleExecutionResultDtoSchema,
-        rules: encounterActorRuleOutputSchema,
-        resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
-        itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
-        spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-        reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-        failedCounters: liveSessionFailedCountersSchema,
-        label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-        ruleOverrides: encounterRuleWarningsDtoSchema,
-        consumedGrants: z
-          .array(activeRuleEffectRecordSchema)
-          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
-      }
-    )
+    z.extend(lostActionCommitBase(), {
+      ...lostActionCommitFields(),
+      reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+      failedCounters: liveSessionFailedCountersSchema
+    })
+  )
+
+/**
+ * The terminal outcome of an attack or harmful spell a warded creature's gate stopped: the source's one
+ * spend, recorded on one root. Nothing of the action applies, so it creates no effect, damage or
+ * Concentration. Taking the action still uses up the source's grants that end on an attack or a cast.
+ */
+export type LiveSessionEncounterGatedActionCommitInput = Omit<
+  LiveSessionEncounterCounteredCastCommitInput,
+  'reactionSpellConsumption' | 'failedCounters'
+> & {
+  /** The facts the gated action was prepared against; its receipt names them, as no graph ran. */
+  currentnessChecksum: string
+}
+
+export const liveSessionEncounterGatedActionCommitInputSchema: z.ZodMiniType<LiveSessionEncounterGatedActionCommitInput> =
+  lazySchema(() =>
+    z.extend(lostActionCommitBase(), {
+      ...lostActionCommitFields(),
+      currentnessChecksum: ruleExecutionChecksumSchema
+    })
   )
 
 /** The Scene spatial effect an action places, as the planner built it; persistence stores it as is. */
@@ -318,7 +385,12 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
  */
 export type LiveSessionEncounterAreaCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
-  'execution' | 'createdEffects' | 'cleaving' | 'turnUses' | 'reactionSpellConsumption'
+  | 'execution'
+  | 'createdEffects'
+  | 'cleaving'
+  | 'turnUses'
+  | 'spentUseGrants'
+  | 'reactionSpellConsumption'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   targets: {
@@ -333,6 +405,8 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
    */
   rollsPerTarget: boolean
   area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
+  /** The caught creatures the action had no effect on, which took no save. */
+  unaffectedActorIds: string[]
   /** The GM removal that left the area settled, when it rather than an answer committed it. */
   removal: RemoveAreaTargetInputDto | null
   /**
@@ -366,6 +440,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       rollsPerTarget: z.boolean(),
       area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
+      unaffectedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       removal: z.nullable(removeAreaTargetInputDtoSchema),
       placedZones: z.array(liveSessionPlacedSpatialEffectSchema).check(z.maxLength(5)),
       zoneSourceGrant: z.nullable(activeRuleEffectRecordSchema),

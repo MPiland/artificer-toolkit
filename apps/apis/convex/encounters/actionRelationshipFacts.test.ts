@@ -69,6 +69,7 @@ function relationshipEffect(input: {
       {
         kind: 'ACTOR_RELATIONSHIP',
         relationshipOutcomeId: crypto.randomUUID(),
+        sealedReachFeet: 5,
         modules: [
           {
             id: crypto.randomUUID(),

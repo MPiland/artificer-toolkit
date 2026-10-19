@@ -1,3 +1,8 @@
+import {
+  dnd5eAttackTraitGrants,
+  type Dnd5eAttackTraitGrant
+} from './systems/dnd5e/attackDamageDefenses.js'
+import { dnd5eAcceptedModifierApplicability } from './systems/dnd5e/modifierApplicability.js'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
@@ -12,12 +17,15 @@ import {
 } from './character/characterSpellCastActions.js'
 import {
   type EncounterAttackAgainstContributor,
+  type EncounterHolderState,
   type EncounterSourceSightSave,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
   withCreatureActiveGrantArmorClass,
+  creatureInnateConditionIds,
   withCreatureActiveGrantProtection,
-  withCreatureActiveGrantSaves
+  withCreatureActiveGrantSaves,
+  encounterSavingThrowAddedDice
 } from './encounterActiveGrants.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
@@ -36,6 +44,7 @@ import {
   scalarValuesDiffer
 } from './encounterScalarReductions.js'
 import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { innateConditionIds } from './encounterInnateConditions.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import {
   bindEncounterActorRuleOutputToFacts,
@@ -85,6 +94,8 @@ export type MovementTarget<
   state: {
     current: number
     temporary: number
+    /** The active effect whose temporary hit points these are; absent when none (D156). */
+    temporarySourceEffectId?: string
     conditions: readonly string[]
     /** A Character's death saves; null for an actor that is simply defeated at 0 (D63). */
     deathSaves: CharacterDeathSaves | null
@@ -98,13 +109,21 @@ export type MovementTarget<
   effectiveScalarValues: Readonly<Record<string, number>>
   baseRulePolicyOutput: CharacterRulePolicyOutput | null
   effectiveRulePolicyOutput: CharacterRulePolicyOutput | null
-  /** The Senses the actor perceives with: a Character's pinned Senses or a Creature's authored ones. */
+  /** The Senses the actor perceives with: a Character's, with its Active Effect grants, or a Creature's authored ones. */
   perceptionSenses: readonly { senseDefinitionId: string; range: SenseRangeDto }[]
   targetDerivedFacts: Readonly<Record<string, unknown>>
+  /** The save-bonus aura amount (D155) its save rows include, which a rebuilt turn target keeps. */
+  occupantSaveBonus?: number
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
   /** Defenses that apply only to attacks without their bypassing traits. */
   qualifiedDefenses: readonly Dnd5eQualifiedDamageDefense[]
   conditionImmunityIds: readonly string[]
+  /** Conditions the actor always has (see `heldConditionIds`); `state.conditions` holds only those applied to it. */
+  innateConditionIds: readonly string[]
+  /** The actor's accepted grant-fold modifiers: a Character's fold, a Creature's feature grants. */
+  attackTraitGrants: readonly Dnd5eAttackTraitGrant[]
+  /** Magic schools whose spells have no effect on the actor. */
+  spellSchoolImmunityIds: readonly string[]
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
   /**
    * Contributors attack rolls against the actor gain from its active `ATTACKS_AGAINST` grants
@@ -120,6 +139,11 @@ export type MovementTarget<
    */
   sourceSightSaves: readonly EncounterSourceSightSave[]
   /**
+   * What the actor could do when `withEncounterHolderDefense` applied its grants, which a rebuilt
+   * turn target re-applies them with; absent when it had none.
+   */
+  holderState?: EncounterHolderState
+  /**
    * The actor's pinned condition definitions (D94), loaded by `withEncounterConditionMechanics`
    * and carried across rebuilds so `applyEncounterConditionMechanics` can re-derive its mechanics;
    * empty until a flow loads them.
@@ -127,6 +151,18 @@ export type MovementTarget<
   conditionDefinitions: readonly PinnedConditionRuleStateDefinitionDto[]
   /** The mechanics the actor's current conditions apply, derived from `conditionDefinitions`. */
   conditionMechanics: readonly EncounterConditionMechanic[]
+}
+
+/** The Character's current condition ids: its play state's and its Campaign context's, unique. */
+export function characterConditionIds(characterFacts: CharacterMovementFacts): string[] {
+  return [
+    ...new Set([
+      ...(characterFacts.character.state.conditions ?? []).map(
+        (condition) => condition.conditionTypeId
+      ),
+      ...characterFacts.campaignContext.conditions.map((condition) => condition.conditionTypeId)
+    ])
+  ]
 }
 
 /** The sum of a Character's class levels. */
@@ -137,8 +173,8 @@ export function characterTotalLevel(characterFacts: CharacterMovementFacts): num
   )
 }
 
-/** A Creature snapshot's ability scores, by ability definition id. */
-function creatureAbilityScalars(snapshot: unknown, gameSystemId: string): Record<string, number> {
+/** A Creature snapshot's pinned rule facts. */
+function creatureRuleFacts(snapshot: unknown, gameSystemId: string) {
   if (typeof snapshot !== 'object' || snapshot === null || Array.isArray(snapshot))
     throw new Error('Encounter actor scalar facts are stale.')
   const facts = encounterCreatureRuleFactsSnapshotSchema.parse(
@@ -146,7 +182,7 @@ function creatureAbilityScalars(snapshot: unknown, gameSystemId: string): Record
   )
   if (facts.gameSystemId !== gameSystemId)
     throw new Error('Encounter actor scalar facts are stale.')
-  return { ...facts.abilityScores }
+  return facts
 }
 
 /** The Character's policy output with its armor class replaced by the form's. */
@@ -216,12 +252,7 @@ export function buildMovementTarget<
       'Encounter Character source is unavailable.'
     )
     const conditions = characterFacts.character.state.conditions ?? []
-    const conditionIds = [
-      ...new Set([
-        ...conditions.map((condition) => condition.conditionTypeId),
-        ...characterFacts.campaignContext.conditions.map((condition) => condition.conditionTypeId)
-      ])
-    ]
+    const conditionIds = characterConditionIds(characterFacts)
     const systemConditions = new Set(
       (characterFacts.prepared.context.registry.system?.conditionTypes ?? []).map(
         (condition) => condition.id
@@ -252,7 +283,9 @@ export function buildMovementTarget<
     // In a form the physical scores are the form's and the mental ones the Character's, baked into
     // the snapshot when the form was entered (D130 amendment).
     const targetScalarValues =
-      form === null ? baseScalarValues : creatureAbilityScalars(form.snapshot, gameSystemId)
+      form === null
+        ? baseScalarValues
+        : { ...creatureRuleFacts(form.snapshot, gameSystemId).abilityScores }
     const effectiveScalarValues = foldActiveScalarReductions({
       baseScalarValues: targetScalarValues,
       effects: activeEffects
@@ -298,6 +331,7 @@ export function buildMovementTarget<
       input.includeReactionSources && form === null
         ? buildCharacterSpellCastActions({
             spellCastCandidates: characterFacts.ruleEvaluation.facts.spellCastCandidates,
+            spellAccessCandidates: characterFacts.ruleEvaluation.facts.spellAccessCandidates,
             castableCandidateIds: listCastableSpellCandidateIds({
               character: characterFacts.character,
               ruleEvaluation: {
@@ -336,10 +370,20 @@ export function buildMovementTarget<
           decisions: spellCast.decisions.filter((d) => executableActionIds.has(d.actionId)),
           compiledActionEntryPoints: spellEntryPoints.filter((entry) =>
             executableActionIds.has(entry.actionId)
+          ),
+          magicSchoolIdBySpellId: new Map(
+            [...(characterFacts.prepared.context.spellDocumentsById ?? [])].map(
+              ([spellId, spell]) => [spellId, spell.magicSchoolId]
+            )
           )
         }
       : input.includeReactionSources
-        ? { candidates: [], decisions: [], compiledActionEntryPoints: [] }
+        ? {
+            candidates: [],
+            decisions: [],
+            compiledActionEntryPoints: [],
+            magicSchoolIdBySpellId: new Map()
+          }
         : null
     return {
       actor,
@@ -350,12 +394,18 @@ export function buildMovementTarget<
           ? {
               current: characterFacts.character.state.hitpoints.current,
               temporary: characterFacts.character.state.hitpoints.temp,
+              ...(characterFacts.character.state.hitpoints.tempSourceEffectId && {
+                temporarySourceEffectId: characterFacts.character.state.hitpoints.tempSourceEffectId
+              }),
               conditions: conditionIds,
               deathSaves: characterFacts.character.state.hitpoints.deathSaves
             }
           : {
               current: form.currentHitPoints,
               temporary: form.tempHitPoints,
+              ...(form.tempHitPointsSourceEffectId && {
+                temporarySourceEffectId: form.tempHitPointsSourceEffectId
+              }),
               conditions: conditionIds,
               deathSaves: null
             },
@@ -366,7 +416,7 @@ export function buildMovementTarget<
       effectiveScalarValues,
       baseRulePolicyOutput,
       effectiveRulePolicyOutput,
-      perceptionSenses: baseRulePolicyOutput.senses,
+      perceptionSenses: effectiveRulePolicyOutput.senses,
       ...(input.includeReactionSources
         ? {
             characterReactionSource: {
@@ -425,24 +475,33 @@ export function buildMovementTarget<
         ...effectiveRulePolicyOutput,
         // The form's ability scores resolve its attacks' damage, as a Creature's stat block does (T4d).
         ...(formStatBlock ? { statBlock: formStatBlock } : {}),
+        savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
         targetProtection: {
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
           qualifiedDefenses: [],
-          conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds
+          conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+          spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds
         }
       },
       defenses: effectiveRulePolicyOutput.defenses,
       qualifiedDefenses: [],
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+      attackTraitGrants: dnd5eAttackTraitGrants(
+        effectiveRulePolicyOutput.grantFold.modifiers,
+        dnd5eAcceptedModifierApplicability
+      ),
+      innateConditionIds: innateConditionIds(effectiveRulePolicyOutput.grantFold.modifiers),
+      spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds,
       attackAgainstContributors: [],
       sourceSightSaves: [],
       conditionDefinitions: [],
       conditionMechanics: []
     }
   }
-  const baseScalarValues: Record<string, number> =
-    actor.kind === 'CREATURE' ? creatureAbilityScalars(actor.snapshot, gameSystemId) : {}
+  const creatureFacts =
+    actor.kind === 'CREATURE' ? creatureRuleFacts(actor.snapshot, gameSystemId) : null
+  const baseScalarValues: Record<string, number> = { ...creatureFacts?.abilityScores }
   const effectiveScalarValues = foldActiveScalarReductions({
     baseScalarValues,
     effects: activeEffects
@@ -463,7 +522,8 @@ export function buildMovementTarget<
     throw new Error('Encounter actor spatial protections are not normalized.')
   const targetProtection = withCreatureActiveGrantProtection(
     actorRule.targetProtection,
-    activeEffects
+    activeEffects,
+    creatureFacts?.modifiers ?? []
   )
   const conditions = readEncounterActorConditionState(actor.conditions ?? [])
   const creatureStatBlock = snapshotStatBlock(actor)
@@ -474,6 +534,9 @@ export function buildMovementTarget<
     state: {
       current: actor.currentHitPoints,
       temporary: actor.tempHitPoints,
+      ...(actor.tempHitPointsSourceEffectId && {
+        temporarySourceEffectId: actor.tempHitPointsSourceEffectId
+      }),
       conditions: conditions.ids,
       deathSaves: null
     },
@@ -491,8 +554,10 @@ export function buildMovementTarget<
       savingThrowDefinitions: withCreatureActiveGrantSaves(
         actorRule.savingThrowDefinitions ?? [],
         actor.id,
-        activeEffects
+        activeEffects,
+        creatureFacts?.modifiers ?? []
       ),
+      savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
       featureResources: actorRule.featureResources,
       creatureTypeId: snapshotCreatureTypeId(actor),
       targetProtection,
@@ -505,6 +570,12 @@ export function buildMovementTarget<
     defenses: targetProtection.defenses,
     qualifiedDefenses: targetProtection.qualifiedDefenses,
     conditionImmunityIds: targetProtection.conditionImmunityIds,
+    attackTraitGrants: dnd5eAttackTraitGrants(
+      creatureFacts?.modifiers ?? [],
+      dnd5eAcceptedModifierApplicability
+    ),
+    innateConditionIds: creatureInnateConditionIds(activeEffects, creatureFacts?.modifiers ?? []),
+    spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,
     attackAgainstContributors: [],
     sourceSightSaves: [],
     conditionDefinitions: [],

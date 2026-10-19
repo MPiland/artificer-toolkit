@@ -30,10 +30,13 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomInputs } from './roomInputs.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
+import { readRoomSceneState } from './roomSceneRead.js'
 import { readBasicActionScopeAdmission } from '@artificer-toolkit/encounter-persistence/basicActionScopeAdmission'
 import { readLiveConcentrationResponseAdmission } from '@artificer-toolkit/encounter-persistence/liveConcentrationResponseAdmission'
 import { readEncounterAutoRollByActorId } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readEncounterActorTokenBindings } from '@artificer-toolkit/encounter-persistence/actorTokenBindings'
+import { readMemberSeenActorIds } from '@artificer-toolkit/encounter-persistence/targetVisibility'
+import { readEncounterOccupantSaveAuras } from '@artificer-toolkit/encounter-persistence/occupantSaveAuras'
 import {
   readRoomActionAreaSceneInputs,
   readRoomActionSceneInputs
@@ -44,7 +47,7 @@ import { readAreaRemovalCommitAdmission } from '@artificer-toolkit/encounter-per
 import { readNativeEncounterActionResponseAdmission } from '@artificer-toolkit/encounter-persistence/actionResumeAdmission'
 import { readLiveEncounterActionScope } from '@artificer-toolkit/encounter-persistence/liveActionAdmission'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
-import { readDisarmAdmission } from '@artificer-toolkit/encounter-persistence/disarmAdmission'
+import { readContestAdmission } from '@artificer-toolkit/encounter-persistence/contestAdmission'
 import { readRoomLiveMovementAdmission } from './roomSceneGeometryRead.js'
 import { readMovementResolution } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 
@@ -94,7 +97,7 @@ export async function readRoomEncounterTurnCapture(
     movementAdmission &&
     [
       'CONCENTRATION_RESPONSE',
-      'DISARM',
+      'CONTEST',
       'ACTION_COMMAND',
       'ACTION_RESPONSE',
       'AREA_REMOVAL',
@@ -147,7 +150,7 @@ export async function readRoomEncounterTurnCapture(
   }
   if (concentrationAdmission?.kind === 'REPLAY')
     throw new Error('Completed concentration response cannot capture rules inputs.')
-  if (input.request.kind === 'DISARM') {
+  if (input.request.kind === 'CONTEST') {
     if (
       input.expectedRole !== 'OWNER' &&
       checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
@@ -155,12 +158,12 @@ export async function readRoomEncounterTurnCapture(
       throw new Error('Live Session action scope mismatch.')
     if (input.turnCommand || input.concentrationResponse)
       throw new Error('Room action capture cannot use another command scope.')
-    const admission = await readDisarmAdmission(ctx, {
+    const admission = await readContestAdmission(ctx, {
       ...input,
       command: input.request.command
     })
     const response = {
-      kind: 'DISARM' as const,
+      kind: 'CONTEST' as const,
       ready:
         admission.kind === 'READY'
           ? {
@@ -461,6 +464,27 @@ export async function readRoomEncounterTurnCapture(
     response = {
       kind: 'ACTOR_TOKEN_BINDINGS',
       bindings: await readEncounterActorTokenBindings(ctx, state)
+    }
+  } else if (request.kind === 'SEEN_ACTORS') {
+    response = {
+      kind: 'SEEN_ACTORS',
+      actorIds: await readMemberSeenActorIds(ctx, {
+        encounterId: state.id,
+        actors: await readRunActors(ctx, state),
+        membership
+      })
+    }
+  } else if (request.kind === 'OCCUPANT_SAVE_AURAS') {
+    const actorId = request.actorId.toLowerCase()
+    response = {
+      kind: 'OCCUPANT_SAVE_AURAS',
+      actorId,
+      auras: await readEncounterOccupantSaveAuras(
+        ctx,
+        state,
+        actorId,
+        async (sceneId) => (await readRoomSceneState(transaction, sceneId)).scene
+      )
     }
   } else if (request.kind === 'ACTION_SCENE') {
     const actorId = request.command.actorId.toLowerCase()

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { decisionTitle, rollPromptText } from './CampaignTabletopDecisionDrawer.model'
+import {
+  addedDieEntries,
+  decisionTitle,
+  rollPromptText
+} from './CampaignTabletopDecisionDrawer.model'
 
 describe('decisionTitle', () => {
   it('titles a pending area as its saves', () => {
@@ -8,6 +12,10 @@ describe('decisionTitle', () => {
 })
 
 describe('rollPromptText', () => {
+  it('titles a pending retarget as choosing a new target', () => {
+    expect(decisionTitle('ATTACK_RETARGET_CHOICE')).toBe('Choose a new target')
+  })
+
   it('names a death save with the saves already held', () => {
     expect(rollPromptText('Aria', { kind: 'DEATH_SAVE', successes: 1, failures: 2 })).toBe(
       'Death save for Aria (1 success, 2 failures, no modifiers)'
@@ -27,5 +35,20 @@ describe('rollPromptText', () => {
 
   it('falls back to naming the roller', () => {
     expect(rollPromptText('Aria', undefined)).toBe('Roll for Aria')
+  })
+})
+
+describe('addedDieEntries', () => {
+  it('labels each added die with its sign, size and source, in order', () => {
+    expect(
+      addedDieEntries([
+        { label: 'Bane', count: 1, faces: 4, sign: 'SUBTRACT' },
+        { label: 'Bless', count: 2, faces: 4, sign: 'ADD' }
+      ])
+    ).toEqual([
+      { label: '−d4 Bane', faces: 4 },
+      { label: '+d4 Bless', faces: 4 },
+      { label: '+d4 Bless', faces: 4 }
+    ])
   })
 })

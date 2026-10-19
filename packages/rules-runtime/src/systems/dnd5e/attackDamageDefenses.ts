@@ -1,8 +1,16 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import type { AttackKind } from '@artificer-toolkit/schema/shared/enums'
 import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 
-import { isDnd5eSpellAttackKind } from './attackKind.js'
+import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
+import {
+  dnd5eAcceptedModifierApplicability,
+  dnd5eCharacterActionTarget,
+  dnd5eModifierApplies,
+  type Dnd5eModifierApplicability,
+  type Dnd5eModifierTarget
+} from './modifierApplicability.js'
 
 type DamageDefense = {
   kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
@@ -45,9 +53,7 @@ export function dnd5eAttackDamageDefenses(
         ({ sourceEffectIds }) =>
           !sourceEffectIds?.length || (sourceId !== null && sourceEffectIds.includes(sourceId))
       )
-      .map(
-        ({ kind, damageTypeId }) => [`${kind}:${damageTypeId}`, { kind, damageTypeId }] as const
-      )
+      .map(({ kind, damageTypeId }) => [`${kind}:${damageTypeId}`, { kind, damageTypeId }] as const)
   )
   if (traits !== null)
     for (const defense of qualified)
@@ -59,24 +65,75 @@ export function dnd5eAttackDamageDefenses(
   return [...applicable.values()]
 }
 
+/** An `ATTACK_TRAIT` grant: the trait it gives and where it applies. */
+export type Dnd5eAttackTraitGrant = {
+  readonly trait: DamageDefenseBypassCode
+  readonly applicability: Dnd5eModifierApplicability
+}
+
+/** The `ATTACK_TRAIT` grants among a holder's modifiers, whichever fold shape they come in. */
+export function dnd5eAttackTraitGrants<
+  M extends { valueDomainCode: string; domain: { trait?: DamageDefenseBypassCode } }
+>(
+  modifiers: readonly M[],
+  applicability: (modifier: M) => Dnd5eModifierApplicability
+): Dnd5eAttackTraitGrant[] {
+  return modifiers.flatMap((modifier) =>
+    modifier.valueDomainCode === 'ATTACK_TRAIT' && modifier.domain.trait !== undefined
+      ? [{ trait: modifier.domain.trait, applicability: applicability(modifier) }]
+      : []
+  )
+}
+
+/** The traits the grants that apply to this attack give it. */
+export function dnd5eGrantedAttackTraits(
+  grants: readonly Dnd5eAttackTraitGrant[],
+  target: Dnd5eModifierTarget
+): ReadonlySet<DamageDefenseBypassCode> {
+  return new Set(
+    grants.flatMap(({ trait, applicability }) =>
+      dnd5eModifierApplies(applicability, target) ? [trait] : []
+    )
+  )
+}
+
 /**
  * A Character attack is magical when it is a spell attack or made with a magic item; silvered and
- * adamantine come from the item's Sheet properties.
+ * adamantine come from the item's Sheet properties. An ATTACK_TRAIT grant that applies to the
+ * attack adds its trait (Magic Weapon's weapon becomes magical).
  */
 export function dnd5eCharacterAttackTraits(input: {
-  candidate: Pick<CharacterActionCandidate, 'equipment'>
-  attackKind: string | null
-  itemMechanics: CharacterRulePolicyOutput['itemMechanics']
+  candidate: Pick<
+    CharacterActionCandidate,
+    'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts' | 'activationSourceKind'
+  >
+  attackKind: AttackKind | null
+  policy: Pick<CharacterRulePolicyOutput, 'itemMechanics' | 'grantFold'>
 }): Dnd5eAttackTraits {
   const equipment = input.candidate.equipment
   const item =
     equipment === null
       ? undefined
-      : input.itemMechanics.find((entry) => entry.itemInstanceId === equipment.itemInstanceId)
+      : input.policy.itemMechanics.find(
+          (entry) => entry.itemInstanceId === equipment.itemInstanceId
+        )
+  const attackDomain =
+    input.attackKind === null ? null : dnd5eAttackModifierDomain(input.attackKind)
+  const granted = dnd5eGrantedAttackTraits(
+    dnd5eAttackTraitGrants(
+      input.policy.grantFold.modifiers.filter(
+        ({ domain }) => domain.attackDomain === undefined || domain.attackDomain === attackDomain
+      ),
+      dnd5eAcceptedModifierApplicability
+    ),
+    dnd5eCharacterActionTarget(input.candidate)
+  )
   return {
     magical:
-      isDnd5eSpellAttackKind(input.attackKind) || (equipment?.properties ?? []).includes('MAGIC'),
-    silvered: item?.properties.silvered === true,
-    adamantine: item?.properties.adamantine === true
+      isDnd5eSpellAttackKind(input.attackKind) ||
+      (equipment?.properties ?? []).includes('MAGIC') ||
+      granted.has('MAGICAL'),
+    silvered: item?.properties.silvered === true || granted.has('SILVERED'),
+    adamantine: item?.properties.adamantine === true || granted.has('ADAMANTINE')
   }
 }

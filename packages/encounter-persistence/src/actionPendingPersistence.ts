@@ -11,8 +11,10 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { encounterAreaCaughtSettled } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import {
   requireAreaActionAnswer,
+  requireAreaActionForcedMovement,
   requireAreaActionLegendaryResistance,
   requireAreaActionPendingRoot
 } from './actionAreaPending.js'
@@ -89,8 +91,17 @@ export async function persistEncounterActionPending(
     if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
     if (resume?.area) {
-      // An area answer stores the same area with that one save answered, or that one choice decided.
-      if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
+      // An area answer stores the same area with that one save answered, that one choice decided, or
+      // that one push landed.
+      const resolution = input.response?.resolution
+      if (resolution?.kind === 'FORCED_MOVEMENT')
+        requireAreaActionForcedMovement({
+          stored: resume.area.snapshot,
+          next: snapshot,
+          requestId: resolution.requestId,
+          position: resolution.position
+        })
+      else if (resolution?.kind === 'AREA_LEGENDARY_RESISTANCE')
         requireAreaActionLegendaryResistance({
           stored: resume.area.snapshot,
           next: snapshot,
@@ -121,9 +132,11 @@ export async function persistEncounterActionPending(
         context.legendaryResistance !== undefined ||
         context.reactionChoice !== undefined ||
         context.onHitChoice !== undefined ||
+        context.forcedMovementDestination !== undefined ||
         (resume &&
           (snapshot.occurrenceId !== resume.occurrence.id ||
-            context.currentnessChecksum !== resume.pending.context.currentnessChecksum ||
+            (context.currentnessChecksum !== resume.pending.context.currentnessChecksum &&
+              !resume.pending.context.attackRetarget) ||
             !castPendingContinues(resume.pending.context, input.response, context)))
       )
         throw new Error('Live Session pending action root mismatch.')
@@ -152,11 +165,18 @@ export async function persistEncounterActionPending(
         callbacks.readAreaSceneInputs
       )
       const failedCounters = area.failedCounters ?? []
+      // An area whose saves all settled as it opened may hold its first push pick or the saves of the
+      // creatures its movers struck, nothing picked.
+      const opened = area.forcedMovement
       if (
-        resume
+        (opened &&
+          (opened.landed.length > 0 ||
+            snapshot.snapshotKind !== 'AGGREGATE_CHOICE' ||
+            !encounterAreaCaughtSettled(snapshot))) ||
+        (resume
           ? snapshot.occurrenceId !== resume.occurrence.id ||
             !castPendingContinues(resume.pending.context, input.response, { failedCounters })
-          : failedCounters.length > 0
+          : failedCounters.length > 0)
       )
         throw new Error('Live Session pending area action root mismatch.')
     }
@@ -169,6 +189,10 @@ export async function persistEncounterActionPending(
         snapshot.applicationContext.rollerActorId !== target.actorId &&
         // A creature offered the chance to counter the cast is the roller of that decision.
         snapshot.applicationContext.castReaction === undefined) ||
+      // The save a ward owes is asked of the one who attacks it.
+      (snapshot.applicationContext.incomingGate !== undefined &&
+        (snapshot.applicationContext.incomingGate.holderActorId !== target.actorId ||
+          snapshot.applicationContext.rollerActorId !== admission.input.actorId)) ||
       snapshot.applicationContext.commandFingerprint !== fingerprint ||
       checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
       snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
@@ -182,12 +206,15 @@ export async function persistEncounterActionPending(
         snapshot.applicationContext.reactionChoice.reactions.some(
           ({ reactorActorId }) => reactorActorId !== target.actorId
         )) ||
-      (snapshot.applicationContext.onHitChoice !== undefined &&
+      ((snapshot.applicationContext.onHitChoice !== undefined ||
+        snapshot.applicationContext.forcedMovementDestination !== undefined) &&
         snapshot.applicationContext.rollerActorId !== admission.input.actorId) ||
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||
-          snapshot.applicationContext.currentnessChecksum !==
-            resume.pending.context.currentnessChecksum ||
+          // A retarget answer turns the action on another creature, so its facts are the new creature's.
+          (snapshot.applicationContext.currentnessChecksum !==
+            resume.pending.context.currentnessChecksum &&
+            !resume.pending.context.attackRetarget) ||
           !castPendingContinues(
             resume.pending.context,
             input.response,
@@ -253,8 +280,10 @@ export async function persistEncounterActionPending(
   if (resume) await ctx.db.patch(id, changedFields(resume.occurrence, value))
   const occurrence = await ctx.db.get(id)
   if (!occurrence) throw new Error('The pending action was not stored.')
-  // A counter's check pause rolls the reactor's own d20, which the cast's policy does not hold.
-  const d20Policy = evidence?.d20Policy ?? evidence?.castReaction?.check?.d20
+  // A counter's check pause rolls the reactor's own d20, and a ward's the attacker's save: neither is the
+  // action's own policy.
+  const d20Policy =
+    evidence?.d20Policy ?? evidence?.castReaction?.check?.d20 ?? evidence?.incomingGate?.d20
   if (resume && input.response)
     await insertActionEvidenceReceipt(ctx, {
       occurrence,

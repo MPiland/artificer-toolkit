@@ -14,7 +14,11 @@ import {
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
-import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import {
+  withActorTemporaryHitPoints,
+  withCharacterTemporaryHitPoints
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
@@ -26,11 +30,15 @@ import {
   withEncounterRuleUsageUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import {
+  readEncounterActorConditionState,
+  targetTemporaryHitPoints
+} from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encounterConcealment'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import { revertEncounterActorItemRelease } from '@artificer-toolkit/rules-runtime/encounterActorOptionalContestContext'
 import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
 import { updateSpellSlotUsage } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -79,6 +87,10 @@ type CounteredRoot = Extract<
   ServerRuleExecutionApplicationOutputsDto,
   { kind: 'ENCOUNTER_COUNTERED_CAST' }
 >
+type GatedRoot = Extract<
+  ServerRuleExecutionApplicationOutputsDto,
+  { kind: 'ENCOUNTER_GATED_ACTION' }
+>
 type CleavingDamage = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'CLEAVING_DAMAGE' }>
 type CharacterInverse = {
   hitPoints: ActionBatch['targetTransition']['before'] | null
@@ -86,7 +98,8 @@ type CharacterInverse = {
   /** Conditions the action released from the Character, given back by the undo. */
   restoredConditionIds: Set<string>
   resource: ActionBatch['resourceConsumption']
-  stow: ActionBatch['sourceItemUseStateTransition']
+  /** The one item this action unequipped from the Character: a stow it accepted, or a drop. */
+  unequipped: ActionBatch['sourceItemUseStateTransition']
   item: ActionBatch['sourceItemConsumption']
   /** Slot spends in the order they committed; one batch can carry several (the cast, then its counter). */
   spells: NonNullable<ActionBatch['spellCastConsumption']>[]
@@ -98,7 +111,7 @@ function endedConditionReleases(applications: ActionBatch['applications']) {
   return applications.flatMap((application) =>
     application.kind === 'CONDITION_REMOVE' &&
     application.applied &&
-    application.sourceOperationKey === ENDED_EFFECT_CONDITION_OPERATION_KEY
+    application.sourceOperationKey === ENDED_EFFECT_RELEASE_OPERATION_KEY
       ? [application.conditionId]
       : []
   )
@@ -196,8 +209,16 @@ export async function revertLastEncounterAction(
       throw new Error('Stored Encounter command scan is invalid.')
   }
   if (root?.commandType === 'ESCAPE') {
+    const outputs = await readCheckReceiptOutputs(ctx, {
+      state,
+      root,
+      occurrenceId: root.receipt.checkOccurrenceId
+    })
+    // A contested escape settles through the one contest path, which undo leaves to the GM.
+    if (outputs.kind === 'CONTESTED_ACTION')
+      unavailable("Undo can't restore a contested escape; adjust manually.")
     requireCheckAnswerScan(root.receipt.checkOccurrenceId)
-    return revertEscape(ctx, { ...scope, root })
+    return revertEscape(ctx, { ...scope, root, outputs })
   }
   if (root?.commandType === 'SET_CONCEALMENT_OBSERVERS') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
@@ -233,7 +254,7 @@ export async function revertLastEncounterAction(
     unavailable('This action has too many follow-up results to undo; adjust manually.')
   let batch: ActionBatch | null = null
   let areaRoot: AreaRoot | null = null
-  let counteredRoot: CounteredRoot | null = null
+  let lostRoot: CounteredRoot | GatedRoot | null = null
   const areaTargetBatches = new Map<string, ActionBatch>()
   const cleaving: CleavingDamage[] = []
   const unsupported = new Set<string>()
@@ -251,8 +272,12 @@ export async function revertLastEncounterAction(
       )
         batch = outputs
       else if (outputs?.kind === 'ENCOUNTER_AREA_ACTION') areaRoot = outputs
-      else if (outputs?.kind === 'ENCOUNTER_COUNTERED_CAST') counteredRoot = outputs
-      else unsupported.add(outputs?.kind === 'CONTESTED_ACTION' ? 'a Disarm' : 'this action')
+      else if (
+        outputs?.kind === 'ENCOUNTER_COUNTERED_CAST' ||
+        outputs?.kind === 'ENCOUNTER_GATED_ACTION'
+      )
+        lostRoot = outputs
+      else unsupported.add(outputs?.kind === 'CONTESTED_ACTION' ? 'a contest' : 'this action')
       continue
     }
     if (
@@ -285,7 +310,7 @@ export async function revertLastEncounterAction(
   }
   if ([...laterOccurrenceIds].some((occurrenceId) => !childOccurrenceIds.has(occurrenceId)))
     unavailable('Another decision changed the Encounter after this action; adjust manually.')
-  if (!batch && !areaRoot && !counteredRoot && !unsupported.size)
+  if (!batch && !areaRoot && !lostRoot && !unsupported.size)
     throw new Error('Stored Encounter action receipt is missing.')
   // An area's creatures undo in reverse of the order they were applied; the root's sealed ids say which.
   const targetBatches = areaRoot
@@ -305,7 +330,7 @@ export async function revertLastEncounterAction(
         (application) =>
           application.kind === 'CONDITION_REMOVE' &&
           application.applied &&
-          application.sourceOperationKey !== ENDED_EFFECT_CONDITION_OPERATION_KEY
+          application.sourceOperationKey !== ENDED_EFFECT_RELEASE_OPERATION_KEY
       )
     )
       unsupported.add('a removed condition')
@@ -327,7 +352,7 @@ export async function revertLastEncounterAction(
     unsupported.add('a replaced maintained effect')
   const spend =
     areaRoot ??
-    counteredRoot ??
+    lostRoot ??
     (batch && {
       sourceActorId: batch.sourceActorId,
       sourceApplications: batch.sourceApplications,
@@ -392,12 +417,18 @@ export async function revertLastEncounterAction(
       actor.maxHitPoints !== transition.after.maximumHitPoints
     )
       unavailable(`${actor.label}'s hit points changed after this action; adjust manually.`)
-    updateActor(actorId, {
-      currentHitPoints: transition.before.currentHitPoints,
-      tempHitPoints: transition.before.temporaryHitPoints,
-      maxHitPoints: transition.before.maximumHitPoints,
-      defeated: nextEncounterActorDefeated(actor, transition.before.currentHitPoints)
-    })
+    const next = encounterRunActorStateSchema.parse(
+      withActorTemporaryHitPoints(
+        {
+          ...actor,
+          currentHitPoints: transition.before.currentHitPoints,
+          maxHitPoints: transition.before.maximumHitPoints,
+          defeated: nextEncounterActorDefeated(actor, transition.before.currentHitPoints)
+        },
+        targetTemporaryHitPoints(transition.before)
+      )
+    )
+    actorsById.set(actorId, next)
   }
 
   // Cleaving children are undone first, in reverse order of application.
@@ -414,6 +445,13 @@ export async function revertLastEncounterAction(
       ...firstRetaliation.targetTransition,
       after: retaliation.at(-1)!.targetTransition.after
     })
+  // The timed grants the attacker's own passive triggers made from that damage go with it.
+  for (const grant of batch?.meleeRetaliation?.grantEffectTransitions ?? [])
+    await store.deleteCas({
+      id: grant.activeEffectId,
+      owner: { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: grant.targetActorId },
+      expectedVersion: grant.afterVersion
+    })
 
   // Characters: only when their Sheet is exactly the version this action (and its maintenance) left.
   const characterInverses = new Map<string, CharacterInverse>()
@@ -429,7 +467,7 @@ export async function revertLastEncounterAction(
           removedConditionIds: new Set(),
           restoredConditionIds: new Set(),
           resource: null,
-          stow: null,
+          unequipped: null,
           item: null,
           spells: [],
           expectedStreamVersion: streamVersion
@@ -487,7 +525,7 @@ export async function revertLastEncounterAction(
       updateActor(target.id, { absence: null })
     }
     // A reaction the target used spent its slot and allowance and created its effect with this outcome.
-    const reaction = action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reaction : null
+    const reaction = action.reaction
     if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
       if (target.kind !== 'CHARACTER' || target.sourceId === null)
         throw new Error('Stored Character action target is invalid.')
@@ -521,10 +559,23 @@ export async function revertLastEncounterAction(
             : [])
         ])
         if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
+        if (action.targetItemUseStateTransition)
+          inverse.unequipped = action.targetItemUseStateTransition
       }
     } else {
       if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
       restoreHitPoints(target.id, action.targetTransition)
+      // An item the target dropped goes back in the hand it left.
+      const release = action.targetItemUseStateTransition
+      if (release) {
+        const held = revertEncounterActorItemRelease({
+          actor: actorsById.get(target.id)!,
+          transition: release
+        })
+        if (!held)
+          unavailable(`${target.label}'s equipment changed after this action; adjust manually.`)
+        updateActor(target.id, { snapshot: held.snapshot })
+      }
       const conditions = readEncounterActorConditionState(target.conditions ?? [])
       updateActor(target.id, {
         conditions: conditions.values.filter(
@@ -576,7 +627,8 @@ export async function revertLastEncounterAction(
     for (const effect of [
       ...action.activeEffectTransitions,
       ...(reaction?.activeEffectTransitions ?? []),
-      ...(action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reactionEffectTransitions : [])
+      ...(action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reactionEffectTransitions : []),
+      ...(action.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? action.grantEffectTransitions : [])
     ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
       await store.deleteCas({
         id: effect.activeEffectId,
@@ -634,7 +686,7 @@ export async function revertLastEncounterAction(
       throw new Error('Stored source Character version is missing.')
     const inverse = characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion)
     inverse.resource = spend.resourceConsumption
-    inverse.stow = spend.sourceItemUseStateTransition
+    if (spend.sourceItemUseStateTransition) inverse.unequipped = spend.sourceItemUseStateTransition
     inverse.item = spend.sourceItemConsumption
     if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
   }
@@ -644,6 +696,9 @@ export async function revertLastEncounterAction(
     endedConditionReleases(spend.sourceApplications),
     spend.sourceCharacterStreamVersion
   )
+  // So do the ones the retaliation's damage released from the attacker; the effects themselves
+  // come back with the root's consumed grants, after the grants that damage made are deleted.
+  restoreReleasedConditions(source, batch?.meleeRetaliation?.releasedConditionIds ?? [], null)
   const feature = spend.featureResourceConsumption
   if (feature) {
     const owner = actorsById.get(feature.ownerActorId)
@@ -707,7 +762,7 @@ export async function revertLastEncounterAction(
       resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
     })
   }
-  if (counteredRoot) invertReactorSpend(counteredRoot.counter)
+  if (lostRoot && 'counter' in lostRoot) invertReactorSpend(lostRoot.counter)
   for (const failed of root.failedCounters) invertReactorSpend(failed)
 
   // A Dash's speed bonus leaves the turn's movement record.
@@ -902,7 +957,7 @@ async function revertCheckAction(
         removedConditionIds: new Set(),
         restoredConditionIds: new Set(),
         resource: null,
-        stow: null,
+        unequipped: null,
         item: null,
         spells: [],
         expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
@@ -939,15 +994,13 @@ function returnSpentActionEconomy(
  */
 async function revertEscape(
   ctx: EncounterCharacterWriteTransaction,
-  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'ESCAPE' }> }
+  input: RevertScope & {
+    root: Extract<StoredCommand, { commandType: 'ESCAPE' }>
+    outputs: Awaited<ReturnType<typeof readCheckReceiptOutputs>>
+  }
 ): Promise<EncounterCommandResultDto> {
-  const { state, root } = input
+  const { state, root, outputs } = input
   const { receipt } = root
-  const outputs = await readCheckReceiptOutputs(ctx, {
-    state,
-    root,
-    occurrenceId: receipt.checkOccurrenceId
-  })
   if (outputs.kind !== 'ESCAPE_CHECK') throw new Error('Stored escape check receipt is invalid.')
   if (outputs.outcome === 'ESCAPED')
     unavailable("Undo can't restore an escaped grapple; adjust manually.")
@@ -1111,12 +1164,14 @@ async function restoreCharacter(
   if (inverse.hitPoints)
     state = {
       ...state,
-      hitpoints: {
-        ...state.hitpoints,
-        current: inverse.hitPoints.currentHitPoints,
-        temp: inverse.hitPoints.temporaryHitPoints,
-        deathSaves: inverse.hitPoints.deathSaves ?? state.hitpoints.deathSaves
-      },
+      hitpoints: withCharacterTemporaryHitPoints(
+        {
+          ...state.hitpoints,
+          current: inverse.hitPoints.currentHitPoints,
+          deathSaves: inverse.hitPoints.deathSaves ?? state.hitpoints.deathSaves
+        },
+        targetTemporaryHitPoints(inverse.hitPoints)
+      ),
       conditions: (state.conditions ?? []).filter(
         (condition) => !inverse.removedConditionIds.has(condition.conditionTypeId)
       )
@@ -1136,11 +1191,12 @@ async function restoreCharacter(
       spell.slotKey,
       () => spell.beforeUsed
     ).state
-  if (inverse.stow) {
+  const unequipped = inverse.unequipped
+  if (unequipped) {
     const equipped = state.equipment.equipped
-    const itemId = inverse.stow.itemInstanceId
+    const itemId = unequipped.itemInstanceId
     // The receipt holds the equipment checksum, not the slot or the position: the one entry that
-    // reproduces the checksum is the exact one that was stowed.
+    // reproduces the checksum is the exact one that was unequipped.
     const restored = Array.from({ length: equipped.length + 1 }, (_, index) => index)
       .flatMap((index) =>
         EQUIPPED_SLOT_CODES.map((slot) => ({
@@ -1148,7 +1204,7 @@ async function restoreCharacter(
           equipped: [...equipped.slice(0, index), { itemId, slot }, ...equipped.slice(index)]
         }))
       )
-      .find((equipment) => checksumRuleDocument(equipment) === inverse.stow!.beforeStateChecksum)
+      .find((equipment) => checksumRuleDocument(equipment) === unequipped.beforeStateChecksum)
     if (!restored)
       unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
     state = { ...state, equipment: restored }

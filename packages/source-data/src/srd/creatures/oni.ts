@@ -85,18 +85,6 @@ export const oni: CreatureAuthored = {
           }
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(211, 704),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(211, 705), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ONI_INNATE_SPELLCASTING
-        })
-      ],
       order: 2
     },
     {
@@ -242,18 +230,7 @@ export const oni: CreatureAuthored = {
       id: S.featureId(211, 7),
       label: 'Magic Weapons',
       description: "Magic Weapons. The oni's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(211, 901),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(211, 902), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(211, 901),
       order: 8
     }
   ]

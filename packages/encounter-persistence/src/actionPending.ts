@@ -1,7 +1,14 @@
-import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  escapeRelationshipInputDtoSchema,
+  resolveEncounterActionInputDtoSchema
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import {
+  contestDefenderPicksCheck,
+  contestDefenderPolicy
+} from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { readEncounterActorControl } from './actorController.js'
 import {
   noEncounterRollModeReasons,
@@ -29,9 +36,13 @@ export async function readNativeActionPending(
   )
     throw new Error('Stored Encounter action pending snapshot mismatch.')
   const context = snapshot.applicationContext
-  const command = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
+  // A contested escape's root is the escape itself (D152).
+  const command = (
+    context.contest?.origin.kind === 'ESCAPE'
+      ? escapeRelationshipInputDtoSchema
+      : resolveEncounterActionInputDtoSchema
+  ).parse(JSON.parse(context.commandJson))
   if (
-    command.type !== 'RESOLVE_ACTION' ||
     command.commandId !== occurrence.rootCommandId ||
     command.encounterId !== occurrence.encounterId ||
     command.expectedVersion !== occurrence.expectedEncounterVersion ||
@@ -96,6 +107,12 @@ type CastPendingContext = {
     }
   } | null
   failedCounters?: readonly PendingCounter[]
+  /** The ward whose save the attacker owes; the pause is held on that roll. */
+  incomingGate?: { effectId: string } | null
+  /** The failed ward save whose attacker is offered another creature to turn the action on. */
+  attackRetarget?: { gate: { effectId: string } } | null
+  /** The ward whose save the attacker already passed. */
+  passedIncomingGate?: string
 }
 
 const counterReactorIds = (counters: readonly PendingCounter[] = []) =>
@@ -152,6 +169,31 @@ export function castPendingContinues(
   const { castReaction } = previous
   const failedPrevious = failedReactorIds(previous)
   const failedNext = failedReactorIds(next)
+  // A ward the attacker failed offers a retarget: from the roll that failed it, or from a retargeted
+  // action's own ward. Nothing else is carried.
+  if (next.attackRetarget)
+    return (
+      next.passedIncomingGate === undefined &&
+      failedNext.length === 0 &&
+      (previous.incomingGate
+        ? previous.incomingGate.effectId === next.attackRetarget.gate.effectId
+        : previous.attackRetarget != null && response?.resolution.kind === 'OPTION')
+    )
+  // A retargeted action begins afresh against its new creature: only the answer that chose it may follow.
+  if (previous.attackRetarget)
+    return (
+      response?.resolution.kind === 'OPTION' &&
+      failedNext.length === 0 &&
+      chainReactorIds(next).length === 0 &&
+      (next.castReaction?.declinedReactorActorIds.length ?? 0) === 0 &&
+      !(next.incomingGate && next.passedIncomingGate !== undefined)
+    )
+  // A passed ward stays passed for the rest of the action, and only the gate's own answer passes it.
+  if (
+    next.incomingGate ||
+    next.passedIncomingGate !== (previous.incomingGate?.effectId ?? previous.passedIncomingGate)
+  )
+    return false
   if (!castReaction) return sameMembers(failedNext, failedPrevious)
   const answer = castAnswer(previous, response)
   const roller = previous.rollerActorId
@@ -236,8 +278,11 @@ export function offeredDecisionOptionIds(context: {
   reactionChoice?: { reactions: readonly { useOptionId: string }[] } | null
   castReaction?: { reactions: readonly { useOptionId: string }[]; check?: unknown } | null
   onHitChoice?: { options: readonly { useOptionId: string }[] } | null
+  attackRetarget?: { options: readonly { useOptionId: string }[] } | null
 }): string[] {
   if (context.legendaryResistance) return [context.legendaryResistance.resistance.useOptionId]
+  if (context.attackRetarget)
+    return context.attackRetarget.options.map((option) => option.useOptionId)
   if (context.onHitChoice) return context.onHitChoice.options.map((option) => option.useOptionId)
   if (context.castReaction?.check) return []
   return (
@@ -297,21 +342,72 @@ export function projectNativeActionPending(
       })),
       allowedResponses: ['DECLINE', 'OPTION']
     }
+  if (context.attackRetarget)
+    return {
+      kind: 'ATTACK_RETARGET_CHOICE',
+      occurrenceId: occurrence.id,
+      occurrenceVersion: occurrence.version,
+      encounterVersion: occurrence.expectedEncounterVersion,
+      attackerActorId: context.rollerActorId,
+      options: context.attackRetarget.options.map(({ useOptionId, targetActorId }) => ({
+        optionId: useOptionId,
+        targetActorId
+      })),
+      allowedResponses: ['DECLINE', 'OPTION']
+    }
+  if (context.forcedMovementDestination)
+    return {
+      kind: 'FORCED_MOVEMENT_DESTINATION',
+      occurrenceId: occurrence.id,
+      occurrenceVersion: occurrence.version,
+      encounterVersion: occurrence.expectedEncounterVersion,
+      sourceActorId: context.rollerActorId,
+      targetActorId: context.forcedMovementDestination.targetActorId,
+      requestId: snapshot.request.requestId,
+      positions: context.forcedMovementDestination.positions,
+      allowedResponses: ['FORCED_MOVEMENT']
+    }
   const common = {
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
     encounterVersion: occurrence.expectedEncounterVersion,
     rollerActorId: context.rollerActorId
   }
+  const { contest } = context
+  // A basic action or escape contest's defender picks one of its sealed checks and rolls it (D152).
+  if (contest && snapshot.request.nodeId === 'target_d20' && contestDefenderPicksCheck(contest)) {
+    if (contest.origin.kind === 'OPTIONAL_COMBAT')
+      throw new Error('Stored contest check origin is invalid.')
+    return {
+      ...common,
+      kind: 'CONTEST_CHECK',
+      rollerActorId: contest.defender.actorId,
+      actionLabel: contest.origin.actionLabel,
+      requestId: snapshot.request.requestId,
+      checks: contest.defender.checks.map(
+        ({ checkDefinitionId, label, rollMode, contributors }) => ({
+          checkDefinitionId,
+          label,
+          rollMode,
+          derivedRollModeReasons: reasons({ rollMode, contributors })
+        })
+      ),
+      allowedResponses: ['CONTEST_CHECK']
+    }
+  }
   const d20Policy = context.contest
     ? snapshot.request.nodeId === 'initiator_d20'
       ? context.contest.initiator
       : snapshot.request.nodeId === 'target_d20'
-        ? context.contest.defender
+        ? contestDefenderPolicy(context.contest.defender, null)
         : null
-    : (context.d20Policy ?? castCheck?.d20 ?? null)
+    : (context.d20Policy ?? castCheck?.d20 ?? context.incomingGate?.d20 ?? null)
   if (context.contest && (!d20Policy || snapshot.request.min !== 1 || snapshot.request.max !== 20))
     throw new Error('Stored Disarm evidence request is invalid.')
+  // The roller rolls the test's added dice with the d20 that settles it (D156); contest checks
+  // carry none yet.
+  const testAddedDice = context.contest ? undefined : context.d20Policy?.addedDice
+  const addedDice = testAddedDice?.length ? { addedDice: testAddedDice } : {}
   if (d20Policy && context.heldD20)
     return {
       ...common,
@@ -325,7 +421,8 @@ export function projectNativeActionPending(
         heldD20: {
           faces: context.heldD20.faces,
           caption: isOwner ? context.heldD20.gmReason : context.heldD20.playerCaption
-        }
+        },
+        ...addedDice
       },
       allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
     }
@@ -342,7 +439,8 @@ export function projectNativeActionPending(
           derivedRollModeReasons: reasons({
             rollMode: shown.rollMode,
             contributors: shown.contributors
-          })
+          }),
+          ...addedDice
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
       }

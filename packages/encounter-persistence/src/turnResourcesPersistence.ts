@@ -1,3 +1,4 @@
+import { decoyStrikeEffects } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { activeRuleEffectRecordSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
@@ -13,6 +14,7 @@ import {
   completedTurnRechargePlanDtoSchema,
   turnLegendaryActionEvidenceDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
+import { d20AddedDiceTotal } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import {
   featureChargeUsed,
   encounterRuleUsageUsed,
@@ -29,14 +31,20 @@ import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import {
+  activeSavingThrowDice,
+  effectiveHitPointMaximum
+} from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import {
   actionEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  effectsReplacedByGrants,
+  endedEffectReleaseKey,
+  savingThrowSpentEffects,
+  targetEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import { deleteGrants } from './consumedGrantPersistence.js'
+import { deleteGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActor, writeRunActor } from './documents.js'
 import {
@@ -168,7 +176,7 @@ export async function persistEncounterTurnResources(
       throw new Error('Live Session Legendary Action owner is stale.')
     seenOwners.add(ownerId)
     if (evidence.resolution.kind === 'DECLINED') continue
-    const { selectedOptionId, targetActorId, application, attackRoll, castsSpell } =
+    const { selectedOptionId, targetActorId, application, attackRoll, castsSpell, decoyEffectId } =
       evidence.resolution
     const option = evidence.choice.options.find((entry) => entry.optionId === selectedOptionId)
     const target = await readActor(targetActorId)
@@ -242,13 +250,32 @@ export async function persistEncounterTurnResources(
     )
       throw new Error('Live Session Legendary Action source release is stale.')
     await deleteGrants(ctx, consumedGrants)
+    // A hit on the target's decoy destroys it: the last ends the effect, any other spends a use.
+    const decoy =
+      decoyEffectId === undefined
+        ? undefined
+        : (await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))).find(
+            ({ id }) => id === decoyEffectId
+          )
+    if (decoyEffectId !== undefined && !decoy)
+      throw new Error('Live Session Legendary Action decoy is unavailable.')
+    const decoyStrike = decoyStrikeEffects(
+      decoy && { effect: decoy, remaining: decoy.lifecycle.remainingUses ?? 0 },
+      application.d20?.resultPath
+    )
+    await spendEffectUses(ctx, decoyStrike.spentUseGrants)
+    await deleteGrants(ctx, decoyStrike.endedGrants)
     // Damage the action dealt ends the target's effects that end on damage, with the conditions
     // only they held, which the planned target batch already released.
-    const damageEnded = damageTakenEndedEffects({
+    const targetHeld = (
+      await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))
+    ).filter(({ id }) => !consumedGrants.some((ended) => ended.id === id))
+    const damageEnded = targetEndedEffects({
       holderActorId: targetActorId,
-      held: (await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))).filter(
-        ({ id }) => !consumedGrants.some((ended) => ended.id === id)
-      ),
+      held: targetHeld,
+      attacked: attackRoll,
+      testEvidence: [application.d20, application.nestedD20],
+      turnActorId: state.currentActorId,
       applications: application.applications.map((planned) => ({
         ...planned,
         targetActorId
@@ -261,15 +288,28 @@ export async function persistEncounterTurnResources(
         (release) =>
           !application.applications.some(
             (planned) =>
-              planned.kind === 'CONDITION_REMOVE' &&
+              (planned.kind === 'CONDITION_REMOVE' ||
+                planned.kind === 'TEMPORARY_HIT_POINTS_RELEASE') &&
               planned.sourceOperationKey === release.sourceOperationKey &&
-              planned.sourceActiveEffectId === release.sourceActiveEffectId &&
-              planned.conditionId === release.conditionId
+              endedEffectReleaseKey(planned) === endedEffectReleaseKey(release)
           )
       )
     )
       throw new Error('Live Session Legendary Action damage release is stale.')
-    await deleteGrants(ctx, damageEnded.endedEffects)
+    // A timed grant the target's damage triggers made replaces the one it already held.
+    const grantIds = new Set(
+      application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+        ? application.grantEffectTransitions.map(({ activeEffectId }) => activeEffectId)
+        : []
+    )
+    const replaced = effectsReplacedByGrants(
+      targetHeld,
+      createdEffects.filter(({ id }) => grantIds.has(id)).map(({ definition }) => definition)
+    )
+    await deleteGrants(ctx, [
+      ...damageEnded.endedEffects,
+      ...replaced.filter(({ id }) => !damageEnded.endedEffects.some((ended) => ended.id === id))
+    ])
     const feature = snapshotFeatureDefinitions(owner).find(
       (entry) => entry.id === option.ownerFeatureId
     )
@@ -640,10 +680,18 @@ export async function persistEncounterTurnDeathSave(
     }),
     occurredAt,
     applications: [],
-    deathSave: { rawDie: plan.rawDie },
+    deathSave: { rawDie: plan.rawDie, addedTotal: d20AddedDiceTotal(plan.addedDice) },
     effectiveMaximumHitPoints: candidate.effectiveMaximumHitPoints,
     forceVersionAdvance: true
   })
+  // The save spent the dice (D156) every saving throw does: the ones its plan rolled.
+  const held = await createActiveRuleEffectStore(ctx).list(turnEffectOwner(actor, state.id))
+  if (
+    checksumCanonicalJson(activeSavingThrowDice(held, null)) !==
+    checksumCanonicalJson(candidate.addedDice)
+  )
+    throw new Error('Live Session death save dice differ from its plan.')
+  await deleteGrants(ctx, savingThrowSpentEffects(held, null))
   const { before, after } = applied.targetTransition
   if (
     applied.receiptApplications.length !== 0 ||
@@ -665,6 +713,7 @@ export async function persistEncounterTurnDeathSave(
   const roll = deathSaveRollRecord({
     occurrenceId,
     rawDie: plan.rawDie,
+    addedDice: plan.addedDice,
     rollerLabel: actor.label,
     ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
     createdAt: occurredAt

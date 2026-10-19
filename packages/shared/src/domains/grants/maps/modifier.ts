@@ -1,21 +1,30 @@
 import type { ModifierGrantAuthored } from '#authored'
 import {
+  ABILITY_MODIFIER_REFERENCE_OPTIONS,
   ABILITY_OPTIONS,
   ATTACK_DOMAIN_OPTIONS,
+  ATTACK_OCCASION_OPTIONS,
   AUTHORING_SELECTION_REGISTRY,
   CHARGE_LIMIT_OPTIONS,
   CHARGE_RESET_OPTIONS,
   CHARGE_SCALING_OPTIONS,
+  DAMAGE_DEFENSE_BYPASS_OPTIONS,
+  DAMAGE_DIE_RECIPIENT_OPTIONS,
   DURATION_OPTIONS,
   LENGTH_UNIT_OPTIONS,
   MODIFIER_KIND_OPTIONS,
   MODIFIER_SCOPE_OPTIONS,
+  MAX_ROLLED_DIE_COUNT,
   MODIFIER_VALUE_SOURCE_OPTIONS,
   RANGE_OPTIONS,
+  ROLLED_DIE_FACES,
+  ROLLED_DIE_SIGN_OPTIONS,
   SHAPE_KIND_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '#core'
+import { DURATION_NODE_MAP } from '../../shared/maps/duration.js'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
+import { SAVING_THROW_NODE_MAP } from '../../shared/maps/savingThrow.js'
 import { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 
@@ -25,13 +34,19 @@ type ModifierDomain = ModifierGrantUnion['domain']
 type ChargeLimitLevel = NonNullable<
   Extract<ModifierPayload, { levels: unknown[] }>['levels']
 >[number]
+type AttackDecoys = Extract<ModifierPayload, { thresholds: unknown[] }>
+type AttackDecoyArmorClass = NonNullable<AttackDecoys['armorClass']>
+type AttackDecoyThreshold = NonNullable<AttackDecoys['thresholds']>[number]
+type DamageDieCastLevelScaling = NonNullable<
+  AllUnionFields<ModifierPayload>['countPerCastLevelAbove']
+>
 
 const modifierGrantDomain = buildNodeMap<ModifierDomain>()
 
 const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
   'modifierGrantDomain',
   ({ map, nodes, cond, data, logic }) => {
-    const { selectSingle, number, toggle } = nodes
+    const { selectSingle, selectMulti, number, toggle } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const { and, or } = logic
     const { table } = data
@@ -114,8 +129,23 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
             showIf: or([
               parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
               parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+              parent.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
+              parent.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
+              parent.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
               parent.field(['valueDomainCode']).eq('DAMAGE')
             ])
+          }
+        )
+      )
+      .set(
+        'trait',
+        selectSingle(
+          ['trait'],
+          'Trait',
+          { kind: 'INLINE_OPTIONS', options: DAMAGE_DEFENSE_BYPASS_OPTIONS },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
+            requiredIf: true
           }
         )
       )
@@ -123,6 +153,45 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         'requiresHolderSeesAttacker',
         toggle(['requiresHolderSeesAttacker'], 'Only Attackers The Holder Can See', {
           showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST')
+        })
+      )
+      .set(
+        'exemptAttackerSenseDefinitionIds',
+        selectMulti(
+          ['exemptAttackerSenseDefinitionIds'],
+          'Attackers Seeing Through These Senses Are Unaffected',
+          {
+            kind: 'DATA',
+            relationship: table('senses', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
+        'attackOccasion',
+        selectSingle(
+          ['attackOccasion'],
+          'Only Attacks Made On This Occasion',
+          { kind: 'INLINE_OPTIONS', options: ATTACK_OCCASION_OPTIONS },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
+        'againstEffectSource',
+        toggle(['againstEffectSource'], 'Only Attacks Against The Effect Source', {
+          showIf: and([
+            parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
+            or([
+              parent.field(['modifierKind']).eq('ADVANTAGE'),
+              parent.field(['modifierKind']).eq('DISADVANTAGE')
+            ])
+          ])
         })
       )
       .set(
@@ -208,12 +277,86 @@ const MODIFIER_CHARGE_LIMIT_LEVEL_NODE_MAP = chargeLimitLevel.define(
   }
 )
 
+const attackDecoyArmorClass = buildNodeMap<AttackDecoyArmorClass>()
+
+const MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP = attackDecoyArmorClass.define(
+  'modifierAttackDecoyArmorClass',
+  ({ map, nodes }) => {
+    const { number, selectMulti } = nodes
+
+    map.set('amount', number(['amount'], 'Amount')).set(
+      'abilities',
+      selectMulti(['abilities'], 'Abilities', {
+        kind: 'INLINE_OPTIONS',
+        options: ABILITY_OPTIONS
+      })
+    )
+  }
+)
+
+const attackDecoyThreshold = buildNodeMap<AttackDecoyThreshold>()
+
+const MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP = attackDecoyThreshold.define(
+  'modifierAttackDecoyThreshold',
+  ({ map, nodes }) => {
+    const { text, number } = nodes
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set(
+        'remaining',
+        number(['remaining'], 'Decoys Remaining', { constraints: { minimum: 1, maximum: 20 } })
+      )
+      .set(
+        'minimumRoll',
+        number(['minimumRoll'], 'Minimum d20 Roll', { constraints: { minimum: 1, maximum: 21 } })
+      )
+  }
+)
+
+const damageDieCastLevelScaling = buildNodeMap<DamageDieCastLevelScaling>()
+
+const DAMAGE_DIE_CAST_LEVEL_SCALING_NODE_MAP = damageDieCastLevelScaling.define(
+  'damageDieCastLevelScaling',
+  ({ map, nodes }) => {
+    const { number } = nodes
+
+    map
+      .set(
+        'level',
+        number(['level'], 'Above Spell Level', { constraints: { minimum: 1, maximum: 9 } })
+      )
+      .set(
+        'count',
+        number(['count'], 'Dice Per Level', {
+          constraints: { minimum: 1, maximum: MAX_ROLLED_DIE_COUNT }
+        })
+      )
+  }
+)
+
+const incomingGateSuccessImmunity =
+  buildNodeMap<NonNullable<AllUnionFields<ModifierPayload>['successImmunity']>>()
+
+const INCOMING_GATE_SUCCESS_IMMUNITY_NODE_MAP = incomingGateSuccessImmunity.define(
+  'incomingGateSuccessImmunity',
+  ({ map, nodes }) => {
+    map.set(
+      'duration',
+      nodes.groupObject(['duration'], 'Duration', () => DURATION_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true
+      })
+    )
+  }
+)
+
 const modifierPayload = buildNodeMap<ModifierPayload>()
 
 const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
   'modifierGrantPayload',
   ({ map, nodes, cond, data, logic }) => {
-    const { text, number, selectSingle, selectMulti, groupArray } = nodes
+    const { text, number, toggle, selectSingle, selectMulti, groupArray, groupObject } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const local = cond.local()
     const { and, or, not } = logic
@@ -221,6 +364,9 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const isBonus = parent.field(['modifierKind']).eq('BONUS')
     const isPenalty = parent.field(['modifierKind']).eq('PENALTY')
     const isMultiply = parent.field(['modifierKind']).eq('MULTIPLY')
+    const isMovementPassage = parent.field(['valueDomainCode']).eq('MOVEMENT_PASSAGE')
+    const isRolledDie = parent.field(['modifierKind']).eq('ADD_BONUS_DIE')
+    const isDamageDie = and([parent.field(['valueDomainCode']).eq('DAMAGE'), isRolledDie])
     // A speed or sense range is a typed length, never a value source (D111); a fraction is not.
     const isLength = and([
       or([
@@ -262,7 +408,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             options: ABILITY_OPTIONS
           },
           {
-            showIf: parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
+            showIf: or([
+              parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
+              and([isBonus, local.field(['valueKind']).eq('ABILITY_MODIFIER')])
+            ])
           }
         )
       )
@@ -278,7 +427,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             })
           },
           {
-            showIf: local.field(['valueKind']).eq('SKILL_BONUS')
+            showIf: or([
+              local.field(['valueKind']).eq('SKILL_BONUS'),
+              parent.field(['valueDomainCode']).eq('CHECKS_AGAINST_HOLDER')
+            ])
           }
         )
       )
@@ -304,6 +456,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           constraints: { minimum: 0 },
           showIf: or([
             and([isBonus, usesScalarMultiplier]),
+            and([isBonus, local.field(['valueKind']).eq('ABILITY_MODIFIER')]),
             parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
           ])
         })
@@ -325,10 +478,76 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         })
       )
       .set(
-        'dice',
-        text(['dice'], 'Dice', {
-          showIf: parent.field(['modifierKind']).eq('ADD_BONUS_DIE')
+        'levelsPerStep',
+        number(['levelsPerStep'], 'Levels Per Step', {
+          constraints: { minimum: 1 },
+          showIf: local.field(['valueKind']).eq('SPELL_SLOT_LEVEL')
         })
+      )
+      .set(
+        'maximum',
+        number(['maximum'], 'Maximum', {
+          showIf: local.field(['valueKind']).eq('SPELL_SLOT_LEVEL')
+        })
+      )
+      .set(
+        'count',
+        number(['count'], 'Dice', {
+          constraints: { minimum: 1, maximum: MAX_ROLLED_DIE_COUNT },
+          showIf: isRolledDie
+        })
+      )
+      .set(
+        'faces',
+        number(['faces'], 'Die Faces', {
+          constraints: { minimum: ROLLED_DIE_FACES[0], maximum: Math.max(...ROLLED_DIE_FACES) },
+          showIf: isRolledDie
+        })
+      )
+      .set(
+        'sign',
+        selectSingle(
+          ['sign'],
+          'Add or Subtract',
+          { kind: 'INLINE_OPTIONS', options: ROLLED_DIE_SIGN_OPTIONS },
+          { showIf: isRolledDie }
+        )
+      )
+      .set(
+        'recipient',
+        selectSingle(
+          ['recipient'],
+          'Joins The Damage',
+          { kind: 'INLINE_OPTIONS', options: DAMAGE_DIE_RECIPIENT_OPTIONS },
+          { showIf: isDamageDie }
+        )
+      )
+      .set(
+        'damageDieTypeSource',
+        selectSingle(
+          ['damageTypeSource'],
+          'Damage Type From',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              {
+                code: 'ATTACK',
+                label: 'The damage it joins',
+                description: 'Takes the attack’s damage type; a subtracted die always does.'
+              }
+            ]
+          },
+          { showIf: isDamageDie }
+        )
+      )
+      .set(
+        'countPerCastLevelAbove',
+        groupObject(
+          ['countPerCastLevelAbove'],
+          'Dice Per Higher Spell Level',
+          () => DAMAGE_DIE_CAST_LEVEL_SCALING_NODE_MAP,
+          { presentation: 'inline', showIf: isDamageDie }
+        )
       )
       .set(
         'damageTypeId',
@@ -344,6 +563,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           {
             showIf: or([
               parent.field(['modifierKind']).eq('REPLACE_DAMAGE_TYPE'),
+              and([isDamageDie, not(local.field(['damageTypeSource']).eq('ATTACK'))]),
               and([
                 parent.field(['valueDomainCode']).eq('DAMAGE_RESISTANCE'),
                 not(local.field(['damageTypeSource']).eq('TRIGGER'))
@@ -408,6 +628,20 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'magicSchoolId',
+        selectSingle(
+          ['magicSchoolId'],
+          'Magic School',
+          {
+            kind: 'DATA',
+            relationship: table('magic_schools', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { showIf: parent.field(['valueDomainCode']).eq('SPELL_SCHOOL_IMMUNITY') }
+        )
+      )
+      .set(
         'attributeId',
         text(['attributeId'], 'Attribute ID', {
           showIf: parent.field(['valueDomainCode']).eq('ATTRIBUTE')
@@ -420,16 +654,61 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         })
       )
       .set(
+        'creatures',
+        selectSingle(
+          ['creatures'],
+          'Hostile Creatures',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'NONE', label: 'None', description: 'Hostile creatures block the holder.' },
+              {
+                code: 'ANY',
+                label: 'Any',
+                description: 'The holder may move through any hostile creature.'
+              },
+              {
+                code: 'LARGER_THAN_SELF',
+                label: 'Larger than the holder',
+                description: 'The holder may move through hostile creatures larger than itself.'
+              }
+            ]
+          },
+          { showIf: isMovementPassage, requiredIf: true }
+        )
+      )
+      .set(
+        'mayEndInCreature',
+        toggle(['mayEndInCreature'], 'May End Its Move Inside A Creature', {
+          showIf: isMovementPassage
+        })
+      )
+      .set(
+        'blockingBarriers',
+        toggle(['blockingBarriers'], 'Moves Through Walls And Objects', {
+          showIf: isMovementPassage
+        })
+      )
+      .set(
+        'costMultiplier',
+        number(['costMultiplier'], 'Cost Multiplier Inside What It Passes', {
+          constraints: { minimum: 1, maximum: 2 },
+          showIf: isMovementPassage,
+          requiredIf: true
+        })
+      )
+      .set(
         'abilities',
         selectMulti(
           ['abilities'],
           'Abilities',
           {
             kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            options: ABILITY_MODIFIER_REFERENCE_OPTIONS
           },
           {
-            // An armor class formula adds each listed ability modifier to its amount.
+            // An armor class formula adds each listed ability modifier to its amount; only the best-of
+            // bonus may name the spellcasting ability (the schema refuses it in a formula).
             showIf: or([
               parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS'),
               and([
@@ -529,6 +808,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         number(['min'], 'Min', {
           constraints: { minimum: 0 },
           showIf: or([
+            and([isBonus, local.field(['valueKind']).eq('ABILITY_MODIFIER')]),
             parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
             parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
           ])
@@ -545,6 +825,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         number(['max'], 'Max', {
           constraints: { minimum: 0 },
           showIf: or([
+            and([isBonus, local.field(['valueKind']).eq('ABILITY_MODIFIER')]),
             parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
             parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
           ])
@@ -575,6 +856,14 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             ]),
             not(isLength)
           ])
+        })
+      )
+      .set(
+        'minimumRollAmount',
+        number(['amount'], 'Minimum Roll', {
+          constraints: { minimum: 2, maximum: 20 },
+          showIf: parent.field(['modifierKind']).eq('MINIMUM_ROLL'),
+          requiredIf: true
         })
       )
       .set(
@@ -620,6 +909,79 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           ])
         })
       )
+      .set(
+        'armorClass',
+        groupObject(
+          ['armorClass'],
+          'Decoy Armor Class',
+          () => MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP,
+          {
+            presentation: 'inline',
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_DECOYS')
+          }
+        )
+      )
+      .set(
+        'thresholds',
+        groupArray(
+          ['thresholds'],
+          'Targeting Rolls',
+          () => MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP,
+          {
+            presentation: 'table',
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_DECOYS')
+          }
+        )
+      )
+      .set(
+        'exemptAttackerSenseDefinitionIds',
+        selectMulti(
+          ['exemptAttackerSenseDefinitionIds'],
+          'Attackers Seeing Through These Senses Are Unaffected',
+          {
+            kind: 'DATA',
+            relationship: table('senses', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_DECOYS'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
+        'savingThrow',
+        groupObject(['savingThrow'], 'Attacker Saving Throw', () => SAVING_THROW_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true,
+          showIf: parent.field(['valueDomainCode']).eq('INCOMING_ATTACK_GATE')
+        })
+      )
+      .set(
+        'attackerCreatureTypeIds',
+        selectMulti(
+          ['attackerCreatureTypeIds'],
+          'Attacker Creature Types',
+          {
+            kind: 'DATA',
+            relationship: table('creature_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { showIf: parent.field(['valueDomainCode']).eq('INCOMING_ATTACK_GATE') }
+        )
+      )
+      .set(
+        'successImmunity',
+        groupObject(
+          ['successImmunity'],
+          'Success Immunity',
+          () => INCOMING_GATE_SUCCESS_IMMUNITY_NODE_MAP,
+          {
+            presentation: 'inline',
+            showIf: parent.field(['valueDomainCode']).eq('INCOMING_ATTACK_GATE')
+          }
+        )
+      )
   }
 )
 
@@ -636,7 +998,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
   ({ map, nodes, cond, logic }) => {
     const { text, number, selectSingle, groupObject } = nodes
     const local = cond.local()
-    const { or } = logic
+    const { and, or } = logic
 
     map
       .set(
@@ -710,6 +1072,9 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
           showIf: or([
             local.field(['valueDomainCode']).eq('ATTACK_ROLL'),
             local.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+            local.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
+            local.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
+            local.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
             local.field(['valueDomainCode']).eq('ABILITY_CHECK'),
             local.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
             local.field(['valueDomainCode']).eq('SKILL_MODIFIER'),
@@ -735,6 +1100,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('CAP_VALUE'),
             local.field(['modifierKind']).eq('MULTIPLY'),
             local.field(['modifierKind']).eq('ADD_BONUS_DIE'),
+            local.field(['modifierKind']).eq('MINIMUM_ROLL'),
             local.field(['modifierKind']).eq('REPLACE_DAMAGE_TYPE'),
             local.field(['modifierKind']).eq('REPLACE_RANGE_KIND'),
             local.field(['modifierKind']).eq('REPLACE_DURATION_KIND'),
@@ -744,7 +1110,14 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
             local.field(['modifierKind']).eq('ADD_OPTION'),
             local.field(['modifierKind']).eq('REMOVE_OPTION'),
-            local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
+            local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS'),
+            and([
+              local.field(['modifierKind']).eq('ENABLE'),
+              or([
+                local.field(['valueDomainCode']).eq('ATTACK_DECOYS'),
+                local.field(['valueDomainCode']).eq('INCOMING_ATTACK_GATE')
+              ])
+            ])
           ])
         })
       )

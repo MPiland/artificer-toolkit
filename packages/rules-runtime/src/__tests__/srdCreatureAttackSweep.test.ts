@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { normalizeCharacterActionMechanicFacts } from '../character/characterActionRuleFacts.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { planNativeEncounterActionMechanics } from '../encounterActionMechanicsPlan.js'
+import { castChoiceOptions } from '../encounterCastChoice.js'
 import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPreparation.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
@@ -239,12 +240,15 @@ describe('SRD Creature attack sweep', () => {
             target,
             actors,
             actionId: capability.actionId,
+            // An attack that offers a pick (damage or grapple) runs the option its attacker picks.
+            choiceOptionId: castChoiceOptions(capability.compiledEffect)?.[0]?.optionId,
             wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null },
             overridable: true,
             movementTargets,
             loadSource: async (input) =>
               resolveEncounterActionSource({ ...input, system: srdSystemRecord }),
-            loadRelationshipFacts: async () => []
+            loadRelationshipFacts: async () => [],
+            loadTurnUses: async () => []
           })
           stage = 'EXECUTE'
           const execution = {

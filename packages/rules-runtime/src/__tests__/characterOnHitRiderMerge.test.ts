@@ -3,12 +3,17 @@ import { compileEffect, type CompiledEffectGroup } from '@artificer-toolkit/shar
 import { describe, expect, it } from 'vitest'
 
 import { collectOnHitRiders, mergeOnHitRiders } from '../character/characterOnHitRiders.js'
+import { crusher } from '../testing/crusher.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
-import { oncePerTurnSneakAttack, unconditionalSneakAttack } from '../testing/unconditionalSneakAttack.js'
+import {
+  oncePerTurnSneakAttack,
+  unconditionalSneakAttack
+} from '../testing/unconditionalSneakAttack.js'
 
 const SLASHING = testUuid(0xb01)
 const PIERCING = testUuid(0xb02)
 const OWNER = testUuid(0xb03)
+const BLUDGEONING = testUuid(0xb04)
 
 type Damage = { pathCode?: 'ON_HIT' | 'ON_CRIT'; damageTypeId: string }
 
@@ -91,7 +96,10 @@ describe('collecting and merging ON_HIT riders (D119)', () => {
 
   it('appends the rider to the attack’s own ON_HIT damage, of the weapon’s damage type', () => {
     const weapon = attack('MELEE_WEAPON_ATTACK', [{ damageTypeId: SLASHING }])
-    const merged = mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')], OWNER))
+    const merged = mergeOnHitRiders(
+      weapon,
+      collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')], OWNER)
+    )
     const [own, ...ridden] = damageEntries(merged)
     expect(ridden).toHaveLength(3)
     for (const entry of ridden) {
@@ -118,22 +126,25 @@ describe('collecting and merging ON_HIT riders (D119)', () => {
       { damageTypeId: PIERCING },
       { damageTypeId: SLASHING }
     ])
-    const merged = mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')], OWNER))
+    const merged = mergeOnHitRiders(
+      weapon,
+      collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')], OWNER)
+    )
     expect(damageEntries(merged).at(-1)).toMatchObject({ damageTypeId: PIERCING })
   })
 
   it('leaves an attack alone when no rider names its trigger', () => {
     const weapon = attack('RANGED_WEAPON_ATTACK', [{ damageTypeId: PIERCING }])
-    expect(mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')], OWNER))).toBe(
-      weapon
-    )
+    expect(
+      mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')], OWNER))
+    ).toBe(weapon)
   })
 
   it('leaves an attack with no ON_HIT damage alone', () => {
     const weapon = attack('MELEE_WEAPON_ATTACK', [{ pathCode: 'ON_CRIT', damageTypeId: SLASHING }])
-    expect(mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')], OWNER))).toBe(
-      weapon
-    )
+    expect(
+      mergeOnHitRiders(weapon, collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')], OWNER))
+    ).toBe(weapon)
   })
 
   it('does not merge into a passive Effect', () => {
@@ -157,5 +168,22 @@ describe('collecting and merging ON_HIT riders (D119)', () => {
     expect(new Set(keys)).toEqual(new Set([OWNER]))
     const [unlimited] = collectOnHitRiders([riderOf('MELEE_WEAPON_ATTACK')], OWNER)
     expect(unlimited?.entries.every((entry) => entry.usageKey === undefined)).toBe(true)
+  })
+
+  it('rides every ON_HIT outcome of a passive Effect, not only its damage (the Crusher’s move)', () => {
+    const [effect] = crusher(BLUDGEONING).effects ?? []
+    if (!effect) throw new Error('The rider Feature has no effect.')
+    const [rider] = collectOnHitRiders([compileEffect(effect)], OWNER)
+    expect(rider?.entries.map((entry) => entry.outcome.effectKind)).toEqual(['FORCED_MOVEMENT'])
+    const weapon = attack('MELEE_WEAPON_ATTACK', [{ damageTypeId: BLUDGEONING }])
+    const merged = mergeOnHitRiders(weapon, rider ? [rider] : [])
+    const [own] = damageEntries(merged)
+    expect(merged.entries).toHaveLength(2)
+    expect(merged.entries.at(-1)).toMatchObject({
+      pathCode: 'ON_HIT',
+      pathGroupId: own?.pathGroupId,
+      usageKey: OWNER,
+      outcome: { effectKind: 'FORCED_MOVEMENT', direction: 'ANY', amount: 5 }
+    })
   })
 })

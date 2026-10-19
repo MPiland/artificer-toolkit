@@ -17,7 +17,6 @@ import {
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
-  TARGET_SELECTION_KIND,
   TRIGGER,
   type ActivationCode,
   type ClassAuthored,
@@ -655,21 +654,6 @@ export const druid: ClassAuthored = {
         "You know Druidic, the secret language of druids. You can speak the language and use it to leave hidden messages. You and others who know this language automatically spot such a message. Others spot the message's presence with a successful DC 15 Wisdom (Perception) check but can't decipher it without magic.",
       availableAtLevel: 1,
       order: 0,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(D, 0x60, 1),
-          ruleKind: CLOSED_RULE_KIND.CLASS_DRUID_DRUIDIC_MESSAGES,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(D, 0x69, 1), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: 'ANY'
-            }
-          }
-        })
-      ],
       grants: {
         proficiencies: [
           {
@@ -811,8 +795,7 @@ export const druid: ClassAuthored = {
       description:
         'Starting at 18th level, the primal magic that you wield causes you to age more slowly. For every 10 years that pass, your body ages only 1 year.',
       availableAtLevel: 18,
-      order: 11,
-      effects: [selfClassRuleEffect(12, CLOSED_RULE_KIND.CLASS_DRUID_TIMELESS_BODY)]
+      order: 11
     },
     {
       id: classRowId(D, 3, 13),

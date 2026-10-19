@@ -19,6 +19,7 @@ import {
 } from './ruleExecutionEvidence.js'
 import {
   characterActiveEffectCreateReceiptDtoSchema,
+  encounterActorActiveEffectCreateReceiptDtoSchema,
   sourceApplicationsChangeState,
   sourceApplicationsDtoSchema
 } from './ruleExecutionMechanics.js'
@@ -41,8 +42,9 @@ const actionIdentitySchema = lazySchema(() =>
 
 const reactionPinShape = () => ({
   reactorActorId: uuidSchema,
-  characterId: uuidSchema,
-  characterStreamVersion: aggregateVersionSchema,
+  /** The reacting Character; null for a creature, whose reaction is its own authored action. */
+  characterId: z.nullable(uuidSchema),
+  characterStreamVersion: z.nullable(aggregateVersionSchema),
   actionId: actionIdentitySchema,
   effectId: uuidSchema,
   allowanceDefinitionId: uuidSchema,
@@ -108,12 +110,21 @@ export function encounterReactionUseOptionId(selectionChecksum: string): string 
   return checksumRuleDocument({ kind: 'USE', selectionChecksum })
 }
 
-/** The pin's selection checksum and use option identity are derived, never free-standing. */
+/**
+ * The pin's selection checksum and use option identity are derived, never free-standing, and it names
+ * a Character's version exactly when it names a Character.
+ */
 export function validateEncounterReactionPin(
   pin: EncounterReactionPinDto | EncounterCastReactionPinDto,
   context: z.core.$RefinementCtx,
   path: readonly (string | number)[]
 ) {
+  if ((pin.characterId === null) !== (pin.characterStreamVersion === null))
+    context.addIssue({
+      code: 'custom',
+      path: [...path, 'characterStreamVersion'],
+      message: 'Reaction Character version must match its Character.'
+    })
   if (checksumRuleDocument(encounterReactionSelectionIdentity(pin)) !== pin.selectionChecksum)
     context.addIssue({
       code: 'custom',
@@ -424,6 +435,169 @@ export const encounterCounteredCastApplicationOutputDtoSchema: z.ZodMiniType<
 > = encounterCounteredCastApplicationOutputImplSchema
 
 /**
+ * The save an attacker owes before an attack or harmful spell it aims at a warded creature lands
+ * (`INCOMING_ATTACK_GATE`): the holder's gate effect, the ability and DC of the save, and the attacker's
+ * frozen d20. The pause waits on that one roll.
+ */
+export type EncounterIncomingGateOfferDto = {
+  effectId: string
+  holderActorId: string
+  checkDefinitionId: string
+  dc: number
+  d20: z.infer<typeof frozenCheckD20DtoSchema>
+}
+
+export const encounterIncomingGateOfferDtoSchema: z.ZodMiniType<EncounterIncomingGateOfferDto> =
+  lazySchema(() =>
+    z.strictObject({
+      effectId: uuidSchema,
+      holderActorId: uuidSchema,
+      checkDefinitionId: uuidSchema,
+      dc: positiveIntegerSchema,
+      d20: frozenCheckD20DtoSchema
+    })
+  )
+
+/** The save a ward's attacker failed: the ward, the ability and DC of the save, and the d20 it rolled. */
+export type EncounterFailedIncomingGateDto = {
+  effectId: string
+  holderActorId: string
+  checkDefinitionId: string
+  dc: number
+  d20: z.infer<typeof ruleCheckD20EvidenceDtoSchema>
+}
+
+export const encounterFailedIncomingGateDtoSchema: z.ZodMiniType<EncounterFailedIncomingGateDto> =
+  lazySchema(() =>
+    z.strictObject({
+      effectId: uuidSchema,
+      holderActorId: uuidSchema,
+      checkDefinitionId: uuidSchema,
+      dc: positiveIntegerSchema,
+      d20: ruleCheckD20EvidenceDtoSchema
+    })
+  )
+
+/**
+ * One creature the attacker could turn a lost attack or spell on instead (`ATTACK_RETARGET`). The use
+ * option identity is derived from the ward that stopped the action and the creature, never free-standing.
+ */
+export type EncounterAttackRetargetOptionDto = {
+  targetActorId: string
+  /** The creature's token on the action's Scene, when the action named one. */
+  targetTokenId: string | null
+  useOptionId: string
+}
+
+export const encounterAttackRetargetOptionDtoSchema: z.ZodMiniType<EncounterAttackRetargetOptionDto> =
+  lazySchema(() =>
+    z.strictObject({
+      targetActorId: uuidSchema,
+      targetTokenId: z.nullable(uuidSchema),
+      useOptionId: checksumSchema
+    })
+  )
+
+export function encounterAttackRetargetUseOptionId(input: {
+  gateEffectId: string
+  targetActorId: string
+}): string {
+  return checksumRuleDocument({ kind: 'ATTACK_RETARGET_USE', ...input })
+}
+
+/**
+ * The choice an attacker whose save against a ward failed is offered before the attack or spell is lost:
+ * to turn it on another creature, or to let it be lost. Nothing is held but the failed save and the
+ * creatures on offer; answering with a creature replays the action against it.
+ */
+export type EncounterAttackRetargetOfferDto = {
+  gate: EncounterFailedIncomingGateDto
+  options: EncounterAttackRetargetOptionDto[]
+}
+
+export const encounterAttackRetargetOfferDtoSchema: z.ZodMiniType<EncounterAttackRetargetOfferDto> =
+  lazySchema(() =>
+    z
+      .strictObject({
+        gate: encounterFailedIncomingGateDtoSchema,
+        options: z
+          .array(encounterAttackRetargetOptionDtoSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
+      .check(
+        z.superRefine((value, context) => {
+          const targets = value.options.map(({ targetActorId }) => targetActorId)
+          if (
+            new Set(targets).size !== targets.length ||
+            targets.includes(value.gate.holderActorId)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['options'],
+              message:
+                'A retarget offers each creature once, never the creature that warded it off.'
+            })
+          for (const [index, option] of value.options.entries())
+            if (
+              encounterAttackRetargetUseOptionId({
+                gateEffectId: value.gate.effectId,
+                targetActorId: option.targetActorId
+              }) !== option.useOptionId
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['options', index, 'useOptionId'],
+                message: 'Retarget use option identity is invalid.'
+              })
+        })
+      )
+  )
+
+/**
+ * The root of an action a warded creature's gate stopped: its attacker failed the save, so the attack or
+ * spell is lost. The action is still spent: the receipts name the slot, resource, item and action economy
+ * the source paid, and nothing the action would have done is applied.
+ */
+const encounterGatedActionApplicationOutputImplSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_GATED_ACTION'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      sourceActorId: uuidSchema,
+      sourceCharacterId: z.nullable(uuidSchema),
+      ...sourceSpendReceiptShape(),
+      /** What the failed save cost the source. */
+      lost: z.enum(['ATTACK', 'SPELL']),
+      gate: encounterFailedIncomingGateDtoSchema
+    })
+    .check(z.superRefine(validateSourceSpendReceipts))
+)
+
+export type EncounterGatedActionApplicationOutputDto = SourceSpendReceipts & {
+  kind: 'ENCOUNTER_GATED_ACTION'
+  schemaVersion: 1
+  occurrenceId: string
+  sourceActorId: string
+  sourceCharacterId: string | null
+  lost: 'ATTACK' | 'SPELL'
+  gate: EncounterFailedIncomingGateDto
+}
+
+/** Named so the application-output union prints this member by name (TS7056). */
+export const encounterGatedActionApplicationOutputDtoSchema: z.ZodMiniType<
+  EncounterGatedActionApplicationOutputDto,
+  { kind: 'ENCOUNTER_GATED_ACTION' },
+  z.core.$ZodTypeInternals<
+    EncounterGatedActionApplicationOutputDto,
+    { kind: 'ENCOUNTER_GATED_ACTION' }
+  > & {
+    propValues: z.core.util.PropValues
+  }
+> = encounterGatedActionApplicationOutputImplSchema
+
+/**
  * The defense the reaction changed for the triggering attack, sealed in the evidence: the re-evaluated
  * TEST is bound to the defense after the reaction, never silently rebound.
  */
@@ -479,37 +653,69 @@ export type EncounterActionReactionReceiptDto = {
   activeEffectTransitions: z.infer<typeof characterActiveEffectCreateReceiptDtoSchema>[]
 }
 
+/** A creature's reaction receipt: the same, with the effect it created on the creature itself. */
+export type EncounterActorReactionReceiptDto = Omit<
+  EncounterActionReactionReceiptDto,
+  'activeEffectTransitions'
+> & {
+  activeEffectTransitions: z.infer<typeof encounterActorActiveEffectCreateReceiptDtoSchema>[]
+}
+
+function reactionReceiptSchema<EffectReceipt extends z.ZodMiniType>(effectReceipt: EffectReceipt) {
+  return z
+    .strictObject({
+      selection: z.enum(['DECLINE', 'USE']),
+      reaction: encounterReactionPinDtoSchema,
+      choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+      originalExecutionChecksum: checksumSchema,
+      adjustment: z.nullable(encounterReactionAdjustmentDtoSchema),
+      spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
+      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      /** The reactor's own effect the reaction created; it is what changed the defense. */
+      activeEffectTransitions: z.array(effectReceipt).check(z.maxLength(1))
+    })
+    .check(
+      z.superRefine((value, context) => {
+        validateEncounterReactionPin(value.reaction, context, ['reaction'])
+        const used = value.selection === 'USE'
+        if (
+          used !== (value.adjustment !== null) ||
+          used !== (value.actionEconomyTransition !== null) ||
+          (!used &&
+            (value.spellCastConsumption !== null || value.activeEffectTransitions.length > 0))
+        )
+          context.addIssue({
+            code: 'custom',
+            message: 'Reaction receipt does not match its selection.'
+          })
+      })
+    )
+}
+
 // Named so the receipt unions that embed it stay under the compiler's declaration size limit (TS7056).
 export const encounterActionReactionReceiptDtoSchema: z.ZodMiniType<EncounterActionReactionReceiptDto> =
   lazySchema(() =>
-    z
-      .strictObject({
-        selection: z.enum(['DECLINE', 'USE']),
-        reaction: encounterReactionPinDtoSchema,
-        choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-        originalExecutionChecksum: checksumSchema,
-        adjustment: z.nullable(encounterReactionAdjustmentDtoSchema),
-        spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
-        actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
-        /** The reactor's own effect the reaction created; it is what changed the defense. */
-        activeEffectTransitions: z
-          .array(characterActiveEffectCreateReceiptDtoSchema)
-          .check(z.maxLength(1))
+    reactionReceiptSchema(characterActiveEffectCreateReceiptDtoSchema).check(
+      z.superRefine((value, context) => {
+        if (value.reaction.characterId === null)
+          context.addIssue({
+            code: 'custom',
+            message: 'A Character reaction receipt names its Character.'
+          })
       })
-      .check(
-        z.superRefine((value, context) => {
-          validateEncounterReactionPin(value.reaction, context, ['reaction'])
-          const used = value.selection === 'USE'
-          if (
-            used !== (value.adjustment !== null) ||
-            used !== (value.actionEconomyTransition !== null) ||
-            (!used &&
-              (value.spellCastConsumption !== null || value.activeEffectTransitions.length > 0))
-          )
-            context.addIssue({
-              code: 'custom',
-              message: 'Reaction receipt does not match its selection.'
-            })
-        })
-      )
+    )
+  )
+
+/** A creature's reaction carries no Character identity and spends no spell slot. */
+export const encounterActorReactionReceiptDtoSchema: z.ZodMiniType<EncounterActorReactionReceiptDto> =
+  lazySchema(() =>
+    reactionReceiptSchema(encounterActorActiveEffectCreateReceiptDtoSchema).check(
+      z.superRefine((value, context) => {
+        if (value.reaction.characterId !== null || value.spellCastConsumption !== null)
+          context.addIssue({
+            code: 'custom',
+            message: 'A creature reaction receipt names no Character spend.'
+          })
+      })
+    )
   )

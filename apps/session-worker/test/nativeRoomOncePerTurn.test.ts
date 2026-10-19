@@ -47,7 +47,7 @@ function fighterRoom(rolls: readonly number[]) {
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
     ],
-    characterPlay: { equipped: true, fighterLevel: 5 },
+    characterPlay: { equipped: true, classLevel: 5 },
     characterClassFeatures: [
       extraAttack,
       withFixedRiderDice(oncePerTurnSneakAttack(testUuid(0xf10)), testUuid(0xf11), '1d6')

@@ -57,17 +57,12 @@ export const airElemental: CreatureAuthored = {
       label: 'Air Form',
       description:
         "Air Form. The elemental can enter a hostile creature's space and stop there. It can move through a space as narrow as 1 inch wide without squeezing.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(13, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(13, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AIR_FORM
-        })
-      ],
+      grants: S.movementPassageGrants(S.actionId(13, 101), {
+        creatures: 'ANY',
+        mayEndInCreature: true,
+        blockingBarriers: false,
+        costMultiplier: 1
+      }),
       order: 1
     },
     {
@@ -129,21 +124,30 @@ export const airElemental: CreatureAuthored = {
                   {
                     id: S.actionId(13, 109),
                     effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
-                    direction: 'CHOICE',
+                    // "Flung up to 20 feet away ... in a random direction": the app rolls the
+                    // direction, so the creature travels the whole 20 feet unless something stops it.
+                    direction: 'RANDOM',
                     actionEconomy: 'NONE',
-                    distanceMode: 'FIXED_DISTANCE',
+                    distanceMode: 'UP_TO',
                     amount: 20,
-                    unit: S.MEASUREMENT_UNIT_CODE.FEET
+                    unit: S.MEASUREMENT_UNIT_CODE.FEET,
+                    collision: {
+                      id: S.actionId(13, 111),
+                      damageTypeId: S.damageTypeId('BLUDGEONING'),
+                      diceConfig: '1d6',
+                      savingThrow: {
+                        id: S.actionId(13, 122),
+                        dcMethod: 'FIXED_DC',
+                        abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
+                        baseDc: 13
+                      },
+                      conditionId: conditionTypeId('PRONE')
+                    }
                   },
                   {
                     id: S.actionId(13, 110),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('PRONE')
-                  },
-                  {
-                    id: S.actionId(13, 111),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION
                   }
                 ]
               }

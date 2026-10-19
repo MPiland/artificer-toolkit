@@ -1,3 +1,4 @@
+import { heldConditionIds } from './encounterInnateConditions.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
@@ -211,7 +212,7 @@ export async function resolveEncounterTurnEffectPerception(input: {
         }
       },
       gameSystemId: input.state.gameSystemId,
-      activeConditionDefinitionIds: target.state.conditions,
+      activeConditionDefinitionIds: heldConditionIds(target),
       capabilityDefinitionIds: []
     })
   const [observerConditions, subjectConditions] = await Promise.all([

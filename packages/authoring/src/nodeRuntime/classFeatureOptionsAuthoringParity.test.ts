@@ -1,0 +1,341 @@
+import { describe, expect, it } from 'vitest'
+
+import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { getValueAtPath } from '@artificer-toolkit/shared/utils'
+import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
+import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
+import { circleOfTheLand } from '@artificer-toolkit/source-data/srd/classes/circle-of-the-land.js'
+import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
+import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
+import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
+import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
+import { oathOfDevotion } from '@artificer-toolkit/source-data/srd/classes/oath-of-devotion.js'
+import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
+import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
+import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
+import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
+import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
+import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
+import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+
+/**
+ * SPELLS-31.T3a-T3c and T5s (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets,
+ * Divine Sense, Signature Spells, Empty Body, Devil's Sight, Gaze of Two Minds, Divine Intervention,
+ * Volley, Whirlwind Attack (T3), Sacred Weapon and Ki-Empowered Strikes (T4e), Elusive and Escape
+ * the Horde (T4k2a) and Nature's Sanctuary (T4k2b) resolve from the
+ * same core options a Builder author has on a class feature or option, so each must pass the class
+ * node map exactly as authored, as must a homebrew variant built from those options.
+ */
+
+const reader = createSrdNodeRuntimeReader()
+
+function normalize(values: ClassAuthored) {
+  return normalizeNodeRuntimeValues(reader, {
+    mapId: 'class',
+    systemId: srdSystemRecord.id,
+    values: structuredClone(values) as unknown as Record<string, unknown>
+  })
+}
+
+function feature(record: ClassAuthored, label: string): FeatureAuthored {
+  const found = record.features?.find((entry) => entry.label === label)
+  if (!found) throw new Error(`${record.label} has no ${label}.`)
+  return found
+}
+
+/** The authored nodes a case names: the features with its label, or one option of `parent`. */
+function caseNodes(record: ClassAuthored, label: string, parent?: string) {
+  return parent === undefined
+    ? (record.features?.filter((entry) => entry.label === label) ?? [])
+    : (feature(record, parent).options?.filter((entry) => entry.label === label) ?? [])
+}
+
+function option(record: ClassAuthored, parent: string, label: string) {
+  const [found] = caseNodes(record, label, parent)
+  if (!found) throw new Error(`${parent} has no ${label}.`)
+  return found
+}
+
+const fire = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FIRE')!.id
+
+/** Each SRD feature, and a homebrew variant authored from the same options. */
+const CASES: ReadonlyArray<{
+  record: ClassAuthored
+  label: string
+  /** The feature whose option this case is. */
+  parent?: string
+  variant: () => ClassAuthored
+}> = [
+  {
+    record: barbarian,
+    label: 'Fast Movement',
+    variant: () => {
+      const record = structuredClone(barbarian)
+      const [speed] = feature(record, 'Fast Movement').grants?.modifiers ?? []
+      if (speed?.valueDomainCode !== 'SPEED' || speed.modifierKind !== 'BONUS')
+        throw new Error('Fast Movement must author a speed bonus.')
+      speed.payload = { amount: 15, unit: 'FEET' }
+      return record
+    }
+  },
+  {
+    record: lifeDomainCleric,
+    label: 'Divine Strike',
+    variant: () => {
+      const record = structuredClone(lifeDomainCleric)
+      for (const effect of feature(record, 'Divine Strike').effects ?? []) {
+        const path = effect.paths[0]
+        const damage = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+        if (damage?.effectKind !== 'DAMAGE' || !('levels' in damage) || !damage.levels)
+          throw new Error('Divine Strike must author level-scaled damage.')
+        damage.damageTypeId = fire
+        damage.levels = damage.levels.map((level) => ({ ...level, diceConfig: '1d6' }))
+      }
+      return record
+    }
+  },
+  {
+    record: monk,
+    label: 'Purity of Body',
+    variant: () => {
+      const record = structuredClone(monk)
+      const [poison] = feature(record, 'Purity of Body').grants?.modifiers ?? []
+      if (poison?.valueDomainCode !== 'DAMAGE_IMMUNITY')
+        throw new Error('Purity of Body must author a damage immunity.')
+      poison.domain = { damageTypeId: fire }
+      return record
+    }
+  },
+  {
+    record: bard,
+    label: 'Magical Secrets',
+    variant: () => {
+      const record = structuredClone(bard)
+      const [secrets] = feature(record, 'Magical Secrets').grants?.spells ?? []
+      if (secrets?.selectionKind !== 'CHOSEN' || !('count' in secrets))
+        throw new Error('Magical Secrets must be a flat chosen grant.')
+      secrets.count = 3
+      return record
+    }
+  },
+  {
+    record: paladin,
+    label: 'Divine Sense',
+    variant: () => {
+      const record = structuredClone(paladin)
+      const authored = feature(record, 'Divine Sense')
+      const charges = 'charges' in authored ? authored.charges : undefined
+      if (charges?.limitKind !== 'FIXED_AMOUNT' || !('amount' in charges))
+        throw new Error('Divine Sense must author a fixed charge with a bonus.')
+      charges.amount = 2
+      return record
+    }
+  },
+  {
+    record: wizard,
+    label: 'Signature Spells',
+    variant: () => {
+      const record = structuredClone(wizard)
+      const [signature] = feature(record, 'Signature Spells').grants?.spells ?? []
+      const charges = signature && 'charges' in signature ? signature.charges : undefined
+      if (!charges || charges.limitKind === 'SOURCE_CHARGES')
+        throw new Error('Signature Spells must author its own limited-use charges.')
+      charges.resetKind = 'LONG_REST'
+      return record
+    }
+  },
+  {
+    record: monk,
+    label: 'Empty Body',
+    variant: () => {
+      const record = structuredClone(monk)
+      const [effect] = feature(record, 'Empty Body').effects ?? []
+      if (effect?.invocation.kind !== 'ACTION' || !effect.invocation.resourceUse)
+        throw new Error('Empty Body must spend ki as an action.')
+      effect.invocation.resourceUse.cost = 6
+      return record
+    }
+  },
+  {
+    record: warlock,
+    label: "Devil's Sight",
+    parent: 'Eldritch Invocations',
+    variant: () => {
+      const record = structuredClone(warlock)
+      const [sight] = option(record, 'Eldritch Invocations', "Devil's Sight").grants?.senses ?? []
+      if (sight?.range?.rangeKind !== 'DISTANCE')
+        throw new Error("Devil's Sight must author a ranged sense grant.")
+      sight.range.amount = 60
+      return record
+    }
+  },
+  {
+    record: warlock,
+    label: 'Gaze of Two Minds',
+    parent: 'Eldritch Invocations',
+    variant: () => {
+      const record = structuredClone(warlock)
+      const [effect] = option(record, 'Eldritch Invocations', 'Gaze of Two Minds').effects ?? []
+      const path = effect?.paths[0]
+      if (path?.selectionKind !== 'FIXED')
+        throw new Error('Gaze of Two Minds must author a fixed self path.')
+      path.resultBlock.outcomes = path.resultBlock.outcomes.slice(0, 1)
+      return record
+    }
+  },
+  {
+    record: cleric,
+    label: 'Divine Intervention',
+    variant: () => {
+      const record = structuredClone(cleric)
+      const authored = feature(record, 'Divine Intervention')
+      const charges = 'charges' in authored ? authored.charges : undefined
+      if (charges?.limitKind !== 'FIXED_AMOUNT' || !('amount' in charges))
+        throw new Error('Divine Intervention must author a fixed long-rest charge.')
+      charges.amount = 2
+      return record
+    }
+  },
+  {
+    record: hunterConclave,
+    label: 'Volley',
+    parent: "Hunter's Multiattack",
+    variant: () => {
+      const record = structuredClone(hunterConclave)
+      const [effect] = option(record, "Hunter's Multiattack", 'Volley').effects ?? []
+      if (!effect?.weaponAttack) throw new Error('Volley must attack with the wielded weapons.')
+      effect.weaponAttack.requiredPropertyCodes = ['THROWN']
+      return record
+    }
+  },
+  {
+    record: hunterConclave,
+    label: 'Whirlwind Attack',
+    parent: "Hunter's Multiattack",
+    variant: () => {
+      const record = structuredClone(hunterConclave)
+      const [effect] = option(record, "Hunter's Multiattack", 'Whirlwind Attack').effects ?? []
+      if (!effect?.weaponAttack || effect.invocation.range.rangeKind !== 'DISTANCE')
+        throw new Error('Whirlwind Attack must attack with the wielded weapons within a distance.')
+      effect.invocation.range.amount = 10
+      effect.weaponAttack.requiredPropertyCodes = ['REACH']
+      return record
+    }
+  },
+  {
+    record: monk,
+    label: 'Ki-Empowered Strikes',
+    variant: () => {
+      const record = structuredClone(monk)
+      const [trait] = feature(record, 'Ki-Empowered Strikes').grants?.modifiers ?? []
+      if (trait?.valueDomainCode !== 'ATTACK_TRAIT' || !('attackDomain' in trait.domain))
+        throw new Error('Ki-Empowered Strikes must author a trait for one attack domain.')
+      trait.domain = { ...trait.domain, attackDomain: 'MELEE' }
+      return record
+    }
+  },
+  {
+    record: oathOfDevotion,
+    label: 'Channel Divinity: Sacred Weapon',
+    variant: () => {
+      const record = structuredClone(oathOfDevotion)
+      const [effect] = feature(record, 'Channel Divinity: Sacred Weapon').effects ?? []
+      const path = effect?.paths[0]
+      const grant = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      const [bonus] = grant?.effectKind === 'APPLY_GRANT' ? (grant.grants?.modifiers ?? []) : []
+      if (
+        bonus?.modifierKind !== 'BONUS' ||
+        !bonus.payload ||
+        !('valueKind' in bonus.payload) ||
+        bonus.payload.valueKind !== 'ABILITY_MODIFIER'
+      )
+        throw new Error('Sacred Weapon must author an ability modifier bonus on attack rolls.')
+      bonus.payload = {
+        valueKind: 'ABILITY_MODIFIER',
+        ability: 'WISDOM',
+        multiplier: 2,
+        min: 2,
+        max: 5
+      }
+      return record
+    }
+  },
+  {
+    record: rogue,
+    label: 'Elusive',
+    variant: () => {
+      const record = structuredClone(rogue)
+      const grants = feature(record, 'Elusive').grants?.modifiers ?? []
+      if (grants.some((grant) => grant.modifierKind !== 'NEGATE_ADVANTAGE'))
+        throw new Error('Elusive must negate advantage on attacks against the holder.')
+      // A homebrew variant that holds only against melee attacks.
+      feature(record, 'Elusive').grants = { modifiers: grants.slice(0, 1) }
+      return record
+    }
+  },
+  {
+    record: hunterConclave,
+    label: 'Escape the Horde',
+    parent: 'Defensive Tactics',
+    variant: () => {
+      const record = structuredClone(hunterConclave)
+      const escape = option(record, 'Defensive Tactics', 'Escape the Horde')
+      const grants = escape.grants?.modifiers ?? []
+      if (
+        grants.some(
+          (grant) => grant.valueDomainCode !== 'ATTACKS_AGAINST' || !grant.domain.attackOccasion
+        )
+      )
+        throw new Error('Escape the Horde must qualify attacks against the holder by occasion.')
+      // A homebrew variant that holds only against melee opportunity attacks.
+      escape.grants = { modifiers: grants.slice(0, 1) }
+      return record
+    }
+  },
+  {
+    record: circleOfTheLand,
+    label: "Nature's Sanctuary",
+    variant: () => {
+      const record = structuredClone(circleOfTheLand)
+      const [ward] = feature(record, "Nature's Sanctuary").grants?.modifiers ?? []
+      if (
+        ward?.valueDomainCode !== 'INCOMING_ATTACK_GATE' ||
+        !ward.payload ||
+        !('attackerCreatureTypeIds' in ward.payload) ||
+        !ward.payload.successImmunity
+      )
+        throw new Error(
+          'Nature’s Sanctuary must author a creature-type ward with a success immunity.'
+        )
+      // A homebrew variant that warns off beasts only and remembers a pass for an hour.
+      ward.payload.attackerCreatureTypeIds = ward.payload.attackerCreatureTypeIds?.slice(0, 1)
+      ward.payload.successImmunity.duration = {
+        id: ward.payload.successImmunity.duration.id,
+        durationKind: 'HOUR',
+        amount: 1
+      }
+      return record
+    }
+  }
+]
+
+describe('class features resolved from core options through the class node map (SPELLS-31.T3a-T3c, T5s)', () => {
+  it.each(CASES)('keeps the SRD $label exactly as authored, with no closed rule', async (entry) => {
+    const nodes = caseNodes(entry.record, entry.label, entry.parent)
+    expect(nodes.length).toBeGreaterThan(0)
+    expect(JSON.stringify(nodes)).not.toContain('CLOSED_RULE')
+    const result = await normalize(entry.record)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(entry.record.features)
+  })
+
+  it.each(CASES)('keeps a homebrew $label variant the same way', async (entry) => {
+    const authored = entry.variant()
+    expect(authored.features).not.toEqual(entry.record.features)
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+  })
+})

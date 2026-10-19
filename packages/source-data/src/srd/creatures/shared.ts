@@ -1,19 +1,24 @@
 import {
   ABILITY_CODE,
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CHARGE_RESET_KIND,
   CLOSED_RULE_KIND,
+  DAMAGE_DEFENSE_BYPASS_CODE,
   type AbilityCode,
   PATH_CODE,
   PATH_GROUP_TYPE,
+  PATH_USAGE,
   CREATURE_CATEGORY_CODE,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   FOLLOW_UP_SAVE_TIMING,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
@@ -24,14 +29,18 @@ import {
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
+  DURATION_KIND,
   type ActorRelationshipAuthored,
   type ActorRelationshipModuleAuthored,
   type CreatureAuthored,
   type CreatureSenseAuthored,
+  type EffectAuthored,
   type FeatureAuthored,
   type FollowUpSaveAuthored,
+  type MovementPassageOption,
   type SizeCode
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
@@ -49,6 +58,7 @@ import {
   SRD_DAMAGE_TYPES,
   SRD_DARKVISION_SENSE_ID,
   SRD_LANGUAGES,
+  SRD_MAGIC_SCHOOLS,
   SRD_SKILLS,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
@@ -216,6 +226,236 @@ export function actionId(creatureIndex: number, localIndex: number) {
   return localId(2, creatureIndex, localIndex)
 }
 
+/** A feature's grant of where the Creature may move: through creatures, objects, or both. */
+export function movementPassageGrants(
+  id: string,
+  passage: MovementPassageOption
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: [
+      {
+        id,
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        valueDomainCode: VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE,
+        domain: {},
+        modifierKind: MODIFIER_KIND.ADD_OPTION,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        payload: passage,
+        order: 0
+      }
+    ]
+  }
+}
+
+/**
+ * A feature's advantage on saving throws against being <conditions> and on checks of <skills>.
+ * A condition's save can use any ability, so each condition gets one grant per ability. The grants
+ * take the IDs `grantId(creatureIndex, firstLocalIndex)` onward.
+ */
+export function advantageGrants(
+  creatureIndex: number,
+  firstLocalIndex: number,
+  input: { savesAgainst: readonly SrdConditionCode[]; skills?: readonly string[] }
+): NonNullable<FeatureAuthored['grants']> {
+  const common = {
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    modifierKind: MODIFIER_KIND.ADVANTAGE,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED
+  } as const
+  const domains = [
+    ...(input.skills ?? []).map((code) => ({
+      valueDomainCode: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
+      domain: { skillId: skillId(code) }
+    })),
+    ...input.savesAgainst.flatMap((code) =>
+      Object.values(ABILITY_CODE).map((ability) => ({
+        valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+        domain: { ability, conditionTypeId: vocabularyId(SRD_CONDITION_TYPES, code) }
+      }))
+    )
+  ]
+  return {
+    modifiers: domains.map((entry, order) => ({
+      ...common,
+      ...entry,
+      id: grantId(creatureIndex, firstLocalIndex + order),
+      order
+    }))
+  }
+}
+
+/**
+ * A sphinx's Inscrutable: immunity to divination spells, and disadvantage on Wisdom (Insight) checks
+ * made to read it. The grants take the IDs `grantId(creatureIndex, firstLocalIndex)` onward.
+ */
+export function inscrutableGrants(
+  creatureIndex: number,
+  firstLocalIndex: number
+): NonNullable<FeatureAuthored['grants']> {
+  const common = {
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    modifierKind: MODIFIER_KIND.ADD_OPTION,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    domain: {}
+  } as const
+  return {
+    modifiers: [
+      {
+        ...common,
+        id: grantId(creatureIndex, firstLocalIndex),
+        valueDomainCode: VALUE_DOMAIN_CODE.SPELL_SCHOOL_IMMUNITY,
+        payload: {
+          magicSchoolId: magicSchoolId('DIVINATION')
+        },
+        order: 0
+      },
+      {
+        ...common,
+        id: grantId(creatureIndex, firstLocalIndex + 1),
+        valueDomainCode: VALUE_DOMAIN_CODE.CHECKS_AGAINST_HOLDER,
+        payload: { skillId: skillId('INSIGHT') },
+        order: 1
+      }
+    ]
+  }
+}
+
+/** A feature that makes all the Creature's attacks magical (Magic Weapons): one ATTACK_TRAIT grant. */
+export function magicWeaponsGrants(
+  creatureIndex: number,
+  localIndex: number
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: [
+      {
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        modifierKind: MODIFIER_KIND.ENABLE,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        id: grantId(creatureIndex, localIndex),
+        valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+        domain: { trait: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL },
+        order: 0
+      }
+    ]
+  }
+}
+
+/** A feature that makes the Creature's movement provoke no opportunity attacks (Flyby). */
+export function flybyGrants(
+  creatureIndex: number,
+  localIndex: number
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: [
+      {
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        modifierKind: MODIFIER_KIND.ENABLE,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        id: grantId(creatureIndex, localIndex),
+        valueDomainCode: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
+        domain: {},
+        order: 0
+      }
+    ]
+  }
+}
+
+/** A feature that gives the Creature a condition it always has (Invisible Stalker's Invisibility). */
+export function innateConditionGrants(
+  creatureIndex: number,
+  localIndex: number,
+  conditionCode: SrdConditionCode
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: [
+      {
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        modifierKind: MODIFIER_KIND.ADD_OPTION,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        id: grantId(creatureIndex, localIndex),
+        valueDomainCode: VALUE_DOMAIN_CODE.CONDITION,
+        domain: {},
+        payload: { conditionTypeId: vocabularyId(SRD_CONDITION_TYPES, conditionCode) },
+        order: 0
+      }
+    ]
+  }
+}
+
+/**
+ * Parry: a reaction to a melee attack by an attacker the Creature sees that adds `armorClassBonus` to
+ * its AC against that one attack (used up by it). Its ids run from `base` in the Creature's reactions.
+ */
+export function parryReaction(
+  creatureIndex: number,
+  base: number,
+  armorClassBonus: number
+): EffectAuthored {
+  const pathId = reactionId(creatureIndex, base + 2)
+  return {
+    id: reactionId(creatureIndex, base),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+      reactionTrigger: { kind: 'ATTACKED_SELF', attackRange: 'MELEE', requiresSight: true },
+      range: { id: reactionId(creatureIndex, base + 1), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+    },
+    paths: [
+      {
+        id: pathId,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: `${pathId}__result`,
+          resultKind: 'SINGLE',
+          duration: {
+            id: reactionId(creatureIndex, base + 3),
+            durationKind: DURATION_KIND.ROUND,
+            amount: 1
+          },
+          lifecycle: {
+            turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+            consumeOnFirstEvents: ['ON_ATTACKED']
+          },
+          outcomes: [
+            {
+              id: pathId,
+              effectKind: EFFECT_KIND.APPLY_GRANT,
+              grants: {
+                modifiers: [
+                  {
+                    id: reactionId(creatureIndex, base + 4),
+                    grantKind: GRANT_KIND.MODIFIER_GRANT,
+                    valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                    domain: {},
+                    modifierKind: MODIFIER_KIND.BONUS,
+                    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    payload: { valueKind: 'FIXED', amount: armorClassBonus },
+                    order: 1
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
 /** A breath weapon's cone: a Self area that starts at the creature and catches everyone in it. */
 export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
   return {
@@ -232,6 +472,123 @@ export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
   }
 }
 
+const SRD_INCOMING_DAMAGE_GRANT_NAMESPACE = '5d1f0f1e-8a4b-4c63-9b52-3e7a2c9d4b10'
+
+type AuthoredModifierGrant = NonNullable<
+  NonNullable<FeatureAuthored['grants']>['modifiers']
+>[number]
+
+/** A modifier grant minus the fields the Effect supplies; distributes so each value domain keeps its own shape. */
+type IncomingDamageGrant = AuthoredModifierGrant extends infer Grant
+  ? Grant extends unknown
+    ? Omit<Grant, 'id' | 'grantKind' | 'scope' | 'selectionKind' | 'order'>
+    : never
+  : never
+
+/**
+ * A passive Effect by which the creature, on taking damage of the given types, gains modifier
+ * grants until the end of its next turn. The Effect's range, path, result, outcome and grant ids
+ * derive from the Effect's own id.
+ */
+export function incomingDamageGrantEffect(
+  effectId: string,
+  damageTypeCodes: readonly string[],
+  grants: readonly IncomingDamageGrant[]
+): EffectAuthored {
+  const childId = (kind: string, index = 0) =>
+    uuidv5(`${effectId}:${kind}:${index}`, SRD_INCOMING_DAMAGE_GRANT_NAMESPACE)
+  return {
+    id: effectId,
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.INCOMING_DAMAGE,
+      damageTypeIds: damageTypeCodes.map(damageTypeId),
+      range: { id: childId('range'), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+    },
+    paths: [
+      {
+        id: childId('path'),
+        order: 1,
+        pathCode: PATH_CODE.PASSIVE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: childId('result'),
+          resultKind: 'SINGLE',
+          duration: { id: childId('duration'), durationKind: DURATION_KIND.ROUND, amount: 1 },
+          lifecycle: { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' } },
+          outcomes: [
+            {
+              id: childId('outcome'),
+              effectKind: EFFECT_KIND.APPLY_GRANT,
+              grants: {
+                modifiers: grants.map((grant, order) => ({
+                  ...grant,
+                  id: childId('grant', order),
+                  grantKind: GRANT_KIND.MODIFIER_GRANT,
+                  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                  selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                  order
+                }))
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+/**
+ * A passive Effect by which the creature sheds light around itself: bright light, then dim light
+ * for the additional distance. It is the same MANIFEST light a torch carries; the Effect's range,
+ * path and outcome ids follow the Effect's own local index.
+ */
+export function shedLightEffect(
+  creatureIndex: number,
+  localIndex: number,
+  brightFeet: number,
+  dimAdditionalFeet: number
+): EffectAuthored {
+  const pathId = actionId(creatureIndex, localIndex + 200)
+  return {
+    id: actionId(creatureIndex, localIndex),
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: actionId(creatureIndex, localIndex + 100), rangeKind: RANGE_KIND.SELF }
+    },
+    paths: [
+      {
+        id: pathId,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: `${pathId}__result`,
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: actionId(creatureIndex, localIndex + 300),
+              effectKind: EFFECT_KIND.MANIFEST,
+              manifestKind: 'OBJECT',
+              attachmentKind: 'SOURCE',
+              light: {
+                bright: { amount: brightFeet, unit: MEASUREMENT_UNIT_CODE.FEET },
+                dimAdditional: { amount: dimAdditionalFeet, unit: MEASUREMENT_UNIT_CODE.FEET }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
 /** A breath weapon's line: a Self area that starts at the creature and catches everyone in it. */
 export function selfLine(rangeId: string, shapeId: string, lengthFeet: number, widthFeet: number) {
   return {
@@ -269,6 +626,10 @@ export function equipmentLoadoutId(creatureIndex: number, localIndex: number) {
   return localId(8, creatureIndex, localIndex)
 }
 
+function grantId(creatureIndex: number, localIndex: number) {
+  return localId(6, creatureIndex, localIndex)
+}
+
 function grappleId(creatureIndex: number, localIndex: number) {
   return localId(9, creatureIndex, localIndex)
 }
@@ -286,12 +647,15 @@ export type GrappleRider = {
   largestTarget?: SizeCode
   /** The printed "until this grapple ends" conditions besides Grappled. */
   untilEnds?: readonly SrdConditionCode[]
+  /** The printed "can't bite another target": these actions may target only the held creature. */
+  restrictedActionEffectIds?: readonly string[]
 }
 
 /**
  * A Grappled outcome (D105): the target escapes with its Action by an Athletics or Acrobatics
- * check against the printed escape DC. It takes the IDs `grappleId(creatureIndex, localIndex)`
- * through `localIndex + 3 + untilEnds.length`.
+ * check against the printed escape DC, and the grappler drags it when it moves. It takes the IDs
+ * `grappleId(creatureIndex, localIndex)` through `localIndex + 4 + untilEnds.length`, and one more
+ * for an action restriction.
  */
 export function grappledOutcome(
   creatureIndex: number,
@@ -320,7 +684,18 @@ export function grappledOutcome(
       },
       dc: { kind: 'FIXED', value: rider.escapeDc },
       actorKinds: ['TARGET']
-    }
+    },
+    { id: id(4 + (rider.untilEnds?.length ?? 0)), order: 0, kind: 'TARGET_DRAGGED' },
+    ...(rider.restrictedActionEffectIds
+      ? [
+          {
+            id: id(5 + (rider.untilEnds?.length ?? 0)),
+            order: 0,
+            kind: 'SOURCE_ACTION_TARGET_RESTRICTION' as const,
+            actionEffectIds: [...rider.restrictedActionEffectIds]
+          }
+        ]
+      : [])
   ]
   return {
     id: id(0),
@@ -336,6 +711,226 @@ export function grappledOutcome(
       conditionId
     }))
   }
+}
+/**
+ * A successful save's 24 hours of immunity to this source's use of the action ("the creature is
+ * immune to the cloaker's moan for the next 24 hours"): one SOURCE_IMMUNITY on the success path,
+ * keyed by the action and its source (D156). It takes the IDs `actionId(creatureIndex, localIndex +
+ * 0..2)`.
+ */
+export function saveImmunityPath(
+  creatureIndex: number,
+  localIndex: number
+): EffectAuthored['paths'][number] {
+  const id = (offset: number) => actionId(creatureIndex, localIndex + offset)
+  return {
+    id: id(0),
+    order: 2,
+    pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+    groupType: PATH_GROUP_TYPE.SINGLE,
+    originKind: 'SOURCE',
+    selectionKind: 'FIXED',
+    resultBlock: {
+      id: `${id(0)}__result`,
+      resultKind: 'SINGLE',
+      duration: { id: id(1), durationKind: DURATION_KIND.HOUR, amount: 24 },
+      outcomes: [{ id: id(2), effectKind: EFFECT_KIND.SOURCE_IMMUNITY }]
+    }
+  }
+}
+
+/**
+ * A minute of fear with a repeated save (Frightful Presence, Horror Nimbus): each creature it
+ * reaches makes a Wisdom save or is frightened of the source for 1 minute, repeating the save at
+ * the end of each of its turns, and one that succeeds is immune to this source's use of it for 24
+ * hours. It reaches the creatures the source chooses within `chosenWithinFeet`, or everyone in a
+ * sphere of `radiusFeet` around it. "Aware of it", "that can see the light" and "or the effect ends
+ * for it" stay in the description. It takes the IDs `actionId(creatureIndex, localIndex + 0..12)`.
+ */
+export function minuteFearSaveEffect(
+  creatureIndex: number,
+  input: {
+    localIndex: number
+    dc: number
+    reach: { chosenWithinFeet: number } | { radiusFeet: number }
+    repeatRollInfluence?: FollowUpSaveAuthored['repeatRollInfluence']
+  }
+): EffectAuthored {
+  const id = (offset: number) => actionId(creatureIndex, input.localIndex + offset)
+  const savingThrow = (offset: number) => ({
+    id: id(offset),
+    dcMethod: 'FIXED_DC' as const,
+    abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
+    baseDc: input.dc
+  })
+  return {
+    id: id(0),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.SAVING_THROW,
+      savingThrow: savingThrow(1),
+      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+      ...('chosenWithinFeet' in input.reach
+        ? {
+            range: {
+              id: id(2),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: input.reach.chosenWithinFeet,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          }
+        : {
+            range: { id: id(2), rangeKind: RANGE_KIND.SELF },
+            shape: {
+              id: id(11),
+              shapeKind: SHAPE_KIND.SPHERE,
+              radius: { amount: input.reach.radiusFeet, unit: MEASUREMENT_UNIT_CODE.FEET }
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          })
+    },
+    paths: [
+      {
+        id: id(3),
+        order: 1,
+        pathCode: PATH_CODE.ON_SAVE_FAIL,
+        groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: id(12),
+          resultKind: 'SEQUENCE',
+          duration: { id: id(4), durationKind: DURATION_KIND.MINUTE, amount: 1 },
+          outcomes: [
+            {
+              id: id(5),
+              effectKind: EFFECT_KIND.CONDITION,
+              conditionId: vocabularyId(SRD_CONDITION_TYPES, 'FRIGHTENED'),
+              recordsSource: true
+            },
+            {
+              id: id(6),
+              effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+              timing: FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
+              savingThrow: savingThrow(7),
+              attempts: { kind: 'ONCE', repeatOnFailure: true },
+              ...(input.repeatRollInfluence && { repeatRollInfluence: input.repeatRollInfluence }),
+              onSuccess: { kind: 'END' },
+              onFailure: { kind: 'CONTINUE' }
+            }
+          ]
+        }
+      },
+      saveImmunityPath(creatureIndex, input.localIndex + 8)
+    ]
+  }
+}
+
+/**
+ * The printed creature Sneak Attack ("once per turn ... when it hits a target with a weapon
+ * attack"): a once-per-turn `ON_HIT` rider of the weapon's damage type, gated as the Rogue's is
+ * (advantage, or an able enemy of the target within 5 feet and no disadvantage) but without its
+ * finesse check. One passive Effect per weapon trigger; the two share the Feature's one use. Each
+ * takes the IDs `actionId(creatureIndex, localIndex + 0..11)`, the ranged one from `+ 16`.
+ */
+export function sneakAttackEffects(
+  creatureIndex: number,
+  localIndex: number,
+  diceConfig: string
+): EffectAuthored[] {
+  return [TRIGGER.MELEE_WEAPON_ATTACK, TRIGGER.RANGED_WEAPON_ATTACK].map((triggerCode, variant) => {
+    const id = (offset: number) => actionId(creatureIndex, localIndex + variant * 16 + offset)
+    const roll = (rollMode: 'ADVANTAGE' | 'NOT_DISADVANTAGE') => ({
+      kind: 'PREDICATE' as const,
+      constraint: 'INCLUDE' as const,
+      predicateCode: 'ATTACK_ROLL_MODE' as const,
+      rollMode
+    })
+    const gates = [
+      [roll('ADVANTAGE')],
+      [
+        {
+          kind: 'PREDICATE' as const,
+          constraint: 'INCLUDE' as const,
+          predicateCode: 'ENEMY_NEAR_TARGET' as const,
+          feet: 5
+        },
+        roll('NOT_DISADVANTAGE')
+      ]
+    ]
+    return {
+      id: id(0),
+      order: variant + 1,
+      invocation: {
+        kind: 'PASSIVE' as const,
+        triggerCode,
+        range: { id: id(1), rangeKind: RANGE_KIND.SPECIAL },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
+      },
+      paths: [
+        {
+          id: id(2),
+          order: 1,
+          pathCode: PATH_CODE.ON_HIT,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          usage: PATH_USAGE.ONCE_PER_TURN,
+          restrictions: {
+            id: id(4),
+            groups: gates.map((conditions, index) => ({
+              id: id(5 + index),
+              order: index,
+              contexts: [
+                {
+                  id: id(7 + index),
+                  order: 0,
+                  subject: 'EQUIPMENT' as const,
+                  authoringModeKind: 'ALL' as const,
+                  conditions: conditions.map((condition, order) => ({
+                    ...condition,
+                    id: id(9 + index + order),
+                    order
+                  }))
+                }
+              ]
+            }))
+          },
+          resultBlock: {
+            id: `${id(2)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: id(3),
+                effectKind: EFFECT_KIND.DAMAGE,
+                usesTriggeringWeaponDamageType: true,
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.NONE,
+                diceConfig
+              }
+            ]
+          }
+        }
+      ]
+    }
+  })
+}
+
+function magicSchoolId(code: string) {
+  const entry = SRD_MAGIC_SCHOOLS.find((school) => school.code === code)
+  if (!entry) throw new Error(`SRD magic school vocabulary entry for ${code} required.`)
+  return entry.id
 }
 
 export function skillId(code: string) {
@@ -946,6 +1541,7 @@ function legendaryActionOptionId(featureId: string, order: number): string {
 export {
   ABILITY_CODE,
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   PATH_CODE,
@@ -961,6 +1557,7 @@ export {
   FOLLOW_UP_SAVE_TIMING,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
   SIZE_CODE,
   RANGE_KIND,
   SCALING,
@@ -969,5 +1566,6 @@ export {
   SPELL_GRANT_ATTRIBUTE,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
-  TRIGGER
+  TRIGGER,
+  VALUE_DOMAIN_CODE
 }

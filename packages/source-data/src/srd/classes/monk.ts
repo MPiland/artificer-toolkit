@@ -2,12 +2,14 @@ import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from 
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DAMAGE_DEFENSE_BYPASS_CODE,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   EFFECT_KIND,
@@ -32,9 +34,11 @@ import {
   type EffectAuthored,
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
+import { conditionTypeId, damageTypeId } from '../equipment/shared.js'
 import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
+  SRD_DAMAGE_TYPES,
   SRD_SKILLS,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
@@ -439,7 +443,6 @@ export const monk: ClassAuthored = {
         'Beginning at 1st level, while you are wearing no armor and not wielding a shield, your AC equals 10 + your Dexterity modifier + your Wisdom modifier.',
       availableAtLevel: 1,
       order: 0,
-      effects: [selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_DEFENSE)],
       grants: {
         modifiers: [
           {
@@ -536,7 +539,6 @@ export const monk: ClassAuthored = {
         'Starting at 2nd level, your speed increases by 10 feet while you are not wearing armor or wielding a shield. This bonus increases when you reach certain monk levels, as shown in the Monk table.',
       availableAtLevel: 2,
       order: 3,
-      effects: [selfClassRuleEffect(4, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_MOVEMENT)],
       grants: { modifiers: unarmoredMovementModifiers }
     },
     {
@@ -636,22 +638,23 @@ export const monk: ClassAuthored = {
         'Starting at 6th level, your unarmed strikes count as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage.',
       availableAtLevel: 6,
       order: 10,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(M, 0x60, 11),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_KI_EMPOWERED_STRIKES,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.UNARMED_ATTACK,
-            range: { id: classRowId(M, 0x69, 11), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'HOSTILE'
-            }
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(M, 0x92, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+            domain: {
+              trait: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL,
+              attackDomain: ATTACK_DOMAIN_CODE.UNARMED
+            },
+            modifierKind: MODIFIER_KIND.ENABLE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            order: 0
           }
-        })
-      ]
+        ]
+      }
     },
     {
       id: classRowId(M, 3, 12),
@@ -772,7 +775,33 @@ export const monk: ClassAuthored = {
         'At 10th level, your mastery of the ki flowing through you makes you immune to disease and poison.',
       availableAtLevel: 10,
       order: 16,
-      effects: [selfClassRuleEffect(17, CLOSED_RULE_KIND.CLASS_MONK_PURITY_OF_BODY)]
+      // Poison only: the engine has no disease model, so that half stays description (D156).
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(M, 0x90, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { damageTypeId: damageTypeId('POISON') },
+            order: 0
+          },
+          {
+            id: classRowId(M, 0x90, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { conditionTypeId: conditionTypeId('POISONED') },
+            order: 1
+          }
+        ]
+      }
     },
     {
       id: classRowId(M, 3, 18),
@@ -803,22 +832,7 @@ export const monk: ClassAuthored = {
       description:
         'Starting at 13th level, you learn to touch the ki of other minds so that you understand all spoken languages. Moreover, any creature that can understand a language can understand what you say.',
       availableAtLevel: 13,
-      order: 19,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(M, 0x60, 20),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_TONGUE_OF_SUN_AND_MOON,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(M, 0x69, 20), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: 'ANY'
-            }
-          }
-        })
-      ]
+      order: 19
     },
     {
       id: classRowId(M, 3, 21),
@@ -885,8 +899,7 @@ export const monk: ClassAuthored = {
       description:
         "At 15th level, your ki sustains you so that you suffer none of the frailty of old age, and you can't be aged magically. You can still die of old age, however. In addition, you no longer need food or water.",
       availableAtLevel: 15,
-      order: 21,
-      effects: [selfClassRuleEffect(22, CLOSED_RULE_KIND.CLASS_MONK_TIMELESS_BODY)]
+      order: 21
     },
     {
       id: classRowId(M, 3, 23),
@@ -918,8 +931,61 @@ export const monk: ClassAuthored = {
         "Beginning at 18th level, you can use your action to spend 4 ki points to become invisible for 1 minute. During that time, you also have resistance to all damage but force damage. Additionally, you can spend 8 ki points to cast the astral projection spell, without needing material components. When you do so, you can't take any other creatures with you.",
       availableAtLevel: 18,
       order: 24,
+      // Astral Projection for 8 ki stays description: a spell grant cannot spend a class pool yet.
       effects: [
-        selfClassRuleEffect(25, CLOSED_RULE_KIND.CLASS_MONK_EMPTY_BODY, ACTIVATION_CODE.ACTION)
+        {
+          id: classRowId(M, 0x60, 25),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: kiCharge.id, cost: 4 },
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: classRowId(M, 0x69, 25), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: classRowId(M, 0x80, 25),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(M, 0x81, 25),
+                resultKind: 'SINGLE',
+                duration: { id: classRowId(M, 0x83, 25), durationKind: 'MINUTE', amount: 1 },
+                outcomes: [
+                  {
+                    id: classRowId(M, 0x82, 25),
+                    effectKind: EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('INVISIBLE')
+                  },
+                  {
+                    id: classRowId(M, 0x84, 25),
+                    effectKind: EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: SRD_DAMAGE_TYPES.filter(({ code }) => code !== 'FORCE').map(
+                        (damageType, index) => ({
+                          id: classRowId(M, 0x85, index + 1),
+                          grantKind: GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+                          domain: {},
+                          modifierKind: MODIFIER_KIND.ADD_OPTION,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { damageTypeId: damageType.id },
+                          order: index
+                        })
+                      )
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {

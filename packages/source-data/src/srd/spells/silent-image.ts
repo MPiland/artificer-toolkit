@@ -5,6 +5,7 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
@@ -71,8 +72,10 @@ export const silentImage: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SILENT_IMAGE, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SILENT_IMAGE' as const
+                // The image is an illusion manifest; moving it and the Investigation check that sees
+                // through it are the GM's from the description.
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ILLUSION
               },
               {
                 id: spellChildId(SPELL_IDS.SILENT_IMAGE, 0x212, 1),

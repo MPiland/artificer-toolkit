@@ -72,8 +72,11 @@ export const waterBreathing: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.WATER_BREATHING, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'WATER_BREATHING' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Breathe Underwater',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  'This spell grants up to ten willing creatures you can see within range the ability to breathe underwater until the spell ends.'
               }
             ]
           }

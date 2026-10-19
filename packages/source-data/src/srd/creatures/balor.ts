@@ -441,7 +441,7 @@ export const balor: CreatureAuthored = {
                           effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
                           direction: 'TOWARD_SOURCE',
                           actionEconomy: 'NONE',
-                          distanceMode: 'FIXED_DISTANCE',
+                          distanceMode: 'EXACT',
                           amount: 25,
                           unit: S.MEASUREMENT_UNIT_CODE.FEET
                         }
@@ -474,8 +474,11 @@ export const balor: CreatureAuthored = {
             },
             range: {
               id: S.actionId(2128, 11),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 120,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
           paths: [
             {
@@ -491,8 +494,9 @@ export const balor: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(2128, 12),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.BALOR_TELEPORT
+                    effectKind: S.EFFECT_KIND.TELEPORT,
+                    targetKind: 'SELF',
+                    destinationKind: 'VISIBLE'
                   }
                 ]
               }
@@ -506,18 +510,7 @@ export const balor: CreatureAuthored = {
       id: S.featureId(36, 9),
       label: 'Magic Weapons',
       description: "Magic Weapons. The balor's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(36, 901),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(36, 902), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(36, 901),
       order: 9
     }
   ]

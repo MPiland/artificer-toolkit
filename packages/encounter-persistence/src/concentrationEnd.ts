@@ -8,6 +8,7 @@ import { listActiveGrantListings } from '@artificer-toolkit/rules-runtime/active
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { grantEndNoticeId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
+import { encounterHeldItemInstanceIds } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import {
   grantsEndedByHolderState,
   stateBoundGrants
@@ -22,11 +23,41 @@ import type { EncounterPersistenceTransaction, EncounterWritePorts } from './por
 import { readRuleRollRouting } from './ruleRollCards.js'
 
 /**
+ * The condition types the actor has now: a Character's are its Sheet's and, unless it departed, its
+ * Campaign's; any other actor's are its own.
+ */
+export async function readActorConditionIds(
+  ctx: EncounterPersistenceTransaction,
+  input: {
+    state: Pick<EncounterRunState, 'campaignId'>
+    actor: EncounterRunActorState
+    campaign: Parameters<EncounterWritePorts['readCampaignCharacterConditions']>[0]
+  }
+): Promise<string[]> {
+  const { state, actor, campaign } = input
+  if (actor.kind !== 'CHARACTER')
+    return readEncounterActorConditionState(actor.conditions ?? []).ids
+  const play = await readEncounterCharacterPlay(ctx, actor.sourceId)
+  if (!play) throw new Error('Encounter Character source is unavailable.')
+  const campaignConditions = (await isDepartedCharacterActor(ctx, state.campaignId, actor))
+    ? []
+    : await ctx.ports.readCampaignCharacterConditions(campaign, actor.sourceId)
+  return [
+    ...new Set(
+      [...(ctx.ports.readCharacterPlay(play).conditions ?? []), ...campaignConditions].map(
+        (condition) => condition.conditionTypeId
+      )
+    )
+  ]
+}
+
+/**
  * What the committed state says about the actor's involuntary ends, so a stale or invented end is
  * rejected by comparison. `reason` is why its Concentration ends without a check (D95): a defeated
  * Creature or custom actor, one whose System actor-action capability is unavailable, or one under a
  * `SPELLCASTING_LOCK` grant; null when none holds. `conditionIds` are the condition types it has,
- * which end the grants that name them; a defeated actor's are not read.
+ * which end the grants that name them; a defeated actor's are not read. `heldItemInstanceIds` are
+ * the items a hand of it holds, which keep the grants bound to them (the room reads the same).
  */
 export async function readHolderEndState(
   ctx: EncounterPersistenceTransaction,
@@ -34,40 +65,27 @@ export async function readHolderEndState(
 ): Promise<{
   reason: Awaited<ReturnType<typeof encounterConcentrationEndReason>>
   conditionIds: string[]
+  heldItemInstanceIds: string[]
 }> {
   const { state, actor } = input
+  const heldItemInstanceIds = await readHeldItemInstanceIds(ctx, actor)
   const deadCharacterIds = await readDeadCharacterIds(ctx, [actor])
   if (isEncounterActorDefeated(actor, deadCharacterIds))
-    return { reason: 'DEFEATED', conditionIds: [] }
+    return { reason: 'DEFEATED', conditionIds: [], heldItemInstanceIds }
   const { campaign } = await ctx.ports.requireCampaignAuthority(state.campaignId, input.userId)
-  let conditionIds: string[]
-  let activeEffects
-  if (actor.kind === 'CHARACTER') {
-    const play = await readEncounterCharacterPlay(ctx, actor.sourceId)
-    if (!play) throw new Error('Encounter Character source is unavailable.')
-    const campaignConditions = (await isDepartedCharacterActor(ctx, state.campaignId, actor))
-      ? []
-      : await ctx.ports.readCampaignCharacterConditions(campaign, actor.sourceId)
-    conditionIds = [
-      ...new Set(
-        [...(ctx.ports.readCharacterPlay(play).conditions ?? []), ...campaignConditions].map(
-          (condition) => condition.conditionTypeId
+  const conditionIds = await readActorConditionIds(ctx, { state, actor, campaign })
+  const activeEffects =
+    actor.kind === 'CHARACTER'
+      ? await listActiveRuleEffects(
+          ctx,
+          { kind: 'CHARACTER', characterId: actor.sourceId },
+          { ownerVerified: true }
         )
-      )
-    ]
-    activeEffects = await listActiveRuleEffects(
-      ctx,
-      { kind: 'CHARACTER', characterId: actor.sourceId },
-      { ownerVerified: true }
-    )
-  } else {
-    conditionIds = readEncounterActorConditionState(actor.conditions ?? []).ids
-    activeEffects = await listActiveRuleEffects(ctx, {
-      kind: 'ENCOUNTER_ACTOR',
-      encounterId: state.id,
-      targetActorId: actor.id
-    })
-  }
+      : await listActiveRuleEffects(ctx, {
+          kind: 'ENCOUNTER_ACTOR',
+          encounterId: state.id,
+          targetActorId: actor.id
+        })
   const reason = await encounterConcentrationEndReason({
     actor,
     deadCharacterIds,
@@ -82,7 +100,17 @@ export async function readHolderEndState(
       }
     }
   })
-  return { reason, conditionIds }
+  return { reason, conditionIds, heldItemInstanceIds }
+}
+
+async function readHeldItemInstanceIds(
+  ctx: EncounterPersistenceTransaction,
+  actor: EncounterRunActorState
+) {
+  if (actor.kind !== 'CHARACTER') return encounterHeldItemInstanceIds(actor, undefined)
+  const play = await readEncounterCharacterPlay(ctx, actor.sourceId)
+  if (!play) throw new Error('Encounter Character source is unavailable.')
+  return encounterHeldItemInstanceIds(actor, ctx.ports.readCharacterPlay(play).equipped)
 }
 
 function concentrationEndMessage(label: string, reason: ConcentrationEndReason) {

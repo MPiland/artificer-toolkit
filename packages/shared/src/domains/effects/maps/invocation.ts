@@ -69,22 +69,19 @@ const OPTIONAL_ON_HIT_KIND_OPTIONS: { code: OptionalOnHitAuthored['kind']; label
 
 const optionalOnHit = buildNodeMap<OptionalOnHitAuthored>()
 
-const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define(
-  'optionalOnHit',
-  ({ map, nodes }) => {
-    const { selectSingle } = nodes
+const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define('optionalOnHit', ({ map, nodes }) => {
+  const { selectSingle } = nodes
 
-    map.set(
-      'kind',
-      selectSingle(
-        ['kind'],
-        'Cost',
-        { kind: 'INLINE_OPTIONS', options: OPTIONAL_ON_HIT_KIND_OPTIONS },
-        { order: 1, requiredIf: true }
-      )
+  map.set(
+    'kind',
+    selectSingle(
+      ['kind'],
+      'Cost',
+      { kind: 'INLINE_OPTIONS', options: OPTIONAL_ON_HIT_KIND_OPTIONS },
+      { order: 1, requiredIf: true }
     )
-  }
-)
+  )
+})
 
 const REACTION_TRIGGER_KIND_OPTIONS: {
   code: ReactionTriggerBindingAuthored['kind']
@@ -130,13 +127,14 @@ const reactionTrigger = buildNodeMap<ReactionTriggerBindingAuthored>()
 const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
   'reactionTrigger',
   ({ map, nodes, cond, data }) => {
-    const { selectSingle, selectMulti, text, groupObject } = nodes
+    const { selectSingle, selectMulti, text, groupObject, toggle } = nodes
     const { table } = data
     const local = cond.local()
     const isMovement = local.field(['kind']).eq('MOVEMENT')
     const isDamageTaken = local.field(['kind']).eq('DAMAGE_TAKEN')
     const isSpellCast = local.field(['kind']).eq('SPELL_CAST')
     const isTargetedSelf = local.field(['kind']).eq('TARGETED_SELF')
+    const isAttackedSelf = local.field(['kind']).eq('ATTACKED_SELF')
 
     map
       .set(
@@ -221,6 +219,23 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
           { presentation: 'inline', order: 6, showIf: isSpellCast }
         )
       )
+      .set(
+        'attackRange',
+        selectSingle(
+          ['attackRange'],
+          'Only against',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'MELEE', label: 'A melee attack' }] },
+          { order: 8, showIf: isAttackedSelf, hiddenBehavior: 'CLEAR' }
+        )
+      )
+      .set(
+        'requiresSight',
+        toggle(['requiresSight'], 'Only against an attacker you see', {
+          order: 9,
+          showIf: isAttackedSelf,
+          hiddenBehavior: 'CLEAR'
+        })
+      )
   }
 )
 
@@ -230,8 +245,9 @@ export type InvocationNodeMap = NodeMap<EffectInvocationAuthored>
 
 export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
   'invocation',
-  ({ map, nodes, cond, logic }) => {
-    const { selectSingle, groupObject } = nodes
+  ({ map, nodes, cond, logic, data }) => {
+    const { selectSingle, selectMulti, groupObject } = nodes
+    const { table } = data
     const { and } = logic
     const local = cond.local()
 
@@ -307,6 +323,23 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
           order: 6,
           showIf: local.field(['kind']).eq('ACTION')
         })
+      )
+      .set(
+        'damageTypeIds',
+        selectMulti(
+          ['damageTypeIds'],
+          'Damage types',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            order: 7,
+            requiredIf: local.field(['triggerCode']).eq('INCOMING_DAMAGE'),
+            showIf: local.field(['triggerCode']).eq('INCOMING_DAMAGE'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
       )
       .set(
         'optionalOnHit',

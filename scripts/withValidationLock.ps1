@@ -61,6 +61,10 @@ $typecheckMB = 4096
 $BuildFor = @($BuildFor | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 if ($typecheck -and $TimeoutMinutes -gt 30) { throw 'Typecheck lane batches are capped at 30 minutes.' }
 if ($BuildFor -and $Lane -eq 'heavy') { throw '-BuildFor belongs to the light lane; a heavy batch builds itself.' }
+# Every yarn command needs the installed workspace; without it each one fails with a Usage Error.
+if (($typecheck -or $BuildFor) -and -not (Test-Path -LiteralPath 'node_modules/.yarn-state.yml')) {
+  throw "No node_modules/.yarn-state.yml in $((Get-Location).Path): run 'yarn install' in this worktree before the $Lane lane."
+}
 if ($light -and $BuildFor) {
   # Build what the named test files import from dist (their workspaces' dependencies) in the typecheck
   # lane, one compile at a time behind its memory gate, before this batch takes a light slot.
@@ -101,21 +105,25 @@ $ErrorActionPreference = 'Continue'
 $env:GOMAXPROCS = '2'
 $log = 'local-validation/typecheck/NAME.log'
 New-Item -ItemType Directory -Force (Split-Path $log) | Out-Null
-$exitCode = & {
+# The exit code travels in a variable, not as the last pipeline item: a native command's stderr
+# can reach the pipeline after the final value, and `exit` of a non-number is 0.
+$global:typecheckExit = 1
+& {
   $base = git merge-base HEAD origin/codex/phase-08-2-convex-cutover
-  if ($LASTEXITCODE) { return 1 }
+  if ($LASTEXITCODE) { return }
   "Typechecking the workspaces changed since $base and their dependents."
   $turbo = @("--filter=...[$base]", '--concurrency=1', '--env-mode=loose', '--continue')
   # Convex typechecks its import of the uncommitted SRD manifest; any content types the same.
   if (-not (Test-Path apps/apis/convex/content/srdManifest.generated.ts)) {
-    yarn turbo run build --filter=@artificer-toolkit/shared --concurrency=1 --env-mode=loose
+    yarn turbo run build '--filter=@artificer-toolkit/apis^...' --concurrency=1 --env-mode=loose
     yarn workspace @artificer-toolkit/apis generate:srd:manifest
   }
   yarn turbo run typecheck typecheck:convex @turbo '--filter=!@artificer-toolkit/web'
   $failed = $LASTEXITCODE
   yarn turbo run typecheck:app typecheck:tests typecheck:stories @turbo
-  [int]($failed -or $LASTEXITCODE)
-} *>&1 | Tee-Object -FilePath $log | Select-Object -Last 1
+  $global:typecheckExit = [int]($failed -or $LASTEXITCODE)
+} *>&1 | Tee-Object -FilePath $log | Out-Null
+$exitCode = $global:typecheckExit
 $report = Select-String -CaseSensitive -LiteralPath $log -Pattern 'Typechecking|error TS|ERROR|Failed:|Tasks:|Cached:|Time:' |
   Select-Object -First 40 | ForEach-Object { $_.Line.Substring(0, [Math]::Min(300, $_.Line.Length)) }
 $report

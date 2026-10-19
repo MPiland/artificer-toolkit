@@ -3,17 +3,22 @@ import { advanceEncounterTurnInputDtoSchema } from './encounters.js'
 import {
   endHeldGrantInputDtoSchema,
   escapeRelationshipInputDtoSchema,
+  releaseRelationshipInputDtoSchema,
   resolveCheckActionInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 
-/** A CHECK action, an Escape or the end of a held grant, or the answer to the check either of the first two started. */
+/**
+ * A CHECK action, an Escape, the end of a held grant or a relationship's release, or the answer to
+ * the check either of the first two started.
+ */
 export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
   z.discriminatedUnion('type', [
     resolveCheckActionInputDtoSchema,
     escapeRelationshipInputDtoSchema,
     endHeldGrantInputDtoSchema,
+    releaseRelationshipInputDtoSchema,
     resolveRuleOccurrenceInputDtoSchema
   ])
 )
@@ -40,9 +45,9 @@ export const liveSessionActionCaptureScopeSchema = lazySchema(() =>
       kind: z.literal('CLEAVING_RESPONSE'),
       response: resolveRuleOccurrenceInputDtoSchema
     }),
-    /** A Disarm, or a participant's d20 for one. */
+    /** A contest (Disarm, Grapple, Shove, a contested escape), or a participant's d20 for one. */
     z.strictObject({
-      kind: z.literal('DISARM'),
+      kind: z.literal('CONTEST'),
       command: z.discriminatedUnion('type', [
         resolveEncounterActionInputDtoSchema,
         resolveRuleOccurrenceInputDtoSchema

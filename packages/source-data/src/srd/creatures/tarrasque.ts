@@ -1,4 +1,3 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -58,18 +57,6 @@ export const tarrasque: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(268, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(268, 202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
-        })
-      ],
       order: 1
     },
     {
@@ -360,31 +347,14 @@ export const tarrasque: CreatureAuthored = {
       description:
         "Frightful Presence. Each creature of the tarrasque's choice within 120 feet of it and aware of it must succeed on a DC 17 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, with disadvantage if the tarrasque is within line of sight, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the tarrasque's Frightful Presence for the next 24 hours.",
       effects: [
-        S.closedRuleEffect({
-          id: S.actionId(268, 225),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(268, 226),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              baseDc: 17
-            },
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(268, 227),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_TARRASQUE_FRIGHTFUL_PRESENCE
+        S.minuteFearSaveEffect(268, {
+          localIndex: 2000,
+          dc: 17,
+          reach: { chosenWithinFeet: 120 },
+          repeatRollInfluence: {
+            influence: 'DISADVANTAGE',
+            when: { kind: 'PERCEPTION', observer: 'TARGET', subject: 'SOURCE', requirement: 'SEE' }
+          }
         })
       ],
       order: 9

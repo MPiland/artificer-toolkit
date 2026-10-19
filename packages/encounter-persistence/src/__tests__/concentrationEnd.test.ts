@@ -9,6 +9,7 @@ import {
   srdDefinitions,
   srdEncounterState
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { knight } from '@artificer-toolkit/source-data/srd/creatures/knight.js'
 import { endHolderStateGrants, readHolderEndState } from '../concentrationEnd.js'
 import { persistEncounterConcentrationChildren } from '../concentrationChildrenPersistence.js'
 import { endConcentrationAfterEdit } from '../concentrationEditEnd.js'
@@ -42,7 +43,11 @@ type Holder = ReturnType<typeof creatureActor>
  * A memory store holding the Run, the holder and the holder's Concentration slot. A GM-held actor's
  * chat entries post only when the GM's rolls are public.
  */
-async function holderFixture(actor: Holder, gmRollVisibility: 'PUBLIC' | 'PRIVATE' = 'PRIVATE') {
+async function holderFixture(
+  actor: Holder,
+  gmRollVisibility: 'PUBLIC' | 'PRIVATE' = 'PRIVATE',
+  others: readonly Holder[] = []
+) {
   const memory = createMemoryEncounterStore()
   memory.load(
     'encounterRuns',
@@ -54,7 +59,12 @@ async function holderFixture(actor: Holder, gmRollVisibility: 'PUBLIC' | 'PRIVAT
   memory.load(
     'encounterRunActors',
     [
-      { _id: 'actor', _creationTime: 2, encounterId: ENCOUNTER_ID, id: actor.id }
+      ...[actor, ...others].map(({ id }, index) => ({
+        _id: `actor-${index}`,
+        _creationTime: 2,
+        encounterId: ENCOUNTER_ID,
+        id
+      }))
     ] as unknown as EncounterDocument<'encounterRunActors'>[],
     { validate: false }
   )
@@ -380,6 +390,130 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
     )
     await persist()
     expect(held()).toHaveLength(1)
+  })
+})
+
+/** The real Knight's Leadership, which ends for every holder when the Knight can't act. */
+describe('persistEncounterConcentrationChildren ends a source grants on every holder (Knight Leadership)', () => {
+  const ALLY_IDS = ['00000000-0000-4000-8000-0000000c0011', '00000000-0000-4000-8000-0000000c0012']
+  const leadership = knight.features?.find(({ label }) => label.startsWith('Leadership'))
+    ?.effects?.[0]
+  if (!leadership) throw new Error('The Knight must author Leadership.')
+
+  const incapacitated: Parameters<typeof creatureActor>[0] = {
+    id: ACTOR_ID,
+    kind: 'CUSTOM',
+    snapshot: {},
+    conditions: [srdCondition('Paralyzed')]
+  }
+  const defeated: Parameters<typeof creatureActor>[0] = {
+    id: ACTOR_ID,
+    kind: 'CUSTOM',
+    snapshot: {},
+    currentHitPoints: 0,
+    defeated: true
+  }
+  const ableToAct: Parameters<typeof creatureActor>[0] = {
+    id: ACTOR_ID,
+    kind: 'CUSTOM',
+    snapshot: {}
+  }
+
+  /** Persists a commit for the Knight, who holds no grant, with a Leadership die on each ally. */
+  async function endLeadership(
+    knightInput: Parameters<typeof creatureActor>[0],
+    {
+      sendGrants = 'ALL',
+      damaged = true
+    }: { sendGrants?: 'ALL' | 'FIRST' | 'NONE'; damaged?: boolean } = {}
+  ) {
+    const source = creatureActor(knightInput)
+    const allies = ALLY_IDS.map((id) => creatureActor({ id, kind: 'CUSTOM', snapshot: {} }))
+    const { memory, ctx, postRulesChatMessage } = await holderFixture(source, 'PUBLIC', allies)
+    const grants: Awaited<ReturnType<typeof storeGrant>>[] = []
+    for (const ally of allies)
+      grants.push(
+        await createActiveRuleEffectStore(ctx).create({
+          id: crypto.randomUUID(),
+          owner: turnEffectOwner(ally, ENCOUNTER_ID),
+          definition: plannedModifierGrant({
+            encounterId: ENCOUNTER_ID,
+            sourceActorId: source.id,
+            holderActorId: ally.id,
+            lifecycle: {},
+            effect: leadership,
+            rounds: 10,
+            sourceLabel: 'Knight'
+          }).definition,
+          lifecycle: { schemaVersion: 1, remainingTicks: 10 }
+        })
+      )
+    const persist = () =>
+      persistEncounterConcentrationChildren(
+        ctx as Parameters<typeof persistEncounterConcentrationChildren>[0],
+        {
+          state: srdEncounterState({ actors: [source, ...allies], currentActorId: null }),
+          actors: [source, ...allies],
+          parentOccurrenceId: OCCURRENCE_ID,
+          parentCommandFingerprint: 'b'.repeat(64),
+          finalizedDamageEnvelopeChecksum: 'c'.repeat(64),
+          remaining: [],
+          correlationId: OCCURRENCE_ID,
+          userId: USER_ID,
+          authorizedCharacterIds: new Set(),
+          occurredAt: '2026-10-08T00:00:00.000Z',
+          concentration: [],
+          pendingConcentration: null,
+          concentrationEnds: [],
+          endedGrants:
+            sendGrants === 'ALL' ? grants : sendGrants === 'FIRST' ? grants.slice(0, 1) : [],
+          damagedActorIds: new Set(damaged ? [source.id] : [])
+        },
+        { currentCharacterStreamVersion: vi.fn(), applyCleanup: vi.fn() }
+      )
+    return {
+      persist,
+      postRulesChatMessage,
+      held: () => memory.documents('encounterActiveRuleEffects')
+    }
+  }
+
+  it.each([
+    ['incapacitated mid-encounter', incapacitated],
+    ['defeated', defeated]
+  ])('removes the die from every holder when the Knight is %s', async (_name, knightInput) => {
+    const { persist, held, postRulesChatMessage } = await endLeadership(knightInput)
+    expect(held()).toHaveLength(2)
+    await persist()
+    expect(held()).toEqual([])
+    expect(postRulesChatMessage).toHaveBeenCalledTimes(2)
+  })
+
+  it('refuses to end the dice while the Knight can still act', async () => {
+    const { persist, held } = await endLeadership(ableToAct)
+    await expect(persist()).rejects.toThrow('Live Session grant end is unexpected.')
+    expect(held()).toHaveLength(2)
+  })
+
+  it('refuses a commit that omits every die its damaged Knight state ends', async () => {
+    const { persist, held } = await endLeadership(incapacitated, { sendGrants: 'NONE' })
+    await expect(persist()).rejects.toThrow('Live Session grant end is missing.')
+    expect(held()).toHaveLength(2)
+  })
+
+  it('refuses a commit that sends one holder die but omits another', async () => {
+    const { persist, held } = await endLeadership(incapacitated, { sendGrants: 'FIRST' })
+    await expect(persist()).rejects.toThrow('Live Session grant end is missing.')
+    expect(held()).toHaveLength(2)
+  })
+
+  it('leaves the dice alone when the commit did not reach the Knight', async () => {
+    const { persist, held } = await endLeadership(incapacitated, {
+      sendGrants: 'NONE',
+      damaged: false
+    })
+    await persist()
+    expect(held()).toHaveLength(2)
   })
 })
 

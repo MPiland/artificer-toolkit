@@ -2,9 +2,31 @@
 
 > Questions waiting for the user's answer only; keep this file short. Answer inline under **Answer** (or in chat). Answered items move to [Resolved](phase-08-2-decisions.md#resolved) with the decision; decisions made on the user's behalf, approved implementation decisions and resolved questions live in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 >
-> Updated: 2026-10-18 (Q25 added).
+> Updated: 2026-10-18 (Q27 added).
 
 ## Open
+
+### Q27 (2026-10-18) Should spells cast from the Sheet outside an Encounter create their effects?
+
+**Context:** SPELLS-4.T2c2 (Guidance, Resistance) found that a Sheet cast outside an Encounter only spends the slot; it creates no active effect. So an out-of-combat Guidance never becomes a held d4 on the target's next check, which is where Guidance is mostly used. Inside an Encounter, and for effects carried out of a Run (D151), it works. Fixing it needs rules for touch-targeting another Character from the Sheet and a duration clock outside Encounter time. No acceptance criterion covers it.
+
+**Options:**
+
+- A (recommended): register a SPELLS PBI, "Sheet casts outside an Encounter create their effects on the caster or a chosen party Character, with a wall-clock or GM-advanced duration", after SPELLS-4.T2c2 (size about 5). It closes the most common use of buff spells between fights.
+- B: leave out-of-combat buffs to the players and GM until after beta, recorded in future-enhancements.
+
+**Answer:**
+
+### Q26 (2026-10-18) Model the core "two sizes apart" rule for moving through hostile creatures?
+
+**Context:** SPELLS-33.T6k1 found that the engine never lets a mover pass through a hostile creature's space by size: today a crossing offers only an Overrun or Tumble contest (when neither can be offered the crossing is currently free, a bug T6k1 fixes by refusing it). The core 5e rule lets a creature move through a hostile space when the other creature is at least two sizes larger or smaller. T6k1 adds a `MOVEMENT_PASSAGE` modifier grant (Halfling Nimbleness, Incorporeal Movement, Air/Water Form), so the rule could be authored as a System default through the same grant. No acceptance criterion covers it.
+
+**Options:**
+
+- A (recommended): register a MOVE PBI, "Movers pass hostile creatures two or more sizes apart", authored as a System default `MOVEMENT_PASSAGE` grant with a parity proof, after T6k1 merges (size 2). Players moving past a much bigger or smaller enemy is common at the table.
+- B: leave it to the GM until after beta, recorded in future-enhancements.
+
+**Answer:**
 
 ### Q25 (2026-10-18) Convert class, race and creature closed rules before alpha?
 
@@ -16,7 +38,7 @@
 - B: convert only those a classification marks as having a combat effect; leave the rest as markers until after beta.
 - C: leave all of them until after beta, recorded in future-enhancements.
 
-**Answer:**
+**Answer:** A (user, 2026-10-18): convert all of them before alpha. AC confirmed by the user and registered as SPELLS-31 (Classes), SPELLS-32 (Races) and SPELLS-33 (Creatures).
 
 ### Q24 (2026-10-17) Automate cast-time choice spells before alpha?
 

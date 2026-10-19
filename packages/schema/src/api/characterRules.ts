@@ -132,29 +132,33 @@ const canonicalCharacterTargetDefensesSchema = lazySchema(() =>
   )
 )
 
-const canonicalConditionImmunityIdsSchema = lazySchema(() =>
-  z.pipe(
-    z
-      .array(serverUuidIdentityDtoSchema)
-      .check(z.maxLength(100))
-      .check(
-        z.superRefine((conditionIds, ctx) => {
-          const seen = new Set<string>()
-          conditionIds.forEach((conditionId, index) => {
-            if (seen.has(conditionId)) {
-              ctx.addIssue({
-                code: 'custom',
-                message: 'Character condition immunities must be unique.',
-                path: [index]
-              })
-            }
-            seen.add(conditionId)
+const canonicalImmunityIdsSchema = (noun: string) =>
+  lazySchema(() =>
+    z.pipe(
+      z
+        .array(serverUuidIdentityDtoSchema)
+        .check(z.maxLength(100))
+        .check(
+          z.superRefine((ids, ctx) => {
+            const seen = new Set<string>()
+            ids.forEach((id, index) => {
+              if (seen.has(id)) {
+                ctx.addIssue({
+                  code: 'custom',
+                  message: `Character ${noun} immunities must be unique.`,
+                  path: [index]
+                })
+              }
+              seen.add(id)
+            })
           })
-        })
-      ),
-    z.transform((conditionIds) => [...conditionIds].sort())
+        ),
+      z.transform((ids) => [...ids].sort())
+    )
   )
-)
+
+const canonicalConditionImmunityIdsSchema = canonicalImmunityIdsSchema('condition')
+const canonicalSpellSchoolImmunityIdsSchema = canonicalImmunityIdsSchema('spell school')
 
 const characterRuleContributionInputSchema = lazySchema(() =>
   z.strictObject({
@@ -660,7 +664,11 @@ const characterSpellAccessCandidateSchema = lazySchema(() =>
     attributes: z.array(characterSpellGrantAttributeSchema).check(z.maxLength(16)),
     castAtLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(9))),
     castingAbility: z.nullable(abilityCodeSchema),
-    charge: characterSpellChargeDescriptorSchema
+    charge: characterSpellChargeDescriptorSchema,
+    /** The creature types the grant narrows its casts to (D156); empty for none. */
+    allowedCreatureTypeIds: z._default(z.array(boundedIdentitySchema).check(z.maxLength(100)), []),
+    /** Whether each creature a cast targets is locked out of this grant until the caster's long rest. */
+    perTargetLockout: z._default(booleanSchema, false)
   })
 )
 
@@ -1263,6 +1271,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
     ),
     defenses: canonicalCharacterTargetDefensesSchema,
     conditionImmunityIds: z._default(canonicalConditionImmunityIdsSchema, []),
+    spellSchoolImmunityIds: z._default(canonicalSpellSchoolImmunityIdsSchema, []),
     movement: z._default(
       z.strictObject({
         speeds: z

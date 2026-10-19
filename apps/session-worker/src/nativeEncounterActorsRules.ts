@@ -2,7 +2,7 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveEncounterActionTargetDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import { chosenCreaturesMaxTargets } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { chosenCreaturesCap } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterAreaTargetCommandId,
@@ -10,6 +10,8 @@ import {
   encounterChosenActorsChecksum
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
+import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { applyNativeReactionEffect } from './nativeEncounterAttackReaction.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
@@ -52,12 +54,11 @@ export async function planNativeLiveEncounterActorsAction(
   const sourced = await prepareCasterSource(input, 'ACTORS')
   const { caster, casterFacts, movementTargets, targetPolicy } = sourced
   const { targeting } = targetPolicy
-  const maxTargets =
-    targeting?.selectionKind === 'CHOSEN_CREATURES' ? chosenCreaturesMaxTargets(targeting) : null
-  if (maxTargets === null) throw refusal('This action does not take that target.')
+  const cap = targeting?.selectionKind === 'CHOSEN_CREATURES' ? chosenCreaturesCap(targeting) : null
+  if (cap === null) throw refusal('This action does not take that target.')
   const { actorIds, scene: sceneRequest } = command.target
-  if (actorIds.length > maxTargets)
-    throw refusal(`This action takes at most ${maxTargets} creatures.`)
+  if (cap.maxTargets !== undefined && actorIds.length > cap.maxTargets)
+    throw refusal(`This action takes at most ${cap.maxTargets} creatures.`)
   // Each entry of a projectile list is one projectile; any other action names each creature once.
   const allowRepeatedTargets =
     targeting?.selectionKind === 'CHOSEN_CREATURES' && targeting.allowRepeatedTargets === true
@@ -91,10 +92,25 @@ export async function planNativeLiveEncounterActorsAction(
   const chosen = actorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     if (!actor) throw new Error('Encounter rules input binding mismatch.')
+    // A named creature immune to this source's use of the action (D156) is refused, as one target is.
+    const immunityLabel = encounterSourceImmunityLabel({
+      source: sourced.source,
+      holderEffects: input.activeEffectsByActorId.get(actorId) ?? []
+    })
+    if (immunityLabel !== null) throw refusal(`Immune to ${immunityLabel}`)
     return actor
   })
   for (const actor of chosen)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
+  for (const actor of chosen)
+    if (
+      encounterSpellSchoolImmunity({
+        source: sourced.source,
+        sourceFacts: casterFacts,
+        target: movementTargets.get(actor.id)!
+      })
+    )
+      throw refusal(`${actor.label} is immune to spells of this school`)
   const prepared = []
   for (const actor of chosen)
     prepared.push({
@@ -146,6 +162,7 @@ export async function planNativeLiveEncounterActorsAction(
       reach,
       lead,
       targets: prepared,
+      unaffectedActorIds: [],
       evaluation,
       ruleOverrides,
       window
@@ -168,7 +185,10 @@ export async function planNativeLiveEncounterActorsAction(
     const prepareReactor = (reactorTarget: Awaited<ReturnType<typeof input.loadTarget>>) =>
       prepareAreaTarget({
         ...input,
-        base: { ...reach, movementTargets: new Map(reach.movementTargets).set(reactorId, reactorTarget) },
+        base: {
+          ...reach,
+          movementTargets: new Map(reach.movementTargets).set(reactorId, reactorTarget)
+        },
         actor: reactor,
         token: reach.scene?.tokens.find((candidate) => candidate.actorId === reactorId) ?? null
       })
@@ -228,6 +248,7 @@ export async function planNativeLiveEncounterActorsAction(
     areaSnapshot: null,
     caughtChecksum: encounterChosenActorsChecksum(actorIds),
     removedActorIds: [],
+    unaffectedActorIds: [],
     placement: null,
     occurrenceVersion: window.occurrenceVersion,
     response: window.response,

@@ -17,6 +17,10 @@ export const targetingDtoSchema = lazySchema(() =>
       selectionKind: z.literal('SINGLE_TARGET'),
       dispositionKind: z.optional(z.enum(['ANY', 'WILLING', 'HOSTILE'])),
       self: z.optional(targetingSelfDtoSchema),
+      /** The largest target, in size steps above the actor's; a larger one only warns (D152). */
+      sizeLimit: z.optional(
+        z.object({ stepsAboveActor: z.number().check(z.int()).check(z.nonnegative()) })
+      ),
       allowedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       ),
@@ -49,6 +53,9 @@ export const targetingDtoSchema = lazySchema(() =>
       hitPointPool: z.optional(z.object({ diceConfig: authoredIdentifierSchema })),
       hitPointPoolScaling: z.optional(
         createBreakpointScalingDtoSchema(z.object({ diceConfig: authoredIdentifierSchema }))
+      ),
+      hitPointPoolIgnoredConditionIds: z.optional(
+        authoredReferenceCollectionSchema(authoredIdentifierSchema)
       ),
       allowedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)

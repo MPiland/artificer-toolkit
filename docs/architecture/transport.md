@@ -347,6 +347,59 @@ payloads (action, area, cleaving, concentration and turn) carry the grants the e
 The Sheet `END_ACTIVE_EFFECT` command ends a `holderEnd` effect for its own player only when the Run is not live: in an
 ACTIVE Encounter that holds the Character, a costed end is refused with "End this effect from the Encounter actions."
 
+A list of chosen creatures (D118) is offered in the action choices as the `ACTORS` target: `maxTargets` caps it,
+and is absent for a list with no cap, which names each creature once (SPELLS-4.T2a3: Pass without Trace's "each
+creature you choose"); the tabletop then shows no cap. A list with `allowRepeatedTargets` always carries its
+`maxTargets`, and the schema refuses one without it. The Worker refuses a list over its cap and, unless it repeats
+creatures, one that names a creature twice.
+
+Held escapes (D105, D152): the action choices' `escapes` carry `dc`, null for an escape the holder contests
+(the tabletop shows "Contested"). A contest participant offered several checks answers its `CONTEST_CHECK`
+pending decision with one `CONTEST_CHECK` resolution (`requestId`, `checkDefinitionId`, and the d20 `roll` as
+`ENTER_DICE` or `SYSTEM_ROLL`). "Roll dice" (`ROLL_RULE_EVIDENCE`) accepts the contest's one `requestId` in the
+picked check's `rollMode`; the decision drawer picks the check, then rolls or enters it.
+
+Added dice (D156, SPELLS-4.T2c1): a d20 evidence request for an Encounter attack roll or saving throw (concentration
+and death saves included) carries `addedDice`, the rolled-die grants its roller holds (`label`, `count`, `faces`,
+`sign` `ADD` or `SUBTRACT`; Bless, Bane), absent when there are none; one die per spell, different spells stack. The
+dice add after advantage keeps one d20. `ENTER_DICE` carries the added dice's faces as `addedFaces`, flat in the
+request's order, and "Roll dice" (`ROLL_RULE_EVIDENCE`) rolls them with the d20 and stores them on the held roll, so
+`SYSTEM_ROLL` settles both. The receipt's d20 evidence records each die's `rolledFaces`, and the roll card appends one
+term per added die after the d20, a subtracted one marked `subtracted`. Contest checks carry no added dice yet (T2c2).
+Saving-throw d20 evidence (resultPath `ON_SAVE_SUCCESS` or `ON_SAVE_FAIL`) also carries `savingThrowAbilityDefinitionId` (SPELLS-4.T2c2b), the ability the save was rolled with, so the settled commit can spend the roller's saving-throw dice by ability; the schema refuses it on any other result path, and a save with no ability (a death save) omits it.
+
+D20 floor (D156, SPELLS-4.T2c3): a basic-action check (a basic action's, an escape's, a concealment's) whose roller holds an `ABILITY_CHECK` `MINIMUM_ROLL` grant (Glibness's 15) freezes `minimumRoll` (`amount`, `label`, `sourceEffectId`) beside `addedDice` on the check's `d20` context, and the settled d20 evidence repeats it. `selectedNatural` stays the face the roller kept; `total` counts the higher of it and the floor (`d20CheckTotal` in `schema/shared/d20MinimumRoll`, which also adds the signed added dice), and the schema refuses a total that does not. Settlement compares the whole settled d20 with the frozen one (`settledCheckD20MatchesFrozen`). The roll record's d20 term shows the raised number and the card carries a `D20_MINIMUM_ROLL` rule check (`amount`, `label`) only when the floor raised the roll. Contests, saving throws, attack rolls and cast-reaction checks carry no floor yet.
+
+Added damage dice (D156, SPELLS-4.T2d): `ADD_BONUS_DIE` on `DAMAGE` adds rolled dice to a hit's damage (Divine Favor,
+Branding Smite, Hunter's Mark, Enlarge/Reduce, Bestow Curse). Each die is its own damage node (`added-<k>-`), of a fixed
+damage type or the attack's, rolled with the hit's damage dice (doubled on a critical hit); a subtracted die reduces
+the attack's damage, floored at 0. The mechanics batch output records them as `damageAddedDice` (`label`, `count`,
+`faces`, `sign`, `damageTypeId`, null for the attack's own type), absent when there are none, and the roll card labels each die's damage
+with its source ("Hunter's Mark: Piercing damage"). A holder's die applies to damage it deals (`HOLDER_DEALS`), or, on
+a mark, only to damage the effect's source deals to the holder (`SOURCE_DEALS_TO_HOLDER`).
+
+Contest outcomes (D105, ATTACK-7.6): a basic action whose win is a picked outcome (Shove) lists the options as
+`target.choiceOptions` in the action choices, and `RESOLVE_ACTION` names one with `target.choiceOptionId`; an attempt
+without a pick, or with one the action does not offer, is rejected. The `CONTESTED_ACTION` output's `stateTransition`
+records a win's outcome as `CONDITIONS_APPLIED` (`appliedConditionIds`, the conditions newly applied) or
+`FORCED_MOVEMENT` (`direction`, `feet`, `upTo`); `SCENE_TOKEN_MOVED` is removed. The room's contest commit
+(`LiveSessionEncounterContestCommitInput`) carries the planned `conditionApplications` and `forcedMovements`; the commit
+lands the push on the Scene through the same `applyRoomForcedMovements` path as an action's push.
+
+Forced-movement destinations (D157): an action whose push has two or more legal squares pauses on a
+`FORCED_MOVEMENT_DESTINATION` pending summary (`sourceActorId`, `targetActorId`, `requestId`, and the server-derived
+`positions`, 2 to `MAX_FORCED_MOVEMENT_DESTINATIONS`, staying put first when legal) with `allowedResponses`
+`['FORCED_MOVEMENT']`. The source's controller or the GM answers with a `FORCED_MOVEMENT` resolution (`requestId`,
+`position`); a square the summary did not offer is rejected and the pick stays open. An area action's pushes surface
+the same summary once every save settled, one creature at a time, farthest first, its `requestId` naming the creature;
+only the GM and the caster's controllers read it. The commit's
+`LiveSessionForcedMovement` carries `collision` (the authored collision, or null; T6k2b1; its mover damage is settled in T6k2b3 as commit entries after the caught creatures'), `upTo`, `sourceReachFeet` (set only for `ASIDE`), the picked `position` and, for
+`RANDOM`, the unit compass `ray` the server rolled at plan time (null otherwise). Each committed `RESOLVE_ACTION`
+command records `forcedMovementLandings`, one per moved creature, farthest first: `{targetActorId, feet, stoppedBy,
+ray}` with `stoppedBy` `NONE`, `OBJECT` or the struck creature's actor ID (`encounterForcedMovementLandingSchema`). A strike on a creature (T6k2b4b) appends an area target with an optional
+`collision` marker to the pending area (`ruleExecutionPendingSnapshots`); those targets carry the struck creature's save
+and are excluded from `caughtChecksum`.
+
 Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag
 (forced and teleport movement ignore it). The held `ENCOUNTER_SESSION` frame and `encounters/activeReads:active`
 carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape`), listing only the visible zones
@@ -354,11 +407,26 @@ carry `halfSpeedFields` (`encounterSessionStateDtoSchema`: `id`, `label`, `shape
 re-derives which zones `carefully` applies to with the same visibility predicate, so a client cannot bypass a
 hidden zone.
 
+Drags (D105, ATTACK-7.T7): a voluntary `MOVE_SCENE_TOKEN` whose mover holds creatures through a `TARGET_DRAGGED`
+hold commits as one move at one Scene version. Its committed delta is a `BATCH` of `TOKEN_MOVED`: the mover first,
+then each dragged token moved by the mover's published displacement. The preparation records the drag as
+`draggedTokens` (`{tokenId, from, to}`, 1 to 101), which receipt replay, persistence and undo read back. The
+command carries no drag field; the server derives it. Prediction, broadcast and fog treat the batch as one move,
+and each dragged token explores fog along the mover's walked segment from its own place. `UNDO_LAST_SCENE_MOVE`
+of a drag commits a `BATCH` of `TOKEN_MOVE_UNDONE` that returns every token to where it stood
+(`sceneUndoCommandResultSchema` accepts one entry or the batch).
+
 Auras (SPELLS-20): the same frame and `encounters/activeReads:active` carry `auras` (`id`, `label`, `radius`,
 `sourceTokenId`): the visible circle zones centered on a token, so the map draws them around the moving source.
 `readSessionAuras` lists an aura only when its source actor is in the member's own presented projection
 (`encounter.actors`), the one visibility rule (D121) the GM, a Convex read and the room share; Convex reads
 (no fog) therefore list only sources the projection lists, and the room, which reads fog, lists more.
+
+Zone movement costs (SPELLS-20 T4d): the same frame and read carry `movementCostZones` (`id`, `multiplier`,
+`anchorKind`, `geometry`, `sourceTokenId`, `unaffectedActorIds`) so the map labels a dragged route with the
+movement the room will charge. `readSessionMovementCostZones` lists visible zones only; a token zone needs its
+source in the member's projection (as auras do) and rests while it is a defeated Creature's passive zone, and
+designations name only listed actors. Shown, never enforced: the room prices the move.
 
 Ordinary Scene editing uses the owning Convex functions. While a Session authority epoch is active,
 live Door commands and standalone token move/undo travel through the Session Durable Object; direct

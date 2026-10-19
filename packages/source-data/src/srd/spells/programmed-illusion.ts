@@ -60,17 +60,12 @@ export const programmedIllusion: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.PROGRAMMED_ILLUSION, 0x212, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.PROGRAMMED_ILLUSION, 0x202, 1),
               durationKind: DURATION_KIND.UNTIL_DISPELLED
             },
             outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.PROGRAMMED_ILLUSION, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PROGRAMMED_ILLUSION' as const
-              },
               {
                 id: spellChildId(SPELL_IDS.PROGRAMMED_ILLUSION, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,

@@ -22,7 +22,10 @@ import type {
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterAreaCaughtChecksum,
+  holdEncounterAreaForcedMovement,
+  landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
+  holdEncounterAreaCollisionSaves,
   markEncounterAreaSaveTested,
   removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
@@ -64,7 +67,8 @@ export function areaMatchesTarget(
   area: NonNullable<EncounterAreaActionPendingContextDto['area']>,
   target: AreaActionTargetDto
 ) {
-  if (target.kind === 'CASTER_CENTERED') return area.shape.kind === 'RADIUS'
+  if (target.kind === 'CASTER_CENTERED')
+    return area.shape.kind === 'RADIUS' || area.shape.kind === 'CUBE'
   const origin = areaActionTargetOrigin(target)
   const { shape } = area
   return (
@@ -92,7 +96,8 @@ function areaTargets(context: EncounterAreaActionPendingContextDto) {
       snapshot: target.snapshot,
       context: inner,
       testedJson: target.testedJson,
-      legendaryResistance: target.legendaryResistance
+      legendaryResistance: target.legendaryResistance,
+      collision: target.collision
     }
   })
 }
@@ -196,10 +201,13 @@ export async function requireAreaActionPendingRoot(
       sealedTarget.context.contest !== undefined
     )
       throw new Error('Live Session pending area action root mismatch.')
-  // A creature the GM removed is still reached by the command; it is simply no longer tested.
+  // A creature the GM removed, or one the action has no effect on (immune to this source's use of
+  // it, D156, or of a creature type it excludes), is still caught by the area; it is simply not tested.
+  // A creature a forced mover struck (D159) was not caught, so it is not among them.
   const sealed = [
-    ...targets.map((sealedTarget) => sealedTarget.actorId),
-    ...context.removedActorIds
+    ...targets.filter(({ collision }) => !collision).map((sealedTarget) => sealedTarget.actorId),
+    ...context.removedActorIds,
+    ...(context.unaffectedActorIds ?? [])
   ]
   // A creature named for several rays is sealed once for each.
   if (
@@ -276,9 +284,29 @@ export async function requireAreaActionPendingRoot(
 }
 
 /**
+ * The area holding what `next` opens once the saves settle, if anything: the push pick (D157) that
+ * the answer settling an area may open first and each landing the next one, or, once every mover
+ * landed, the saves of the creatures they struck (D159).
+ */
+function withOpenedHold(
+  area: ServerAggregateChoicePendingSnapshotDto,
+  next: ServerRuleExecutionPendingSnapshotDto
+) {
+  const opened = areaActionPendingContext(next)
+  const struck = opened?.targets.filter(({ collision }) => collision) ?? []
+  if (
+    struck.length > 0 &&
+    !areaActionPendingContext(area)?.targets.some(({ collision }) => collision)
+  )
+    return holdEncounterAreaCollisionSaves(area, struck, opened?.forcedMovement?.rays)
+  const pick = opened?.forcedMovement?.pick
+  return pick ? holdEncounterAreaForcedMovement(area, pick, opened.forcedMovement?.rays) : area
+}
+
+/**
  * Verifies the area snapshot a save answer stores: it is the stored area with exactly the answered
  * creature's save marked tested, with the Legendary Resistance it offered and not yet decided, and
- * nothing else changed.
+ * nothing else changed but the push pick it may open.
  */
 export function requireAreaActionAnswer(input: {
   stored: ServerRuleExecutionPendingSnapshotDto
@@ -294,11 +322,14 @@ export function requireAreaActionAnswer(input: {
     input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
     checksumCanonicalJson(input.next) !==
       checksumCanonicalJson(
-        markEncounterAreaSaveTested(
-          input.stored,
-          input.requestId,
-          answered.testedJson,
-          answered.legendaryResistance
+        withOpenedHold(
+          markEncounterAreaSaveTested(
+            input.stored,
+            input.requestId,
+            answered.testedJson,
+            answered.legendaryResistance
+          ),
+          input.next
         )
       )
   )
@@ -307,25 +338,57 @@ export function requireAreaActionAnswer(input: {
 
 /**
  * Verifies the area snapshot a Legendary Resistance decision stores: it is the stored area with
- * exactly that creature's offer decided, and nothing else changed.
+ * exactly that creature's offer decided, and nothing else changed but the push pick it may open.
  */
 export function requireAreaActionLegendaryResistance(input: {
   stored: ServerRuleExecutionPendingSnapshotDto
   next: ServerRuleExecutionPendingSnapshotDto
   actorId: string
 }) {
-  const decided = areaActionPendingContext(input.next)?.targets.find(
-    (target) => target.actorId === input.actorId
-  )?.legendaryResistance
+  // The entry decided is the first of the creature's offers the stored area still waits on.
+  const decided = areaActionPendingContext(input.next)?.targets[
+    areaActionPendingContext(input.stored)?.targets.findIndex(
+      (target) =>
+        target.actorId === input.actorId &&
+        target.legendaryResistance &&
+        !target.legendaryResistance.decision
+    ) ?? -1
+  ]?.legendaryResistance
   if (
     decided?.decision === undefined ||
     input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
     checksumCanonicalJson(input.next) !==
       checksumCanonicalJson(
-        markEncounterAreaLegendaryResistanceDecided(input.stored, input.actorId, decided)
+        withOpenedHold(
+          markEncounterAreaLegendaryResistanceDecided(input.stored, input.actorId, decided),
+          input.next
+        )
       )
   )
     throw new Error('Live Session pending area decision mismatch.')
+}
+
+/**
+ * Verifies the area snapshot a push pick's answer stores (D157): it is the stored area with that
+ * creature landed on the offered square, holding the next pick it opens, and nothing else changed.
+ */
+export function requireAreaActionForcedMovement(input: {
+  stored: ServerRuleExecutionPendingSnapshotDto
+  next: ServerRuleExecutionPendingSnapshotDto
+  requestId: string
+  position: { x: number; y: number }
+}) {
+  if (
+    input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
+    checksumCanonicalJson(input.next) !==
+      checksumCanonicalJson(
+        withOpenedHold(
+          landEncounterAreaForcedMovement(input.stored, input.requestId, input.position),
+          input.next
+        )
+      )
+  )
+    throw new Error('Live Session pending area destination mismatch.')
 }
 
 /**
@@ -367,11 +430,29 @@ export function projectNativeAreaActionPending(
 ): PendingEncounterRuleOccurrenceSummaryDto | null {
   const answers = (actorId: string) => viewer.isOwner || viewer.controlledActorIds.has(actorId)
   const casterId = pending.context.casterActorId
+  // Once every save settled, an open push pick (D157) is the area's one decision, its source's.
+  const pick = pending.context.forcedMovement?.pick
+  if (pick)
+    return answers(casterId)
+      ? {
+          kind: 'FORCED_MOVEMENT_DESTINATION',
+          occurrenceId: occurrence.id,
+          occurrenceVersion: occurrence.version,
+          encounterVersion: occurrence.expectedEncounterVersion,
+          sourceActorId: casterId,
+          targetActorId: pick.targetActorId,
+          requestId: pick.requestId,
+          positions: pick.positions,
+          allowedResponses: ['FORCED_MOVEMENT']
+        }
+      : null
   const caught =
     viewer.isOwner || viewer.controlledActorIds.has(casterId)
       ? pending.context.targets.flatMap((target) => {
           const actor = viewer.actors.find((candidate) => candidate.id === target.actorId)
-          return actor && (viewer.isOwner || target.perceivedByCaster) ? [actor.label] : []
+          return actor && !target.collision && (viewer.isOwner || target.perceivedByCaster)
+            ? [actor.label]
+            : []
         })
       : []
   const legendaryResistance = pending.targets.flatMap((target) =>

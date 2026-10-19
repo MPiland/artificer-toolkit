@@ -6,9 +6,10 @@ import {
   readNativeActionPending
 } from './actionPending.js'
 import { projectNativeAreaActionPending, readNativeAreaActionPending } from './actionAreaPending.js'
-import { projectNativeDisarmPendingForMember } from './actionDisarmPending.js'
+import { projectNativeContestPendingForMember } from './actionContestPending.js'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
+import { contestCheckMovementContinuation } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import {
   projectNativeTurnPending,
   projectNativeLegendaryPending,
@@ -66,14 +67,15 @@ export async function readEncounterWaitingOn(
         ? decision.actorId
         : decision.kind === 'MOVEMENT_REACTION'
           ? decision.choice.reactorActorId
-          : decision.kind === 'MOVEMENT_PASSAGE_CHOICE'
+          : decision.kind === 'MOVEMENT_PASSAGE_CHOICE' ||
+              decision.kind === 'FORCED_MOVEMENT_DESTINATION'
             ? decision.sourceActorId
             : decision.kind === 'LEGENDARY_ACTION_CHOICE'
               ? decision.ownerActorId
               : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
                   decision.kind === 'REACTION_CHOICE'
                 ? decision.targetActorId
-                : decision.kind === 'ON_HIT_CHOICE'
+                : decision.kind === 'ON_HIT_CHOICE' || decision.kind === 'ATTACK_RETARGET_CHOICE'
                   ? decision.attackerActorId
                   : null
   if (!actorId) return 'GM'
@@ -103,7 +105,7 @@ export async function readPendingRunDecision(
     throw new Error('Stored Encounter occurrence state is invalid.')
   const context = pendingSnapshot.applicationContext
   if (context.kind === 'ENCOUNTER_ACTION' && context.contest)
-    return projectNativeDisarmPendingForMember(ctx, row, campaign, membership, occurrence)
+    return projectNativeContestPendingForMember(ctx, row, campaign, membership, occurrence)
   const actors = await readRunActors(ctx, readRunState(row))
   const controlledActorIds = await readEncounterControlledActorIds(ctx, {
     campaign,
@@ -173,13 +175,13 @@ export async function readPendingRunDecision(
     context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
     context.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
     context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' ||
-    (context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' && context.movementContinuation)
+    (context.kind === 'ENCOUNTER_CONTEST_CHECK' && contestCheckMovementContinuation(context))
   ) {
     const root =
       context.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
         ? context.movement.root
-        : context.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
-          ? context.movementContinuation?.root
+        : context.kind === 'ENCOUNTER_CONTEST_CHECK'
+          ? contestCheckMovementContinuation(context)?.root
           : context.root
     if (!root || root.encounterId !== row.id || root.commandId !== occurrence.rootCommandId)
       throw new Error('Stored Encounter occurrence root is invalid.')

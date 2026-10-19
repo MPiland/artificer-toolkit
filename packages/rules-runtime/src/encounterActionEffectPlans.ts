@@ -6,13 +6,18 @@ import {
   type ServerCompletedRuleExecutionDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { sizeRank } from '@artificer-toolkit/shared/core'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
+import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
 import {
   installedGameSystemRuleOperations,
   requireInstalledGameSystemRuleCapability
 } from './platformRulesRuntime.js'
-import type { CharacterGrantFoldModifier } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type {
+  CharacterGrantFoldModifier,
+  EquipmentInstanceMechanicSource
+} from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
   CharacterRuleActionApplication,
   CharacterRuleActionActiveEffectPlan
@@ -72,19 +77,6 @@ type EffectPlan = {
   lifecycle: ReturnType<typeof activeRuleEffectLifecycleDtoSchema.parse>
 }
 
-const sizeRank: Record<string, number> = {
-  FINE: 0,
-  DIMUNITIVE: 1,
-  TINY: 2,
-  SMALL: 3,
-  MEDIUM: 4,
-  LARGE: 5,
-  HUGE: 6,
-  GARGANTUAN: 7,
-  GIANT: 8,
-  COLOSSAL: 9
-}
-
 /** Builds immutable effect definitions from one already-completed Encounter action. */
 export function prepareEncounterActionEffectPlans(input: {
   encounterId: string
@@ -93,6 +85,11 @@ export function prepareEncounterActionEffectPlans(input: {
   sourceActorId: string
   /** The acting Feature or action label a target state contribution freezes, when it has one. */
   sourceLabel: string | null
+  /**
+   * The acting Character, which a source immunity keys beyond the Run; null for a Creature. Omitted
+   * for every action that plans no immunity.
+   */
+  sourceCharacterId?: string | null
   /** Whether the acting actor is hidden from players; frozen with the label. */
   sourceHidden: boolean
   /** The Run's current actor, whose turn the action is taken in; null before the Run starts. */
@@ -106,6 +103,8 @@ export function prepareEncounterActionEffectPlans(input: {
   }
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   activeEffectPlan: CharacterRuleActionActiveEffectPlan | null
+  /** The source's reach in feet a relationship plan seals; omitted for every action that plans none. */
+  sealedReachFeet?: number
   /**
    * What a settled concealment check decided: the total it froze and the observers it beats, or
    * null when it beats none. Omitted for every action that plans no concealment.
@@ -115,6 +114,11 @@ export function prepareEncounterActionEffectPlans(input: {
   link?: { memberActorIds: readonly string[] }
   /** The Creature the caster chose for a form-giving action (D130); omitted for every other action. */
   form?: { creatureId: string }
+  /**
+   * The target's item the action was used on and whether the target dropped it; omitted for every
+   * action that chooses none.
+   */
+  chosenItem?: { item: EquipmentInstanceMechanicSource; released: boolean }
   published: ServerPublishedRuleDefinitionDto
   execution: ServerCompletedRuleExecutionDto
   d20: ServerRuleExecutionD20EvidenceDto | null
@@ -125,9 +129,10 @@ export function prepareEncounterActionEffectPlans(input: {
   stateEffect: EffectPlan | null
   recurringEffect: EffectPlan | null
   /**
-   * The effect holding a failure-margin rider's conditions, beside the recurring effect it rides on.
-   * It is created only when the save failed by the margin, which the caller reads from the rider's
-   * applied conditions.
+   * The second effect the action adds beside the recurring effect: a failure-margin rider's
+   * conditions, created only when the save failed by the margin (which the caller reads from the
+   * rider's applied conditions), or a source immunity (a successful save's, or a grant's lockout on
+   * every target). Two never meet.
    */
   riderEffect: EffectPlan | null
   relationshipConditionApplications: readonly Extract<
@@ -140,73 +145,102 @@ export function prepareEncounterActionEffectPlans(input: {
   const plan = input.activeEffectPlan
   const rider = plan?.marginRider ?? null
   // The rider shares the effect's duration graph under its own entry, and ends on its own triggers.
+  const immunity = plan?.sourceImmunity ?? null
   const riderEffect =
-    plan && rider
-      ? prepareRecurringActiveEffect({
-          ...input,
-          activeEffectPlan: {
-            ...plan,
-            compiledEntryId: rider.compiledEntryId,
-            frozenGraphNodeId: rider.frozenGraphNodeId,
-            conditionContributions: rider.conditionContributions,
-            lifecycle: {
-              consumeOnFirstEvents: [],
-              endOnEvents: [],
-              endOnTriggers: rider.lifecycle.endOnTriggers
-            },
-            marginRider: null
-          }
+    immunity &&
+    (immunity.appliesTo === 'EVERY_TARGET' || input.d20?.resultPath === 'ON_SAVE_SUCCESS')
+      ? prepareSourceImmunityEffect(input)
+      : plan && rider
+        ? prepareRecurringActiveEffect({
+            ...input,
+            activeEffectPlan: {
+              ...plan,
+              compiledEntryId: rider.compiledEntryId,
+              frozenGraphNodeId: rider.frozenGraphNodeId,
+              conditionContributions: rider.conditionContributions,
+              lifecycle: {
+                consumeOnFirstEvents: [],
+                endOnEvents: [],
+                endOnTriggers: rider.lifecycle.endOnTriggers
+              },
+              marginRider: null
+            }
+          })
+        : null
+  const relationshipApplications =
+    recurringEffect && input.activeEffectPlan?.actorRelationshipContribution
+      ? relationshipConditionApplications({
+          definition: recurringEffect.definition,
+          target: input.target,
+          resolvedPath: input.d20!.resultPath
         })
-      : null
-  const relationshipConditionApplications =
-    recurringEffect?.definition.schemaVersion === 2
-      ? (() => {
-          const relationshipContribution = input.activeEffectPlan?.actorRelationshipContribution
-          if (!relationshipContribution) return []
-          const authoredPath =
-            recurringEffect.definition.adapterFacts['dnd5e.relationship-authored-path']
-          if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
-            throw new EncounterActionEffectPlanError(
-              'Encounter relationship authored path is unavailable.'
-            )
-          const relationshipConditionIds = recurringEffect.definition.stateContributions.flatMap(
-            (contribution) =>
-              contribution.kind === 'ACTOR_RELATIONSHIP' ? contribution.conditionIds : []
-          )
-          return recurringEffect.definition.stateContributions.flatMap((contribution) =>
-            contribution.kind === 'CONDITION_OWNERSHIP' &&
-            relationshipConditionIds.includes(contribution.conditionId) &&
-            !contribution.baselinePresent &&
-            !input.target.conditionIds.includes(contribution.conditionId)
-              ? [
-                  {
-                    kind: 'CONDITION_APPLY' as const,
-                    targetActorId: input.target.actorId,
-                    conditionId: contribution.conditionId,
-                    // The relationship's own active effect receipt binds these conditions.
-                    sourceNodeId: recurringEffect.definition.frozenGraphNodeId,
-                    sourceOperationKey: 'dnd5e.actor-relationship-state',
-                    authoredPath,
-                    resolvedPath: input.d20!.resultPath
-                  }
-                ]
-              : []
-          )
-        })()
       : []
-  return { stateEffect, recurringEffect, riderEffect, relationshipConditionApplications }
+  return {
+    stateEffect,
+    recurringEffect,
+    riderEffect,
+    relationshipConditionApplications: relationshipApplications
+  }
 }
 
 /**
- * A hit outcome applies on any hit, a critical-hit outcome only on a critical hit, and a failed-save
- * outcome only on a failed save.
+ * The conditions a relationship effect (Grapple's hold) newly applies to its target: each one its
+ * relationship names that was absent without it and that the target lacks now. Its own receipt binds
+ * them, so planning and settlement derive the same applications from the stored definition.
+ */
+export function relationshipConditionApplications(input: {
+  definition: ActiveRuleEffectRecord['definition']
+  target: { actorId: string; conditionIds: readonly string[] }
+  resolvedPath: string
+}): Extract<CharacterRuleActionApplication, { kind: 'CONDITION_APPLY' }>[] {
+  const { definition } = input
+  if (definition.schemaVersion !== 2) return []
+  const authoredPath = definition.adapterFacts['dnd5e.relationship-authored-path']
+  if (
+    authoredPath !== 'ON_HIT' &&
+    authoredPath !== 'ON_CRIT' &&
+    authoredPath !== 'ON_CHECK_SUCCESS'
+  )
+    throw new EncounterActionEffectPlanError('Encounter relationship authored path is unavailable.')
+  const relationshipConditionIds = definition.stateContributions.flatMap((contribution) =>
+    contribution.kind === 'ACTOR_RELATIONSHIP' ? contribution.conditionIds : []
+  )
+  return definition.stateContributions.flatMap((contribution) =>
+    contribution.kind === 'CONDITION_OWNERSHIP' &&
+    relationshipConditionIds.includes(contribution.conditionId) &&
+    !contribution.baselinePresent &&
+    !input.target.conditionIds.includes(contribution.conditionId)
+      ? [
+          {
+            kind: 'CONDITION_APPLY' as const,
+            targetActorId: input.target.actorId,
+            conditionId: contribution.conditionId,
+            sourceNodeId: definition.frozenGraphNodeId,
+            sourceOperationKey: 'dnd5e.actor-relationship-state',
+            authoredPath,
+            resolvedPath: input.resolvedPath
+          }
+        ]
+      : []
+  )
+}
+
+/**
+ * A hit outcome applies on any hit, a critical-hit outcome only on a critical hit, a save outcome
+ * only on its save result, and a contest-win relationship (Grapple) only on the win.
  */
 function reachesAuthoredPath(
   authoredPath: unknown,
   resultPath: string | undefined,
   outcome: 'grant' | 'relationship'
 ): boolean {
-  if (outcome === 'grant' && authoredPath === 'ON_SAVE_FAIL') return resultPath === 'ON_SAVE_FAIL'
+  if (
+    outcome === 'grant' &&
+    (authoredPath === 'ON_SAVE_FAIL' || authoredPath === 'ON_SAVE_SUCCESS')
+  )
+    return resultPath === authoredPath
+  if (outcome === 'relationship' && authoredPath === 'ON_CHECK_SUCCESS')
+    return resultPath === 'ON_CHECK_SUCCESS'
   if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
     throw new EncounterActionEffectPlanError(`Encounter ${outcome} authored path is unavailable.`)
   return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')
@@ -263,7 +297,12 @@ function bindTriggerDamageTypes(
   damageTypeIds: readonly string[]
 ): CharacterGrantFoldModifier[] {
   const { payload } = modifier
-  if (payload === undefined || !('damageTypeSource' in payload)) return [modifier]
+  if (
+    payload === undefined ||
+    !('damageTypeSource' in payload) ||
+    payload.damageTypeSource !== 'TRIGGER'
+  )
+    return [modifier]
   if (damageTypeIds.length === 0)
     throw new EncounterActionEffectPlanError(
       'A resistance to the triggering damage type needs the damage that triggered the reaction.'
@@ -277,7 +316,11 @@ function bindTriggerDamageTypes(
 
 /** An action's lasting effect on one creature, from its plan alone; null when the plan yields none. */
 export function prepareRecurringActiveEffect(
-  input: Omit<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution' | 'applications'>
+  input: Omit<
+    Parameters<typeof prepareEncounterActionEffectPlans>[0],
+    'execution' | 'applications'
+  > &
+    Partial<Pick<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution'>>
 ): EffectPlan | null {
   const plan = input.activeEffectPlan
   if (!plan) return null
@@ -294,6 +337,16 @@ export function prepareRecurringActiveEffect(
   const conditionContributions = plan.conditionContributions ?? []
   const endLifecycle = plan.lifecycle
   const relationshipContribution = plan.actorRelationshipContribution ?? null
+  const sealedReachFeet = relationshipContribution ? input.sealedReachFeet : 0
+  if (sealedReachFeet === undefined)
+    throw new EncounterActionEffectPlanError('A relationship plan requires the reach it seals.')
+  const chosenItem = plan.chosenItem ?? null
+  if (chosenItem && !input.chosenItem)
+    throw new EncounterActionEffectPlanError('A chosen-item plan requires the item it was used on.')
+  // A grant owed only while the target keeps the item (Heat Metal's disadvantage) is not made once
+  // it drops it.
+  if (chosenItem?.grantUnlessReleased && input.chosenItem?.released) return null
+  const boundItem = chosenItem?.bindsGrant ? input.chosenItem?.item : undefined
   const grantContribution = plan.modifierGrantContribution ?? null
   if (plan.concealmentContribution && input.concealment === undefined)
     throw new EncounterActionEffectPlanError('A concealment plan requires its settled check.')
@@ -351,25 +404,13 @@ export function prepareRecurringActiveEffect(
     const maximum = relationshipContribution.modules.find(
       (module) => module.kind === 'TARGET_SIZE_MAXIMUM'
     )
-    if (
-      maximum &&
-      (input.target.effectiveSize === null ||
-        sizeRank[input.target.effectiveSize] === undefined ||
-        sizeRank[maximum.sizeCode] === undefined ||
-        sizeRank[input.target.effectiveSize] > sizeRank[maximum.sizeCode])
-    )
+    const targetRank = sizeRank(input.target.effectiveSize)
+    const maximumRank = maximum ? sizeRank(maximum.sizeCode) : null
+    if (maximum && (targetRank === null || maximumRank === null || targetRank > maximumRank))
       return null
-    const sameSourceRelationships = [...input.activeEffectsByActorId.entries()].flatMap(
-      ([actorId, effects]) =>
-        effects.flatMap((effect) =>
-          effect.definition.schemaVersion === 2 &&
-          effect.definition.origin.kind === 'ENCOUNTER' &&
-          effect.definition.origin.sourceActorId === input.sourceActorId
-            ? effect.definition.stateContributions.flatMap((contribution) =>
-                contribution.kind === 'ACTOR_RELATIONSHIP' ? [{ actorId, contribution }] : []
-              )
-            : []
-        )
+    const sameSourceRelationships = encounterSourceRelationships(
+      input.activeEffectsByActorId,
+      input.sourceActorId
     )
     const heldByOutcome = new Set(
       sameSourceRelationships.flatMap(({ actorId, contribution }) =>
@@ -414,18 +455,30 @@ export function prepareRecurringActiveEffect(
     plan.castSaveDcFactKey && input.d20
       ? { key: plan.castSaveDcFactKey, dc: input.d20.defenseOrDc }
       : null
-  const tickAnchor = grantContribution?.tickAnchor ?? 'HOLDER'
-  // A grant made on its anchor actor's own turn would otherwise lose a counted turn to the very
+  const castFacts = Object.fromEntries(
+    (plan.castFactKeys ?? []).map((key) => {
+      const value = input.execution?.evidence.facts[key]
+      if (value === undefined)
+        throw new EncounterActionEffectPlanError('The effect needs a fact its cast settles.')
+      return [key, value]
+    })
+  )
+  const ownsTemporaryHitPoints = plan.ownsTemporaryHitPoints === true
+  const tickAnchor = plan.tickAnchor ?? 'HOLDER'
+  // The grant tick planner counts a grant, unless it repeats a save, and any other effect counted on
+  // its source's turns (Color Spray's blindness); the turn-effect kernel counts the rest.
+  const countedByGrantTicks = grantContribution
+    ? !grantContribution.countedByTurnEffects
+    : tickAnchor === 'SOURCE'
+  // An effect made on its anchor actor's own turn would otherwise lose a counted turn to the very
   // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
   // "for the turn" already is that end of turn.
   const initialRemaining =
     plan.initialRemaining !== null &&
-    grantContribution &&
-    !grantContribution.includesCurrentTurn &&
-    !grantContribution.countedByTurnEffects &&
+    countedByGrantTicks &&
+    !grantContribution?.includesCurrentTurn &&
     plan.recurrenceStage === 'END_OF_TURN' &&
-    input.currentActorId ===
-      (grantContribution.tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
+    input.currentActorId === (tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
       ? plan.initialRemaining + 1
       : plan.initialRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
@@ -435,7 +488,8 @@ export function prepareRecurringActiveEffect(
       grantContribution ||
       concealment ||
       linkContribution ||
-      formContribution
+      formContribution ||
+      ownsTemporaryHitPoints
         ? 2
         : 1,
     origin: {
@@ -449,17 +503,16 @@ export function prepareRecurringActiveEffect(
     compiledEntryId: plan.compiledEntryId,
     frozenGraphNodeId: plan.frozenGraphNodeId,
     frozenGraph: compileEffectGraph(frozenGraph, plan.capabilityContractVersion),
-    adapterFacts: castSaveDcFact
-      ? { ...plan.adapterFacts, [castSaveDcFact.key]: castSaveDcFact.dc }
-      : plan.adapterFacts,
+    adapterFacts: {
+      ...plan.adapterFacts,
+      ...castFacts,
+      ...(castSaveDcFact && { [castSaveDcFact.key]: castSaveDcFact.dc })
+    },
     perceptionContributions: plan.perceptionContributions,
     recurrence: {
-      // The grant tick planner counts a grant, so the turn-effect kernel never selects it, unless the
-      // grant repeats a save: the kernel then rolls, counts and ends it.
-      recurrenceStage:
-        grantContribution && !grantContribution.countedByTurnEffects
-          ? 'NONE'
-          : plan.recurrenceStage,
+      // An effect the grant tick planner counts stores no stage, so the turn-effect kernel never
+      // selects it.
+      recurrenceStage: countedByGrantTicks ? 'NONE' : plan.recurrenceStage,
       // A grant held beside conditions (Hypnotic Pattern's speed 0) ends with them, so the plan's
       // own lifecycle joins the grant's.
       consumeOnFirstEvents: sortedUnion(
@@ -471,6 +524,9 @@ export function prepareRecurringActiveEffect(
       endOnTriggers: endLifecycle?.endOnTriggers ?? [],
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
+      ...(grantContribution?.fromSourceOnly && { fromSourceOnly: true }),
+      ...(grantContribution?.activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
+      ...(grantContribution?.uses !== undefined && { uses: grantContribution.uses }),
       // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
       // Concentration effect keeps its maintenance link while the Run lasts and is detached from it
       // at COMPLETE.
@@ -493,9 +549,13 @@ export function prepareRecurringActiveEffect(
     grantContribution ||
     concealment ||
     linkContribution ||
-    formContribution
+    formContribution ||
+    ownsTemporaryHitPoints
       ? {
           stateContributions: [
+            ...(ownsTemporaryHitPoints
+              ? [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' as const }]
+              : []),
             ...(formContribution && input.form
               ? [
                   {
@@ -534,7 +594,8 @@ export function prepareRecurringActiveEffect(
                     ),
                     senses: grantContribution.senses,
                     sourceLabel: grantLabel,
-                    sourceHidden: input.sourceHidden
+                    sourceHidden: input.sourceHidden,
+                    ...(boundItem && { boundItem })
                   }
                 ]
               : []),
@@ -557,6 +618,7 @@ export function prepareRecurringActiveEffect(
                   {
                     kind: 'ACTOR_RELATIONSHIP' as const,
                     relationshipOutcomeId: relationshipContribution.relationshipOutcomeId,
+                    sealedReachFeet,
                     modules: relationshipContribution.modules,
                     conditionIds: relationshipConditionIds,
                     capabilitySuppressions: [
@@ -586,9 +648,87 @@ export function prepareRecurringActiveEffect(
     lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
       schemaVersion: 1,
       remainingTicks: initialRemaining,
+      ...(grantContribution?.uses !== undefined && { remainingUses: grantContribution.uses }),
       ...(concealment
         ? { concealedFromActorIds: normalizeObserverActorIds(concealment.observerActorIds) }
         : {})
+    })
+  }
+}
+
+/**
+ * The immunity the target holds against this source's action or grant (D156): an effect that holds
+ * only the SOURCE_IMMUNITY fact admission reads, counted down on the target's turns, or (a lockout)
+ * lasting until the source Character's long rest ends it.
+ */
+function prepareSourceImmunityEffect(
+  input: Parameters<typeof prepareEncounterActionEffectPlans>[0]
+): EffectPlan | null {
+  const plan = input.activeEffectPlan
+  const immunity = plan?.sourceImmunity
+  if (!plan || !immunity) return null
+  if (
+    immunity.frozenGraph.id !== plan.authoredEffectId ||
+    immunity.frozenGraph.definition.sourceEntryBindings?.filter(
+      (binding) =>
+        binding.sourceEntryId === immunity.compiledEntryId &&
+        binding.nodeId === immunity.frozenGraphNodeId
+    ).length !== 1
+  )
+    throw new EncounterActionEffectPlanError('Encounter source-immunity plan is stale.')
+  const sourceLabel = input.sourceLabel?.trim() ?? ''
+  if (!sourceLabel || input.sourceCharacterId === undefined)
+    throw new EncounterActionEffectPlanError(
+      'A source immunity requires its action label and source Character.'
+    )
+  const definition = activeRuleEffectDefinitionDtoSchema.parse({
+    schemaVersion: 2,
+    origin: {
+      kind: 'ENCOUNTER',
+      sourceAggregateId: input.encounterId,
+      sourceOccurrenceId: input.occurrenceId,
+      rootCommandId: input.commandId,
+      sourceActorId: input.sourceActorId
+    },
+    authoredEffectId: plan.authoredEffectId,
+    compiledEntryId: immunity.compiledEntryId,
+    frozenGraphNodeId: immunity.frozenGraphNodeId,
+    frozenGraph: compileEffectGraph(immunity.frozenGraph, plan.capabilityContractVersion),
+    adapterFacts: {},
+    perceptionContributions: [],
+    recurrence: {
+      recurrenceStage: immunity.initialRemaining === null ? 'NONE' : 'END_OF_TURN',
+      consumeOnFirstEvents: [],
+      endOnEvents: [],
+      endOnTriggers: [],
+      endOnConditionIds: [],
+      holderEnd: null,
+      // A Run holds no rest, so a lockout lasts the Run, ending before the source's long rest can.
+      lifetimeScope: immunity.initialRemaining === null ? 'ENCOUNTER' : input.target.lifetimeScope,
+      expiration:
+        immunity.initialRemaining === null
+          ? { kind: 'INDEFINITE' }
+          : {
+              kind: 'TICKS',
+              initialRemaining: immunity.initialRemaining,
+              decrementStage: 'END_OF_TURN',
+              anchor: 'HOLDER'
+            }
+    },
+    stateContributions: [
+      {
+        kind: 'SOURCE_IMMUNITY' as const,
+        immuneToId: immunity.immuneToId,
+        sourceCharacterId: input.sourceCharacterId,
+        sourceLabel
+      }
+    ]
+  })
+  return {
+    definition,
+    lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
+      schemaVersion: 1,
+      remainingTicks: immunity.initialRemaining
     })
   }
 }

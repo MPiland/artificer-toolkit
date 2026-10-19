@@ -106,6 +106,36 @@ describe('d20 evidence mode adjustment', () => {
   })
 })
 
+describe('d20 evidence saving-throw ability (SPELLS-4.T2c2b)', () => {
+  const save = {
+    ...evidenceBase([]),
+    rollMode: 'NORMAL' as const,
+    rawFaces: [9],
+    selectedNatural: 9,
+    total: 13,
+    resultPath: 'ON_SAVE_FAIL',
+    savingThrowAbilityDefinitionId: uuid(0x7a1)
+  }
+
+  it('keeps the ability a saving throw was rolled with', () => {
+    for (const resultPath of ['ON_SAVE_SUCCESS', 'ON_SAVE_FAIL'])
+      expect(
+        serverRuleExecutionD20EvidenceDtoSchema.safeParse({ ...save, resultPath }).success
+      ).toBe(true)
+  })
+
+  it('accepts saving-throw evidence that names no ability', () => {
+    const { savingThrowAbilityDefinitionId: _ability, ...abilityLess } = save
+    expect(serverRuleExecutionD20EvidenceDtoSchema.safeParse(abilityLess).success).toBe(true)
+  })
+
+  it('rejects an ability on evidence that is not a saving throw', () => {
+    expect(
+      serverRuleExecutionD20EvidenceDtoSchema.safeParse({ ...save, resultPath: 'ON_HIT' }).success
+    ).toBe(false)
+  })
+})
+
 describe('roll rule check D20_MODE_ADJUSTED', () => {
   const check = {
     kind: 'D20_MODE_ADJUSTED' as const,

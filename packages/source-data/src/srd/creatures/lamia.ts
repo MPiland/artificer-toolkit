@@ -1,4 +1,10 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import {
+  DURATION_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
+  type CreatureAuthored
+} from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
 export const lamia: CreatureAuthored = {
@@ -103,18 +109,6 @@ export const lamia: CreatureAuthored = {
           }
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(181, 706),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(181, 707), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LAMIA_INNATE_SPELLCASTING
-        })
-      ],
       order: 1
     },
     {
@@ -263,10 +257,11 @@ export const lamia: CreatureAuthored = {
       description:
         'Intoxicating Touch. Melee Spell Attack: +5 to hit, reach 5 ft., one creature. Hit: The target is magically cursed for 1 hour. Until the curse ends, the target has disadvantage on Wisdom saving throws and all ability checks.',
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(181, 504),
+          order: 1,
           invocation: {
-            kind: 'ACTION',
+            kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.MELEE_SPELL_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
@@ -280,9 +275,56 @@ export const lamia: CreatureAuthored = {
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LAMIA_INTOXICATING_TOUCH
-        })
+          paths: [
+            {
+              id: S.actionId(181, 505),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(181, 506),
+                resultKind: 'SINGLE' as const,
+                duration: {
+                  id: S.actionId(181, 507),
+                  durationKind: DURATION_KIND.HOUR,
+                  amount: 1
+                },
+                outcomes: [
+                  {
+                    id: S.actionId(181, 508),
+                    effectKind: S.EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: S.actionId(181, 509),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                          domain: { ability: S.ABILITY_CODE.WISDOM },
+                          modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          order: 1
+                        },
+                        {
+                          id: S.actionId(181, 510),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+                          domain: {},
+                          modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          order: 2
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 5
     }

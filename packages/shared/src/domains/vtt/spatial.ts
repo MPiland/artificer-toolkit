@@ -109,6 +109,8 @@ export interface SpatialEffectInstance {
   readonly movementKinds: readonly SpatialMovementKind[]
   /** A voluntary mover moving carefully crosses the field at double cost and makes no entry save. */
   readonly bypassAtHalfSpeed?: boolean
+  /** What moving through the effect costs a creature it catches, as a multiplier (D154); absent for 1. */
+  readonly movementCostMultiplier?: number
   /** Creatures the effect never catches (designated by the caster at cast). */
   readonly unaffectedActorIds?: readonly string[]
   /** How many times the effect may catch one creature in one turn; absent for no limit. */
@@ -1171,6 +1173,46 @@ export function spatialSegmentMovementMultiplier(input: {
       total + share * Math.max(input.floor, ...inside.map(({ multiplier }) => multiplier)),
     0
   )
+}
+
+/** A zone that changes what moving through it costs (D154): its area, multiplier and whom it spares. */
+export type SpatialMovementCostZone = Pick<
+  SpatialEffectInstance,
+  'anchorKind' | 'geometry' | 'sourceTokenId' | 'unaffectedActorIds' | 'suppressed'
+> & { readonly multiplier: number }
+
+/**
+ * The per-segment multiplier a mover's walk pays inside zones (D154), for
+ * `measureScenePathMovementCost`; undefined when no zone slows the mover. A zone slows only a mover
+ * it catches ({@link spatialEffectAffects}), and never the token it moves with: Spirit Guardians
+ * does not slow its caster, while a wall the caster placed does.
+ */
+export function zoneMovementSegmentMultiplier(input: {
+  readonly zones: readonly SpatialMovementCostZone[]
+  readonly mover: { readonly actorId: string; readonly tokenId: string }
+  readonly tokens: readonly SpatialSceneToken[]
+  /** A grappler dragging a creature not two sizes smaller pays double on top (D105). */
+  readonly dragDoublesCost?: boolean
+}): ((from: ScenePoint, to: ScenePoint, floor: number) => number) | undefined {
+  const { mover, tokens } = input
+  const token = tokens.find(({ id }) => id === mover.tokenId)
+  const zones = input.zones.flatMap((zone) => {
+    if (
+      zone.multiplier <= 1 ||
+      !spatialEffectAffects(zone, mover.actorId) ||
+      (zone.anchorKind === 'TOKEN' && zone.sourceTokenId === mover.tokenId)
+    )
+      return []
+    const geometry = effectiveSpatialGeometry(zone, tokens)
+    return geometry ? [{ geometry, multiplier: zone.multiplier }] : []
+  })
+  const zoned: ((from: ScenePoint, to: ScenePoint, floor: number) => number) | undefined =
+    token && zones.length
+      ? (from, to, floor) => spatialSegmentMovementMultiplier({ zones, token, from, to, floor })
+      : undefined
+  return input.dragDoublesCost
+    ? (from, to, floor) => (zoned?.(from, to, floor) ?? floor) * 2
+    : zoned
 }
 
 /**

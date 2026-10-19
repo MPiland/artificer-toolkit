@@ -8,6 +8,8 @@ import type {
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import type { ForcedMovementCollisionAuthored } from '@artificer-toolkit/shared/authored'
+import type { ForcedMovementDirection } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { vi } from 'vitest'
@@ -20,6 +22,28 @@ import { readPendingActionDecision } from './roomHistoryReads.js'
 
 /** Which roll a Bite resolves with: the target's Dexterity save (DC 10) or the source's attack d20. */
 export type BiteKind = 'SAVE' | 'ATTACK'
+
+/** A version-keyed read the room answers on `reader`'s socket. */
+export async function readRoomEncounter<Kind extends EncounterReadDto['kind']>(
+  reader: Pick<Awaited<ReturnType<typeof connectPlayer>>, 'messages' | 'socket'>,
+  read: Extract<EncounterReadDto, { kind: Kind }>
+) {
+  const requestId = crypto.randomUUID()
+  const first = reader.messages.length
+  reader.socket.send(JSON.stringify({ type: 'ENCOUNTER_READ', requestId, read }))
+  const answer = await vi.waitFor(() => {
+    const found = reader.messages
+      .slice(first)
+      .find(
+        (message) => message.type === 'ENCOUNTER_READ_RESULT' && message.requestId === requestId
+      )
+    if (found?.type !== 'ENCOUNTER_READ_RESULT')
+      throw new Error('The room has not answered the read.')
+    return found
+  }, ROOM_REPLY_WAIT)
+  if (answer.result.kind !== read.kind) throw new Error(`Expected the ${read.kind} answer.`)
+  return answer.result.result as Extract<EncounterReadResultDto, { kind: Kind }>['result']
+}
 
 /**
  * The SRD Wolf with its Bite rewritten to `damage` (one point) that needs a roll: on a failed save
@@ -36,7 +60,10 @@ export function biteWolf(
     damage?: number
     reachFeet?: number
     /** The ability the SAVE Bite rolls and, when set, the damage type it deals instead of the SRD's. */
-    save?: { ability: 'DEXTERITY' | 'CONSTITUTION'; damageTypeCode?: 'POISON' | 'FIRE' | 'COLD' }
+    save?: {
+      ability: 'DEXTERITY' | 'CONSTITUTION'
+      damageTypeCode?: 'POISON' | 'FIRE' | 'COLD' | 'PSYCHIC'
+    }
     /** The Bite casts a spell: the System spell it references, or the level it is cast at. */
     spellCast?: { castLevel: number }
   } = {}
@@ -134,8 +161,11 @@ export function biteWolf(
  * feet makes a Dexterity save (DC 10) against 1 damage. It is the shape of Fireball, authored as a
  * Creature so a room can run it without a Character's spell slots.
  */
-export function fireballWolf(): CreatureAuthored {
-  const bite = biteWolf('SAVE', { reachFeet: 150 })
+export function fireballWolf(damageTypeCode?: 'FIRE' | 'COLD'): CreatureAuthored {
+  const bite = biteWolf('SAVE', {
+    reachFeet: 150,
+    save: { ability: 'DEXTERITY', damageTypeCode }
+  })
   return creatureAuthoredDtoSchema.parse({
     ...bite,
     features: bite.features?.map((feature) =>
@@ -294,11 +324,16 @@ export function frightenOnFailedSave(base: CreatureAuthored): CreatureAuthored {
   })
 }
 
-/** `base` with its Bite's failed save moving the target `feet` in `direction` instead of damage. */
+/**
+ * `base` with its Bite's failed save moving the target `feet` (exactly, or up to) in `direction`
+ * instead of damage, and `collision` when it strikes something (D159).
+ */
 export function forceOnFailedSave(
   base: CreatureAuthored,
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE',
-  feet: number
+  direction: ForcedMovementDirection,
+  feet: number,
+  distanceMode: 'EXACT' | 'UP_TO' = 'EXACT',
+  collision?: ForcedMovementCollisionAuthored
 ): CreatureAuthored {
   return creatureAuthoredDtoSchema.parse({
     ...base,
@@ -327,9 +362,10 @@ export function forceOnFailedSave(
                         effectKind: 'FORCED_MOVEMENT' as const,
                         direction,
                         actionEconomy: 'NONE' as const,
-                        distanceMode: 'FIXED_DISTANCE' as const,
+                        distanceMode,
                         amount: feet,
-                        unit: 'FEET' as const
+                        unit: 'FEET' as const,
+                        ...(collision ? { collision } : {})
                       }
                     ]
                   }
@@ -437,32 +473,11 @@ export async function actionRoom(config: ActionRoomConfig) {
     )
   })
 
-  /** A version-keyed read the room answers on the GM's socket, or on `reader`'s. */
-  async function readRoom<Kind extends EncounterReadDto['kind']>(
-    read: Extract<EncounterReadDto, { kind: Kind }>,
-    reader: Pick<typeof room.base, 'messages' | 'socket'> = room.base
-  ) {
-    const requestId = crypto.randomUUID()
-    const first = reader.messages.length
-    reader.socket.send(JSON.stringify({ type: 'ENCOUNTER_READ', requestId, read }))
-    const answer = await vi.waitFor(() => {
-      const found = reader.messages
-        .slice(first)
-        .find(
-          (message) => message.type === 'ENCOUNTER_READ_RESULT' && message.requestId === requestId
-        )
-      if (found?.type !== 'ENCOUNTER_READ_RESULT')
-        throw new Error('The room has not answered the read.')
-      return found
-    }, ROOM_REPLY_WAIT)
-    if (answer.result.kind !== read.kind) throw new Error(`Expected the ${read.kind} answer.`)
-    return answer.result.result as Extract<EncounterReadResultDto, { kind: Kind }>['result']
-  }
-  /** The actions the room offers the acting actor. */
-  async function actionChoices() {
-    const choices = await readRoom({
+  /** The actions the room offers the acting actor, or `actorId` on its own turn, as the GM reads them. */
+  async function actionChoices(actorId = source.id) {
+    const choices = await readRoomEncounter(room.base, {
       kind: 'ACTION_CHOICES',
-      input: { encounterId: room.encounterId, actorId: source.id }
+      input: { encounterId: room.encounterId, actorId }
     })
     if (!choices) throw new Error('The room offers no action choices.')
     return choices
@@ -533,12 +548,19 @@ export async function actionRoom(config: ActionRoomConfig) {
     actionChoices,
     /** The actions the room offers `actorId`, as a player's socket reads them. */
     async actionChoicesAsPlayer(actorId: string) {
-      const choices = await readRoom(
-        { kind: 'ACTION_CHOICES', input: { encounterId: room.encounterId, actorId } },
-        await connectPlayer(room.base)
-      )
+      const choices = await readRoomEncounter(await connectPlayer(room.base), {
+        kind: 'ACTION_CHOICES',
+        input: { encounterId: room.encounterId, actorId }
+      })
       if (!choices) throw new Error('The room offers the player no action choices.')
       return choices
+    },
+    /** The holds the room offers to release on any turn, as the GM or, with `asPlayer`, a player reads them. */
+    async heldRelationships(asPlayer = false) {
+      return readRoomEncounter(asPlayer ? await connectPlayer(room.base) : room.base, {
+        kind: 'HELD_RELATIONSHIPS',
+        input: { encounterId: room.encounterId }
+      })
     },
     /** The Scene context of the acting actor's token and the token of the actor at `targetIndex`. */
     sceneContext(targetIndex = 1) {
@@ -552,9 +574,18 @@ export async function actionRoom(config: ActionRoomConfig) {
         targetTokenId: targetToken.id
       }
     },
+    /** The items of `targetActorId` the acting actor's action may be used on, as the GM reads them. */
+    async actionItemChoices(targetActorId: string, chosenActionId = actionId, actorId = source.id) {
+      const choices = await readRoomEncounter(room.base, {
+        kind: 'ACTION_ITEM_CHOICES',
+        input: { encounterId: room.encounterId, actorId, actionId: chosenActionId, targetActorId }
+      })
+      if (!choices) throw new Error('The room offers no item choices.')
+      return choices.items
+    },
     /**
      * The acting actor's action at `targetActorId`, with `choiceOptionId` the option a cast-time pick
-     * names (D148); the room's answer, not yet checked.
+     * names (D148) and `boundItemInstanceId` the item it is used on; the room's answer, not yet checked.
      */
     async startAction(
       targetActorId: string,
@@ -563,7 +594,8 @@ export async function actionRoom(config: ActionRoomConfig) {
       optionalCombatIntent: ResolveEncounterActionInputDto['optionalCombatIntent'] = null,
       chosenActionId = actionId,
       actorId = source.id,
-      choiceOptionId?: string
+      choiceOptionId?: string,
+      boundItemInstanceId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -576,7 +608,8 @@ export async function actionRoom(config: ActionRoomConfig) {
         target: {
           kind: 'ACTOR',
           actorId: targetActorId,
-          ...(choiceOptionId && { choiceOptionId })
+          ...(choiceOptionId && { choiceOptionId }),
+          ...(boundItemInstanceId && { boundItemInstanceId })
         },
         actionId: chosenActionId,
         optionalCombatIntent,
@@ -748,7 +781,7 @@ export async function actionRoom(config: ActionRoomConfig) {
       definitionId: string,
       sceneContext: ResolveEncounterActionInputDto['sceneContext'] = null
     ) {
-      return readRoom({
+      return readRoomEncounter(room.base, {
         kind: 'OPTIONAL_ACTION_CHOICES',
         input: {
           encounterId: room.encounterId,
@@ -762,7 +795,7 @@ export async function actionRoom(config: ActionRoomConfig) {
     },
     /** What each creature would add to the acting actor's attack with its action, off the Scene. */
     async actionTargetModifiers() {
-      return readRoom({
+      return readRoomEncounter(room.base, {
         kind: 'ACTION_TARGET_MODIFIERS',
         input: { encounterId: room.encounterId, actorId: source.id, actionId, scene: null }
       })
@@ -778,7 +811,15 @@ export async function actionRoom(config: ActionRoomConfig) {
       decision: NonNullable<Awaited<ReturnType<typeof readPendingActionDecision>>>,
       rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' | null = null
     ) {
-      if (!('request' in decision.pending)) throw new Error('The decision holds no roll request.')
+      const { pending } = decision
+      // A contest check is one d20 request whichever check the roller picks.
+      const requestId =
+        pending.kind === 'CONTEST_CHECK'
+          ? pending.requestId
+          : 'request' in pending
+            ? pending.request.requestId
+            : null
+      if (requestId === null) throw new Error('The decision holds no roll request.')
       return send({
         type: 'ROLL_RULE_EVIDENCE',
         encounterId: room.encounterId,
@@ -786,7 +827,7 @@ export async function actionRoom(config: ActionRoomConfig) {
         expectedVersion: decision.encounterVersion,
         occurrenceId: decision.occurrence.id,
         expectedOccurrenceVersion: decision.occurrence.version,
-        requestId: decision.pending.request.requestId,
+        requestId,
         rollMode
       })
     },

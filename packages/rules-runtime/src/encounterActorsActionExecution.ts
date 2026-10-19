@@ -22,12 +22,15 @@ export async function executeEncounterActorsAction(
   input: ActorsActionSource & {
     rollsPerTarget: boolean
     targets: readonly { actorId: string; binding: ActorsBinding }[]
+    /** The creatures an earlier run of this cast already named, so a creature named again takes its next ordinal. */
+    priorActorIds?: readonly string[]
   }
 ) {
-  const entries = encounterChosenActorEntries(
-    input.occurrenceId,
-    input.targets.map((target) => target.actorId)
-  )
+  const prior = input.priorActorIds ?? []
+  const entries = encounterChosenActorEntries(input.occurrenceId, [
+    ...prior,
+    ...input.targets.map((target) => target.actorId)
+  ]).slice(prior.length)
   const random = input.random ?? nextRollInt
   const sharedRolls = createFrozenRollTape(random)
   const bindings = new Map<string, ActorsBinding>()

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
+import { bestowCurse } from '@artificer-toolkit/source-data/srd/spells/bestow-curse.js'
 import {
   SRD_ABILITIES,
   SRD_ABILITY_DEFINITION_IDS,
@@ -10,18 +12,27 @@ import {
   SRD_DAMAGE_TYPES,
   SRD_DARKVISION_SENSE_ID,
   SRD_SPEEDS,
+  SRD_STEALTH_SKILL_ID,
   SRD_SYSTEM_ID,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { effectiveHitPointMaximum } from '../character/activeEffectGrantTotals.js'
+import {
+  activeAbilityCheckMinimumRoll,
+  activeAttackRollDice,
+  activeSavingThrowDice,
+  effectiveHitPointMaximum
+} from '../character/activeEffectGrantTotals.js'
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import {
   creatureActiveGrantAttackContributors,
   creatureActiveGrantCheckContributors,
+  encounterAttackAddedDice,
   encounterGrantsEnabledDomain,
+  encounterSavingThrowAddedDice,
   withActiveGrantSpeeds,
-  withCharacterActiveGrants
+  withCharacterActiveGrants,
+  withCreatureActiveGrantSkillTotal
 } from '../encounterActiveGrants.js'
 import { planEncounterMaintenanceOwner } from '../encounterActionMaintenance.js'
 import { rollModeSourceKey } from '../encounterRollModeReasons.js'
@@ -36,17 +47,22 @@ import { ENCOUNTER_ID, creatureActor, creatureRuleFacts } from '../testing/dnd5e
 import {
   aidEffect,
   antitoxinEffect,
+  baneEffect,
+  blessEffect,
   darkvisionEffect,
   disengageEffect,
   goldWeakeningEffect,
   helpEffect,
   heroismEffect,
   longstriderEffect,
+  passWithoutTraceEffect,
+  plannedGrantEffect,
   protectionFromEnergyEffect,
   shimmeringShieldEffect,
   speedFractionEffect,
   viciousMockeryEffect
 } from './antitoxinEffectFixture.js'
+import { withGrantModifiers } from '../testing/modifierGrantFixture.js'
 import { evaluateSrdCharacter, vocabulary } from '../testing/dnd5eSrdCharacter.js'
 import { FRIGHTENED_CONDITION_ID, POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 
@@ -73,6 +89,77 @@ describe('the Antitoxin active effect', () => {
     expect(definition.schemaVersion === 2 && definition.stateContributions).toMatchObject([
       { kind: 'MODIFIER_GRANT', sourceLabel: 'Antitoxin (vial)', modifiers: expect.any(Array) }
     ])
+  })
+})
+
+describe('rolled dice from active grants (D156)', () => {
+  const bless = () => blessEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+  const bane = () => baneEffect({ id: OTHER_EFFECT_ID, holderActorId: HOLDER_ID })
+  const blessDie = { label: 'Bless', count: 1, faces: 4, sign: 'ADD' }
+  const baneDie = { label: 'Bane', count: 1, faces: 4, sign: 'SUBTRACT' }
+
+  it('adds a d4 to every attack domain and every save under Bless, and nothing without it', () => {
+    for (const attackDomain of ['MELEE', 'RANGED', 'SPELL', 'UNARMED'])
+      expect(activeAttackRollDice([bless()], attackDomain, 'STRENGTH')).toEqual([blessDie])
+    for (const ability of Object.keys(SRD_ABILITY_DEFINITION_IDS))
+      expect(activeSavingThrowDice([bless()], ability)).toEqual([blessDie])
+    // Bless covers every save, so an ability-less death save takes its die too.
+    expect(activeSavingThrowDice([bless()], null)).toEqual([blessDie])
+    expect(activeAttackRollDice([], 'MELEE', null)).toEqual([])
+    expect(activeSavingThrowDice([], 'WISDOM')).toEqual([])
+  })
+
+  it('subtracts a d4 under Bane, and stacks it beside Bless in label order', () => {
+    expect(activeSavingThrowDice([bless(), bane()], 'CHARISMA')).toEqual([baneDie, blessDie])
+    expect(activeAttackRollDice([bane(), bless()], 'RANGED', 'DEXTERITY')).toEqual([
+      baneDie,
+      blessDie
+    ])
+  })
+
+  it('gives one die for two effects of the same spell (two casters of Bless)', () => {
+    const second = blessEffect({ id: THIRD_EFFECT_ID, holderActorId: HOLDER_ID })
+    expect(activeAttackRollDice([bless(), second], 'MELEE', 'STRENGTH')).toEqual([blessDie])
+  })
+
+  it('names a hidden source "Unseen source"', () => {
+    const hidden = bless()
+    if (hidden.definition.schemaVersion !== 2) throw new Error('Bless plans a version 2 effect.')
+    const definition = {
+      ...hidden.definition,
+      stateContributions: hidden.definition.stateContributions.map((contribution) =>
+        contribution.kind === 'MODIFIER_GRANT'
+          ? { ...contribution, sourceHidden: true }
+          : contribution
+      )
+    }
+    expect(activeSavingThrowDice([{ ...hidden, definition }], 'WISDOM')).toEqual([
+      { ...blessDie, label: 'Unseen source' }
+    ])
+  })
+
+  it('keys the Encounter facts by attack domain and by ability definition id', () => {
+    expect(encounterAttackAddedDice([bane(), bless()], 'STRENGTH')).toEqual({
+      MELEE: [baneDie, blessDie],
+      RANGED: [baneDie, blessDie],
+      SPELL: [baneDie, blessDie],
+      UNARMED: [baneDie, blessDie]
+    })
+    expect(encounterSavingThrowAddedDice([bless()])).toEqual(
+      Object.fromEntries(Object.values(SRD_ABILITY_DEFINITION_IDS).map((id) => [id, [blessDie]]))
+    )
+    expect(encounterAttackAddedDice([], null)).toEqual({})
+    expect(encounterSavingThrowAddedDice([])).toEqual({})
+  })
+
+  it('ignores fixed bonuses and roll modes on the same domains', () => {
+    expect(
+      activeAttackRollDice(
+        [viciousMockeryEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })],
+        'MELEE',
+        null
+      )
+    ).toEqual([])
   })
 })
 
@@ -159,6 +246,17 @@ describe('Creature holder of an active grant', () => {
       (target(effects).targetDerivedFacts.statBlock as { armorClass?: number }).armorClass
     expect(armorClass([shield])).toBe(14)
     expect(armorClass([])).toBe(12)
+  })
+
+  it('adds a skill grant (Pass without Trace) to that skill total only, only while held', () => {
+    const veil = passWithoutTraceEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+    expect(withCreatureActiveGrantSkillTotal(4, SRD_STEALTH_SKILL_ID, [veil])).toBe(14)
+    expect(withCreatureActiveGrantSkillTotal(4, SRD_ATHLETICS_SKILL_ID, [veil])).toBe(4)
+    expect(withCreatureActiveGrantSkillTotal(4, SRD_STEALTH_SKILL_ID, [])).toBe(4)
+    // A stat block with no total for the skill gains none from the grant.
+    expect(withCreatureActiveGrantSkillTotal(undefined, SRD_STEALTH_SKILL_ID, [veil])).toBe(
+      undefined
+    )
   })
 
   it('raises its maximum hit points by a maximum hit point grant (Aid), only while held', () => {
@@ -530,6 +628,27 @@ describe('Character holder of an active grant', () => {
     })
   })
 
+  it('leaves its attacks normal under Bestow Curse, whose disadvantage waits for its caster as the target', () => {
+    const curse = plannedGrantEffect({
+      id: EFFECT_ID,
+      holderActorId: HOLDER_ID,
+      effect: bestowCurse.effects?.[0],
+      sourceLabel: bestowCurse.label,
+      choiceLabel: 'Attacks Against You',
+      sourceActorId: OTHER_EFFECT_ID
+    })
+    const policy = evaluateDnd5e2014CharacterPolicy(
+      withCharacterActiveGrants(fighter.facts, [curse])
+    )
+    expect(policy.rollModes.attacks).toEqual({
+      MELEE: 'NORMAL',
+      RANGED: 'NORMAL',
+      SPELL: 'NORMAL',
+      UNARMED: 'NORMAL'
+    })
+    expect(creatureActiveGrantAttackContributors(HOLDER_ID, 'MELEE', null, [curse])).toEqual([])
+  })
+
   it('rolls Strength attacks, checks and saves at disadvantage under Weakening Breath only', () => {
     const policy = evaluateDnd5e2014CharacterPolicy(
       withCharacterActiveGrants(fighter.facts, [
@@ -624,5 +743,53 @@ describe('Character holder of an active grant', () => {
   it('returns the same facts when the holder carries no grant', () => {
     expect(withCharacterActiveGrants(fighter.facts, [])).toBe(fighter.facts)
     expect(constitutionSaves(fighter.facts).some((save) => 'conditionTypeId' in save)).toBe(false)
+  })
+})
+
+describe('a held d20 floor on ability checks', () => {
+  const { CHARISMA, WISDOM: WISDOM_CODE } = { CHARISMA: 'CHARISMA', WISDOM: 'WISDOM' }
+  /** Glibness's real effect, its floor raised to `amount` when given. */
+  const glibnessHeld = (id: string, amount = 15) =>
+    plannedGrantEffect({
+      id,
+      holderActorId: HOLDER_ID,
+      effect: withGrantModifiers(glibness.effects?.[0], { payload: { amount } }),
+      sourceLabel: glibness.label
+    })
+
+  it('floors only the checks of the ability the grant names', () => {
+    const held = [glibnessHeld(EFFECT_ID)]
+    expect(activeAbilityCheckMinimumRoll(held, CHARISMA)).toEqual({
+      amount: 15,
+      label: 'Glibness',
+      sourceEffectId: EFFECT_ID
+    })
+    expect(activeAbilityCheckMinimumRoll(held, WISDOM_CODE)).toBeNull()
+    expect(activeAbilityCheckMinimumRoll(held, null)).toBeNull()
+  })
+
+  it('is null when nothing floors the roll, and ignores a rolled-die grant', () => {
+    expect(activeAbilityCheckMinimumRoll([], CHARISMA)).toBeNull()
+    expect(
+      activeAbilityCheckMinimumRoll(
+        [blessEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })],
+        CHARISMA
+      )
+    ).toBeNull()
+  })
+
+  it('reduces several floors to the highest', () => {
+    const held = [glibnessHeld(EFFECT_ID), glibnessHeld(OTHER_EFFECT_ID, 17)]
+    expect(activeAbilityCheckMinimumRoll(held, CHARISMA)).toMatchObject({
+      amount: 17,
+      sourceEffectId: OTHER_EFFECT_ID
+    })
+  })
+
+  it('breaks a tie by the lowest effect id', () => {
+    const lowest = glibnessHeld(THIRD_EFFECT_ID)
+    const tied = glibnessHeld(EFFECT_ID)
+    expect(activeAbilityCheckMinimumRoll([lowest, tied], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
+    expect(activeAbilityCheckMinimumRoll([tied, lowest], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
   })
 })

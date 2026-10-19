@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -172,6 +173,16 @@ const cleavingPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema
   encounterVersion: tabletopGmEncounter.version,
   sourceActorId: tabletopGmEncounter.actors[0]!.id,
   options: [{ optionId: 'd'.repeat(64), targetActorId: tabletopGmEncounter.actors[1]!.id }],
+  allowedResponses: ['DECLINE', 'OPTION']
+})
+
+const retargetPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+  kind: 'ATTACK_RETARGET_CHOICE',
+  occurrenceId,
+  occurrenceVersion: 6,
+  encounterVersion: tabletopGmEncounter.version,
+  attackerActorId: tabletopGmEncounter.actors[0]!.id,
+  options: [{ optionId: 'e'.repeat(64), targetActorId: tabletopGmEncounter.actors[1]!.id }],
   allowedResponses: ['DECLINE', 'OPTION']
 })
 
@@ -526,6 +537,51 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
   })
 })
 
+describe('CampaignTabletopDecisionDrawer attack retarget', () => {
+  function renderRetarget(
+    onResolve: ComponentProps<typeof CampaignTabletopDecisionDrawer>['onResolve']
+  ) {
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={retargetPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+  }
+
+  it('turns the lost action on the chosen creature', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderRetarget(onResolve)
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.click(
+      screen.getByRole('button', { name: `Target ${tabletopGmEncounter.actors[1]!.label}` })
+    )
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'OPTION', optionId: 'e'.repeat(64) } })
+    )
+  })
+
+  it('loses the action on a decline', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderRetarget(onResolve)
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.click(screen.getByRole('button', { name: 'Lose the action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'DECLINE' } })
+    )
+  })
+})
+
 describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => {
   it('picks the target of a Legendary Action that runs an attack (D51)', async () => {
     const user = userEvent.setup()
@@ -809,6 +865,50 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
     )
   })
 
+  it('asks for each added die beside the d20 and submits its faces with the entered d20 (D156)', async () => {
+    const user = userEvent.setup()
+    const onResolve = rollingResolver([])
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+          ...d20Pending,
+          request: {
+            ...d20Pending.request,
+            addedDice: [
+              { label: 'Bane', count: 1, faces: 4, sign: 'SUBTRACT' as const },
+              { label: 'Bless', count: 1, faces: 4, sign: 'ADD' as const }
+            ]
+          }
+        })}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.type(screen.getByLabelText('Die 1'), '11')
+    await user.type(screen.getByLabelText('−d4 Bane'), '2')
+    expect(screen.getByRole('button', { name: 'Submit roll' })).toBeDisabled()
+    await user.type(screen.getByLabelText('+d4 Bless'), '3')
+    await user.click(screen.getByRole('button', { name: 'Submit roll' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: 'attack-roll',
+          rawFaces: [11],
+          rollMode: 'NORMAL',
+          addedFaces: [2, 3]
+        }
+      })
+    )
+  })
+
   it('asks for one more d20 beside the held die and submits only the new face', async () => {
     const user = userEvent.setup()
     const onResolve = rollingResolver([])
@@ -848,6 +948,95 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
           requestId: 'attack-roll',
           rawFaces: [5],
           rollMode: 'NORMAL'
+        }
+      })
+    )
+  })
+})
+
+describe('CampaignTabletopDecisionDrawer contest check', () => {
+  const contestPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+    kind: 'CONTEST_CHECK',
+    occurrenceId,
+    occurrenceVersion: 2,
+    encounterVersion: tabletopGmEncounter.version,
+    rollerActorId: tabletopGmEncounter.actors[1]!.id,
+    actionLabel: 'Grapple',
+    requestId: 'target_d20',
+    checks: [
+      {
+        checkDefinitionId: '77777777-7777-4777-8777-777777777791',
+        label: 'Strength (Athletics)',
+        rollMode: 'NORMAL' as const,
+        derivedRollModeReasons: []
+      },
+      {
+        checkDefinitionId: '77777777-7777-4777-8777-777777777792',
+        label: 'Dexterity (Acrobatics)',
+        rollMode: 'ADVANTAGE' as const,
+        derivedRollModeReasons: ['Bless']
+      }
+    ],
+    allowedResponses: ['CONTEST_CHECK']
+  })
+  const contestRoll: EncounterEvidenceRollDto = {
+    rollId: '77777777-7777-4777-8777-777777777793',
+    occurrenceId,
+    occurrenceVersion: 2,
+    requestId: 'target_d20',
+    attempt: 1,
+    faces: [6, 15],
+    value: 15,
+    rollMode: 'ADVANTAGE',
+    derivedRollMode: 'ADVANTAGE'
+  }
+
+  it('rolls the picked check in its mode and answers with that check (D152)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async (command: { type: string }) =>
+      command.type === 'ROLL_RULE_EVIDENCE'
+        ? { ...resolved(), occurrence: null, evidenceRoll: contestRoll }
+        : resolved()
+    )
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={contestPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Contest check')).toBeVisible()
+    expect(screen.getByText('Grapple: roll for Vault Warden')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Roll dice' })).toBeNull()
+    await user.click(screen.getByRole('combobox', { name: 'Check' }))
+    await user.click(screen.getByRole('option', { name: 'Dexterity (Acrobatics)' }))
+    expect(screen.getByRole('radio', { name: 'Advantage' })).toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: 'Roll dice' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'ROLL_RULE_EVIDENCE',
+        requestId: 'target_d20',
+        rollMode: 'ADVANTAGE'
+      })
+    )
+    expect(await screen.findByText('Rolled by the app · attempt 1')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Submit roll' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        resolution: {
+          kind: 'CONTEST_CHECK',
+          requestId: 'target_d20',
+          checkDefinitionId: '77777777-7777-4777-8777-777777777792',
+          roll: { kind: 'SYSTEM_ROLL', requestId: 'target_d20', rollId: contestRoll.rollId }
         }
       })
     )

@@ -87,6 +87,71 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Parry and Heated Body (SPELLS-33.T4k, T4k2):** Parry is offered without checking that the creature wields a melee weapon (a disarmed parrier still parries), and Heated Body triggers on melee hits only, not on a creature touching or grappling the Remorhaz. Both are rare; the GM can decline the reaction or apply the damage by hand.
+- **A Creature reaction that spends a feature resource (SPELLS-33.T4k1):** creature reactions are offered on a hit, but one whose use spends a charge or other feature resource is skipped, because the reaction receipt carries no feature-resource spend. No SRD creature reaction needs one yet; add the spend to the receipt when one is authored.
+
+- **Movement-contact damage (SPELLS-33.T6e4, T6e3b):** damage a creature takes from a zone it moves or is moved into (`encounterSpatialMovementPreparation`, `encounterMovementActionResponse`) does not end its "until it takes damage" effects or create damage-triggered grants; the turn-zone and melee-retaliation roots do. An until-damaged holder being moved into a damaging zone is rare, and the GM can end the effect by hand.
+
+- **Collision saves and Legendary Resistance (SPELLS-33.T6k2b4b):** a creature that spends Legendary Resistance on both its caught save and its struck collision save in one cast (or is struck twice) shares an actor-keyed charge audit, so the second charge accounting is unproved. Rare; the GM can adjust the charges by hand.
+
+- **Flyby outside opportunity attacks (SPELLS-33.T5k):** Flyby grants immunity to opportunity attacks only. A creature that leaves reach provokes nothing either way, so the grant is never consulted there, and other "leaves reach" triggers (none authored in the SRD) would not see it. Watch for a homebrew trigger that should respect it.
+
+- **Bound-item spells (D156, SPELLS-4.T2e):** Shillelagh recast on a new club does not end the first; a Magic Weapon handed to another creature keeps its bonus with the creature it was cast on; a fire-immune creature still gets Heat Metal's disadvantage; unattended objects can't be chosen; Shillelagh on an off-hand club is not modeled apart from the main hand; a Sheet-side unequip ends a bound grant only at the next Encounter action; a Creature can't bind a grant to an item. Each is rare, and the GM can end or adjust the effect by hand.
+- **Magic Weapon's Concentration (SPELLS-4.T2e):** the SRD data for Magic Weapon carries no Concentration attribute, so casting it does not start or break Concentration. Fixing the source data is a corpus change outside T2e; the GM tracks it by hand until then.
+- **Creature bound-item casts (SPELLS-4.T2e):** a Creature acting with a bound-grant action is offered no items (Creatures have no chosen-item loadout yet), and its missing-item refusal reads UNAVAILABLE because its plan is known only after its roll. Creature casters of these spells are rare in the SRD; the GM applies the effect by hand.
+- **Bonus-die spends outside saves (SPELLS-4.T2c2b):** an attack-roll die is spent without narrowing by attack domain. Contests roll no held dice and spend none, and a cast-reaction check carries no dice. All three are rare, and the GM adds the die by hand.
+- **d20 floor outside ability checks (SPELLS-4.T2c3):** Glibness's `MINIMUM_ROLL` floors the d20 of Sheet and Encounter ability checks only. Contests, saving throws, attack rolls and cast-reaction checks carry no floor, and no authored spell asks for one. All are rare, and the GM raises the roll by hand.
+- **Knight Leadership limits (SPELLS-33.T4c):** a creature can benefit from only one Leadership die at a time (a second Knight's die stacks), and the die is not limited to creatures that can hear and understand the Knight. Leadership is a Bless-style grant on chosen willing creatures within 30 feet when used, ended by the Knight's incapacitation.
+- **Added damage dice on other attack paths (D156, SPELLS-4.T2d):** ON_HIT bonus dice (Divine Favor, Hex, Hunter's Mark, Enlarge) are consumed and added only on the single-target attack path. Early-return branches add no dice, and Reduce's d4 penalty floors damage at 0 rather than 1. Multi-target attack actions with an active rider are uncommon, and the GM adds the die by hand.
+- **Passage edge cases (SPELLS-33.T6k1):** a creature that ends its turn inside an object (Incorporeal Movement) takes no 1d10 force damage, so the GM applies it. The Tiny creature and two-sizes-apart crossings wait on Q26. The drag-route label doesn't show the passage multiplier.
+- **Legendary cast pick (SPELLS-33.T3a6):** a Legendary use of a damage-or-grapple action, such as the Vampire's legendary Unarmed Strike, always runs its first authored option, because the `LEGENDARY_OPTION` command carries no pick. The default is pinned in `creatureCastChoiceDiscovery.test.ts`. The GM can grapple by hand afterwards.
+- **Attack decoy roll-card line (SPELLS-4.T2k2):** when an attack targets one of Mirror Image's decoys the roll card shows the decoy's armor class as the defense but does not say a decoy took the attack. The Convex-side action-choice and target-modifier reads prepare attacks for display only, so they need no decoy.
+- **Sanctuary gaps (SPELLS-4.T2k3):** A server-rolled save (a creature, or a player on auto-roll) leaves no roll card. A cast on a chosen list of creatures (`ACTORS`) is not gated, and the Sanctuary DC is read when the attack is made rather than pinned at cast. A creature that casts Sanctuary needs a spell save DC on its stat block. The pause prompt names no trigger. Only gates that use the caster's save DC are supported. The GM can rule each by hand.
+- **Sanctuary new-target gaps (SPELLS-4.T2k3b):** the offered creatures are not pre-filtered by range, sight, defeat or eligibility, so an ineligible pick is refused by the ordinary warnings or errors and the offer stands. Two warded creatures can bounce an attacker between them, one offer per failed save. The offer lists creatures a player may not see by id (the pick is checked for visibility when answered). A late retry of the original command id after a retarget is rejected as reused. Only single-target (`ACTOR`) actions retarget.
+- **Spell school immunity and Inscrutable (SPELLS-33.T6m1):** the thought-reading and emotion-sensing clauses beyond divination spells, and the "unless it wishes" opt-out, are not modelled. A Creature's spell actions carry no school, so they aren't gated. Insight checks have no subject, so Inscrutable's disadvantage isn't enforced and the GM applies it. A chosen list that includes an immune creature is refused instead of skipping it. The Invisible Stalker's Faultless Tracker (direction and distance to its quarry) is description-only: the GM tells the players.
+- **Enthrall's "other than you" exclusion (SPELLS-4.T2k1):** Enthrall's Perception disadvantage also applies when the target tries to perceive the caster. The spell excludes the caster, but players rarely make that check against the enchanter mid-speech.
+- **Per-source immunity after a save (SPELLS-33.T7b):** the immunity granted by a successful save against Dreadful Glare is not tracked per source Mummy, as the stat block words it (see the limitation recorded on the T7b branch). Two Mummies glaring at the same target in one fight is rare.
+
+- **Sacred Weapon's light and early end (D156, SPELLS-31.T4e):** the 20-foot bright and 20-foot dim light, and ending the effect on your turn as part of another action, stay description. The Encounter has no light source or free-action end to author them against, so the GM applies both by hand.
+- **Timed self actions with several outcomes (D156, SPELLS-31.T3b):** the Encounter compiler accepts one outcome per self action, so Empty Body (invisible plus resistance) and Gaze of Two Minds stay MANUAL in play, as their closed rules did. Only an 18th-level monk and one warlock invocation have them, and the GM applies them in a moment.
+
+- **Plant Growth excluded areas (D156, SPELLS-4.T2a4):** the caster can't cut holes in the zone, so allies in an excluded patch still pay the difficult-terrain cost. The real fix is a zone shape with authored exclusions. A GM-ruling prompt would add a reminder without changing any movement.
+
+- **Choosing when to spend a rolled die (D156, SPELLS-4.T2c):** Guidance and Resistance are used up on the holder's first matching test. The player can't save them for a later roll or decide after seeing the d20. Most Guidance casts happen right before the check they're cast for.
+- **Rolled dice on initiative (D156, SPELLS-4.T2c):** Guidance doesn't apply to initiative, which is a Dexterity check. Using it there is a table trick.
+- **Critical range on damage that is not an attack (D158, SPELLS-31.T5d):** a critical threshold and Brutal Critical's extra dice apply to attack rolls only. A save-based or automatic hit has no d20 to lower, which matches the SRD text.
+- **Added damage dice outside the single-target attack (D156, SPELLS-4.T2d):** Branding Smite ends on the first hit of a single-target attack; area and multi-target attack outcomes don't consume it, and outcome branches that return early add no damage dice. Smites and marks are nearly always used on one weapon attack.
+- **Reduce's damage floor (D156, SPELLS-4.T2d):** a reduced creature's damage floors at 0 (the System floor), where the SRD says 1. It only matters when a 1-damage hit rolls high on the d4.
+- **Bestow Curse's wasted action (D156, SPELLS-4.T2d):** the start-of-turn save that loses the turn's action is a GM ruling. It needs a held effect's turn-start save that repeats every turn and loses that turn's action on a failure. The other curse options resolve on their own.
+
+### Enlarge/Reduce size change (D156)
+
+Enlarge/Reduce's damage die, Strength checks and Strength saves ship in SPELLS-4.T2d. The size category change (and its reach, space and equipment) stays in the description, because effects can't change a creature's size yet.
+
+- **Intimidating Presence extension and range end (D156, SPELLS-31.T5l):** the barbarian can't spend an action to extend the fear, and it doesn't end when the creature ends its turn beyond 60 feet or out of sight. Only a 14th-level Berserker has it, and the shipped turn of fear is the common case.
+- **Chains of Carceri lockout on a carried Character (D156, SPELLS-31.T5l):** the lockout is an Encounter-scoped effect, so a Character it reaches is free of it after the Run instead of at the warlock's next long rest. A warlock meeting the same Character twice between long rests is rare.
+- **After-save immunity edge forms (D156, SPELLS-31.T5l):** a creature trait whose immunity also ends the effect on that creature, and the Mummy's immunity keyed to every Mummy rather than to one source, stay description-only.
+
+- **Will-o'-wisp light radius (D156, SPELLS-33.T6j):** the wisp always sheds its widest light (bright 20 feet, dim 20 more); it can't shrink the radius as a bonus action. A GM-run wisp shrinking its light is rare.
+- **Hidden token light (SPELLS-33.T6j):** a hidden Creature's token is withheld from players, so the light it sheds is missing from their view while perception still counts it.
+
+- **Area push picks outside the ordinary area flow (ATTACK-7.T5d, D157).** An area push that needs a destination pick fails closed when the area settles through a GM removal, through a hit-point-pool area or a chosen-creatures action with no saves, or when one creature is moved two ways by the same action. No SRD action does any of these with a choice; hold the pick on those paths if content needs it.
+
+- **Spell grants that spend a class resource pool (D156, SPELLS-31.T3b):** a spell grant's charges are its own pool or an item's charges, so Empty Body's Astral Projection (8 ki, 18th-level monk) stays description-only. To support it, add a class-pool cost to spell grants (SOURCE_CHARGES for class resources).
+
+- **Darkmantle engulfing a large head (D156, SPELLS-33.T3a):** the Darkmantle's Crush blinds the target it attaches to on an advantaged hit whatever its size; the SRD limits the engulfing to a Medium or smaller target. A relationship's conditional target state has no size limit; add one if a Large target comes up.
+- **Mage Armor after armor comes off (D156, SPELLS-4.T2a3):** Mage Armor is suppressed while its target wears armor instead of ending, so it returns if the armor comes off within its 8 hours.
+- **Mage Armor on a Creature (SPELLS-4.T2a3):** a Creature's armor class adds only fixed armor-class bonuses (`withCreatureActiveGrantArmorClass`), so Mage Armor's 13 + Dexterity formula does nothing on a Creature. Characters are the usual targets; fold formula grants into Creature facts when a table casts it on a Creature.
+- **Disarm does not use up an `ON_ATTACKED` grant (SPELLS-4.T2a3):** Disarm's attack roll reads the defender's grants but consumes only the defender's `ON_ABILITY_CHECK` grants, and it has no defender batch to release a condition in, so a Guiding Bolt mark survives a Disarm attempt for the next attack. Consume it with `targetEndedEffects` once Disarm settles the defender in its own batch.
+- **A Creature's sense grants in Encounter perception (SPELLS-4.T2a4):** A Creature perceives only with its stat-block Senses; a sense an Active Effect grants it (a Creature casting See Invisibility or Darkvision on itself) is not folded in, unlike a Character's. Fold Creature sense grants into `perceptionSenses` and Scene vision if a Creature caster needs it.
+- **See Invisibility in darkness (D156, SPELLS-4.T2a4):** See Invisibility grants ordinary sight that perceives invisible creatures. Each of a creature's senses is checked on its own, so a caster who also has Darkvision still cannot see an Invisible creature standing in darkness: Darkvision reaches the darkness but not the invisibility, and this sense reaches the invisibility but not the darkness. Fix by combining a creature's visual senses into one check if players hit this.
+- **Slow's spellcasting delay (D156, SPELLS-4.T2a5):** a slowed creature casting a 1-action spell rolls a d20 and on an 11 or higher the spell takes effect on its next turn. The delay stays description-only (a GM ruling cannot follow a saving throw). Author it as a Modifier if slowed casters come up often.
+- **Slow's chosen targets (D156, SPELLS-4.T2a5):** Slow is authored as the 40-foot cube's contents; the caster's choice of up to six creatures inside it is the GM's (unaffected actors can be left out of the area cast).
+- **Silent Image in Encounters (D156, SPELLS-4.T2a5):** the illusion manifest is authored but the compiler places no illusion in Encounters, so the cast stays a manual action; the Investigation check against the spell DC is the GM's.
+- **True Seeing's secret doors and Ethereal sight (D156, SPELLS-4.T2a5):** truesight is granted; noticing magically hidden secret doors and seeing into the Ethereal Plane stay description-only.
+- **Couatl poison duration (D156, SPELLS-4.T2a3):** the 24-hour active-effect bound now fits the Couatl's Bite poison, which still stays description-only until its duration is authored.
+- **Random fling direction (D157).** The Air Elemental's Whirlwind flings a creature in a random direction; its controller picks the square instead. Add a rolled direction if GMs ask for it.
+
 - **Triggered Character auras while the source is down (D155).** A Character-sourced passive zone with an ENTER or turn trigger would still catch while its source is unconscious, because the spatial readers do not read Character play state. No SRD Character has such a zone. Thread an unconscious-source input through the spatial readers if homebrew content needs one.
 
 - **Aura bonus pinned at placement (D155).** An occupant save bonus such as Aura of Protection pins the source's ability modifier when the zone is placed. A mid-Run Charisma change updates it only when the token is rebound.
@@ -221,6 +286,10 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **Removing a reinstated caster from the Run leaves the Concentration standing (SPELLS-5.T12, D151):** an actor removal ends no maintained state, so the relinked grants keep their link until the Run completes, when they detach and carry over again. An action-made Concentration behaves the same today.
 - **Undo cannot restore a relinked carried grant (SPELLS-5.T12):** an effect restore derives `sourceEncounterId` from the definition's origin, which names the earlier Run, so restoring a relinked grant would fail its read check. Rare: it needs an undo of a command that ended one relinked grant alone.
 - **A reinstated Concentration emptied by its own dependents does not record the caster (SPELLS-5.T12):** when the last relinked grant expires or is consumed, `TERMINATE_WHEN_EMPTY` deletes the state without appending the caster to `concentrationCasterCharacterIds`, so stamped grants on Characters outside the Run stay until the caster's next Concentration or the clock ends them.
+- **Crusher's move is not optional (ATTACK-7.T5):** the homebrew Crusher fixture moves its target on every qualifying hit, because an on-hit rider's only player choice is a paid one (`optionalOnHit: SPELL_SLOT`, D123). Candidate: a free optional rider kind, so "you can move it" spends the once-per-turn use only when chosen.
+
+- **Heroism's last temporary hit points leave at once (SPELLS-4.T2t, D156):** a recurring effect's final tick and its expiry fall on the same turn boundary, so the temporary hit points of the tenth start-of-turn tick are released in the same execution. The spell ends a moment later in the rules, so the gap is cosmetic.
+- **A form's temporary hit points carry no source (SPELLS-4.T2t):** entering or leaving a form drops the pool's effect source, so an effect that gave temporary hit points before the change cannot take them back when it ends. Rare: it needs a temporary-hit-point effect held across a form change.
 
 ### Code-quality refactors (deferred from Phase 8.2, 2026-10-17)
 
@@ -235,6 +304,7 @@ The user cut these from pre-alpha scope for time to market (D145 amendment). The
 - **QUALITY-3.T1b (lint).** knip in CI for dead exports, files and dependencies, configured per workspace (entry points: routes, Convex functions, Worker entry, stories, tests); its current findings deleted (deleting unused code is pre-approved) or listed as public package entry points.
 - **QUALITY-3.T1c1 (lint).** Package boundary rule (D145): survey each web import of rules-runtime (38), source-data (38), authoring (6) and design-system (5) and each Convex and Worker package import, propose the allowed matrix in the workbook for an orchestrator ruling, then enforce it in lint with the crossing imports fixed.
 - **QUALITY-3.T1c2 (lint).** Root-barrel ban: codemod the 1,072 root @artificer-toolkit/schema and @artificer-toolkit/shared imports in non-test code to their narrow subpaths, then make the root barrel import a lint error.
+- **Web unit tests share workers (PLATFORM-13.T15, 2026-10-18).** With `isolate: false`, the web vitest step took 232 s against 340–553 s isolated. But 42 of 297 files failed because `vi.mock` and module state leak between files: no Convex client, vi.fn called 0 times, duplicate role=alert, missing QueryClient. Planned work: give every web test its own mock and provider setup and teardown, then flip the web unit project to `isolate: false` once three full runs are clean (run 39173494325 lists the failing files).
 - **QUALITY-3.T1d (lint).** Large-file flag (D145): a non-test file over 1,500 lines fails lint unless it is in a reviewed allowlist. Each of the 18 current files gets a responsibility review: split at a real seam, or stays allowlisted with a one-line reason. The allowlist may only shrink.
 
 ### Pit Fiend Fear Aura as a passive zone (D147)
@@ -244,6 +314,10 @@ The Fear Aura stays an exact CLOSED_RULE. Converting it to a passive zone (SPELL
 ### Margin-of-failure riders on direct saves (D149)
 
 The failure-margin rider is wired only on follow-up saves. Direct-save actions that author one (Medusa, Mummy and Ghost gazes, Homunculus) fail closed at compile until the direct save path learns the same margin node.
+
+### Grapple on an opportunity attack (SPELLS-33 T3a6)
+
+An opportunity attack cannot prompt for a cast choice, so a damage-or-grapple attack (Vampire Spawn Claws, Vampire Unarmed Strike) takes its first authored option, damage. Letting the attacker pick grapple would need a pick on the reaction prompt.
 
 ### Release a grapple to draw (D152)
 
@@ -261,6 +335,10 @@ Melee-hit retaliation dice are system-rolled even when the zone source rolls by 
 
 A zone with `BLOCKS_SIGHT` (Wall of Fire, Wall of Thorns) is projected, but Scene vision and line of sight read only Scene barriers. Feed sight-blocking zones into the vision and line-of-sight checks.
 
+### Undo for contested actions (D105)
+
+Undo refuses every CONTESTED_ACTION root: Grapple, Shove, Disarm and the contested escape. A generic contest revert would restore the spent attack, the applied conditions, the forced movement and the grapple hold, the same way for every contest.
+
 ### Disarm defender picks its check (D152)
 
 Disarm seals the defender's check from the initiator's selection. The optional rule lets the target choose Athletics or Acrobatics. Seal both checks and let the `CONTEST_CHECK` resolution pick, as Grapple does.
@@ -272,6 +350,18 @@ Wind Wall's appear save ships in SPELLS-4.T1g. Its deflection of small projectil
 ### Web obscures and burns (D156)
 
 Web's restraint, escape and difficult terrain ship in SPELLS-4 and SPELLS-20.T4d. Its light obscurement and its burning (a 10-ft cube burns away in a round, dealing 2d4 fire to a creature that starts its turn in the fire) are not modeled yet.
+
+### Day-scale durations on the Campaign clock (D156)
+
+Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM ruling. Day-scale durations counted on the Campaign clock would let it, and other effects that last days, run on their own.
+
+### Regenerate regrows limbs (D156)
+
+Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. Regrowing severed body parts after 2 minutes stays in the description, because no limb model exists.
+
+### Surprise (D156)
+
+Encounters have no surprise step, so Foresight's "can't be surprised" ships as description only (SPELLS-4.T2a2). A surprise round, with creatures that can't be surprised exempt, would let it resolve.
 
 ### Shared live cursors (Q19)
 
@@ -398,3 +488,7 @@ lifecycle and Encounter Blueprint model are accepted.
 - Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
 - **Creature forms, later pieces (SPELLS-28):** the form's defenses, speeds, senses and proficiency merge (rest of T4d), a per-form authorable retained-ability set (Polymorph replaces mental scores), object forms, True Polymorph permanence and Shapechange re-form.
 - Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.
+
+- **Innate conditions on Character actors in the Encounter list (SPELLS-33.T4de).** A Character's innate
+  condition (a custom feature's `CONDITION` option) is read by every rule through `heldConditionIds`, but
+  the Encounter projection appends innate rows for Creature actors only; a Character's shows on its Sheet.

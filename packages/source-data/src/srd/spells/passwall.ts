@@ -63,8 +63,11 @@ export const passwall: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PASSWALL, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PASSWALL' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Open the Passage',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  'A passage appears at a point of your choice that you can see on a wooden, plaster, or stone surface (such as a wall, a ceiling, or a floor) within range, and lasts for the duration.'
               }
             ]
           }

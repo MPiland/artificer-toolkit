@@ -22,9 +22,12 @@ import type {
 import {
   preparedMovementCost,
   preparedMovementSceneDelta,
-  preparedMovementSegment
+  preparedMovementSegment,
+  preparedMoverSceneDelta
 } from '@artificer-toolkit/rules-runtime/encounterMovementPublication'
+import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
 import {
   applySceneDelta,
   applySceneGeometryDelta,
@@ -142,6 +145,28 @@ export async function prepareStagedSceneCommit(input: {
       random: input.random,
       captures
     })
+    // Each dragged token moves by the mover's published displacement (D105).
+    const moverToken = scene.tokens.find(({ id }) => id === staged.tokenId)
+    const moverDelta = preparedMoverSceneDelta({
+      tokenId: staged.tokenId,
+      path: staged.path,
+      outcome: planned.outcome,
+      sceneVersion: scene.version
+    })
+    const offset =
+      moverToken && moverDelta
+        ? {
+            x: moverDelta.position.x - moverToken.position.x,
+            y: moverDelta.position.y - moverToken.position.y
+          }
+        : null
+    const draggedTokens =
+      planned.drag && offset && (offset.x !== 0 || offset.y !== 0)
+        ? planned.drag.tokens.map(({ tokenId }) => {
+            const from = scene.tokens.find(({ id }) => id === tokenId)!.position
+            return { tokenId, from, to: { x: from.x + offset.x, y: from.y + offset.y } }
+          })
+        : []
     const prepareInput: LiveSessionMovementPrepareInput = {
       ...actor,
       movement: scope.movement,
@@ -150,6 +175,7 @@ export async function prepareStagedSceneCommit(input: {
         expectedEncounterVersion: staged.expectedEncounterVersion,
         occurrenceId,
         occurredAt,
+        ...(draggedTokens.length ? { draggedTokens } : {}),
         outcome: planned.outcome
       },
       revisions: planned.revisions(),
@@ -160,11 +186,11 @@ export async function prepareStagedSceneCommit(input: {
     movement = { prepareInput, planned }
   }
   const outcome = movement?.prepareInput.preparation.outcome ?? null
+  const draggedTokens = movement?.prepareInput.preparation.draggedTokens
 
-  // Exploration follows the walked segment; the published delta is what Convex will write.
-  let explorationDelta: typeof target.delta
-  let publishedDelta: typeof explorationDelta | null
-  let explorationPath: ScenePoint[] | null = null
+  // Exploration follows each walked segment; the published delta is what Convex will write.
+  let explorations: { delta: typeof target.delta; path: ScenePoint[] | null }[]
+  let publishedDelta: ReturnType<typeof preparedMovementSceneDelta> | typeof target.delta
   // The walked segment's cost becomes a bound actor's turn movement (D38).
   let movementCost: number | undefined
   if (staged.type === 'MOVE_SCENE_TOKEN') {
@@ -174,8 +200,19 @@ export async function prepareStagedSceneCommit(input: {
       outcome
     }
     const segment = preparedMovementSegment(walk)
-    explorationDelta = { kind: 'TOKEN_MOVED', tokenId: staged.tokenId, position: segment.position }
-    explorationPath = segment.path
+    // A dragged token walks the mover's segment from its own place.
+    const start = segment.path[0]!
+    explorations = [
+      { tokenId: staged.tokenId, from: start, to: segment.position },
+      ...(draggedTokens ?? [])
+    ].map(({ tokenId, from, to }) => ({
+      delta: { kind: 'TOKEN_MOVED' as const, tokenId, position: to },
+      path: segment.path.map((point) => ({
+        x: point.x + from.x - start.x,
+        y: point.y + from.y - start.y
+      }))
+    }))
+    const moverActorId = movement?.planned.actorIdByTokenId.get(staged.tokenId)
     movementCost = preparedMovementCost({
       ...walk,
       grid: scene.grid,
@@ -183,9 +220,19 @@ export async function prepareStagedSceneCommit(input: {
       mover: movement
         ? {
             tokenId: staged.tokenId,
+            actorId: moverActorId!,
             tokens: scene.tokens,
-            effects: movement.planned.spatialEffects,
-            carefully: staged.carefully === true
+            effects: toSpatialInstances(movement.planned.spatialEffects, movement.planned.actors),
+            carefully: staged.carefully === true,
+            dragDoublesCost:
+              draggedTokens !== undefined && movement.planned.drag?.doublesCost === true,
+            passage: {
+              costMultiplier: encounterMovementPassageFacts(movement.planned.targets, moverActorId)
+                .mover.costMultiplier,
+              creatureTokenIds: [...movement.planned.actorIdByTokenId.keys()].filter(
+                (id) => id !== staged.tokenId
+              )
+            }
           }
         : undefined
     })
@@ -193,28 +240,36 @@ export async function prepareStagedSceneCommit(input: {
       tokenId: staged.tokenId,
       path: staged.path,
       outcome,
-      sceneVersion: scene.version
+      sceneVersion: scene.version,
+      draggedTokens
     })
   } else {
-    explorationDelta = target.delta
-    publishedDelta = explorationDelta
+    explorations = [{ delta: target.delta, path: null }]
+    publishedDelta = target.delta
   }
-  const plan = planSceneCommandExploration(
-    scene,
-    applySceneGeometryDelta(scene, explorationDelta),
-    explorationDelta
+  const explored = explorations.reduce(
+    (state, { delta }) => applySceneGeometryDelta(state, delta),
+    scene
   )
-  const layers: SceneFogLayer[] = []
-  for (const ownerUserId of plan.owners) {
-    const layer = deriveSceneCommandFogLayer(plan, {
-      ownerUserId,
-      existing: scene.fogLayers.find((candidate) => candidate.ownerUserId === ownerUserId) ?? null,
-      ...(explorationPath !== null && explorationDelta.kind === 'TOKEN_MOVED'
-        ? { movement: { tokenId: explorationDelta.tokenId, path: explorationPath } }
-        : {})
-    })
-    if (layer) layers.push(layer)
+  // Each owner's layer accumulates what every moved token explored.
+  const layerByOwner = new Map<string | null, SceneFogLayer>()
+  for (const { delta, path } of explorations) {
+    const plan = planSceneCommandExploration(scene, explored, delta)
+    for (const ownerUserId of plan.owners) {
+      const layer = deriveSceneCommandFogLayer(plan, {
+        ownerUserId,
+        existing:
+          layerByOwner.get(ownerUserId) ??
+          scene.fogLayers.find((candidate) => candidate.ownerUserId === ownerUserId) ??
+          null,
+        ...(path !== null && delta.kind === 'TOKEN_MOVED'
+          ? { movement: { tokenId: delta.tokenId, path } }
+          : {})
+      })
+      if (layer) layerByOwner.set(ownerUserId, layer)
+    }
   }
+  const layers = [...layerByOwner.values()]
 
   const version = publishedDelta || layers.length ? scene.version + 1 : scene.version
   const moved = publishedDelta ? applySceneDelta(scene, publishedDelta, version) : scene

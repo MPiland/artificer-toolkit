@@ -272,27 +272,43 @@ export const mummyLord: CreatureAuthored = {
               id: S.actionId(202, 805),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(202, 805) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                resultKind: 'SINGLE' as const,
+                // Until the end of the mummy's next turn: one round counted on the source's turns.
+                duration: {
+                  id: S.actionId(202, 960),
+                  durationKind: 'ROUND' as const,
+                  amount: 1
+                },
+                lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } },
+                // Failing by 5 or more also paralyzes it for the same duration.
+                failureMarginRider: {
+                  id: S.actionId(202, 961),
+                  failedBy: 5,
+                  outcomes: [
+                    {
+                      id: S.actionId(202, 962),
+                      effectKind: S.EFFECT_KIND.CONDITION,
+                      conditionId: conditionTypeId('PARALYZED')
+                    }
+                  ],
+                  lifecycle: {}
+                },
                 outcomes: [
                   {
                     id: S.actionId(202, 950),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('FRIGHTENED'),
                     recordsSource: true
-                  },
-                  {
-                    id: S.actionId(202, 958),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MUMMY_LORD_DREADFUL_GLARE
                   }
                 ]
               }
-            }
+            },
+            S.saveImmunityPath(202, 965)
           ]
         }
       ],
@@ -306,40 +322,7 @@ export const mummyLord: CreatureAuthored = {
           label: 'Attack',
           description:
             'The mummy lord makes one attack with its rotting fist or uses its Dreadful Glare.',
-          order: 1,
-          effects: [
-            {
-              id: '00000000-0005-01f5-0070-00ca00000000',
-              order: 1,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: 'ACTIVATED',
-                range: { id: '00000000-0005-0259-0070-00ca00000000', rangeKind: 'SELF' },
-                targeting: { selectionKind: 'SELF' }
-              },
-              paths: [
-                {
-                  id: '26411519-d154-55cb-aa9d-0a472058259c',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: 'fcd75b85-3ee6-5d18-9c6d-89b5f0e11b9e',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '7adef054-858c-51e4-8820-abc73cac8a72',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'CREATURE_MUMMY_LORD_LEGENDARY_ACTIONS'
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          order: 1
         },
         {
           id: '00000000-0005-00ca-0070-00ca00000000',

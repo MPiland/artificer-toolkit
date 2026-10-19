@@ -9,7 +9,11 @@ import { modifierOperationSchema, senseOperationSchema } from '../api/characterG
 import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
-import { abilityCodeSchema } from '../shared/enums.js'
+import {
+  abilityCodeSchema,
+  equipmentCategoryCodeSchema,
+  equipmentPropertyCodeSchema
+} from '../shared/enums.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
   SPATIAL_TURN_TRIGGERS,
@@ -20,7 +24,8 @@ import {
   compiledSpatialHeldConditionDtoSchema,
   spatialZoneLabelSchema,
   zoneBlockingRulesSchema,
-  zoneMovementCostMultiplierSchema
+  zoneMovementCostMultiplierSchema,
+  zoneRequiredSightSchema
 } from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
@@ -50,6 +55,10 @@ import {
   activeGrantHolderEndSchema
 } from '../shared/activeRuleEffects.js'
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
+import {
+  MAX_ACTIVE_EFFECT_TURNS,
+  activeEffectUsesSchema
+} from '../shared/activeRuleEffectLifecycle.js'
 import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
@@ -171,7 +180,10 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     frozenGraph: serverPublishedRuleDefinitionDtoSchema,
     capabilityContractVersion: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
     recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
-    initialRemaining: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000))),
+    initialRemaining: z.nullable(
+      z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
+    ),
+    tickAnchor: z._default(z.enum(['HOLDER', 'SOURCE']), 'HOLDER'),
     adapterFacts: z.record(
       z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/)),
       ruleValueDtoSchema
@@ -180,6 +192,14 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       z.nullable(z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))),
       null
     ),
+    /** Cast evidence facts the effect keeps for its recurring executions (D156). */
+    castFactKeys: z.optional(
+      z.array(z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))).check(z.maxLength(8))
+    ),
+    /** The recurring entry first fires at its stage, not at cast (D156). */
+    recurrenceDeferred: z.optional(z.boolean()),
+    /** The effect owns the temporary hit points it gives, released when it ends (D156). */
+    ownsTemporaryHitPoints: z.optional(z.boolean()),
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     conditionContributions: z._default(
       z
@@ -208,13 +228,15 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             applyGrantOutcomeId: serverUuidIdentityDtoSchema,
             modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
             senses: z.array(senseOperationSchema).check(z.maxLength(200)),
-            tickAnchor: z.enum(['HOLDER', 'SOURCE']),
             includesCurrentTurn: z.boolean(),
             countedByTurnEffects: z.optional(z.boolean()),
             consumeOnFirstEvents: activeGrantConsumeEventsSchema,
             endOnEvents: activeGrantEndEventsSchema,
             endOnConditionIds: activeGrantEndConditionIdsSchema,
-            holderEnd: z.nullable(activeGrantHolderEndSchema)
+            holderEnd: z.nullable(activeGrantHolderEndSchema),
+            fromSourceOnly: z.optional(z.literal(true)),
+            activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
+            uses: z.optional(activeEffectUsesSchema)
           })
           .check(
             z.refine(
@@ -292,6 +314,26 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       ),
       null
     ),
+    /**
+     * The item the action is used on, chosen at use from what its target holds or wears (Heat
+     * Metal's metal object); null for none. The chosen item must meet every filter. With `bindsGrant`
+     * the grant's modifiers apply only to that item. On `releasedOn` the target drops the item when
+     * it can (held, not worn), and a grant with `grantUnlessReleased` is then not applied.
+     */
+    chosenItem: z._default(
+      z.nullable(
+        z.strictObject({
+          category: z.nullable(equipmentCategoryCodeSchema),
+          requiredProperties: z.array(equipmentPropertyCodeSchema).check(z.maxLength(16)),
+          excludedProperties: z.array(equipmentPropertyCodeSchema).check(z.maxLength(16)),
+          equipmentIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(32)),
+          bindsGrant: z.boolean(),
+          releasedOn: z.nullable(z.enum(['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS'])),
+          grantUnlessReleased: z.boolean()
+        })
+      ),
+      null
+    ),
     maintenance: z._default(compiledActionMaintenanceSchema, null),
     /**
      * Conditions a save failed by at least `failedBy` also applies, held by a second active effect
@@ -317,6 +359,28 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
           endOnTriggers: activeEffectEndTriggersSchema
         })
       })
+    ),
+    /**
+     * The immunity a successful save gives the target against this source's action (D156), held by a
+     * second active effect under its own frozen graph; null for none.
+     */
+    sourceImmunity: z._default(
+      z.nullable(
+        z.strictObject({
+          compiledEntryId: serverUuidIdentityDtoSchema,
+          frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
+          /** A successful save's immunity, or a grant's lockout every creature the cast meets holds. */
+          appliesTo: z.enum(['SAVE_SUCCESS', 'EVERY_TARGET']),
+          /** The action effect or the grant whose uses the holder is immune to. */
+          immuneToId: serverUuidIdentityDtoSchema,
+          /** Target turns the immunity lasts; null lasts until something ends it (a long rest). */
+          initialRemaining: z.nullable(
+            z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
+          ),
+          frozenGraph: serverPublishedRuleDefinitionDtoSchema
+        })
+      ),
+      null
     )
   })
 )
@@ -354,6 +418,8 @@ const zoneComponentShape = lazySchemaParts(() => ({
   maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
   /** Whether a turn boundary catches only a creature wholly inside the zone (not mere overlap). */
   requiresFullyWithin: z.optional(z.boolean()),
+  /** The sight an occupant needs between itself and the source to be put through the zone. */
+  requiredSight: z.optional(zoneRequiredSightSchema),
   movementCostMultiplier: z.optional(zoneMovementCostMultiplierSchema),
   blockingRules: z.optional(zoneBlockingRulesSchema),
   /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
@@ -670,10 +736,11 @@ const compiledActionEntryPointSchema = lazySchema(() =>
   ])
 )
 
-export const compiledActionEntryPointsSchema = lazySchema(() =>
-  z.array(compiledActionEntryPointSchema).check(z.maxLength(1_000))
-)
 export type CompiledActionEntryPoint = z.infer<typeof compiledActionEntryPointSchema>
+
+// Explicitly typed so the projections embedding it stay within the declaration size limit (TS7056).
+export const compiledActionEntryPointsSchema: z.ZodMiniType<CompiledActionEntryPoint[]> =
+  lazySchema(() => z.array(compiledActionEntryPointSchema).check(z.maxLength(1_000)))
 
 const characterMechanicsContentRefSchema = lazySchema(() =>
   z.strictObject({

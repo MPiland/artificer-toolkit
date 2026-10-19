@@ -7,6 +7,11 @@ import {
   isCharacterDead,
   isCharacterDying
 } from './characterDeathSaves.js'
+import {
+  temporaryHitPointsAfterGrant,
+  temporaryHitPointsAfterLoss,
+  temporaryHitPointsAfterRelease
+} from './temporaryHitPoints.js'
 import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 
 import { canonicalD20ContributorKey } from '@artificer-toolkit/shared/rules/contributors'
@@ -47,7 +52,8 @@ import {
 } from './ruleExecutionEvidence.js'
 import {
   encounterActionReactionReceiptDtoSchema,
-  encounterCounteredCastApplicationOutputDtoSchema
+  encounterCounteredCastApplicationOutputDtoSchema,
+  encounterGatedActionApplicationOutputDtoSchema
 } from './ruleExecutionReactionChoice.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
@@ -58,6 +64,7 @@ import {
   meleeRetaliationEvidenceDtoSchema,
   validateMeleeRetaliation
 } from './ruleExecutionEffectEvidence.js'
+import { damageAddedDiceDtoSchema } from './d20AddedDice.js'
 const noApplicationOutputDtoSchema = lazySchema(() => z.strictObject({ kind: z.literal('NONE') }))
 
 const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
@@ -92,6 +99,11 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         null
       ),
       sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
+      /** The item the target dropped with this outcome (Heat Metal); undo puts it back in hand. */
+      targetItemUseStateTransition: z._default(
+        z.nullable(characterItemUseStateTransitionDtoSchema),
+        null
+      ),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
@@ -125,6 +137,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
       /** The source's own conditions released by effects its action ended; empty when none. */
       sourceApplications: sourceApplicationsDtoSchema,
+      /** The dice active grants added to, or took from, its damage, in node-prefix order (D156). */
+      damageAddedDice: z.optional(damageAddedDiceDtoSchema),
       /** The zones its target holds that this melee hit set off against the attacker (D153). */
       meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema)
     })
@@ -146,6 +160,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         })
         let current = value.targetTransition.before.currentHitPoints
         let temporary = value.targetTransition.before.temporaryHitPoints
+        let temporarySource = value.targetTransition.before.temporaryHitPointsSourceEffectId ?? null
         let maximum = value.targetTransition.before.maximumHitPoints
         let deathSaves = value.targetTransition.before.deathSaves
         const conditions = new Set(value.targetTransition.before.conditionIds)
@@ -245,6 +260,25 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
               deathSaves = deathSavesAfterStabilize({ deathSaves, currentHitPoints: current })
             continue
           }
+          if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {
+            const released = temporaryHitPointsAfterRelease(
+              { amount: temporary, sourceEffectId: temporarySource },
+              application.sourceActiveEffectId
+            )
+            if (
+              application.beforeTemporaryHitPoints !== temporary ||
+              application.afterTemporaryHitPoints !== released.amount ||
+              application.applied !== (temporarySource === application.sourceActiveEffectId)
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['applications', index],
+                message: 'Temporary hit-point release receipt is invalid.'
+              })
+            temporary = released.amount
+            temporarySource = released.sourceEffectId
+            continue
+          }
           if (
             application.beforeCurrentHitPoints > application.maximumHitPoints ||
             application.afterCurrentHitPoints > application.maximumHitPoints ||
@@ -281,10 +315,15 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
                 message: 'Heal receipt arithmetic is invalid.'
               })
           } else if (application.kind === 'TEMPORARY_HIT_POINTS') {
-            const expectedAfter = Math.max(
-              application.beforeTemporaryHitPoints,
-              application.resolvedAmount
+            const granted = temporaryHitPointsAfterGrant(
+              { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
+              {
+                amount: application.resolvedAmount,
+                sourceEffectId: application.sourceActiveEffectId ?? null
+              }
             )
+            const expectedAfter = granted.amount
+            temporarySource = granted.sourceEffectId
             if (
               application.resolvedAmount !== application.requestedAmount ||
               application.afterCurrentHitPoints !== application.beforeCurrentHitPoints ||
@@ -302,6 +341,10 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
               application.requestedAmount
             )
             const temporaryLost = Math.min(application.beforeTemporaryHitPoints, expectedResolved)
+            temporarySource = temporaryHitPointsAfterLoss(
+              { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
+              temporaryLost
+            ).sourceEffectId
             const currentLost = Math.min(
               application.beforeCurrentHitPoints,
               expectedResolved - temporaryLost
@@ -335,6 +378,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         if (
           transitionAfter.currentHitPoints !== current ||
           transitionAfter.temporaryHitPoints !== temporary ||
+          (transitionAfter.temporaryHitPointsSourceEffectId ?? null) !== temporarySource ||
           transitionAfter.maximumHitPoints !== maximum ||
           JSON.stringify(transitionAfter.deathSaves) !== JSON.stringify(deathSaves) ||
           transitionAfter.conditionIds.length !== conditions.size ||
@@ -456,8 +500,21 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         const hasActiveEffectCreation =
           value.activeEffectTransitions.length > 0 || value.reactionEffectTransitions.length > 0
         const reaction = value.reaction
+        const release = value.targetItemUseStateTransition
+        if (
+          release &&
+          (release.afterStreamVersion !== value.targetCharacterStreamVersion ||
+            (stow !== null && value.sourceActorId === value.targetActorId))
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['targetItemUseStateTransition'],
+            message: 'Target item state transition must match the target Character version.'
+          })
         const hasReactionMutation =
-          reaction?.spellCastConsumption != null || value.targetFailedCounterSpend
+          reaction?.spellCastConsumption != null ||
+          value.targetFailedCounterSpend ||
+          release !== null
         if (
           reaction &&
           (reaction.reaction.reactorActorId !== value.targetActorId ||
@@ -535,6 +592,7 @@ export type ServerRuleExecutionApplicationOutputsDto =
   | z.infer<typeof concentrationEndApplicationOutputDtoSchema>
   | z.infer<typeof encounterAreaActionApplicationOutputDtoSchema>
   | z.infer<typeof encounterCounteredCastApplicationOutputDtoSchema>
+  | z.infer<typeof encounterGatedActionApplicationOutputDtoSchema>
   | z.infer<typeof encounterActorMechanicsBatchApplicationOutputDtoSchema>
   | z.infer<typeof basicActionCheckApplicationOutputDtoSchema>
   | z.infer<typeof escapeCheckApplicationOutputDtoSchema>
@@ -551,6 +609,7 @@ export const serverRuleExecutionApplicationOutputsDtoSchema: z.ZodMiniType<Serve
       concentrationEndApplicationOutputDtoSchema,
       encounterAreaActionApplicationOutputDtoSchema,
       encounterCounteredCastApplicationOutputDtoSchema,
+      encounterGatedActionApplicationOutputDtoSchema,
       encounterActorMechanicsBatchApplicationOutputDtoSchema,
       basicActionCheckApplicationOutputDtoSchema,
       escapeCheckApplicationOutputDtoSchema,

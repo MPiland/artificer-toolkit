@@ -5,6 +5,11 @@ import {
   type CharacterSheetAdjustment
 } from '@artificer-toolkit/shared/character'
 import {
+  temporaryHitPointsAfterLoss,
+  temporaryHitPointsSet,
+  withCharacterTemporaryHitPoints
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
+import {
   EQUIPMENT_PROPERTY_CODE,
   HAND_CONFLICT_MESSAGE,
   nextEquipSlot,
@@ -709,7 +714,12 @@ export function applyCharacterSheetCommand(
       return clearEmptyStateArrays(next)
 
     case 'SET_HIT_POINTS': {
-      next.state.hitpoints.temp = command.temp == null ? next.state.hitpoints.temp : command.temp
+      // A manual temporary hit point edit belongs to no effect (D156).
+      if (command.temp != null)
+        next.state.hitpoints = withCharacterTemporaryHitPoints(
+          next.state.hitpoints,
+          temporaryHitPointsSet(command.temp)
+        )
       const maxHitPoints =
         command.maxOverride === undefined
           ? sheet.overview.maxHitPoints
@@ -746,10 +756,19 @@ export function applyCharacterSheetCommand(
           maximumHitPoints: maxHitPoints
         })
       } else {
-        const currentTemp = next.state.hitpoints.temp
+        const currentTemp = Math.max(next.state.hitpoints.temp, 0)
         const absorbed = Math.min(currentTemp, command.amount)
         const remainingDamage = command.amount - absorbed
-        next.state.hitpoints.temp = Math.max(currentTemp - absorbed, 0)
+        next.state.hitpoints = withCharacterTemporaryHitPoints(
+          next.state.hitpoints,
+          temporaryHitPointsAfterLoss(
+            {
+              amount: currentTemp,
+              sourceEffectId: next.state.hitpoints.tempSourceEffectId ?? null
+            },
+            absorbed
+          )
+        )
         // Damage lands on the effective maximum when current HP stands above it.
         const standing = Math.min(next.state.hitpoints.current, maxHitPoints)
         next.state.hitpoints.current = clamp(standing - remainingDamage, 0, maxHitPoints)

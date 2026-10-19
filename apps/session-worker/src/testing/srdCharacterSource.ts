@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
+  ClassAuthored,
   CreatureAuthored,
   EquipmentAuthored,
   SpellAuthored
@@ -19,6 +20,7 @@ import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { elf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
+import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 
 // The captured Character's starting-equipment choice; the Background below offers exactly it.
@@ -40,19 +42,36 @@ export type ClassFeature = NonNullable<typeof fighter.features>[number]
 // The Elf's 60 ft Darkvision Feature, the one way the captured Character gains a Sense.
 const darkvisionFeature = elf.features![1]!
 
+/** The SRD spells a subclass grants, which its Character's source must publish to evaluate them. */
+function subclassSpells(subclass: ClassAuthored | undefined): readonly SpellAuthored[] {
+  const ids = new Set(
+    (subclass?.features ?? []).flatMap((feature) =>
+      (feature.grants?.spells ?? []).flatMap((grant) =>
+        ('progression' in grant ? grant.progression.levels : []).flatMap((level) =>
+          'spellIds' in level ? level.spellIds : []
+        )
+      )
+    )
+  )
+  return srdSpells.filter((spell) => ids.has(spell.id))
+}
+
 /**
  * The SRD roots the captured Character was built from, shaped like the Convex Character fixtures:
- * no Features or proficiencies, a Fighter without starting equipment sets, and a Background whose
- * one choice grants two Clubs and 15 gp.
+ * no Features or proficiencies, a Class (the Fighter by default) without starting equipment sets or
+ * spellcasting of its own, and a Background whose one choice grants two Clubs and 15 gp.
  */
 function buildRoots(
+  characterClass: ClassAuthored,
   secondWind: SecondWind,
   extraClassFeatures: readonly ClassFeature[],
   extraEquipment: readonly EquipmentAuthored[],
   spells: ClassSpells | undefined,
-  creatures: readonly CreatureAuthored[] | undefined
+  creatures: readonly CreatureAuthored[] | undefined,
+  characterSubclass: ClassAuthored | undefined
 ) {
-  if (fighter.category !== 'BASE') throw new Error('The SRD Fighter is a base Class.')
+  if (characterClass.category !== 'BASE') throw new Error('The Character’s Class is a base Class.')
+  const { spellcasting: _ownSpellcasting, ...classRoot } = structuredClone(characterClass)
   const background = {
     ...acolyte,
     features: [],
@@ -87,7 +106,7 @@ function buildRoots(
                       startingEquipmentKind: 'CURRENCY' as const,
                       currencies: [
                         {
-                          currencyId: fighter.startingGold.currencyId,
+                          currencyId: classRoot.startingGold.currencyId,
                           amount: 15
                         }
                       ]
@@ -109,10 +128,10 @@ function buildRoots(
     {
       subjectKind: 'CLASS' as const,
       document: {
-        ...structuredClone(fighter),
+        ...classRoot,
         features: [
           ...(secondWind
-            ? (fighter.features ?? [])
+            ? (classRoot.features ?? [])
                 .filter(({ label }) => label === 'Second Wind')
                 .map((feature) =>
                   secondWind === 'UNRESOLVED_MAXIMUM' && feature.charges
@@ -132,7 +151,7 @@ function buildRoots(
           ...extraClassFeatures
         ],
         proficiencies: [],
-        startingEquipment: { ...fighter.startingEquipment, sets: [] },
+        startingEquipment: { ...classRoot.startingEquipment, sets: [] },
         ...(spells && {
           spellcasting: {
             ...wizard.spellcasting!,
@@ -151,14 +170,21 @@ function buildRoots(
         })
       }
     },
+    ...(characterSubclass
+      ? [{ subjectKind: 'CLASS' as const, document: structuredClone(characterSubclass) }]
+      : []),
     { subjectKind: 'BACKGROUND' as const, document: background },
     ...[club, ...extraEquipment].map((document) => ({
       subjectKind: 'EQUIPMENT' as const,
       document
     })),
+    ...subclassSpells(characterSubclass).map((document) => ({
+      subjectKind: 'SPELL' as const,
+      document
+    })),
     ...(spells ?? []).map((spell) => ({
       subjectKind: 'SPELL' as const,
-      document: { ...spell, classIds: [...(spell.classIds ?? []), fighter.id] }
+      document: { ...spell, classIds: [...(spell.classIds ?? []), classRoot.id] }
     })),
     ...(creatures ?? []).map((document) => ({ subjectKind: 'CREATURE' as const, document }))
   ]
@@ -219,7 +245,7 @@ function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapsho
  * The SRD source's snapshot builds, one per kind, as the content snapshot build writes them.
  * `darkvision` gives the Race its Darkvision Feature; `secondWind` gives the Fighter its Second Wind Feature, the Resource pool the stripped Class otherwise lacks; `classFeatures` are further Features the Fighter carries; `spells` make the Fighter a spellcaster
  * (with the Wizard's spellcasting rules) whose Class spell list they join, and add the SPELL kind;
- * `creatures` add the CREATURE kind.
+ * `creatures` add the CREATURE kind; `characterClass` is the SRD Class standing in for the Fighter.
  */
 export function buildSrdSourceKinds(
   darkvision: boolean,
@@ -227,14 +253,16 @@ export function buildSrdSourceKinds(
   classFeatures: readonly ClassFeature[] = [],
   equipment: readonly EquipmentAuthored[] = [],
   spells?: ClassSpells,
-  creatures?: readonly CreatureAuthored[]
+  creatures?: readonly CreatureAuthored[],
+  characterClass: ClassAuthored = fighter,
+  characterSubclass?: ClassAuthored
 ) {
   const kinds = [
     'RACE',
     'CLASS',
     'BACKGROUND',
     'EQUIPMENT',
-    ...(spells ? ['SPELL' as const] : []),
+    ...(spells || subclassSpells(characterSubclass).length > 0 ? ['SPELL' as const] : []),
     ...(creatures ? ['CREATURE' as const] : [])
   ] as const
   return kinds.map((kind) => {
@@ -246,7 +274,15 @@ export function buildSrdSourceKinds(
     }
     const built = buildContentSnapshotKind(
       header,
-      buildRoots(secondWind, classFeatures, equipment, spells, creatures)
+      buildRoots(
+        characterClass,
+        secondWind,
+        classFeatures,
+        equipment,
+        spells,
+        creatures,
+        characterSubclass
+      )
         .filter((root) => root.subjectKind === kind)
         .map((root) =>
           darkvision && root.subjectKind === 'RACE'

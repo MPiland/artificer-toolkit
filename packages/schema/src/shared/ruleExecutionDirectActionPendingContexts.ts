@@ -7,6 +7,12 @@ import {
 } from '../projections/activeRuleEffectPersistence.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
 import {
+  d20AddedDiceDtoSchema,
+  d20RolledAddedDiceDtoSchema,
+  type D20AddedDieDto
+} from './d20AddedDice.js'
+import type { D20MinimumRollDto } from './d20MinimumRoll.js'
+import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
   concentrationCheckTriggerDtoSchema,
@@ -180,7 +186,9 @@ export const directActionTwoPhaseDtoSchema = lazySchema(() =>
             rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
             selectedNatural: pendingD20FaceSchema,
             /** Set when the server settled the TEST d20 in a mode other than the one rolled (ATTACK-10.1). */
-            modeAdjustment: z.optional(serverRuleExecutionD20ModeAdjustmentDtoSchema)
+            modeAdjustment: z.optional(serverRuleExecutionD20ModeAdjustmentDtoSchema),
+            /** The TEST's added dice with their faces (D156); absent when it rolled none. */
+            addedDice: z.optional(d20RolledAddedDiceDtoSchema)
           })
           .check(
             z.superRefine((value, context) => {
@@ -570,6 +578,8 @@ export type EncounterConcealmentCheckPendingContextDto = {
     contributors: z.infer<typeof canonicalConcentrationContributorsDtoSchema>
     contributorChecksum: z.infer<typeof checksumSchema>
     modifier: z.infer<typeof integerSchema>
+    addedDice?: D20AddedDieDto[]
+    minimumRoll?: D20MinimumRollDto
   }
   resolution:
     | {
@@ -669,7 +679,9 @@ export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySche
         modifier: integerSchema,
         rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
         contributors: canonicalConcentrationContributorsDtoSchema,
-        contributorChecksum: checksumSchema
+        contributorChecksum: checksumSchema,
+        /** Dice the holder rolls with the save (D156); absent when it rolls none. */
+        addedDice: z.optional(d20AddedDiceDtoSchema)
       }),
       /** The pinned Character stream; null for a Creature or custom actor holder. */
       targetCharacter: z.nullable(

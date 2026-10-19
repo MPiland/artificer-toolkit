@@ -497,10 +497,17 @@ function createSpellOutcomeFact(
           ? 'Pull'
           : record.direction === 'AWAY_FROM_SOURCE'
             ? 'Push'
-            : undefined
+            : record.direction === 'ASIDE'
+              ? 'Move aside'
+              : record.direction === 'ANY'
+                ? 'Move'
+                : record.direction === 'RANDOM'
+                  ? 'Move randomly'
+                  : undefined
       const unit = formatEnumLabel(readString(record.unit))?.toLowerCase()
       if (amount === undefined || !direction || !unit) return undefined
-      return { label: 'Movement', value: `${direction} ${formatNumber(amount)} ${unit}` }
+      const upTo = record.distanceMode === 'UP_TO' ? 'up to ' : ''
+      return { label: 'Movement', value: `${direction} ${upTo}${formatNumber(amount)} ${unit}` }
     }
     default:
       return undefined

@@ -8,6 +8,7 @@ import {
   damageDefenseBypassCodeSchema
 } from '../shared/enums.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
+import { characterGrantFoldModifierSchema } from './characterGrantFoldRules.js'
 
 const encounterActorResourceReconciliationPolicySchema = lazySchema(() =>
   z.enum(['CLAMP_USED_TO_MAXIMUM'])
@@ -35,7 +36,8 @@ const normalizedEncounterActorTargetProtectionSchema = lazySchema(() =>
       status: z.literal('NORMALIZED'),
       defenses: z.array(encounterActorTargetDefenseSchema).check(z.maxLength(100)),
       qualifiedDefenses: z.array(encounterActorQualifiedDefenseSchema).check(z.maxLength(100)),
-      conditionImmunityIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100))
+      conditionImmunityIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100)),
+      spellSchoolImmunityIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100))
     })
     .check(
       z.superRefine((protection, ctx) => {
@@ -61,6 +63,17 @@ const normalizedEncounterActorTargetProtectionSchema = lazySchema(() =>
             })
           }
           conditionIds.add(conditionId)
+        })
+        const schoolIds = new Set<string>()
+        protection.spellSchoolImmunityIds.forEach((schoolId, index) => {
+          if (schoolIds.has(schoolId)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'Encounter spell school immunity identities must be unique.',
+              path: ['spellSchoolImmunityIds', index]
+            })
+          }
+          schoolIds.add(schoolId)
         })
       })
     )
@@ -94,7 +107,12 @@ export const encounterCreatureRuleFactsSnapshotSchema = lazySchema(() =>
       /** Proficiency bonus added to a saving throw, keyed by ability definition; absent when not proficient. */
       saveProficiencyBonuses: z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())),
       resourceAbilityScores: z.partialRecord(abilityCodeSchema, z.number()),
-      initiativeAbilityDefinitionId: serverUuidIdentityDtoSchema
+      initiativeAbilityDefinitionId: serverUuidIdentityDtoSchema,
+      /**
+       * The Creature's feature modifier grants as the grant fold Characters use accepted them, with the
+       * Creature as holder: one shape for every consumer of a holder's modifiers.
+       */
+      modifiers: z.array(characterGrantFoldModifierSchema).check(z.maxLength(500))
     })
     .check(
       z.superRefine((facts, ctx) => {

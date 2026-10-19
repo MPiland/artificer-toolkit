@@ -40,6 +40,8 @@ export type HandOccupancy = {
   readonly offHandId: string | null
   /** The main hand holds a two-handed item, so the off hand cannot hold anything. */
   readonly offHandBlocked: boolean
+  /** How many hands are empty and usable (0 to 2). */
+  readonly emptyHands: number
   /** Either hand is empty and usable. */
   readonly freeHand: boolean
   readonly conflicts: readonly HandConflict[]
@@ -67,11 +69,13 @@ export function resolveHandOccupancy(items: readonly HandOccupancyItem[]): HandO
     }
   }
 
+  const emptyHands = Number(mainHand === null) + Number(offHand === null && !offHandBlocked)
   return {
     mainHandId: mainHand?.id ?? null,
     offHandId: offHand?.id ?? null,
     offHandBlocked,
-    freeHand: mainHand === null || (offHand === null && !offHandBlocked),
+    emptyHands,
+    freeHand: emptyHands > 0,
     conflicts
   }
 }

@@ -42,13 +42,17 @@ import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScen
 import {
   getCampaignEncounterActionChoices,
   getEncounterDecisionSettlement,
+  loadCampaignEncounterActionItemChoices,
   loadCampaignEncounterOptionalActionChoices
 } from '#app/data/campaigns/encounterActions'
 import { useCampaignPresentedScene } from '#app/data/campaigns/useCampaignPresentedScene'
 import { useVttMapDelivery } from '#app/data/media'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { errorMessage } from '#app/lib/errorMessage'
-import type { GetEncounterOptionalActionChoicesInputDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type {
+  GetEncounterActionItemChoicesInputDto,
+  GetEncounterOptionalActionChoicesInputDto
+} from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
   encounterPreparedPendingListDtoSchema,
   encounterSessionStateDtoSchema
@@ -115,6 +119,11 @@ import {
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
 import { halfSpeedFieldsEntered, type HalfSpeedField } from './CampaignVttCarefulMove.model'
 import { CampaignVttCarefulMoveChoice } from './CampaignVttCarefulMoveChoice'
+import { CampaignVttForcedMovementPick } from './CampaignVttForcedMovementPick'
+import {
+  forcedMovementDestinationOverlays,
+  forcedMovementDestinationPick
+} from './vttForcedMovementPick.model'
 import { isEncounterActorMine } from './encounterActorControl'
 
 export function CampaignVttStage({
@@ -137,6 +146,9 @@ export function CampaignVttStage({
   const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
     undefined
   )
+  // The legal square the keyboard focuses while a forced movement waits on its source (D157).
+  const [focusedDestination, setFocusedDestination] = useState<ScenePoint | null>(null)
+  const pickDestinationRef = useRef<((position: ScenePoint) => void) | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
   const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
@@ -254,6 +266,16 @@ export function CampaignVttStage({
   const actionChoices = useQuery(
     getCampaignEncounterActionChoices(roomActionChoices.routed ? null : actionChoiceScope)
   )
+  // Release is a room command, so only the room offers the holds a member may release (D152).
+  const heldRelationships = useRoomEncounterRead({
+    read:
+      activeEncounter && activeEncounter.automationMode !== 'MANUAL'
+        ? { kind: 'HELD_RELATIONSHIPS', input: { encounterId: activeEncounter.id } }
+        : null,
+    readEncounter: live.readEncounter,
+    room,
+    select: (result) => (result.kind === 'HELD_RELATIONSHIPS' ? result.result : undefined)
+  })
   const latestEvidenceRoll = useLatestEvidenceRoll({
     encounterId: pendingOccurrence && activeEncounter ? activeEncounter.id : null,
     readEncounter: live.readEncounter,
@@ -311,6 +333,18 @@ export function CampaignVttStage({
         readEncounter: live.readEncounter,
         roomVersion,
         select: (result) => (result.kind === 'OPTIONAL_ACTION_CHOICES' ? result.result : undefined)
+      }),
+    [convex, live.readEncounter, roomVersion]
+  )
+  const loadActionItemChoices = useCallback(
+    ({ expectedVersion, ...roomInput }: GetEncounterActionItemChoicesInputDto) =>
+      readFromRoomOrFallback({
+        fallback: () =>
+          loadCampaignEncounterActionItemChoices(convex, { expectedVersion, ...roomInput }),
+        read: { kind: 'ACTION_ITEM_CHOICES', input: roomInput },
+        readEncounter: live.readEncounter,
+        roomVersion,
+        select: (result) => (result.kind === 'ACTION_ITEM_CHOICES' ? result.result : undefined)
       }),
     [convex, live.readEncounter, roomVersion]
   )
@@ -424,6 +458,17 @@ export function CampaignVttStage({
       ),
     [activeEncounterSceneBinding, actorTokenBindings.data, actorTokenBindings.error]
   )
+  // A grappler whose drag of a creature on this Scene doubles its movement (D105). Sizes are read
+  // with the holds, so a size change mid-hold can lag here; settlement recomputes the cost.
+  const holds = heldRelationships.routed ? heldRelationships.value : undefined
+  const dragDoublingActorIds = useMemo(() => {
+    const boundActorIds = new Set(actorIdByTokenId.values())
+    return new Set(
+      (holds ?? [])
+        .filter(({ heldActorId, drag }) => drag?.doublesCost && boundActorIds.has(heldActorId))
+        .map(({ sourceActorId }) => sourceActorId)
+    )
+  }, [actorIdByTokenId, holds])
   const targeting = actionsOpened ? targetingRequest : null
   const targetModifiers = useActionTargetModifiers({
     input:
@@ -538,6 +583,37 @@ export function CampaignVttStage({
         : presentScene,
     [presentScene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
+  // A forced movement waiting on its source is picked on the board by whoever acts for it (D157).
+  const destinationPending =
+    pendingOccurrence?.kind === 'FORCED_MOVEMENT_DESTINATION' ? pendingOccurrence : null
+  const destinationSource = activeEncounter?.actors.find(
+    ({ id }) => id === destinationPending?.sourceActorId
+  )
+  const destinationTokenId = [...actorIdByTokenId].find(
+    ([, actorId]) => actorId === destinationPending?.targetActorId
+  )?.[0]
+  const destinationPick = useMemo(
+    () =>
+      destinationPending &&
+      renderedScene &&
+      destinationTokenId &&
+      destinationSource &&
+      isEncounterActorMine(campaign, currentUserId, destinationSource)
+        ? forcedMovementDestinationPick({
+            pending: destinationPending,
+            scene: renderedScene,
+            targetTokenId: destinationTokenId
+          })
+        : null,
+    [
+      campaign,
+      currentUserId,
+      destinationPending,
+      destinationSource,
+      destinationTokenId,
+      renderedScene
+    ]
+  )
   const tokenImageLookups = useMemo(() => {
     const actorsById = new Map(
       (activeEncounter?.actors ?? []).map((actor) => [actor.id, actor] as const)
@@ -618,18 +694,31 @@ export function CampaignVttStage({
     [actionPreview?.sourceTokenId, aimingArea, areaSize]
   )
   // The preview shows while the drawer is open, including while the caster aims an area's center.
-  const overlays = useMemo(
-    () =>
-      stageOverlays({
-        actionPreview,
-        aimingArea: rendererAreaAim !== null,
-        areaAim,
-        areaSize,
-        drawerOpened: actionsOpened,
-        scene: renderedScene ?? null
-      }),
-    [actionPreview, actionsOpened, areaAim, areaSize, rendererAreaAim, renderedScene]
-  )
+  const overlays = useMemo(() => {
+    const staged = stageOverlays({
+      actionPreview,
+      aimingArea: rendererAreaAim !== null,
+      areaAim,
+      areaSize,
+      drawerOpened: actionsOpened,
+      scene: renderedScene ?? null
+    })
+    return destinationPick
+      ? [
+          ...(staged ?? []),
+          ...forcedMovementDestinationOverlays(destinationPick, focusedDestination)
+        ]
+      : staged
+  }, [
+    actionPreview,
+    actionsOpened,
+    areaAim,
+    areaSize,
+    destinationPick,
+    focusedDestination,
+    rendererAreaAim,
+    renderedScene
+  ])
   // A selection whose token left the Scene counts as no selection.
   const selectedSceneTokenId = scene?.tokens.some((token) => token.id === selectedTokenId)
     ? selectedTokenId
@@ -671,11 +760,20 @@ export function CampaignVttStage({
         currentUserId: viewerUserId,
         mapDelivery: mapDelivery.data ?? null,
         mode: effectiveMode,
+        movementCost:
+          activeEncounterSceneBinding && encounterSessionState
+            ? {
+                actorIdByTokenId,
+                zones: encounterSessionState.movementCostZones,
+                dragDoublingActorIds
+              }
+            : null,
         overlays,
         previewTokenId: effectivePreviewTokenId,
         role: effectiveRole,
         scene: renderedScene,
         selectedTokenId: selectedSceneTokenId,
+        squarePick: destinationPick?.squares ?? null,
         targeting: targeting !== null,
         tokenPresentations,
         tool,
@@ -799,6 +897,7 @@ export function CampaignVttStage({
         setAimingArea(false)
         setActionsOpened(true)
       },
+      onSquarePick: (center) => pickDestinationRef.current?.(center),
       onMapLoadStatus: (status) => {
         setMapLoadStatus(status)
         mapDelivery.onMapLoadStatus(status)
@@ -940,6 +1039,21 @@ export function CampaignVttStage({
     if (actorId) pickTarget(actorId)
   }
   pickTargetTokenRef.current = pickTargetToken
+
+  function pickDestination(position: ScenePoint): void {
+    if (!destinationPending || !activeEncounter || encounterCommand.isPending) return
+    encounterCommand.mutate({
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: activeEncounter.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: destinationPending.encounterVersion,
+      occurrenceId: destinationPending.occurrenceId,
+      expectedOccurrenceVersion: destinationPending.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'FORCED_MOVEMENT', requestId: destinationPending.requestId, position }
+    })
+  }
+  pickDestinationRef.current = destinationPick ? pickDestination : null
 
   function retryMap(): void {
     setMapLoadStatus('LOADING')
@@ -1337,6 +1451,7 @@ export function CampaignVttStage({
               connected={live.status === 'CONNECTED'}
               currentActorMine={currentActorMine}
               encounter={activeEncounter}
+              holds={holds ?? []}
               memberships={campaign.memberships}
               pending={
                 encounterCommand.isPending ||
@@ -1362,6 +1477,7 @@ export function CampaignVttStage({
               }
               onCommand={(command) => encounterCommand.mutate(command)}
               onEndCharacterConcentration={setEndingConcentrationOf}
+              onRelease={(command) => encounterCommand.mutateAsync(command)}
             />
           ) : null}
           {activeEncounter && currentTurnMovement ? (
@@ -1397,7 +1513,9 @@ export function CampaignVttStage({
               basicActionChoices={currentActionChoices?.basicActionChoices ?? []}
               escapes={currentActionChoices?.escapes ?? []}
               heldGrantEnds={currentActionChoices?.heldGrantEnds ?? []}
+              releases={currentActionChoices?.releases ?? []}
               openAttackAction={currentActionChoices?.openAttackAction ?? null}
+              defaultActionId={currentActionChoices?.defaultActionId ?? null}
               actionsLoading={actionChoicesLoading}
               actionChoicesError={actionChoicesError}
               connected={live.status === 'CONNECTED'}
@@ -1423,7 +1541,9 @@ export function CampaignVttStage({
               onResolve={(command) => encounterCommand.mutateAsync(command)}
               onEscape={(command) => encounterCommand.mutateAsync(command)}
               onEndHeldGrant={(command) => encounterCommand.mutateAsync(command)}
+              onRelease={(command) => encounterCommand.mutateAsync(command)}
               onLoadOptionalChoices={loadOptionalActionChoices}
+              onLoadItemChoices={loadActionItemChoices}
             />
           ) : null}
           {drawerDecision && activeEncounter ? (
@@ -1604,6 +1724,15 @@ export function CampaignVttStage({
                 setCarefulChoice(null)
                 commitTokenMove(carefulChoice.tokenId, carefulChoice.path, carefully)
               }}
+            />
+          ) : null}
+          {destinationPick && destinationPending ? (
+            <CampaignVttForcedMovementPick
+              disabled={encounterCommand.isPending}
+              key={`${destinationPending.occurrenceId}:${destinationPending.occurrenceVersion}`}
+              pick={destinationPick}
+              onFocusSquare={setFocusedDestination}
+              onPick={pickDestination}
             />
           ) : null}
           {moveWarning ? (

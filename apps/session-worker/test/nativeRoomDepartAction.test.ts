@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { planeShift } from '@artificer-toolkit/source-data/srd/spells/plane-shift.js'
+import { teleport } from '@artificer-toolkit/source-data/srd/spells/teleport.js'
 import { wordOfRecall } from '@artificer-toolkit/source-data/srd/spells/word-of-recall.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -53,7 +54,7 @@ const absenceOf = (room: TravelRoom) =>
 const commit = (answer: { type: string }) =>
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 
-describe.each([{ spell: wordOfRecall }, { spell: planeShift }])(
+describe.each([{ spell: wordOfRecall }, { spell: planeShift }, { spell: teleport }])(
   '$spell.label departs the chosen creatures from the Encounter (D128)',
   ({ spell }) => {
     it('sets every chosen actor departed, undoes to present, and lets the GM return one', async () => {

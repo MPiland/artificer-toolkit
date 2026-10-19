@@ -34,11 +34,14 @@ import { jsonValueSchema } from '../projections/identity.js'
 import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprint.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { rollRecordDtoSchema } from './rolls.js'
+import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { healthDisplayLevelDtoSchema, playerActorHealthDtoSchema } from './healthDisplay.js'
 import {
   MAX_SPATIAL_RULE_EFFECTS_PER_SCENE,
   spatialGeometryDtoSchema,
-  spatialPositiveDistanceDtoSchema
+  spatialPersistedGeometryDtoSchema,
+  spatialPositiveDistanceDtoSchema,
+  zoneMovementCostMultiplierSchema
 } from '../shared/spatial.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
@@ -300,7 +303,9 @@ export const encounterEvidenceRollDtoSchema = lazySchema(() =>
       /** The mode the d20 was rolled with; null for any other roll. */
       rollMode: z.nullable(d20RollModeSchema),
       /** The rules-derived mode the row recommended; differs from `rollMode` when overridden. */
-      derivedRollMode: z.nullable(d20RollModeSchema)
+      derivedRollMode: z.nullable(d20RollModeSchema),
+      /** The faces of the request's added dice (D156), rolled with the d20. */
+      addedFaces: z.optional(d20AddedFacesDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -328,7 +333,8 @@ export const encounterSettledAppRollDtoSchema = lazySchema(() =>
   z.strictObject({
     rollId: uuidSchema,
     faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
-    rollMode: z.nullable(d20RollModeSchema)
+    rollMode: z.nullable(d20RollModeSchema),
+    addedFaces: z.optional(d20AddedFacesDtoSchema)
   })
 )
 export type EncounterSettledAppRollDto = z.infer<typeof encounterSettledAppRollDtoSchema>
@@ -571,9 +577,7 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
            * The creatures this actor must Dash away from this turn, because a held condition
            * authored `fleesSource` (Fear); empty when it flees none. Shown, never enforced.
            */
-          fleeSourceActorIds: z
-            .array(postgresUuidSchema)
-            .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+          fleeSourceActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
@@ -606,6 +610,24 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           ),
           radius: spatialPositiveDistanceDtoSchema,
           sourceTokenId: postgresUuidSchema
+        })
+      )
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),
+    /**
+     * The visible, active zones that raise what moving through them costs (D154, D156), so the map
+     * can price a dragged path as the room will. A token-anchored zone is carried only when the
+     * member's projection lists its source, and `unaffectedActorIds` names only listed actors.
+     * Shown, never enforced: the room charges the movement.
+     */
+    movementCostZones: z
+      .array(
+        z.strictObject({
+          id: postgresUuidSchema,
+          multiplier: zoneMovementCostMultiplierSchema,
+          anchorKind: z.enum(['FIXED', 'TOKEN']),
+          geometry: spatialPersistedGeometryDtoSchema,
+          sourceTokenId: z.nullable(postgresUuidSchema),
+          unaffectedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )
       .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))

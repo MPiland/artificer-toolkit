@@ -5,7 +5,7 @@ import { segmentsIntersect } from '@artificer-toolkit/shared/vtt/segments'
 import { activationDtoSchema } from '../effects/activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from '../effects/check.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
-import { manifestBlockingRuleSchema } from './enums.js'
+import { manifestBlockingRuleSchema, manifestRequiredSightSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import {
   activeRuleEffectDefinitionDtoSchema,
@@ -155,6 +155,20 @@ export const zoneBlockingRulesSchema = lazySchema(() =>
     )
 )
 
+/** The sight an occupant needs to be put through a zone; absent when it needs none. */
+export const zoneRequiredSightSchema = lazySchema(() =>
+  z
+    .array(manifestRequiredSightSchema)
+    .check(z.minLength(1))
+    .check(z.maxLength(manifestRequiredSightSchema.options.length))
+    .check(
+      z.refine(
+        (sights) => new Set(sights).size === sights.length,
+        'Zone required sights are unique.'
+      )
+    )
+)
+
 /**
  * The condition a zone holds on a creature that fails its save (D146), with the escape it offers:
  * a placed zone pins the escape DC (`dcSchema` is a number there), a compiled one may name its
@@ -165,6 +179,10 @@ export function spatialHeldConditionDtoSchema<TDc extends z.ZodMiniType>(dcSchem
     conditionId: uuidSchema,
     /** The condition ends when the creature leaves the zone's area. */
     endsOnLeavingArea: z.optional(z.literal(true)),
+    /** The condition ends at the end of its holder's own turn, whether or not the zone lasts. */
+    endsAtEndOfHolderTurn: z.optional(z.literal(true)),
+    /** The condition records the zone's source as the creature that applied it. */
+    recordsSource: z.optional(z.literal(true)),
     escape: z.optional(
       z.strictObject({
         activation: activationDtoSchema,
@@ -220,6 +238,8 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
       maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
       /** At a turn boundary the zone catches only a creature wholly inside it; absent for overlap. */
       requiresFullyWithin: z.optional(z.boolean()),
+      /** The occupant is put through the zone only with this sight between it and the source. */
+      requiredSight: z.optional(zoneRequiredSightSchema),
       movementCostMultiplier: z.optional(zoneMovementCostMultiplierSchema),
       /** The zone catches a mover once per whole step (Scene distance units) it moves inside (D156). */
       distanceStep: z.optional(positiveDistanceSchema),
@@ -231,10 +251,32 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
         spatialHeldConditionDtoSchema(z.number().check(z.int()).check(z.positive()))
       ),
       /** The zone catches a creature inside it that hits its source token with a melee attack (D153). */
-      retaliatesMeleeHits: z.optional(z.literal(true))
+      retaliatesMeleeHits: z.optional(z.literal(true)),
+      /**
+       * The bonus to every saving throw the zone lends its source and the source's allies inside it
+       * (D155), its amount resolved against the source and pinned at placement. Such a zone has no
+       * trigger.
+       */
+      occupantSaveBonus: z.optional(
+        z.strictObject({
+          domain: z.literal('EVERY_SAVING_THROW'),
+          dispositionFilter: z.literal('ALLIES_AND_SOURCE'),
+          amount: z.number().check(z.int()).check(z.minimum(-5)).check(z.maximum(30))
+        })
+      )
     })
     .check(
       z.superRefine((placement, context) => {
+        const triggered =
+          placement.triggerModes.length > 0 ||
+          placement.turnTriggers !== undefined ||
+          placement.retaliatesMeleeHits === true
+        if (placement.occupantSaveBonus && (triggered || placement.anchorKind !== 'TOKEN'))
+          context.addIssue({
+            code: 'custom',
+            path: ['occupantSaveBonus'],
+            message: 'A zone lending a save bonus is untriggered and anchored to its source token.'
+          })
         if (placement.retaliatesMeleeHits && placement.anchorKind !== 'TOKEN')
           context.addIssue({
             code: 'custom',

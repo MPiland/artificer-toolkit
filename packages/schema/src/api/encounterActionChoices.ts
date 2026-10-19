@@ -1,9 +1,13 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { characterSheetActionDtoSchema } from './characterSheetData.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
-import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands.js'
+import {
+  encounterHeldWeaponStowDtoSchema,
+  encounterShieldStowDtoSchema
+} from './encounterRuleCommands.js'
 import { activationCodeSchema, equipmentGripSchema } from '../shared/enums.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { shapeMeasurementDtoSchema } from '../shared/shape.js'
@@ -34,6 +38,12 @@ const choiceOptionsSchema = lazySchema(() =>
   )
 )
 
+/**
+ * The action is used on an item its creature has equipped (Shillelagh's club, Heat Metal's armor):
+ * once the creature is picked the client reads the items it may pick from.
+ */
+const choosesItemSchema = lazySchema(() => z.optional(z.literal(true)))
+
 /** The caster designates creatures at cast that the zone it places never affects. */
 const choosesUnaffectedShape = lazySchemaParts(() => ({
   choosesUnaffected: z.optional(z.literal(true))
@@ -60,12 +70,16 @@ const pointTargetSchema = lazySchema(() =>
 
 /**
  * A radius centered on the caster, measured from the edge of their space (a Self sphere, cylinder
- * or circle): the client asks for no aim and only fences the Scene version.
+ * or circle), or the caster's own space (a Self area that names no shape): the client asks for no
+ * aim and only fences the Scene version.
  */
 const casterCenteredTargetSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('CASTER_CENTERED'),
-    area: z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+    area: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
+      z.strictObject({ kind: z.literal('OWN_SPACE') })
+    ])
   })
 )
 
@@ -132,11 +146,17 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      * sharing `attackKey` are the same attack offered one- and two-handed. Null for every other action.
      */
     grip: z.nullable(z.strictObject({ value: equipmentGripSchema, attackKey: labelSchema })),
-    /** Present when attacking with this action stows the active shield; the client must confirm. */
+    /**
+     * Present when taking this action stows an item: the active shield (with the armor class it
+     * costs) or a held weapon that frees the hand the action needs. The client must confirm.
+     */
     wieldConflict: z.nullable(
-      z.extend(encounterAcceptedWieldConflictDtoSchema, {
-        armorClassDelta: z.number().check(z.int()).check(z.lte(0))
-      })
+      z.discriminatedUnion('kind', [
+        z.extend(encounterShieldStowDtoSchema, {
+          armorClassDelta: z.number().check(z.int()).check(z.lte(0))
+        }),
+        encounterHeldWeaponStowDtoSchema
+      ])
     ),
     /**
      * Soft-rule warnings that already apply before a target is chosen (no allowance left, item not
@@ -158,45 +178,53 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         /** As authored: the client lists the user among the creatures unless it is `REFUSED` (Help, First Aid). */
         self: targetingSelfDtoSchema,
         /** The options the caster picks one of at cast (D148); absent for an action with none. */
-        choiceOptions: choiceOptionsSchema
+        choiceOptions: choiceOptionsSchema,
+        choosesItem: choosesItemSchema
       }),
       /**
-       * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word);
+       * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word), or
+       * any number of them, each once, when `maxTargets` is absent (Pass without Trace);
        * `area` is the sphere the picks must stand in, centered on a point the user also picks,
        * null when the spell names creatures without a shape. With `allowRepeatedTargets` each pick
        * is one projectile (Magic Missile's dart), so the same creature may be picked up to
-       * `maxTargets` times.
+       * `maxTargets` times, which a repeating list always names.
        */
-      z.strictObject({
-        kind: z.literal('ACTORS'),
-        maxTargets: z.number().check(z.int()).check(z.positive()),
-        area: z.nullable(
-          z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+      z
+        .strictObject({
+          kind: z.literal('ACTORS'),
+          maxTargets: z.optional(z.number().check(z.int()).check(z.positive())),
+          area: z.nullable(
+            z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema })
+          ),
+          allowRepeatedTargets: z.optional(z.literal(true)),
+          /**
+           * The forms the creatures may take (Giant Insect); the user picks one and each caps the
+           * picks at its own `maxTargets`. Absent for an action that authors none.
+           */
+          forms: z.optional(
+            z
+              .array(
+                z.strictObject({
+                  id: postgresUuidSchema,
+                  label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+                  maxTargets: z.number().check(z.int()).check(z.positive())
+                })
+              )
+              .check(z.minLength(1))
+          ),
+          /**
+           * The action lets the user name any Creature as the form (Polymorph); the Worker checks it
+           * against the action's filter at cast.
+           */
+          choosesCreatureForm: z.optional(z.literal(true)),
+          /** The options the caster picks one of at cast (D148); absent for an action with none. */
+          choiceOptions: choiceOptionsSchema
+        })
+        .check(
+          z.refine((target) => !target.allowRepeatedTargets || target.maxTargets !== undefined, {
+            message: 'A list that repeats creatures names its cap.'
+          })
         ),
-        allowRepeatedTargets: z.optional(z.literal(true)),
-        /**
-         * The forms the creatures may take (Giant Insect); the user picks one and each caps the
-         * picks at its own `maxTargets`. Absent for an action that authors none.
-         */
-        forms: z.optional(
-          z
-            .array(
-              z.strictObject({
-                id: postgresUuidSchema,
-                label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
-                maxTargets: z.number().check(z.int()).check(z.positive())
-              })
-            )
-            .check(z.minLength(1))
-        ),
-        /**
-         * The action lets the user name any Creature as the form (Polymorph); the Worker checks it
-         * against the action's filter at cast.
-         */
-        choosesCreatureForm: z.optional(z.literal(true)),
-        /** The options the caster picks one of at cast (D148); absent for an action with none. */
-        choiceOptions: choiceOptionsSchema
-      }),
       z.extend(pointTargetSchema, choosesUnaffectedShape()),
       z.extend(casterCenteredTargetSchema, choosesUnaffectedShape()),
       z.extend(wallTargetSchema, choosesUnaffectedShape()),
@@ -261,15 +289,16 @@ export const MAX_BASIC_ACTION_CHOICES = 64
 export const MAX_ESCAPE_CHECK_CHOICES = 64
 
 /**
- * A relationship effect the actor holds and can try to escape against a fixed DC (D105): the
- * grapple's offer. The client submits `activeEffectId` and one of the allowed `checks`.
+ * A relationship effect the actor holds and can try to escape (D105): the grapple's offer. The
+ * client submits `activeEffectId` and one of the allowed `checks`. `dc` is the fixed DC, or null
+ * when the holder contests the escape with its own check (D152).
  */
 export const encounterEscapeChoiceDtoSchema = lazySchema(() =>
   z.strictObject({
     activeEffectId: postgresUuidSchema,
     /** "Escape from <grappler>", or "Escape a grapple" when the grappler is hidden from the requester. */
     label: labelSchema,
-    dc: z.number().check(z.int()).check(z.positive()),
+    dc: z.nullable(z.number().check(z.int()).check(z.positive())),
     actionCost: activationCodeSchema,
     /** The ability or skill checks the escape allows; the first is the default. */
     checks: z
@@ -296,6 +325,32 @@ export const encounterHeldGrantEndChoiceDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A creature the actor holds through a relationship it applied (D152): the release offer, which
+ * spends nothing. The client submits `heldActorId` and `activeEffectId`.
+ */
+export const encounterReleaseChoiceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    heldActorId: postgresUuidSchema,
+    activeEffectId: postgresUuidSchema,
+    /** "Release <creature>", or "Release a creature" when the creature is hidden from the requester. */
+    label: labelSchema
+  })
+)
+
+/** A hold a creature the requester controls applied, which its source may release on any turn (D152). */
+export const encounterHeldRelationshipDtoSchema = lazySchema(() =>
+  z.extend(encounterReleaseChoiceDtoSchema, {
+    sourceActorId: postgresUuidSchema,
+    /**
+     * A `TARGET_DRAGGED` hold's drag: whether its source's moves cost double (D105), from the sizes
+     * at read time. Null for a hold that does not drag. The route preview reads it; settlement
+     * recomputes it.
+     */
+    drag: z.nullable(z.strictObject({ doublesCost: z.boolean() }))
+  })
+)
+
 export const encounterActionChoicesDtoSchema = lazySchema(() =>
   z.strictObject({
     encounterId: postgresUuidSchema,
@@ -311,6 +366,11 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
       })
     ),
     actions: z.array(encounterActionChoiceDtoSchema),
+    /**
+     * The action the drawer starts on (D107): the open Attack action's last weapon, else the
+     * main-hand weapon's Action attack, else the off-hand weapon's bonus attack. Null for none.
+     */
+    defaultActionId: z.nullable(characterSheetActionDtoSchema.shape.id),
     /** Creature actions whose authored mechanics cannot run, with the reason. They never resolve. */
     unavailableActions: z.array(
       z.strictObject({
@@ -331,6 +391,8 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
     heldGrantEnds: z
       .array(encounterHeldGrantEndChoiceDtoSchema)
       .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+    /** One entry per creature the actor holds through a relationship it applied. */
+    releases: z.array(encounterReleaseChoiceDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
     optionalRules: z.array(z.strictObject({ definitionId: postgresUuidSchema, label: labelSchema }))
   })
 )
@@ -338,6 +400,30 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
 /** A superseded reactive scope has no available choices; authority failures still reject. */
 export const encounterActionChoicesResponseDtoSchema = lazySchema(() =>
   z.nullable(encounterActionChoicesDtoSchema)
+)
+
+/** The target's items an action that `choosesItem` may be used on, by the picked creature. */
+export const getEncounterActionItemChoicesInputDtoSchema = lazySchema(() =>
+  z.extend(
+    z.pick(resolveEncounterActionInputDtoSchema, {
+      encounterId: true,
+      expectedVersion: true,
+      actorId: true,
+      actionId: true
+    }),
+    {
+      encounterId: postgresUuidSchema,
+      actorId: postgresUuidSchema,
+      targetActorId: postgresUuidSchema
+    }
+  )
+)
+
+/** Each item the client may send as the command's `boundItemInstanceId`, with its label. */
+export const encounterActionItemChoicesDtoSchema = lazySchema(() =>
+  z.strictObject({
+    items: z.array(z.strictObject({ id: postgresUuidSchema, label: labelSchema }))
+  })
 )
 
 export const getEncounterOptionalActionChoicesInputDtoSchema = lazySchema(() =>
@@ -387,10 +473,16 @@ export type GetEncounterActionChoicesInputDto = z.infer<
 export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
 export type EncounterEscapeChoiceDto = z.infer<typeof encounterEscapeChoiceDtoSchema>
 export type EncounterHeldGrantEndChoiceDto = z.infer<typeof encounterHeldGrantEndChoiceDtoSchema>
+export type EncounterReleaseChoiceDto = z.infer<typeof encounterReleaseChoiceDtoSchema>
+export type EncounterHeldRelationshipDto = z.infer<typeof encounterHeldRelationshipDtoSchema>
 export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>
 export type EncounterActionChoicesResponseDto = z.infer<
   typeof encounterActionChoicesResponseDtoSchema
 >
+export type GetEncounterActionItemChoicesInputDto = z.infer<
+  typeof getEncounterActionItemChoicesInputDtoSchema
+>
+export type EncounterActionItemChoicesDto = z.infer<typeof encounterActionItemChoicesDtoSchema>
 export type GetEncounterOptionalActionChoicesInputDto = z.infer<
   typeof getEncounterOptionalActionChoicesInputDtoSchema
 >

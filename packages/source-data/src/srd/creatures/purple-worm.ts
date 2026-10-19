@@ -43,18 +43,6 @@ export const purpleWorm: CreatureAuthored = {
       label: 'Tunneler',
       description:
         'Tunneler. The worm can burrow through solid rock at half its burrow speed and leaves a 10-foot-diameter tunnel in its wake.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(227, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(227, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PURPLE_WORM_TUNNELER
-        })
-      ],
       order: 1
     },
     {

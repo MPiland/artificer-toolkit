@@ -3,6 +3,7 @@ import { persistEncounterActionCommit } from '@artificer-toolkit/encounter-persi
 import { readActorFormCreature } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
 import { persistEncounterAreaCommit } from '@artificer-toolkit/encounter-persistence/areaCommitPersistence'
 import { persistEncounterCounteredCastCommit } from '@artificer-toolkit/encounter-persistence/counteredCastCommitPersistence'
+import { persistEncounterGatedActionCommit } from '@artificer-toolkit/encounter-persistence/gatedActionCommitPersistence'
 import {
   prepareEncounterActionMaintenance,
   persistEncounterActionEffects
@@ -25,7 +26,9 @@ import {
   buildNativeLiveEncounterActionCommitInput
 } from './nativeEncounterRules.js'
 import { buildNativeLiveEncounterCounteredCastCommitInput } from './nativeEncounterCastReaction.js'
+import { buildNativeLiveEncounterGatedActionCommitInput } from './nativeEncounterIncomingGate.js'
 import { persistRoomEncounterCheckAction } from './roomEncounterBasicActions.js'
+import { persistRoomEncounterContest } from './roomEncounterContest.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
@@ -40,7 +43,7 @@ import {
 import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
-import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
+import { applyRoomForcedMovements, readRoomForcedMovementPick } from './roomActionForcedMovement.js'
 import { persistRoomConcentrationChildren } from './roomConcentrationPersistence.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -84,9 +87,21 @@ export async function executeRoomEncounterAction(input: {
           gameSystemId,
           creatureId
         })
-    }
+    },
+    forcedMovementPick: (pick) => readRoomForcedMovementPick({ ctx, transaction, ...pick })
   })
   if (plan.kind === 'REPLAY') return plan.result
+  // A basic action contested by its target (Grapple) settles through the one contest commit (D152).
+  if (plan.kind === 'CONTEST')
+    return persistRoomEncounterContest({
+      ctx,
+      store,
+      transaction,
+      inputs,
+      scope,
+      observed,
+      plan: plan.plan
+    })
   if (plan.kind === 'CHECK')
     return persistRoomEncounterCheckAction({
       ctx,
@@ -104,11 +119,16 @@ export async function executeRoomEncounterAction(input: {
       ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)
       : plan.kind === 'AREA_COMMIT'
         ? buildNativeLiveEncounterAreaCommitInput(scope, plan)
-        : plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING'
+        : plan.kind === 'PENDING' ||
+            plan.kind === 'CAST_PENDING' ||
+            plan.kind === 'GATE_PENDING' ||
+            plan.kind === 'RETARGET_PENDING'
           ? buildNativeLiveEncounterActionPendingInput(scope, plan)
           : plan.kind === 'COUNTERED'
             ? buildNativeLiveEncounterCounteredCastCommitInput(scope, plan)
-            : buildNativeLiveEncounterActionCommitInput(scope, plan)
+            : plan.kind === 'GATED'
+              ? buildNativeLiveEncounterGatedActionCommitInput(scope, plan)
+              : buildNativeLiveEncounterActionCommitInput(scope, plan)
   const ids = new Set(
     plan.prepared.actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
@@ -181,7 +201,16 @@ export async function executeRoomEncounterAction(input: {
       { ...buildNativeLiveEncounterCounteredCastCommitInput(scope, plan), revisions },
       callbacks
     )
-  return plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING'
+  if (plan.kind === 'GATED')
+    return persistEncounterGatedActionCommit(
+      ctx,
+      { ...buildNativeLiveEncounterGatedActionCommitInput(scope, plan), revisions },
+      callbacks
+    )
+  return plan.kind === 'PENDING' ||
+    plan.kind === 'CAST_PENDING' ||
+    plan.kind === 'GATE_PENDING' ||
+    plan.kind === 'RETARGET_PENDING'
     ? persistEncounterActionPending(
         ctx,
         {

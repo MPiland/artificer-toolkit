@@ -24,12 +24,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
         connected
         currentActorMine={false}
         encounter={tabletopPlayerEncounter}
+        holds={[]}
         memberships={createTabletopCampaign('PLAYER').memberships}
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
 
@@ -63,12 +65,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
             { ...tabletopPlayerEncounter.actors[1], health }
           ]
         }}
+        holds={[]}
         memberships={createTabletopCampaign('PLAYER').memberships}
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
     await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -84,6 +88,49 @@ describe('CampaignTabletopEncounterDrawer', () => {
     if (!health) expect(within(warden).queryByText(/HP|Hurt|Bloodied|Unhurt|Near death/)).toBeNull()
     expect(within(warden).queryByText(/\d+\/\d+/) !== null).toBe(health?.level === 'EXACT')
   })
+  it("lets a player release a creature their Character holds on another creature's turn", async () => {
+    const user = userEvent.setup()
+    const [character, warden] = tabletopPlayerEncounter.actors
+    const onRelease = vi.fn()
+    const hold = {
+      sourceActorId: character!.id,
+      heldActorId: warden!.id,
+      activeEffectId: '00000000-0000-4000-8000-000000000e31',
+      label: 'Release Vault Warden',
+      drag: null
+    }
+    renderWithAppProviders(
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine={false}
+        encounter={{ ...tabletopPlayerEncounter, currentActorId: warden!.id }}
+        holds={[hold]}
+        memberships={createTabletopCampaign('PLAYER').memberships}
+        pending={false}
+        role='PLAYER'
+        scene={tabletopLiveScene}
+        onCommand={() => undefined}
+        onEndCharacterConcentration={() => undefined}
+        onRelease={onRelease}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    const section = within(screen.getByRole('region', { name: 'Holding' }))
+    await user.click(section.getByRole('button', { name: 'Release Vault Warden' }))
+
+    expect(onRelease).toHaveBeenCalledWith({
+      type: 'RELEASE_RELATIONSHIP',
+      encounterId: tabletopPlayerEncounter.id,
+      commandId: expect.any(String),
+      expectedVersion: tabletopPlayerEncounter.version,
+      actorId: character!.id,
+      heldActorId: warden!.id,
+      activeEffectId: hold.activeEffectId
+    })
+  })
+
   it('keeps a defeated creature in the turn order, marked defeated', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(
@@ -98,12 +145,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
             { ...tabletopPlayerEncounter.actors[1], defeated: true }
           ]
         }}
+        holds={[]}
         memberships={createTabletopCampaign('PLAYER').memberships}
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
     await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -123,12 +172,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
         connected
         currentActorMine
         encounter={tabletopGmEncounter}
+        holds={[]}
         memberships={createTabletopCampaign('OWNER').memberships}
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
     await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -145,12 +196,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
         connected
         currentActorMine
         encounter={tabletopGmEncounter}
+        holds={[]}
         memberships={createTabletopCampaign('OWNER').memberships}
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={onCommand}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
 
@@ -174,12 +227,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
         connected
         currentActorMine
         encounter={tabletopGmEncounter}
+        holds={[]}
         memberships={createTabletopCampaign('OWNER').memberships}
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={onCommand}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
 
@@ -208,12 +263,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
         connected={false}
         currentActorMine
         encounter={tabletopGmEncounter}
+        holds={[]}
         memberships={createTabletopCampaign('OWNER').memberships}
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
 
@@ -232,12 +289,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
         connected
         currentActorMine
         encounter={tabletopPlayerEncounter}
+        holds={[]}
         memberships={createTabletopCampaign('PLAYER').memberships}
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
         onCommand={onCommand}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
 
@@ -262,12 +321,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
         connected
         currentActorMine
         encounter={tabletopGmEncounter}
+        holds={[]}
         memberships={createTabletopCampaign('OWNER').memberships}
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={onCommand}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
 
@@ -309,12 +370,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
           connected
           currentActorMine
           encounter={encounter}
+          holds={[]}
           memberships={createTabletopCampaign('OWNER').memberships}
           pending={false}
           role='OWNER'
           scene={tabletopLiveScene}
           onCommand={onCommand}
           onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
         />
       )
 
@@ -369,12 +432,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
               actor.id === warden.id ? { ...actor, label: 'Unseen creature' } : actor
             )
           }}
+          holds={[]}
           memberships={createTabletopCampaign('PLAYER').memberships}
           pending={false}
           role='PLAYER'
           scene={tabletopLiveScene}
           onCommand={vi.fn()}
           onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
         />
       )
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -416,12 +481,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
               { ...tabletopPlayerEncounter.actors[1], activeGrants: [shown, hidden] }
             ]
           }}
+          holds={[]}
           memberships={createTabletopCampaign('PLAYER').memberships}
           pending={false}
           role='PLAYER'
           scene={tabletopLiveScene}
           onCommand={() => undefined}
           onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
         />
       )
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -453,12 +520,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
               }
             ]
           }}
+          holds={[]}
           memberships={createTabletopCampaign('OWNER').memberships}
           pending={false}
           role='OWNER'
           scene={tabletopLiveScene}
           onCommand={onCommand}
           onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
         />
       )
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -496,12 +565,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
               tabletopPlayerEncounter.actors[1]
             ]
           }}
+          holds={[]}
           memberships={createTabletopCampaign('PLAYER').memberships}
           pending={false}
           role='PLAYER'
           scene={tabletopLiveScene}
           onCommand={onCommand}
           onEndCharacterConcentration={onEndCharacterConcentration}
+          onRelease={vi.fn()}
         />
       )
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -523,12 +594,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
           connected
           currentActorMine
           encounter={tabletopGmEncounter}
+          holds={[]}
           memberships={createTabletopCampaign('OWNER').memberships}
           pending={false}
           role='OWNER'
           scene={tabletopLiveScene}
           onCommand={() => undefined}
           onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
         />
       )
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -553,12 +626,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
               { ...tabletopGmEncounter.actors[1], concentration }
             ]
           }}
+          holds={[]}
           memberships={createTabletopCampaign('OWNER').memberships}
           pending={false}
           role='OWNER'
           scene={tabletopLiveScene}
           onCommand={onCommand}
           onEndCharacterConcentration={onEndCharacterConcentration}
+          onRelease={vi.fn()}
         />
       )
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -592,12 +667,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
               { ...tabletopPlayerEncounter.actors[1], concentration }
             ]
           }}
+          holds={[]}
           memberships={createTabletopCampaign('PLAYER').memberships}
           pending={false}
           role='PLAYER'
           scene={tabletopLiveScene}
           onCommand={() => undefined}
           onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
         />
       )
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -635,6 +712,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         connected
         currentActorMine={false}
         encounter={tabletopPlayerEncounter}
+        holds={[]}
         memberships={createTabletopCampaign('PLAYER').memberships}
         pending={false}
         role='PLAYER'
@@ -642,6 +720,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         targeting={targeting}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
       />
     )
     const rowLabels = () =>
@@ -738,12 +817,14 @@ describe('CampaignTabletopEncounterDrawer', () => {
           connected
           currentActorMine
           encounter={encounter}
+          holds={[]}
           memberships={createTabletopCampaign(role).memberships}
           pending={false}
           role={role}
           scene={tabletopLiveScene}
           onCommand={onCommand}
           onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
         />
       )
       return onCommand

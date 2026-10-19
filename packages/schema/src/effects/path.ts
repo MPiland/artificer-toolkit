@@ -7,7 +7,7 @@ import { damageDtoSchema } from './damage.js'
 import { hitPointMaximumReductionDtoSchema } from './hitPointMaximumReduction.js'
 import { scalarReductionDtoSchema } from './scalarReduction.js'
 import { forcedMovementDtoSchema } from './forcedMovement.js'
-import { createFollowUpSaveDtoSchema } from './followUpSave.js'
+import { createFollowUpSaveDtoSchema, failureMarginRiderDtoSchema } from './followUpSave.js'
 import { createFollowUpCheckDtoSchema } from './followUpCheck.js'
 import { healDtoSchema } from './heal.js'
 import { manifestDtoSchema } from './manifest.js'
@@ -27,11 +27,16 @@ import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from './check.js'
 import { concealFromObserversDtoSchema } from './concealFromObservers.js'
 import { detectConcealedDtoSchema } from './detectConcealed.js'
 import { cancelTriggeringEventDtoSchema } from './cancelTriggeringEvent.js'
+import { sourceImmunityDtoSchema } from './sourceImmunity.js'
+import { releaseChosenItemDtoSchema } from './releaseChosenItem.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
+import { activeEffectUsesSchema } from '../shared/activeRuleEffectLifecycle.js'
 import {
   activationCodeSchema,
+  equipmentCategoryCodeSchema,
+  equipmentPropertyCodeSchema,
   pathCodeSchema,
   pathGroupTypeSchema,
   pathLifecycleConsumeEventSchema,
@@ -86,7 +91,9 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
             detectConcealedDtoSchema,
-            cancelTriggeringEventDtoSchema
+            cancelTriggeringEventDtoSchema,
+            sourceImmunityDtoSchema,
+            releaseChosenItemDtoSchema
           ]
         : [
             closedRuleDtoSchema,
@@ -113,7 +120,9 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
             detectConcealedDtoSchema,
-            cancelTriggeringEventDtoSchema
+            cancelTriggeringEventDtoSchema,
+            sourceImmunityDtoSchema,
+            releaseChosenItemDtoSchema
           ]
     )
   )
@@ -139,6 +148,12 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
     /** The holder may end the effect themselves, at the cost of this activation. */
     holderEnd: z.optional(z.strictObject({ activation: activationCodeSchema })),
+    /** See `PathLifecycleAuthored.fromSourceOnly`. */
+    fromSourceOnly: z.optional(z.boolean()),
+    /** See `PathLifecycleAuthored.uses`. */
+    uses: z.optional(activeEffectUsesSchema),
+    /** See `PathLifecycleAuthored.activeOnlyOnFinalAnchorTurn`. */
+    activeOnlyOnFinalAnchorTurn: z.optional(z.boolean()),
     /** The zone holds the condition (D146); see `PathLifecycleAuthored.heldBySource`. */
     heldBySource: z.optional(z.boolean()),
     /** The check a creature the zone holds may make to free itself. */
@@ -149,6 +164,16 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
         dc: heldEscapeDcDtoSchema
       })
     )
+  })
+)
+
+/** See `PathChosenItemAuthored`. */
+export const pathChosenItemDtoSchema = lazySchema(() =>
+  z.strictObject({
+    category: z.optional(equipmentCategoryCodeSchema),
+    requiredProperties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
+    excludedProperties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
+    equipmentIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema))
   })
 )
 
@@ -166,6 +191,7 @@ const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
     maintenanceDefinitionId: z.optional(postgresUuidSchema),
     duration: z.optional(durationDtoSchema),
     lifecycle: z.optional(pathLifecycleDtoSchema),
+    failureMarginRider: z.optional(failureMarginRiderDtoSchema),
     outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)
   })
 
@@ -230,7 +256,8 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
       restrictions: z.optional(facetDtoSchema),
       usage: z.optional(pathUsageSchema),
       rangeOverride: z.optional(rangeDtoSchema),
-      targetingOverride: z.optional(targetingDtoSchema)
+      targetingOverride: z.optional(targetingDtoSchema),
+      chosenItem: z.optional(pathChosenItemDtoSchema)
     }),
     z.union([
       z.object({

@@ -32,6 +32,7 @@ import {
   describeDarknessZone,
   describeSceneLighting,
   formatSceneMeasurement,
+  formatSceneRoute,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
   isTokenRevealed,
@@ -704,6 +705,75 @@ describe('VTT scene renderer model', () => {
         { x: 30, y: 40 }
       ])
     ).toBe('5 m')
+  })
+
+  describe('a dragged route’s movement cost (SPELLS-20 T4d)', () => {
+    const [ember] = tabletopLiveScene.tokens
+    const mover = { ...ember!, id: 'mover', position: { x: 315, y: 315 } }
+    const caster = { ...ember!, id: 'caster', position: { x: 595, y: 315 } }
+    const scene = { ...tabletopLiveScene, barriers: [], tokens: [mover, caster] }
+    // Four 70 px cells east, all inside both zones below.
+    const path = [mover.position, { x: 595, y: 315 }]
+    const zone = {
+      id: 'zone',
+      multiplier: 2,
+      anchorKind: 'FIXED' as const,
+      geometry: {
+        frame: 'SCENE_ABSOLUTE' as const,
+        shape: { kind: 'CIRCLE' as const, center: { x: 455, y: 315 }, radius: 600 }
+      },
+      sourceTokenId: null,
+      unaffectedActorIds: []
+    }
+    const aura = (sourceTokenId: string) => ({
+      ...zone,
+      anchorKind: 'TOKEN' as const,
+      geometry: {
+        frame: 'TOKEN_LOCAL' as const,
+        shape: { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: 600 }
+      },
+      sourceTokenId
+    })
+    const route = (zones: NonNullable<Parameters<typeof formatSceneRoute>[2]>['zones']) =>
+      formatSceneRoute(scene, path, {
+        actorId: 'wolf',
+        tokenId: mover.id,
+        zones,
+        dragDoublesCost: false
+      })
+
+    it('shows the cost a zone that slows the mover adds, as the room charges it', () => {
+      expect(route([zone])).toBe('20 ft · costs 40 ft')
+      expect(route([aura(caster.id)])).toBe('20 ft · costs 40 ft')
+    })
+
+    it('shows the distance alone when no zone slows the mover', () => {
+      expect(route([{ ...zone, unaffectedActorIds: ['wolf'] }])).toBe('20 ft')
+      expect(route([aura(mover.id)])).toBe('20 ft')
+      expect(route([])).toBe('20 ft')
+      expect(formatSceneRoute(scene, path, null)).toBe('20 ft')
+    })
+
+    it('doubles the cost of a drag, on top of difficult terrain (D105)', () => {
+      const dragging = { actorId: 'wolf', tokenId: mover.id, zones: [], dragDoublesCost: true }
+      expect(formatSceneRoute(scene, path, dragging)).toBe('20 ft · costs 40 ft')
+      const rough = {
+        ...scene,
+        barriers: [
+          {
+            id: 'rough',
+            kind: 'TERRAIN' as const,
+            a: { x: 455, y: 245 },
+            b: { x: 455, y: 385 },
+            movementCostMultiplier: 2
+          }
+        ]
+      }
+      expect(formatSceneRoute(rough, path, { ...dragging, dragDoublesCost: false })).toBe(
+        '20 ft · costs 40 ft'
+      )
+      expect(formatSceneRoute(rough, path, dragging)).toBe('20 ft · costs 80 ft')
+    })
   })
 
   it('positions renderer tiles from their row and column dimensions', () => {

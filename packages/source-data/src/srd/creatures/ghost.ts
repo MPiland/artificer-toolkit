@@ -60,23 +60,6 @@ export const ghost: CreatureAuthored = {
       label: 'Ethereal Sight',
       description:
         'Ethereal Sight. The ghost can see 60 feet into the Ethereal Plane when it is on the Material Plane, and vice versa.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(111, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: {
-              id: S.actionId(111, 1201),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 60,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GHOST_ETHEREAL_SIGHT
-        })
-      ],
       order: 1
     },
     {
@@ -84,18 +67,12 @@ export const ghost: CreatureAuthored = {
       label: 'Incorporeal Movement',
       description:
         'Incorporeal Movement. The ghost can move through other creatures and objects as if they were difficult terrain. It takes 5 (1d10) force damage if it ends its turn inside an object.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(111, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(111, 1202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GHOST_INCORPOREAL_MOVEMENT
-        })
-      ],
+      grants: S.movementPassageGrants(S.actionId(111, 202), {
+        creatures: 'ANY',
+        mayEndInCreature: false,
+        blockingBarriers: true,
+        costMultiplier: 2
+      }),
       order: 2
     },
     {

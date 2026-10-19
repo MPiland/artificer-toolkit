@@ -42,6 +42,7 @@ import {
 } from './encounterActionProjection.js'
 import { encounterConditionSaveAutoFailAbilityIds } from './encounterConditionMechanics.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { expiredEffectReleases } from './encounterEndedEffectRelease.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -53,6 +54,7 @@ import {
   turnEffectSelectionChecksum,
   type TurnEffectBoundary
 } from './encounterTurnEffectState.js'
+import { resolveEncounterAddedDice } from './encounterD20AddedDice.js'
 import {
   resolveEncounterD20Answer,
   type EncounterResponseAnswer
@@ -125,6 +127,7 @@ function executionState(target: MovementTarget) {
   return {
     current: target.state.current,
     temporary: target.state.temporary,
+    temporarySourceEffectId: target.state.temporarySourceEffectId ?? null,
     conditions: [...target.state.conditions],
     deathSaves: target.state.deathSaves,
     ownConditions: target.characterFacts
@@ -225,6 +228,7 @@ function completeExecution(input: {
     targetActorId: target.actor.id,
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
+    temporaryHitPointsSourceEffectId: input.state.temporarySourceEffectId ?? null,
     maximumHitPoints: target.effectiveMaximumHitPoints,
     deathSaves: input.state.deathSaves,
     scalarValues: input.state.scalarValues,
@@ -273,7 +277,7 @@ function completeExecution(input: {
 
 async function evaluateEncounterTurnEffects(input: {
   createRuntime: () => Promise<RulesRuntimeService>
-  rollD20: () => number
+  random: (maxExclusive: number) => number
   resolvePerception: (input: {
     actors: EncounterRunActorState[]
     target: MovementTarget
@@ -438,28 +442,49 @@ async function evaluateEncounterTurnEffects(input: {
             const { faces, rollMode } = resolveEncounterD20Answer({
               derivedRollMode: policy.rollMode,
               answer: resolution,
-              rollD20: input.rollD20
+              rollD20: () => input.random(20) + 1
             })
             return resumeTargetBoundActiveRuleEffectWithPause({
               ...effectInput,
               continuation,
-              resolution: { requestId: resolution.requestId, rawFaces: faces, rollMode },
+              resolution: {
+                requestId: resolution.requestId,
+                rawFaces: faces,
+                rollMode,
+                addedDice: resolveEncounterAddedDice({
+                  dice: policy.addedDice ?? [],
+                  answer: resolution,
+                  random: input.random
+                })
+              },
               expectedEvidencePolicy: policy
             })
           })()
         : await executeTargetBoundActiveRuleEffectWithPause(effectInput)
     if ('continuation' in result && input.autoRoll) {
       if (!result.evidencePolicy) throw new Error('Automatic turn effect has no d20 policy.')
-      const requestId = result.continuation.request.requestId
+      const answer = {
+        kind: 'AUTO_ROLL' as const,
+        requestId: result.continuation.request.requestId
+      }
       const { faces, rollMode } = resolveEncounterD20Answer({
         derivedRollMode: result.evidencePolicy.rollMode,
-        answer: { kind: 'AUTO_ROLL', requestId },
-        rollD20: input.rollD20
+        answer,
+        rollD20: () => input.random(20) + 1
       })
       result = await resumeTargetBoundActiveRuleEffectWithPause({
         ...effectInput,
         continuation: result.continuation,
-        resolution: { requestId, rawFaces: faces, rollMode },
+        resolution: {
+          requestId: answer.requestId,
+          rawFaces: faces,
+          rollMode,
+          addedDice: resolveEncounterAddedDice({
+            dice: result.evidencePolicy.addedDice ?? [],
+            answer,
+            random: input.random
+          })
+        },
         expectedEvidencePolicy: result.evidencePolicy
       })
       if ('continuation' in result) throw new Error('Automatic turn effect did not complete.')
@@ -506,13 +531,21 @@ async function evaluateEncounterTurnEffects(input: {
         ...damageEnded,
         ...input.candidates.slice(0, ordinal + 1).map(({ id }) => id)
       ]),
+      testEvidence: [result.d20],
       applications: result.applications,
       dispositions
     })
+    const terminal = result.terminal || damageEnded.has(effect.id)
     const settled = {
       ...result,
-      terminal: result.terminal || damageEnded.has(effect.id),
-      applications: [...result.applications, ...ended.releases]
+      terminal,
+      applications: [
+        ...result.applications,
+        ...ended.releases,
+        ...(lifecycle(effect, terminal).kind === 'EXPIRE'
+          ? expiredEffectReleases(effect, input.target.actor.id)
+          : [])
+      ]
     }
     for (const { id } of ended.endedEffects) damageEnded.add(id)
     const { execution, ownConditions } = completeExecution({
@@ -532,6 +565,7 @@ async function evaluateEncounterTurnEffects(input: {
     state = {
       current: after.currentHitPoints,
       temporary: after.temporaryHitPoints,
+      temporarySourceEffectId: after.temporaryHitPointsSourceEffectId ?? null,
       conditions: after.conditionIds,
       deathSaves: after.deathSaves,
       ownConditions,
@@ -601,7 +635,7 @@ export async function prepareEncounterTurnEffects<
   loadMaintainedState: (stateId: string) => Promise<EncounterMaintainedEffectStateRecord | null>
   loadTarget: (actorId: string) => Promise<MovementTarget<TCharacterFacts> | undefined>
   createRuntime: () => Promise<RulesRuntimeService>
-  rollD20: () => number
+  random: (maxExclusive: number) => number
   resolvePerception: Parameters<typeof evaluateEncounterTurnEffects>[0]['resolvePerception']
   userId: string
   autoRoll: boolean

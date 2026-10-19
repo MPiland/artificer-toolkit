@@ -5,6 +5,7 @@ import {
   liveSessionTurnCaptureScopeSchema
 } from './liveSessionCommandScopes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { sceneActorLightSchema } from './characterMechanicsRead.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
 import { MAX_TURN_TELEPORT_ALLOWANCES } from '../shared/teleportAllowance.js'
 import { reusableDefinitionCurrentDtoSchema } from '../shared/reusableDefinitions.js'
@@ -30,6 +31,7 @@ import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import {
   actionAreaSceneRequestDtoSchema,
   actionSceneRequestDtoSchema,
+  escapeRelationshipInputDtoSchema,
   removeAreaTargetInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
@@ -122,7 +124,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
       response: resolveRuleOccurrenceInputDtoSchema
     }),
     z.strictObject({
-      kind: z.literal('DISARM'),
+      kind: z.literal('CONTEST'),
       command: z.discriminatedUnion('type', [
         resolveEncounterActionInputDtoSchema,
         resolveRuleOccurrenceInputDtoSchema
@@ -137,6 +139,8 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('TURN_USES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TELEPORT_ALLOWANCES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('ACTOR_TOKEN_BINDINGS') }),
+    z.strictObject({ kind: z.literal('SEEN_ACTORS') }),
+    z.strictObject({ kind: z.literal('OCCUPANT_SAVE_AURAS'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('SYSTEM_VOCABULARY') }),
     z.strictObject({
       kind: z.literal('ACTION_SCENE'),
@@ -297,6 +301,33 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     }),
     z.strictObject({
+      kind: z.literal('SEEN_ACTORS'),
+      revisions: liveSessionRulesRevisionsSchema,
+      /** The creatures the requesting member's list shows; a GM sees every creature. */
+      actorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+    }),
+    z.strictObject({
+      kind: z.literal('OCCUPANT_SAVE_AURAS'),
+      revisions: liveSessionRulesRevisionsSchema,
+      actorId: postgresUuidSchema,
+      /**
+       * The save-bonus auras (D155) whose area holds the actor and whose disposition takes it in. A
+       * defeated Creature source lends nothing; whether a Character source is unconscious is
+       * checked by the save-time decorator.
+       */
+      auras: z
+        .array(
+          z.strictObject({
+            effectId: postgresUuidSchema,
+            sourceActorId: postgresUuidSchema,
+            /** The source Character's id, null for a Creature or custom source. */
+            sourceCharacterId: z.nullable(postgresUuidSchema),
+            amount: z.number().check(z.int())
+          })
+        )
+        .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))
+    }),
+    z.strictObject({
       kind: z.literal('INITIATIVE_ROUND'),
       revisions: liveSessionRulesRevisionsSchema,
       state: z.nullable(encounterInitiativeRoundStateDtoSchema)
@@ -363,7 +394,11 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
         z.strictObject({
           header: sceneLiveStateHeaderSchema,
           observerTokenId: postgresUuidSchema,
-          subjectTokenId: postgresUuidSchema
+          subjectTokenId: postgresUuidSchema,
+          // The light each bound actor sheds, composed onto its token like the room's Scene vision.
+          tokenLights: z
+            .array(z.strictObject({ tokenId: postgresUuidSchema, light: sceneActorLightSchema }))
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )
     }),
@@ -441,20 +476,23 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       result: z.nullable(encounterCommandResultDtoSchema)
     }),
     z.strictObject({
-      kind: z.literal('DISARM'),
+      kind: z.literal('CONTEST'),
       revisions: liveSessionRulesRevisionsSchema,
-      /** An admitted Disarm to plan; null when `result` replays a stored one. */
+      /** An admitted contest to plan; null when `result` replays a stored one. */
       ready: z.nullable(
         z.strictObject({
-          /** The normalized Disarm root and its fingerprint; a d20 answer continues it. */
-          command: resolveEncounterActionInputDtoSchema,
+          /** The normalized contest root (an action or a contested escape) and its fingerprint. */
+          command: z.discriminatedUnion('type', [
+            resolveEncounterActionInputDtoSchema,
+            escapeRelationshipInputDtoSchema
+          ]),
           fingerprint: projectionChecksumSchema,
           initiatorUserId: postgresUuidSchema,
           /** Each participant's d20 goes to that actor's controllers (ADR 0034 decision 3). */
           autoRollByActorId: encounterAutoRollByActorIdSchema,
           /** The app roll a `SYSTEM_ROLL` answer settles with; null for any other answer. */
           appRoll: z.nullable(encounterSettledAppRollDtoSchema),
-          /** The pending contest being answered and its version; null for a new Disarm. */
+          /** The pending contest being answered and its version; null for a new contest. */
           snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
           occurrenceVersion: z.nullable(z.number().check(z.int()).check(z.nonnegative()))
         })

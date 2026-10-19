@@ -3,6 +3,7 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
+import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 
 import { isLengthModifierDomain, modifierLengthFeet } from '../../modifierLength.js'
 import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
@@ -53,6 +54,8 @@ export function evaluateDnd5eCharacterModifiers(
           (input.grantFoldFacts.base.classes.find((entry) => entry.classId === payload.classId)
             ?.level ?? 0) * (payload.multiplier ?? 1)
         )
+      // Read from the effective ability scores, which these groups feed; resolved below.
+      case 'ABILITY_MODIFIER':
       case 'SKILL_BONUS':
       case 'SPELL_SLOT_LEVEL':
         return 0
@@ -81,9 +84,11 @@ export function evaluateDnd5eCharacterModifiers(
       [
         'ADVANTAGE',
         'DISADVANTAGE',
+        'NEGATE_ADVANTAGE',
         'ADD_OPTION',
         'REMOVE_OPTION',
         'ADD_BONUS_DIE',
+        'MINIMUM_ROLL',
         'ENABLE',
         // A fraction is read from its payload by the domain that owns it (a speed).
         'MULTIPLY'
@@ -150,6 +155,11 @@ export function evaluateDnd5eCharacterModifiers(
           .reduce((sum, group) => sum + group.effective, 0)
     }
   })
+  // A modifier naming the spellcasting ability (Shillelagh's) reads the Character's own; with none it
+  // adds nothing.
+  const spellcastingAbilityId = input.derivedBaseFacts.spellcasting?.abilityId ?? null
+  const concreteAbility = (ability: string): string | null =>
+    ability === SPELLCASTING_ABILITY_REFERENCE ? spellcastingAbilityId : ability
   const abilityModifierOf = (ability: unknown) => {
     const score =
       abilityScores.find(
@@ -173,13 +183,15 @@ export function evaluateDnd5eCharacterModifiers(
           }
           if (payload === undefined || !('abilities' in payload) || 'amount' in payload)
             return { ...contribution, ability: null, resolvedValue: 0 }
-          const best = payload.abilities.reduce<string | undefined>(
-            (chosen, candidate) =>
-              chosen === undefined || abilityModifierOf(candidate) > abilityModifierOf(chosen)
-                ? candidate
-                : chosen,
-            undefined
-          )
+          const best = payload.abilities
+            .flatMap((reference) => concreteAbility(reference) ?? [])
+            .reduce<string | undefined>(
+              (chosen, candidate) =>
+                chosen === undefined || abilityModifierOf(candidate) > abilityModifierOf(chosen)
+                  ? candidate
+                  : chosen,
+              undefined
+            )
           return {
             ...contribution,
             ability: canonicalCharacterAbility(best),
@@ -193,6 +205,18 @@ export function evaluateDnd5eCharacterModifiers(
         ).map((contribution): Contribution => {
           // An armor class formula ("10 + DEX + CON") adds each listed ability modifier.
           const payload = payloadOf(contribution)
+          if (
+            (group.modifierKind === 'BONUS' || group.modifierKind === 'PENALTY') &&
+            payload !== undefined &&
+            'valueKind' in payload &&
+            payload.valueKind === 'ABILITY_MODIFIER'
+          ) {
+            const amount = resolveAbilityModifierBonus(abilityModifierOf(payload.ability), payload)
+            return {
+              ...contribution,
+              resolvedValue: group.modifierKind === 'PENALTY' ? -amount : amount
+            }
+          }
           return group.modifierKind === 'SET_VALUE' &&
             payload !== undefined &&
             'abilities' in payload
@@ -217,7 +241,7 @@ export function evaluateDnd5eCharacterModifiers(
         group.valueDomainCode === 'ATTACKS_PER_ATTACK_ACTION'
         ? 'highest'
         : 'last'
-      : ['ADVANTAGE', 'DISADVANTAGE'].includes(group.modifierKind)
+      : ['ADVANTAGE', 'DISADVANTAGE', 'NEGATE_ADVANTAGE'].includes(group.modifierKind)
         ? 'boolean'
         : 'additive'
     const selected =

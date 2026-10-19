@@ -143,11 +143,13 @@ describe('SRD hazard zone rules a placed zone does not run yet (SPELLS-4.T1a, T1
     ['Grease', grease],
     ['Sleet Storm', sleetStorm],
     ['Web', web],
-    ['Black Tentacles', blackTentacles]
+    ['Black Tentacles', blackTentacles],
+    ['Entangle', entangle],
+    ['Spirit Guardians', spiritGuardians]
   ])(
-    'leaves %s’s difficult terrain unauthored on its component (movementCostMultiplier, SPELLS-20.T4d)',
+    'authors %s’s difficult terrain or halved speed as a movement cost of 2 on its component (SPELLS-20.T4d)',
     (_name, spell) => {
-      expect(placedZoneOf(spell).components?.[0]).not.toHaveProperty('movementCostMultiplier')
+      expect(placedZoneOf(spell).components?.[0]).toMatchObject({ movementCostMultiplier: 2 })
     }
   )
 

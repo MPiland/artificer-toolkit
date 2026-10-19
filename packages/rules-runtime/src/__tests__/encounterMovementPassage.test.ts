@@ -23,6 +23,7 @@ import { describe, expect, it } from 'vitest'
 import type { EncounterActionEconomyConsumption } from '../encounterActionEconomyConsumption.js'
 import { discoverEncounterMovementPassage } from '../encounterMovementPassageBoundary.js'
 import { discoverEncounterMovementPassageContact } from '../encounterMovementPassageContacts.js'
+import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import {
   availableEncounterMovementPassageChoice,
@@ -107,7 +108,7 @@ function contacts(input: {
 }) {
   return discoverEncounterMovementPassageContact({
     actorIdByTokenId,
-    isHostile: ({ blockerActorId, movingActorId }) =>
+    blocks: ({ blockerActorId, movingActorId }) =>
       movingActorId === ids.source && hostileActorIds.has(blockerActorId),
     movementKind: input.movementKind ?? 'VOLUNTARY',
     movingTokenId: input.movingTokenId ?? ids.sourceToken,
@@ -283,7 +284,8 @@ function creature(input: {
         },
         saveProficiencyBonuses: {},
         resourceAbilityScores: {},
-        initiativeAbilityDefinitionId: srdSystemRecord.abilities![0]!.id
+        initiativeAbilityDefinitionId: srdSystemRecord.abilities![0]!.id,
+        modifiers: []
       }
     },
     createdAt: timestamp,
@@ -322,6 +324,8 @@ function footprintPin(actorId: string, blocker: SceneToken) {
   return checksumRuleDocument({ actorId, tokenId: blocker.id, footprint: blocker })
 }
 
+const noPassage = { mover: movementPassageOfModifiers([]), sizeOf: () => null }
+
 describe('discoverEncounterMovementPassage', () => {
   it('pins the first hostile contact and the next passage stop by disposition', () => {
     // The mover's Scene token has already been paused elsewhere; discovery uses the path origin.
@@ -334,7 +338,8 @@ describe('discoverEncounterMovementPassage', () => {
         actors,
         root: root(),
         sceneTokens: paused,
-        actorIdByTokenId
+        actorIdByTokenId,
+        passage: noPassage
       })
     ).toEqual({
       contact: {
@@ -356,7 +361,7 @@ describe('discoverEncounterMovementPassage', () => {
   })
 
   it('has no next stop past the last hostile and no passage without a hostile on the path', () => {
-    const input = { state: runState(), actors, sceneTokens, actorIdByTokenId }
+    const input = { state: runState(), actors, sceneTokens, actorIdByTokenId, passage: noPassage }
     expect(
       discoverEncounterMovementPassage({ ...input, root: root([path[0]!, { x: 100, y: 0 }]) })
         ?.nextPassageStop
@@ -372,7 +377,8 @@ describe('discoverEncounterMovementPassage', () => {
       actors,
       root: root([path[0]!, { x: 200, y: 20 }]),
       sceneTokens: [tokens.source, tokens.ally, token(ids.neutralToken, { x: 100, y: 10 })],
-      actorIdByTokenId
+      actorIdByTokenId,
+      passage: noPassage
     })
     expect(neutralOnly).toBeNull()
   })
@@ -384,7 +390,8 @@ describe('discoverEncounterMovementPassage', () => {
         actors,
         root: root([path[0]!, { x: 52, y: 0 }]),
         sceneTokens,
-        actorIdByTokenId
+        actorIdByTokenId,
+        passage: noPassage
       })
     ).toThrow('Voluntary movement cannot end inside a hostile occupied footprint.')
     expect(() =>
@@ -393,7 +400,8 @@ describe('discoverEncounterMovementPassage', () => {
         actors: actors.filter((actor) => actor.id !== ids.source),
         root: root(),
         sceneTokens,
-        actorIdByTokenId
+        actorIdByTokenId,
+        passage: noPassage
       })
     ).toThrow('Movement passage source is unavailable.')
   })
@@ -405,9 +413,57 @@ describe('discoverEncounterMovementPassage', () => {
         actors,
         root: root([path[0]!, { x: 52, y: 0 }]),
         sceneTokens,
-        actorIdByTokenId
+        actorIdByTokenId,
+        passage: noPassage
       })
     ).toBeNull()
+  })
+
+  const moverPassage = (
+    through: 'ANY' | 'LARGER_THAN_SELF',
+    endIn: 'NONE' | 'ANY',
+    sizes: Readonly<Record<string, string>> = {}
+  ) => ({
+    mover: {
+      throughCreatures: through,
+      endInCreatures: endIn,
+      throughBarriers: false,
+      costMultiplier: 1
+    },
+    sizeOf: (actorId: string) => sizes[actorId] ?? null
+  })
+
+  it('lets a mover with passage through every hostile it may pass, and stops it at the first it may not', () => {
+    const input = { state: runState(), actors, sceneTokens, actorIdByTokenId, root: root() }
+    expect(
+      discoverEncounterMovementPassage({ ...input, passage: moverPassage('ANY', 'NONE') })
+    ).toBeNull()
+    expect(
+      discoverEncounterMovementPassage({
+        ...input,
+        passage: moverPassage('LARGER_THAN_SELF', 'NONE', {
+          [ids.source]: 'SMALL',
+          [ids.first]: 'MEDIUM',
+          [ids.second]: 'SMALL'
+        })
+      })
+    ).toMatchObject({ contact: { blockerActorId: ids.second }, nextPassageStop: null })
+  })
+
+  it('lets a mover end inside a hostile only when its passage allows ending there', () => {
+    const input = {
+      state: runState(),
+      actors,
+      sceneTokens,
+      actorIdByTokenId,
+      root: root([path[0]!, { x: 52, y: 0 }])
+    }
+    expect(
+      discoverEncounterMovementPassage({ ...input, passage: moverPassage('ANY', 'ANY') })
+    ).toBeNull()
+    expect(() =>
+      discoverEncounterMovementPassage({ ...input, passage: moverPassage('ANY', 'NONE') })
+    ).toThrow('Voluntary movement cannot end inside a hostile occupied footprint.')
   })
 })
 
@@ -422,7 +478,8 @@ function passageInput(state: EncounterRunState, targetActors: readonly Encounter
     actors,
     root: root(),
     sceneTokens,
-    actorIdByTokenId
+    actorIdByTokenId,
+    passage: noPassage
   })
   if (!passage) throw new Error('Expected a passage contact.')
   const movement = optionalCombatPassageContinuationDtoSchema.parse({
@@ -651,16 +708,15 @@ describe("passage contests under the contestants' conditions (D94)", () => {
         rollMode: 'DISADVANTAGE',
         contributors: [poisonedBy(ids.source)]
       })
-      expect(prepared.defender).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
+      expect(prepared.defender.checks).toMatchObject([{ rollMode: 'NORMAL', contributors: [] }])
     }
   )
 
   it('a Poisoned blocker makes its contest check with disadvantage', async () => {
     const prepared = await contest('TUMBLE', [source, poisoned(first)])
     expect(prepared.initiator).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
-    expect(prepared.defender).toMatchObject({
-      rollMode: 'DISADVANTAGE',
-      contributors: [poisonedBy(ids.first)]
-    })
+    expect(prepared.defender.checks).toMatchObject([
+      { rollMode: 'DISADVANTAGE', contributors: [poisonedBy(ids.first)] }
+    ])
   })
 })

@@ -4,11 +4,30 @@ import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell
 import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
 import type { EquipmentAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { createContentMemo } from '@artificer-toolkit/shared/contentMemo'
 import { toCharacterBuilderSpellCatalogRecord } from './builderCatalog.js'
 import { matchesSpellFilter } from './chosenGrantChoiceResolver.js'
 
+// Parsed and verified retained rules by their exact JSON: party pages and Sheets re-read the same
+// few snapshots on every query.
+const retainedRules = createContentMemo<ReturnType<typeof parseAcquiredEquipmentRules>>()
+
 /** Rehydrates only the validated raw mechanics belonging to this acquired Equipment. */
 export function readAcquiredEquipmentRules(
+  retainedRulesJson: string,
+  equipmentId: string,
+  systemId: string
+) {
+  // A hit was parsed under some caller's scope, so the scope is checked again on every read.
+  const rules = retainedRules(retainedRulesJson, (json) =>
+    parseAcquiredEquipmentRules(json, equipmentId, systemId)
+  )
+  if (rules.equipmentId !== equipmentId || rules.systemId !== systemId)
+    throw new Error('Acquired Equipment scope mismatch.')
+  return { equipment: rules.equipment, spellsById: rules.spellsById, sources: rules.sources }
+}
+
+function parseAcquiredEquipmentRules(
   retainedRulesJson: string,
   equipmentId: string,
   systemId: string
@@ -84,5 +103,5 @@ export function readAcquiredEquipmentRules(
       )
     )
       throw new Error('Unrelated acquired Spell source.')
-  return { equipment, spellsById, sources: retained.sources }
+  return { equipmentId, systemId, equipment, spellsById, sources: retained.sources }
 }

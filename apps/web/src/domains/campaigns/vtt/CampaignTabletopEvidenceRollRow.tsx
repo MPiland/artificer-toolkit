@@ -10,7 +10,11 @@ import {
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
-import { keptFaceIndex, rollModeLabels } from './CampaignTabletopDecisionDrawer.model'
+import {
+  addedDieEntries,
+  keptFaceIndex,
+  rollModeLabels
+} from './CampaignTabletopDecisionDrawer.model'
 import * as styles from './CampaignTabletopEvidenceRollRow.css'
 
 /**
@@ -44,6 +48,9 @@ export function CampaignTabletopEvidenceRollRow({
   // Why the rules recommend the mode, e.g. "Flanking"; empty for a normal roll.
   const derivedReasons =
     pending.kind === 'D20_EVIDENCE' ? pending.request.derivedRollModeReasons : []
+  // The dice the test adds to or subtracts from its d20 (D156), entered or app-rolled with it.
+  const addedEntries =
+    pending.kind === 'D20_EVIDENCE' ? addedDieEntries(pending.request.addedDice ?? []) : []
   const [rolled, setRolled] = useState<{
     evidence: EncounterEvidenceRollDto
     roll: RollRecordDto | null
@@ -51,6 +58,7 @@ export function CampaignTabletopEvidenceRollRow({
   const [rolling, setRolling] = useState(false)
   const [selectedMode, setSelectedMode] = useState<EncounterD20RollModeDto | null>(null)
   const [entered, setEntered] = useState<(number | string)[] | null>(null)
+  const [enteredAdded, setEnteredAdded] = useState<(number | string)[] | null>(null)
   const restored =
     latestRoll?.occurrenceId === pending.occurrenceId &&
     latestRoll.occurrenceVersion === pending.occurrenceVersion &&
@@ -66,7 +74,12 @@ export function CampaignTabletopEvidenceRollRow({
   const shown = entered ?? (latest ? (rollMode === null ? [latest.value] : latest.faces) : [])
   const values = Array.from({ length: faceCount }, (_, index) => shown[index] ?? '')
   const faces = values.filter((value): value is number => typeof value === 'number')
-  const appRoll = entered === null && latest?.rollMode === rollMode ? latest : null
+  const shownAdded = enteredAdded ?? latest?.addedFaces ?? []
+  const addedValues = addedEntries.map((_, index) => shownAdded[index] ?? '')
+  const addedFaces = addedValues.filter((value): value is number => typeof value === 'number')
+  const appRoll =
+    entered === null && enteredAdded === null && latest?.rollMode === rollMode ? latest : null
+  const complete = faces.length === faceCount && addedFaces.length === addedEntries.length
   const keptIndex = rollMode === null || faceCount === 1 ? null : keptFaceIndex(rollMode, values)
 
   async function roll(): Promise<void> {
@@ -77,6 +90,7 @@ export function CampaignTabletopEvidenceRollRow({
       setRolled({ evidence: result.evidenceRoll, roll: result.roll })
       setSelectedMode(null)
       setEntered(null)
+      setEnteredAdded(null)
     } finally {
       setRolling(false)
     }
@@ -85,11 +99,17 @@ export function CampaignTabletopEvidenceRollRow({
   function submit(): void {
     if (appRoll) {
       onSubmit({ kind: 'SYSTEM_ROLL', requestId: request.requestId, rollId: appRoll.rollId })
-    } else if (faces.length === faceCount) {
+    } else if (complete) {
       onSubmit(
         rollMode === null
           ? { kind: 'ENTER_INTEGER', requestId: request.requestId, value: faces[0]! }
-          : { kind: 'ENTER_DICE', requestId: request.requestId, rawFaces: faces, rollMode }
+          : {
+              kind: 'ENTER_DICE',
+              requestId: request.requestId,
+              rawFaces: faces,
+              rollMode,
+              ...(addedFaces.length > 0 ? { addedFaces } : {})
+            }
       )
     }
   }
@@ -156,6 +176,26 @@ export function CampaignTabletopEvidenceRollRow({
           Roll dice
         </Button>
       </Group>
+      {addedEntries.length > 0 ? (
+        <Group gap='xs' wrap='wrap'>
+          {addedValues.map((value, index) => (
+            <NumberInput
+              disabled={disabled}
+              key={index}
+              label={addedEntries[index]!.label}
+              max={addedEntries[index]!.faces}
+              min={1}
+              value={value}
+              w={120}
+              onChange={(next) =>
+                setEnteredAdded(
+                  addedValues.map((current, position) => (position === index ? next : current))
+                )
+              }
+            />
+          ))}
+        </Group>
+      ) : null}
       {latest ? (
         <Text aria-live='polite' c='dimmed' size='xs'>
           {appRoll
@@ -173,7 +213,7 @@ export function CampaignTabletopEvidenceRollRow({
         </div>
       ) : null}
       <Group>
-        <Button disabled={disabled || (!appRoll && faces.length !== faceCount)} onClick={submit}>
+        <Button disabled={disabled || (!appRoll && !complete)} onClick={submit}>
           Submit roll
         </Button>
       </Group>

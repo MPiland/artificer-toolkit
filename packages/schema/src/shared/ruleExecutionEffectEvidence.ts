@@ -5,7 +5,8 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
 import {
   characterMechanicsApplicationDtoSchema,
-  characterMechanicsTargetStateDtoSchema
+  characterMechanicsTargetStateDtoSchema,
+  encounterActorActiveEffectCreateReceiptDtoSchema
 } from './ruleExecutionMechanics.js'
 import { encounterActionEconomyTransitionDtoSchema } from './ruleExecutionEncounterApplications.js'
 import { serverRuleExecutionD20EvidenceDtoSchema } from './ruleExecutionEvidence.js'
@@ -284,15 +285,17 @@ const refineSpatialExecutionEvidence = (
         trace.outputs.targetActorId === value.candidate.candidate.targetActorId &&
         (trace.outputs.authoredPath ?? null) === application.authoredPath &&
         (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
-        (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
-          ? trace.outputs.conditionId === application.conditionId
-          : application.kind === 'STABILIZE' || application.kind === 'DEPART'
-            ? true
-            : application.kind === 'SCALAR_REDUCTION'
-              ? trace.outputs.amount === application.reductionAmount
-              : trace.outputs.amount === application.requestedAmount &&
-                (application.kind !== 'DAMAGE' ||
-                  trace.outputs.damageTypeId === application.damageTypeId))
+        (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+          ? false
+          : application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
+            ? trace.outputs.conditionId === application.conditionId
+            : application.kind === 'STABILIZE' || application.kind === 'DEPART'
+              ? true
+              : application.kind === 'SCALAR_REDUCTION'
+                ? trace.outputs.amount === application.reductionAmount
+                : trace.outputs.amount === application.requestedAmount &&
+                  (application.kind !== 'DAMAGE' ||
+                    trace.outputs.damageTypeId === application.damageTypeId))
     )
     if (
       !evidence.sourceEntryBindings?.some(
@@ -383,7 +386,19 @@ export const meleeRetaliationEvidenceDtoSchema = lazySchema(() =>
       executions: z
         .array(spatialMeleeRetaliationExecutionDtoSchema)
         .check(z.minLength(1))
-        .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
+        .check(z.maxLength(MAX_SPATIAL_CANDIDATES)),
+      /** Timed grants the attacker's own passive damage triggers made from the zones' damage; undo deletes them. */
+      grantEffectTransitions: z._default(
+        z.array(encounterActorActiveEffectCreateReceiptDtoSchema).check(z.maxLength(4)),
+        []
+      ),
+      /** Conditions the damage-ended effects released from the attacker; undo gives them back with the effects. */
+      releasedConditionIds: z._default(
+        z
+          .array(z.string().check(z.minLength(1)))
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+        []
+      )
     })
     .check(
       z.superRefine((value, context) => {

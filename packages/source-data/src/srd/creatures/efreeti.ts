@@ -46,18 +46,6 @@ export const efreeti: CreatureAuthored = {
       label: 'Elemental Demise',
       description:
         'Elemental Demise. If the efreeti dies, its body disintegrates in a flash of fire and puff of smoke, leaving behind only equipment the efreeti was wearing or carrying.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(95, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(95, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_EFREETI_ELEMENTAL_DEMISE
-        })
-      ],
       order: 1
     },
     {
@@ -125,18 +113,6 @@ export const efreeti: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(95, 309),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(95, 1302), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_EFREETI_INNATE_SPELLCASTING
-        })
-      ],
       order: 2
     },
     {

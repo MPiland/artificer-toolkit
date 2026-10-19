@@ -3,10 +3,12 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
+import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
+import { resolveEncounterAddedDice } from './encounterD20AddedDice.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import {
   resolveEncounterD20Answer,
@@ -53,7 +55,11 @@ export type SpatialMovementTarget = {
 }
 
 /** The resolved d20 of a candidate whose damage dice are being answered. */
-export type SpatialD20Roll = { rollMode: EncounterD20RollMode; rawFaces: number[] }
+export type SpatialD20Roll = {
+  rollMode: EncounterD20RollMode
+  rawFaces: number[]
+  addedDice: D20RolledAddedDieDto[]
+}
 
 export function toSpatialMovementTarget<TCharacterFacts extends ProjectableCharacterFacts>(
   target: MovementTarget<TCharacterFacts>
@@ -108,6 +114,7 @@ function toSpatialInstance(
     turnTriggers: effect.placement.turnTriggers,
     movementKinds: effect.placement.movementKinds,
     bypassAtHalfSpeed: isVisibleHalfSpeedField(effect),
+    movementCostMultiplier: effect.placement.movementCostMultiplier,
     unaffectedActorIds: effect.placement.unaffectedActorIds,
     maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn,
     requiresFullyWithin: effect.placement.requiresFullyWithin,
@@ -126,6 +133,8 @@ export function spatialExecutionInput(input: {
   state: SpatialTargetState
   occurrenceId: string
   runtime: RulesRuntimeService
+  /** Facts a planner reads about this contact, merged over the target's derived facts. */
+  contactFacts?: Readonly<Record<string, unknown>>
 }): TargetBoundActiveRuleEffectExecutionInput {
   if (input.effect.definition.frozenGraph.source.gameSystemId !== input.target.actor.systemId)
     throw new EncounterValidationError('The spatial effect and target Game Systems do not match.')
@@ -142,7 +151,7 @@ export function spatialExecutionInput(input: {
     maximumHitPoints: input.target.maximumHitPoints,
     targetScalarValues: input.target.scalarValues,
     targetConditionIds: input.state.conditions,
-    targetDerivedFacts: input.target.targetDerivedFacts,
+    targetDerivedFacts: { ...input.target.targetDerivedFacts, ...input.contactFacts },
     defenses: input.target.defenses,
     conditionImmunityIds: input.target.conditionImmunityIds,
     runtime: input.runtime,
@@ -293,17 +302,22 @@ export async function settleAutomaticSpatialEvidence(input: {
     !d20 &&
     input.autoRoll[input.candidate.targetActorId] === true
   ) {
-    const requestId = result.continuation.request.requestId
+    const answer = { kind: 'AUTO_ROLL' as const, requestId: result.continuation.request.requestId }
     const { faces, rollMode } = resolveEncounterD20Answer({
       derivedRollMode: result.evidencePolicy.rollMode,
-      answer: { kind: 'AUTO_ROLL', requestId },
+      answer,
       rollD20: () => random(20) + 1
     })
-    d20 = { rollMode, rawFaces: faces }
+    const addedDice = resolveEncounterAddedDice({
+      dice: result.evidencePolicy.addedDice ?? [],
+      answer,
+      random
+    })
+    d20 = { rollMode, rawFaces: faces, addedDice }
     result = await resumeTargetBoundActiveRuleEffectWithPause({
       ...effectInput,
       continuation: result.continuation,
-      resolution: { requestId, rawFaces: faces, rollMode },
+      resolution: { requestId: answer.requestId, rawFaces: faces, rollMode, addedDice },
       expectedEvidencePolicy: result.evidencePolicy
     })
   }

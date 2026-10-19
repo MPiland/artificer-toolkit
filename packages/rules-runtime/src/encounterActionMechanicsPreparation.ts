@@ -1,5 +1,7 @@
+import { heldConditionIds } from './encounterInnateConditions.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { AttackOccasionCode } from '@artificer-toolkit/shared/core'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type {
@@ -14,13 +16,19 @@ import {
   compileEncounterFeatureActionPlan
 } from './encounterActionEntryPointCompiler.js'
 import {
+  activeEffectSourceAttackContributors,
   creatureActiveGrantAttackContributors,
   creatureAttackAbility,
+  encounterAttackAddedDice,
   withSourceSightSave
 } from './encounterActiveGrants.js'
+import { type EncounterAttackDecoy, withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
 import { CastChoiceUnavailableError, StaleCharacterActionError } from './encounterErrors.js'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import { pickedCastChoiceEffect } from './encounterCastChoice.js'
 import {
+  attackAgainstHolds,
   encounterAttackSightContributors,
   type EncounterAttackPerception,
   type EncounterPerceptionRoller
@@ -35,6 +43,7 @@ import {
 } from './encounterConditionMechanics.js'
 import { featureChargeUsed } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
+import { isInEffectEventScope } from './encounterGrantLifetimes.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   mergeCanonicalD20Contributors,
@@ -47,9 +56,12 @@ import {
 } from './encounterActionTargetPolicy.js'
 import {
   dnd5eAttackDamageDefenses,
-  dnd5eCharacterAttackTraits
+  dnd5eCharacterAttackTraits,
+  dnd5eGrantedAttackTraits
 } from './systems/dnd5e/attackDamageDefenses.js'
-import { isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
+import { DND5E_CHARACTER_WIDE_TARGET } from './systems/dnd5e/modifierApplicability.js'
+import { activeAttackCriticalRules, activeDamageDice } from './character/activeEffectGrantTotals.js'
+import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 import {
   effectReadsEnemyProximity,
   effectReadsTurnUses,
@@ -58,8 +70,9 @@ import {
 } from './systems/dnd5e/attackRestrictions.js'
 import { dndSourceFromCompilerSource } from './systems/dnd5e/effectActionCompiler.js'
 import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
+import { dnd5eAttackCriticalRules } from './systems/dnd5e/characterCriticalRules.js'
 import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
-import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type {
@@ -111,6 +124,14 @@ export function encounterActionCurrentnessChecksum(input: {
   })
 }
 
+/** A capability source that runs `compiledEffect`: the option its actor picked (D148). */
+function withCompiledEffect<Source extends { capability: { compiledEffect: CompiledEffectGroup } }>(
+  source: Source,
+  compiledEffect: CompiledEffectGroup
+): Source {
+  return { ...source, capability: { ...source.capability, compiledEffect } }
+}
+
 /**
  * The action the source actor takes: its source, the adapter and execution plan that run it, and the
  * target policy that decides what it may be aimed at. It reads nothing about any target, so an area
@@ -131,8 +152,16 @@ export async function prepareEncounterActionSource<
    * differently compile MANUAL), so the top-level option serves and no pick is asked for.
    */
   readsSharedTest?: boolean
+  /**
+   * A flow that cannot prompt (a reaction, an opportunity attack, a Legendary Action) names no
+   * pick; the first authored option is the no-prompt default. A pick it does name is still refused
+   * when unknown.
+   */
+  firstOptionByDefault?: boolean
 }) {
   const { state, actor, actionId, sourceFacts } = input
+  const fallsBackToFirst =
+    input.readsSharedTest || (input.firstOptionByDefault && input.choiceOptionId === undefined)
   const characterAction = sourceFacts.characterReactionSource
   const spellCast = sourceFacts.characterSpellCast
   const candidate = [
@@ -163,9 +192,10 @@ export async function prepareEncounterActionSource<
     ({ optionId }) => optionId === input.choiceOptionId
   )
   if (
-    compilation?.choice
-      ? !picked && !input.readsSharedTest
-      : input.choiceOptionId !== undefined && !compilation?.zonePlacement
+    entry &&
+    (compilation?.choice
+      ? !picked && !fallsBackToFirst
+      : input.choiceOptionId !== undefined && !compilation?.zonePlacement)
   )
     throw new CastChoiceUnavailableError()
   const castEntry =
@@ -179,7 +209,7 @@ export async function prepareEncounterActionSource<
           }
         }
       : entry
-  const source = await input.loadSource({
+  const loaded = await input.loadSource({
     actor,
     actionId,
     gameSystemId: state.gameSystemId,
@@ -205,6 +235,18 @@ export async function prepareEncounterActionSource<
         }
       : {})
   })
+  // An authored capability (a basic action's Shove) runs as the option its actor picked (D148).
+  const source =
+    loaded.kind === 'CHARACTER_ACTION'
+      ? loaded
+      : withCompiledEffect(
+          loaded,
+          pickedCastChoiceEffect(
+            loaded.capability.compiledEffect,
+            input.choiceOptionId,
+            fallsBackToFirst
+          )
+        )
   const adapter = characterRuleActionSystemAdapterRegistry.get(state.gameSystemId)
   if (!adapter) throw new Error('The Encounter Game System cannot execute this action.')
   const targetPolicy =
@@ -238,6 +280,14 @@ export async function prepareEncounterActionMechanics<
   movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   /** The locked Scene positions of a RESOLVE_ACTION, for range-derived roll modes. */
   sceneContext?: EncounterActionSceneContext | null
+  /**
+   * The attack targets one of the target's decoys (`attackDecoyFor`): it is rolled against the
+   * decoy's armor class and none of its OUTCOME reaches the target. Ignored for an action that
+   * makes no attack roll.
+   */
+  attackDecoy?: EncounterAttackDecoy | null
+  /** The occasion the attack is made on (an opportunity attack), which a target's grants can limit themselves to. */
+  attackOccasion?: AttackOccasionCode | null
   /**
    * Whether each side of an attack sees the other (SRD unseen attacker/target), or whether a saver
    * sees the effect's source (`roller` TARGET, D100). Called only for an attack roll or a save with
@@ -328,7 +378,10 @@ export async function prepareEncounterActionMechanics<
     sourceFacts,
     loadSource: input.loadSource,
     choiceOptionId: input.choiceOptionId,
-    readsSharedTest: input.readsSharedTest
+    readsSharedTest: input.readsSharedTest,
+    // Only RESOLVE_ACTION prompts (it reports overridable warnings); every other flow runs the
+    // first authored option of a pick it cannot ask for.
+    firstOptionByDefault: !input.overridable
   })
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
@@ -364,18 +417,29 @@ export async function prepareEncounterActionMechanics<
           policyOutput: source.effectivePolicyOutput
         })
       : null
-  const acceptedWieldConflict = wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null
+  const shieldStow = wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null
   const accepted = acceptance.kind === 'PROMPTED' ? acceptance.accepted : null
+  // A Character's basic action may stow a held weapon for free; the room's basic-action admission
+  // checks it against the holder's hands (`encounterBasicActionAdmission`, D152).
+  const heldWeaponStow =
+    accepted?.kind === 'STOW_HELD_WEAPON' &&
+    source.kind === 'BASIC_ACTION' &&
+    input.actor.kind === 'CHARACTER'
+      ? accepted
+      : null
   if (
-    acceptedWieldConflict
-      ? accepted?.shieldItemInstanceId !== acceptedWieldConflict.shieldItemInstanceId
-      : accepted !== null
+    !heldWeaponStow &&
+    (shieldStow
+      ? accepted?.kind !== 'STOW_SHIELD' ||
+        accepted.shieldItemInstanceId !== shieldStow.shieldItemInstanceId
+      : accepted !== null)
   )
     throw new Error(
-      acceptedWieldConflict
+      shieldStow
         ? 'This attack would stow a shield; confirm it first.'
         : 'This attack does not stow a shield.'
     )
+  const acceptedWieldConflict = heldWeaponStow ?? shieldStow
   const facts = buildEncounterActorRuleFacts({ actors })
   const actorRules = reconcileEncounterActorRuleOutput(
     evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
@@ -422,8 +486,13 @@ export async function prepareEncounterActionMechanics<
       ? characterActionState!.actionMechanic
       : featureActionMechanic(source.capability)
   const attackKind =
-    typeof actionMechanic.attackKind === 'string' ? actionMechanic.attackKind : null
-  // Only attack damage meets "from nonmagical attacks" defenses; Creature weapons are nonmagical.
+    actionMechanic.attackKind == null ? null : attackKindSchema.parse(actionMechanic.attackKind)
+  // Only attack damage meets "from nonmagical attacks" defenses; a Creature's attack is magical
+  // when it is a spell attack or an ATTACK_TRAIT grant of its features applies (Magic Weapons).
+  const creatureGranted = dnd5eGrantedAttackTraits(
+    sourceFacts.attackTraitGrants,
+    DND5E_CHARACTER_WIDE_TARGET
+  )
   const attackTraits =
     attackKind === null
       ? null
@@ -431,17 +500,29 @@ export async function prepareEncounterActionMechanics<
         ? dnd5eCharacterAttackTraits({
             candidate: source.candidate,
             attackKind,
-            itemMechanics: source.effectivePolicyOutput.itemMechanics
+            policy: source.effectivePolicyOutput
           })
-        : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
-  // A target's active ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it
-  // their advantage or disadvantage, those that require the holder to see the attacker only when it
-  // can, and so does a target beyond a ranged attack's normal range (D62). The attacker's and the
-  // target's condition mechanics add their own contributors (D94), and so does sight: an unseen
-  // attacker has advantage, an unseen target disadvantage.
+        : {
+            magical: isDnd5eSpellAttackKind(attackKind) || creatureGranted.has('MAGICAL'),
+            silvered: creatureGranted.has('SILVERED'),
+            adamantine: creatureGranted.has('ADAMANTINE')
+          }
+  // A target's ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it their
+  // advantage or disadvantage, or take every advantage away (Elusive), those that require the holder
+  // to see the attacker only when it can, those limited to an occasion only on it, and only from the
+  // attackers and on the turn their effect admits, and so does a target
+  // beyond a ranged attack's normal range (D62). The attacker's and the target's condition
+  // mechanics add their own contributors (D94), and so does sight: an unseen attacker has
+  // advantage, an unseen target disadvantage.
   const attackDomain = isDnd5eSpellAttackKind(attackKind) ? 'SPELL' : attackKind
   const attacksAgainst = targetFacts.attackAgainstContributors.filter(
-    (entry) => entry.attackDomain === attackDomain
+    (entry) =>
+      entry.attackDomain === attackDomain &&
+      (entry.attackOccasion === undefined || entry.attackOccasion === input.attackOccasion) &&
+      isInEffectEventScope(entry.eventScope, {
+        actorId: actor.id,
+        turnActorId: state.currentActorId
+      })
   )
   const longRange = encounterActionLongRangeContributor({
     targetPolicy,
@@ -495,6 +576,13 @@ export async function prepareEncounterActionMechanics<
     attackerLabel: actor.label,
     targetLabel: target.label
   }
+  // A held grant that negates advantage (Elusive) takes it from the attack whatever its source,
+  // the attacker's own grants and flanking included, so the compiler drops it from the final roll.
+  const attackAdvantageNegated =
+    attackKind !== null &&
+    attacksAgainst.some(
+      (entry) => entry.contributor === null && attackAgainstHolds(entry, perception?.actual ?? null)
+    )
   const conditionAttack = {
     melee: attackKind === 'MELEE' || attackKind === 'UNARMED' || attackKind === 'MELEE_SPELL',
     sceneContext: input.sceneContext ?? null
@@ -513,8 +601,16 @@ export async function prepareEncounterActionMechanics<
     }),
     attackSight && attackKind !== null
       ? attackSight.trueSight
-      : attacksAgainst.map(({ contributor }) => contributor),
+      : attacksAgainst.flatMap(({ contributor }) => (contributor ? [contributor] : [])),
     longRange ? [longRange] : [],
+    attackDomain === null
+      ? []
+      : activeEffectSourceAttackContributors({
+          attackerActorId: actor.id,
+          targetActorId: target.id,
+          attackDomain,
+          effects: sourceFacts.activeEffects
+        }),
     attackKind === null
       ? []
       : encounterConditionAttackContributors({
@@ -525,6 +621,7 @@ export async function prepareEncounterActionMechanics<
           attack: conditionAttack
         })
   )
+  const attackDecoy = attackKind === null ? null : (input.attackDecoy ?? null)
   return {
     state,
     actor,
@@ -538,6 +635,8 @@ export async function prepareEncounterActionMechanics<
     targetPolicy,
     makesAttackRoll: attackKind !== null,
     attackSight,
+    /** The decoy the attack was rolled against, for the settlement to destroy when it hit. */
+    attackDecoy,
     plan,
     characterActionState,
     acceptedWieldConflict,
@@ -556,6 +655,39 @@ export async function prepareEncounterActionMechanics<
           : sourceFacts.targetDerivedFacts),
         ...(enemyProximity ? { attackEnemyProximity: enemyProximity } : {}),
         ...(turnUses ? { attackTurnUses: turnUses } : {}),
+        ...(attackAdvantageNegated ? { attackAdvantageNegated } : {}),
+        attackAddedDice: encounterAttackAddedDice(
+          sourceFacts.activeEffects,
+          source.kind === 'CHARACTER_ACTION'
+            ? (characterActionState?.actionMechanic.attackAbility ?? null)
+            : creatureAttackAbility(source.capability.mechanicFacts.outcomes)
+        ),
+        // The dice active grants add to, or take from, this source's damage to this target (D156).
+        damageAddedDice: activeDamageDice({
+          dealerActorId: actor.id,
+          dealerEffects: sourceFacts.activeEffects,
+          targetEffects: targetFacts.activeEffects,
+          attackDomain: attackKind === null ? null : dnd5eAttackModifierDomain(attackKind)
+        }),
+        // The critical range and extra critical dice the attacker's grants give this attack.
+        ...(attackKind === null
+          ? {}
+          : {
+              attackCriticalRules:
+                source.kind === 'CHARACTER_ACTION'
+                  ? dnd5eAttackCriticalRules(
+                      source.effectivePolicyOutput,
+                      dnd5eAttackModifierDomain(attackKind),
+                      {
+                        ...dnd5eCharacterActionTarget(source.candidate),
+                        attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
+                      }
+                    )
+                  : activeAttackCriticalRules(
+                      sourceFacts.activeEffects,
+                      dnd5eAttackModifierDomain(attackKind)
+                    )
+            }),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
         rollContributorEvidence: {
           attacks: Object.fromEntries(
@@ -587,15 +719,17 @@ export async function prepareEncounterActionMechanics<
         maximum: sourceFacts.effectiveMaximumHitPoints
       },
       targetActorId: target.id,
-      targetDerivedFacts:
-        attackSight && attackKind === null && dndSource?.savingThrowAbilityDefinitionId
+      targetDerivedFacts: attackDecoy
+        ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
+        : attackSight && attackKind === null && dndSource?.savingThrowAbilityDefinitionId
           ? withSourceSightSave(
               targetFacts.targetDerivedFacts,
               dndSource.savingThrowAbilityDefinitionId,
               attackSight.trueSight
             )
           : targetFacts.targetDerivedFacts,
-      targetConditionIds: targetFacts.state.conditions,
+      ...(attackDecoy ? { absorbedByDecoy: true } : {}),
+      targetConditionIds: heldConditionIds(targetFacts),
       conditionOutcomeRules: {
         hitIsCritical:
           attackKind !== null &&

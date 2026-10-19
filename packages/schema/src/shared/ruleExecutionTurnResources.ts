@@ -6,6 +6,11 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS, authoredShortTextSchema } from './authoredLimits.js'
 import { deathSavesAfterRoll, isCharacterDead } from './characterDeathSaves.js'
+import {
+  d20AddedDiceDtoSchema,
+  d20AddedDiceTotal,
+  d20RolledAddedDiceDtoSchema
+} from './d20AddedDice.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
@@ -174,7 +179,9 @@ export const turnDeathSaveCandidateDtoSchema = lazySchema(() =>
     /** The Character's effective maximum hit points, which cap the single point a 20 regains. */
     effectiveMaximumHitPoints: integerSchema.check(z.gte(1)),
     /** The saves before the roll: dying, so not stable and under three failures. */
-    deathSaves: characterDeathSavesDtoSchema
+    deathSaves: characterDeathSavesDtoSchema,
+    /** The dice the Character's active effects add to the save (D156): Bless's d4. */
+    addedDice: d20AddedDiceDtoSchema
   })
 )
 
@@ -183,8 +190,10 @@ export const turnDeathSaveExecutionDtoSchema = lazySchema(() =>
     .strictObject({
       candidate: turnDeathSaveCandidateDtoSchema,
       execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-      /** The d20 with no modifiers. */
+      /** The d20 with no modifier. */
       rawDie: integerSchema.check(z.gte(1)).check(z.lte(20)),
+      /** The candidate's added dice with the faces they rolled. */
+      addedDice: d20RolledAddedDiceDtoSchema,
       afterDeathSaves: characterDeathSavesDtoSchema,
       /** A 20 regains 1 hit point. */
       regainsHitPoint: z.boolean()
@@ -192,8 +201,10 @@ export const turnDeathSaveExecutionDtoSchema = lazySchema(() =>
     .check(
       z.superRefine((value, context) => {
         const before = value.candidate.deathSaves
-        const roll = deathSavesAfterRoll(before, value.rawDie)
+        const roll = deathSavesAfterRoll(before, value.rawDie, d20AddedDiceTotal(value.addedDice))
+        const rolledDice = value.addedDice.map(({ rolledFaces: _rolledFaces, ...die }) => die)
         if (
+          checksumRuleDocument(rolledDice) !== checksumRuleDocument(value.candidate.addedDice) ||
           before.stable ||
           isCharacterDead(before) ||
           roll.regainsHitPoint !== value.regainsHitPoint ||
@@ -202,7 +213,8 @@ export const turnDeathSaveExecutionDtoSchema = lazySchema(() =>
           context.addIssue({
             code: 'custom',
             path: ['afterDeathSaves'],
-            message: 'A completed death save must replay its d20 against a dying Character.'
+            message:
+              "A completed death save must replay its d20 and the candidate's added dice against a dying Character."
           })
         }
       })
@@ -331,6 +343,8 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
           attackRoll: z.boolean(),
           /** Whether the owner cast a spell (a spell attack), which ends its cast-ended effects at commit. */
           castsSpell: z.boolean(),
+          /** The target's decoy effect the attack was rolled against (Mirror Image); a hit destroys the decoy at commit. */
+          decoyEffectId: z.optional(uuidSchema),
           execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
           initialFactsChecksum: checksumSchema,
           phaseReceipts: z.optional(z.lazy(() => ruleExecutionPhaseReceiptsDtoSchema)),

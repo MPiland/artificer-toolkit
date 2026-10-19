@@ -76,6 +76,13 @@ const restrictionConditionSchema = lazySchema(() =>
       'FREE_HAND',
       /** An Attack-action weapon attack with `requiredProperties` was made this turn (Encounter state). */
       'ATTACK_ACTION_OTHER_WEAPON',
+      /**
+       * The holder is of a kind in `requiredIds` (CHARACTER or CREATURE): each facet context gates on
+       * its subject. The Character fold decides it as a constant; an Encounter reads the holder (D152).
+       */
+      'HOLDER_KIND',
+      /** The Creature holder's type is in `requiredIds` (any type in ALL mode); never a Character. */
+      'CREATURE_TYPE',
       'PROFICIENCY',
       'EQUIPMENT_EQUIPPED',
       'SOURCE_STATE',
@@ -183,6 +190,11 @@ export const characterGrantFoldSourceSchema = lazySchema(() =>
   z.strictObject({
     sourceId: identitySchema,
     mechanicSource: characterMechanicSourceSchema,
+    /**
+     * The item a source's SOURCE-scoped modifiers are bound to (Shillelagh's staff): they apply
+     * while that item is evaluated instead of the source itself. Absent for every unbound source.
+     */
+    boundSourceId: z.optional(identitySchema),
     sourceState: z.nullable(
       z.strictObject({ carried: z.boolean(), equipped: z.boolean(), attuned: z.boolean() })
     ),
@@ -343,13 +355,15 @@ const senseResultSchema = lazySchema(() =>
   })
 )
 
-const modifierResultSchema = lazySchema(() =>
+export const characterGrantFoldModifierSchema = lazySchema(() =>
   z.strictObject({
     domainKey: identitySchema,
     grantId: identitySchema,
     ...foldModifierShape(),
     /** The granting source; a SOURCE-scoped modifier applies only while it is evaluated. */
     sourceId: identitySchema,
+    /** The item a SOURCE-scoped modifier is bound to, evaluated in place of its source. */
+    boundSourceId: z.optional(identitySchema),
     source: characterMechanicSourceSchema,
     scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
     scopeResourceIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
@@ -377,7 +391,7 @@ export const characterGrantFoldOutputSchema = lazySchema(() =>
     .strictObject({
       proficiencies: z.array(proficiencyResultSchema).check(z.maxLength(10_000)),
       senses: z.array(senseResultSchema).check(z.maxLength(10_000)),
-      modifiers: z.array(modifierResultSchema).check(z.maxLength(10_000)),
+      modifiers: z.array(characterGrantFoldModifierSchema).check(z.maxLength(10_000)),
       unlockedFeatIds: z.array(identitySchema).check(z.maxLength(10_000)),
       unlockedSpellIds: z.array(identitySchema).check(z.maxLength(10_000)),
       activeSourceIds: z.array(identitySchema).check(z.maxLength(10_000)),
@@ -420,3 +434,4 @@ export type CharacterGrantFoldRestriction = z.infer<typeof characterGrantFoldRes
 export type CharacterGrantFoldSource = z.infer<typeof characterGrantFoldSourceSchema>
 export type CharacterGrantFoldModifier = z.infer<typeof modifierOperationSchema>
 export type CharacterGrantFoldSense = z.infer<typeof senseOperationSchema>
+export type EquipmentInstanceMechanicSource = z.infer<typeof equipmentInstanceMechanicSourceSchema>

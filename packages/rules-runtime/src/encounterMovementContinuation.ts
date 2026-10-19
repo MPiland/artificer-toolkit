@@ -174,7 +174,7 @@ export async function prepareEncounterMovementContinuation<
       passage: Passage
       reactionTimeline: FrozenMovementReactionRemainder['reactionTimeline']
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
-    }): Promise<Outcome | null>
+    }): Promise<Outcome>
     /** The group's options against current facts: itself when current, else its rediscovery (null when none remain). */
     currentReactionGroup(args: {
       next: FrozenMovementReactionRemainder['reactionTimeline'][number]
@@ -393,8 +393,7 @@ export async function prepareEncounterMovementContinuation<
         reactionTimeline: timeline,
         targets
       })
-      passage = null
-      if (pending) return { outcome: pending, settlements }
+      return { outcome: pending, settlements }
     }
     if (
       !next ||

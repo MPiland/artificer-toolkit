@@ -4,6 +4,7 @@ import type {
   CharacterGrantFoldOutput,
   CharacterGrantFoldRestriction
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 
 type ItemCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
 type AttackFacts = Pick<Dnd5eModifierTarget, 'item' | 'attackAbility' | 'activation'>
@@ -53,8 +54,10 @@ export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
 }
 
 /** The facts of one folded modifier that decide where it applies. */
-type Dnd5eModifierApplicability = {
+export type Dnd5eModifierApplicability = {
   readonly sourceId: string
+  /** The item a SOURCE modifier is bound to; it applies while that item is evaluated instead. */
+  readonly boundSourceId?: string
   readonly scope: 'GLOBAL' | 'SOURCE'
   readonly deferredRequirements: CharacterGrantFoldRestriction
   readonly scopeSpellIds: string[]
@@ -136,16 +139,27 @@ export function dnd5eSaveRequiresSourceSight(
 }
 
 /**
+ * Whether an attack roll grant holds only against the source of the effect holding it (Bestow
+ * Curse). The holder's policy leaves it out; the attack reads it once its target is known.
+ */
+export function dnd5eAttackRequiresEffectSource(
+  modifier: Pick<CharacterGrantFoldModifier, 'valueDomainCode' | 'domain'>
+): boolean {
+  return modifier.valueDomainCode === 'ATTACK_ROLL' && modifier.domain.againstEffectSource === true
+}
+
+/**
  * The single D&D modifier scope rule: a GLOBAL modifier applies Character-wide and a SOURCE
  * modifier only while its own source is evaluated (an attack with that item, that item's armor
- * class). Item and spell facets then narrow either kind to the attacking item and the spell.
+ * class), or the item it is bound to (Magic Weapon's weapon). Item and spell facets then narrow either kind to the attacking item and the spell.
  */
 export function dnd5eModifierApplies(
   modifier: Dnd5eModifierApplicability,
   target: Dnd5eModifierTarget
 ): boolean {
   return (
-    (modifier.scope === 'GLOBAL' || target.sourceIds.includes(modifier.sourceId)) &&
+    (modifier.scope === 'GLOBAL' ||
+      target.sourceIds.includes(modifier.boundSourceId ?? modifier.sourceId)) &&
     dnd5eItemRequirementsMet(modifier.deferredRequirements, target) &&
     (modifier.scopeSpellIds.length === 0 ||
       (target.spellId !== null && modifier.scopeSpellIds.includes(target.spellId)))
@@ -157,6 +171,7 @@ export function dnd5eAcceptedModifierApplicability(
 ): Dnd5eModifierApplicability {
   return {
     sourceId: modifier.sourceId,
+    ...(modifier.boundSourceId !== undefined && { boundSourceId: modifier.boundSourceId }),
     scope: modifier.scope,
     deferredRequirements: modifier.deferredRequirements,
     scopeSpellIds: modifier.scopeSpellIds ?? []
@@ -176,15 +191,29 @@ export function dnd5eFoldedModifierApplicability(
   return dnd5eAcceptedModifierApplicability(modifier)
 }
 
-/** A Character action evaluates its own source and, for an item action, the item it attacks with. */
+/**
+ * A Character action evaluates its own source and, for an item action, the item it attacks with. A
+ * Feature attack made with a wielded weapon also takes that weapon's own modifiers (D156).
+ */
 export function dnd5eCharacterActionTarget(
   candidate: Pick<
     CharacterActionCandidate,
-    'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts'
+    'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts' | 'activationSourceKind'
   >
 ): Dnd5eModifierTarget {
+  const weapon = candidate.equipment
   return {
-    sourceIds: [candidate.sourceId],
+    sourceIds:
+      candidate.activationSourceKind === 'ACTIVE_SOURCE_AND_EQUIPMENT' && weapon?.equipmentId
+        ? [
+            candidate.sourceId,
+            createCharacterMechanicSourceKey({
+              kind: 'EQUIPMENT_INSTANCE',
+              equipmentId: weapon.equipmentId,
+              itemInstanceId: weapon.itemInstanceId
+            })
+          ]
+        : [candidate.sourceId],
     item: dnd5eAttackingItem(candidate.equipment),
     attackAbility: null,
     activation: candidate.mechanicFacts.invocation.activation?.code ?? null,

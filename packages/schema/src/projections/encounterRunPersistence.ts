@@ -1,5 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { spatialPointDtoSchema } from '../shared/spatialFacts.js'
+import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import {
   MAX_TURN_TELEPORT_ALLOWANCES,
   teleportAllowanceDtoSchema
@@ -46,6 +48,22 @@ export const encounterStoredRunSchema = lazySchema(() =>
   })
 )
 
+/** The relationships a command ended (D152): each held creature, its effect and the conditions only it held. */
+export const encounterRelationshipEndsSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        heldActorId: postgresUuidSchema,
+        activeEffectId: postgresUuidSchema,
+        removedConditionIds: z
+          .array(postgresUuidSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+      })
+    )
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+)
+export type EncounterRelationshipEnds = z.infer<typeof encounterRelationshipEndsSchema>
+
 /**
  * What a settled command returned besides its projection: the roll and the occurrence summary.
  * Exact replay rebuilds the projection from the Run's records and adds these; the timeline shows
@@ -70,6 +88,19 @@ export const encounterConcentrationDroppedOutsideInputSchema = lazySchema(() =>
     commandId: postgresUuidSchema,
     encounterId: postgresUuidSchema,
     casterCharacterId: postgresUuidSchema
+  })
+)
+
+/**
+ * The stored input of a Run command the room writes when relationships end on their own (D152): a
+ * source that can't act, or a held creature moved beyond the sealed reach. Never sent by a client,
+ * so it stays outside the Encounter command union.
+ */
+export const encounterRelationshipsEndedInputSchema = lazySchema(() =>
+  z.strictObject({
+    type: z.literal('RELATIONSHIPS_ENDED'),
+    commandId: postgresUuidSchema,
+    encounterId: postgresUuidSchema
   })
 )
 
@@ -137,6 +168,8 @@ export const encounterStoredEvidenceRollSchema = lazySchema(() =>
     value: z.number().check(z.int()),
     rollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
     derivedRollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+    /** The faces of the request's added dice (D156), rolled with the d20. */
+    addedFaces: z.optional(d20AddedFacesDtoSchema),
     createdAt: z.iso.datetime()
   })
 )
@@ -255,6 +288,16 @@ const encounterStoredRunCommandResultSchema = lazySchema(() =>
   })
 )
 
+/** What ended a forced movement short of, or at, its distance: nothing, an object or wall, or a creature. */
+export const encounterForcedMovementLandingSchema = lazySchema(() =>
+  z.strictObject({
+    targetActorId: postgresUuidSchema,
+    feet: z.number().check(z.nonnegative()),
+    stoppedBy: z.union([z.literal('NONE'), z.literal('OBJECT'), postgresUuidSchema]),
+    ray: z.nullable(spatialPointDtoSchema)
+  })
+)
+
 export const encounterStoredRunCommandSchema = lazySchema(() =>
   z.discriminatedUnion('commandType', [
     z.extend(encounterStoredRunCommandBaseSchema, {
@@ -349,6 +392,14 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         []
       ),
+      /**
+       * Where each creature the action moved ended up: the feet it travelled, what stopped it short
+       * of its distance, and the random direction rolled for it.
+       */
+      forcedMovementLandings: z._default(
+        z.array(encounterForcedMovementLandingSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      ),
       /** The once-per-turn uses this action spent from the actor's turn record; its undo gives them back. */
       turnUses: z._default(
         z.nullable(
@@ -434,6 +485,23 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         actorId: postgresUuidSchema,
         actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema)
       })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('RELEASE_RELATIONSHIP'),
+      /** The timeline label: plain "Release", which never names a held creature a player cannot see. */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      /** The hold the source let go of. The ended relationship is not restored by an undo. */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        relationshipEnds: encounterRelationshipEndsSchema
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('RELATIONSHIPS_ENDED'),
+      /** The timeline label: plain "Hold ended", which never names a creature a player cannot see. */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      /** The holds that broke. An ended relationship is not restored by an undo. */
+      receipt: z.strictObject({ relationshipEnds: encounterRelationshipEndsSchema })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),

@@ -93,7 +93,8 @@ const room: HeldEncounterSession = {
     waitingOn: null,
     turnMovement: [],
     halfSpeedFields: [caltrops],
-    auras: []
+    auras: [],
+    movementCostZones: []
   },
   preparedPending: [],
   actorSides: null,
@@ -128,8 +129,8 @@ const binding = {
 /** A drag of Ember's token from where it stands to `x`, along the row of the caltrop field. */
 async function dragEmberTo(x: number) {
   await waitFor(() => expect(mocks.onTokenCommit).not.toBeNull())
-  // The drag commits only once the room has answered the Scene and token bindings.
-  await waitFor(() => expect(mocks.readEncounter).toHaveBeenCalledTimes(2))
+  // The drag commits only once the room has answered the Scene, token bindings and holds.
+  await waitFor(() => expect(mocks.readEncounter).toHaveBeenCalledTimes(3))
   await act(async () => {
     await Promise.resolve()
   })
@@ -147,7 +148,9 @@ describe('CampaignVttStage careful crossing (SPELLS-17.4)', () => {
         result:
           kind === 'SCENE_BINDING'
             ? { kind, result: { ...binding, encounterVersion: tabletopGmEncounter.version } }
-            : { kind, result: [{ ...binding, actorId: emberActor.id, tokenId: ember.id }] }
+            : kind === 'HELD_RELATIONSHIPS'
+              ? { kind, result: [] }
+              : { kind, result: [{ ...binding, actorId: emberActor.id, tokenId: ember.id }] }
       })
     )
     renderWithAppProviders(

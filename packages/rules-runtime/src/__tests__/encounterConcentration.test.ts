@@ -39,6 +39,7 @@ import {
   resolveDnd5eConcentrationSaveFacts
 } from '../systems/dnd5e/concentrationPolicy.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../systems/dnd5e/concentrationIdentity.js'
+import { dnd5eAddedDiceFacts } from '../systems/dnd5e/d20AddedDiceGraph.js'
 import { SRD, evaluateSrdCharacter, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { createSrdRulesRuntime, creatureFeature } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -145,6 +146,7 @@ describe('dnd5eConcentrationDamageDc', () => {
 describe('resolveDnd5eConcentrationSaveFacts', () => {
   it('uses the Character Constitution save: proficient Sorcerer +4, Wizard +2', () => {
     const sorcererFacts = resolveDnd5eConcentrationSaveFacts({
+      addedDice: [],
       appliedDamage: 22,
       targetActorId: CASTER_ID,
       rulePolicyOutput: sorcerer.output
@@ -154,7 +156,8 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
         [DND5E_CONCENTRATION_TARGET_ACTOR_FACT_KEY]: CASTER_ID,
         [DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY]: 22,
         [DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY]: 4,
-        [DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([])
+        [DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([]),
+        ...dnd5eAddedDiceFacts([])
       },
       rollMode: 'NORMAL',
       modifier: 4,
@@ -163,6 +166,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
     })
     expect(
       resolveDnd5eConcentrationSaveFacts({
+        addedDice: [],
         appliedDamage: 22,
         targetActorId: CASTER_ID,
         rulePolicyOutput: wizard.output
@@ -172,6 +176,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
 
   it('prefers a Concentration-scoped Constitution save and its advantage over the general save', () => {
     const facts = resolveDnd5eConcentrationSaveFacts({
+      addedDice: [],
       appliedDamage: 12,
       targetActorId: CASTER_ID,
       rulePolicyOutput: withSaves([
@@ -194,6 +199,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
 
   it('ignores condition-scoped and other-rule Constitution saves', () => {
     const facts = resolveDnd5eConcentrationSaveFacts({
+      addedDice: [],
       appliedDamage: 12,
       targetActorId: CASTER_ID,
       rulePolicyOutput: withSaves([
@@ -218,6 +224,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
       influence: 'DISADVANTAGE'
     })
     const facts = resolveDnd5eConcentrationSaveFacts({
+      addedDice: [],
       appliedDamage: 12,
       targetActorId: CASTER_ID,
       rulePolicyOutput: withSaves([constitutionSave({ contributors: [bane, WAR_CASTER] })])
@@ -241,6 +248,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
     ])
       expect(() =>
         resolveDnd5eConcentrationSaveFacts({
+          addedDice: [],
           appliedDamage: 12,
           targetActorId: CASTER_ID,
           rulePolicyOutput
@@ -248,6 +256,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
       ).toThrow('D&D concentration saving throw is unavailable.')
     expect(() =>
       resolveDnd5eConcentrationSaveFacts({
+        addedDice: [],
         appliedDamage: 0,
         targetActorId: CASTER_ID,
         rulePolicyOutput: sorcerer.output

@@ -8,7 +8,8 @@ import {
 } from './activeRuleEffects.js'
 import {
   characterMechanicsTargetStateDtoSchema,
-  ENDED_EFFECT_CONDITION_OPERATION_KEY
+  ENDED_EFFECT_RELEASE_OPERATION_KEY,
+  isEndedEffectRelease
 } from './ruleExecutionMechanics.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
 import {
@@ -389,16 +390,19 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
               typeof trace.outputs.resultPath === 'string'
           )
           const hasD20Trace = d20RequestTraces.length > 0 || d20ResultTraces.length > 0
-          const [repeatRequest, repeatResult] = execution.execution.evidence.trace
+          // The recurring save is its d20, the d20's added dice (D156) and the save test.
+          const [repeatRequest, repeatAddedDice, repeatResult] = execution.execution.evidence.trace
           const repeatSaveShape =
-            execution.execution.evidence.trace.length === 2 &&
+            execution.execution.evidence.trace.length === 3 &&
             execution.execution.evidence.sourceEntryBindings?.length === 1 &&
             bindings.length === 1 &&
             repeatRequest?.nodeId === 'repeat-save-d20' &&
             repeatRequest.operation.contractVersion === 1 &&
+            repeatAddedDice?.nodeId === 'repeat-save-d20-added-dice' &&
+            repeatAddedDice.operation.key === 'evidence.added-dice-total' &&
             repeatResult?.nodeId === execution.definition.frozenGraphNodeId &&
             repeatResult.operation.key === 'dnd5e.save-test-resolution' &&
-            repeatResult.operation.contractVersion === 2 &&
+            repeatResult.operation.contractVersion === 3 &&
             repeatResult.inputs.targetActorId === execution.targetActorId
           // A perception-gated repeat save whose gate refused this turn's attempt: its d20 settled
           // without a request, so the turn rolls nothing and its save result is not applied.
@@ -666,10 +670,10 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           let priorTraceIndex = -1
           for (const application of execution.applications) {
             if (repeatedSaveTerminal || refusedRepeatSaveTerminal) continue
-            if (application.sourceOperationKey === ENDED_EFFECT_CONDITION_OPERATION_KEY) {
-              // A condition an effect that the damage ended released from its holder follows from
-              // the effect's end, not from a trace of this execution (SPELLS-27.T4b).
-              if (application.kind !== 'CONDITION_REMOVE')
+            if (application.sourceOperationKey === ENDED_EFFECT_RELEASE_OPERATION_KEY) {
+              // What an effect that ended released from its holder follows from the effect's end, not
+              // from a trace of this execution (SPELLS-27.T4b, D156).
+              if (!isEndedEffectRelease(application))
                 context.addIssue({
                   code: 'custom',
                   path: ['executions', index, 'applications'],
@@ -690,15 +694,18 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 trace.outputs.targetActorId === execution.targetActorId &&
                 (trace.outputs.authoredPath ?? null) === application.authoredPath &&
                 (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
-                (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
-                  ? trace.outputs.conditionId === application.conditionId
-                  : application.kind === 'STABILIZE' || application.kind === 'DEPART'
-                    ? true
-                    : application.kind === 'SCALAR_REDUCTION'
-                      ? trace.outputs.amount === application.reductionAmount
-                      : trace.outputs.amount === application.requestedAmount &&
-                        (application.kind !== 'DAMAGE' ||
-                          trace.outputs.damageTypeId === application.damageTypeId))
+                (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+                  ? false
+                  : application.kind === 'CONDITION_APPLY' ||
+                      application.kind === 'CONDITION_REMOVE'
+                    ? trace.outputs.conditionId === application.conditionId
+                    : application.kind === 'STABILIZE' || application.kind === 'DEPART'
+                      ? true
+                      : application.kind === 'SCALAR_REDUCTION'
+                        ? trace.outputs.amount === application.reductionAmount
+                        : trace.outputs.amount === application.requestedAmount &&
+                          (application.kind !== 'DAMAGE' ||
+                            trace.outputs.damageTypeId === application.damageTypeId))
             )
             if (
               matches.length !== 1 ||

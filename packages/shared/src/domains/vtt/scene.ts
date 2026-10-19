@@ -115,6 +115,9 @@ export interface SceneTokenSense {
   senseId: string
 }
 
+/** A typed length until a Scene grid converts it. */
+export type SceneLength = { amount: number; unit: LengthUnitCode }
+
 /** A sense's reach as a typed length (or unlimited) until a Scene grid converts it. */
 export type SceneSenseLength =
   | { rangeKind: 'UNLIMITED' }
@@ -124,6 +127,16 @@ export type SceneSenseLength =
 export interface SceneActorVision {
   actorId: string
   senses: (Omit<SceneTokenSense, 'range'> & { range: SceneSenseLength })[]
+  /** The actor's resolved movement passage takes it through blocking barriers. */
+  passesBlockingBarriers?: true
+  /** The light the actor sheds; dim is the outer radius. Absent when it sheds none. */
+  light?: { bright: SceneLength; dim: SceneLength }
+}
+
+/** Light a token sheds, in Scene units measured from its footprint edge; dim is the outer radius. */
+export interface SceneTokenLight {
+  brightRadius: number
+  dimRadius: number
 }
 
 export interface SceneToken {
@@ -138,6 +151,13 @@ export interface SceneToken {
   rotationDegrees: number
   /** Composed from the bound Encounter actor at runtime; only the token's controllers receive it. */
   senses: SceneTokenSense[]
+  /**
+   * Composed from the bound Encounter actor's resolved movement passage: its moves are not stopped
+   * by blocking barriers. The server resolves the mover's passage again from the facts it settles with.
+   */
+  passesBlockingBarriers?: true
+  /** Composed from the bound Encounter actor at runtime and never stored. */
+  light?: SceneTokenLight
   vision: SceneTokenVision | null
   width: number
 }

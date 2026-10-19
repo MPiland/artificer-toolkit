@@ -41,18 +41,6 @@ export const giantToad: CreatureAuthored = {
       id: S.featureId(136, 1),
       label: 'Amphibious',
       description: 'Amphibious. The toad can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(136, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(136, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {

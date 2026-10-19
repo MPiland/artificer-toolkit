@@ -19,6 +19,7 @@ import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encount
 import {
   encounterAreaTargetCommandId,
   encounterChosenActorEntries,
+  encounterCollisionSaveOccurrenceId,
   encounterChosenActorsChecksum
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
@@ -36,6 +37,7 @@ import {
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import {
   requireAreaActionAnswer,
+  requireAreaActionForcedMovement,
   requireAreaActionLegendaryResistance,
   requireAreaActionPendingRoot,
   requireAreaActionRemoval
@@ -133,10 +135,19 @@ function carriesCasterSpend(batch: TargetBatch, root: AreaRoot, merged: boolean)
 
 /** What a commit is verified against: the creatures it keeps and the scope the root sealed. */
 type CommitScope = {
-  /** The kept creatures in commit order, and whether the caster perceives each. */
-  targets: readonly { actorId: string; perceivedByCaster: boolean }[]
+  /**
+   * The kept creatures in commit order, and whether the caster perceives each. One a forced mover
+   * struck (D159) rather than the area caught names that mover.
+   */
+  targets: readonly {
+    actorId: string
+    perceivedByCaster: boolean
+    collision?: { moverActorId: string }
+  }[]
   caughtChecksum: string
   removedActorIds: readonly string[]
+  /** The caught creatures the action had no effect on, which took no save. */
+  unaffectedActorIds: readonly string[]
   /** The Scene the commit places its zone on; null when it places none. */
   zoneSceneId: string | null
 }
@@ -246,6 +257,7 @@ export async function persistEncounterAreaCommit(
       targets: reachedActorIds.map((actorId) => ({ actorId, perceivedByCaster: true })),
       caughtChecksum: encounterChosenActorsChecksum(reachedActorIds),
       removedActorIds: [],
+      unaffectedActorIds: input.unaffectedActorIds,
       zoneSceneId: null
     }
   } else {
@@ -263,7 +275,15 @@ export async function persistEncounterAreaCommit(
       })
     }
     if (resume?.area) {
-      if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
+      const resolution = input.response?.resolution
+      if (resolution?.kind === 'FORCED_MOVEMENT')
+        requireAreaActionForcedMovement({
+          stored: resume.area.snapshot,
+          next: area,
+          requestId: resolution.requestId,
+          position: resolution.position
+        })
+      else if (resolution?.kind === 'AREA_LEGENDARY_RESISTANCE')
         requireAreaActionLegendaryResistance({
           stored: resume.area.snapshot,
           next: area,
@@ -305,6 +325,27 @@ export async function persistEncounterAreaCommit(
       )
     )
       throw new Error('Live Session area has an unanswered save or undecided choice.')
+    // Every push its source picked lands where the pick left it (D157), and none is still open.
+    const { landed = [], pick, rays } = context.forcedMovement ?? {}
+    if (
+      pick ||
+      // A random push lands on the ray sealed when the pick was held, never a reroll.
+      input.forcedMovements.some(({ targetActorId, ray }) => {
+        const sealed = rays?.find((entry) => entry.targetActorId === targetActorId)?.ray
+        return sealed && (ray?.x !== sealed.x || ray?.y !== sealed.y)
+      }) ||
+      landed.some(
+        ({ targetActorId }) =>
+          !input.forcedMovements.some((movement) => movement.targetActorId === targetActorId)
+      ) ||
+      input.forcedMovements.some(({ targetActorId, position }) => {
+        const picked = landed.find((entry) => entry.targetActorId === targetActorId)?.position
+        return picked
+          ? !position || position.x !== picked.x || position.y !== picked.y
+          : position !== null
+      })
+    )
+      throw new Error('Live Session area forced movement mismatch.')
     // The counters that failed against the cast were sealed with its area and are spent with it.
     if (
       checksumCanonicalJson(context.failedCounters ?? []) !==
@@ -326,13 +367,38 @@ export async function persistEncounterAreaCommit(
       targets: context.targets,
       caughtChecksum: context.caughtChecksum,
       removedActorIds: context.removedActorIds,
+      unaffectedActorIds: context.unaffectedActorIds ?? [],
       zoneSceneId: context.placesZone ? (context.scene?.sceneId ?? null) : null
     }
   }
-  const kept = encounterChosenActorEntries(
-    areaOccurrenceId,
-    scope.targets.map(({ actorId }) => actorId)
+  // A mover's collision damage (D159) settles as one more entry per mover, after the caught creatures',
+  // and a creature a mover struck as one more after those, under the occurrence its sealed save ran.
+  const caughtActorIds = scope.targets.flatMap(({ actorId, collision }) =>
+    collision ? [] : [actorId]
   )
+  const struck = scope.targets.flatMap(({ actorId, collision }) =>
+    collision ? [{ actorId, moverActorId: collision.moverActorId }] : []
+  )
+  const collisionActorIds = input.targets
+    .slice(caughtActorIds.length, input.targets.length - struck.length)
+    .map(({ actorId }) => actorId)
+  const movedWithCollision = (actorId: string) =>
+    input.forcedMovements.some(
+      (movement) => movement.targetActorId === actorId && movement.collision
+    )
+  if (
+    new Set(collisionActorIds).size !== collisionActorIds.length ||
+    !collisionActorIds.every(movedWithCollision) ||
+    !struck.every(({ moverActorId }) => movedWithCollision(moverActorId))
+  )
+    throw new Error('Live Session area forced movement collision mismatch.')
+  const kept = [
+    ...encounterChosenActorEntries(areaOccurrenceId, [...caughtActorIds, ...collisionActorIds]),
+    ...struck.map(({ actorId, moverActorId }) => ({
+      actorId,
+      occurrenceId: encounterCollisionSaveOccurrenceId(areaOccurrenceId, moverActorId, actorId)
+    }))
+  ]
   if (
     root.sourceActorId !== command.actorId ||
     root.caughtChecksum !== scope.caughtChecksum ||
@@ -379,12 +445,14 @@ export async function persistEncounterAreaCommit(
         batch.stateEffectTransitions.length +
         (batch.kind === 'CHARACTER_MECHANICS_BATCH'
           ? batch.reactionEffectTransitions.length
-          : 0) !==
+          : batch.grantEffectTransitions.length) !==
         createdEffects.length ||
       (input.maintainedState === null && batch.maintenanceTransition !== undefined) ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
         batch.targetFeatureResourceConsumption !== null) ||
-      initial.evidence.source.definitionId !== input.initialDefinitionId ||
+      // A collision entry runs the pusher's synthetic damage action, sourced by its own occurrence id.
+      initial.evidence.source.definitionId !==
+        (index < caughtActorIds.length ? input.initialDefinitionId : execution.occurrenceId) ||
       initial.evidence.source.gameSystemId !== state.gameSystemId ||
       initial.phaseReceipts?.some((phase) => phase.template.gameSystemId !== state.gameSystemId)
     )
@@ -877,14 +945,14 @@ export async function persistEncounterAreaCommit(
     }
   })
   // Each creature the area pushes or pulls moves on the Scene in this commit (D139).
-  const forcedMovements = input.forcedMovements.length
+  const settledMovements = input.forcedMovements.length
     ? await callbacks.applyForcedMovements({
         state,
         sourceActorId: command.actorId,
         commandId: command.commandId,
         movements: input.forcedMovements
       })
-    : []
+    : { moves: [], landings: [] }
   await recordActionRoot(ctx, {
     run,
     state,
@@ -908,7 +976,8 @@ export async function persistEncounterAreaCommit(
       failedCounters: failedReceipts,
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
-      forcedMovements,
+      forcedMovements: settledMovements.moves,
+      forcedMovementLandings: settledMovements.landings,
       turnUses: null,
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),
       issuerLines: children.flatMap(({ actor, batch }) => {
@@ -923,11 +992,18 @@ export async function persistEncounterAreaCommit(
         // An unperceived creature reaches the caster only by failing, and then unnamed.
         return failed ? ['An unseen creature failed its save'] : []
       }),
-      gmLines: scope.removedActorIds.map((actorId) => {
-        const removed = actors.find((actor) => actor.id === actorId)
-        if (!removed) throw new Error('Live Session area removed an unknown creature.')
-        return `GM removed ${removed.label} from the area`
-      })
+      gmLines: [
+        ...scope.removedActorIds.map((actorId) => {
+          const removed = actors.find((actor) => actor.id === actorId)
+          if (!removed) throw new Error('Live Session area removed an unknown creature.')
+          return `GM removed ${removed.label} from the area`
+        }),
+        ...scope.unaffectedActorIds.map((actorId) => {
+          const unaffected = actors.find((actor) => actor.id === actorId)
+          if (!unaffected) throw new Error('Live Session area left out an unknown creature.')
+          return `${unaffected.label} was unaffected`
+        })
+      ]
     },
     occurredAt: input.occurredAt
   })

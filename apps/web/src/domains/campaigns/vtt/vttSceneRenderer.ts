@@ -1,4 +1,5 @@
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { LiveSessionTransientBroadcastDto } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
   CampaignSceneStateDto,
@@ -10,7 +11,9 @@ import {
   extendSceneMovementPath,
   isSceneMovementPathValid,
   resolveSceneIlluminationAt,
+  sceneTokenLights,
   SceneBarrierIndex,
+  sceneTokenMovementIndex,
   visibilityPolygon,
   visibilityPolygonForLight,
   visibilityPolygonForToken,
@@ -43,6 +46,7 @@ import {
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
   formatSceneMeasurement,
+  formatSceneRoute,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
   isTokenRevealed,
@@ -66,6 +70,7 @@ import {
   visibleGridLinePositions,
   type VttAreaSize,
   type VttScenePresentationOverlay,
+  type VttSquarePick,
   type VttSenseEffect,
   type VttSenseReach,
   type VttTokenPresentation
@@ -97,6 +102,8 @@ interface VttSceneRendererCallbacks {
   onAreaDirection?: (aim: { origin: ScenePoint; toward: ScenePoint }) => void
   /** The caster pressed Escape while aiming an area. */
   onAreaAimCancel?: () => void
+  /** The source pressed inside one of a forced movement's legal squares (D157): its centre. */
+  onSquarePick?: (center: ScenePoint) => void
   onMapLoadStatus?: (status: VttMapLoadStatus) => void
   onCreateAnnotation?: (position: ScenePoint) => void
   onCreateBarrier: (
@@ -134,10 +141,22 @@ export interface VttSceneRendererUpdate {
    * on its center; a directed area by a drag from the edge of the caster's token (`casterTokenId`).
    */
   areaAim?: { casterTokenId: string | null; size: VttAreaSize } | null
+  /** While set, a press inside one of these legal squares picks it, and a press elsewhere does nothing. */
+  squarePick?: VttSquarePick | null
   boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
   mapDelivery: SignedVttMapDeliveryDto | null
   mode: CampaignVttMode
+  /**
+   * For an Encounter's Scene: the actor each bound token moves for, the zones that raise what
+   * moving costs and the actors whose drag doubles it, so a dragged route shows the movement the
+   * room will charge.
+   */
+  movementCost?: {
+    actorIdByTokenId: ReadonlyMap<string, string>
+    zones: EncounterSessionStateDto['movementCostZones']
+    dragDoublingActorIds: ReadonlySet<string>
+  } | null
   overlays?: readonly VttScenePresentationOverlay[]
   /** The GM's token-view preview: draws what a Player controlling this Token sees. */
   previewTokenId?: string | null
@@ -168,6 +187,7 @@ export interface VttSceneRenderer {
     activeDrag: { pointCount: number; position: ScenePoint; route: ScenePoint[] } | null
     doorVisualCreateCount: number
     /** How many route lines are drawn: one during a token drag, none otherwise. */
+    dragRouteLabel: string | null
     dragRouteLineCount: number
     facingIndicatorCount: number
     fogRenderCount: number
@@ -426,6 +446,8 @@ export async function createVttSceneRenderer(
   let renderedGrid: CampaignSceneStateDto['grid'] | null = null
   let renderedLightingBarriers: CampaignSceneStateDto['barriers'] | null = null
   let renderedLights: CampaignSceneStateDto['lights'] | null = null
+  /** The token lights last drawn, by value: a token move that keeps them never redraws lighting. */
+  let renderedTokenLightsKey = ''
   let renderedAmbient: CampaignSceneStateDto['ambientIllumination'] | null = null
   let renderedLightingMap: CampaignSceneStateDto['map'] | null = null
   let darknessClassMap: Container | null = null
@@ -474,17 +496,21 @@ export async function createVttSceneRenderer(
   let wallChainStart: ScenePoint | null = null
   const areaAimGesture = createVttAreaAimGesture(
     () =>
-      current?.areaAim
-        ? {
-            caster:
-              current.scene.tokens.find((token) => token.id === current?.areaAim?.casterTokenId) ??
-              null,
-            size: current.areaAim.size
-          }
-        : null,
+      current?.squarePick
+        ? { squares: current.squarePick }
+        : current?.areaAim
+          ? {
+              caster:
+                current.scene.tokens.find(
+                  (token) => token.id === current?.areaAim?.casterTokenId
+                ) ?? null,
+              size: current.areaAim.size
+            }
+          : null,
     {
       onPoint: (point) => callbacks.onAreaPoint?.(point),
-      onDirection: (aim) => callbacks.onAreaDirection?.(aim)
+      onDirection: (aim) => callbacks.onAreaDirection?.(aim),
+      onSquare: (center) => callbacks.onSquarePick?.(center)
     }
   )
   let drag: {
@@ -990,12 +1016,15 @@ export async function createVttSceneRenderer(
    * magical darkness forces black. The result is one black texture whose alpha is the class.
    */
   function drawLighting(scene: CampaignSceneStateDto): void {
+    const tokenLights = sceneTokenLights(scene)
+    const tokenLightsKey = JSON.stringify(tokenLights)
     if (
       renderedAmbient === scene.ambientIllumination &&
       renderedLightingMap === scene.map &&
       renderedLightingBarriers === scene.barriers &&
       renderedLightingDoorStates === scene.doorStates &&
       renderedLights === scene.lights &&
+      renderedTokenLightsKey === tokenLightsKey &&
       renderedDarknessZones === scene.darknessZones
     ) {
       return
@@ -1005,6 +1034,7 @@ export async function createVttSceneRenderer(
     renderedLightingBarriers = scene.barriers
     renderedLightingDoorStates = scene.doorStates
     renderedLights = scene.lights
+    renderedTokenLightsKey = tokenLightsKey
     renderedDarknessZones = scene.darknessZones
     const barrierIndex = new SceneBarrierIndex(scene.barriers)
     lightingBarrierIndex = barrierIndex
@@ -1039,7 +1069,7 @@ export async function createVttSceneRenderer(
         )
       }
     }
-    for (const light of scene.lights) {
+    for (const light of [...scene.lights, ...tokenLights]) {
       const polygon = visibilityPolygonForLight(
         light,
         scene.barriers,
@@ -1558,15 +1588,21 @@ export async function createVttSceneRenderer(
       line.moveTo(first.x, first.y)
       for (const point of rest) line.lineTo(point.x, point.y)
       line.stroke({ color: colors.measurement, width: 3 })
-      const label = measurementLabel(scene, measurement.path)
+      const label = measurementLabel(
+        measurement.path,
+        formatSceneMeasurement(scene.grid, measurement.path)
+      )
       measurementLayer.addChild(line, label)
     }
   }
 
-  /** The dragged token's route so far, in the measurement line style; gone once the drag ends. */
+  /**
+   * The dragged token's route so far, in the measurement line style and labeled with its distance and
+   * cost; gone once the drag ends.
+   */
   function drawDragRoute(): void {
     destroyChildren(dragRouteLayer)
-    if (!drag) return
+    if (!drag || !current) return
     const position = { x: drag.visual.x, y: drag.visual.y }
     const end = drag.path.at(-1)
     const route = end && pointsEqual(end, position) ? drag.path : [...drag.path, position]
@@ -1577,20 +1613,40 @@ export async function createVttSceneRenderer(
           route.flatMap((point) => [point.x, point.y]),
           false
         )
-        .stroke({ color: colors.measurement, width: 3 })
+        .stroke({ color: colors.measurement, width: 3 }),
+      measurementLabel(route, formatSceneRoute(current.scene, route, routeMover(drag.tokenId)))
     )
+  }
+
+  function routeMover(tokenId: string) {
+    const pricing = current?.movementCost
+    const actorId = pricing?.actorIdByTokenId.get(tokenId)
+    return pricing && actorId
+      ? {
+          actorId,
+          tokenId,
+          zones: pricing.zones,
+          dragDoublesCost: pricing.dragDoublingActorIds.has(actorId)
+        }
+      : null
   }
 
   function tokenCanMove(token: CampaignSceneStateDto['tokens'][number]): boolean {
     return Boolean(current && !token.locked && canControlSceneToken(token, current))
   }
 
-  function movementIndexFor(scene: CampaignSceneStateDto): SceneBarrierIndex {
+  function movementIndexFor(
+    scene: CampaignSceneStateDto,
+    token: CampaignSceneStateDto['tokens'][number]
+  ): SceneBarrierIndex {
     if (movementBarrierSource !== scene.barriers) {
       movementBarrierSource = scene.barriers
       movementBarrierIndex = new SceneBarrierIndex(scene.barriers)
     }
-    return movementBarrierIndex ?? new SceneBarrierIndex(scene.barriers)
+    return sceneTokenMovementIndex(
+      token,
+      movementBarrierIndex ?? new SceneBarrierIndex(scene.barriers)
+    )
   }
 
   function drawTokens(
@@ -1756,7 +1812,7 @@ export async function createVttSceneRenderer(
         callbacks.onTokenPick?.(token.id)
         return
       }
-      if (current?.tool !== 'SELECT' || current.areaAim) return
+      if (current?.tool !== 'SELECT' || current.areaAim || current.squarePick) return
       callbacks.onTokenSelect?.(token.id)
       // A token the member cannot move still lets the press reach the map, so it can ping there.
       if (!tokenCanMove(token)) return
@@ -1946,7 +2002,7 @@ export async function createVttSceneRenderer(
       const token = next.scene.tokens.find((candidate) => candidate.id === drag?.tokenId)
       if (
         !token ||
-        !isSceneMovementPathValid(next.scene, drag.path, movementIndexFor(next.scene))
+        !isSceneMovementPathValid(next.scene, drag.path, movementIndexFor(next.scene, token))
       ) {
         cancelActiveInteraction()
       }
@@ -2059,7 +2115,10 @@ export async function createVttSceneRenderer(
         .moveTo(gestureStart.x, gestureStart.y)
         .lineTo(point.x, point.y)
         .stroke({ color: colors.measurement, width: 3 })
-      measurementLayer.addChild(line, measurementLabel(current.scene, gesturePath))
+      measurementLayer.addChild(
+        line,
+        measurementLabel(gesturePath, formatSceneMeasurement(current.scene.grid, gesturePath))
+      )
       callbacks.onMeasurementPreview(gesturePath)
       return
     }
@@ -2185,7 +2244,7 @@ export async function createVttSceneRenderer(
         token,
         drag.last,
         { x: point.x - drag.offset.x, y: point.y - drag.offset.y },
-        movementIndexFor(current.scene)
+        movementIndexFor(current.scene, token)
       )
       drag.visual.position.set(position.x, position.y)
       if (positionKey(position) !== positionKey(drag.last)) {
@@ -2193,7 +2252,7 @@ export async function createVttSceneRenderer(
           current.scene,
           drag.path,
           position,
-          movementIndexFor(current.scene)
+          movementIndexFor(current.scene, token)
         )
         drag.last = position
         callbacks.onTokenPreview(drag.tokenId, position)
@@ -2511,7 +2570,11 @@ export async function createVttSceneRenderer(
             }
           : null,
         doorVisualCreateCount,
-        dragRouteLineCount: dragRouteLayer.children.length,
+        dragRouteLabel:
+          dragRouteLayer.children.find((child): child is PixiText => child instanceof pixi.Text)
+            ?.text ?? null,
+        dragRouteLineCount: dragRouteLayer.children.filter((child) => !(child instanceof pixi.Text))
+          .length,
         facingIndicatorCount: [...tokenVisuals.values()].filter(({ visual }) =>
           visual.getChildByLabel(tokenFacingLabel)
         ).length,
@@ -2780,7 +2843,7 @@ export async function createVttSceneRenderer(
     greyTileLayer = null
   }
 
-  function measurementLabel(scene: CampaignSceneStateDto, path: ScenePoint[]): PixiText {
+  function measurementLabel(path: readonly ScenePoint[], text: string): PixiText {
     const first = path[0]!
     const last = path[path.length - 1]!
     const label: PixiText = new pixi.Text({
@@ -2791,7 +2854,7 @@ export async function createVttSceneRenderer(
         fontWeight: '700',
         stroke: { color: '#101315', width: 4 }
       },
-      text: formatSceneMeasurement(scene.grid, path)
+      text
     })
     label.anchor.set(0.5, 1)
     label.position.set((first.x + last.x) / 2, (first.y + last.y) / 2 - 6)

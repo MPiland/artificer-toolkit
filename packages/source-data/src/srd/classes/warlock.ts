@@ -7,6 +7,7 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
@@ -15,6 +16,7 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
+  PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
@@ -32,11 +34,13 @@ import {
   type ClosedRuleKind,
   type EffectAuthored
 } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { srdSpells } from '../spells/index.js'
+import { creatureTypeId } from '../spells/shared.js'
 import {
   SRD_CURRENCIES,
-  SRD_DARKVISION_SENSE_ID,
+  SRD_DEVILS_SIGHT_SENSE_ID,
   SRD_SKILLS,
   SRD_SYSTEM_ID,
   SRD_USER_ID
@@ -739,9 +743,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_WARLOCK_ARMOR_OF_SHADOWS_COMPONENTS)
-          ],
           order: 1
         },
         {
@@ -757,7 +758,7 @@ export const warlock: ClassAuthored = {
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-                senseIds: [SRD_DARKVISION_SENSE_ID],
+                senseIds: [SRD_DEVILS_SIGHT_SENSE_ID],
                 range: {
                   id: classRowId(W, 0x50, 2),
                   rangeKind: RANGE_KIND.DISTANCE,
@@ -768,7 +769,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [selfClassRuleEffect(2, CLOSED_RULE_KIND.CLASS_WARLOCK_DEVILS_SIGHT)],
           order: 2
         },
         {
@@ -815,9 +815,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(3, CLOSED_RULE_KIND.CLASS_WARLOCK_FIENDISH_VIGOR_COMPONENTS)
-          ],
           order: 4
         },
         {
@@ -859,9 +856,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(4, CLOSED_RULE_KIND.CLASS_WARLOCK_MISTY_VISIONS_COMPONENTS)
-          ],
           order: 6
         },
         {
@@ -989,9 +983,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(12, CLOSED_RULE_KIND.CLASS_WARLOCK_BOOK_OF_ANCIENT_SECRETS)
-          ],
           // Requires Pact of the Tome (classRowId(W, 3, 25))
           restrictions: {
             id: classRowId(W, 6, 1),
@@ -1036,11 +1027,16 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.HOLD_MONSTER],
                 attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+                allowedCreatureTypeIds: [
+                  creatureTypeId('CELESTIAL'),
+                  creatureTypeId('FIEND'),
+                  creatureTypeId('ELEMENTAL')
+                ],
+                perTargetLockout: { until: 'SOURCE_LONG_REST' },
                 order: 0
               }
             ]
           },
-          effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_WARLOCK_CHAINS_OF_CARCERI)],
           // Requires warlock level 15 + Pact of the Chain (classRowId(W, 3, 22))
           restrictions: {
             id: classRowId(W, 6, 5),
@@ -1197,7 +1193,6 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 9),
           label: 'Eyes of the Rune Keeper',
           description: 'You can read all writing.',
-          effects: [selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_WARLOCK_EYES_OF_RUNE_KEEPER)],
           // No requirements. Passive ability — description-only.
           order: 14
         },
@@ -1206,22 +1201,41 @@ export const warlock: ClassAuthored = {
           label: 'Gaze of Two Minds',
           description:
             "You can use your action to touch a willing humanoid and perceive through its senses until the end of your next turn. As long as the creature is on the same plane of existence as you, you can use your action on subsequent turns to maintain this connection, extending the duration until the end of your next turn. While perceiving through the other creature's senses, you benefit from any special senses possessed by that creature, and you are blinded and deafened to your own surroundings.",
-          // No requirements. Action-based ability — description-only.
+          // Perceiving through the touched humanoid stays description (D156); the action leaves
+          // you blinded and deafened to your own surroundings until the end of your next turn.
           effects: [
-            closedRuleEffect({
+            {
               id: classRowId(W, 0x60, 16),
-              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_GAZE_OF_TWO_MINDS,
+              order: 1,
               invocation: {
                 kind: 'ACTION',
                 triggerCode: TRIGGER.ACTIVATED,
                 activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-                range: { id: classRowId(W, 0x69, 16), rangeKind: RANGE_KIND.TOUCH },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.WILLING
+                range: { id: classRowId(W, 0x69, 16), rangeKind: RANGE_KIND.SELF },
+                targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+              },
+              paths: [
+                {
+                  id: classRowId(W, 0x80, 16),
+                  order: 1,
+                  pathCode: PATH_CODE.ON_USE,
+                  groupType: PATH_GROUP_TYPE.SINGLE,
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: classRowId(W, 0x81, 16),
+                    resultKind: 'SINGLE',
+                    duration: { id: classRowId(W, 0x83, 16), durationKind: 'ROUND', amount: 1 },
+                    lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } },
+                    outcomes: (['BLINDED', 'DEAFENED'] as const).map((code, index) => ({
+                      id: classRowId(W, 0x82, 16 + index),
+                      effectKind: EFFECT_KIND.CONDITION,
+                      conditionId: conditionTypeId(code)
+                    }))
+                  }
                 }
-              }
-            })
+              ]
+            }
           ],
           order: 15
         },
@@ -1555,9 +1569,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_WARLOCK_OTHERWORLDLY_LEAP_COMPONENTS)
-          ],
           order: 21
         },
         {
@@ -1981,7 +1992,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [selfClassRuleEffect(25, CLOSED_RULE_KIND.CLASS_WARLOCK_PACT_OF_TOME)],
           order: 2
         }
       ]

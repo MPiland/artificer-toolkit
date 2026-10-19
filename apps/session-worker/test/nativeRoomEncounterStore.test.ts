@@ -1,5 +1,4 @@
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test'
-import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 import { LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import { DurableCommandJournal } from '../src/durableCommandJournal.js'
@@ -9,6 +8,7 @@ import {
   SCENE_EVIDENCE_ROW
 } from '../src/roomEncounterStore.js'
 import { aggregate, command, encounterId, uuid } from '../src/testing/roomAggregateFixture.js'
+import { roomStub } from './roomTeardown.js'
 
 /**
  * The room store on real Durable Object SQLite: the billed row counts come from the storage
@@ -16,8 +16,7 @@ import { aggregate, command, encounterId, uuid } from '../src/testing/roomAggreg
  */
 
 const EPOCH = uuid(0x900)
-const stubFor = () =>
-  env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(`store:${crypto.randomUUID()}`))
+const stubFor = () => roomStub(`store:${crypto.randomUUID()}`)
 
 function snapshotOf(room: RoomEncounterStore) {
   return {

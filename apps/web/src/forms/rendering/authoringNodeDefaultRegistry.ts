@@ -65,6 +65,7 @@ type AuthoringDefaultKind =
   | 'followUpSaveBranch'
   | 'followUpSaveFailureMarginRider'
   | 'followUpSaveFailureMarginRiderLifecycle'
+  | 'forcedMovementCollision'
   | 'followUpSaveRepeatAttemptGate'
   | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
@@ -82,6 +83,9 @@ type AuthoringDefaultKind =
   | 'manifestProximityRule'
   | 'measurement'
   | 'measurementScalingBreakpoint'
+  | 'incomingGateSuccessImmunity'
+  | 'modifierAttackDecoyArmorClass'
+  | 'modifierAttackDecoyThreshold'
   | 'modifierChargeLimitLevel'
   | 'modifierGrant'
   | 'modifierGrantDomain'
@@ -93,12 +97,14 @@ type AuthoringDefaultKind =
   | 'outcomeBreakpointValue'
   | 'outcomeBonus'
   | 'pathChoiceOption'
+  | 'pathChosenItem'
   | 'pathLifecycle'
   | 'pathLifecycleEndTrigger'
   | 'pathLifecycleEscape'
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleTurnAnchor'
   | 'pathRollTableRow'
+  | 'perTargetLockout'
   | 'proficiencyGrant'
   | 'raceAncestry'
   | 'raceAncestryOption'
@@ -116,6 +122,7 @@ type AuthoringDefaultKind =
   | 'senseGrantLevel'
   | 'senseGrantProgression'
   | 'shape'
+  | 'sizeLimit'
   | 'speed'
   | 'spellGrant'
   | 'spellGrantLevel'
@@ -124,6 +131,7 @@ type AuthoringDefaultKind =
   | 'startingEquipmentCurrency'
   | 'startingEquipmentGroup'
   | 'spellCast'
+  | 'featureWeaponAttack'
   | 'startingEquipmentItem'
   | 'startingEquipmentOption'
   | 'startingEquipmentSet'
@@ -133,6 +141,7 @@ type AuthoringDefaultKind =
   | 'hitPointPool'
   | 'hitPointPoolScalingBreakpoint'
   | 'targeting'
+  | 'damageDieCastLevelScaling'
   | 'damageLevelScalingEntry'
   | 'weight'
 
@@ -212,6 +221,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveBranch: ['followUpSaveBranch'],
   followUpSaveFailureMarginRider: ['followUpSaveFailureMarginRider'],
   followUpSaveFailureMarginRiderLifecycle: ['followUpSaveFailureMarginRiderLifecycle'],
+  forcedMovementCollision: ['forcedMovementCollision'],
   followUpSaveRepeatAttemptGate: ['followUpSaveRepeatAttemptGate'],
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
@@ -229,6 +239,9 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestProximityRule: ['manifestProximityRule'],
   measurement: ['measurement', 'shapeMeasurement'],
   measurementScalingBreakpoint: ['rangeScalingBreakpoint', 'shapeMeasurementScalingBreakpoint'],
+  incomingGateSuccessImmunity: ['incomingGateSuccessImmunity'],
+  modifierAttackDecoyArmorClass: ['modifierAttackDecoyArmorClass'],
+  modifierAttackDecoyThreshold: ['modifierAttackDecoyThreshold'],
   modifierChargeLimitLevel: ['modifierChargeLimitLevel'],
   modifierGrant: ['modifierGrant'],
   modifierGrantDomain: ['modifierGrantDomain'],
@@ -240,12 +253,14 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   outcomeBreakpointValue: ['outcomeBreakpointValue'],
   outcomeBonus: ['outcomeBonus'],
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
+  pathChosenItem: ['pathChosenItem'],
   pathLifecycle: ['pathLifecycle'],
   pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
   pathLifecycleEscape: ['pathLifecycleEscape'],
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],
+  perTargetLockout: ['perTargetLockout'],
   proficiencyGrant: ['proficiencyGrant'],
   raceAncestry: ['raceAncestry'],
   raceAncestryOption: ['raceAncestryOption'],
@@ -269,6 +284,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   senseGrantLevel: ['senseGrantLevel'],
   senseGrantProgression: ['senseGrantProgression'],
   shape: ['shape'],
+  sizeLimit: ['sizeLimit'],
   speed: ['speed'],
   spellGrant: ['spellGrant'],
   spellGrantLevel: ['spellGrantLevel'],
@@ -277,6 +293,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   startingEquipmentCurrency: ['startingEquipmentCurrency'],
   startingEquipmentGroup: ['startingEquipmentGroup'],
   spellCast: ['spellCast'],
+  featureWeaponAttack: ['featureWeaponAttack'],
   startingEquipmentItem: ['startingEquipmentItem'],
   startingEquipmentOption: ['startingEquipmentOption'],
   startingEquipmentSet: ['startingEquipmentSet'],
@@ -284,6 +301,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   summonStatBlock: ['summonStatBlock'],
   targetCount: ['targetCount'],
   targeting: ['targeting'],
+  damageDieCastLevelScaling: ['damageDieCastLevelScaling'],
   damageLevelScalingEntry: ['damageLevelScalingEntry'],
   weight: ['weight']
 }

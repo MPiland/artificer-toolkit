@@ -94,6 +94,8 @@ export function planNativeLiveEncounterSettlement(input: {
   prepared: Awaited<ReturnType<typeof prepareEncounterActionMechanics<CharacterFacts>>>
   mechanics: ReturnType<typeof planNativeEncounterActionMechanics>
   effects: ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>
+  /** The id the action's lasting effect takes, minted before its applications name it (D156). */
+  recurringEffectId: string
   /** The effect plan of the reaction the target used against this action, when it used one. */
   reactionEffect: {
     id: string
@@ -101,6 +103,13 @@ export function planNativeLiveEncounterSettlement(input: {
       ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>['stateEffect']
     >
   } | null
+  /** The timed grants the target's own passive damage triggers made from this hit, after its other effects. */
+  damageGrants: readonly {
+    id: string
+    plan: NonNullable<
+      ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>['stateEffect']
+    >
+  }[]
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
   actionEconomyOverridden: boolean
   attackAction: EncounterAttackActionTransitionDto | null
@@ -143,11 +152,21 @@ export function planNativeLiveEncounterSettlement(input: {
     return record
   }
   const stateEffect = create(effects.stateEffect)
-  const recurringEffect = create(effects.recurringEffect, maintainedState?.id)
-  const riderEffect = create(effects.riderEffect, maintainedState?.id)
+  const recurringEffect = create(
+    effects.recurringEffect,
+    maintainedState?.id,
+    input.recurringEffectId
+  )
+  const riderEffect = create(
+    effects.riderEffect,
+    effects.riderMaintained ? maintainedState?.id : undefined
+  )
   // The effect of the reaction the target used lands on the target after the attack's own effects.
   const reactionEffect =
     input.reactionEffect && create(input.reactionEffect.plan, undefined, input.reactionEffect.id)
+  const damageGrantEffects = input.damageGrants.map((grant) =>
+    create(grant.plan, undefined, grant.id)
+  )
   const consumedActor = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: mechanics.settledSource,
@@ -230,6 +249,14 @@ export function planNativeLiveEncounterSettlement(input: {
       recurring: reactionEffect,
       targetActorId: prepared.target.id
     }).activeEffectTransitions,
+    grantEffectTransitions: damageGrantEffects.flatMap(
+      (grant) =>
+        projectNativeActionEffectTransitions({
+          state: null,
+          recurring: grant,
+          targetActorId: prepared.target.id
+        }).activeEffectTransitions
+    ),
     maintenanceTransition:
       maintainedState && maintenance
         ? buildEncounterMaintenanceTransition({

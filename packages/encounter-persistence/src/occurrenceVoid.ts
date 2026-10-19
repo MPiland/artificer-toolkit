@@ -93,7 +93,7 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
     case 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE':
       return answerRequired('A Legendary Action roll')
     case 'ENCOUNTER_SPATIAL_MOVEMENT':
-    case 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST':
+    case 'ENCOUNTER_CONTEST_CHECK':
       return answerRequired('Dice during a move')
     case 'NONE':
       return answerRequired('This decision')

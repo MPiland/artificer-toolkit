@@ -57,13 +57,8 @@ export const dream: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.DREAM, 0x212, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.DREAM, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'DREAM' as const
-              },
               {
                 id: spellChildId(SPELL_IDS.DREAM, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,

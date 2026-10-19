@@ -1,6 +1,8 @@
-import type { ChargeLimitPayload } from '#authored'
+import type { ChargeLimitPayload, DurationAuthored, SavingThrowAuthored } from '#authored'
 import type {
   AbilityCode,
+  AbilityModifierReference,
+  AttackDomainCode,
   ChargeResetKind,
   DurationKind,
   RangeKind,
@@ -8,7 +10,9 @@ import type {
   ValueDomainCode,
   CoreMeta,
   LengthUnitCode,
-  ValueDomainOptionPayloadByDomain
+  MovementPassageOption,
+  ValueDomainOptionPayloadByDomain,
+  ValueDomainParam
 } from '#core'
 import { valuesOf } from '#utils'
 
@@ -28,6 +32,8 @@ export const MODIFIER_KIND = {
   // Roll state
   ADVANTAGE: 'ADVANTAGE',
   DISADVANTAGE: 'DISADVANTAGE',
+  NEGATE_ADVANTAGE: 'NEGATE_ADVANTAGE',
+  MINIMUM_ROLL: 'MINIMUM_ROLL',
 
   // Switches a domain's rule on; the domain says what it enables
   ENABLE: 'ENABLE',
@@ -90,8 +96,8 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
 
   ADD_BONUS_DIE: {
     code: MODIFIER_KIND.ADD_BONUS_DIE,
-    label: 'Add Bonus Die',
-    description: 'Add an additional die to the roll.'
+    label: 'Add Rolled Die',
+    description: 'Roll dice and add them to, or subtract them from, the d20 test or the damage.'
   },
 
   REPLACE_DAMAGE_TYPE: {
@@ -110,6 +116,18 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     code: MODIFIER_KIND.DISADVANTAGE,
     label: 'Disadvantage',
     description: 'Grant disadvantage on the roll.'
+  },
+
+  NEGATE_ADVANTAGE: {
+    code: MODIFIER_KIND.NEGATE_ADVANTAGE,
+    label: 'Negate Advantage',
+    description: 'The roll cannot have advantage; disadvantage still applies.'
+  },
+
+  MINIMUM_ROLL: {
+    code: MODIFIER_KIND.MINIMUM_ROLL,
+    label: 'Minimum Roll',
+    description: 'Treat each d20 rolled for the test as at least this number.'
   },
 
   ENABLE: {
@@ -218,7 +236,12 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.DISADVANTAGE
   ],
 
-  ABILITY_CHECK: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE],
+  ABILITY_CHECK: [
+    MODIFIER_KIND.ADVANTAGE,
+    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.ADD_BONUS_DIE,
+    MODIFIER_KIND.MINIMUM_ROLL
+  ],
 
   SAVE_DC: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
 
@@ -226,7 +249,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
     MODIFIER_KIND.ADVANTAGE,
-    MODIFIER_KIND.DISADVANTAGE
+    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.ADD_BONUS_DIE
   ],
 
   ATTACK_ROLL: [
@@ -235,16 +259,33 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.ADVANTAGE,
     MODIFIER_KIND.DISADVANTAGE,
     MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
-    MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
+    MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+    MODIFIER_KIND.ADD_BONUS_DIE
   ],
 
-  ATTACKS_AGAINST: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE],
+  ATTACKS_AGAINST: [
+    MODIFIER_KIND.ADVANTAGE,
+    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.NEGATE_ADVANTAGE
+  ],
+
+  ATTACK_TRAIT: [MODIFIER_KIND.ENABLE],
+
+  WEAPON_DAMAGE_DIE: [MODIFIER_KIND.SET_VALUE],
+
+  CRITICAL_HIT_THRESHOLD: [MODIFIER_KIND.CAP_VALUE],
+
+  CRITICAL_EXTRA_DICE: [MODIFIER_KIND.BONUS],
 
   OPPORTUNITY_ATTACK_IMMUNITY: [MODIFIER_KIND.ENABLE],
 
   SPELLCASTING_LOCK: [MODIFIER_KIND.ENABLE],
 
   ACTION_BONUS_ACTION_EXCLUSIVITY: [MODIFIER_KIND.ENABLE],
+
+  ATTACK_DECOYS: [MODIFIER_KIND.ENABLE],
+
+  INCOMING_ATTACK_GATE: [MODIFIER_KIND.ENABLE],
 
   SKILL_MODIFIER: [
     MODIFIER_KIND.BONUS,
@@ -288,6 +329,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
   ],
 
   MOVEMENT_MODE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+
+  MOVEMENT_PASSAGE: [MODIFIER_KIND.ADD_OPTION],
 
   SENSE_RANGE: [MODIFIER_KIND.BONUS],
 
@@ -341,6 +384,10 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   CONDITION_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
+  SPELL_SCHOOL_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+
+  CHECKS_AGAINST_HOLDER: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+
   ATTRIBUTE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION]
 } as const satisfies Record<ValueDomainCode, readonly ModifierKind[]>
 
@@ -365,14 +412,21 @@ export type ModifierValueDomainOptionPayloadByDomain = {
 
   CONDITION_IMMUNITY: { conditionTypeId: string }
 
+  SPELL_SCHOOL_IMMUNITY: { magicSchoolId: string }
+
+  CHECKS_AGAINST_HOLDER: { skillId: string }
+
   ATTRIBUTE: { attributeId: string }
 
   MOVEMENT_MODE: { movementModeId: string }
+
+  MOVEMENT_PASSAGE: MovementPassageOption
 }
 
 export const MODIFIER_VALUE_SOURCE_CODE = {
   FIXED: 'FIXED',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
+  ABILITY_MODIFIER: 'ABILITY_MODIFIER',
   SKILL_BONUS: 'SKILL_BONUS',
   CHARACTER_LEVEL: 'CHARACTER_LEVEL',
   CLASS_LEVEL: 'CLASS_LEVEL',
@@ -397,6 +451,12 @@ export const MODIFIER_VALUE_SOURCE_REGISTRY: Record<
     code: MODIFIER_VALUE_SOURCE_CODE.PROFICIENCY_BONUS,
     label: 'Proficiency Bonus',
     description: 'Automatically scales with character level.'
+  },
+
+  ABILITY_MODIFIER: {
+    code: MODIFIER_VALUE_SOURCE_CODE.ABILITY_MODIFIER,
+    label: 'Ability Modifier',
+    description: 'Adds an ability modifier, optionally scaled and bounded.'
   },
 
   SKILL_BONUS: {
@@ -435,58 +495,183 @@ export const MODIFIER_VALUE_SOURCE_OPTIONS = valuesOf(
 export type ModifierScalarValueAuthored =
   | { valueKind: 'FIXED'; amount: number }
   | { valueKind: 'PROFICIENCY_BONUS'; multiplier?: number }
+  | {
+      valueKind: 'ABILITY_MODIFIER'
+      ability: AbilityCode
+      multiplier?: number
+      min?: number
+      max?: number
+    }
   | { valueKind: 'SKILL_BONUS'; skillId: string; multiplier?: number }
   | { valueKind: 'CHARACTER_LEVEL'; multiplier?: number }
   | { valueKind: 'CLASS_LEVEL'; classId: string; multiplier?: number }
   // NOTE: slot/spell level is contextual; keep it scalar-only if needed
-  | { valueKind: 'SPELL_SLOT_LEVEL'; multiplier?: number; subtractLevels?: number }
+  | {
+      valueKind: 'SPELL_SLOT_LEVEL'
+      multiplier?: number
+      subtractLevels?: number
+      /** Slot levels per step of `multiplier` (Magic Weapon's +1 per two levels); default 1. */
+      levelsPerStep?: number
+      maximum?: number
+    }
 
 /** A speed or sense range modifier is a typed length, never a bare number (D112). */
 export type ModifierLengthAuthored = { amount: number; unit: LengthUnitCode }
 
+/** The die sizes a rolled-die modifier rolls. */
+export const ROLLED_DIE_FACES = [4, 6, 8, 10, 12] as const
+
+/** The most dice one rolled-die modifier rolls. */
+export const MAX_ROLLED_DIE_COUNT = 10
+
+/** Whether a rolled die adds to the d20 test's total or subtracts from it. */
+export const ROLLED_DIE_SIGN = { ADD: 'ADD', SUBTRACT: 'SUBTRACT' } as const
+export type RolledDieSign = (typeof ROLLED_DIE_SIGN)[keyof typeof ROLLED_DIE_SIGN]
+
+export const ROLLED_DIE_SIGN_OPTIONS: readonly CoreMeta<RolledDieSign>[] = [
+  { code: ROLLED_DIE_SIGN.ADD, label: 'Add' },
+  { code: ROLLED_DIE_SIGN.SUBTRACT, label: 'Subtract' }
+]
+
+/**
+ * Dice rolled with a d20 test and added to or subtracted from its total after advantage or
+ * disadvantage keeps one d20 (Bless's +1d4, Bane's -1d4).
+ */
+export type ModifierRolledDieAuthored = {
+  count: number
+  faces: (typeof ROLLED_DIE_FACES)[number]
+  sign: RolledDieSign
+}
+
+/** Who deals the damage a rolled damage die joins: the holder, or the effect's source to the holder. */
+export const DAMAGE_DIE_RECIPIENT = {
+  HOLDER_DEALS: 'HOLDER_DEALS',
+  SOURCE_DEALS_TO_HOLDER: 'SOURCE_DEALS_TO_HOLDER'
+} as const
+export type DamageDieRecipient = (typeof DAMAGE_DIE_RECIPIENT)[keyof typeof DAMAGE_DIE_RECIPIENT]
+
+export const DAMAGE_DIE_RECIPIENT_OPTIONS: readonly CoreMeta<DamageDieRecipient>[] = [
+  {
+    code: DAMAGE_DIE_RECIPIENT.HOLDER_DEALS,
+    label: 'Damage the holder deals',
+    description: 'Joins the damage of the holder’s attacks (Divine Favor).'
+  },
+  {
+    code: DAMAGE_DIE_RECIPIENT.SOURCE_DEALS_TO_HOLDER,
+    label: 'Damage the source deals to the holder',
+    description: 'Joins the damage the effect’s source deals to the marked holder (Hunter’s Mark).'
+  }
+]
+
+/**
+ * Dice a damage roll adds (Divine Favor's 1d4 radiant) or subtracts (Reduce's 1d4), doubled on a
+ * critical hit. An added die names its damage type or takes the attack's; a subtracted die always
+ * lowers the attack's damage. A slot-scaled die adds `countPerCastLevelAbove.count` dice per cast
+ * level above `level`, fixed at the cast (Branding Smite).
+ */
+export type ModifierDamageDieAuthored = Omit<ModifierRolledDieAuthored, 'sign'> & {
+  recipient: DamageDieRecipient
+  countPerCastLevelAbove?: { level: number; count: number }
+} & (
+    | { sign: typeof ROLLED_DIE_SIGN.ADD; damageTypeId: string }
+    | { sign: RolledDieSign; damageTypeSource: 'ATTACK' }
+  )
+
+/**
+ * The domain a modifier kind is scoped by. A rolled die on saving throws may omit the ability, so
+ * one grant covers every save, death saves included (D156); a rolled damage die may omit the attack
+ * domain, so it joins every damage its recipient deals, spells included (Bestow Curse).
+ */
+export type ModifierDomainFor<
+  V extends ValueDomainCode,
+  K extends ModifierKind
+> = K extends 'ADD_BONUS_DIE'
+  ? V extends 'SAVING_THROW_MODIFIER'
+    ? { ability?: AbilityCode }
+    : V extends 'DAMAGE'
+      ? { attackDomain?: AttackDomainCode }
+      : ValueDomainParam<V>
+  : ValueDomainParam<V>
+
 /** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
 export type ModifierFractionAuthored = { numerator: number; denominator: number }
 
+/**
+ * The decoys an attack against the holder may target instead (Mirror Image): each decoy's armor
+ * class formula, and the d20 roll an attack needs to target one while that many remain.
+ */
+export type ModifierAttackDecoysAuthored = {
+  armorClass: { amount: number; abilities: AbilityCode[] }
+  thresholds: { id: string; remaining: number; minimumRoll: number }[]
+  exemptAttackerSenseDefinitionIds?: string[]
+}
+
+/**
+ * While held, a creature that targets the holder with a single-target attack or harmful spell must
+ * first make this save against the holder's source; on a failure the attack or spell is lost.
+ */
+export type ModifierIncomingAttackGateAuthored = {
+  savingThrow: SavingThrowAuthored
+  /** Only attackers of these Creature types owe the save (Nature's Sanctuary: beasts and plants). */
+  attackerCreatureTypeIds?: string[]
+  /** An attacker who passes is free of this ward for the duration. */
+  successImmunity?: { duration: DurationAuthored }
+}
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
-  K extends 'MULTIPLY'
-    ? ModifierFractionAuthored
-    : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
-      ? V extends 'SPEED' | 'SENSE_RANGE'
-        ? ModifierLengthAuthored
-        : K extends 'SET_VALUE' | 'CAP_VALUE'
-          ? V extends 'DURATION'
-            ?
-                | { durationKind: Extract<DurationKind, 'INSTANTANEOUS'> }
-                | { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>; amount: number }
-            : V extends 'ARMOR_CLASS'
-              ? // An armor class formula: the amount plus each listed ability modifier.
-                { amount: number; abilities: AbilityCode[] }
-              : { amount: number }
-          : ModifierScalarValueAuthored
-      : K extends 'ABILITY_MODIFIER_BONUS'
-        ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
-        : K extends 'MODIFY_CHARGE_LIMIT'
-          ? ChargeLimitPayload
-          : K extends 'ADD_BONUS_DIE'
-            ? { dice: string }
-            : K extends 'REPLACE_DAMAGE_TYPE'
-              ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-              : K extends 'REPLACE_RANGE_KIND'
-                ? { rangeKind: RangeKind }
-                : K extends 'REPLACE_DURATION_KIND'
-                  ? { durationKind: DurationKind }
-                  : K extends 'REPLACE_SHAPE_KIND'
-                    ? { shapeKind: ShapeKind }
-                    : K extends 'REPLACE_CHARGE_RESET_KIND'
-                      ? { resetKind: ChargeResetKind }
-                      : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-                        ? undefined
-                        : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                          ? { abilities: AbilityCode[]; min?: number; max?: number }
-                          : // option-like operations must be domain-supported
-                            K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                            ? V extends keyof ValueDomainOptionPayloadByDomain
-                              ? ValueDomainOptionPayloadByDomain[V]
-                              : never
-                            : never
+  K extends 'ENABLE'
+    ? V extends 'ATTACK_DECOYS'
+      ? ModifierAttackDecoysAuthored
+      : V extends 'INCOMING_ATTACK_GATE'
+        ? ModifierIncomingAttackGateAuthored
+        : undefined
+    : K extends 'MULTIPLY'
+      ? ModifierFractionAuthored
+      : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
+        ? V extends 'SPEED' | 'SENSE_RANGE'
+          ? ModifierLengthAuthored
+          : K extends 'SET_VALUE' | 'CAP_VALUE'
+            ? V extends 'DURATION'
+              ?
+                  | { durationKind: Extract<DurationKind, 'INSTANTANEOUS'> }
+                  | { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>; amount: number }
+              : V extends 'ARMOR_CLASS'
+                ? // An armor class formula: the amount plus each listed ability modifier.
+                  { amount: number; abilities: AbilityCode[] }
+                : { amount: number }
+            : ModifierScalarValueAuthored
+        : K extends 'ABILITY_MODIFIER_BONUS'
+          ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
+          : K extends 'MODIFY_CHARGE_LIMIT'
+            ? ChargeLimitPayload
+            : K extends 'MINIMUM_ROLL'
+              ? { amount: number }
+              : K extends 'ADD_BONUS_DIE'
+                ? V extends 'DAMAGE'
+                  ? ModifierDamageDieAuthored
+                  : ModifierRolledDieAuthored
+                : K extends 'REPLACE_DAMAGE_TYPE'
+                  ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+                  : K extends 'REPLACE_RANGE_KIND'
+                    ? { rangeKind: RangeKind }
+                    : K extends 'REPLACE_DURATION_KIND'
+                      ? { durationKind: DurationKind }
+                      : K extends 'REPLACE_SHAPE_KIND'
+                        ? { shapeKind: ShapeKind }
+                        : K extends 'REPLACE_CHARGE_RESET_KIND'
+                          ? { resetKind: ChargeResetKind }
+                          : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'NEGATE_ADVANTAGE' | 'ENABLE'
+                            ? undefined
+                            : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                              ? {
+                                  abilities: AbilityModifierReference[]
+                                  min?: number
+                                  max?: number
+                                }
+                              : // option-like operations must be domain-supported
+                                K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                                ? V extends keyof ValueDomainOptionPayloadByDomain
+                                  ? ValueDomainOptionPayloadByDomain[V]
+                                  : never
+                                : never

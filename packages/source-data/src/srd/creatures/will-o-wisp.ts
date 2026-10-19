@@ -116,18 +116,6 @@ export const willOWisp: CreatureAuthored = {
       id: S.featureId(294, 2),
       label: 'Ephemeral',
       description: "Ephemeral. The will-o'-wisp can't wear or carry anything.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(294, 207),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(294, 208), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_EPHEMERAL
-        })
-      ],
       order: 2
     },
     {
@@ -135,47 +123,12 @@ export const willOWisp: CreatureAuthored = {
       label: 'Incorporeal Movement',
       description:
         "Incorporeal Movement. The will-o'-wisp can move through other creatures and objects as if they were difficult terrain. It takes 5 (1d10) force damage if it ends its turn inside an object.",
-      effects: [
-        {
-          id: S.actionId(294, 209),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(294, 210), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          paths: [
-            {
-              id: S.actionId(294, 211),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(294, 212),
-                resultKind: 'SEQUENCE',
-                outcomes: [
-                  {
-                    id: S.actionId(294, 213),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('FORCE'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d10'
-                  },
-                  {
-                    id: S.actionId(294, 214),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_INCORPOREAL_MOVEMENT
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
+      grants: S.movementPassageGrants(S.actionId(294, 209), {
+        creatures: 'ANY',
+        mayEndInCreature: false,
+        blockingBarriers: true,
+        costMultiplier: 2
+      }),
       order: 3
     },
     {
@@ -183,19 +136,8 @@ export const willOWisp: CreatureAuthored = {
       label: 'Variable Illumination',
       description:
         "Variable Illumination. The will-o'-wisp sheds bright light in a 5- to 20-foot radius and dim light for an additional number of feet equal to the chosen radius. The will-o'-wisp can alter the radius as a bonus action.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(294, 215),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
-            range: { id: S.actionId(294, 216), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_VARIABLE_ILLUMINATION
-        })
-      ],
+      // Shed at its widest radius; choosing a smaller one is a deferred edge case.
+      effects: [S.shedLightEffect(294, 215, 20, 20)],
       order: 4
     },
     {

@@ -15,6 +15,7 @@ const fixtureId = (suffix: number) =>
 
 export const ESCAPE_GRAPPLE_RELATIONSHIP_OUTCOME_ID = fixtureId(4)
 export const ESCAPE_GRAPPLE_MODULE_ID = fixtureId(5)
+export const DRAG_GRAPPLE_MODULE_ID = fixtureId(6)
 
 /**
  * The relationship effect a grapple leaves on its target: one fixed-DC Escape module the target
@@ -32,6 +33,8 @@ export function escapeGrappleEffectDefinition(input: {
   checks?: { skillIds: string[]; abilityDefinitionIds: string[] }
   /** Who may attempt the escape; the holder itself only when this includes `TARGET`. */
   actorKinds?: ('TARGET' | 'CREATURE_WITHIN_REACH')[]
+  /** The grappler's moves drag the target (D105). */
+  dragged?: boolean
 }): ActiveRuleEffectDefinitionDto {
   const definitionId = fixtureId(0)
   const entryId = fixtureId(1)
@@ -77,6 +80,7 @@ export function escapeGrappleEffectDefinition(input: {
       {
         kind: 'ACTOR_RELATIONSHIP',
         relationshipOutcomeId: ESCAPE_GRAPPLE_RELATIONSHIP_OUTCOME_ID,
+        sealedReachFeet: 5,
         modules: [
           {
             id: ESCAPE_GRAPPLE_MODULE_ID,
@@ -89,7 +93,10 @@ export function escapeGrappleEffectDefinition(input: {
             },
             dc: { kind: 'FIXED', value: input.dc ?? 13 },
             actorKinds: input.actorKinds ?? ['TARGET']
-          }
+          },
+          ...(input.dragged
+            ? [{ id: DRAG_GRAPPLE_MODULE_ID, order: 1, kind: 'TARGET_DRAGGED' as const }]
+            : [])
         ],
         conditionIds: [...input.conditionIds],
         capabilitySuppressions: []

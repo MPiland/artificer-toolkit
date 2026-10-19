@@ -24,16 +24,22 @@ const OPTION_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPola
   DAMAGE_RESISTANCE: 'BENEFICIAL',
   DAMAGE_IMMUNITY: 'BENEFICIAL',
   CONDITION_IMMUNITY: 'BENEFICIAL',
+  SPELL_SCHOOL_IMMUNITY: 'BENEFICIAL',
+  CHECKS_AGAINST_HOLDER: 'BENEFICIAL',
   MOVEMENT_MODE: 'BENEFICIAL',
-  DAMAGE_VULNERABILITY: 'HARMFUL',
-  CONDITION: 'HARMFUL'
+  MOVEMENT_PASSAGE: 'BENEFICIAL',
+  CONDITION: 'BENEFICIAL',
+  DAMAGE_VULNERABILITY: 'HARMFUL'
 }
 
 /** What enabling something does for the holder; any other enabled domain is neutral. */
 const ENABLE_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPolarity>>> = {
   OPPORTUNITY_ATTACK_IMMUNITY: 'BENEFICIAL',
+  ATTACK_TRAIT: 'BENEFICIAL',
   SPELLCASTING_LOCK: 'HARMFUL',
-  ACTION_BONUS_ACTION_EXCLUSIVITY: 'HARMFUL'
+  ACTION_BONUS_ACTION_EXCLUSIVITY: 'HARMFUL',
+  ATTACK_DECOYS: 'BENEFICIAL',
+  INCOMING_ATTACK_GATE: 'BENEFICIAL'
 }
 
 /**
@@ -45,6 +51,7 @@ const SET_VALUE_DOMAIN_POLARITY: Readonly<
 > = {
   SPEED: { zero: 'HARMFUL', positive: 'BENEFICIAL' },
   ACTION_COUNT: { positive: 'BENEFICIAL' },
+  WEAPON_DAMAGE_DIE: { positive: 'BENEFICIAL' },
   REACTION_COUNT: { zero: 'HARMFUL' }
 }
 
@@ -66,6 +73,7 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
     case 'ADVANTAGE':
       return domain === 'ATTACKS_AGAINST' ? 'HARMFUL' : 'BENEFICIAL'
     case 'DISADVANTAGE':
+    case 'NEGATE_ADVANTAGE':
       return domain === 'ATTACKS_AGAINST' ? 'BENEFICIAL' : 'HARMFUL'
     case 'BONUS':
     case 'PENALTY': {
@@ -78,7 +86,11 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
       return sign === 0 ? 'NEUTRAL' : sign > 0 ? 'BENEFICIAL' : 'HARMFUL'
     }
     case 'ADD_BONUS_DIE':
+      return payload !== undefined && 'sign' in payload && payload.sign === 'SUBTRACT'
+        ? 'HARMFUL'
+        : 'BENEFICIAL'
     case 'OPTIONAL_ABILITY_MODIFIER_BONUS':
+    case 'MINIMUM_ROLL':
       return 'BENEFICIAL'
     case 'ENABLE':
       return ENABLE_DOMAIN_POLARITY[domain] ?? 'NEUTRAL'
@@ -109,8 +121,7 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
  * - A bonus or penalty follows its sign; a negative amount or multiplier flips it, zero is neutral.
  * - An ability modifier bonus helps; a negative multiplier harms and a zero one is neutral. An
  *   optional ability modifier bonus always helps.
- * - A bonus die helps: its payload names only the dice and cannot express a subtracted one (Bane is
- *   a closed rule, not a grant).
+ * - A rolled die helps when it adds (Bless) and harms when it subtracts (Bane).
  * - Enabling something is read by the domains in `ENABLE_DOMAIN_POLARITY` (opportunity attack
  *   immunity helps, the spellcasting lock harms); any other enabled domain is neutral.
  * - Setting a value is read by domain and value (D110): speed above zero helps (Fly); speed or

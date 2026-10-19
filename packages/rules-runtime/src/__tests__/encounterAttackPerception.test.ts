@@ -1,6 +1,8 @@
 import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 import {
   SRD_BLINDSIGHT_SENSE_ID,
+  SRD_DARKVISION_SENSE_ID,
+  SRD_DEVILS_SIGHT_SENSE_ID,
   SRD_TRUESIGHT_SENSE_ID,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -52,6 +54,8 @@ const dodge = {
 const dodgeAgainst = {
   attackDomain: 'RANGED' as const,
   requiresHolderSeesAttacker: true,
+  exemptAttackerSenseDefinitionIds: [],
+  eventScope: { actorId: null, turnActorId: null },
   contributor: dodge
 }
 
@@ -90,6 +94,7 @@ describe('encounter attack perception: contributors', () => {
     attackerSeesTarget: 'SEES',
     targetSenseLabels: [],
     attackerSenseLabels: [],
+    attackerSenseDefinitionIds: [],
     ...value
   })
 
@@ -118,11 +123,35 @@ describe('encounter attack perception: contributors', () => {
     expect(encounterAttackPerceptionContributors(sight({}))).toEqual([])
   })
 
+  it('drops a contributor that exempts a Sense the attacker sees the target through (Blur)', () => {
+    const exempting = (attackerSenseDefinitionIds: string[]) =>
+      encounterAttackSightContributors({
+        perception: sight({ attackerSenseDefinitionIds }),
+        attacksAgainst: [
+          {
+            requiresHolderSeesAttacker: false,
+            exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID],
+            contributor: dodge
+          }
+        ]
+      }).map((contributor) => contributor.sourceId)
+    expect(exempting([])).toEqual([DODGE_SOURCE_ID])
+    expect(exempting(['00000000-0000-4000-8000-0000000000aa'])).toEqual([DODGE_SOURCE_ID])
+    expect(exempting([SRD_TRUESIGHT_SENSE_ID])).toEqual([])
+    expect(exempting(['00000000-0000-4000-8000-0000000000aa', SRD_BLINDSIGHT_SENSE_ID])).toEqual([])
+  })
+
   it('keeps Dodge only while the target can see the attacker, beside the sight contributors', () => {
     const merged = (value: Partial<EncounterAttackPerception>) =>
       encounterAttackSightContributors({
         perception: sight(value),
-        attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
+        attacksAgainst: [
+          {
+            requiresHolderSeesAttacker: true,
+            exemptAttackerSenseDefinitionIds: [],
+            contributor: dodge
+          }
+        ]
       }).map((contributor) => contributor.sourceId)
     expect(merged({})).toEqual([DODGE_SOURCE_ID])
     expect(merged({ targetSeesAttacker: 'UNSEEN' })).toEqual([
@@ -233,6 +262,106 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
   })
 })
 
+/**
+ * SPELLS-31.T4k2a: a target's grant that negates advantage (Elusive) leaves an attack at it no
+ * advantage, and a grant made on an occasion (Escape the Horde's opportunity attacks) holds only for
+ * an attack made on that occasion.
+ */
+describe('encounter attacks against: negated advantage and attack occasion', () => {
+  const negateAgainst = { ...dodgeAgainst, requiresHolderSeesAttacker: false, contributor: null }
+  const opportunityAgainst = {
+    ...dodgeAgainst,
+    requiresHolderSeesAttacker: false,
+    attackOccasion: 'OPPORTUNITY' as const
+  }
+
+  it('drops the advantage of an unseen attacker and keeps the disadvantage of an unseen target', () => {
+    const contributors = (value: Partial<EncounterAttackPerception>) =>
+      encounterAttackSightContributors({
+        perception: {
+          targetSeesAttacker: 'SEES',
+          attackerSeesTarget: 'SEES',
+          targetSenseLabels: [],
+          attackerSenseLabels: [],
+          attackerSenseDefinitionIds: [],
+          ...value
+        },
+        attacksAgainst: [negateAgainst]
+      }).map((contributor) => contributor.sourceId)
+    expect(contributors({ targetSeesAttacker: 'UNSEEN' })).toEqual([])
+    expect(contributors({ attackerSeesTarget: 'UNSEEN' })).toEqual([
+      ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID
+    ])
+  })
+
+  it('rolls an Invisible attacker’s attack normally against a target that negates advantage', async () => {
+    const prepared = await prepareCreatureAction({
+      actor: creatureActor({
+        id: ATTACKER_ID,
+        label: 'Quill Beast',
+        features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })],
+        conditionIds: [INVISIBLE]
+      }),
+      target: creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] }),
+      featureId: QUILL_VOLLEY_ID,
+      overridable: true,
+      attackPerception: true,
+      targetAttacksAgainst: [negateAgainst]
+    })
+    expect(sourceIds(prepared)).not.toContain(ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID)
+    const { execution } = await settleCreatureAction({ prepared, rolls: [5] })
+    expect(execution.d20).toMatchObject({ derivedRollMode: 'NORMAL', selectedNatural: 6 })
+  })
+
+  it('drops the advantage a Restrained target gives when the target negates advantage', async () => {
+    const restrainedTarget = (targetAttacksAgainst: readonly (typeof negateAgainst)[]) =>
+      prepareCreatureAction({
+        actor: creatureActor({
+          id: ATTACKER_ID,
+          label: 'Quill Beast',
+          features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })]
+        }),
+        target: creatureActor({
+          id: TARGET_ID,
+          label: 'Wolf',
+          features: [],
+          conditionIds: [srdConditionId('RESTRAINED')]
+        }),
+        featureId: QUILL_VOLLEY_ID,
+        overridable: true,
+        targetAttacksAgainst
+      })
+    const restrained = await settleCreatureAction({
+      prepared: await restrainedTarget([]),
+      rolls: [5, 9]
+    })
+    expect(restrained.execution.d20).toMatchObject({ derivedRollMode: 'ADVANTAGE' })
+    const negated = await settleCreatureAction({
+      prepared: await restrainedTarget([negateAgainst]),
+      rolls: [5]
+    })
+    expect(negated.execution.d20).toMatchObject({ derivedRollMode: 'NORMAL', selectedNatural: 6 })
+  })
+
+  it('applies an opportunity-only grant to an opportunity attack alone', async () => {
+    const volley = (attackOccasion?: 'OPPORTUNITY') =>
+      prepareCreatureAction({
+        actor: creatureActor({
+          id: ATTACKER_ID,
+          label: 'Quill Beast',
+          features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })]
+        }),
+        target: creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] }),
+        featureId: QUILL_VOLLEY_ID,
+        overridable: true,
+        targetAttacksAgainst: [opportunityAgainst],
+        ...(attackOccasion ? { attackOccasion } : {})
+      })
+    expect(sourceIds(await volley())).not.toContain(DODGE_SOURCE_ID)
+    expect(sourceIds(await volley('OPPORTUNITY'))).toContain(DODGE_SOURCE_ID)
+  })
+})
+
 describe('encounter attack perception: resolver', () => {
   async function resolve(input: { targetSenses: boolean }) {
     const prepared = await volleyAt({ attackerConditionIds: [INVISIBLE] })
@@ -274,7 +403,8 @@ describe('encounter attack perception: resolver', () => {
       targetSeesAttacker: 'SEES',
       attackerSeesTarget: 'SEES',
       targetSenseLabels: [senseLabel(SRD_TRUESIGHT_SENSE_ID)],
-      attackerSenseLabels: []
+      attackerSenseLabels: [],
+      attackerSenseDefinitionIds: []
     })
   })
 
@@ -283,7 +413,8 @@ describe('encounter attack perception: resolver', () => {
       targetSeesAttacker: 'UNSEEN',
       attackerSeesTarget: 'SEES',
       targetSenseLabels: [],
-      attackerSenseLabels: []
+      attackerSenseLabels: [],
+      attackerSenseDefinitionIds: []
     })
   })
 })
@@ -347,6 +478,50 @@ async function blindsightPerceptions(input: {
   }
 }
 
+describe('encounter attack perception: the Senses the attacker sees through (Blur)', () => {
+  it('names an Invisible target seen by Truesight, in true and believed perception alike', async () => {
+    const prepared = await volleyAt({ attackerConditionIds: [], targetConditionIds: [INVISIBLE] })
+    const loaders = srdSenseLoaders(prepared.state.gameSystemId)
+    const attacker = {
+      ...prepared.sourceFacts,
+      perceptionSenses: [
+        {
+          senseDefinitionId: SRD_TRUESIGHT_SENSE_ID,
+          range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
+        }
+      ]
+    }
+    const target = prepared.targetFacts
+    const actual = await resolveEncounterAttackPerception({
+      ...loaders,
+      attacker,
+      target,
+      placement: null
+    })
+    const believed = await resolveEncounterBelievedAttackPerception({
+      ...loaders,
+      attacker,
+      target
+    })
+    expect(actual).toMatchObject({
+      attackerSeesTarget: 'SEES',
+      attackerSenseDefinitionIds: [SRD_TRUESIGHT_SENSE_ID]
+    })
+    expect(believed.attackerSenseDefinitionIds).toEqual([SRD_TRUESIGHT_SENSE_ID])
+  })
+
+  it('names no Sense for an attacker that cannot see the target', async () => {
+    const prepared = await volleyAt({ attackerConditionIds: [], targetConditionIds: [INVISIBLE] })
+    const actual = await resolveEncounterAttackPerception({
+      ...srdSenseLoaders(prepared.state.gameSystemId),
+      attacker: prepared.sourceFacts,
+      target: prepared.targetFacts,
+      placement: null
+    })
+    expect(actual).toMatchObject({ attackerSeesTarget: 'UNSEEN', attackerSenseDefinitionIds: [] })
+  })
+})
+
 describe('encounter attack perception: believed perception (ATTACK-10.1)', () => {
   it('does not credit the target with the Senses the roller may not know of', async () => {
     const { actual, believed } = await blindsightPerceptions({ targetBlindsight: true })
@@ -356,7 +531,8 @@ describe('encounter attack perception: believed perception (ATTACK-10.1)', () =>
       targetSeesAttacker: 'UNSEEN',
       attackerSeesTarget: 'SEES',
       targetSenseLabels: [],
-      attackerSenseLabels: []
+      attackerSenseLabels: [],
+      attackerSenseDefinitionIds: []
     })
   })
 
@@ -631,17 +807,50 @@ describe('encounter attack perception: sight of a point', () => {
     blocksMovement: false
   })
 
+  /** Magical darkness over the whole Scene, as a Darkness spell's zone records it. */
+  const magicalDarkness = {
+    id: testUuid(0xb3),
+    mechanicalIllumination: 'MAGICAL_DARKNESS' as const,
+    mechanicalObscurement: null,
+    opacity: 0.5,
+    polygon: {
+      points: [
+        { x: -1000, y: -1000 },
+        { x: 2000, y: -1000 },
+        { x: 2000, y: 1000 },
+        { x: -1000, y: 1000 }
+      ]
+    }
+  }
+
   async function sightOf(input: {
     conditionIds?: readonly string[]
+    /** Senses the observer has, each at `feet`. */
+    senses?: { ids: readonly string[]; feet: number }
     scene?: Partial<{
       ambientIllumination: 'BRIGHT' | 'DIM' | 'ORDINARY_DARKNESS'
       barriers: ReturnType<typeof wall>[]
+      darknessZones: (typeof magicalDarkness)[]
     }> | null
   }) {
     const prepared = await volleyAt({ attackerConditionIds: input.conditionIds ?? [] })
+    const senses = input.senses
     return resolveEncounterPointSight({
       gameSystemId: prepared.state.gameSystemId,
-      observer: prepared.sourceFacts,
+      observer: senses
+        ? {
+            ...prepared.sourceFacts,
+            perceptionSenses: senses.ids.map((senseDefinitionId) => ({
+              senseDefinitionId,
+              range: {
+                id: `${senseDefinitionId}:range`,
+                rangeKind: 'DISTANCE' as const,
+                amount: senses.feet,
+                unit: 'FEET' as const
+              }
+            }))
+          }
+        : prepared.sourceFacts,
       point: POINT,
       placement: input.scene
         ? {
@@ -660,8 +869,9 @@ describe('encounter attack perception: sight of a point', () => {
             spatialEffects: []
           }
         : null,
-      loadDefinition: async () => null,
-      loadSystem: async () => srdSystemRecord
+      ...(senses
+        ? srdSenseLoaders(prepared.state.gameSystemId)
+        : { loadDefinition: async () => null, loadSystem: async () => srdSystemRecord })
     })
   }
 
@@ -682,5 +892,32 @@ describe('encounter attack perception: sight of a point', () => {
   it('does not see anything while Blinded, with or without a Scene', async () => {
     expect(await sightOf({ scene: {}, conditionIds: [BLINDED] })).toBe('UNSEEN')
     expect(await sightOf({ scene: null, conditionIds: [BLINDED] })).toBe('UNSEEN')
+  })
+
+  // SPELLS-31.T3b (D156): Devil's Sight is its own Sense, not darkvision (VTT_UI-3.5).
+  it("sees a point in magical darkness through Devil's Sight, which darkvision does not", async () => {
+    const dark = { darknessZones: [magicalDarkness] }
+    const devilsSight = { ids: [SRD_DEVILS_SIGHT_SENSE_ID], feet: 120 }
+    expect(await sightOf({ scene: dark, senses: devilsSight })).toBe('SEES')
+    expect(
+      await sightOf({ scene: dark, senses: { ids: [SRD_DARKVISION_SENSE_ID], feet: 120 } })
+    ).toBe('UNSEEN')
+    expect(
+      await sightOf({ scene: { ambientIllumination: 'ORDINARY_DARKNESS' }, senses: devilsSight })
+    ).toBe('SEES')
+  })
+
+  it("does not see past Devil's Sight's range, nor while Blinded", async () => {
+    const dark = { darknessZones: [magicalDarkness] }
+    expect(
+      await sightOf({ scene: dark, senses: { ids: [SRD_DEVILS_SIGHT_SENSE_ID], feet: 20 } })
+    ).toBe('UNSEEN')
+    expect(
+      await sightOf({
+        scene: dark,
+        senses: { ids: [SRD_DEVILS_SIGHT_SENSE_ID], feet: 120 },
+        conditionIds: [BLINDED]
+      })
+    ).toBe('UNSEEN')
   })
 })

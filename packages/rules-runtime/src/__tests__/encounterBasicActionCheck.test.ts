@@ -7,13 +7,13 @@ import {
 
 import {
   completeEncounterBasicActionCheckResult,
-  encounterBasicActionCheckLabel,
   encounterBasicActionCheckPendingSnapshot,
   encounterBasicActionCheckTrigger,
   evaluateEncounterBasicActionCheck,
   prepareEncounterBasicActionCheck,
   startEncounterBasicActionCheck
 } from '../encounterBasicActionCheck.js'
+import { encounterBasicActionCheckLabel } from '../encounterMovementPassagePreparation.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
 import {
   SRD_SYSTEM_ID,

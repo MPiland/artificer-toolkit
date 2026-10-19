@@ -19,6 +19,11 @@ import { SpellcastingLockedError } from './encounterErrors.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
 import { sharedZonePlacement } from './encounterZonePlacement.js'
+import {
+  temporaryHitPointsAfterEffectsEnd,
+  withActorTemporaryHitPoints,
+  withCharacterTemporaryHitPoints
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
@@ -136,8 +141,8 @@ export function endedMaintenanceConditions(
 
 /**
  * Settles a Character whose effects ended, wherever they end (an Encounter settlement or its Sheet):
- * conditions only the removed effects held end, and current hit points fall to the maximum the
- * remaining effects allow (Aid ending).
+ * conditions only the removed effects held end, current hit points fall to the maximum the
+ * remaining effects allow (Aid ending), and temporary hit points a removed effect gave are lost (D156).
  */
 export function settleCharacterEndedEffects(input: {
   state: Pick<CharacterAuthored['state'], 'conditions' | 'hitpoints'>
@@ -154,17 +159,24 @@ export function settleCharacterEndedEffects(input: {
     hitpoints.current,
     effectiveHitPointMaximum(input.maximumHitPoints, input.remaining)
   )
+  const temporary = temporaryHitPointsAfterEffectsEnd(
+    { amount: hitpoints.temp, sourceEffectId: hitpoints.tempSourceEffectId ?? null },
+    input.removed.map((effect) => effect.id)
+  )
   return {
     conditions,
-    hitpoints: { ...hitpoints, current },
-    changed: conditions.length !== priorConditions.length || current !== hitpoints.current
+    hitpoints: withCharacterTemporaryHitPoints({ ...hitpoints, current }, temporary),
+    changed:
+      conditions.length !== priorConditions.length ||
+      current !== hitpoints.current ||
+      temporary.amount !== hitpoints.temp
   }
 }
 
 /**
  * Reconciles the post-mechanics owner once, sharing its preceding Character version increment:
- * conditions only the removed effects held end, and current hit points fall to the maximum the
- * remaining effects allow (Aid ending).
+ * conditions only the removed effects held end, current hit points fall to the maximum the
+ * remaining effects allow (Aid ending), and temporary hit points a removed effect gave are lost (D156).
  */
 export function planEncounterMaintenanceOwner(input: {
   owner: ActiveRuleEffectOwner
@@ -213,27 +225,56 @@ export function planEncounterMaintenanceOwner(input: {
     if (!actor) throw new Error('Maintained-effect Encounter owner is unavailable.')
     ownerActors = [actor]
   }
+  const removedIds = input.removed.map((effect) => effect.id)
+  const releasedTemporary = (holder: {
+    tempHitPoints: number
+    tempHitPointsSourceEffectId?: string
+  }) =>
+    temporaryHitPointsAfterEffectsEnd(
+      { amount: holder.tempHitPoints, sourceEffectId: holder.tempHitPointsSourceEffectId ?? null },
+      removedIds
+    )
   return {
     character,
     actors: ownerActors.map((actor) => {
-      // A Character's conditions and hit points live on the Character, which `character` updates.
-      if (actor.kind === 'CHARACTER') return { before: actor, after: actor }
+      // A Character's conditions and hit points live on the Character, which `character` updates;
+      // only a form it holds keeps its own temporary hit points on the actor.
+      if (actor.kind === 'CHARACTER') {
+        const formTemporary = actor.form ? releasedTemporary(actor.form) : null
+        return {
+          before: actor,
+          after:
+            actor.form && formTemporary && formTemporary.amount !== actor.form.tempHitPoints
+              ? { ...actor, form: withActorTemporaryHitPoints(actor.form, formTemporary) }
+              : actor
+        }
+      }
       const currentHitPoints = Math.min(
         actor.currentHitPoints,
         effectiveHitPointMaximum(actor.maxHitPoints, input.remaining)
       )
-      if (!ended.size && currentHitPoints === actor.currentHitPoints)
+      const temporary = releasedTemporary(actor)
+      if (
+        !ended.size &&
+        currentHitPoints === actor.currentHitPoints &&
+        temporary.amount === actor.tempHitPoints
+      )
         return { before: actor, after: actor }
       const conditions = readEncounterActorConditionState(actor.conditions ?? [])
       return {
         before: actor,
-        after: encounterRunActorStateSchema.parse({
-          ...actor,
-          currentHitPoints,
-          conditions: conditions.values.filter(
-            (_value, index) => !ended.has(conditions.ids[index]!)
+        after: encounterRunActorStateSchema.parse(
+          withActorTemporaryHitPoints(
+            {
+              ...actor,
+              currentHitPoints,
+              conditions: conditions.values.filter(
+                (_value, index) => !ended.has(conditions.ids[index]!)
+              )
+            },
+            temporary
           )
-        })
+        )
       }
     })
   }

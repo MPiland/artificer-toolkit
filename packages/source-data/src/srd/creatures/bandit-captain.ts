@@ -198,18 +198,7 @@ export const banditCaptain: CreatureAuthored = {
       label: 'Parry',
       description:
         'Parry. The captain adds 2 to its AC against one melee attack that would hit it. To do so, the captain must see the attacker and be wielding a melee weapon.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.reactionId(38, 101),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.REACTION, amount: 1 },
-            range: { id: S.reactionId(38, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PARRY
-        })
-      ],
+      effects: [S.parryReaction(38, 101, 2)],
       order: 4
     }
   ]

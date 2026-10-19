@@ -1,5 +1,7 @@
 import {
   readEncounterActionChoices,
+  readEncounterActionItemChoices,
+  readEncounterHeldRelationships,
   readEncounterOptionalActionChoices
 } from '@artificer-toolkit/encounter-persistence/actionChoiceReads'
 import { readEncounterActionTargetModifiers } from '@artificer-toolkit/encounter-persistence/actionTargetModifierReads'
@@ -75,6 +77,15 @@ async function readEncounter(
           request: { ...read.input, expectedVersion: run.version }
         })
       }
+    case 'ACTION_ITEM_CHOICES':
+      return {
+        kind: read.kind,
+        result: await readEncounterActionItemChoices(tx, {
+          run,
+          ...authority,
+          request: { ...read.input, expectedVersion: run.version }
+        })
+      }
     case 'ACTION_TARGET_MODIFIERS':
       return {
         kind: read.kind,
@@ -86,6 +97,11 @@ async function readEncounter(
       }
     case 'LATEST_EVIDENCE_ROLLS':
       return { kind: read.kind, result: await readLatestEvidenceRolls(tx, { run, ...authority }) }
+    case 'HELD_RELATIONSHIPS':
+      return {
+        kind: read.kind,
+        result: await readEncounterHeldRelationships(tx, { run, ...authority, request: read.input })
+      }
     case 'SCENE_BINDING': {
       const { binding } = await readBoundEncounterScene(
         tx,

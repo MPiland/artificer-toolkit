@@ -88,11 +88,6 @@ export const sprite: CreatureAuthored = {
                     reasonCode: 'EXTERNAL_WORLD_STATE',
                     instructions:
                       "Heart Sight. The sprite touches a creature and magically knows the creature's current emotional state. If the target fails a DC 10 Charisma saving throw, the sprite also knows the creature's alignment."
-                  },
-                  {
-                    id: S.actionId(260, 206),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPRITE_HEART_SIGHT
                   }
                 ]
               }

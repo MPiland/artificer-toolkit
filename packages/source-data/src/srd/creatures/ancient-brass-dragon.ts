@@ -58,17 +58,6 @@ export const ancientBrassDragon: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(16, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(16, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
-        })
-      ],
       order: 1
     },
     {
@@ -285,57 +274,11 @@ export const ancientBrassDragon: CreatureAuthored = {
       description:
         "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 18 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
       effects: [
-        {
-          id: S.actionId(16, 22),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(16, 30),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              baseDc: 18
-            },
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(16, 23),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(16, 24),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(16, 24) + '__result',
-                resultKind: 'SINGLE' as const,
-                duration: {
-                  id: S.actionId(16, 31),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
-                outcomes: [
-                  {
-                    id: S.actionId(16, 24),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED'),
-                    recordsSource: true
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        S.minuteFearSaveEffect(16, {
+          localIndex: 2000,
+          dc: 18,
+          reach: { chosenWithinFeet: 120 }
+        })
       ],
       order: 6
     },
@@ -518,41 +461,7 @@ export const ancientBrassDragon: CreatureAuthored = {
           id: '00000000-0005-00c9-0070-001000000000',
           label: 'Detect',
           description: 'The dragon makes a Wisdom (Perception) check.',
-          order: 1,
-          effects: [
-            {
-              id: '00000000-0005-0016-0070-001000000000',
-              order: 1,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'ACTIVATED',
-                activation: { code: 'FREE' },
-                range: { id: '00000000-0005-0017-0070-001000000000', rangeKind: 'SPECIAL' },
-                resourceUse: { chargeId: '00000000-0005-0015-0070-001000000000', cost: 1 }
-              },
-              paths: [
-                {
-                  id: '00000000-0005-0018-0070-001000000000',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '00000000-0005-0018-0070-001000000000__result',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '00000000-0005-0018-0070-001000000000',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'DRAGON_LEGENDARY_DETECT'
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
+          order: 1
         },
         {
           id: '00000000-0005-00ca-0070-001000000000',

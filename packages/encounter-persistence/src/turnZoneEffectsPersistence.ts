@@ -1,6 +1,11 @@
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { prepareNativeIncomingDamageGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { planSpatialHeldCondition } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import {
+  spatialDamageEnds,
+  targetStateAfterEndedEffects
+} from '@artificer-toolkit/rules-runtime/encounterSpatialDamageEnds'
 import { orderSpatialSettlementActors } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPlan'
 import {
   turnEffectOwner,
@@ -20,6 +25,7 @@ import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import { readEncounterActorTokenBindings } from './actorTokenBindings.js'
+import { createIncomingDamageGrants, deleteGrants } from './consumedGrantPersistence.js'
 import { readRunActor, readRunActors } from './documents.js'
 import { readLiveCharacterStreamVersion } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -66,6 +72,7 @@ export async function persistEncounterTurnZoneEffects(
     return null
   }
   const actorId = boundary.actorId
+  const actors = await readRunActors(ctx, state)
   const binding = await ctx.db
     .query('encounterSceneBindings')
     .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))
@@ -84,7 +91,7 @@ export async function persistEncounterTurnZoneEffects(
     binding && scope
       ? selectTurnZoneContacts({
           state,
-          actors: await readRunActors(ctx, state),
+          actors,
           commandType: input.commandType,
           boundary,
           actorId,
@@ -155,6 +162,26 @@ export async function persistEncounterTurnZoneEffects(
     const beforeStreamVersion = beforeStreamVersions.get(target.id)!
     const first = targetExecutions[0]!
     const last = targetExecutions.at(-1)!
+    const owner = turnEffectOwner(target, state.id)
+    // The zones' damage ends the effects that end on damage and gives the timed grants the holder's
+    // passive features owe it, as the plan settled them.
+    const held = await effectStore.list(owner)
+    const ends = spatialDamageEnds({
+      holderActorId: target.id,
+      held,
+      executions: targetExecutions,
+      turnActorId: state.currentActorId,
+      dispositions: new Map(actors.map(({ id, disposition }) => [id, disposition])),
+      grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+        encounter: state,
+        holder: target,
+        held,
+        occurrenceId: input.occurrenceId,
+        commandId: input.rootCommandId,
+        ordinal: 'TURN_ZONE_EFFECT',
+        activeEffectsByActorId: new Map([[target.id, held]])
+      })
+    })
     const applied = await callbacks.applyMechanics({
       encounterId: state.id,
       targetActorId: target.id,
@@ -172,12 +199,15 @@ export async function persistEncounterTurnZoneEffects(
             })
           : input.rootCommandId,
       occurredAt: input.occurredAt,
-      applications: targetExecutions.flatMap((execution) =>
-        execution.applications.map(({ ordinal: _ordinal, ...application }) => ({
-          ...application,
-          targetActorId: target.id
-        }))
-      ),
+      applications: [
+        ...targetExecutions.flatMap((execution) =>
+          execution.applications.map(({ ordinal: _ordinal, ...application }) => ({
+            ...application,
+            targetActorId: target.id
+          }))
+        ),
+        ...ends.releases
+      ],
       effectiveMaximumHitPoints: first.targetTransition.before.maximumHitPoints,
       effectiveScalarValues: first.targetTransition.before.scalarValues,
       forceVersionAdvance: target.kind === 'CHARACTER'
@@ -191,13 +221,25 @@ export async function persistEncounterTurnZoneEffects(
     )
     if (
       !same(applied.targetTransition.before, first.targetTransition.before) ||
-      !same(applied.targetTransition.after, last.targetTransition.after) ||
-      !same(applied.receiptApplications, expectedApplications) ||
+      !same(
+        applied.targetTransition.after,
+        targetStateAfterEndedEffects(last.targetTransition.after, ends.releases)
+      ) ||
+      applied.receiptApplications.length !== expectedApplications.length + ends.releases.length ||
+      !same(
+        applied.receiptApplications.slice(0, expectedApplications.length),
+        expectedApplications
+      ) ||
       (beforeStreamVersion !== null && applied.characterStreamVersion !== beforeStreamVersion + 1)
     )
       throw new Error('Turn zone settlement differs from its plan.')
+    await deleteGrants(ctx, ends.endedEffects)
+    await createIncomingDamageGrants(ctx, {
+      grants: ends.grants,
+      owner,
+      occurredAt: input.occurredAt
+    })
     // A zone holds the condition its failed save applied (D146).
-    const owner = turnEffectOwner(target, state.id)
     for (const [ordinal, execution] of executions.entries()) {
       if (execution.candidate.candidate.targetActorId !== target.id) continue
       const zone = effects[ordinal]!

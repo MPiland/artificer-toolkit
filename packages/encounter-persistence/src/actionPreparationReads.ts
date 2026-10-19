@@ -32,6 +32,7 @@ import { rejectDomain } from './domainRejections.js'
 import { refuseStaleCharacterAction } from './staleCharacterAction.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { loadMovementTargets } from './movementTargetReads.js'
+import { readRunActors } from './documents.js'
 import type { EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
@@ -95,7 +96,11 @@ export async function readActionHolderState(
     target,
     gameSystemId: input.state.gameSystemId,
     definitions: campaignDefinitions(tx, input.campaign),
-    speedDefinitions: (await tx.ports.requireSystem(input.state.gameSystemId)).speeds
+    speedDefinitions: (await tx.ports.requireSystem(input.state.gameSystemId)).speeds,
+    runEffectsByActorId: await loadRunActiveEffects(tx, {
+      state: input.state,
+      actors: await readRunActors(tx, input.state)
+    })
   })
 }
 
@@ -134,11 +139,12 @@ export async function prepareActionEconomy<TFacts extends CharacterTurnFacts>(
  */
 export async function evaluateActionAttackAction<TFacts extends CharacterTurnFacts>(
   tx: EncounterTurnReadTransaction<TFacts>,
-  input: ActionEconomyInput<TFacts> & { triggerCode: string }
+  input: ActionEconomyInput<TFacts> & { triggerCode: string; replacesAttack?: boolean }
 ) {
   return evaluateEncounterAttackAction({
     ...economyInput(tx, input),
-    triggerCode: input.triggerCode
+    triggerCode: input.triggerCode,
+    replacesAttack: input.replacesAttack
   })
 }
 
@@ -165,18 +171,15 @@ async function loadActionSource(
   return resolveEncounterActionSource({ ...input, system, basicActions })
 }
 
-/** Loads every current Run actor's effects before preparing relationship-bound action facts. */
-export async function loadActionRelationshipFacts(
+/** Every current Run actor's active effects, keyed by actor; `given` effects are used as read. */
+async function loadRunActiveEffects(
   tx: EncounterTurnReadTransaction,
   input: {
     state: EncounterRunState
     actors: readonly EncounterRunActorState[]
-    sourceActorId: string
-    targetActorId: string
-    actionEffectId: string
-    activeEffectsByActorId?: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+    given?: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   }
-): Promise<readonly EncounterRelationshipD20Contributor[]> {
+) {
   const expectedActorIds = new Set(input.state.actorIds)
   if (
     expectedActorIds.size !== input.state.actorIds.length ||
@@ -184,21 +187,18 @@ export async function loadActionRelationshipFacts(
     new Set(input.actors.map((actor) => actor.id)).size !== input.actors.length ||
     input.actors.some(
       (actor) => actor.encounterId !== input.state.id || !expectedActorIds.has(actor.id)
-    ) ||
-    !expectedActorIds.has(input.sourceActorId) ||
-    !expectedActorIds.has(input.targetActorId)
+    )
   )
     throw new Error('Encounter actor state does not match the Run.')
   if (input.actors.some((actor) => actor.kind === 'CHARACTER' && !actor.sourceId))
     throw new Error('Encounter Character actor source is unavailable.')
-
-  const activeEffectsByActorId = new Map(
+  return new Map(
     await Promise.all(
       input.actors.map(
         async (actor) =>
           [
             actor.id,
-            input.activeEffectsByActorId?.get(actor.id) ??
+            input.given?.get(actor.id) ??
               (await listActiveRuleEffects(
                 tx,
                 actor.kind === 'CHARACTER'
@@ -213,6 +213,28 @@ export async function loadActionRelationshipFacts(
       )
     )
   )
+}
+
+/** Loads every current Run actor's effects before preparing relationship-bound action facts. */
+export async function loadActionRelationshipFacts(
+  tx: EncounterTurnReadTransaction,
+  input: {
+    state: EncounterRunState
+    actors: readonly EncounterRunActorState[]
+    sourceActorId: string
+    targetActorId: string
+    actionEffectId: string
+    activeEffectsByActorId?: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  }
+): Promise<readonly EncounterRelationshipD20Contributor[]> {
+  const expectedActorIds = new Set(input.state.actorIds)
+  if (!expectedActorIds.has(input.sourceActorId) || !expectedActorIds.has(input.targetActorId))
+    throw new Error('Encounter actor state does not match the Run.')
+  const activeEffectsByActorId = await loadRunActiveEffects(tx, {
+    state: input.state,
+    actors: input.actors,
+    ...(input.activeEffectsByActorId ? { given: input.activeEffectsByActorId } : {})
+  })
   return lockedRelationshipActionFacts({
     actionEffectId: input.actionEffectId,
     sourceActorId: input.sourceActorId,

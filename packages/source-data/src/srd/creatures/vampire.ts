@@ -77,18 +77,6 @@ export const vampire: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(277, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(277, 203), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
-        })
-      ],
       order: 2
     },
     {
@@ -187,18 +175,6 @@ export const vampire: CreatureAuthored = {
       label: 'Forbiddance',
       description:
         "Forbiddance. The vampire can't enter a residence without an invitation from one of the occupants.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(277, 214),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(277, 215), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_FORBIDDANCE
-        })
-      ],
       order: 7
     },
     {
@@ -254,18 +230,6 @@ export const vampire: CreatureAuthored = {
       label: 'Stake to the Heart',
       description:
         "Stake to the Heart. If a piercing weapon made of wood is driven into the vampire's heart while the vampire is incapacitated in its resting place, the vampire is paralyzed until the stake is removed.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(277, 218),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(277, 219), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_STAKE_TO_THE_HEART
-        })
-      ],
       order: 9
     },
     {
@@ -370,28 +334,44 @@ export const vampire: CreatureAuthored = {
               id: S.actionId(277, 226),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.CHOICE,
               originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(277, 227),
-                resultKind: 'SEQUENCE',
-                outcomes: [
-                  {
-                    id: S.actionId(277, 228),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d8+4'
-                  },
-                  {
-                    id: S.actionId(277, 229),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_UNARMED_STRIKE
+              selectionKind: 'CHOICE',
+              options: [
+                {
+                  id: S.actionId(277, 229),
+                  order: 1,
+                  label: 'Damage',
+                  description: 'Deals 8 (1d8 + 4) bludgeoning damage.',
+                  resultBlock: {
+                    id: S.actionId(277, 227),
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: S.actionId(277, 228),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '1d8+4'
+                      }
+                    ]
                   }
-                ]
-              }
+                },
+                {
+                  id: S.actionId(277, 258),
+                  order: 2,
+                  label: 'Grapple',
+                  description: 'Instead of dealing damage, grapples the target (escape DC 18).',
+                  resultBlock: {
+                    id: S.actionId(277, 259),
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      S.grappledOutcome(277, { localIndex: 1, escapeDc: 18, heldAtOnce: 1 })
+                    ]
+                  }
+                }
+              ]
             }
           ]
         }

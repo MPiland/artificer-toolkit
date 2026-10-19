@@ -345,6 +345,7 @@ const actionModifierGroupSchema = lazySchema(() =>
       .array(
         z.strictObject({
           sourceId: identitySchema,
+          boundSourceId: z.optional(identitySchema),
           value: finiteNumberSchema,
           ability: z.nullable(identitySchema),
           state: z.enum(['APPLIED', 'SUPPRESSED']),
@@ -403,6 +404,8 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
               .check(z.minLength(1))
               .check(z.maxLength(500)),
             damageTypeId: identitySchema,
+            /** The faces of the die a grant set for the weapon's damage (Shillelagh's d8), when one did. */
+            weaponDieFaces: z.optional(integerSchema.check(z.positive())),
             scaling: z.array(actionOutcomeScalingSchema).check(z.maxLength(100))
           }),
           z.strictObject({
@@ -443,7 +446,15 @@ export const characterActionCandidatesSchema = lazySchema(() =>
         sourceId: identitySchema,
         source: characterMechanicSourceSchema,
         mechanicsOwner: actionMechanicsOwnerSchema,
-        activationSourceKind: z.enum(['ACTIVE_SOURCE', 'ACTIVE_EQUIPMENT']),
+        /**
+         * What must be active to offer the action: its source, its item, or both for a Feature attack
+         * made with a wielded weapon (D156).
+         */
+        activationSourceKind: z.enum([
+          'ACTIVE_SOURCE',
+          'ACTIVE_EQUIPMENT',
+          'ACTIVE_SOURCE_AND_EQUIPMENT'
+        ]),
         equipment: z.nullable(actionEquipmentStateSchema),
         resourceUse: z.nullable(actionResourceUseSchema),
         mechanicFacts: characterActionMechanicFactSchema
@@ -468,10 +479,7 @@ export const characterActionCandidatesSchema = lazySchema(() =>
               path: [index, 'actionId']
             })
           }
-          if (
-            candidate.activationSourceKind === 'ACTIVE_EQUIPMENT' &&
-            candidate.equipment === null
-          ) {
+          if (candidate.activationSourceKind !== 'ACTIVE_SOURCE' && candidate.equipment === null) {
             context.addIssue({
               code: 'custom',
               message: 'Equipment action candidates must include exact equipment state',
@@ -567,6 +575,8 @@ export interface CharacterActionRuleEntryPoint {
   spellCastLevel?: number
   /** The Character's level, which selects a cap scaled by it (Eldritch Blast's beams). */
   characterLevel?: number
+  /** Set for an at-will grant's cast whose targets are each locked out of the grant (D156). */
+  perTargetLockout?: { grantId: string }
 }
 export type CharacterResolvedActionMechanic = z.infer<typeof characterResolvedActionMechanicSchema>
 

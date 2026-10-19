@@ -92,7 +92,9 @@ const rollTermEvidenceDtoSchema = lazySchema(() =>
     ),
     subtotal: z.number().check(z.int()),
     keptRollIndex: z.optional(z.number().check(z.int()).check(z.nonnegative())),
-    keptRollIndexes: z.optional(z.array(z.number().check(z.int()).check(z.nonnegative())))
+    keptRollIndexes: z.optional(z.array(z.number().check(z.int()).check(z.nonnegative()))),
+    /** A die a rule subtracts from a d20 test (D156: Bane's d4); its subtotal is negative. */
+    subtracted: z.optional(z.literal(true))
   })
 )
 
@@ -164,6 +166,16 @@ export const rollRuleCheckDtoSchema = lazySchema(() =>
       cancelledRollIndexes: z.array(z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))),
       addedRollIndexes: z.array(z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))),
       caption: z.nullable(ruleCheckLabelSchema)
+    }),
+    /**
+     * A d20 check a floor raised (Glibness's 15): the d20 term's subtotal is the floor, its rolls
+     * keep the face rolled, and the record's total counts the floor.
+     */
+    z.strictObject({
+      kind: z.literal('D20_MINIMUM_ROLL'),
+      amount: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)),
+      /** The source that gave the floor; "Unseen source" for a hidden one. */
+      label: ruleCheckLabelSchema
     })
   ])
 )

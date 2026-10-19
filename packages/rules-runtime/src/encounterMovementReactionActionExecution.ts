@@ -9,11 +9,17 @@ import {
   type ServerRuleExecutionNestedD20EvidenceDto,
   type ServerRuleExecutionD20PolicyDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
+import {
+  d20AddedDiceTotal,
+  type D20AddedDieDto,
+  type D20RolledAddedDieDto
+} from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import {
+  savingThrowAbility,
   selectEncounterActionD20Natural,
   type EncounterD20RollMode
 } from './encounterEvidenceAnswer.js'
@@ -83,8 +89,15 @@ export function deriveEncounterActionD20Policy(input: {
     contributors: input.bound.d20Audit.contributors,
     contributorChecksum: input.bound.d20Audit.contributorChecksum,
     modifier: input.bound.d20Audit.modifier,
-    dc: input.bound.d20Audit.defenseOrDc
+    dc: input.bound.d20Audit.defenseOrDc,
+    ...savingThrowAbility(input.bound.d20Audit),
+    ...policyAddedDice(input.bound.d20Audit.addedDice)
   })
+}
+
+/** A policy names its added dice only when the test rolls some (D156). */
+export function policyAddedDice(addedDice: readonly D20AddedDieDto[]) {
+  return addedDice.length > 0 ? { addedDice: [...addedDice] } : {}
 }
 
 export function nestedOutcomeD20Policy(input: {
@@ -95,6 +108,8 @@ export function nestedOutcomeD20Policy(input: {
     contributorChecksum: string
     modifier: number
     defenseOrDc: number
+    addedDice: readonly D20AddedDieDto[]
+    savingThrowAbilityDefinitionId?: string
   } | null
 }): ServerRuleExecutionD20PolicyDto | null {
   const requestNode = input.published.definition.nodes?.find(
@@ -120,7 +135,9 @@ export function nestedOutcomeD20Policy(input: {
     contributors: [...input.d20.contributors],
     contributorChecksum: input.d20.contributorChecksum,
     modifier: input.d20.modifier,
-    dc: input.d20.defenseOrDc
+    dc: input.d20.defenseOrDc,
+    ...savingThrowAbility(input.d20),
+    ...policyAddedDice(input.d20.addedDice)
   })
 }
 
@@ -136,6 +153,8 @@ export function buildEncounterActionD20Evidence(input: {
   faces: readonly number[]
   rollMode: EncounterD20RollMode
   modeAdjustment?: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
+  /** The policy's added dice with the faces they rolled, in the policy's order. */
+  addedDice: readonly D20RolledAddedDieDto[]
 }): ServerRuleExecutionD20EvidenceDto {
   const natural = selectEncounterActionD20Natural(input.rollMode, input.faces)
   const trace = input.execution.evidence.trace.find(
@@ -154,10 +173,12 @@ export function buildEncounterActionD20Evidence(input: {
     contributors: input.policy.contributors,
     contributorChecksum: input.policy.contributorChecksum,
     modifier: input.policy.modifier,
-    total: natural + input.policy.modifier,
+    total: natural + input.policy.modifier + d20AddedDiceTotal(input.addedDice),
     defenseOrDc: input.policy.dc,
     resultPath,
-    ...(input.modeAdjustment ? { modeAdjustment: input.modeAdjustment } : {})
+    ...savingThrowAbility(input.policy),
+    ...(input.modeAdjustment ? { modeAdjustment: input.modeAdjustment } : {}),
+    ...(input.addedDice.length > 0 ? { addedDice: [...input.addedDice] } : {})
   })
 }
 
@@ -167,9 +188,10 @@ export function buildEncounterSaveD20Evidence(input: {
   requestId: string
   faces: readonly number[]
   rollMode: EncounterD20RollMode
+  addedDice: readonly D20RolledAddedDieDto[]
 }): ServerRuleExecutionNestedD20EvidenceDto {
   const natural = selectEncounterActionD20Natural(input.rollMode, input.faces)
-  const total = natural + input.policy.modifier
+  const total = natural + input.policy.modifier + d20AddedDiceTotal(input.addedDice)
   return serverRuleExecutionNestedD20EvidenceDtoSchema.parse({
     requestNodeId: input.policy.requestNodeId,
     requestId: input.requestId,
@@ -182,7 +204,9 @@ export function buildEncounterSaveD20Evidence(input: {
     modifier: input.policy.modifier,
     total,
     defenseOrDc: input.policy.dc,
-    resultPath: total >= input.policy.dc ? 'ON_SAVE_SUCCESS' : 'ON_SAVE_FAIL'
+    resultPath: total >= input.policy.dc ? 'ON_SAVE_SUCCESS' : 'ON_SAVE_FAIL',
+    ...savingThrowAbility(input.policy),
+    ...(input.addedDice.length > 0 ? { addedDice: [...input.addedDice] } : {})
   })
 }
 
@@ -198,7 +222,10 @@ export function requireEncounterSaveD20EvidenceTrace(input: {
     input.evidence.contributorChecksum !== input.policy.contributorChecksum ||
     checksumRuleDocument(input.evidence.contributors) !== input.policy.contributorChecksum ||
     input.evidence.modifier !== input.policy.modifier ||
-    input.evidence.defenseOrDc !== input.policy.dc
+    input.evidence.defenseOrDc !== input.policy.dc ||
+    checksumRuleDocument(
+      (input.evidence.addedDice ?? []).map(({ rolledFaces: _rolledFaces, ...die }) => die)
+    ) !== checksumRuleDocument(input.policy.addedDice ?? [])
   )
     throw new EncounterValidationError('The nested save d20 policy is invalid.')
   const rollTrace = input.execution.evidence.trace.find(
@@ -211,6 +238,7 @@ export function requireEncounterSaveD20EvidenceTrace(input: {
     (entry) =>
       entry.inputs.naturalD20 === input.evidence.selectedNatural &&
       entry.inputs.modifier === input.evidence.modifier &&
+      entry.inputs.addedTotal === d20AddedDiceTotal(input.evidence.addedDice) &&
       entry.inputs.threshold === input.evidence.defenseOrDc &&
       entry.outputs.resultPath === input.evidence.resultPath
   )

@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { forcedMovementDirectionSchema } from './enums.js'
 import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 import {
   deathSavesAfterDamage,
@@ -8,6 +9,11 @@ import {
   isCharacterDead,
   isCharacterDying
 } from './characterDeathSaves.js'
+import {
+  temporaryHitPointsAfterGrant,
+  temporaryHitPointsAfterLoss,
+  temporaryHitPointsAfterRelease
+} from './temporaryHitPoints.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
@@ -22,6 +28,8 @@ import {
 } from '@artificer-toolkit/shared/rules/contributors'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
+import { d20RolledAddedDiceDtoSchema, type D20RolledAddedDieDto } from './d20AddedDice.js'
+import { d20CheckTotal, d20MinimumRollDtoSchema, type D20MinimumRollDto } from './d20MinimumRoll.js'
 
 import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
@@ -47,6 +55,8 @@ import {
   serverRuleExecutionNestedD20EvidenceDtoSchema
 } from './ruleExecutionEvidence.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
+// A cycle: the reaction receipt reuses this module's spend receipts; both sides are lazy schemas.
+import { encounterActorReactionReceiptDtoSchema } from './ruleExecutionReactionChoice.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionCapabilityKeySchema as capabilityKeySchema,
@@ -64,6 +74,7 @@ import {
   meleeRetaliationEvidenceDtoSchema,
   validateMeleeRetaliation
 } from './ruleExecutionEffectEvidence.js'
+import { damageAddedDiceDtoSchema } from './d20AddedDice.js'
 
 /** What losing a Concentration slot removes: the maintained state, its dependents and Character owner versions. */
 const concentrationCleanupDtoSchema = lazySchema(() =>
@@ -139,7 +150,14 @@ const ruleCheckRollFields = () => ({
   modifier: integerSchema,
   total: integerSchema,
   contributors: canonicalConcentrationContributorsDtoSchema,
-  contributorChecksum: checksumSchema
+  contributorChecksum: checksumSchema,
+  /** The added dice (D156) with their rolled faces; `total` includes their signed sum. */
+  addedDice: z.optional(d20RolledAddedDiceDtoSchema),
+  /**
+   * The floor the roller's effects put on the d20; `selectedNatural` stays the face kept and
+   * `total` counts the higher of it and the floor.
+   */
+  minimumRoll: z.optional(d20MinimumRollDtoSchema)
 })
 
 const checkRollMatchesRollMode = (
@@ -149,6 +167,8 @@ const checkRollMatchesRollMode = (
     selectedNatural: number
     modifier: number
     total: number
+    addedDice?: D20RolledAddedDieDto[]
+    minimumRoll?: D20MinimumRollDto
   },
   context: { addIssue: (issue: { code: 'custom'; path: string[]; message: string }) => void }
 ) => {
@@ -160,7 +180,7 @@ const checkRollMatchesRollMode = (
         : value.rollMode === 'DISADVANTAGE'
           ? Math.min(...value.rawFaces)
           : value.rawFaces[0]) ||
-    value.total !== value.selectedNatural + value.modifier
+    value.total !== d20CheckTotal(value)
   )
     context.addIssue({
       code: 'custom',
@@ -266,7 +286,10 @@ export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
     )
 )
 
-/** One committed Character equipment change: Disarm, or a shield stowed for an accepted attack. */
+/**
+ * One committed Character equipment change: Disarm, a shield stowed for an accepted attack, or an
+ * item the target dropped (Heat Metal).
+ */
 export const characterItemUseStateTransitionDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -398,6 +421,23 @@ export const encounterActionEconomyTransitionDtoSchema = lazySchema(() =>
     )
 )
 
+/** One committed Creature loadout change: Disarm, or an item the target dropped (Heat Metal). */
+export const encounterActorItemUseStateTransitionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_ACTOR_ITEM_USE_STATE'),
+    actorId: uuidSchema,
+    loadoutEntryId: uuidSchema,
+    equipmentId: uuidSchema,
+    fromState: z.enum(['MAIN_HAND', 'OFF_HAND']),
+    toState: z.literal('CARRIED'),
+    beforeStateChecksum: checksumSchema,
+    afterStateChecksum: checksumSchema
+  })
+)
+export type EncounterActorItemUseStateTransitionDto = z.infer<
+  typeof encounterActorItemUseStateTransitionDtoSchema
+>
+
 export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -428,6 +468,11 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         null
       ),
       sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
+      /** The item the target dropped with this outcome (Heat Metal); undo puts it back in hand. */
+      targetItemUseStateTransition: z._default(
+        z.nullable(encounterActorItemUseStateTransitionDtoSchema),
+        null
+      ),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
@@ -459,6 +504,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         ),
         null
       ),
+      /** The target creature's reaction decision on this attack (Parry); its spend belongs to the target. */
+      reaction: z._default(z.nullable(encounterActorReactionReceiptDtoSchema), null),
       d20: z.nullable(serverRuleExecutionD20EvidenceDtoSchema),
       nestedD20: z._default(z.nullable(serverRuleExecutionNestedD20EvidenceDtoSchema), null),
       /** The action's recurring effect and, beside it, a failure-margin rider's effect. */
@@ -467,6 +514,11 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         []
       ),
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
+      /** Timed grants the target's own passive damage triggers created on it from this hit; undo deletes them. */
+      grantEffectTransitions: z._default(
+        z.array(encounterActorActiveEffectCreateReceiptDtoSchema).check(z.maxLength(4)),
+        []
+      ),
       stateEffectTransitions: z._default(
         z.array(stateEffectCreateReceiptDtoSchema).check(z.maxLength(1)),
         []
@@ -481,6 +533,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
       /** The source's own conditions released by effects its action ended; empty when none. */
       sourceApplications: sourceApplicationsDtoSchema,
+      /** The dice active grants added to, or took from, its damage, in node-prefix order (D156). */
+      damageAddedDice: z.optional(damageAddedDiceDtoSchema),
       /** The zones its target holds that this melee hit set off against the attacker (D153). */
       meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema)
     })
@@ -503,6 +557,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         })
         let current = value.targetTransition.before.currentHitPoints
         let temporary = value.targetTransition.before.temporaryHitPoints
+        let temporarySource = value.targetTransition.before.temporaryHitPointsSourceEffectId ?? null
         let maximum = value.targetTransition.before.maximumHitPoints
         let deathSaves = value.targetTransition.before.deathSaves
         const conditions = new Set(value.targetTransition.before.conditionIds)
@@ -601,6 +656,25 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
               deathSaves = deathSavesAfterStabilize({ deathSaves, currentHitPoints: current })
             continue
           }
+          if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {
+            const released = temporaryHitPointsAfterRelease(
+              { amount: temporary, sourceEffectId: temporarySource },
+              application.sourceActiveEffectId
+            )
+            if (
+              application.beforeTemporaryHitPoints !== temporary ||
+              application.afterTemporaryHitPoints !== released.amount ||
+              application.applied !== (temporarySource === application.sourceActiveEffectId)
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['applications', index],
+                message: 'Temporary hit-point release receipt is invalid.'
+              })
+            temporary = released.amount
+            temporarySource = released.sourceEffectId
+            continue
+          }
           if (
             application.beforeCurrentHitPoints > application.maximumHitPoints ||
             application.afterCurrentHitPoints > application.maximumHitPoints ||
@@ -636,10 +710,15 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
                 message: 'Heal receipt arithmetic is invalid.'
               })
           } else if (application.kind === 'TEMPORARY_HIT_POINTS') {
-            const afterTemporary = Math.max(
-              application.beforeTemporaryHitPoints,
-              application.resolvedAmount
+            const granted = temporaryHitPointsAfterGrant(
+              { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
+              {
+                amount: application.resolvedAmount,
+                sourceEffectId: application.sourceActiveEffectId ?? null
+              }
             )
+            const afterTemporary = granted.amount
+            temporarySource = granted.sourceEffectId
             if (
               application.resolvedAmount !== application.requestedAmount ||
               application.afterCurrentHitPoints !== application.beforeCurrentHitPoints ||
@@ -657,6 +736,10 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
               application.requestedAmount
             )
             const temporaryLost = Math.min(application.beforeTemporaryHitPoints, resolved)
+            temporarySource = temporaryHitPointsAfterLoss(
+              { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
+              temporaryLost
+            ).sourceEffectId
             const currentLost = Math.min(
               application.beforeCurrentHitPoints,
               resolved - temporaryLost
@@ -690,6 +773,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         if (
           after.currentHitPoints !== current ||
           after.temporaryHitPoints !== temporary ||
+          (after.temporaryHitPointsSourceEffectId ?? null) !== temporarySource ||
           after.maximumHitPoints !== maximum ||
           JSON.stringify(after.deathSaves) !== JSON.stringify(deathSaves) ||
           after.conditionIds.length !== conditions.size ||
@@ -727,6 +811,15 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             code: 'custom',
             path: ['sourceCharacterId'],
             message: 'Character resource consumption requires a Character source.'
+          })
+        if (
+          value.targetItemUseStateTransition &&
+          value.targetItemUseStateTransition.actorId !== value.targetActorId
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['targetItemUseStateTransition'],
+            message: 'Target item state transition must match the target.'
           })
         const stow = value.sourceItemUseStateTransition
         if (
@@ -814,6 +907,12 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             code: 'custom',
             path: ['targetFeatureResourceConsumption'],
             message: 'Target Encounter feature resource receipt is invalid.'
+          })
+        if (value.reaction && value.reaction.reaction.reactorActorId !== value.targetActorId)
+          context.addIssue({
+            code: 'custom',
+            path: ['reaction'],
+            message: 'A reaction belongs to the attacked creature.'
           })
         const legendaryResistance = value.legendaryResistance
         if (legendaryResistance) {
@@ -941,13 +1040,16 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
       sourceActorId: uuidSchema,
       targetActorId: uuidSchema,
       sealedContextChecksum: checksumSchema,
-      policy: z.strictObject({
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        moduleKey: capabilityKeySchema,
-        moduleContractVersion: contractVersionSchema
-      }),
+      /** The sealed optional-combat policy; null for a basic-action or escape contest (D152 amendment). */
+      policy: z.nullable(
+        z.strictObject({
+          definitionId: uuidSchema,
+          definitionVersion: positiveIntegerSchema,
+          definitionChecksum: checksumSchema,
+          moduleKey: capabilityKeySchema,
+          moduleContractVersion: contractVersionSchema
+        })
+      ),
       contestGraph: z.strictObject({
         definitionId: uuidSchema,
         checksum: checksumSchema,
@@ -959,20 +1061,36 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
       stateTransition: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('NONE') }),
         characterItemUseStateTransitionDtoSchema,
+        encounterActorItemUseStateTransitionDtoSchema,
+        /** The conditions a won contest's picked outcome newly applied to the target (Shove, D105). */
         z.strictObject({
-          kind: z.literal('ENCOUNTER_ACTOR_ITEM_USE_STATE'),
-          actorId: uuidSchema,
-          loadoutEntryId: uuidSchema,
-          equipmentId: uuidSchema,
-          fromState: z.enum(['MAIN_HAND', 'OFF_HAND']),
-          toState: z.literal('CARRIED'),
-          beforeStateChecksum: checksumSchema,
-          afterStateChecksum: checksumSchema
+          kind: z.literal('CONDITIONS_APPLIED'),
+          appliedConditionIds: z
+            .array(uuidSchema)
+            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
         }),
+        /** The push a won contest's picked outcome settles on the target (Shove, D105, D157). */
         z.strictObject({
-          kind: z.literal('SCENE_TOKEN_MOVED'),
-          tokenId: uuidSchema,
-          destination: z.strictObject({ x: z.number(), y: z.number() })
+          kind: z.literal('FORCED_MOVEMENT'),
+          direction: forcedMovementDirectionSchema,
+          feet: z.number().check(z.positive()),
+          upTo: z.boolean()
+        }),
+        /** The relationship effect the win created and the conditions it newly applied to the target. */
+        z.strictObject({
+          kind: z.literal('ACTOR_RELATIONSHIP'),
+          createdEffect: encounterActorActiveEffectCreateReceiptDtoSchema,
+          appliedConditionIds: z
+            .array(uuidSchema)
+            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        }),
+        /** The held source's won escape: the holding effect ended and the conditions only it held. */
+        z.strictObject({
+          kind: z.literal('RELATIONSHIP_ENDED'),
+          endedEffectId: uuidSchema,
+          removedConditionIds: z
+            .array(uuidSchema)
+            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
         })
       ]),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
@@ -1027,13 +1145,13 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
             message: 'Encounter-actor contested-action item state transition is invalid.'
           })
         if (
-          value.stateTransition.kind === 'SCENE_TOKEN_MOVED' &&
-          value.stateTransition.tokenId.length === 0
+          value.stateTransition.kind === 'ACTOR_RELATIONSHIP' &&
+          value.stateTransition.createdEffect.targetActorId !== value.targetActorId
         )
           context.addIssue({
             code: 'custom',
-            path: ['stateTransition'],
-            message: 'Contested-action Scene transition is invalid.'
+            path: ['stateTransition', 'createdEffect'],
+            message: 'A contested relationship effect belongs to the contest target.'
           })
         if (
           value.actionEconomyTransition &&

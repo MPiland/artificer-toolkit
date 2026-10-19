@@ -2,6 +2,7 @@ import type {
   EncounterRuleWarningCodeDto,
   EncounterRuleWarningDto
 } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { sizeRank } from '@artificer-toolkit/shared/core'
 import type { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
 import {
   evaluateEncounterActionTargetPolicy,
@@ -31,6 +32,12 @@ type EncounterActionWarningInput = {
    * do not), judged against the Intelligence floor of an action that bonds its targets.
    */
   targetIntelligence?: number | null
+  /**
+   * The actor's and the target's sizes when readable, judged against the action's `sizeLimit`;
+   * either one unknown raises nothing.
+   */
+  actorSize?: string | null
+  targetSize?: string | null
   /** Set when the action bonds its targets (Telepathic Bond): Intelligence at or below it is excluded. */
   linkIntelligenceFloor?: number | null
   /**
@@ -41,6 +48,22 @@ type EncounterActionWarningInput = {
   actionEconomy: Awaited<ReturnType<typeof evaluateEncounterActionEconomy>>
   activationCode: string
   acknowledged: readonly EncounterRuleWarningCodeDto[]
+}
+
+/** Whether the target is more size steps above the actor than a single-target `sizeLimit` allows. */
+function targetExceedsSizeLimit(
+  input: Pick<EncounterActionWarningInput, 'target' | 'actorSize' | 'targetSize'>
+): boolean {
+  const { targeting } = input.target.targetPolicy
+  const limit = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.sizeLimit : undefined
+  const actorRank = sizeRank(input.actorSize)
+  const targetRank = sizeRank(input.targetSize)
+  return (
+    limit !== undefined &&
+    actorRank !== null &&
+    targetRank !== null &&
+    targetRank - actorRank > limit.stepsAboveActor
+  )
 }
 
 /** Every warning one target raises, or null when the target policy refuses the target outright. */
@@ -66,6 +89,14 @@ function encounterActionWarnings(input: EncounterActionWarningInput) {
           {
             code: 'TARGET_CREATURE_TYPE_EXCLUDED' as const,
             message: 'This action has no effect on this creature type.'
+          }
+        ]
+      : []),
+    ...(targetExceedsSizeLimit(input)
+      ? [
+          {
+            code: 'TARGET_TOO_LARGE' as const,
+            message: 'The target is too large for this action.'
           }
         ]
       : []),
@@ -109,7 +140,14 @@ export function evaluateEncounterActionRuleWarnings(
 export function evaluateEncounterActorsRuleWarnings(
   input: Omit<
     EncounterActionWarningInput,
-    'target' | 'targetDefeated' | 'targetCreatureTypeId' | 'targetIntelligence' | 'stabilize'
+    // A size limit is single-target only.
+    | 'target'
+    | 'targetDefeated'
+    | 'targetCreatureTypeId'
+    | 'targetIntelligence'
+    | 'stabilize'
+    | 'actorSize'
+    | 'targetSize'
   > & {
     targets: readonly Pick<
       EncounterActionWarningInput,

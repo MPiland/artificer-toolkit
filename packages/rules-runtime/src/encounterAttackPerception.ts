@@ -35,6 +35,11 @@ export type EncounterAttackPerception = {
   targetSenseLabels: readonly string[]
   /** The System labels of the Senses that let the attacker see the target; empty unless it SEES. */
   attackerSenseLabels: readonly string[]
+  /**
+   * The System Sense definitions that let the attacker see the target; empty unless it SEES. The
+   * attacker knows its own Senses, so its believed perception names them too.
+   */
+  attackerSenseDefinitionIds: readonly string[]
 }
 
 /** Who rolls the d20 the perception is believed for: an attack's attacker or a save's target. */
@@ -66,8 +71,9 @@ export type EncounterAttackPerceptionPlacement = {
 }
 
 /**
- * Whether one observer sees one subject, and by which System Senses. `believed` decides only on the
- * facts the observer's roller knows, so it names no Senses.
+ * Whether one observer sees one subject, and by which System Senses (ordinary sight is none).
+ * `believed` decides only on the facts the observer's roller knows, so it labels no Senses; the
+ * observer's own qualifying Sense definitions are still named.
  */
 async function resolveAttackSight(
   input: AttackPerceptionLoaders & {
@@ -76,7 +82,11 @@ async function resolveAttackSight(
     placement: Parameters<typeof resolveEncounterActorPairPerception>[0]['placement']
     believed: boolean
   }
-): Promise<{ sight: EncounterAttackSight; senseLabels: readonly string[] }> {
+): Promise<{
+  sight: EncounterAttackSight
+  senseLabels: readonly string[]
+  senseDefinitionIds: readonly string[]
+}> {
   const { observer, subject } = input
   // A concealed subject is unseen by the observers its concealment still hides it from (ATTACK-10.T1).
   // On a Scene an observer that really sees the subject has noticed it, so the Scene decides; without
@@ -90,7 +100,7 @@ async function resolveAttackSight(
           'ALLIED'
       : input.placement === null && isConcealedFrom(subject.activeEffects, observer.actor.id)
   )
-    return { sight: 'UNSEEN', senseLabels: [] }
+    return { sight: 'UNSEEN', senseLabels: [], senseDefinitionIds: [] }
   const result = await resolveEncounterActorPairPerception({
     gameSystemId: input.gameSystemId,
     requirement: 'SEE',
@@ -102,16 +112,16 @@ async function resolveAttackSight(
     loadDefinition: input.loadDefinition,
     loadSystem: input.loadSystem
   })
-  if (!result.satisfied) return { sight: 'UNSEEN', senseLabels: [] }
-  if (input.believed || result.qualifying.length === 0) return { sight: 'SEES', senseLabels: [] }
-  const { senses } = await input.loadSystem()
+  if (!result.satisfied) return { sight: 'UNSEEN', senseLabels: [], senseDefinitionIds: [] }
   const qualifying = new Set(result.qualifying.map((identity) => identity.definitionId))
+  if (qualifying.size === 0) return { sight: 'SEES', senseLabels: [], senseDefinitionIds: [] }
+  const senses = (await input.loadSystem()).senses.filter((sense) => qualifying.has(sense.id))
   return {
     sight: 'SEES',
-    senseLabels: senses
-      .filter((sense) => qualifying.has(sense.id))
-      .map((sense) => sense.label)
-      .sort((left, right) => left.localeCompare(right))
+    senseDefinitionIds: senses.map((sense) => sense.id).sort(),
+    senseLabels: input.believed
+      ? []
+      : senses.map((sense) => sense.label).sort((left, right) => left.localeCompare(right))
   }
 }
 
@@ -153,7 +163,8 @@ export async function resolveEncounterAttackPerception(
     targetSeesAttacker: target.sight,
     attackerSeesTarget: attacker.sight,
     targetSenseLabels: target.senseLabels,
-    attackerSenseLabels: attacker.senseLabels
+    attackerSenseLabels: attacker.senseLabels,
+    attackerSenseDefinitionIds: attacker.senseDefinitionIds
   }
 }
 
@@ -258,7 +269,8 @@ export async function resolveEncounterBelievedAttackPerception(
     targetSeesAttacker: target.sight,
     attackerSeesTarget: attacker.sight,
     targetSenseLabels: [],
-    attackerSenseLabels: []
+    attackerSenseLabels: [],
+    attackerSenseDefinitionIds: attacker.senseDefinitionIds
   }
 }
 
@@ -294,23 +306,45 @@ export function encounterAttackPerceptionContributors(
 
 /**
  * Every attack-roll contributor that sight decides: the target's `ATTACKS_AGAINST` contributors
- * (Dodge), those that require the target to see the attacker holding only while it can, and the
- * unseen attacker/target contributors. True and believed perception build theirs with this one rule.
+ * (Dodge), those that require the target to see the attacker holding only while it can, those
+ * that exempt Senses dropped for an attacker seeing the target through one (Blur), and the unseen
+ * attacker/target contributors. A grant that negates advantage (Elusive) and holds drops every
+ * advantage among them. True and believed perception build theirs with this one rule.
  */
 export function encounterAttackSightContributors(input: {
   perception: EncounterAttackPerception
-  attacksAgainst: readonly Pick<
-    EncounterAttackAgainstContributor,
-    'requiresHolderSeesAttacker' | 'contributor'
-  >[]
+  attacksAgainst: readonly SightDecidedAttackAgainst[]
 }): readonly EncounterRelationshipD20Contributor[] {
-  return mergeCanonicalD20Contributors(
-    input.attacksAgainst
-      .filter(
-        ({ requiresHolderSeesAttacker }) =>
-          !requiresHolderSeesAttacker || input.perception.targetSeesAttacker !== 'UNSEEN'
-      )
-      .map(({ contributor }) => contributor),
-    encounterAttackPerceptionContributors(input.perception)
+  const { perception } = input
+  const held = input.attacksAgainst.filter((entry) => attackAgainstHolds(entry, perception))
+  const contributors = mergeCanonicalD20Contributors(
+    held.flatMap(({ contributor }) => (contributor ? [contributor] : [])),
+    encounterAttackPerceptionContributors(perception)
+  )
+  return held.some(({ contributor }) => contributor === null)
+    ? contributors.filter(({ influence }) => influence !== 'ADVANTAGE')
+    : contributors
+}
+
+type SightDecidedAttackAgainst = Pick<
+  EncounterAttackAgainstContributor,
+  'requiresHolderSeesAttacker' | 'exemptAttackerSenseDefinitionIds' | 'contributor'
+>
+
+/**
+ * Whether a target's attacks-against grant holds for an attack as the target perceives it: one that
+ * requires the target to see the attacker holds only while it can, and none holds for an attacker
+ * seeing the target through a Sense it exempts. Without perception, every grant holds.
+ */
+export function attackAgainstHolds(
+  entry: Omit<SightDecidedAttackAgainst, 'contributor'>,
+  perception: EncounterAttackPerception | null
+): boolean {
+  return (
+    perception === null ||
+    ((!entry.requiresHolderSeesAttacker || perception.targetSeesAttacker !== 'UNSEEN') &&
+      !entry.exemptAttackerSenseDefinitionIds.some((senseId) =>
+        perception.attackerSenseDefinitionIds.includes(senseId)
+      ))
   )
 }

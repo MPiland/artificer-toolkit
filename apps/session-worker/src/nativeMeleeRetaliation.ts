@@ -60,6 +60,10 @@ export async function planNativeLiveMeleeRetaliation(input: {
     userId: input.userId,
     runtime: input.runtime,
     random: input.random,
+    damageEnds: {
+      turnActorId: state.currentActorId,
+      dispositions: new Map(input.initialActors.map(({ id, disposition }) => [id, disposition]))
+    },
     ...(input.retained ? { retained: input.retained } : {})
   })
   return {

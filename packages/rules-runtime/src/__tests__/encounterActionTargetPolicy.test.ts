@@ -7,6 +7,7 @@ import { sceneRangeBand, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 import {
   encounterActionLongRangeContributor,
   encounterActorRelationship,
+  encounterActionReachFeet,
   evaluateEncounterActionTargetPolicy,
   targetingExcludesCreatureType,
   withoutCreatureTypeRestrictions
@@ -18,6 +19,21 @@ import {
 } from '../encounterRollModeReasons.js'
 
 const DISPOSITIONS: readonly EncounterActorDispositionDto[] = ['FRIENDLY', 'NEUTRAL', 'HOSTILE']
+
+describe('an action’s reach, which a relationship seals (D152)', () => {
+  const reachOf = (range: CompiledActionTargetPolicy['range']) =>
+    encounterActionReachFeet({ range, targeting: null, shape: null, pathOverrides: [] })
+
+  it('is 5 feet for a Touch action and the normal range in feet for a distance', () => {
+    expect(reachOf({ id: 'range', rangeKind: 'TOUCH' })).toBe(5)
+    expect(reachOf({ id: 'range', rangeKind: 'DISTANCE', amount: 10, unit: 'FEET' })).toBe(10)
+    expect(reachOf({ id: 'range', rangeKind: 'DISTANCE', amount: 2, unit: 'YARDS' })).toBe(6)
+  })
+
+  it('refuses a range it cannot measure', () => {
+    expect(() => reachOf({ id: 'range', rangeKind: 'SIGHT' })).toThrow('reach')
+  })
+})
 
 function dispositionWarnings(
   dispositionKind: 'ANY' | 'WILLING' | 'HOSTILE',

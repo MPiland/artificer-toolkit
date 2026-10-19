@@ -1,3 +1,5 @@
+import { v5 as uuidv5 } from 'uuid'
+
 import {
   prepareEncounterActionEffectPlans,
   prepareRecurringActiveEffect
@@ -7,8 +9,14 @@ import { toCharacterInitiativeActorFacts } from './character/characterInitiative
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
+import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
+import type { IncomingDamageGrantTrigger } from './encounterEndedEffectRelease.js'
+import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
+import { readEncounterChosenItem } from './encounterChosenItem.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -34,7 +42,7 @@ function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
           (condition) => condition.conditionTypeId
         )
       : target.state.conditions,
-    effectiveSize: effectiveSize(target),
+    effectiveSize: encounterActorEffectiveSize(target),
     lifetimeScope: target.actor.kind === 'CHARACTER' ? ('OWNER' as const) : ('ENCOUNTER' as const),
     activeEffects: target.activeEffects
   }
@@ -76,6 +84,65 @@ export function prepareNativeZoneSourceGrantEffect<
   return effect
 }
 
+const INCOMING_DAMAGE_GRANT_NAMESPACE = '8c1d4e0a-6b7f-4d2e-9a35-f0e2b7c41d68'
+
+/**
+ * The grants a creature gives itself when it takes damage, from its Creature's passive
+ * damage-trigger features: each made now as the effect it would hold, for `targetEndedEffects` to
+ * select by the damage dealt. A Character holder has no such features. It reads only the holder's
+ * stored actor and held effects, so planning and persisting prepare the same triggers.
+ */
+export function prepareNativeIncomingDamageGrantTriggers(input: {
+  encounter: { id: string; currentActorId: string | null }
+  holder: EncounterRunActorState
+  /** The effects the holder carries before the damage. */
+  held: readonly ActiveRuleEffectRecord[]
+  occurrenceId: string
+  commandId: string
+  /** Tells apart the settlements of one occurrence that damage the same creature (Legendary Actions). */
+  ordinal?: number | string
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+}): IncomingDamageGrantTrigger[] {
+  const { holder } = input
+  if (holder.kind !== 'CREATURE') return []
+  return discoverEncounterFeatureActions({
+    actor: holder,
+    conditionDefinitionIds: [],
+    abilityDefinitions: []
+  }).passiveDamageGrants.map(({ capability, damageTypeIds, plan }) => {
+    const effect = prepareRecurringActiveEffect({
+      encounterId: input.encounter.id,
+      occurrenceId: input.occurrenceId,
+      commandId: input.commandId,
+      sourceActorId: holder.id,
+      sourceLabel: capability.label,
+      sourceHidden: !holder.public,
+      currentActorId: input.encounter.currentActorId,
+      target: {
+        actorId: holder.id,
+        conditionIds: readEncounterActorConditionState(holder.conditions ?? []).ids,
+        effectiveSize: creatureSnapshotSize(holder),
+        lifetimeScope: 'ENCOUNTER',
+        activeEffects: input.held
+      },
+      activeEffectsByActorId: input.activeEffectsByActorId,
+      activeEffectPlan: plan,
+      published: plan.frozenGraph,
+      d20: null
+    })
+    if (!effect) throw new Error('A passive damage trigger yields no effect.')
+    return {
+      id: uuidv5(
+        `${input.occurrenceId}:${input.ordinal ?? ''}:${holder.id}:${capability.effectId}`,
+        INCOMING_DAMAGE_GRANT_NAMESPACE
+      ),
+      authoredEffectId: capability.effectId,
+      damageTypeIds,
+      effect
+    }
+  })
+}
+
 /** The active-effect plan an action's capability carries, selected by the definition that ran. */
 export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMovementFacts>(
   prepared: PreparedMechanics<TCharacterFacts>,
@@ -92,18 +159,23 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   return plans[0] ?? null
 }
 
-function effectiveSize(target: MovementTarget<CharacterActionMovementFacts>): string | null {
-  if (target.actor.kind !== 'CHARACTER') {
-    const snapshot = target.actor.snapshot
-    const payload =
-      snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) ? snapshot.payload : null
-    return payload &&
-      typeof payload === 'object' &&
-      !Array.isArray(payload) &&
-      typeof payload.size === 'string'
-      ? payload.size
-      : null
-  }
+function creatureSnapshotSize(actor: EncounterRunActorState): string | null {
+  const snapshot = actor.snapshot
+  const payload =
+    snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) ? snapshot.payload : null
+  return payload &&
+    typeof payload === 'object' &&
+    !Array.isArray(payload) &&
+    typeof payload.size === 'string'
+    ? payload.size
+    : null
+}
+
+/** An actor's size now: a Creature's snapshot size, or a Character's effective size from its facts. */
+export function encounterActorEffectiveSize(
+  target: MovementTarget<CharacterActionMovementFacts>
+): string | null {
+  if (target.actor.kind !== 'CHARACTER') return creatureSnapshotSize(target.actor)
   const facts = target.characterFacts
   return facts
     ? toCharacterInitiativeActorFacts({
@@ -118,7 +190,8 @@ export function prepareNativeActionEffectsPlan<
   TCharacterFacts extends CharacterActionMovementFacts
 >(input: {
   prepared: PreparedMechanics<TCharacterFacts>
-  execution: CompleteExecution
+  /** The settled graph run; a contest win supplies its own d20 and no applications. */
+  execution: Pick<CompleteExecution, 'published' | 'execution' | 'd20' | 'applications'>
   occurrenceId: string
   commandId: string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
@@ -127,6 +200,8 @@ export function prepareNativeActionEffectsPlan<
   form?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['form']
   /** What triggered a reaction, which its effect may bind. */
   trigger?: { damageTypeIds: readonly string[] }
+  /** The target's item the caster chose, for an action used on an item (Shillelagh, Heat Metal). */
+  chosenItemInstanceId?: string
   /**
    * The zone the action places when it holds the condition the action's failed save applies
    * (D146): the hold is the creature's effect, under the Concentration the zone depends on.
@@ -144,20 +219,36 @@ export function prepareNativeActionEffectsPlan<
   const target = prepared.movementTargets.get(prepared.target.id)
   if (!target || checksumCanonicalJson(target.actor) !== checksumCanonicalJson(prepared.target))
     throw new Error('Encounter action effect target is stale.')
+  const chosen = readEncounterChosenItem({
+    plan: plan?.chosenItem,
+    target,
+    itemInstanceId: input.chosenItemInstanceId
+  })
+  // The outcome drops the item only when a hand holds it; a worn one stays (the ruling on Heat Metal).
+  const released = Boolean(
+    chosen?.releasable &&
+    plan?.chosenItem?.releasedOn != null &&
+    plan.chosenItem.releasedOn === execution.d20?.resultPath
+  )
   const effects = prepareEncounterActionEffectPlans({
     encounterId: prepared.state.id,
     occurrenceId: input.occurrenceId,
     commandId: input.commandId,
     sourceActorId: prepared.actor.id,
     sourceLabel: encounterActionSourceLabel(prepared.source),
+    sourceCharacterId: prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null,
     sourceHidden: !prepared.actor.public,
     currentActorId: prepared.state.currentActorId,
     target: effectTarget(target),
     activeEffectsByActorId: input.activeEffectsByActorId,
     activeEffectPlan: plan,
+    sealedReachFeet: plan?.actorRelationshipContribution
+      ? encounterActionReachFeet(prepared.targetPolicy)
+      : undefined,
     concealment: input.concealment,
     link: input.link,
     form: input.form,
+    ...(chosen ? { chosenItem: { item: chosen.item, released } } : {}),
     published: execution.published,
     execution: execution.execution,
     d20: execution.d20,
@@ -188,9 +279,10 @@ export function prepareNativeActionEffectsPlan<
           application.kind === 'DAMAGE' ||
           application.kind === 'TEMPORARY_HIT_POINTS')
     )
-  // A grant, concealment, link or form applies no stored state, so its effect exists exactly when
-  // its plan does (a concealment plan yields none when its check beats no observer).
+  // A grant, concealment, link, form or deferred recurrence applies no stored state at cast, so its
+  // effect exists exactly when its plan does (a concealment plan yields none when its check beats no observer).
   const grant = Boolean(
+    plan?.recurrenceDeferred ||
     plan?.modifierGrantContribution ||
     plan?.concealmentContribution ||
     plan?.actorLinkContribution ||
@@ -200,17 +292,25 @@ export function prepareNativeActionEffectsPlan<
     relationship || grant || appliedCondition || appliedRecurringOutcome
       ? effects.recurringEffect
       : null
-  // A rider's effect exists exactly when the save failed by its margin and applied its conditions.
-  const riderEffect = execution.applications.some(
-    (application) =>
-      application.kind === 'CONDITION_APPLY' &&
-      application.targetActorId === prepared.target.id &&
-      plan?.marginRider?.conditionContributions.some(
-        ({ conditionId }) => application.conditionId === conditionId
-      )
+  // A rider's effect exists exactly when the save failed by its margin and applied its conditions;
+  // a source immunity on every target the action meets, or a save's on its success.
+  const immunity = plan?.sourceImmunity
+  const immune = Boolean(
+    immunity &&
+    (immunity.appliesTo === 'EVERY_TARGET' || execution.d20?.resultPath === 'ON_SAVE_SUCCESS')
   )
-    ? effects.riderEffect
-    : null
+  const riderEffect =
+    immune ||
+    execution.applications.some(
+      (application) =>
+        application.kind === 'CONDITION_APPLY' &&
+        application.targetActorId === prepared.target.id &&
+        plan?.marginRider?.conditionContributions.some(
+          ({ conditionId }) => application.conditionId === conditionId
+        )
+    )
+      ? effects.riderEffect
+      : null
   const { holdingZone } = input
   if (holdingZone && plan) throw new Error('A zone holds its condition alone.')
   const hold =
@@ -229,6 +329,10 @@ export function prepareNativeActionEffectsPlan<
     recurringEffect:
       recurringEffect ?? (hold ? { definition: hold.definition, lifecycle: hold.lifecycle } : null),
     riderEffect,
+    /** The target's item the outcome drops; absent when it drops none. */
+    releasedItemInstanceId: released ? chosen?.item.itemInstanceId : undefined,
+    // A source immunity outlasts the Concentration its action's effect depends on.
+    riderMaintained: !immune,
     maintenance: recurringEffect
       ? (plan?.maintenance ?? null)
       : hold

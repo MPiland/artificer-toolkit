@@ -1,7 +1,10 @@
 import type { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
 import { prepareEncounterTurnEffects } from '@artificer-toolkit/rules-runtime/encounterTurnEffects'
 import { prepareEncounterTurnZoneEffects } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
-import { planEncounterPassiveZones } from '@artificer-toolkit/rules-runtime/encounterPassiveZones'
+import {
+  planEncounterPassiveZones,
+  type EncounterPassiveZoneCharacterRules
+} from '@artificer-toolkit/rules-runtime/encounterPassiveZones'
 import { plannedSpatialEffectRecord } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
 import { prepareTurnLegendaryActions } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryAction'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
@@ -13,6 +16,7 @@ import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runt
 import { prepareEncounterInitiativeDeclarationSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationSources'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { prepareAttackBehindDecoys } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -28,6 +32,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterRunCharacterActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
+import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import {
   readNativeLivePerceptionScene,
@@ -69,7 +74,15 @@ export function createNativeLiveTurnStages(
     }
   }
   const createRuntime = async () => runtime
-  const rollD20 = () => random(20) + 1
+  const loadCharacterRules = async () => {
+    const rules = new Map<string, EncounterPassiveZoneCharacterRules>()
+    for (const actor of turn.actors) {
+      if (actor.kind !== 'CHARACTER') continue
+      const ruleEvaluation = (await loadTarget(actor.id))?.characterFacts?.ruleEvaluation
+      if (ruleEvaluation) rules.set(actor.sourceId, ruleEvaluation)
+    }
+    return rules
+  }
   const stages: Parameters<typeof prepareEncounterTurn<CharacterFacts>>[1] = {
     effects: (stage) =>
       prepareEncounterTurnEffects<CharacterFacts>({
@@ -96,7 +109,7 @@ export function createNativeLiveTurnStages(
         },
         loadTarget,
         createRuntime,
-        rollD20,
+        random,
         resolvePerception: (perception) =>
           resolveNativeLiveTurnEffectPerception({
             ...perception,
@@ -107,9 +120,30 @@ export function createNativeLiveTurnStages(
             onSceneRead: inputs.onSceneRead
           })
       }),
-    zones: (stage) =>
-      prepareEncounterTurnZoneEffects<CharacterFacts>({
+    zones: (stage) => {
+      let sceneContext: Parameters<typeof readNativeLiveAttackPerception>[0]['sceneContext'] = null
+      return prepareEncounterTurnZoneEffects<CharacterFacts>({
         ...stage,
+        loadSourceSight: async ({ sourceActorId, occupantActorId }) => {
+          const [source, occupant] = await Promise.all([
+            loadTarget(sourceActorId),
+            loadTarget(occupantActorId)
+          ])
+          if (!source || !occupant) throw new Error('Turn zone sight actors are unavailable.')
+          const { actual } = await readNativeLiveAttackPerception({
+            state,
+            system,
+            attacker: source,
+            target: occupant,
+            roller: 'ATTACKER',
+            sceneContext,
+            capture
+          })
+          return {
+            occupantSeesSource: actual.targetSeesAttacker === 'SEES',
+            sourceSeesOccupant: actual.attackerSeesTarget === 'SEES'
+          }
+        },
         loadScene: async () => {
           const actorId = stage.boundary.actorId
           if (actorId === null) return null
@@ -125,6 +159,11 @@ export function createNativeLiveTurnStages(
             sceneVersion: loaded.version,
             definitionSaveId: loaded.definitionSaveId
           })
+          sceneContext = {
+            sceneId: loaded.id,
+            sceneVersion: loaded.version,
+            grid: loaded.scene.grid
+          }
           // A zone acting at its source's turn catches every creature token in the Scene (D144).
           const bindings = await capture({ kind: 'ACTOR_TOKEN_BINDINGS' })
           if (
@@ -143,7 +182,7 @@ export function createNativeLiveTurnStages(
           const actorIdByTokenId = new Map(
             bindings.bindings.map((binding) => [binding.tokenId, binding.actorId])
           )
-          // The Encounter's start places the Creatures' passive zones before its first turn (D144).
+          // The Encounter's start places passive zones before its first turn (D144, D155).
           const placing =
             stage.root.commandType === 'START'
               ? planEncounterPassiveZones({
@@ -154,7 +193,8 @@ export function createNativeLiveTurnStages(
                   system,
                   sceneGrid: loaded.scene.grid,
                   tokens: loaded.scene.tokens,
-                  actorIdByTokenId
+                  actorIdByTokenId,
+                  characterRules: await loadCharacterRules()
                 }).filter((zone) => !effects.some((effect) => effect.id === zone.id))
               : []
           const lastOrdinal = Math.max(0, ...effects.map((effect) => effect.createdOrdinal))
@@ -178,7 +218,8 @@ export function createNativeLiveTurnStages(
         createRuntime,
         definitions,
         random
-      }),
+      })
+    },
     legendary: (stage) =>
       prepareTurnLegendaryActions<CharacterFacts>({
         ...stage,
@@ -242,7 +283,7 @@ export function createNativeLiveTurnStages(
               return new Map(entries)
             }
           }),
-        prepareMechanics: async (mechanics) => {
+        prepareMechanics: async ({ decoyOccurrenceId, ...mechanics }) => {
           const targets = new Map(mechanics.movementTargets)
           for (const actor of [mechanics.actor, mechanics.target]) {
             if (targets.has(actor.id)) continue
@@ -250,17 +291,54 @@ export function createNativeLiveTurnStages(
             if (!target) throw new Error('Legendary Action target is unavailable.')
             targets.set(actor.id, target)
           }
-          return prepareEncounterActionMechanics<CharacterFacts>({
-            ...mechanics,
-            state,
-            overridable: false,
-            movementTargets: targets,
-            loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
-            loadRelationshipFacts: async (relation) =>
-              lockedRelationshipActionFacts({
-                ...relation,
-                targets: { activeEffectsByActorId }
+          return prepareAttackBehindDecoys({
+            occurrenceId: decoyOccurrenceId,
+            effects: targets.get(mechanics.target.id)?.activeEffects ?? [],
+            abilities: system.abilities,
+            prepare: (attackDecoy) =>
+              prepareEncounterActionMechanics<CharacterFacts>({
+                ...mechanics,
+                attackDecoy,
+                state,
+                overridable: false,
+                movementTargets: targets,
+                loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
+                loadRelationshipFacts: async (relation) =>
+                  lockedRelationshipActionFacts({
+                    ...relation,
+                    targets: { activeEffectsByActorId }
+                  })
+              }),
+            // The window falls on another creature's turn, so the attacker's sight of its target
+            // is read from the Scene they share, not from the action's own preparation.
+            perceive: async ({ sourceFacts, targetFacts }) => {
+              const loaded = await readNativeLivePerceptionScene({
+                observerActorId: targetFacts.actor.id,
+                subjectActorId: sourceFacts.actor.id,
+                campaignId: state.campaignId,
+                capture
               })
+              if (loaded)
+                inputs.onSceneRead({
+                  sceneId: loaded.id,
+                  sceneVersion: loaded.version,
+                  definitionSaveId: loaded.definitionSaveId
+                })
+              const { actual } = await readNativeLiveAttackPerception({
+                state,
+                system,
+                attacker: sourceFacts,
+                target: targetFacts,
+                roller: 'ATTACKER',
+                sceneContext: loaded && {
+                  sceneId: loaded.id,
+                  sceneVersion: loaded.version,
+                  grid: loaded.scene.grid
+                },
+                capture
+              })
+              return actual
+            }
           })
         }
       }),
@@ -276,7 +354,7 @@ export function createNativeLiveTurnStages(
         ...stage,
         loadTarget,
         createRuntime,
-        rollD20
+        random
       }),
     initiative: (stage) => {
       async function loadCharacter(actor: EncounterRunCharacterActorState) {

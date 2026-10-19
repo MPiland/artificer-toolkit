@@ -699,7 +699,13 @@ describe('effect schema parsing', () => {
               subject: 'EQUIPMENT',
               authoringModeKind: 'ALL',
               conditions: [
-                { id: 'gate-condition', order: 0, kind: 'PREDICATE', constraint: 'INCLUDE', ...condition }
+                {
+                  id: 'gate-condition',
+                  order: 0,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  ...condition
+                }
               ]
             }
           ]
@@ -727,9 +733,9 @@ describe('effect schema parsing', () => {
     for (const rollMode of ['ADVANTAGE', 'NOT_DISADVANTAGE']) {
       expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode })).success).toBe(true)
     }
-    expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'DISADVANTAGE' })).success).toBe(
-      false
-    )
+    expect(
+      parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'DISADVANTAGE' })).success
+    ).toBe(false)
     expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE' })).success).toBe(false)
 
     expect(parse(gate({ predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 })).success).toBe(true)
@@ -941,9 +947,7 @@ describe('effect schema parsing', () => {
     expect(followUpSave({ ...immediateRepeat, repeatAttemptGate: undefined })).toBe(true)
     expect(followUpSave(immediateRepeat)).toBe(false)
     // The runtime carries one perception result per repeated save, so one perception rule at most.
-    expect(
-      followUpSave({ repeatRollInfluence: { influence: 'DISADVANTAGE', when } })
-    ).toBe(false)
+    expect(followUpSave({ repeatRollInfluence: { influence: 'DISADVANTAGE', when } })).toBe(false)
   })
 
   it('parses passive effects with saving throw invocations', () => {
@@ -1376,6 +1380,65 @@ describe('effect schema parsing', () => {
   })
 })
 
+describe('failure margin rider on a direct saving throw (SPELLS-33.T7b)', () => {
+  const rider = {
+    id: '00000000-0000-4000-8000-0000000000f1',
+    failedBy: 5,
+    outcomes: [
+      {
+        id: '00000000-0000-4000-8000-0000000000f2',
+        effectKind: 'CONDITION',
+        conditionId: '00000000-0000-4000-8000-0000000000f3'
+      }
+    ],
+    lifecycle: {}
+  }
+  const effectWith = (pathCode: string, triggerCode = 'SAVING_THROW') => ({
+    id: '00000000-0000-4000-8000-0000000000f4',
+    order: 1,
+    invocation: {
+      triggerCode,
+      savingThrow: {
+        id: '00000000-0000-4000-8000-0000000000f5',
+        dcMethod: 'FIXED_DC',
+        abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+        baseDc: 11
+      },
+      activation: { code: 'ACTION', amount: 1 },
+      range: { id: 'rider-range', rangeKind: 'SELF' }
+    },
+    paths: [
+      fixedPath(
+        '00000000-0000-4000-8000-0000000000f6',
+        1,
+        pathCode,
+        singleResultBlock(
+          '00000000-0000-4000-8000-0000000000f7',
+          {
+            id: '00000000-0000-4000-8000-0000000000f8',
+            effectKind: 'CONDITION',
+            conditionId: '00000000-0000-4000-8000-0000000000f9'
+          },
+          { failureMarginRider: rider }
+        )
+      )
+    ]
+  })
+
+  it('keeps the rider on the failed result of a saving-throw action', () => {
+    const parsed = effectDtoSchema.parse(effectWith('ON_SAVE_FAIL'))
+
+    expect(parsed.paths[0]).toMatchObject({ resultBlock: { failureMarginRider: rider } })
+  })
+
+  it.each([
+    ['a successful save', effectWith('ON_SAVE_SUCCESS')],
+    ['an action that is not a saving throw', effectWith('ON_SAVE_FAIL', 'ACTIVATED')]
+  ])('refuses the rider on %s', (_label, effect) => {
+    expect(effectDtoSchema.safeParse(effect).success).toBe(false)
+  })
+})
+
 describe('single-target self policy (D99)', () => {
   it.each(['ALLOWED', 'WARN', 'REFUSED'])('keeps self: %s on a single target', (self) => {
     const targeting = { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', self }
@@ -1388,5 +1451,22 @@ describe('single-target self policy (D99)', () => {
 
     expect(targetingDtoSchema.safeParse({ ...targeting, self: 'yes' }).success).toBe(false)
     expect(targetingDtoSchema.safeParse({ ...targeting, self: true }).success).toBe(false)
+  })
+})
+
+describe('single-target size limit (D152)', () => {
+  const targeting = { selectionKind: 'SINGLE_TARGET', dispositionKind: 'HOSTILE' }
+
+  it.each([0, 1])('keeps a limit of %i steps above the actor', (stepsAboveActor) => {
+    const limited = { ...targeting, sizeLimit: { stepsAboveActor } }
+
+    expect(targetingDtoSchema.parse(limited)).toEqual(limited)
+  })
+
+  it('rejects a negative or fractional limit', () => {
+    for (const stepsAboveActor of [-1, 0.5])
+      expect(
+        targetingDtoSchema.safeParse({ ...targeting, sizeLimit: { stepsAboveActor } }).success
+      ).toBe(false)
   })
 })

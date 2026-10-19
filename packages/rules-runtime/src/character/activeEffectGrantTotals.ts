@@ -1,8 +1,18 @@
 import type {
   CharacterGrantFoldModifier,
-  CharacterGrantFoldSense
+  CharacterGrantFoldSense,
+  EquipmentInstanceMechanicSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import {
+  attackCriticalRules,
+  type AttackCriticalRulesDto
+} from '@artificer-toolkit/schema/shared/attackCriticalRules'
+import type {
+  D20AddedDieDto,
+  DamageAddedDieDto
+} from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 
 import { modifierLengthFeet } from '../modifierLength.js'
 import {
@@ -18,6 +28,10 @@ type ActiveEffectGrant = {
   effectId: string
   modifiers: readonly CharacterGrantFoldModifier[]
   senses: readonly CharacterGrantFoldSense[]
+  sourceLabel: string
+  sourceHidden: boolean
+  /** The holder's item the grant is bound to; absent for an unbound grant. */
+  boundItem?: EquipmentInstanceMechanicSource
 }
 
 export function listActiveEffectGrants(
@@ -27,7 +41,16 @@ export function listActiveEffectGrants(
     definition.schemaVersion === 2
       ? definition.stateContributions.flatMap((contribution) =>
           contribution.kind === 'MODIFIER_GRANT'
-            ? [{ effectId: id, modifiers: contribution.modifiers, senses: contribution.senses }]
+            ? [
+                {
+                  effectId: id,
+                  modifiers: contribution.modifiers,
+                  senses: contribution.senses,
+                  sourceLabel: contribution.sourceLabel,
+                  sourceHidden: contribution.sourceHidden,
+                  ...(contribution.boundItem && { boundItem: contribution.boundItem })
+                }
+              ]
             : []
         )
       : []
@@ -78,6 +101,193 @@ export function activeFixedGrantTotal(
     total += sign * payload.amount
   }
   return total
+}
+
+type RolledDieGrant = {
+  label: string
+  payload: Extract<NonNullable<CharacterGrantFoldModifier['payload']>, { count: number }>
+}
+
+/**
+ * A holder's active global rolled-die grants to one value domain (D156), for the grants whose
+ * domain `applies` accepts. Dice from different sources stack; one authored grant gives one die
+ * however many of its effects the holder carries (two casters' Bless). A hidden source reads as
+ * "Unseen source". Sorted by label, then grant, so every roll site and replay sees one order.
+ */
+function activeRolledDieGrants(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER' | 'ABILITY_CHECK' | 'DAMAGE',
+  applies: DomainFilter
+): RolledDieGrant[] {
+  const dice = new Map<string, RolledDieGrant>()
+  for (const { modifiers, sourceLabel, sourceHidden } of listActiveEffectGrants(effects)) {
+    for (const modifier of modifiers) {
+      const { payload } = modifier
+      if (
+        modifier.valueDomainCode !== valueDomainCode ||
+        modifier.modifierKind !== 'ADD_BONUS_DIE' ||
+        modifier.scope !== 'GLOBAL' ||
+        dice.has(modifier.grantId) ||
+        !applies(modifier.domain)
+      )
+        continue
+      if (payload === undefined || !('count' in payload))
+        throw new Error('An active rolled-die grant must carry its dice.')
+      dice.set(modifier.grantId, { label: sourceHidden ? 'Unseen source' : sourceLabel, payload })
+    }
+  }
+  return [...dice]
+    .sort(([leftGrant, left], [rightGrant, right]) =>
+      left.label === right.label
+        ? leftGrant.localeCompare(rightGrant)
+        : left.label.localeCompare(right.label)
+    )
+    .map(([, die]) => die)
+}
+
+/** The dice a holder's active grants add to, or subtract from, one d20 test of a value domain. */
+function activeRolledDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER' | 'ABILITY_CHECK',
+  applies: DomainFilter
+): D20AddedDieDto[] {
+  return activeRolledDieGrants(effects, valueDomainCode, applies).map(
+    ({ label, payload: { count, faces, sign } }) => ({ label, count, faces, sign })
+  )
+}
+
+/**
+ * The dice active grants add to, or take from, one creature's damage to another (D156): the
+ * dealer's own `HOLDER_DEALS` dice, then the `SOURCE_DEALS_TO_HOLDER` dice the damaged creature
+ * holds from effects the dealer is the Encounter source of (the Hunter's Mark it placed). A grant
+ * naming an attack domain covers only attacks of that domain; `attackDomain` is null for damage no
+ * attack roll delivers. A die naming no damage type takes the damage it joins.
+ */
+export function activeDamageDice(input: {
+  dealerActorId: string
+  dealerEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  targetEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  attackDomain: string | null
+}): DamageAddedDieDto[] {
+  const dice = (
+    effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+    recipient: 'HOLDER_DEALS' | 'SOURCE_DEALS_TO_HOLDER'
+  ) =>
+    activeRolledDieGrants(
+      effects,
+      'DAMAGE',
+      (domain) => domain.attackDomain === undefined || domain.attackDomain === input.attackDomain
+    ).flatMap(({ label, payload }) =>
+      'recipient' in payload && payload.recipient === recipient
+        ? [
+            {
+              label,
+              count: payload.count,
+              faces: payload.faces,
+              sign: payload.sign,
+              damageTypeId: 'damageTypeId' in payload ? payload.damageTypeId : null
+            }
+          ]
+        : []
+    )
+  const placedByDealer = input.targetEffects.filter(
+    ({ definition }) =>
+      definition.schemaVersion === 2 &&
+      definition.origin.kind === 'ENCOUNTER' &&
+      definition.origin.sourceActorId === input.dealerActorId
+  )
+  return [
+    ...dice(input.dealerEffects, 'HOLDER_DEALS'),
+    ...dice(placedByDealer, 'SOURCE_DEALS_TO_HOLDER')
+  ]
+}
+
+/**
+ * The dice a holder's active grants add to its attack rolls of one attack domain. A grant naming an
+ * ability covers only attacks made with it (`attackAbility`).
+ */
+export function activeAttackRollDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  attackDomain: string,
+  attackAbility: string | null
+): D20AddedDieDto[] {
+  return activeRolledDice(
+    effects,
+    'ATTACK_ROLL',
+    (domain) =>
+      domain.attackDomain === attackDomain &&
+      (domain.ability === undefined || domain.ability === attackAbility)
+  )
+}
+
+/**
+ * The dice a holder's active grants add to its saving throws with one ability ("WISDOM"), or to an
+ * ability-less save (a death save) when `abilityCode` is null. A grant naming no ability covers
+ * every save; one naming an ability covers only that ability's saves.
+ */
+export function activeSavingThrowDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityCode: string | null
+): D20AddedDieDto[] {
+  return activeRolledDice(
+    effects,
+    'SAVING_THROW_MODIFIER',
+    (domain) => domain.ability === undefined || domain.ability === abilityCode
+  )
+}
+
+/**
+ * The dice a holder's active grants add to its ability checks with one ability ("STRENGTH"), or to
+ * an ability-less check when `abilityCode` is null. A grant naming no ability covers every check.
+ */
+export function activeAbilityCheckDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityCode: string | null
+): D20AddedDieDto[] {
+  return activeRolledDice(
+    effects,
+    'ABILITY_CHECK',
+    (domain) => domain.ability === undefined || domain.ability === abilityCode
+  )
+}
+
+/**
+ * The floor a holder's active grants put on the d20 of its ability checks with one ability, or of
+ * an ability-less check when `abilityCode` is null; null when it has none. A grant naming no
+ * ability covers every check. Floors from several effects reduce to the highest, the lowest effect
+ * id breaking a tie, so every roll site and replay reads one source.
+ */
+export function activeAbilityCheckMinimumRoll(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityCode: string | null
+): D20MinimumRollDto | null {
+  let floor: D20MinimumRollDto | null = null
+  for (const { effectId, modifiers, sourceLabel, sourceHidden } of listActiveEffectGrants(
+    effects
+  )) {
+    for (const { valueDomainCode, modifierKind, scope, domain, payload } of modifiers) {
+      if (
+        valueDomainCode !== 'ABILITY_CHECK' ||
+        modifierKind !== 'MINIMUM_ROLL' ||
+        scope !== 'GLOBAL' ||
+        (domain.ability !== undefined && domain.ability !== abilityCode)
+      )
+        continue
+      if (payload === undefined || !('amount' in payload))
+        throw new Error('An active minimum-roll grant must carry its amount.')
+      if (
+        floor === null ||
+        payload.amount > floor.amount ||
+        (payload.amount === floor.amount && effectId < floor.sourceEffectId)
+      )
+        floor = {
+          amount: payload.amount,
+          label: sourceHidden ? 'Unseen source' : sourceLabel,
+          sourceEffectId: effectId
+        }
+    }
+  }
+  return floor
 }
 
 /**
@@ -141,6 +351,23 @@ export function activeCapValueGrantMinimum(
 ): number | null {
   const amounts = activeGlobalAmounts(effects, valueDomainCode, 'CAP_VALUE')
   return amounts.length === 0 ? null : Math.min(...amounts)
+}
+
+/**
+ * The critical-hit rules a Creature holder's active grants give its attacks of one attack domain:
+ * the lowest threshold and the sum of the extra damage dice. A Character folds the same grants
+ * through its policy instead.
+ */
+export function activeAttackCriticalRules(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  attackDomain: string
+): AttackCriticalRulesDto {
+  const applying = listActiveEffectGrants(effects)
+    .flatMap(({ modifiers }) => modifiers)
+    .filter(
+      (modifier) => modifier.scope === 'GLOBAL' && modifier.domain.attackDomain === attackDomain
+    )
+  return attackCriticalRules(applying)
 }
 
 /**

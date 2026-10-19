@@ -1,3 +1,4 @@
+import { decoyStrikeEffects, withDecoyStrikeApplied } from './encounterAttackDecoys.js'
 import { v5 as uuidv5 } from 'uuid'
 import { stageEncounterLegendaryActionRefreshes } from './encounterLegendaryActionDiscovery.js'
 import { stageEncounterActionEconomyRefreshes } from './encounterActionEconomy.js'
@@ -24,14 +25,18 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
-import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
+import {
+  prepareNativeActionEffectsPlan,
+  prepareNativeIncomingDamageGrantTriggers
+} from './encounterActionEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
 import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
 import {
   actionEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  incomingDamageGrantRecords,
+  targetEndedEffects
 } from './encounterEndedEffectRelease.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import {
@@ -87,6 +92,8 @@ type TurnLegendaryActionInput<
     actionId: string
     wieldConflictAcceptance: EncounterWieldConflictAcceptance
     movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+    /** Seeds the target's decoy roll; the turn's occurrence is shared by every window, so it is salted. */
+    decoyOccurrenceId: string
   }): Promise<Awaited<ReturnType<typeof prepareEncounterActionMechanics<TCharacterFacts>>>>
   /**
    * Plans the zones a melee hit's target holds around itself against the owner (D153) from the
@@ -194,7 +201,8 @@ export async function prepareTurnLegendaryActions<
       actors,
       actionId: option.actionId,
       wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-      movementTargets: targets
+      movementTargets: targets,
+      decoyOccurrenceId: `${occurrenceId}:legendary:${ordinal}`
     })
     if (checksumRuleDocument(prepared.plan) !== option.actionSourceChecksum)
       throw new Error('Legendary Action source is stale.')
@@ -320,14 +328,15 @@ export async function prepareTurnLegendaryActions<
       throw new Error('Legendary Action requires the complete contextual action coordinator.')
     // An option that starts a grant or state effect creates it on its target. The owner's window
     // falls on another creature's turn, so a timed grant is never given an extra tick.
+    const activeEffectsByActorId = new Map(
+      [...prepared.movementTargets].map(([actorId, entry]) => [actorId, entry.activeEffects])
+    )
     const effects = prepareNativeActionEffectsPlan({
       prepared,
       execution: result,
       occurrenceId,
       commandId: root.rootCommandId,
-      activeEffectsByActorId: new Map(
-        [...prepared.movementTargets].map(([actorId, entry]) => [actorId, entry.activeEffects])
-      )
+      activeEffectsByActorId
     })
     if (effects.maintenance)
       throw new Error('Legendary Action effects cannot start a maintained effect.')
@@ -347,14 +356,26 @@ export async function prepareTurnLegendaryActions<
         dispositions
       })
     })
-    const damageEnded = damageTakenEndedEffects({
+    const damageEnded = targetEndedEffects({
       holderActorId: target.id,
       held: prepared.targetFacts.activeEffects.filter(
         ({ id }) => !ownerEnded.consumedGrants.some((ended) => ended.id === id)
       ),
+      attacked: makesAttackRoll,
+      testEvidence: [result.d20, result.nestedD20],
+      turnActorId: prepared.state.currentActorId,
       applications: result.applications,
       damagerActorId: actor.id,
-      dispositions
+      dispositions,
+      grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+        encounter: prepared.state,
+        holder: prepared.target,
+        held: prepared.targetFacts.activeEffects,
+        occurrenceId,
+        commandId: root.rootCommandId,
+        ordinal,
+        activeEffectsByActorId
+      })
     })
     const plan = planNativeEncounterActionMechanics(
       {
@@ -394,7 +415,11 @@ export async function prepareTurnLegendaryActions<
               })()
           }
         : { kind: 'ENCOUNTER_ACTOR' as const, encounterId: state.id, targetActorId: target.id }
-    const targetEffects = [...prepared.targetFacts.activeEffects]
+    // A hit on one of the target's decoys destroys it, so later windows see what is left.
+    const targetEffects = withDecoyStrikeApplied(
+      prepared.targetFacts.activeEffects,
+      decoyStrikeEffects(prepared.attackDecoy, result.d20?.resultPath)
+    )
     const createdEffects: ActiveRuleEffectRecord[] = []
     const createEffect = (
       kind: 'STATE' | 'RECURRING' | 'RIDER',
@@ -419,6 +444,15 @@ export async function prepareTurnLegendaryActions<
     const stateEffect = createEffect('STATE', effects.stateEffect)
     const recurringEffect = createEffect('RECURRING', effects.recurringEffect)
     const riderEffect = createEffect('RIDER', effects.riderEffect)
+    // The target's own damage triggers give it timed grants after the option's effects.
+    const grantEffects = incomingDamageGrantRecords({
+      grants: damageEnded.grants,
+      owner: effectOwner,
+      current: targetEffects,
+      occurredAt: retainedAt ?? input.updatedAt
+    })
+    targetEffects.push(...grantEffects)
+    createdEffects.push(...grantEffects)
     const settledTarget = target.id === actor.id ? plan.settledSource : plan.mechanics.updatedActor
     const projected = new Map<string, MovementTarget<TCharacterFacts>>()
     for (const [settled, characterPlan] of [
@@ -453,7 +487,8 @@ export async function prepareTurnLegendaryActions<
       isMeleeRetaliationHit({
         gameSystemId: state.gameSystemId,
         prepared,
-        resultPath: result.d20?.resultPath
+        // A hit on a decoy does not reach the target.
+        resultPath: prepared.attackDecoy ? undefined : result.d20?.resultPath
       })
         ? await input.meleeRetaliation({
             initialActors: actors,
@@ -483,7 +518,15 @@ export async function prepareTurnLegendaryActions<
       maintenanceTransition: null,
       actionEconomy: null,
       attackAction: null,
-      meleeRetaliation: retaliation?.evidence ?? null
+      meleeRetaliation: retaliation?.evidence ?? null,
+      grantEffectTransitions: grantEffects.flatMap(
+        (grant) =>
+          projectNativeActionEffectTransitions({
+            state: null,
+            recurring: grant,
+            targetActorId: target.id
+          }).activeEffectTransitions
+      )
     })
     if (stored.status !== 'COMPLETE') throw new Error('Legendary Action receipt is incomplete.')
     const targetCharacter = prepared.targetFacts.characterFacts
@@ -496,6 +539,7 @@ export async function prepareTurnLegendaryActions<
         targetActorId: target.id,
         attackRoll: makesAttackRoll,
         castsSpell,
+        ...(prepared.attackDecoy ? { decoyEffectId: prepared.attackDecoy.effect.id } : {}),
         execution: result.execution,
         initialFactsChecksum: result.initialFactsChecksum,
         ...(result.phaseReceipts ? { phaseReceipts: result.phaseReceipts } : {}),

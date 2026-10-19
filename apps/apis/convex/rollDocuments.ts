@@ -5,9 +5,14 @@ import {
 } from '@artificer-toolkit/schema/api/rolls'
 import { createRollRecord } from '@artificer-toolkit/rules-runtime/character/rollRecord'
 import { nextRollInt } from './lib/rollRandom'
-import { resolveCharacterSheetRoll } from '@artificer-toolkit/rules-runtime/character/sheetRoll'
+import {
+  carriedTestDice,
+  resolveCharacterSheetRoll
+} from '@artificer-toolkit/rules-runtime/character/sheetRoll'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
-import type { MutationCtx, QueryCtx } from './_generated/server'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { createConvexEncounterStore } from './lib/convexEncounterStore'
+import type { MutationCtx } from './_generated/server'
 import { readCharacterRecord, resolveCharacterId } from './characters/documents'
 import { readCharacterRow } from './characters/stateDocuments'
 import { loadCharacterSheet } from './characters/sheetPreparation'
@@ -19,7 +24,7 @@ export { nextRollInt } from './lib/rollRandom'
 
 /** Campaign access is explicit; the personal endpoint never inherits GM authority. */
 export async function evaluateCharacterRoll(
-  ctx: QueryCtx,
+  ctx: MutationCtx,
   userId: string,
   input: ExecuteRollInputDto,
   campaignId?: string
@@ -51,6 +56,17 @@ export async function evaluateCharacterRoll(
         rollMode: input.rollMode ?? 'NORMAL',
         source: { kind: 'MANUAL' as const, label: 'Manual roll' }
       }
+  // A carried die (Guidance, Resistance) joins a check or save and is spent with it, in the roll's transaction.
+  const { addedDice, spent, minimumRoll } = sheet
+    ? carriedTestDice(resolved, sheet.activeEffects)
+    : { addedDice: [], spent: [], minimumRoll: null }
+  const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+  for (const effect of spent)
+    await effectStore.deleteCas({
+      id: effect.id,
+      owner: effect.owner,
+      expectedVersion: effect.version
+    })
   const record = createRollRecord({
     characterId: character.id,
     label: character.label,
@@ -60,6 +76,8 @@ export async function evaluateCharacterRoll(
       rulesetVersion: system.rulesetVersion
     },
     resolved,
+    addedDice,
+    minimumRoll: minimumRoll ?? undefined,
     nextInt: nextRollInt
   })
   return { record, maturity }

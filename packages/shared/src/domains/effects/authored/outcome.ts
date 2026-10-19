@@ -24,6 +24,8 @@ import type { ActorRelationshipAuthored } from './actorRelationship.js'
 import type { ConcealFromObserversAuthored } from './concealFromObservers.js'
 import type { DetectConcealedAuthored } from './detectConcealed.js'
 import type { CancelTriggeringEventAuthored } from './cancelTriggeringEvent.js'
+import type { SourceImmunityAuthored } from './sourceImmunity.js'
+import type { ReleaseChosenItemAuthored } from './releaseChosenItem.js'
 
 export type OutcomeRowMetadataAuthored = {
   label?: string
@@ -55,6 +57,8 @@ export type OutcomeAuthored =
   | ConcealFromObserversAuthored
   | DetectConcealedAuthored
   | CancelTriggeringEventAuthored
+  | SourceImmunityAuthored
+  | ReleaseChosenItemAuthored
   | ClosedRuleAuthored
   | ManualAdjudicationAuthored
 

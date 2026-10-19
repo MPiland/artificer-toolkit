@@ -50,34 +50,14 @@ export const androsphinx: CreatureAuthored = {
       label: 'Inscrutable',
       description:
         "Inscrutable. The sphinx is immune to any effect that would sense its emotions or read its thoughts, as well as any divination spell that it refuses. Wisdom (Insight) checks made to ascertain the sphinx's intentions or sincerity have disadvantage.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(24, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(24, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_INSCRUTABLE
-        })
-      ],
+      grants: S.inscrutableGrants(24, 1),
       order: 1
     },
     {
       id: S.featureId(24, 2),
       label: 'Magic Weapons',
       description: "Magic Weapons. The sphinx's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(24, 103),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(24, 104), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(24, 103),
       order: 2
     },
     {
@@ -138,17 +118,6 @@ export const androsphinx: CreatureAuthored = {
           }))
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(24, 330),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(24, 331), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPELLCASTING_SLOTS
-        })
-      ],
       order: 3
     },
     {

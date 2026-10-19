@@ -1,3 +1,4 @@
+import type { AttackOccasionCode } from '@artificer-toolkit/shared/core'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -63,6 +64,8 @@ export async function prepareEncounterMovementReactionAction<
     campaignOwnerUserId: string
     wieldConflictAcceptance: EncounterWieldConflictAcceptance
     movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+    /** A reaction attack provoked by movement is an opportunity attack. */
+    attackOccasion: AttackOccasionCode
   }) => Promise<TPrepared>
   prepareMaintenance: (
     prepared: TPrepared,
@@ -88,7 +91,8 @@ export async function prepareEncounterMovementReactionAction<
     actionId: revalidate.option.actionId,
     campaignOwnerUserId,
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-    movementTargets: facts.targets
+    movementTargets: facts.targets,
+    attackOccasion: 'OPPORTUNITY'
   })
   // A reaction has no Action to spend a single-use item with (SPELLS-11); the option is stale.
   if (prepared.characterActionState?.itemConsumption)

@@ -6,6 +6,7 @@ import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
 import {
   abilityModifierReferenceSchema,
   pathLifecycleEndTriggerAgainstSchema,
+  pathLifecycleEndTriggerOfSchema,
   pathLifecycleEndTriggerBySchema
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
@@ -95,6 +96,10 @@ export const pathLifecycleEndTriggersDtoSchema = lazySchema(() =>
       z.strictObject({
         event: z.literal('ACTION_USED_ON_HOLDER'),
         actionDefinitionIds: basicActionFilterDtoSchema
+      }),
+      z.strictObject({
+        event: z.literal('INCAPACITATED'),
+        of: pathLifecycleEndTriggerOfSchema
       })
     ])
   )
@@ -112,7 +117,13 @@ export const sourceEffectIdsFilterDtoSchema = lazySchema(() =>
 export const reactionTriggerBindingDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     reactionMovementTriggerBindingDtoSchema,
-    z.strictObject({ kind: z.literal('ATTACKED_SELF') }),
+    z.strictObject({
+      kind: z.literal('ATTACKED_SELF'),
+      /** Answers only a melee attack. */
+      attackRange: z.optional(z.literal('MELEE')),
+      /** Answers only an attacker the reactor sees. */
+      requiresSight: z.optional(z.boolean())
+    }),
     z.strictObject({
       kind: z.literal('SPELL_CAST'),
       higherLevelCheck: z.optional(

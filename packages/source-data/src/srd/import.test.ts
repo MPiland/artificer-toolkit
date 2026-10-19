@@ -50,6 +50,13 @@ function fixedResultBlock(path: EffectPathAuthored) {
   return path.resultBlock
 }
 
+/** The result blocks a basic action's path may resolve: its fixed one, or each option it offers. */
+function pathResultBlocks(path: EffectPathAuthored) {
+  return path.selectionKind === 'CHOICE'
+    ? path.options.map(({ resultBlock }) => resultBlock)
+    : [fixedResultBlock(path)]
+}
+
 describe('canonical Convex import preparation', () => {
   it('publishes the SRD basic-action catalogue as System data (Q11)', () => {
     const catalogue = preparedDefinitions().filter(
@@ -66,7 +73,9 @@ describe('canonical Convex import preparation', () => {
                   action.actionCost,
                   action.effects.flatMap((effect) =>
                     effect.paths.flatMap((path) =>
-                      fixedResultBlock(path).outcomes.map((outcome) => outcome.effectKind)
+                      pathResultBlocks(path).flatMap(({ outcomes }) =>
+                        outcomes.map((outcome) => outcome.effectKind)
+                      )
                     )
                   )
                 ]
@@ -84,7 +93,9 @@ describe('canonical Convex import preparation', () => {
       Rouse: ['ACTION', ['MANUAL_ADJUDICATION']],
       Search: ['ACTION', ['DETECT_CONCEALED']],
       'Use an Object': ['ACTION', ['MANUAL_ADJUDICATION']],
-      'First Aid': ['ACTION', ['STABILIZE']]
+      'First Aid': ['ACTION', ['STABILIZE']],
+      Grapple: ['ATTACK', ['ACTOR_RELATIONSHIP']],
+      Shove: ['ATTACK', ['CONDITION', 'FORCED_MOVEMENT']]
     })
     expect(catalogue.map((definition) => definition.id).sort()).toEqual(
       Object.values(SRD_BASIC_ACTION_IDS).sort()
@@ -128,15 +139,20 @@ describe('canonical Convex import preparation', () => {
       ['ADVANTAGE', { ability: ABILITY_CODE.DEXTERITY }]
     ])
     for (const modifier of dodgeModifiers)
+      // One group per holder kind, since each facet context gates on its subject (D152).
       expect(
-        modifier.restrictions?.groups.flatMap((group) =>
-          group.contexts.flatMap((context) =>
+        modifier.restrictions?.groups.map((group) =>
+          group.contexts.map((context) => [
+            context.subject,
             (context.conditions ?? []).map((condition) =>
               condition.kind === 'PREDICATE' ? condition.predicateCode : condition.kind
             )
-          )
+          ])
         )
-      ).toEqual(['CAN_ACT', 'SPEED_ABOVE_ZERO'])
+      ).toEqual([
+        [['CHARACTER', ['CAN_ACT', 'SPEED_ABOVE_ZERO']]],
+        [['CREATURE', ['CAN_ACT', 'SPEED_ABOVE_ZERO']]]
+      ])
     // Help is authored: an attack-roll advantage per attack kind plus one ability-check advantage,
     // all used up by the first attack roll or ability check, on one other willing creature.
     const helpAction = basicActionOf(

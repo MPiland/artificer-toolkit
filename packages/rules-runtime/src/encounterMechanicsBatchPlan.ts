@@ -6,6 +6,7 @@ import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/chara
 import {
   foldCharacterMechanicsApplications,
   readEncounterActorConditionState,
+  targetTemporaryHitPoints,
   targetTransitionChecksum,
   type ReceiptApplications,
   type TargetState
@@ -16,7 +17,10 @@ import type {
   EncounterRunCharacterActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
-import type { CharacterItemUseStateTransitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import type {
+  CharacterItemUseStateTransitionDto,
+  EncounterActorItemUseStateTransitionDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type {
@@ -33,6 +37,14 @@ import {
   type EncounterActorFormCreature
 } from './encounterActorForm.js'
 import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
+import {
+  applyEncounterActorOptionalContestSuccess,
+  readEncounterActorOptionalContestContext
+} from './encounterActorOptionalContestContext.js'
+import {
+  withActorTemporaryHitPoints,
+  withCharacterTemporaryHitPoints
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 
 type EncounterActor = EncounterRunActorState
 type LoadedCharacterSheetFacts = {
@@ -70,8 +82,13 @@ export type EncounterMechanicsBatchInput = {
   characterSpellConsumptions?: readonly NativeCharacterSpellConsumption[]
   /** An accepted wield conflict: unequip this item in the same Character version. */
   stowEquippedItemInstanceId?: string
+  /**
+   * The item a hand of the target holds that it drops with this outcome (Heat Metal): a
+   * Character's item is unequipped, a Creature's loadout entry carried.
+   */
+  releaseHeldItemInstanceId?: string
   /** A dying Character's turn-start death save die (D96); Characters only. */
-  deathSave?: { rawDie: number }
+  deathSave?: { rawDie: number; addedTotal: number }
   /** The Creature form this outcome swaps the actor into, held by `effectId` (D130). */
   enterForm?: {
     effectId: string
@@ -90,6 +107,11 @@ export type EncounterMechanicsBatchPlan = {
   }
   characterStreamVersion: number | null
   itemUseStateTransition: CharacterItemUseStateTransitionDto | null
+  /** The item the target dropped (`releaseHeldItemInstanceId`); null when it dropped none. */
+  itemReleaseTransition:
+    | CharacterItemUseStateTransitionDto
+    | EncounterActorItemUseStateTransitionDto
+    | null
   stateChanged: boolean
   shouldAdvance: boolean
   characterUpdate: {
@@ -121,11 +143,19 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors make no death saves.')
     if (batch.enterForm !== undefined && actor.form !== null)
       throw new Error('The actor already has a form.')
+    const release = batch.releaseHeldItemInstanceId
+    const releaseContext =
+      release === undefined
+        ? null
+        : readEncounterActorOptionalContestContext({ actor, loadoutEntryId: release })
+    if (release !== undefined && !releaseContext)
+      throw new Error('Encounter actor item to drop is no longer held.')
     const conditions = readEncounterActorConditionState(actor.conditions ?? [])
     const folded = foldCharacterMechanicsApplications({
       targetActorId: actor.id,
       currentHitPoints: actor.currentHitPoints,
       temporaryHitPoints: actor.tempHitPoints,
+      temporaryHitPointsSourceEffectId: actor.tempHitPointsSourceEffectId,
       maximumHitPoints: batch.effectiveMaximumHitPoints,
       deathSaves: null,
       conditionIds: conditions.ids,
@@ -148,15 +178,19 @@ export function planEncounterMechanicsBatch(input: {
         .filter((id) => !conditions.ids.includes(id))
         .map((conditionTypeId) => ({ conditionTypeId }))
     ]
-    const updated = encounterRunActorStateSchema.parse({
-      ...actor,
-      currentHitPoints: folded.after.currentHitPoints,
-      tempHitPoints: folded.after.temporaryHitPoints,
-      maxHitPoints: folded.after.maximumHitPoints,
-      conditions: nextConditions,
-      defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints),
-      absence: folded.afterAbsence
-    })
+    const updated = encounterRunActorStateSchema.parse(
+      withActorTemporaryHitPoints(
+        {
+          ...actor,
+          currentHitPoints: folded.after.currentHitPoints,
+          maxHitPoints: folded.after.maximumHitPoints,
+          conditions: nextConditions,
+          defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints),
+          absence: folded.afterAbsence
+        },
+        targetTemporaryHitPoints(folded.after)
+      )
+    )
     // A form at 0 hit points ends instead of defeating the actor (D130); its excess damage is what
     // the damage dealt past the form's temporary and current hit points.
     const excessDamage = folded.applications.reduce(
@@ -170,19 +204,37 @@ export function planEncounterMechanicsBatch(input: {
       updated.kind !== 'CHARACTER' && updated.form !== null && updated.currentHitPoints === 0
         ? revertActorForm(updated, excessDamage)
         : updated
+    const formed =
+      batch.enterForm !== undefined && settled.kind !== 'CHARACTER'
+        ? enterActorForm(settled, batch.enterForm)
+        : settled
+    const released = releaseContext
+      ? applyEncounterActorOptionalContestSuccess({ context: releaseContext, actor: formed })
+      : null
     return {
-      updatedActor:
-        batch.enterForm !== undefined && settled.kind !== 'CHARACTER'
-          ? enterActorForm(settled, batch.enterForm)
-          : settled,
+      updatedActor: released ? encounterRunActorStateSchema.parse(released.actor) : formed,
       receiptApplications: folded.applications,
       targetTransition: transition(actor.id, folded.before, folded.after),
       characterStreamVersion: null,
       itemUseStateTransition: null,
+      itemReleaseTransition:
+        released && releaseContext
+          ? {
+              kind: 'ENCOUNTER_ACTOR_ITEM_USE_STATE',
+              actorId: actor.id,
+              loadoutEntryId: releaseContext.equipment.loadoutEntryId,
+              equipmentId: releaseContext.equipment.equipmentId,
+              fromState: releaseContext.equipment.state,
+              toState: 'CARRIED',
+              beforeStateChecksum: released.beforeStateChecksum,
+              afterStateChecksum: released.afterStateChecksum
+            }
+          : null,
       stateChanged:
         folded.stateChanged ||
         folded.afterAbsence !== actor.absence ||
-        batch.enterForm !== undefined,
+        batch.enterForm !== undefined ||
+        released !== null,
       shouldAdvance: false,
       characterUpdate: null
     }
@@ -305,14 +357,39 @@ export function planEncounterMechanicsBatch(input: {
     : undefined
 
   const stowItemId = batch.stowEquippedItemInstanceId
+  const releaseItemId = batch.releaseHeldItemInstanceId
+  // One Character version records one equipment change.
+  if (stowItemId !== undefined && releaseItemId !== undefined)
+    throw new Error('Encounter Character cannot stow and drop items in one change.')
   if (
     stowItemId !== undefined &&
     !loaded.character.state.equipment.equipped.some((entry) => entry.itemId === stowItemId)
   )
     throw new Error('Encounter Character item to stow is no longer equipped.')
+  if (
+    releaseItemId !== undefined &&
+    !loaded.character.state.equipment.equipped.some(
+      (entry) => entry.itemId === releaseItemId && entry.slot !== 'WORN'
+    )
+  )
+    throw new Error('Encounter Character item to drop is no longer held.')
+  const changedItemId = stowItemId ?? releaseItemId
   const equippedCharacter =
-    stowItemId === undefined ? loaded.character : unequipCharacterItem(loaded.character, stowItemId)
+    changedItemId === undefined
+      ? loaded.character
+      : unequipCharacterItem(loaded.character, changedItemId)
 
+  const itemTransition = (itemInstanceId: string): CharacterItemUseStateTransitionDto => ({
+    kind: 'CHARACTER_ITEM_USE_STATE',
+    characterId: loaded.active.id,
+    itemInstanceId,
+    fromState: 'EQUIPPED',
+    toState: 'CARRIED',
+    beforeStreamVersion: loaded.active.play.streamVersion,
+    afterStreamVersion: loaded.active.play.streamVersion + 1,
+    beforeStateChecksum: checksumRuleDocument(loaded.character.state.equipment),
+    afterStateChecksum: checksumRuleDocument(equippedCharacter.state.equipment)
+  })
   const campaignConditionIds = loaded.campaignContext.conditions.map(
     (condition) => condition.conditionTypeId
   )
@@ -324,6 +401,7 @@ export function planEncounterMechanicsBatch(input: {
     sheet: {
       currentHitPoints: sheetHitPoints.current,
       temporaryHitPoints: sheetHitPoints.temp,
+      temporaryHitPointsSourceEffectId: sheetHitPoints.tempSourceEffectId,
       deathSaves: sheetHitPoints.deathSaves
     },
     ownConditionIds,
@@ -360,24 +438,27 @@ export function planEncounterMechanicsBatch(input: {
   const sheetHitPointsChanged =
     sheetHitPoints.current !== folded.sheet.currentHitPoints ||
     sheetHitPoints.temp !== folded.sheet.temporaryHitPoints ||
+    sheetHitPoints.tempSourceEffectId !== folded.sheet.temporaryHitPointsSourceEffectId ||
     JSON.stringify(sheetHitPoints.deathSaves) !== JSON.stringify(folded.sheet.deathSaves)
   const shouldAdvance =
     sheetHitPointsChanged ||
     conditionStateChanged ||
     spellSlotsChanged ||
     sheetStateChanged ||
-    stowItemId !== undefined ||
+    changedItemId !== undefined ||
     batch.forceVersionAdvance
   const character = {
     ...equippedCharacter,
     state: {
       ...equippedCharacter.state,
-      hitpoints: {
-        ...sheetHitPoints,
-        current: folded.sheet.currentHitPoints,
-        temp: folded.sheet.temporaryHitPoints,
-        deathSaves: folded.sheet.deathSaves
-      },
+      hitpoints: withCharacterTemporaryHitPoints(
+        {
+          ...sheetHitPoints,
+          current: folded.sheet.currentHitPoints,
+          deathSaves: folded.sheet.deathSaves
+        },
+        targetTemporaryHitPoints(folded.sheet)
+      ),
       conditions: nextConditions,
       ...(spellSlotsChanged ? { spellSlots: nextSpellSlots } : {})
     }
@@ -403,20 +484,8 @@ export function planEncounterMechanicsBatch(input: {
     receiptApplications: folded.applications,
     targetTransition: transition(actor.id, folded.before, folded.after),
     characterStreamVersion: shouldAdvance ? loaded.active.play.streamVersion + 1 : null,
-    itemUseStateTransition:
-      stowItemId === undefined
-        ? null
-        : {
-            kind: 'CHARACTER_ITEM_USE_STATE',
-            characterId: loaded.active.id,
-            itemInstanceId: stowItemId,
-            fromState: 'EQUIPPED',
-            toState: 'CARRIED',
-            beforeStreamVersion: loaded.active.play.streamVersion,
-            afterStreamVersion: loaded.active.play.streamVersion + 1,
-            beforeStateChecksum: checksumRuleDocument(loaded.character.state.equipment),
-            afterStateChecksum: checksumRuleDocument(equippedCharacter.state.equipment)
-          },
+    itemUseStateTransition: stowItemId === undefined ? null : itemTransition(stowItemId),
+    itemReleaseTransition: releaseItemId === undefined ? null : itemTransition(releaseItemId),
     stateChanged:
       folded.stateChanged ||
       conditionStateChanged ||
@@ -437,7 +506,12 @@ export function planEncounterMechanicsBatch(input: {
 function foldCharacterBatch(input: {
   actor: EncounterRunCharacterActorState
   batch: EncounterMechanicsBatchInput
-  sheet: { currentHitPoints: number; temporaryHitPoints: number; deathSaves: CharacterDeathSaves }
+  sheet: {
+    currentHitPoints: number
+    temporaryHitPoints: number
+    temporaryHitPointsSourceEffectId?: string
+    deathSaves: CharacterDeathSaves
+  }
   ownConditionIds: readonly string[]
   campaignConditionIds: readonly string[]
 }) {
@@ -465,11 +539,7 @@ function foldCharacterBatch(input: {
     return {
       ...folded,
       form: null,
-      sheet: {
-        currentHitPoints: folded.after.currentHitPoints,
-        temporaryHitPoints: folded.after.temporaryHitPoints,
-        deathSaves: folded.after.deathSaves
-      }
+      sheet: folded.after
     }
   }
   if (batch.sheetMaximumHitPoints === undefined)
@@ -478,6 +548,7 @@ function foldCharacterBatch(input: {
     ...shared,
     currentHitPoints: form.currentHitPoints,
     temporaryHitPoints: form.tempHitPoints,
+    temporaryHitPointsSourceEffectId: form.tempHitPointsSourceEffectId,
     maximumHitPoints: batch.effectiveMaximumHitPoints,
     deathSaves: null,
     applications: batch.applications
@@ -485,12 +556,14 @@ function foldCharacterBatch(input: {
   if (inForm.after.currentHitPoints > 0)
     return {
       ...inForm,
-      form: {
-        ...form,
-        currentHitPoints: inForm.after.currentHitPoints,
-        tempHitPoints: inForm.after.temporaryHitPoints,
-        maxHitPoints: inForm.after.maximumHitPoints
-      },
+      form: withActorTemporaryHitPoints(
+        {
+          ...form,
+          currentHitPoints: inForm.after.currentHitPoints,
+          maxHitPoints: inForm.after.maximumHitPoints
+        },
+        targetTemporaryHitPoints(inForm.after)
+      ),
       sheet
     }
   // The form's last damage names where the carried-over damage came from.
@@ -550,11 +623,7 @@ function foldCharacterBatch(input: {
     afterAbsence: onSheet.afterAbsence,
     stateChanged: true,
     form: null,
-    sheet: {
-      currentHitPoints: onSheet.after.currentHitPoints,
-      temporaryHitPoints: onSheet.after.temporaryHitPoints,
-      deathSaves: onSheet.after.deathSaves
-    }
+    sheet: onSheet.after
   }
 }
 

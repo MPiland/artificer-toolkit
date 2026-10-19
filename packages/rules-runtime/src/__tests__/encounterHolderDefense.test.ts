@@ -58,7 +58,8 @@ const defend = (target: MovementTarget) =>
     target,
     gameSystemId: SRD_SYSTEM_ID,
     definitions: srdDefinitions,
-    speedDefinitions: SRD_SPEEDS
+    speedDefinitions: SRD_SPEEDS,
+    runEffectsByActorId: new Map()
   })
 
 const dexteritySave = (target: MovementTarget) =>
@@ -96,7 +97,8 @@ describe('ATTACKS_AGAINST on a Creature holder', () => {
           targetSeesAttacker,
           attackerSeesTarget: 'SEES',
           targetSenseLabels: [],
-          attackerSenseLabels: []
+          attackerSenseLabels: [],
+          attackerSenseDefinitionIds: []
         },
         attacksAgainst: melee
       }).map(({ sourceId }) => sourceId)
@@ -160,11 +162,14 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       defenses: [],
       qualifiedDefenses: [],
       conditionImmunityIds: [],
+      spellSchoolImmunityIds: [],
       characterCurrentness: null,
       attackAgainstContributors: [],
       sourceSightSaves: [],
       conditionDefinitions: [],
-      conditionMechanics: []
+      conditionMechanics: [],
+      attackTraitGrants: [],
+      innateConditionIds: []
     }
   }
 
@@ -201,7 +206,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
       target: creatureHolder(conditionIds),
       gameSystemId: SRD_SYSTEM_ID,
       definitions: srdDefinitions,
-      speedDefinitions: SRD_SPEEDS
+      speedDefinitions: SRD_SPEEDS,
+      runEffectsByActorId: new Map()
     })
 
   it('CAN_ACT fails once a condition suppresses the actor-action capability', async () => {
@@ -274,7 +280,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
         target: malformed(speeds),
         gameSystemId: SRD_SYSTEM_ID,
         definitions: srdDefinitions,
-        speedDefinitions: SRD_SPEEDS
+        speedDefinitions: SRD_SPEEDS,
+        runEffectsByActorId: new Map()
       })
     await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FEET' }])).resolves.toMatchObject({
       speedAboveZero: true
@@ -312,17 +319,33 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
       { ...activeEffect, definition: { ...activeEffect.definition, stateContributions: closed } }
     ]
     expect(
-      encounterAttackAgainstContributors(HOLDER_ID, effects, {
-        canAct: true,
-        speedAboveZero: true,
-        freeHand: true
+      encounterAttackAgainstContributors({
+        holderActorId: HOLDER_ID,
+        effects: effects,
+        grantFold: null,
+        holderState: {
+          kind: 'CHARACTER',
+          creatureTypeIds: [],
+          canAct: true,
+          speedAboveZero: true,
+          freeHand: true,
+          stowableHeldItemInstanceId: null
+        }
       })
     ).toEqual([])
     expect(
-      encounterAttackAgainstContributors(HOLDER_ID, [activeEffect], {
-        canAct: true,
-        speedAboveZero: true,
-        freeHand: true
+      encounterAttackAgainstContributors({
+        holderActorId: HOLDER_ID,
+        effects: [activeEffect],
+        grantFold: null,
+        holderState: {
+          kind: 'CHARACTER',
+          creatureTypeIds: [],
+          canAct: true,
+          speedAboveZero: true,
+          freeHand: true,
+          stowableHeldItemInstanceId: null
+        }
       })
     ).toHaveLength(ATTACK_DOMAINS.length)
   })
@@ -330,10 +353,18 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
   it('an INCLUDE predicate holds only while the state is true', () => {
     const [activeEffect] = [dodge()]
     const holds = (canAct: boolean, speedAboveZero: boolean) =>
-      encounterAttackAgainstContributors(HOLDER_ID, [activeEffect!], {
-        canAct,
-        speedAboveZero,
-        freeHand: true
+      encounterAttackAgainstContributors({
+        holderActorId: HOLDER_ID,
+        effects: [activeEffect!],
+        grantFold: null,
+        holderState: {
+          kind: 'CHARACTER',
+          creatureTypeIds: [],
+          canAct,
+          speedAboveZero,
+          freeHand: true,
+          stowableHeldItemInstanceId: null
+        }
       }).length > 0
     expect(holds(true, true)).toBe(true)
     expect(holds(false, true)).toBe(false)

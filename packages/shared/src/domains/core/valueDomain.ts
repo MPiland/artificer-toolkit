@@ -5,7 +5,8 @@ import type {
   DurationKind,
   RangeKind,
   ShapeKind,
-  CoreMeta
+  CoreMeta,
+  DamageDefenseBypassCode
 } from '#core'
 import { type EmptyObject, valuesOf } from '#utils'
 
@@ -13,9 +14,15 @@ export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
   ATTACK_ROLL: 'ATTACK_ROLL',
   ATTACKS_AGAINST: 'ATTACKS_AGAINST',
+  ATTACK_TRAIT: 'ATTACK_TRAIT',
+  WEAPON_DAMAGE_DIE: 'WEAPON_DAMAGE_DIE',
+  CRITICAL_HIT_THRESHOLD: 'CRITICAL_HIT_THRESHOLD',
+  CRITICAL_EXTRA_DICE: 'CRITICAL_EXTRA_DICE',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
+  ATTACK_DECOYS: 'ATTACK_DECOYS',
+  INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -34,6 +41,7 @@ export const VALUE_DOMAIN_CODE = {
   SKILL_MODIFIER: 'SKILL_MODIFIER',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
   MOVEMENT_MODE: 'MOVEMENT_MODE',
+  MOVEMENT_PASSAGE: 'MOVEMENT_PASSAGE',
   SENSE_RANGE: 'SENSE_RANGE',
   SPELL_SLOT_COUNT: 'SPELL_SLOT_COUNT',
   SPELL_SLOT_LEVEL_MAX: 'SPELL_SLOT_LEVEL_MAX',
@@ -47,6 +55,8 @@ export const VALUE_DOMAIN_CODE = {
   DAMAGE_IMMUNITY: 'DAMAGE_IMMUNITY',
   DAMAGE_VULNERABILITY: 'DAMAGE_VULNERABILITY',
   CONDITION_IMMUNITY: 'CONDITION_IMMUNITY',
+  SPELL_SCHOOL_IMMUNITY: 'SPELL_SCHOOL_IMMUNITY',
+  CHECKS_AGAINST_HOLDER: 'CHECKS_AGAINST_HOLDER',
   ATTRIBUTE: 'ATTRIBUTE'
 } as const
 
@@ -97,6 +107,32 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     description: 'Advantage or disadvantage on attack rolls made against the holder.'
   },
 
+  [VALUE_DOMAIN_CODE.ATTACK_TRAIT]: {
+    code: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+    label: 'Attack Trait',
+    description:
+      'A trait the attack has, such as magical, that overcomes defenses against attacks without it.'
+  },
+
+  [VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE]: {
+    code: VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE,
+    label: 'Weapon Damage Die',
+    description: "The die a weapon's damage is rolled with, by its number of faces."
+  },
+
+  [VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD]: {
+    code: VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD,
+    label: 'Critical Hit Threshold',
+    description:
+      'The lowest natural d20 that scores a critical hit with an attack; the lowest source applies.'
+  },
+
+  [VALUE_DOMAIN_CODE.CRITICAL_EXTRA_DICE]: {
+    code: VALUE_DOMAIN_CODE.CRITICAL_EXTRA_DICE,
+    label: 'Critical Extra Dice',
+    description: "Extra rolls of an attack's own damage die when it scores a critical hit."
+  },
+
   [VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY]: {
     code: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
     label: 'Opportunity Attack Immunity',
@@ -114,6 +150,20 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ACTION_BONUS_ACTION_EXCLUSIVITY,
     label: 'Action or Bonus Action Exclusivity',
     description: 'The holder can take an action or a bonus action on its turn, not both.'
+  },
+
+  [VALUE_DOMAIN_CODE.ATTACK_DECOYS]: {
+    code: VALUE_DOMAIN_CODE.ATTACK_DECOYS,
+    label: 'Attack Decoys',
+    description:
+      'Decoys of the holder that a d20 roll can redirect an attack to; the effect spends one use per decoy destroyed.'
+  },
+
+  [VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE]: {
+    code: VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE,
+    label: 'Incoming Attack Gate',
+    description:
+      'A creature that targets the holder with a single-target attack or harmful spell must first pass a saving throw.'
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -158,6 +208,12 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     description: 'A type of movement.'
   },
 
+  [VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE]: {
+    code: VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE,
+    label: 'Movement Passage',
+    description: 'Moving through hostile creatures and objects.'
+  },
+
   [VALUE_DOMAIN_CODE.SENSE_RANGE]: {
     code: VALUE_DOMAIN_CODE.SENSE_RANGE,
     label: 'Sense Range',
@@ -192,6 +248,18 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
     label: 'Condition Immunity',
     description: 'Immunity to a condition.'
+  },
+
+  [VALUE_DOMAIN_CODE.SPELL_SCHOOL_IMMUNITY]: {
+    code: VALUE_DOMAIN_CODE.SPELL_SCHOOL_IMMUNITY,
+    label: 'Spell School Immunity',
+    description: 'Spells of a magic school have no effect on the holder.'
+  },
+
+  [VALUE_DOMAIN_CODE.CHECKS_AGAINST_HOLDER]: {
+    code: VALUE_DOMAIN_CODE.CHECKS_AGAINST_HOLDER,
+    label: 'Checks Against The Holder',
+    description: 'Skill checks made to read the holder have disadvantage.'
   },
 
   [VALUE_DOMAIN_CODE.RANGE]: {
@@ -275,7 +343,8 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
   [VALUE_DOMAIN_CODE.CONDITION]: {
     code: VALUE_DOMAIN_CODE.CONDITION,
     label: 'Condition',
-    description: 'A status effect applied to a creature.'
+    description:
+      'A condition the holder always has (a feature adds it): held beside the conditions applied to it and never removable.'
   },
 
   [VALUE_DOMAIN_CODE.ATTRIBUTE]: {
@@ -328,6 +397,21 @@ export const ATTACK_DOMAIN_OPTIONS = valuesOf(
   ATTACK_DOMAIN_REGISTRY
 ) as readonly AttackDomainOption[]
 
+/** The occasion an attack is made on, which a grant can limit itself to (an opportunity attack). */
+export const ATTACK_OCCASION_CODE = {
+  OPPORTUNITY: 'OPPORTUNITY'
+} as const
+
+export type AttackOccasionCode = keyof typeof ATTACK_OCCASION_CODE
+
+export const ATTACK_OCCASION_OPTIONS: readonly CoreMeta<AttackOccasionCode>[] = [
+  {
+    code: ATTACK_OCCASION_CODE.OPPORTUNITY,
+    label: 'Opportunity Attack',
+    description: 'An attack made as an opportunity attack.'
+  }
+]
+
 export type ValueDomainParamByCode = {
   /* ──────────────────────────────────────────────
    * CORE NUMERIC VALUES
@@ -343,12 +427,32 @@ export type ValueDomainParamByCode = {
    * ────────────────────────────────────────────── */
 
   // Attack bonus is usually different for melee/ranged/spell/unarmed. Only advantage and
-  // disadvantage may name the `ability` the attack is made with (Weakening Breath's Strength).
-  ATTACK_ROLL: { attackDomain: AttackDomainCode; ability?: AbilityCode }
+  // disadvantage may name the `ability` the attack is made with (Weakening Breath's Strength), or
+  // hold only for attacks against the effect's source (`againstEffectSource`, Bestow Curse).
+  ATTACK_ROLL: {
+    attackDomain: AttackDomainCode
+    ability?: AbilityCode
+    againstEffectSource?: boolean
+  }
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
-  // holder can see (D100).
-  ATTACKS_AGAINST: { attackDomain: AttackDomainCode; requiresHolderSeesAttacker: boolean }
+  // holder can see (D100), and `exemptAttackerSenseDefinitionIds` excludes attackers that see the
+  // holder through one of those System Senses (Blur's Blindsight and Truesight). ttackOccasion`n  // limits it to attacks made on that occasion (Escape the Horde: opportunity attacks).
+  ATTACKS_AGAINST: {
+    attackDomain: AttackDomainCode
+    requiresHolderSeesAttacker: boolean
+    exemptAttackerSenseDefinitionIds?: string[]
+    attackOccasion?: AttackOccasionCode
+  }
+  CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
+  CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
+
+  // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks"), for one
+  // attack domain when named (Ki-Empowered Strikes: unarmed strikes).
+  ATTACK_TRAIT: { trait: DamageDefenseBypassCode; attackDomain?: AttackDomainCode }
+
+  // The weapon's damage die is replaced by one with this many faces (Shillelagh's d8).
+  WEAPON_DAMAGE_DIE: EmptyObject
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
@@ -358,6 +462,12 @@ export type ValueDomainParamByCode = {
 
   // The holder can take an action or a bonus action on its turn, not both (Slowing Breath).
   ACTION_BONUS_ACTION_EXCLUSIVITY: EmptyObject
+
+  // Decoys an attack against the holder may target instead (Mirror Image).
+  ATTACK_DECOYS: EmptyObject
+
+  // A save an attacker must pass before targeting the holder.
+  INCOMING_ATTACK_GATE: EmptyObject
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }
@@ -395,6 +505,9 @@ export type ValueDomainParamByCode = {
 
   // Set-like: movement modes (fly, swim...). Treat as per-mode set, no param needed.
   MOVEMENT_MODE: EmptyObject
+
+  // Passage through creatures and objects: one domain, the payload says what may be passed.
+  MOVEMENT_PASSAGE: EmptyObject
 
   // Sense range is per UUID-backed sense definition.
   SENSE_RANGE: { senseDefinitionId: string }
@@ -449,6 +562,8 @@ export type ValueDomainParamByCode = {
 
   CONDITION: EmptyObject
   CONDITION_IMMUNITY: EmptyObject
+  SPELL_SCHOOL_IMMUNITY: EmptyObject
+  CHECKS_AGAINST_HOLDER: EmptyObject
   ATTRIBUTE: EmptyObject
 }
 
@@ -465,6 +580,17 @@ export type ValueDomainParam<V extends ValueDomainCode> = V extends keyof ValueD
  * - Keep modifier kinds the same.
  */
 
+/**
+ * What a holder's voluntary movement may pass: hostile creatures (any, or only larger ones), ending
+ * inside them, blocking barriers, and the cost multiplier for each foot inside what it passes.
+ */
+export type MovementPassageOption = {
+  creatures: 'NONE' | 'ANY' | 'LARGER_THAN_SELF'
+  mayEndInCreature: boolean
+  blockingBarriers: boolean
+  costMultiplier: 1 | 2
+}
+
 export type ValueDomainOptionPayloadByDomain = {
   /** A reaction's resistance may name the damage type that triggered it instead of a fixed one. */
   DAMAGE_RESISTANCE: { damageTypeId: string } | { damageTypeSource: 'TRIGGER' }
@@ -472,18 +598,25 @@ export type ValueDomainOptionPayloadByDomain = {
   DAMAGE_IMMUNITY: { damageTypeId: string; sourceEffectIds?: string[] }
   DAMAGE_VULNERABILITY: { damageTypeId: string }
 
-  // Your CONDITION domain is “applied conditions on character”.
-  // If you model as conditionTypeId, use that. If you model as conditionId, switch.
+  // An innate condition the holder always has.
   CONDITION: { conditionTypeId: string }
 
   // Condition immunity: prevents a specific condition from being applied
   CONDITION_IMMUNITY: { conditionTypeId: string }
+
+  // Spell school immunity: a spell of the school has no effect on the holder
+  SPELL_SCHOOL_IMMUNITY: { magicSchoolId: string }
+
+  // Checks against the holder: checks of the skill made to read the holder have disadvantage
+  CHECKS_AGAINST_HOLDER: { skillId: string }
 
   // Attribute is likely from a registry (ritual, concentration, etc.)
   ATTRIBUTE: { attributeId: string }
 
   // Movement mode is a registry
   MOVEMENT_MODE: { movementModeId: string }
+
+  MOVEMENT_PASSAGE: MovementPassageOption
 
   // Replace option for charge reset should use the actual enum/kind, not a random id
   CHARGE_RESET: { resetKind: ChargeResetKind }

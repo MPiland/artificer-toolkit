@@ -9,8 +9,9 @@ import { prepareEncounterTurnZoneEffects } from '../encounterTurnZoneEffects.js'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import { creatureAuraFeature, withFeature } from '../testing/authoredZoneFixture.js'
 import { system } from '../testing/characterContextFixtures.js'
-import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter, SRD, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import {
+  characterActor,
   createSrdRulesRuntime,
   ENCOUNTER_ID,
   srdCreatureActor,
@@ -65,7 +66,11 @@ const actorIdByTokenId = new Map([
 ])
 const SOURCE_START = { ordinal: 1, stage: 'START_OF_TURN', actorId: SOURCE_ID } as const
 
-function plan(actors: readonly EncounterRunActorState[], bindings = actorIdByTokenId) {
+function plan(
+  actors: readonly EncounterRunActorState[],
+  bindings = actorIdByTokenId,
+  characterRules: Parameters<typeof planEncounterPassiveZones>[0]['characterRules'] = new Map()
+) {
   return planEncounterPassiveZones({
     state: srdEncounterState({ actors, currentActorId: GOBLIN_ID }),
     occurrenceId: OCCURRENCE_ID,
@@ -74,7 +79,8 @@ function plan(actors: readonly EncounterRunActorState[], bindings = actorIdByTok
     system,
     sceneGrid: GRID,
     tokens,
-    actorIdByTokenId: bindings
+    actorIdByTokenId: bindings,
+    characterRules
   })
 }
 
@@ -103,7 +109,8 @@ describe('placing a Creature’s passive zones (SPELLS-20 T6b, D144)', () => {
       system,
       sceneGrid: GRID,
       tokens,
-      actorIdByTokenId
+      actorIdByTokenId,
+      characterRules: new Map()
     })
     expect(again!.id).toBe(first!.id)
   })
@@ -129,6 +136,78 @@ describe('placing a Creature’s passive zones (SPELLS-20 T6b, D144)', () => {
       label: null
     })
     expect(balorAura!.spatialState).toEqual(homebrewAura!.spatialState)
+  })
+})
+
+describe('placing a Character’s passive zones (SPELLS-20 T5b, D155)', () => {
+  const PALADIN_CHARACTER_ID = testUuid(0x5b01)
+  const paladinRules = (level: number, charisma: number) =>
+    evaluateSrdCharacter({
+      abilities: { CHARISMA: charisma },
+      classes: [{ label: 'Paladin', level }],
+      features: [
+        srdFeature({
+          owner: 'CLASS',
+          classLabel: 'Paladin',
+          featureLabel: 'Aura of Protection',
+          level: 6
+        })
+      ]
+    })
+  const paladin = characterActor({ id: SOURCE_ID, characterId: PALADIN_CHARACTER_ID })
+  const placeFor = (rules: ReturnType<typeof paladinRules>) =>
+    plan([paladin], actorIdByTokenId, new Map([[PALADIN_CHARACTER_ID, rules]]))
+
+  it('anchors the paladin’s Aura of Protection to its token, lending its Charisma modifier within 10 feet', () => {
+    const [zone, ...others] = placeFor(paladinRules(6, 16))
+    expect(others).toEqual([])
+    expect(zone).toMatchObject({
+      maintainedEffectStateId: null,
+      definition: { origin: { kind: 'ENCOUNTER', sourceActorId: SOURCE_ID } },
+      placement: {
+        anchorKind: 'TOKEN',
+        sourceTokenId: SOURCE_TOKEN_ID,
+        triggerModes: [],
+        occupantSaveBonus: {
+          domain: 'EVERY_SAVING_THROW',
+          dispositionFilter: 'ALLIES_AND_SOURCE',
+          amount: 3
+        },
+        // 10 feet is two 100-pixel squares beyond the token's half width.
+        geometry: { frame: 'TOKEN_LOCAL', shape: { kind: 'CIRCLE', radius: 250 } }
+      }
+    })
+  })
+
+  it('reaches 30 feet at paladin level 18 and lends at least +1 from a negative Charisma modifier', () => {
+    const [zone] = placeFor(paladinRules(18, 8))
+    expect(zone!.placement).toMatchObject({
+      occupantSaveBonus: { amount: 1 },
+      geometry: { shape: { radius: 650 } }
+    })
+  })
+
+  it('names the same zone when placed again', () => {
+    expect(placeFor(paladinRules(6, 16))[0]!.id).toBe(placeFor(paladinRules(18, 20))[0]!.id)
+  })
+
+  it('places nothing for a Character whose rules are unavailable, or with no token in the Scene', () => {
+    expect(plan([paladin])).toEqual([])
+    expect(
+      plan(
+        [paladin],
+        new Map([[GOBLIN_TOKEN_ID, GOBLIN_ID]]),
+        new Map([[PALADIN_CHARACTER_ID, paladinRules(6, 16)]])
+      )
+    ).toEqual([])
+  })
+
+  it('places nothing for a paladin who has not acquired the aura', () => {
+    const rules = evaluateSrdCharacter({
+      abilities: { CHARISMA: 16 },
+      classes: [{ label: 'Paladin', level: 5 }]
+    })
+    expect(placeFor(rules)).toEqual([])
   })
 })
 

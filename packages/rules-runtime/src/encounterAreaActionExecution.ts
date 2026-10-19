@@ -45,6 +45,11 @@ export type EncounterAreaTarget = {
   /** The occurrence the entry's sealed roll and outcome run under (`encounterChosenActorEntries`). */
   occurrenceId: string
   binding: NativeActionInput['binding']
+  /**
+   * The binding the outcome runs on when the creature already took damage earlier in the same commit
+   * than the one its roll was sealed against (a creature a mover struck, D159).
+   */
+  currentBinding?: NativeActionInput['binding']
   /** What the creature's save has of the origin's sight, when its roller is shown a belief of it. */
   attackSight?: NativeActionInput['attackSight']
   autoRoll: EncounterActionAutoRoll
@@ -71,7 +76,8 @@ export type EncounterAreaTargetTest =
  * catches the caster and allies like anyone else; a directed area starts on the caster's own space
  * (the first token bound to them), never catches it, and needs it (`spatialTokensInsideArea`). A
  * caster-centered radius (`fromCasterSpace`) is measured from the edge of the caster's space, never
- * catches the caster, and needs its token (`spatialTokensWithinSpaceRadius`, D114).
+ * catches the caster, and needs its token (`spatialTokensWithinSpaceRadius`, D114). The caster's own
+ * space (`fromCasterSpace` over a cube) catches those sharing it.
  */
 export function catchEncounterAreaActorIds(input: {
   origin: ScenePoint
@@ -89,7 +95,10 @@ export function catchEncounterAreaActorIds(input: {
           tokens,
           casterTokenId: casterToken?.id
         })
-      : spatialTokensInsideArea({ origin, shape, tokens, casterTokenId: casterToken?.id })
+      : spatialTokensInsideArea({ origin, shape, tokens, casterTokenId: casterToken?.id }).filter(
+          // The caster's own space catches those sharing it, never the caster.
+          (tokenId) => !input.fromCasterSpace || tokenId !== casterToken?.id
+        )
   const actorByTokenId = new Map(tokens.map((token) => [token.id, token.actorId]))
   const caught = new Set(tokenIds.map((tokenId) => actorByTokenId.get(tokenId)!))
   return [...caught]
@@ -247,7 +256,7 @@ export async function settleEncounterAreaAction(
   for (const target of input.targets) {
     const test = input.tests.find((entry) => entry.occurrenceId === target.occurrenceId)
     if (test?.kind !== 'TESTED') throw new Error('The area roll is unavailable.')
-    const binding = bindings.get(target.actorId) ?? target.binding
+    const binding = bindings.get(target.actorId) ?? target.currentBinding ?? target.binding
     const result = await continueNativeActionAfterTest({
       ...input,
       occurrenceId: target.occurrenceId,

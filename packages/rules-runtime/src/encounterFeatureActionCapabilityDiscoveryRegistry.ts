@@ -3,12 +3,19 @@ import {
   type CompiledActionZonePlacement
 } from '@artificer-toolkit/schema/projections/characterMechanics'
 
+import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import {
   CharacterRuleActionUnsupportedCompilationError,
+  type CharacterRuleActionActiveEffectPlan,
   type CharacterRuleActionSystemAdapter
 } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
-import { compileEncounterFeatureActionPlan } from './encounterActionEntryPointCompiler.js'
+import {
+  buildCompiledActionTargetPolicy,
+  compileCastChoicePlans,
+  compileEncounterFeatureActionPlan
+} from './encounterActionEntryPointCompiler.js'
+import { castChoiceOptions } from './encounterCastChoice.js'
 import {
   createEncounterFeatureActionCapabilityDiscoveryRegistry,
   type EncounterFeatureActionCapabilityDescriptor,
@@ -26,6 +33,13 @@ export interface EncounterPassiveZone {
   zone: CompiledActionZonePlacement
 }
 
+/** A timed grant a Creature's passive feature gives it when it takes damage of the named types. */
+export interface EncounterPassiveDamageGrant {
+  capability: EncounterFeatureActionCapabilityDescriptor
+  damageTypeIds: readonly string[]
+  plan: CharacterRuleActionActiveEffectPlan
+}
+
 /**
  * Every action of a Creature: the ones it can take, and the unavailable ones with their reason,
  * with the zones its passive features keep around it. An action or passive zone whose shape its
@@ -33,12 +47,17 @@ export interface EncounterPassiveZone {
  */
 export function discoverEncounterFeatureActions(
   input: Parameters<typeof registry.discover>[0]
-): Omit<EncounterFeatureActionDiscovery, 'passiveZoneCapabilities'> & {
+): Omit<
+  EncounterFeatureActionDiscovery,
+  'passiveZoneCapabilities' | 'passiveDamageGrantCapabilities'
+> & {
   passiveZones: readonly EncounterPassiveZone[]
+  passiveDamageGrants: readonly EncounterPassiveDamageGrant[]
 } {
   const discovered = registry.discover(input)
   const available: EncounterFeatureActionCapabilityDescriptor[] = []
   const passiveZones: EncounterPassiveZone[] = []
+  const passiveDamageGrants: EncounterPassiveDamageGrant[] = []
   const unavailable = [...discovered.unavailable]
   const compiles = (
     capability: EncounterFeatureActionCapabilityDescriptor,
@@ -60,19 +79,54 @@ export function discoverEncounterFeatureActions(
   }
   for (const capability of discovered.available)
     compiles(capability, (adapter) => {
-      compileEncounterFeatureActionPlan(adapter, capability)
+      // An action that authors a cast pick (D148) must compile per option, as a Character's does.
+      if (castChoiceOptions(capability.compiledEffect))
+        compileCastChoicePlans(adapter, capability, buildCompiledActionTargetPolicy(capability))
+      else compileEncounterFeatureActionPlan(adapter, capability)
       available.push(capability)
     })
   for (const capability of discovered.passiveZoneCapabilities)
     compiles(capability, (adapter) => {
-      const zone = adapter.compileZonePlacement?.({ action: capability })
-      if (!zone || 'options' in zone)
-        throw new CharacterRuleActionUnsupportedCompilationError(
-          'A passive zone is one zone, with no cast-time choice.'
-        )
-      passiveZones.push({ capability, zone: compiledActionZonePlacementSchema.parse(zone) })
+      passiveZones.push({ capability, zone: compilePassiveZone(adapter, capability) })
     })
-  return { available, unavailable, passiveZones }
+  for (const capability of discovered.passiveDamageGrantCapabilities)
+    compiles(capability, (adapter) => {
+      passiveDamageGrants.push(compilePassiveDamageGrant(adapter, capability))
+    })
+  return { available, unavailable, passiveZones, passiveDamageGrants }
+}
+
+/**
+ * The one zone a Creature's or Character's passive feature keeps (D144, D155); a feature with no
+ * zone, or one picked at cast time, throws the unsupported-compilation error.
+ */
+export function compilePassiveZone(
+  adapter: CharacterRuleActionSystemAdapter,
+  capability: EffectActionCapabilityDescriptor
+): CompiledActionZonePlacement {
+  const zone = adapter.compileZonePlacement?.({ action: capability })
+  if (!zone || 'options' in zone)
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A passive zone is one zone, with no cast-time choice.'
+    )
+  return compiledActionZonePlacementSchema.parse(zone)
+}
+
+/**
+ * The timed grant a Creature's passive damage trigger gives (Flesh Golem's Aversion of Fire); a
+ * feature whose System cannot execute it throws the unsupported-compilation error.
+ */
+export function compilePassiveDamageGrant(
+  adapter: CharacterRuleActionSystemAdapter,
+  capability: EncounterFeatureActionCapabilityDescriptor
+): EncounterPassiveDamageGrant {
+  const { invocation } = capability.compiledEffect
+  const plan = adapter.passiveDamageGrantPlan?.({ action: capability })
+  if (!plan || invocation.kind !== 'PASSIVE' || !('damageTypeIds' in invocation))
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A passive damage trigger gives one timed grant for named damage types.'
+    )
+  return { capability, damageTypeIds: invocation.damageTypeIds, plan }
 }
 
 /** The System bindings of one compiled Effect, shared by every action source; null without an adapter. */

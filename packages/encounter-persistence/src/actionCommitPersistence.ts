@@ -6,6 +6,7 @@ import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounterData'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterRunStateSchema,
   type EncounterRunState
@@ -31,7 +32,7 @@ import {
   recordActionRoot,
   type ApplyEncounterForcedMovements
 } from './actionCommitRecords.js'
-import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
+import { endEffects, receiptConsumedGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { persistEncounterMeleeRetaliation } from './meleeRetaliationPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -119,7 +120,9 @@ export async function persistEncounterActionCommit(
     (!resume && input.failedCounters.length > 0) ||
     (resume &&
       !castPendingContinues(resume.pending.context, input.response, {
-        failedCounters: input.failedCounters.map(({ receipt }) => receipt)
+        failedCounters: input.failedCounters.map(({ receipt }) => receipt),
+        // A ward passed earlier stays passed through the terminal commit; only the planner passes it.
+        passedIncomingGate: resume.pending.context.passedIncomingGate
       })) ||
     command.optionalCombatIntent != null ||
     command.target.kind !== 'ACTOR'
@@ -209,12 +212,11 @@ export async function persistEncounterActionCommit(
     receipts: batch
   })
   // A reaction the target used spends its own slot and allowance with the outcome it answered.
-  const reaction = batch.kind === 'CHARACTER_MECHANICS_BATCH' ? batch.reaction : null
+  const reaction = batch.reaction
   if (
     reaction &&
-    (target.kind !== 'CHARACTER' ||
-      reaction.reaction.reactorActorId !== target.id ||
-      reaction.reaction.characterId !== target.sourceId)
+    (reaction.reaction.reactorActorId !== target.id ||
+      reaction.reaction.characterId !== (target.kind === 'CHARACTER' ? target.sourceId : null))
   )
     throw new Error('Live Session reaction scope mismatch.')
   if (!reaction && input.reactionSpellConsumption)
@@ -287,10 +289,20 @@ export async function persistEncounterActionCommit(
           ...combineSpendMutations(sourceMutation, sourceFailed?.mutation ?? {})
         })
       : null
+  // The item the outcome made the target drop (Heat Metal), applied again from the room's receipt.
+  const targetRelease = batch.targetItemUseStateTransition
   const mechanics = await callbacks.applyMechanics({
     ...common,
     targetActorId: target.id,
     commandId: command.commandId,
+    ...(targetRelease
+      ? {
+          releaseHeldItemInstanceId:
+            targetRelease.kind === 'CHARACTER_ITEM_USE_STATE'
+              ? targetRelease.itemInstanceId
+              : targetRelease.loadoutEntryId
+        }
+      : {}),
     applications: batch.applications.map((application) => ({
       ...application,
       targetActorId: target.id
@@ -317,6 +329,8 @@ export async function persistEncounterActionCommit(
       checksumCanonicalJson(batch.applications) ||
     checksumCanonicalJson(mechanics.targetTransition) !==
       checksumCanonicalJson(batch.targetTransition) ||
+    checksumCanonicalJson(mechanics.itemReleaseTransition) !==
+      checksumCanonicalJson(targetRelease) ||
     checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
       checksumCanonicalJson(batch.sourceApplications) ||
     (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&
@@ -395,7 +409,9 @@ export async function persistEncounterActionCommit(
   })
   // The one-roll grants the rolls used up (Vicious Mockery's disadvantage, Help) end with the roll.
   const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
+  await spendEffectUses(ctx, input.spentUseGrants)
   // The zones the melee hit set off burn the attacker after the hit lands (D153).
+  let retaliationEnded: ActiveRuleEffectRecord[] = []
   if (batch.meleeRetaliation) {
     const retaliated = await persistEncounterMeleeRetaliation(
       ctx,
@@ -415,7 +431,8 @@ export async function persistEncounterActionCommit(
       },
       { applyMechanics: callbacks.applyMechanics }
     )
-    nextActors = nextActors.map((actor) => (actor.id === source.id ? retaliated : actor))
+    nextActors = nextActors.map((actor) => (actor.id === source.id ? retaliated.actor : actor))
+    retaliationEnded = retaliated.endedEffects
   }
   const sourceVersion =
     sourceMechanics?.characterStreamVersion ??
@@ -513,14 +530,14 @@ export async function persistEncounterActionCommit(
   // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
   const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
   // A push or pull moves its target's token on the Scene in this commit (D139).
-  const forcedMovements = input.forcedMovements.length
+  const settledMovements = input.forcedMovements.length
     ? await callbacks.applyForcedMovements({
         state,
         sourceActorId: source.id,
         commandId: command.commandId,
         movements: input.forcedMovements
       })
-    : []
+    : { moves: [], landings: [] }
   await recordActionRoot(ctx, {
     run,
     state,
@@ -536,14 +553,15 @@ export async function persistEncounterActionCommit(
       label: input.label,
       ruleOverrides: input.ruleOverrides,
       consumedGrants: receiptConsumedGrants({
-        consumedGrants: input.consumedGrants,
-        endedGrants: [...input.endedGrants, ...mechanics.endedGrants]
+        consumedGrants: [...input.consumedGrants, ...input.spentUseGrants],
+        endedGrants: [...input.endedGrants, ...mechanics.endedGrants, ...retaliationEnded]
       }),
       endedMaintainedStates,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null,
       teleportAllowanceTurn,
-      forcedMovements,
+      forcedMovements: settledMovements.moves,
+      forcedMovementLandings: settledMovements.landings,
       turnUses,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)

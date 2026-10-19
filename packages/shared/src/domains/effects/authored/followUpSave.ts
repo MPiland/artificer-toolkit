@@ -12,6 +12,21 @@ import {
 } from '#core'
 import type { CombatPerceptionRequirement } from '../../rules/combatPerception.js'
 
+/**
+ * Conditions a save failed by at least `failedBy` also applies, for the save's duration ("if the
+ * saving throw fails by 5 or more, the target falls unconscious"). They end on their own triggers,
+ * independently of the failure's outcomes. A follow-up save carries it, and so does the failed
+ * result block of a direct saving throw.
+ */
+export type FailureMarginRiderAuthored = {
+  id: string
+  failedBy: number
+  outcomes: ConditionAuthored[]
+  lifecycle: {
+    endOnTriggers?: PathLifecycleAuthored['endOnTriggers']
+  }
+}
+
 /** What the target perceives of its source, which a repeated save's policy reads each turn. */
 export type FollowUpSaveRepeatPerceptionAuthored = {
   kind: 'PERCEPTION'
@@ -66,17 +81,5 @@ export type FollowUpSaveAuthored = {
   onSuccess: FollowUpSaveBranchAuthored
   onFailure: FollowUpSaveBranchAuthored
   onDurationComplete?: FollowUpSaveBranchAuthored
-  /**
-   * Conditions a save failed by at least `failedBy` also applies, for the save's duration ("if the
-   * saving throw fails by 5 or more, the target falls unconscious"). They end on their own triggers,
-   * independently of the failure's outcomes.
-   */
-  failureMarginRider?: {
-    id: string
-    failedBy: number
-    outcomes: ConditionAuthored[]
-    lifecycle: {
-      endOnTriggers?: PathLifecycleAuthored['endOnTriggers']
-    }
-  }
+  failureMarginRider?: FailureMarginRiderAuthored
 }

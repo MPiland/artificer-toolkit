@@ -27,14 +27,16 @@ export function encounterActionRequirementsHold(
     groups.some((group) =>
       group.conditions.every(
         (condition) =>
-          condition.kind === 'ATTACK_ACTION_OTHER_WEAPON' &&
-          attacks.some(
-            ({ item }) =>
-              item !== undefined &&
-              item.itemInstanceId !== context.actingItemInstanceId &&
-              condition.requiredProperties.every((property) => item.properties.includes(property))
-          ) ===
-            (condition.constraint === 'INCLUDE')
+          // An item action's holder is always a Character.
+          (condition.kind === 'HOLDER_KIND' && condition.requiredIds.includes('CHARACTER')) ||
+          (condition.kind === 'ATTACK_ACTION_OTHER_WEAPON' &&
+            attacks.some(
+              ({ item }) =>
+                item !== undefined &&
+                item.itemInstanceId !== context.actingItemInstanceId &&
+                condition.requiredProperties.every((property) => item.properties.includes(property))
+            ) ===
+              (condition.constraint === 'INCLUDE'))
       )
     )
   )

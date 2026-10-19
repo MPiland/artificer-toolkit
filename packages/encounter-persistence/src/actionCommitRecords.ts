@@ -4,6 +4,7 @@ import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/a
 import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
+  encounterForcedMovementLandingSchema,
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRuleReceiptSchema,
   encounterStoredRunCommandSchema
@@ -60,14 +61,20 @@ export async function completeActionOccurrence(
 
 /**
  * Settles an action's forced movements on its Encounter's Scene in the commit's transaction (D139)
- * and returns the Scene moves it committed, in the order it made them.
+ * and returns the Scene moves it committed, in the order it made them, and where each creature it
+ * moved ended up.
  */
+export type EncounterForcedMovementLanding = z.infer<typeof encounterForcedMovementLandingSchema>
+
 export type ApplyEncounterForcedMovements = (input: {
   state: EncounterRunState
   sourceActorId: string
   commandId: string
   movements: readonly LiveSessionForcedMovement[]
-}) => Promise<{ sceneId: string; sceneCommandId: string }[]>
+}) => Promise<{
+  moves: { sceneId: string; sceneCommandId: string }[]
+  landings: EncounterForcedMovementLanding[]
+}>
 
 /**
  * Records a committed action: advances the Run, stores the root's one receipt and inserts the one
@@ -104,7 +111,12 @@ export async function recordActionRoot(
             z.infer<typeof encounterStoredRunCommandSchema>,
             { commandType: 'RESOLVE_ACTION' }
           >,
-          'issuerLines' | 'gmLines' | 'failedCounters' | 'idleTurnMarkChanges' | 'forcedMovements'
+          | 'issuerLines'
+          | 'gmLines'
+          | 'failedCounters'
+          | 'idleTurnMarkChanges'
+          | 'forcedMovements'
+          | 'forcedMovementLandings'
         >
       >
     occurredAt: string

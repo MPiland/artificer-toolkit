@@ -9,6 +9,7 @@ import type {
   EncounterGmProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -35,7 +36,14 @@ import {
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { getNativeActionChoices } from '../../tests/fixtures/nativeDisarm'
+import {
+  restrictedAction,
+  restrictedTo,
+  useAnObjectEffectId
+} from '../../tests/fixtures/restrictedBasicAction'
 import { importedSubject } from '../../tests/fixtures/publication'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { sourceImportBatches } from '../content/importBatches'
 import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
@@ -78,21 +86,33 @@ function withUnlimitedRange(weapon: typeof greatsword) {
   }
 }
 
-/** A Character carrying a weapon (a two-handed greatsword by default) and a shield, first in initiative. */
+/** A System-authored basic action taken only with a free hand. */
+const needsFreeHand = restrictedAction(30, 'Pull Free', restrictedTo(30, 'FREE_HAND'))
+
+/**
+ * A Character carrying a weapon (a two-handed greatsword by default) and a shield, first in
+ * initiative. With `basicActions`, the System also offers its basic actions and `needsFreeHand`.
+ */
 async function setup({
   weapon = greatsword,
   shieldEquipped = true,
   weaponEquipped = false,
-  authoredRange = false
+  authoredRange = false,
+  basicActions = false
 } = {}) {
   const base = await setupCharacterRun({}, authoredRange ? weapon : withUnlimitedRange(weapon))
   await attachRoomWorker(base.t)
-  await base.t.mutation(internal.content.import.importDefinitions, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: SRD_RULE_STATE_DEFINITIONS.filter(
-      (definition) => definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID
-    )
-  })
+  for (const definitions of sourceImportBatches(
+    basicActions
+      ? [...SRD_RULE_STATE_DEFINITIONS, ...SRD_BASIC_ACTION_DEFINITIONS, needsFreeHand]
+      : SRD_RULE_STATE_DEFINITIONS.filter(
+          (definition) => definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID
+        )
+  ))
+    await base.t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions
+    })
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
@@ -230,6 +250,7 @@ async function setup({
     actor,
     target,
     shieldItemId,
+    weaponItemId,
     ...prepared,
     command,
     armorClass,
@@ -426,6 +447,68 @@ describe('shield stow on two-handed attacks', () => {
     const after = await base.characterRow()
     expect(after?.play.streamVersion).toBe(before!.play.streamVersion + 1)
     expect(await base.armorClass()).toBe(12)
+  }, 60000)
+})
+
+describe('a basic action stows a held weapon for free to free a hand (D152)', () => {
+  /** Pull Free on the Character itself, accepting `acceptedWieldConflict`. */
+  const pullFree = (
+    base: Awaited<ReturnType<typeof setup>>,
+    acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict']
+  ) => ({
+    ...base.command(
+      acceptedWieldConflict,
+      encounterBasicActionId(base.actor.id, needsFreeHand.id, useAnObjectEffectId)
+    ),
+    target: { kind: 'ACTOR' as const, actorId: base.actor.id }
+  })
+  const stow = (itemInstanceId: string) => ({ kind: 'STOW_HELD_WEAPON' as const, itemInstanceId })
+
+  it('offers the stow of the weapon beside a shield and commits only an exact acceptance', async () => {
+    const base = await setup({ weapon: longsword, weaponEquipped: true, basicActions: true })
+    const choices = await base.owner.caller.query(getNativeActionChoices, {
+      encounterId: base.run.id,
+      expectedVersion: base.state.version,
+      actorId: base.actor.id
+    })
+    expect(
+      choices?.basicActionChoices.find(({ label }) => label === 'Pull Free')?.wieldConflict
+    ).toEqual(stow(base.weaponItemId))
+    await expectRefusalCause(
+      executeInRoom(base.owner.caller, { command: pullFree(base, null) }),
+      'This action would stow a held weapon; confirm it first.'
+    )
+    await expectRefusalCause(
+      executeInRoom(base.owner.caller, { command: pullFree(base, stow(base.shieldItemId)) }),
+      'This action would stow a held weapon; confirm it first.'
+    )
+    const before = await base.characterRow()
+    const result = await executeInRoom(base.owner.caller, {
+      command: pullFree(base, stow(base.weaponItemId))
+    })
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    const after = await base.characterRow()
+    expect(after?.play.streamVersion).toBe(before!.play.streamVersion + 1)
+    const equipped = readCharacterRecord(after!).state.equipment.equipped
+    expect(equipped).not.toContainEqual(expect.objectContaining({ itemId: base.weaponItemId }))
+    expect(equipped).toContainEqual(expect.objectContaining({ itemId: base.shieldItemId }))
+    expect(await base.armorClass()).toBe(14)
+  }, 60000)
+
+  it('refuses a stow while a hand is already free', async () => {
+    const base = await setup({ basicActions: true })
+    const choices = await base.owner.caller.query(getNativeActionChoices, {
+      encounterId: base.run.id,
+      expectedVersion: base.state.version,
+      actorId: base.actor.id
+    })
+    expect(
+      choices?.basicActionChoices.find(({ label }) => label === 'Pull Free')?.wieldConflict
+    ).toBeNull()
+    await expectRefusalCause(
+      executeInRoom(base.owner.caller, { command: pullFree(base, stow(base.shieldItemId)) }),
+      'This action stows nothing.'
+    )
   }, 60000)
 })
 

@@ -1,4 +1,6 @@
+import { incomingDamageGrantRecords } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterIdleTurnMark } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import type {
   ActiveRuleEffectRecord,
@@ -16,6 +18,58 @@ export async function deleteGrants(
   const store = createActiveRuleEffectStore(ctx)
   for (const grant of grants)
     await store.deleteCas({ id: grant.id, owner: grant.owner, expectedVersion: grant.version })
+}
+
+/**
+ * Creates the timed grants a holder's passive features owe the damage a spatial root dealt it, after
+ * the effects that damage ended are deleted. Returns the records, which planning built the same way.
+ */
+export async function createIncomingDamageGrants(
+  ctx: EncounterWriteContext,
+  input: {
+    grants: Parameters<typeof incomingDamageGrantRecords>[0]['grants']
+    owner: ActiveRuleEffectRecord['owner']
+    occurredAt: string
+  }
+) {
+  const store = createActiveRuleEffectStore(ctx)
+  const records = incomingDamageGrantRecords({
+    ...input,
+    current: input.grants.length ? await store.list(input.owner) : []
+  })
+  for (const record of records) {
+    const created = await store.create({
+      id: record.id,
+      owner: record.owner,
+      definition: record.definition,
+      lifecycle: record.lifecycle,
+      occurredAt: input.occurredAt
+    })
+    if (checksumCanonicalJson(created) !== checksumCanonicalJson(record))
+      throw new Error('Created damage grant changed before settlement.')
+  }
+  return records
+}
+
+/**
+ * Spends one use of each effect that counts its uses (attack decoys). The receipt keeps the record
+ * as it was, so an undo gives the use back.
+ */
+export async function spendEffectUses(
+  ctx: EncounterWriteContext,
+  effects: readonly ActiveRuleEffectRecord[]
+) {
+  const store = createActiveRuleEffectStore(ctx)
+  for (const effect of effects) {
+    const remainingUses = effect.lifecycle.remainingUses
+    if (remainingUses === undefined) throw new Error('The effect does not count uses.')
+    await store.updateLifecycleCas({
+      id: effect.id,
+      owner: effect.owner,
+      expectedVersion: effect.version,
+      lifecycle: { ...effect.lifecycle, remainingUses: remainingUses - 1 }
+    })
+  }
 }
 
 /**
@@ -144,7 +198,18 @@ export async function restoreConsumedGrants(
   grants: readonly ActiveRuleEffectRecord[]
 ) {
   const store = createActiveRuleEffectStore(ctx)
-  for (const grant of grants)
+  for (const grant of grants) {
+    // A spent use leaves its effect in place: give the use back instead of re-creating the record.
+    const current = await store.findById(grant.owner, grant.id)
+    if (current) {
+      await store.updateLifecycleCas({
+        id: grant.id,
+        owner: grant.owner,
+        expectedVersion: current.version,
+        lifecycle: grant.lifecycle
+      })
+      continue
+    }
     await store.create({
       id: grant.id,
       owner: grant.owner,
@@ -153,4 +218,5 @@ export async function restoreConsumedGrants(
       maintainedEffectStateId: grant.maintainedEffectStateId,
       restoredFrom: grant
     })
+  }
 }

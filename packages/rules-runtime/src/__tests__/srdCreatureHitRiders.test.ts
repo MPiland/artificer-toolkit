@@ -5,6 +5,7 @@ import { characterRuleActionSystemAdapterRegistry } from '../characterRuleAction
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
+import { lockedRelationshipActionFacts } from '../encounterRelationshipActionFacts.js'
 import { resolveCreatureDamageExpression } from '../systems/dnd5e/effectActionCompiler.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
@@ -54,7 +55,7 @@ async function attackOgre(input: {
     execution,
     effects: prepareNativeActionEffectsPlan({
       prepared,
-      execution: { kind: 'COMPLETE', ...execution },
+      execution,
       occurrenceId: testUuid(0xb3),
       commandId: testUuid(0xb4),
       activeEffectsByActorId: new Map()
@@ -72,6 +73,30 @@ async function attackOgre(input: {
       { targetActorId: TARGET_ID, applications: mechanics.mechanics.receiptApplications }
     ])
   }
+}
+
+/**
+ * The relationship action facts of the attacker's next use of `feature`, against the given target,
+ * while the relationship its `hit` created holds the Ogre.
+ */
+function heldActionFacts(input: {
+  hit: Awaited<ReturnType<typeof attackOgre>>
+  creature: Parameters<typeof creatureFeature>[0]
+  feature: string
+}) {
+  const definition = input.hit.effects.recurringEffect?.definition
+  if (definition?.schemaVersion !== 2) throw new Error('Expected the relationship effect.')
+  const [effect] = creatureFeature(input.creature, input.feature).effects ?? []
+  if (!effect) throw new Error('Expected the attack effect.')
+  return (targetActorId: string) =>
+    lockedRelationshipActionFacts({
+      actionEffectId: effect.id,
+      sourceActorId: ATTACKER_ID,
+      targetActorId,
+      targets: {
+        activeEffectsByActorId: new Map([[TARGET_ID, [{ id: testUuid(0xb7), definition }]]])
+      }
+    })
 }
 
 /** One end-of-turn tick of a timed condition on the Ogre, with the given turns remaining. */
@@ -173,6 +198,34 @@ describe('SRD Creature critical hits and hit point maximum drains', () => {
       })
     )
   })
+
+  it.each([
+    // DC 15 Constitution, the Ogre +3: a 5 fails, a 15 succeeds; 5d10 + 5 psychic, every die a 3.
+    ['fails', 4, 'ON_SAVE_FAIL', 3 * 5 + 5],
+    ['makes', 14, 'ON_SAVE_SUCCESS', Math.floor((3 * 5 + 5) / 2)]
+  ] as const)(
+    'drains the hit point maximum by the psychic damage of the Succubus’s Draining Kiss when the target %s its save',
+    async (_result, saveFace, resultPath, damage) => {
+      const kissed = await attackOgre({
+        attacker: 'Succubus/Incubus',
+        feature: 'Draining Kiss',
+        rolls: [saveFace, 2, 2, 2, 2, 2]
+      })
+      expect(kissed.execution.d20).toMatchObject({ defenseOrDc: 15, resultPath })
+      expect(kissed.damage).toEqual([[damage, srdDamageTypeId('PSYCHIC')]])
+      expect(kissed.transition.after.maximumHitPoints).toBe(
+        kissed.transition.before.maximumHitPoints - damage
+      )
+      expect(kissed.receiptApplications).toContainEqual(
+        expect.objectContaining({
+          kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+          reductionAmount: damage,
+          resolvedPath: resultPath,
+          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
+        })
+      )
+    }
+  )
 })
 
 describe('SRD Creature weapon attacks through held Equipment (D62, M9)', () => {
@@ -213,6 +266,43 @@ describe('SRD hits that apply several conditions (D62, M9)', () => {
         )
         .sort()
     ).toEqual(conditionIds)
+  })
+
+  it('restrains the Giant Frog’s Bite target, and the frog can bite no other target while it holds one', async () => {
+    // Bite, +3: 4 (1d6 + 1) piercing, grappled and restrained; the frog can't bite another target.
+    const frog = srdByLabel(SRD.creatures, 'Giant Frog')
+    const hit = await attackOgre({ attacker: 'Giant Frog', feature: 'Bite', rolls: [9, 2] })
+    expect(hit.damage).toEqual([[3 + 1, srdDamageTypeId('PIERCING')]])
+    const definition = hit.effects.recurringEffect?.definition
+    if (definition?.schemaVersion !== 2)
+      throw new Error('Expected the grapple relationship effect.')
+    expect(
+      definition.stateContributions
+        .flatMap((contribution) =>
+          contribution.kind === 'ACTOR_RELATIONSHIP' ? contribution.conditionIds : []
+        )
+        .sort()
+    ).toEqual([srdCondition('Grappled'), srdCondition('Restrained')].sort())
+
+    const bite = heldActionFacts({ hit, creature: frog, feature: 'Bite' })
+    expect(bite(TARGET_ID)).toEqual([])
+    expect(() => bite(testUuid(0xb8))).toThrow(
+      'The selected action target is restricted by an active relationship.'
+    )
+  })
+
+  it('attaches the Darkmantle to its Crush target: advantage on it, no other target, blinded only on an advantaged hit', async () => {
+    // Crush, +5: 6 (1d6 + 3) bludgeoning, and the darkmantle attaches; a normal roll does not engulf.
+    const darkmantle = srdByLabel(SRD.creatures, 'Darkmantle')
+    const hit = await attackOgre({ attacker: 'Darkmantle', feature: 'Crush', rolls: [9, 2] })
+    expect(hit.damage).toEqual([[3 + 3, srdDamageTypeId('BLUDGEONING')]])
+    expect(hit.conditionIds).not.toContain(srdCondition('Blinded'))
+
+    const crush = heldActionFacts({ hit, creature: darkmantle, feature: 'Crush' })
+    expect(crush(TARGET_ID)).toMatchObject([{ influence: 'ADVANTAGE' }])
+    expect(() => crush(testUuid(0xb8))).toThrow(
+      'The selected action target is restricted by an active relationship.'
+    )
   })
 })
 

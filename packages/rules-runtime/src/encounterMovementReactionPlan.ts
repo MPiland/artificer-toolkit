@@ -14,6 +14,7 @@ import {
   featureChargeUsed,
   withFeatureChargeUsed
 } from './encounterActorState.js'
+import { withDecoyStrikeApplied } from './encounterAttackDecoys.js'
 import { advanceNativeActionGraphs, executeNativeActionGraphs } from './encounterActionExecution.js'
 import { bindEncounterMovementReactionInterruption } from './encounterMovementReactionExecution.js'
 import type { resolveNativeMovementLegendaryResistance } from './encounterMovementLegendaryResistance.js'
@@ -36,12 +37,6 @@ import {
   type NativeEncounterActionMechanicsInput
 } from './encounterActionMechanicsPlan.js'
 import { planEncounterMovementReactionEffects } from './encounterMovementReactionEffects.js'
-import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
-import {
-  actionEndedEffects,
-  actsAgainstEnemy,
-  damageTakenEndedEffects
-} from './encounterEndedEffectRelease.js'
 
 type PreparedMechanics<TFacts extends ProjectableCharacterFacts> = Awaited<
   ReturnType<typeof prepareEncounterActionMechanics<TFacts>>
@@ -136,6 +131,7 @@ function verifyCompletedMovementReactionPlan<
     adapter: input.prepared.prepared.adapter,
     facts: bound.facts,
     testRollMode: requireTestRollMode(input.execution.d20),
+    absorbedByDecoy: input.prepared.prepared.binding.absorbedByDecoy,
     ...(input.execution.resistance
       ? { effectivePath: input.execution.resistance.effectivePath }
       : {})
@@ -203,52 +199,6 @@ function requireCompletedMovementReaction<
   return input.execution
 }
 
-/**
- * The effects the reaction ends: the reactor's that its attack roll or spell cast uses up, and the
- * mover's that end on damage, with the conditions each frees in its holder's own batch.
- */
-function reactionEndedEffects<
-  TFacts extends ProjectableCharacterFacts,
-  TRow extends MovementCharacterRow
->(
-  input: MovementReactionSettlementInput<TFacts, TRow>,
-  effects: ReturnType<typeof planEncounterMovementReactionEffects>
-) {
-  const { prepared } = input.prepared
-  const dispositions = new Map([
-    [prepared.actor.id, prepared.actor.disposition],
-    [prepared.target.id, prepared.target.disposition]
-  ])
-  const reactor = actionEndedEffects({
-    holderActorId: prepared.actor.id,
-    held: prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
-    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
-    castsSpell: preparedCastsSpell(prepared),
-    againstEnemy: actsAgainstEnemy({
-      actorId: prepared.actor.id,
-      targetActorIds: [prepared.target.id],
-      dispositions
-    })
-  })
-  const mover = damageTakenEndedEffects({
-    holderActorId: prepared.target.id,
-    held: (prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []).filter(
-      ({ id }) => !reactor.consumedGrants.some((ended) => ended.id === id)
-    ),
-    applications: [
-      ...requireCompletedMovementReaction(input).applications,
-      ...effects.effects.relationshipConditionApplications
-    ],
-    damagerActorId: prepared.actor.id,
-    dispositions
-  })
-  return {
-    consumedGrants: [...reactor.consumedGrants, ...mover.endedEffects],
-    sourceReleases: reactor.sourceReleases,
-    damageReleases: mover.releases
-  }
-}
-
 function reactionMechanicsInput<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
@@ -260,7 +210,7 @@ function reactionMechanicsInput<
 } {
   const execution = requireCompletedMovementReaction(input)
   const { prepared } = input
-  const ended = reactionEndedEffects(input, effects)
+  const { ended } = effects
   return {
     prepared: prepared.prepared,
     encounterId: prepared.prepared.state.id,
@@ -419,6 +369,7 @@ function movementReactionSettlement<
           d20: execution.d20,
           nestedD20: execution.nestedD20,
           activeEffectTransitions: effects.activeEffectTransitions,
+          grantEffectTransitions: effects.grantEffectTransitions,
           stateEffectTransitions: effects.stateEffectTransitions,
           targetTransition: settled.mechanics.targetTransition,
           applications: settled.mechanics.receiptApplications,
@@ -506,7 +457,10 @@ export function planEncounterMovementReactionAction<
           actor.id === prepared.target.id
             ? {
                 ...target,
-                activeEffects: [...target.activeEffects, ...effects.createdEffects]
+                activeEffects: [
+                  ...withDecoyStrikeApplied(target.activeEffects, effects.ended.decoyStrike),
+                  ...effects.createdEffects
+                ]
               }
             : target,
         actor,
@@ -537,7 +491,8 @@ export function planEncounterMovementReactionAction<
   return {
     ...result,
     effects,
-    consumedGrants: reactionEndedEffects(input, effects).consumedGrants,
+    consumedGrants: effects.ended.consumedGrants,
+    spentUseGrants: effects.ended.decoyStrike.spentUseGrants,
     sourceResourcePlan: settled.sourceResourcePlan,
     targetPlan: settled.targetPlan,
     projectedTargets: maintenance?.targets ?? projectedTargets,

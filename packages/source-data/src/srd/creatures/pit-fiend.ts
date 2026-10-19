@@ -103,19 +103,7 @@ export const pitFiend: CreatureAuthored = {
       id: S.featureId(219, 3),
       label: 'Magic Weapons',
       description: "Magic Weapons. The pit fiend's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(219, 503),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(219, 604), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(219, 503),
       order: 3
     },
     {
@@ -156,18 +144,6 @@ export const pitFiend: CreatureAuthored = {
           }
         ]
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(219, 704),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(219, 705), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PIT_FIEND_INNATE_SPELLCASTING
-        })
-      ],
       order: 4
     },
     {

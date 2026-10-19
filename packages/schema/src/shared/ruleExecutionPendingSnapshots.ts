@@ -2,13 +2,17 @@ import { z, lazySchema } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
-import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { rangeDtoSchema, type RangeDto } from './range.js'
-import { spatialPointDtoSchema } from './spatialFacts.js'
+import {
+  MAX_FORCED_MOVEMENT_DESTINATIONS,
+  spatialPointDtoSchema,
+  type SpatialPointDto
+} from './spatialFacts.js'
 import { encounterInitiativePendingContextDtoSchema } from './ruleExecutionInitiativePending.js'
 import {
   optionalCombatPassageContinuationDtoSchema,
-  serverOptionalCombatContestPendingContextDtoSchema
+  serverContestCheckPendingContextDtoSchema
 } from './ruleExecutionOptionalCombatPending.js'
 import {
   encounterLegendaryResistancePinDtoSchema,
@@ -518,8 +522,24 @@ export type EncounterAreaActionPendingContextDto = {
   caughtChecksum: string
   /** Creatures the GM took out of the area while the saves were pending. */
   removedActorIds: string[]
+  /**
+   * Creatures the area caught that the action has no effect on, so took no save: immune to this
+   * source's use of it (D156), or of a creature type it excludes.
+   */
+  unaffectedActorIds?: string[]
   /** The counters reactors attempted and failed against this cast, which the area's commit spends (D127). */
   failedCounters?: EncounterFailedCounterDto[]
+  /**
+   * Once every save settled, the pushes whose source picks where each creature lands (D157): the
+   * landings picked so far, farthest creature first, and the pick owed next. The area commits once
+   * no pick is owed. `rays` seals the direction each random push rolled when the pick was first
+   * held, so a replan after an answer lands the same rays the offers were derived with.
+   */
+  forcedMovement?: {
+    landed: { targetActorId: string; position: SpatialPointDto }[]
+    rays?: { targetActorId: string; ray: SpatialPointDto }[]
+    pick?: { requestId: string; targetActorId: string; positions: SpatialPointDto[] }
+  }
   targets: {
     actorId: string
     /** The footprint of the creature's token when the area caught it; null when it has none on the Scene read. */
@@ -532,6 +552,19 @@ export type EncounterAreaActionPendingContextDto = {
     testedJson?: string
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
     legendaryResistance?: EncounterAreaLegendaryResistanceDto
+    /**
+     * Marks the save of a creature a forced mover struck (D159) rather than one the area caught: the
+     * mover, and the authored collision it makes, with the damage dice the mover travelled for (null
+     * when it travelled under 10 feet).
+     */
+    collision?: {
+      moverActorId: string
+      damageDiceConfig: string | null
+      damageTypeId: string
+      abilityDefinitionId: string
+      dc: number
+      conditionId: string
+    }
   }[]
 }
 
@@ -601,8 +634,31 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       ),
       caughtChecksum: checksumSchema,
       removedActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      unaffectedActorIds: z.optional(z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))),
       failedCounters: z.optional(
         z.array(encounterFailedCounterDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      ),
+      forcedMovement: z.optional(
+        z.strictObject({
+          landed: z
+            .array(z.strictObject({ targetActorId: uuidSchema, position: spatialPointDtoSchema }))
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          rays: z.optional(
+            z
+              .array(z.strictObject({ targetActorId: uuidSchema, ray: spatialPointDtoSchema }))
+              .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+          ),
+          pick: z.optional(
+            z.strictObject({
+              requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+              targetActorId: uuidSchema,
+              positions: z
+                .array(spatialPointDtoSchema)
+                .check(z.minLength(2))
+                .check(z.maxLength(MAX_FORCED_MOVEMENT_DESTINATIONS))
+            })
+          )
+        })
       ),
       targets: z
         .array(
@@ -612,7 +668,22 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             perceivedByCaster: z.boolean(),
             snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema),
             testedJson: z.optional(z.string()),
-            legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema)
+            legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
+            /**
+             * Marks the save of a creature a forced mover struck (D159) rather than one the area caught:
+             * the mover, and the authored collision it makes, with the damage dice the mover travelled
+             * for (null when it travelled under 10 feet).
+             */
+            collision: z.optional(
+              z.strictObject({
+                moverActorId: uuidSchema,
+                damageDiceConfig: z.nullable(authoredIdentifierSchema),
+                damageTypeId: uuidSchema,
+                abilityDefinitionId: uuidSchema,
+                dc: z.number().check(z.int()),
+                conditionId: uuidSchema
+              })
+            )
           })
         )
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
@@ -651,22 +722,27 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
           // caster, and a creature several rays are aimed at has an entry for each.
           const casterRolls =
             inner.kind === 'ENCOUNTER_ACTION' && inner.rollerActorId === value.casterActorId
+          // A creature a mover struck makes its own save besides any the area caught it for, and may
+          // be one the area never kept.
+          const struck = target.collision !== undefined
           if (
             inner.kind !== 'ENCOUNTER_ACTION' ||
             seenOccurrences.has(target.snapshot.occurrenceId) ||
-            (seen.has(target.actorId) && !casterRolls) ||
-            value.removedActorIds.includes(target.actorId) ||
+            (!struck &&
+              ((seen.has(target.actorId) && !casterRolls) ||
+                value.removedActorIds.includes(target.actorId) ||
+                value.unaffectedActorIds?.includes(target.actorId))) ||
             inner.commandFingerprint !== value.commandFingerprint ||
             inner.initiatorUserId !== value.initiatorUserId ||
-            (inner.rollerActorId !== target.actorId && !casterRolls)
+            (inner.rollerActorId !== target.actorId && (struck || !casterRolls))
           )
             context.addIssue({
               code: 'custom',
               path: ['targets', index],
               message:
-                'Each area roll must be a distinct, kept creature whose sealed continuation shares the area root and is rolled by the creature or the caster.'
+                'Each area roll must be a distinct, kept creature whose sealed continuation shares the area root and is rolled by the creature or the caster; a struck creature rolls its own save.'
             })
-          seen.add(target.actorId)
+          if (!struck) seen.add(target.actorId)
           seenOccurrences.add(target.snapshot.occurrenceId)
           if (target.legendaryResistance) {
             if (
@@ -739,7 +815,7 @@ export const serverMovementRuleExecutionPendingSnapshotDtoSchema: z.ZodMiniType<
         applicationContext: z.discriminatedUnion('kind', [
           spatialPendingContextDtoSchema,
           movementReactionPendingContextDtoSchema,
-          serverOptionalCombatContestPendingContextDtoSchema
+          serverContestCheckPendingContextDtoSchema
         ])
       }),
       z.safeExtend(serverAggregateChoicePendingSnapshotObjectSchema, {

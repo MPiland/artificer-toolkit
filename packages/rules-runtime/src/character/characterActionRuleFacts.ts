@@ -2,7 +2,11 @@ import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/cha
 import type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterGrantFoldInput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import { sha256Hex } from '@artificer-toolkit/shared/sha256'
+import type {
+  CompiledEffectGroup,
+  CompiledFeatureEffectGroup
+} from '@artificer-toolkit/shared/compilers'
 import type { CompiledEquipmentEffectGroup } from '@artificer-toolkit/shared/subjects/compilers'
 import type {
   CharacterAssemblyRegistry,
@@ -14,6 +18,7 @@ import {
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
 import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
+import { placedSpaceEntries } from '../placedSpaceEntries.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 
@@ -26,10 +31,36 @@ type ActionMechanicFacts = ActionCandidate['mechanicFacts']
 type ActionMechanicOutcome = ActionMechanicFacts['outcomes'][number]
 type CompiledEffectEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
 type HealOutcome = Extract<ActionMechanicOutcome, { kind: 'HEAL' }>
+type ActionEquipment = NonNullable<ActionCandidate['equipment']>
+type ItemEquipmentState = Omit<ActionEquipment, 'grip' | 'requirements'>
+
+/** One weapon attack an item makes, which a Feature attack with the wielded weapons uses (D156). */
+interface ItemWeaponAttack {
+  equipment: ItemEquipmentState
+  effect: CompiledEquipmentEffectGroup
+  label: string
+}
+
+/** The weapon attacks a Feature attack with the wielded weapons makes, and the riders on them. */
+interface WieldedWeaponAttacks {
+  weapons: readonly ItemWeaponAttack[]
+  onHitRiders: readonly OnHitRider[]
+}
+
+/** Action candidates with their server-only entries, index-aligned. */
+interface CharacterActionSources {
+  candidates: ActionCandidate[]
+  entryPoints: CharacterActionRuleEntryPoint[]
+}
 
 interface CharacterActionRuleFacts {
   actionCandidates: ActionCandidate[]
   entryPoints: CharacterActionRuleEntryPoint[]
+  /**
+   * The zones the Character's passive features, options and feats keep around its token (D155),
+   * as candidates no one takes: an Encounter places them, and they are never policy facts.
+   */
+  passiveZones: CharacterActionSources
 }
 
 /** Every action identity of one Character source starts with this prefix. */
@@ -350,42 +381,94 @@ export function normalizeCharacterActionMechanicFacts(
   }
 }
 
+/** An action's item state: the item plus the grip and requirements of the effect it uses. */
+function actionEquipmentState(
+  item: ItemEquipmentState,
+  effect: CompiledEffectGroup | CompiledEquipmentEffectGroup | CompiledFeatureEffectGroup
+): ActionEquipment {
+  return {
+    ...item,
+    // Only an item's own effects carry a grip; features granted by an item have none.
+    grip: 'grip' in effect ? effect.grip : null,
+    ...('requirements' in effect && effect.requirements
+      ? {
+          requirements: {
+            id: effect.requirements.id,
+            groups: effect.requirements.groups.map((group) => ({
+              ...group,
+              contexts: [...group.contexts]
+            }))
+          }
+        }
+      : {})
+  }
+}
+
+/**
+ * A Feature attack made with one wielded weapon (D156): the Feature's activation, targeting and
+ * area, with the weapon's outcomes followed by the Feature's own. Its range is the weapon's, held
+ * to the Feature's own distance when it authors one (Whirlwind Attack's 5 feet with a reach
+ * weapon); a Feature that reaches as far as the weapon does (Volley) authors a SPECIAL range.
+ */
+function wieldedWeaponAttackEffect(
+  feature: CompiledFeatureEffectGroup,
+  weapon: CompiledEffectGroup
+): CompiledEffectGroup {
+  const { weaponAttack: _weaponAttack, ...effect } = feature
+  const held = feature.invocation.range
+  const own = weapon.invocation.range
+  const range =
+    held.rangeKind !== 'DISTANCE' ||
+    (own.rangeKind === 'DISTANCE' && own.unit === held.unit && own.amount <= held.amount)
+      ? own
+      : held
+  return {
+    ...effect,
+    invocation: { ...feature.invocation, range },
+    entries: [...weapon.entries, ...feature.entries]
+  }
+}
+
+function activationCode(effect: CompiledEffectGroup): string | undefined {
+  return 'activation' in effect.invocation ? effect.invocation.activation?.code : undefined
+}
+
 function appendActions(params: {
   candidates: ActionCandidate[]
   entryPoints: CharacterActionRuleEntryPoint[]
-  effects: readonly (CompiledEffectGroup | CompiledEquipmentEffectGroup)[] | undefined
+  effects:
+    | readonly (CompiledEffectGroup | CompiledEquipmentEffectGroup | CompiledFeatureEffectGroup)[]
+    | undefined
   source: { sourceId: string; mechanicSource: CharacterActionSource }
   label: string
   mechanicsOwner: CharacterActionMechanicsOwner
   activationSourceKind: ActionCandidate['activationSourceKind']
-  equipment: Omit<NonNullable<ActionCandidate['equipment']>, 'grip' | 'requirements'> | null
+  equipment: ItemEquipmentState | null
   resourcePoolCandidates: readonly ResourcePoolCandidate[]
   /** Passive Feature damage that rides on the attacks of this source. */
   onHitRiders?: readonly OnHitRider[]
+  /** Where this source's passive zones go; absent for a source that keeps none. */
+  passiveZones?: CharacterActionSources
+  /** The weapons a Feature attack with the wielded weapons is made with; absent for an item. */
+  wieldedWeaponAttacks?: WieldedWeaponAttacks
 }): void {
-  for (const authoredEffect of params.effects ?? []) {
-    if (authoredEffect.invocation.kind === 'PASSIVE') continue
-    // Only an item's own effects carry a grip; features granted by an item have none.
-    const equipment = params.equipment && {
-      ...params.equipment,
-      grip: 'grip' in authoredEffect ? authoredEffect.grip : null,
-      ...('requirements' in authoredEffect && authoredEffect.requirements
-        ? {
-            requirements: {
-              id: authoredEffect.requirements.id,
-              groups: authoredEffect.requirements.groups.map((group) => ({
-                ...group,
-                contexts: [...group.contexts]
-              }))
-            }
-          }
-        : {})
+  const append = (
+    sink: CharacterActionSources,
+    action: {
+      effect: CompiledEffectGroup
+      identity: string
+      label: string
+      activationSourceKind: ActionCandidate['activationSourceKind']
+      equipment: ActionEquipment | null
+      onHitRiders: readonly OnHitRider[]
     }
+  ) => {
     const effect = reduceEffectRestrictions(
-      mergeOnHitRiders(authoredEffect, params.onHitRiders ?? []),
-      dnd5eAttackingItem(equipment)
+      mergeOnHitRiders(action.effect, action.onHitRiders),
+      dnd5eAttackingItem(action.equipment)
     )
-    const resourceUse = authoredEffect.invocation.resourceUse
+    const resourceUse =
+      effect.invocation.kind === 'PASSIVE' ? undefined : effect.invocation.resourceUse
     const mechanicSource = params.source.mechanicSource
     const matchingPools = resourceUse
       ? mechanicSource.kind === 'EQUIPMENT_INSTANCE'
@@ -412,15 +495,15 @@ function appendActions(params: {
           })()
       : []
     const candidate = {
-      sequence: params.candidates.length,
-      actionId: actionId(params.source.sourceId, effect.id),
-      label: params.label,
+      sequence: sink.candidates.length,
+      actionId: actionId(params.source.sourceId, action.identity),
+      label: action.label,
       effectId: effect.id,
       sourceId: params.source.sourceId,
       source: params.source.mechanicSource,
       mechanicsOwner: params.mechanicsOwner,
-      activationSourceKind: params.activationSourceKind,
-      equipment,
+      activationSourceKind: action.activationSourceKind,
+      equipment: action.equipment,
       resourceUse: resourceUse
         ? {
             chargeId: resourceUse.chargeId,
@@ -430,8 +513,8 @@ function appendActions(params: {
         : null,
       mechanicFacts: normalizeCharacterActionMechanicFacts(effect)
     }
-    params.candidates.push(candidate)
-    params.entryPoints.push({
+    sink.candidates.push(candidate)
+    sink.entryPoints.push({
       actionId: candidate.actionId,
       effectId: candidate.effectId,
       sourceId: candidate.sourceId,
@@ -439,6 +522,48 @@ function appendActions(params: {
       mechanicsOwner: candidate.mechanicsOwner,
       activationSourceKind: candidate.activationSourceKind,
       compiledEffect: effect
+    })
+  }
+
+  for (const authoredEffect of params.effects ?? []) {
+    const passive = authoredEffect.invocation.kind === 'PASSIVE'
+    const sink = passive
+      ? params.passiveZones
+      : { candidates: params.candidates, entryPoints: params.entryPoints }
+    if (!sink || (passive && !placedSpaceEntries(authoredEffect))) continue
+    if ('weaponAttack' in authoredEffect && authoredEffect.weaponAttack) {
+      // One action per weapon attack of the effect's trigger and activation (an Attack action
+      // feature never takes a weapon's bonus-action off-hand attack) that a weapon with every
+      // required property makes; it is offered while both the Feature and that weapon are (D156).
+      const { requiredPropertyCodes = [] } = authoredEffect.weaponAttack
+      for (const weapon of params.wieldedWeaponAttacks?.weapons ?? []) {
+        if (
+          weapon.effect.invocation.triggerCode !== authoredEffect.invocation.triggerCode ||
+          activationCode(weapon.effect) !== activationCode(authoredEffect) ||
+          !requiredPropertyCodes.every((code) => weapon.equipment.properties?.includes(code))
+        )
+          continue
+        append(sink, {
+          effect: wieldedWeaponAttackEffect(authoredEffect, weapon.effect),
+          // Hashed to the length of an effect id, so it fits wherever the Feature's own action does.
+          identity: sha256Hex(
+            `${authoredEffect.id}:${weapon.equipment.itemInstanceId}:${weapon.effect.id}`
+          ).slice(0, 32),
+          label: `${params.label} (${weapon.label})`,
+          activationSourceKind: 'ACTIVE_SOURCE_AND_EQUIPMENT',
+          equipment: actionEquipmentState(weapon.equipment, weapon.effect),
+          onHitRiders: params.wieldedWeaponAttacks?.onHitRiders ?? []
+        })
+      }
+      continue
+    }
+    append(sink, {
+      effect: authoredEffect,
+      identity: authoredEffect.id,
+      label: params.label,
+      activationSourceKind: params.activationSourceKind,
+      equipment: params.equipment && actionEquipmentState(params.equipment, authoredEffect),
+      onHitRiders: params.onHitRiders ?? []
     })
   }
 }
@@ -453,22 +578,24 @@ export function buildCharacterActionRuleFacts(params: {
   const actionCandidates: ActionCandidate[] = []
   const entryPoints: CharacterActionRuleEntryPoint[] = []
   const onHitRiders: OnHitRider[] = []
+  const passiveZones: CharacterActionSources = { candidates: [], entryPoints: [] }
+  // Feature actions are appended once every rider is known, since an attack a Feature makes with
+  // a wielded weapon carries them (D156).
+  const featureActions: Pick<
+    Parameters<typeof appendActions>[0],
+    'effects' | 'source' | 'label' | 'mechanicsOwner'
+  >[] = []
   for (const [index, feature] of snapshot.features.entries()) {
     const definition = registry.features[feature.featureId]
     const folded = grantFoldFacts.features[index]
     if (!folded) continue
     if (definition && folded.definition) {
       onHitRiders.push(...collectOnHitRiders(definition.effects, feature.featureId))
-      appendActions({
-        candidates: actionCandidates,
-        entryPoints,
+      featureActions.push({
         effects: definition.effects,
         source: folded.definition,
         label: definition.label ?? 'Feature action',
-        mechanicsOwner: { kind: 'FEATURE', id: feature.featureId },
-        activationSourceKind: 'ACTIVE_SOURCE',
-        equipment: null,
-        resourcePoolCandidates: params.resourcePoolCandidates
+        mechanicsOwner: { kind: 'FEATURE', id: feature.featureId }
       })
     }
     const selected = getCharacterGrantFoldSelectedOptionIds(feature)
@@ -481,41 +608,31 @@ export function buildCharacterActionRuleFacts(params: {
       )
       if (!source) continue
       onHitRiders.push(...collectOnHitRiders(option.effects, option.id))
-      appendActions({
-        candidates: actionCandidates,
-        entryPoints,
+      featureActions.push({
         effects: option.effects,
         source,
         label: option.label ?? 'Feature option action',
-        mechanicsOwner: { kind: 'FEATURE_OPTION', id: option.id },
-        activationSourceKind: 'ACTIVE_SOURCE',
-        equipment: null,
-        resourcePoolCandidates: params.resourcePoolCandidates
+        mechanicsOwner: { kind: 'FEATURE_OPTION', id: option.id }
       })
     }
     if (feature.source.kind === 'FEAT' && folded.featDefinition) {
       onHitRiders.push(
         ...collectOnHitRiders(registry.feats[feature.source.featId]?.effects, feature.source.featId)
       )
-      appendActions({
-        candidates: actionCandidates,
-        entryPoints,
+      featureActions.push({
         effects: registry.feats[feature.source.featId]?.effects,
         source: folded.featDefinition,
         label: registry.feats[feature.source.featId]?.label ?? 'Feat action',
-        mechanicsOwner: { kind: 'FEAT', id: feature.source.featId },
-        activationSourceKind: 'ACTIVE_SOURCE',
-        equipment: null,
-        resourcePoolCandidates: params.resourcePoolCandidates
+        mechanicsOwner: { kind: 'FEAT', id: feature.source.featId }
       })
     }
   }
 
-  for (const [itemIndex, item] of snapshot.equipmentItems.entries()) {
+  const items = snapshot.equipmentItems.flatMap((item, itemIndex) => {
     const folded = grantFoldFacts.equipmentItems[itemIndex]
-    if (!folded) continue
+    if (!folded) return []
     const rootRequirements = sourceStateRequirements(folded.restrictions)
-    const rootEquipment = {
+    const rootEquipment: ItemEquipmentState = {
       itemInstanceId: item.instanceId,
       equipmentId: item.contentRef.definitionId,
       parentEquipmentIds: compiledEquipmentParentIds(item.compiledItem),
@@ -533,6 +650,32 @@ export function buildCharacterActionRuleFacts(params: {
       ),
       ...rootRequirements
     }
+    return [{ item, folded, rootRequirements, rootEquipment }]
+  })
+  const wieldedWeaponAttacks: WieldedWeaponAttacks = {
+    weapons: items.flatMap(({ item, rootEquipment }) =>
+      (item.compiledItem.effects ?? []).flatMap((effect) =>
+        effect.grip === null
+          ? []
+          : [{ equipment: rootEquipment, effect, label: item.compiledItem.label ?? 'Weapon' }]
+      )
+    ),
+    onHitRiders
+  }
+
+  for (const action of featureActions)
+    appendActions({
+      candidates: actionCandidates,
+      entryPoints,
+      ...action,
+      activationSourceKind: 'ACTIVE_SOURCE',
+      equipment: null,
+      resourcePoolCandidates: params.resourcePoolCandidates,
+      passiveZones,
+      wieldedWeaponAttacks
+    })
+
+  for (const { item, folded, rootRequirements, rootEquipment } of items) {
     const rootSource = {
       sourceId: folded.rootSourceId,
       mechanicSource: {
@@ -570,12 +713,13 @@ export function buildCharacterActionRuleFacts(params: {
           requiresEquipped: rootRequirements.requiresEquipped || requirements.requiresEquipped,
           requiresAttuned: rootRequirements.requiresAttuned || requirements.requiresAttuned
         },
-        resourcePoolCandidates: params.resourcePoolCandidates
+        resourcePoolCandidates: params.resourcePoolCandidates,
+        wieldedWeaponAttacks
       })
     }
   }
 
-  return { actionCandidates, entryPoints }
+  return { actionCandidates, entryPoints, passiveZones }
 }
 
 type CompiledOutcome = CompiledEffectEntry['outcome']

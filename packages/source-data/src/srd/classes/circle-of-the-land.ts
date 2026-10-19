@@ -6,10 +6,10 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
-  EFFECT_KIND,
+  DURATION_KIND,
   GRANT_KIND,
-  PATH_CODE,
-  PATH_GROUP_TYPE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
@@ -17,11 +17,13 @@ import {
   SUBCLASS_ATTRIBUTE,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
+import { creatureTypeId } from '../spells/shared.js'
 import { closedRuleEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
@@ -156,7 +158,8 @@ function specializationRestriction(specializationId: string, specializationOrder
             id: circleSpellRestrictionId(specializationOrder, 3),
             order: 1,
             subject: 'SUBCLASS' as const,
-            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            subclassIds: [SUBCLASS_IDS.LAND],
             conditions: [
               {
                 id: circleSpellRestrictionId(specializationOrder, 4),
@@ -323,66 +326,35 @@ export const circleOfTheLand: ClassAuthored = {
         'When you reach 14th level, creatures of the natural world sense your connection to nature and become hesitant to attack you. When a beast or plant creature attacks you, that creature must make a Wisdom saving throw against your druid spell save DC. On a failed save, the creature must choose a different target, or the attack automatically misses. On a successful save, the creature is immune to this effect for 24 hours.',
       availableAtLevel: 14,
       order: 5,
-      effects: [
-        {
-          id: classRowId(D, 20, 4),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: classRowId(D, 25, 1),
-              dcMethod: 'SOURCE_SAVE_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
-            },
-            range: { id: classRowId(D, 21, 4), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          paths: [
-            {
-              id: classRowId(D, 27, 4),
-              order: 1,
-              pathCode: PATH_CODE.ON_SAVE_FAIL,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${classRowId(D, 27, 4)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(D, 29, 7),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_NATURES_SANCTUARY
-                  }
-                ]
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(D, 0x8a, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ENABLE,
+            payload: {
+              savingThrow: {
+                id: classRowId(D, 0x8b, 1),
+                dcMethod: 'SOURCE_SAVE_DC',
+                abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+              },
+              attackerCreatureTypeIds: [creatureTypeId('BEAST'), creatureTypeId('PLANT')],
+              successImmunity: {
+                duration: {
+                  id: classRowId(D, 0x8c, 1),
+                  durationKind: DURATION_KIND.HOUR,
+                  amount: 24
+                }
               }
             },
-            {
-              id: classRowId(D, 28, 4),
-              order: 2,
-              pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${classRowId(D, 28, 4)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(D, 29, 8),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_NATURES_SANCTUARY
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ]
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            order: 1
+          }
+        ]
+      }
     }
   ]
 }

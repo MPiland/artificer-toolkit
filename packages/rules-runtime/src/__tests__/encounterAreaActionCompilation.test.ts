@@ -568,28 +568,17 @@ describe('excluded creature types in a compiled save', () => {
     ).toBe('TEST_OUTCOME')
   })
 
-  it('still refuses an area restricted to a creature type', () => {
-    expect(() =>
-      compile({
-        targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          dispositionKind: 'ANY',
-          allowedCreatureTypeIds: [UNDEAD]
-        }
-      } as Partial<Invocation>)
-    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
-  })
-
-  it('still refuses an area that excludes a creature type', () => {
-    expect(() =>
-      compile({
-        targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          dispositionKind: 'ANY',
-          excludedCreatureTypeIds: [UNDEAD]
-        }
-      } as Partial<Invocation>)
-    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+  // The area still catches a creature of a type it has no effect on; the room leaves it out of the
+  // saves (SPELLS-33.T3a3).
+  it.each([
+    ['restricted to a creature type', { allowedCreatureTypeIds: [UNDEAD] }],
+    ['that excludes a creature type', { excludedCreatureTypeIds: [UNDEAD] }]
+  ])('compiles an area %s, carrying the restriction on its target policy', (_name, restriction) => {
+    const { action, plan } = compile({
+      targeting: { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY', ...restriction }
+    } as Partial<Invocation>)
+    expect(plan?.kind).toBe('TEST_OUTCOME')
+    expect(buildCompiledActionTargetPolicy(action).targeting).toMatchObject(restriction)
   })
 })
 
@@ -637,7 +626,7 @@ describe('chosen-creature spells in the SRD corpus (SPELLS-26.1)', () => {
 describe('a timed save condition with no authored way to end early (SPELLS-19.T3)', () => {
   // These spells print a repeat save or an early end that is not authored on their effect; compiling
   // them would run the condition to its full duration and drop that rule.
-  it.each(['Hold Monster', 'Dominate Beast', 'Dominate Person', 'Dominate Monster'])(
+  it.each(['Dominate Beast', 'Dominate Person', 'Dominate Monster'])(
     'refuses %s rather than run its condition without the rider the spell prints',
     (label) => {
       expect(() => compile({}, spellEffect(label), 9, 20)).toThrow(
@@ -645,6 +634,10 @@ describe('a timed save condition with no authored way to end early (SPELLS-19.T3
       )
     }
   )
+
+  it('compiles Hold Monster once its printed repeat save is authored (SPELLS-31.T5l)', () => {
+    expect(compile({}, spellEffect('Hold Monster'), 9, 20).plan?.kind).toBe('TEST_OUTCOME')
+  })
 })
 
 describe('hit-point pool area compilation from the SRD (SPELLS-27.T8)', () => {
@@ -673,6 +666,7 @@ describe('hit-point pool area compilation from the SRD (SPELLS-27.T8)', () => {
         dispositionKind: 'ANY',
         excludedCreatureTypeIds: [undead.id],
         hitPointPool: { diceConfig: '5d8' },
+        hitPointPoolIgnoredConditionIds: [unconscious.id],
         hitPointPoolScaling: {
           scalingKind: 'BREAKPOINTS',
           scalingSource: 'SPELL_CAST_LEVEL',

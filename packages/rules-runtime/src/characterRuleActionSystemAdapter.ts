@@ -1,3 +1,8 @@
+import {
+  FORCED_MOVEMENT_DIRECTION,
+  type ForcedMovementDirection
+} from '@artificer-toolkit/shared/core'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
   CharacterGrantFoldModifier,
@@ -29,6 +34,7 @@ import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/s
 import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type {
+  CompiledActionActiveEffectPlan,
   CompiledActionCompilerSource,
   CompiledActionZonePlacement
 } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -61,6 +67,11 @@ export interface CharacterRuleActionActiveEffectPlan {
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
   /**
+   * Whose turn boundary counts the effect down: its holder's (the default) or its source's. The
+   * grant tick planner counts a source-anchored effect on the source's turns.
+   */
+  tickAnchor?: 'HOLDER' | 'SOURCE'
+  /**
    * The source-bound conditions this effect owns together (Hypnotic Pattern: charmed and
    * incapacitated). The aggregate records each pre-existing baseline when it creates the
    * active-effect row; adapters do not infer condition ownership from labels or later mutable state.
@@ -86,8 +97,6 @@ export interface CharacterRuleActionActiveEffectPlan {
     applyGrantOutcomeId: string
     modifiers: readonly CharacterGrantFoldModifier[]
     senses: readonly CharacterGrantFoldSense[]
-    /** Whose turn boundary counts the grant down: its holder's or its source's. */
-    tickAnchor: 'HOLDER' | 'SOURCE'
     /** Whether the duration already counts the turn the grant is made in ("for the turn"). */
     includesCurrentTurn: boolean
     /**
@@ -103,7 +112,18 @@ export interface CharacterRuleActionActiveEffectPlan {
     endOnConditionIds: readonly string[]
     /** The activation its holder pays to end the grant by choice, or null when only the GM can. */
     holderEnd: ActiveGrantHolderEnd | null
+    /** Only the effect's source meets its attacker grants and attack consume. */
+    fromSourceOnly?: true
+    /** The grant is active only during its tick anchor's turn while one tick remains. */
+    activeOnlyOnFinalAnchorTurn?: true
+    /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
+    uses?: number
   }
+  /**
+   * The item the action is used on, chosen at use from what its target holds or wears; null for
+   * none. See the compiled plan schema for each field.
+   */
+  chosenItem?: CompiledActionActiveEffectPlan['chosenItem']
   /**
    * A successful check makes the holder's location unknown to the observers that fail to notice it
    * (Hide). The settled check total and the observers it beats are added when the effect is created.
@@ -162,6 +182,15 @@ export interface CharacterRuleActionActiveEffectPlan {
    * caster's save DC is unknown until then); null when the plan pins its DC itself or needs none.
    */
   castSaveDcFactKey?: null | string
+  /** Cast facts copied into `adapterFacts` when the effect is created (a recurring amount). */
+  castFactKeys?: readonly string[]
+  /**
+   * The recurring graph first runs at the holder's next authored turn boundary, not at cast; the
+   * effect is created even though no immediate outcome of the cast carries it (D156).
+   */
+  recurrenceDeferred?: boolean
+  /** The temporary hit points the cast and its recurrences give leave when the effect ends. */
+  ownsTemporaryHitPoints?: boolean
   /** Exact System-authored perception contributions carried into the frozen effect definition. */
   perceptionContributions: CombatPerceptionContributionsDto
   /** Exact System-authored maintenance policy, or no maintained state. */
@@ -190,6 +219,20 @@ export interface CharacterRuleActionActiveEffectPlan {
       /** The structured events that end the rider, unique and in canonical order. */
       endOnTriggers: readonly ActiveEffectEndTrigger[]
     }
+  }
+  /**
+   * The immunity the action leaves on its target against this source (D156, SPELLS-31.T5l): a
+   * successful save's, for the result block's duration, or an at-will grant's lockout on every
+   * creature the cast meets, until the source Character's long rest. The immunity is a second
+   * active effect under a frozen graph of its own, so it rides whichever plan the action makes.
+   */
+  sourceImmunity?: null | {
+    compiledEntryId: string
+    frozenGraphNodeId: string
+    appliesTo: 'SAVE_SUCCESS' | 'EVERY_TARGET'
+    immuneToId: string
+    initialRemaining: number | null
+    frozenGraph: ServerPublishedRuleDefinitionDto
   }
 }
 
@@ -279,8 +322,11 @@ interface CharacterHitPointOutcomeApplicationBase {
 }
 
 export type CharacterHitPointOutcomeApplication =
+  | (CharacterHitPointOutcomeApplicationBase & { kind: 'HEAL' })
   | (CharacterHitPointOutcomeApplicationBase & {
-      kind: 'HEAL' | 'TEMPORARY_HIT_POINTS'
+      kind: 'TEMPORARY_HIT_POINTS'
+      /** The active effect the temporary hit points belong to, absent when none (D156). */
+      sourceActiveEffectId?: string
     })
   | (CharacterHitPointOutcomeApplicationBase & {
       kind: 'DAMAGE'
@@ -311,6 +357,22 @@ export interface CharacterConditionRemoveOutcomeApplication {
   sourceActiveEffectId: string
   targetActorId: string
 }
+
+/** An ended effect's temporary hit points leave its holder while it is still their source (D156). */
+export interface CharacterTemporaryHitPointsReleaseApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'TEMPORARY_HIT_POINTS_RELEASE'
+  sourceActiveEffectId: string
+  targetActorId: string
+}
+
+/** The holder's state an ended effect releases: its sole-owned conditions and its temporary hit points. */
+export type CharacterEndedEffectReleaseApplication =
+  | CharacterConditionRemoveOutcomeApplication
+  | CharacterTemporaryHitPointsReleaseApplication
 
 /** A System-authorized stabilize: a dying Character becomes stable, anything else is unchanged. */
 export interface CharacterStabilizeOutcomeApplication {
@@ -373,6 +435,7 @@ export type CharacterRuleActionApplication =
   | CharacterHitPointOutcomeApplication
   | CharacterConditionApplyOutcomeApplication
   | CharacterConditionRemoveOutcomeApplication
+  | CharacterTemporaryHitPointsReleaseApplication
   | CharacterStabilizeOutcomeApplication
   | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication
@@ -388,14 +451,40 @@ export interface CharacterRuleActionSpatialDirective {
   targetActorId: string
   sourceNodeId: string
   sourceOperationKey: string
-  /** The straight line the target moves along: away from, or toward, the action's source (D105). */
+  /**
+   * Away from, or toward, the action's source along the straight line (D105); aside within the
+   * source's reach; or in any direction (D157).
+   */
   direction: CharacterRuleActionForcedMovementDirection
-  /** The exact distance the target moves unless a blocked square stops it first. */
+  /** The distance the target moves unless a blocked square stops it first. */
   feet: number
+  /** The target moves at most `feet`, its source choosing how far (D157). */
+  upTo: boolean
+  /** What the move does where it strikes an object or a creature (D159); null for a move that does nothing there. */
+  collision: CharacterRuleActionForcedMovementCollision | null
   targetStateChecksum: string
 }
 
-export type CharacterRuleActionForcedMovementDirection = 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE'
+/**
+ * The collision an authored forced movement carries (D159): the mover takes `diceConfig` of
+ * `damageTypeId` for every full 10 feet it travelled, and a creature it strikes makes the
+ * `abilityDefinitionId` save against `dc` or takes the same damage and `conditionId`.
+ */
+export type CharacterRuleActionForcedMovementCollision = {
+  diceConfig: string
+  damageTypeId: string
+  abilityDefinitionId: string
+  dc: number
+  conditionId: string
+}
+
+export type CharacterRuleActionForcedMovementDirection = ForcedMovementDirection
+
+export function isCharacterRuleActionForcedMovementDirection(
+  value: unknown
+): value is CharacterRuleActionForcedMovementDirection {
+  return Object.values(FORCED_MOVEMENT_DIRECTION).some((direction) => direction === value)
+}
 
 /**
  * A System-owned replacement of an already evidenced failed saving throw.
@@ -454,6 +543,8 @@ export interface CharacterRuleActionSystemAdapter {
     testTemplate: CharacterRuleActionTestTemplate
     selectedPath: string
     facts: Readonly<Record<string, RuleValue>>
+    /** The outputs of the completed TEST, which an outcome that depends on its margin reads. */
+    testOutputs?: Readonly<Record<string, RuleValue>>
     /** The mode the TEST d20 was settled in, which may differ from the mode the rules derived. */
     testRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   }): CharacterRuleActionOutcomeTemplate | null
@@ -469,6 +560,13 @@ export interface CharacterRuleActionSystemAdapter {
     action: EffectActionCapabilityDescriptor
     published: ServerPublishedRuleDefinitionDto
   }): readonly CharacterRuleActionActiveEffectPlan[]
+  /**
+   * The timed grant a passive "when this creature takes damage" feature gives its holder, or null
+   * when the feature authors none. An unsupported grant throws the unsupported-compilation error.
+   */
+  passiveDamageGrantPlan?(input: {
+    action: EffectActionCapabilityDescriptor
+  }): CharacterRuleActionActiveEffectPlan | null
   requiresConditionDefinitionValidation?(input: {
     published: ServerPublishedRuleDefinitionDto
   }): boolean
@@ -551,6 +649,11 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /**
+     * The attack was rolled against one of the target's decoys (`ATTACK_DECOYS`): its OUTCOME never
+     * runs, because nothing reaches the target itself.
+     */
+    absorbedByDecoy?: boolean
     /** Exact locked Scene facts for a positional action, or null when none apply. */
     sceneContext?: {
       sceneId: string
@@ -592,6 +695,10 @@ export interface CharacterRuleActionSystemAdapter {
       contributorChecksum: string
       modifier: number
       defenseOrDc: number
+      /** The dice the test rolls beside its d20 and adds after the kept die (D156). */
+      addedDice: readonly D20AddedDieDto[]
+      /** The ability a saving throw is made with; absent on an attack roll. */
+      savingThrowAbilityDefinitionId?: string
     }
   }
   /**

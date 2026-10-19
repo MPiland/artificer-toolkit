@@ -35,12 +35,21 @@ import {
   isEncounterBasicActionId,
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import {
+  decoyStrikeEffects,
+  type EncounterAttackDecoy,
+  prepareAttackBehindDecoys
+} from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
   actsAgainstEnemy,
-  damageTakenEndedEffects
+  attackHitEndedEffects,
+  targetEndedEffects,
+  withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
@@ -67,11 +76,19 @@ import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
 } from './nativeAttackPerception.js'
+import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
-import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import {
+  advanceNativeActionGraphs,
+  restoreHeldNativeActionCompletion
+} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import {
+  holdForForcedMovementDestination,
+  settleForcedMovementDestination
+} from '@artificer-toolkit/rules-runtime/encounterForcedMovementChoice'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import {
   replayNativeActionReaction,
@@ -89,21 +106,42 @@ import {
   onHitSpellConsumption
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitSlots'
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
+import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
+import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { SpatialPointDto } from '@artificer-toolkit/schema/shared/spatialFacts'
 import {
   applyNativeReactionEffect,
   discoverNativeAttackReaction
 } from './nativeEncounterAttackReaction.js'
 import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
+import {
+  advanceNativeIncomingGate,
+  planNativeGatedAction,
+  type NativeIncomingGateAnswer
+} from './nativeEncounterIncomingGate.js'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
   buildEncounterActionPendingSnapshot,
-  buildEncounterCastReactionPendingSnapshot
+  buildEncounterCastReactionPendingSnapshot,
+  buildEncounterAttackRetargetPendingSnapshot,
+  buildEncounterIncomingGatePendingSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import {
+  chosenEncounterAttackRetarget,
+  encounterAttackRetargetOffer,
+  openEncounterAttackRetargetChoice,
+  retargetEncounterAction,
+  settleEncounterAttackRetarget,
+  type EncounterAttackRetargetCandidate,
+  type EncounterAttackRetargetSelection
+} from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
+import type { EncounterAttackRetargetOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import {
   withEncounterAppRoll,
   type EncounterEvidenceAnswer
 } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import {
   replayNativeActionLegendaryResistance,
@@ -112,7 +150,12 @@ import {
 import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import type { EncounterLegendaryResistanceOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
-import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import {
+  encounterActorEffectiveSize,
+  prepareNativeActionEffectsPlan,
+  prepareNativeIncomingDamageGrantTriggers
+} from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import {
   pendingSnapshotContinuation,
   restoreEncounterActionPending
@@ -130,8 +173,10 @@ import {
   discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
   planNativeLiveEncounterAreaAnswer,
+  planNativeLiveEncounterAreaForcedMovement,
   planNativeLiveEncounterAreaLegendaryResistance,
-  planNativeLiveEncounterAreaRemoval
+  planNativeLiveEncounterAreaRemoval,
+  type ForcedMovementPick
 } from './nativeEncounterAreaRules.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
@@ -164,6 +209,7 @@ import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import { readNativeLiveSpatialEffects } from './nativeTurnEffectPerception.js'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { prepareEncounterBasicActionContest } from '@artificer-toolkit/rules-runtime/encounterBasicActionContest'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -181,6 +227,11 @@ export async function planNativeLiveEncounterAction(
     runtime: RulesRuntimeService
     random?: (maximum: number) => number
     captures: LiveCaptureReads
+    /**
+     * The pick an action's forced movements owe their source next on the Encounter's Scene (D157):
+     * the farthest creature with two or more legal squares, its farther ones already landed.
+     */
+    forcedMovementPick: ForcedMovementPick
   }
 ) {
   const responseCommand = commandInput.type === 'RESOLVE_RULE_OCCURRENCE' ? commandInput : null
@@ -227,13 +278,16 @@ export async function planNativeLiveEncounterAction(
   if (admission.kind !== 'AREA_REMOVAL' && admission.result)
     return { kind: 'REPLAY' as const, result: admission.result }
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
-  const command = admission.command
   const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
   const areaSnapshot = admission.kind === 'ACTION_COMMAND' ? null : admission.areaSnapshot
   let evidenceResolution: EncounterEvidenceAnswer | null = null
   let areaDecision: Extract<
     ResolveRuleOccurrenceInputDto['resolution'],
     { kind: 'AREA_LEGENDARY_RESISTANCE' }
+  > | null = null
+  let areaLanding: Extract<
+    ResolveRuleOccurrenceInputDto['resolution'],
+    { kind: 'FORCED_MOVEMENT' }
   > | null = null
   let resistanceAnswer: {
     offer: EncounterLegendaryResistanceOfferDto
@@ -244,9 +298,20 @@ export async function planNativeLiveEncounterAction(
     selection: EncounterReactionSelection
   } | null = null
   let castAnswer: NativeCastReactionAnswer | null = null
+  let gateAnswer: NativeIncomingGateAnswer | null = null
+  let retargetAnswer: {
+    offer: EncounterAttackRetargetOfferDto
+    selection: EncounterAttackRetargetSelection
+  } | null = null
   let onHitAnswer: {
     offer: EncounterOnHitOfferDto
     selection: EncounterOnHitSelection
+  } | null = null
+  let forcedMovementAnswer: {
+    offer: EncounterForcedMovementOfferDto
+    continuation: ServerRuleExecutionContinuationDto
+    outcomePhase: ReturnType<typeof restoreEncounterActionPending>['twoPhase']
+    position: SpatialPointDto
   } | null = null
   if (responseCommand) {
     if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
@@ -257,6 +322,8 @@ export async function planNativeLiveEncounterAction(
       admission.kind === 'ACTION_RESPONSE' ? admission.appRoll : null
     )
     if (resolution.kind === 'AREA_LEGENDARY_RESISTANCE') areaDecision = resolution
+    // An area's push pick is the area's own, never its pushed creature's save (D157).
+    else if (areaSnapshot && resolution.kind === 'FORCED_MOVEMENT') areaLanding = resolution
     else if (snapshot.applicationContext.legendaryResistance) {
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires a Legendary Resistance decision.')
@@ -268,6 +335,22 @@ export async function planNativeLiveEncounterAction(
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires a reaction decision.')
       reactionAnswer = { offer: snapshot.applicationContext.reactionChoice, selection: resolution }
+    } else if (snapshot.applicationContext.attackRetarget) {
+      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
+        throw new Error('The action requires a retarget decision.')
+      retargetAnswer = { offer: snapshot.applicationContext.attackRetarget, selection: resolution }
+    } else if (snapshot.applicationContext.incomingGate) {
+      // The attacker's save against a ward is its own d20: the answer settles it and the action replays.
+      if (
+        (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL') ||
+        snapshot.request.requestId !== resolution.requestId
+      )
+        throw new Error('The ward requires dice evidence.')
+      gateAnswer = {
+        offer: snapshot.applicationContext.incomingGate,
+        continuation: pendingSnapshotContinuation(snapshot),
+        evidence: resolution
+      }
     } else if (snapshot.applicationContext.castReaction?.check) {
       // A counter's check is its own d20: the answer settles it and never resumes the cast's graphs.
       if (
@@ -296,6 +379,18 @@ export async function planNativeLiveEncounterAction(
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires an on-hit decision.')
       onHitAnswer = { offer: snapshot.applicationContext.onHitChoice, selection: resolution }
+    } else if (snapshot.applicationContext.forcedMovementDestination) {
+      if (
+        resolution.kind !== 'FORCED_MOVEMENT' ||
+        snapshot.request.requestId !== resolution.requestId
+      )
+        throw new Error('The action requires a forced-movement destination.')
+      forcedMovementAnswer = {
+        offer: snapshot.applicationContext.forcedMovementDestination,
+        continuation: pendingSnapshotContinuation(snapshot),
+        outcomePhase: restoreEncounterActionPending(snapshot).twoPhase,
+        position: resolution.position
+      }
     } else if (
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'ENTER_INTEGER' &&
@@ -321,6 +416,15 @@ export async function planNativeLiveEncounterAction(
     if (context.contest || snapshot.deferredCleaving || root.optionalCombatIntent != null)
       throw new Error('The pending action is not an ordinary action.')
   }
+  // A creature chosen at a retarget continues the action as that creature's: every later pause and the
+  // terminal commit carry the retargeted command, and the pause that offered it is replaced.
+  const retargetOption = retargetAnswer
+    ? chosenEncounterAttackRetarget(retargetAnswer.offer, retargetAnswer.selection)
+    : null
+  const command = retargetOption
+    ? retargetEncounterAction(admission.command, retargetOption)
+    : admission.command
+  const fingerprint = retargetOption ? checksumCanonicalJson(command) : admission.fingerprint
   const { autoRollByActorId } = admission
   const requireAutoRoll = (actorId: string) => {
     const autoRoll = autoRollByActorId[actorId]
@@ -393,6 +497,7 @@ export async function planNativeLiveEncounterAction(
         : undefined
     const areaInput = {
       castResume,
+      forcedMovementPick: executionOptions.forcedMovementPick,
       initial,
       command: { ...command, target },
       fingerprint: admission.fingerprint,
@@ -429,6 +534,17 @@ export async function planNativeLiveEncounterAction(
             response: responseCommand,
             areaSnapshot,
             decision: areaDecision
+          })),
+          dependencies,
+          revisions
+        }
+      if (areaLanding)
+        return {
+          ...(await planNativeLiveEncounterAreaForcedMovement({
+            ...areaInput,
+            response: responseCommand,
+            areaSnapshot,
+            landing: areaLanding
           })),
           dependencies,
           revisions
@@ -517,8 +633,12 @@ export async function planNativeLiveEncounterAction(
     loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId })
   }
   // The attack is prepared again against a target's facts once a reaction has changed them.
-  const prepareAttack = (targets: typeof movementTargets) =>
+  const prepareAttackAs = (
+    targets: typeof movementTargets,
+    attackDecoy: EncounterAttackDecoy | null
+  ) =>
     prepareEncounterActionMechanics({
+      attackDecoy,
       state,
       actor: actors.find((actor) => actor.id === command.actorId)!,
       target: actors.find((actor) => actor.id === targetActorId)!,
@@ -567,7 +687,15 @@ export async function planNativeLiveEncounterAction(
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
-  const prepared = await prepareAttack(movementTargets)
+  const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
+  const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
+  // An attack that a decoy of the target intercepts is rolled against the decoy's armor class.
+  const prepared = await prepareAttackBehindDecoys({
+    occurrenceId,
+    effects: activeEffectsByActorId.get(targetActorId) ?? [],
+    abilities: system.abilities,
+    prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy)
+  })
   // A spell that takes a list of creatures is not aimed at one.
   if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS')
     throw new LiveSessionDomainRejectionError(422, {
@@ -576,15 +704,60 @@ export async function planNativeLiveEncounterAction(
       message: TARGET_NOT_PERMITTED_MESSAGE
     })
   refuseActionOutsideItsWindow(prepared)
+  // A target immune to this source's use of the action (D156) is refused outright.
+  const immunityLabel = encounterSourceImmunityLabel({
+    source: prepared.source,
+    holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? []
+  })
+  if (immunityLabel !== null)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: `Immune to ${immunityLabel}`
+    })
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
-  await refuseUnmetBasicActionRestrictions(prepared, {
-    target: actorTarget,
-    gameSystemId: state.gameSystemId,
-    definitions,
-    speedDefinitions: system.speeds
-  })
+  if (
+    encounterSpellSchoolImmunity({
+      source: prepared.source,
+      sourceFacts: actorTarget,
+      target: prepared.targetFacts
+    })
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'Immune to spells of this school'
+    })
+  await refuseUnmetBasicActionRestrictions(
+    { source: prepared.source, acceptedWieldConflict: command.acceptedWieldConflict },
+    {
+      target: actorTarget,
+      gameSystemId: state.gameSystemId,
+      definitions,
+      speedDefinitions: system.speeds,
+      runEffectsByActorId: activeEffectsByActorId
+    }
+  )
   refuseUnmetItemActionRequirements(prepared, state)
+  // A Character action's item choice is known before it rolls; a Creature's plan follows its roll.
+  const chosenItemInstanceId =
+    command.target.kind === 'ACTOR' ? command.target.boundItemInstanceId : undefined
+  const chosenItemTarget = movementTargets.get(prepared.target.id)
+  const chosenItemRefusal =
+    prepared.source.kind === 'CHARACTER_ACTION' && chosenItemTarget
+      ? encounterChosenItemRefusal({
+          plan: prepared.source.entry.compilation.activeEffectPlan?.chosenItem,
+          target: chosenItemTarget,
+          itemInstanceId: chosenItemInstanceId
+        })
+      : null
+  if (chosenItemRefusal !== null)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: chosenItemRefusal
+    })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const { activationCode, economy, suppressed, attackAction } =
@@ -610,6 +783,7 @@ export async function planNativeLiveEncounterAction(
         outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT'
     )
   })
+  const targetMovement = movementTargets.get(prepared.target.id)
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: [
       ...prepared.ruleWarnings,
@@ -624,6 +798,8 @@ export async function planNativeLiveEncounterAction(
       sceneContext
     },
     targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
+    actorSize: encounterActorEffectiveSize(actorTarget),
+    targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
     targetDefeated: isEncounterActorDefeated(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
@@ -632,7 +808,7 @@ export async function planNativeLiveEncounterAction(
       (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE'
     )
       ? {
-          targetDying: isEncounterTargetDying(movementTargets.get(prepared.target.id))
+          targetDying: isEncounterTargetDying(targetMovement)
         }
       : null,
     actionEconomy: economy,
@@ -662,6 +838,49 @@ export async function planNativeLiveEncounterAction(
     if (prepared.source.kind !== 'BASIC_ACTION' || responseCommand || !actor || !target)
       throw new Error('Only a basic action can make a check.')
     const { capability } = prepared.source
+    // A check its target contests (Grapple) rolls both participants' d20s as one contest (D152).
+    if (authoredCheckOf(capability).dc.kind === 'CONTEST') {
+      const contestInput = {
+        state,
+        actor: prepared.actor,
+        target: prepared.target,
+        command,
+        prepared,
+        sceneContext
+      }
+      return {
+        kind: 'CONTEST' as const,
+        plan: await planNativeLiveContestRolls({
+          ...contestInput,
+          scope,
+          root: command,
+          ready: {
+            fingerprint: admission.fingerprint,
+            initiatorUserId: scope.expectedUserId,
+            autoRollByActorId,
+            appRoll: null,
+            snapshot: null,
+            occurrenceVersion: null
+          },
+          priorContext: null,
+          actors,
+          settlement: { kind: 'ACTION', prepared },
+          actorRules: prepared.actorRules,
+          activeEffectsByActorId,
+          preparation: prepareEncounterBasicActionContest({
+            ...contestInput,
+            system,
+            actionEconomy
+          }),
+          actionEconomy,
+          runtime: executionOptions.runtime,
+          random: executionOptions.random ?? nextRollInt,
+          revisions
+        }),
+        dependencies,
+        revisions
+      }
+    }
     // A concealment check compares its roller with every actor in the Run; load them all before the
     // revisions the plan depends on are read.
     const concealmentTargets =
@@ -678,7 +897,7 @@ export async function planNativeLiveEncounterAction(
     const checkInput = {
       scope,
       command,
-      fingerprint: admission.fingerprint,
+      fingerprint,
       capability,
       state,
       system,
@@ -719,18 +938,21 @@ export async function planNativeLiveEncounterAction(
   // Concentration already ends its replaced dependents, and releases their conditions, with the
   // maintenance transition, so those are not ended a second time here.
   const dispositions = new Map(actors.map(({ id, disposition }) => [id, disposition]))
+  const makesAttackRoll = typeof prepared.binding.actionMechanic.attackBonus === 'number'
+  const castsSpell = preparedCastsSpell(prepared)
+  const againstEnemy = actsAgainstEnemy({
+    actorId: prepared.actor.id,
+    targetActorIds: [prepared.target.id],
+    dispositions
+  })
   const { consumedGrants, sourceReleases } = actionEndedEffects({
     holderActorId: prepared.actor.id,
     held: (activeEffectsByActorId.get(prepared.actor.id) ?? []).filter(
       (effect) => !maintenance?.removed.some((removed) => removed.id === effect.id)
     ),
-    makesAttackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
-    castsSpell: preparedCastsSpell(prepared),
-    againstEnemy: actsAgainstEnemy({
-      actorId: prepared.actor.id,
-      targetActorIds: [prepared.target.id],
-      dispositions
-    })
+    makesAttackRoll,
+    castsSpell,
+    againstEnemy
   })
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
@@ -741,11 +963,11 @@ export async function planNativeLiveEncounterAction(
   })
   if (
     snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION' &&
-    snapshot.applicationContext.currentnessChecksum !== currentnessChecksum
+    snapshot.applicationContext.currentnessChecksum !== currentnessChecksum &&
+    // The retargeted action's facts are the new creature's, not the ones the offer was made against.
+    !retargetOption
   )
     throw new Error('The pending action source or target changed.')
-  const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
-  const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
   const resume =
     responseCommand &&
     evidenceResolution &&
@@ -784,6 +1006,53 @@ export async function planNativeLiveEncounterAction(
       throw new Error('Legendary Resistance evidence is stale.')
     return { candidate, currentFeatureResource, targetStateChecksum }
   }
+  // An attack, or a harmful spell cast at an enemy, aimed at a warded creature (Sanctuary) is lost unless
+  // its attacker passes the ward's save first. An area that merely catches the creature is not aimed at it.
+  const gateOwed =
+    prepared.actor.id !== prepared.target.id && (makesAttackRoll || (castsSpell && againstEnemy))
+  if (gateAnswer && !gateOwed) throw new Error('The incoming gate is no longer owed.')
+  if (retargetAnswer)
+    await settleEncounterAttackRetarget({
+      runtime: executionOptions.runtime,
+      occurrenceId,
+      gameSystemId: state.gameSystemId,
+      ...retargetAnswer
+    })
+  // Declining the offered retarget loses the action by the save already failed; it is not rolled again.
+  const declinedRetarget = retargetAnswer && !retargetOption ? retargetAnswer.offer.gate : null
+  const gate = declinedRetarget
+    ? { kind: 'FAILED' as const, gate: declinedRetarget }
+    : gateOwed
+      ? await advanceNativeIncomingGate({
+          runtime: executionOptions.runtime,
+          random: executionOptions.random,
+          gameSystemId: state.gameSystemId,
+          occurrenceId,
+          holderActorId: prepared.target.id,
+          holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? [],
+          holderGrantFold:
+            movementTargets.get(prepared.target.id)?.effectiveRulePolicyOutput?.grantFold ?? null,
+          attacker: actorTarget,
+          attackerCreatureTypeId: snapshotCreatureTypeId(prepared.actor),
+          owner: async (ownerActorId) => {
+            const owner = actors.find((actor) => actor.id === ownerActorId)
+            return owner ? (movementTargets.get(owner.id) ?? (await loadTarget(owner))) : null
+          },
+          autoRoll: requireAutoRoll(prepared.actor.id),
+          passedEffectId:
+            snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+              ? snapshot.applicationContext.passedIncomingGate
+              : undefined,
+          answer: gateAnswer
+        })
+      : { kind: 'NONE' as const }
+  /** The ward whose save the attacker has passed, carried by every later pause of this action. */
+  const passedIncomingGate =
+    gate.kind === 'PASSED'
+      ? gate.effectId
+      : snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+        ? snapshot.applicationContext.passedIncomingGate
+        : undefined
   const occurredAt = new Date().toISOString()
   /** What every plan of this action carries; read after the captures it made, so its revisions are current. */
   const preflight = () => ({
@@ -794,7 +1063,7 @@ export async function planNativeLiveEncounterAction(
       snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
         ? snapshot.applicationContext.initiatorUserId
         : initial.expectedUserId,
-    fingerprint: admission.fingerprint,
+    fingerprint,
     occurrenceId,
     occurrenceVersion,
     occurredAt,
@@ -807,9 +1076,60 @@ export async function planNativeLiveEncounterAction(
     currentnessChecksum,
     activeEffectsByActorId,
     consumedGrants,
+    passedIncomingGate,
     dependencies,
     revisions
   })
+  if (gate.kind === 'PENDING') return { ...preflight(), ...gate, kind: 'GATE_PENDING' as const }
+  if (gate.kind === 'FAILED' && !declinedRetarget && command.target.kind === 'ACTOR') {
+    // The attacker may turn the lost action on another creature before it is lost.
+    const bindings = command.sceneContext ? await capture({ kind: 'ACTOR_TOKEN_BINDINGS' }) : null
+    if (bindings && bindings.kind !== 'ACTOR_TOKEN_BINDINGS')
+      throw new Error('Retarget bindings are unavailable.')
+    // Only creatures the attacker's own list shows are offered: a hidden creature's id never leaves.
+    const seen = await capture({ kind: 'SEEN_ACTORS' })
+    if (seen.kind !== 'SEEN_ACTORS') throw new Error('Retarget sight is unavailable.')
+    const seenIds = new Set(seen.actorIds)
+    const candidates = actors.flatMap((actor): EncounterAttackRetargetCandidate[] => {
+      if (actor.id === prepared.actor.id || actor.id === prepared.target.id) return []
+      if (!seenIds.has(actor.id)) return []
+      if (!bindings) return [{ actorId: actor.id, tokenId: null }]
+      const binding = bindings.bindings.find((entry) => entry.actorId === actor.id)
+      return binding ? [{ actorId: actor.id, tokenId: binding.tokenId }] : []
+    })
+    if (candidates.length)
+      return {
+        ...preflight(),
+        kind: 'RETARGET_PENDING' as const,
+        continuation: await openEncounterAttackRetargetChoice({
+          runtime: executionOptions.runtime,
+          occurrenceId,
+          gameSystemId: state.gameSystemId,
+          optionCount: candidates.length
+        }),
+        rollerActorId: prepared.actor.id,
+        attackRetarget: encounterAttackRetargetOffer(gate.gate, candidates)
+      }
+  }
+  if (gate.kind === 'FAILED')
+    return {
+      ...preflight(),
+      kind: 'GATED' as const,
+      gated: planNativeGatedAction({
+        state,
+        actors,
+        prepared,
+        sourceEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
+        actionEconomy,
+        ruleOverrides: ruleWarnings.overrides,
+        occurrenceId,
+        occurrenceVersion,
+        commandId: command.commandId,
+        occurredAt,
+        userId: initial.expectedUserId,
+        failed: gate
+      })
+    }
   const castPause = createNativeCastPause({
     runtime: executionOptions.runtime,
     random: executionOptions.random,
@@ -846,7 +1166,8 @@ export async function planNativeLiveEncounterAction(
     occurredAt,
     userId: initial.expectedUserId,
     answer: castAnswer,
-    resumed: snapshot !== null,
+    // A gate pause held the action before any counter was offered, so its answer replays them all.
+    resumed: snapshot !== null && !gateAnswer,
     // The counters that failed against this cast so far; its terminal commit spends them (D127).
     failedCounters:
       snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
@@ -862,6 +1183,7 @@ export async function planNativeLiveEncounterAction(
   const failedCounters = cast.failedCounters
   const discoverReaction = discoverNativeAttackReaction({
     state,
+    system,
     attack: prepared,
     reactionSpentActorIds: failedCounters.map(({ reaction }) => reaction.reactorActorId),
     prepareReaction: (actionId) =>
@@ -894,7 +1216,9 @@ export async function planNativeLiveEncounterAction(
           commandId: command.commandId,
           occurredAt,
           activeEffectsByActorId,
-          prepareAttack,
+          // The answered attack keeps the decoy it was rolled against.
+          prepareAttack: (reactedTargets: typeof movementTargets) =>
+            prepareAttackAs(reactedTargets, prepared.attackDecoy),
           loadTarget
         })
       : null
@@ -969,7 +1293,18 @@ export async function planNativeLiveEncounterAction(
         adjustedBinding: heldReactionNow?.adjustedBinding ?? null
       })
     : null
+  // A held destination pick resumes the action its OUTCOME already settled, running no graph again.
+  const heldCompletion = forcedMovementAnswer
+    ? restoreHeldNativeActionCompletion({
+        adapter: prepared.adapter,
+        binding: prepared.binding,
+        occurrenceId,
+        offer: forcedMovementAnswer.offer,
+        outcomePhase: forcedMovementAnswer.outcomePhase
+      })
+    : null
   const execution =
+    heldCompletion ??
     answered?.execution ??
     reactionAnswered?.execution ??
     answeredOnHit?.execution ??
@@ -985,7 +1320,7 @@ export async function planNativeLiveEncounterAction(
         targetStateChecksum
       }
     }))
-  const retained = resume?.pending.twoPhase
+  const retained = resume?.pending.twoPhase ?? forcedMovementAnswer?.outcomePhase
   const resistance =
     answered?.resistance ??
     (execution.kind !== 'PENDING' && retained?.phase === 'OUTCOME' && retained.legendaryResistance
@@ -1049,7 +1384,8 @@ export async function planNativeLiveEncounterAction(
     execution,
     occurrenceId,
     commandId: command.commandId,
-    activeEffectsByActorId
+    activeEffectsByActorId,
+    chosenItemInstanceId
   })
   const reactionUse =
     reaction?.audit.selection === 'USE' && reaction.applied
@@ -1085,27 +1421,101 @@ export async function planNativeLiveEncounterAction(
   )
   const failedTargetEconomy = failedTarget?.economy ?? null
   const targetFailedCounterSpend = Boolean(failedTarget?.spellConsumption)
-  const forcedMovements = interpretForcedMovements(prepared, {
+  const interpretedMovements = interpretForcedMovements(prepared, {
     execution: execution.execution,
     occurrenceId,
     published: execution.published,
     targetActorId: prepared.target.id
   })
-  const applications = [
-    ...execution.applications,
-    ...preparedEffects.relationshipConditionApplications
-  ]
-  // Damage the target takes ends the effects it holds that end on damage, and releases the
-  // conditions only they held in the target's own batch.
+  // A movement with two or more legal squares waits for its source to pick one (D157).
+  if (interpretedMovements.some(({ collision }) => collision))
+    throw new Error('A forced-movement collision is resolved only in an area action.')
+  const { owed: owedPick } = await executionOptions.forcedMovementPick({
+    encounterId: state.id,
+    sourceActorId: prepared.actor.id,
+    movements: interpretedMovements
+  })
+  if (owedPick && !forcedMovementAnswer)
+    return {
+      ...preflight(),
+      kind: 'PENDING' as const,
+      execution: await holdForForcedMovementDestination({
+        runtime: executionOptions.runtime,
+        occurrenceId,
+        completion: {
+          execution: execution.execution,
+          published: execution.published,
+          initialPublished: execution.initialPublished,
+          initialFactsChecksum: execution.initialFactsChecksum,
+          phaseReceipts: execution.phaseReceipts ?? null,
+          d20: execution.d20,
+          nestedD20: execution.nestedD20
+        },
+        outcomePhase: execution.outcomePhase,
+        targetActorId: owedPick.targetActorId,
+        positions: owedPick.positions
+      }),
+      failedCounters
+    }
+  if (forcedMovementAnswer && !owedPick)
+    throw new Error('The forced-movement destination is no longer owed.')
+  const chosenPosition =
+    forcedMovementAnswer && owedPick
+      ? await settleForcedMovementDestination({
+          runtime: executionOptions.runtime,
+          continuation: forcedMovementAnswer.continuation,
+          offer: forcedMovementAnswer.offer,
+          position: forcedMovementAnswer.position
+        })
+      : null
+  const forcedMovements = interpretedMovements.map((movement) =>
+    movement.targetActorId === owedPick?.targetActorId
+      ? { ...movement, position: chosenPosition }
+      : movement
+  )
+  // The temporary hit points the cast gives belong to the lasting effect that owns them (D156).
+  const recurringEffectId = crypto.randomUUID()
+  const castApplications = preparedEffects.recurringEffect
+    ? withOwnedTemporaryHitPoints(execution.applications, {
+        id: recurringEffectId,
+        definition: preparedEffects.recurringEffect.definition
+      })
+    : execution.applications
+  const applications = [...castApplications, ...preparedEffects.relationshipConditionApplications]
+  // A hit uses up the attacker's grants consumed on hitting, after they added to its damage.
+  const hitEnded = attackHitEndedEffects({
+    holderActorId: prepared.actor.id,
+    held: (activeEffectsByActorId.get(prepared.actor.id) ?? []).filter(
+      ({ id }) =>
+        !consumedGrants.some((ended) => ended.id === id) &&
+        !maintenance?.removed.some((removed) => removed.id === id)
+    ),
+    resultPath: execution.d20?.resultPath
+  })
+  // A hit on a decoy destroys it: the last one ends the effect, any other spends a use of it.
+  const decoyStrike = decoyStrikeEffects(prepared.attackDecoy, execution.d20?.resultPath)
+  // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
+  // that end on damage; the conditions only they held are released in the target's own batch.
   const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
     ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
   )
-  const damageEnded = damageTakenEndedEffects({
+  const damageEnded = targetEndedEffects({
     holderActorId: prepared.target.id,
     held: targetHeld,
+    attacked: prepared.makesAttackRoll,
+    testEvidence: [execution.d20, execution.nestedD20],
+    turnActorId: prepared.state.currentActorId,
     applications,
     damagerActorId: prepared.actor.id,
-    dispositions
+    dispositions,
+    grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+      encounter: settledPrepared.state,
+      holder: settledPrepared.target,
+      held: settledPrepared.targetFacts.activeEffects,
+      occurrenceId,
+      commandId: command.commandId,
+      activeEffectsByActorId
+    })
   })
   // A basic action another creature uses on the target (rousing a sleeper) ends what names it.
   const actionEnded = isEncounterBasicActionId(command.actorId, command.actionId)
@@ -1126,9 +1536,10 @@ export async function planNativeLiveEncounterAction(
       commandId: command.commandId,
       occurredAt,
       applications,
-      sourceReleases,
+      sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
       targetReleases: reactionEnded?.sourceReleases,
       damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
+      releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
@@ -1176,7 +1587,18 @@ export async function planNativeLiveEncounterAction(
     prepared: settledPrepared,
     mechanics,
     effects: preparedEffects,
-    reactionEffect: reactionUse?.applied.reactionEffect ?? null,
+    recurringEffectId,
+    // A reaction effect the answered attack uses up (`ON_ATTACKED`: a bonus against that one attack)
+    // applied to its roll alone, so it is never kept.
+    reactionEffect:
+      reactionUse &&
+      !(
+        prepared.makesAttackRoll &&
+        effectsEndedBy([reactionUse.applied.pendingEffect], 'ON_ATTACKED').length
+      )
+        ? reactionUse.applied.reactionEffect
+        : null,
+    damageGrants: damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     attackAction,
@@ -1249,7 +1671,7 @@ export async function planNativeLiveEncounterAction(
     state: nextState,
     autoRollByActorId,
     parentOccurrenceId: occurrenceId,
-    parentCommandFingerprint: admission.fingerprint,
+    parentCommandFingerprint: fingerprint,
     applications: nativeConcentrationDamageApplications(damage, true),
     sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
     occurredAt,
@@ -1290,7 +1712,8 @@ export async function planNativeLiveEncounterAction(
       }
     },
     targetFailedCounterSpend,
-    meleeRetaliation: retaliation?.evidence ?? null
+    meleeRetaliation: retaliation?.evidence ?? null,
+    grantEffectTransitions: settlement.grantEffectTransitions
   })
   const cleaving =
     storedExecution.status === 'COMPLETE' && actionRange.success && sceneContext
@@ -1343,12 +1766,15 @@ export async function planNativeLiveEncounterAction(
     cleaving,
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
+    spentUseGrants: decoyStrike.spentUseGrants,
     failedSpends,
     forcedMovements,
     revisions,
     // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.
     consumedGrants: [
       ...consumedGrants,
+      ...hitEnded.consumedGrants,
+      ...decoyStrike.endedGrants,
       ...damageEnded.endedEffects,
       ...(actionEnded?.endedEffects ?? [])
     ]
@@ -1360,7 +1786,7 @@ export function buildNativeLiveEncounterActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Extract<
     Awaited<ReturnType<typeof planNativeLiveEncounterAction>>,
-    { kind: 'PENDING' | 'CAST_PENDING' }
+    { kind: 'PENDING' | 'CAST_PENDING' | 'GATE_PENDING' | 'RETARGET_PENDING' }
   >
 ) {
   const pinned = {
@@ -1379,21 +1805,37 @@ export function buildNativeLiveEncounterActionPendingInput(
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     ),
     snapshot:
-      plan.kind === 'CAST_PENDING'
-        ? buildEncounterCastReactionPendingSnapshot({
+      plan.kind === 'RETARGET_PENDING'
+        ? buildEncounterAttackRetargetPendingSnapshot({
             ...pinned,
             continuation: plan.continuation,
-            castReaction: plan.castReaction,
-            rollerActorId: plan.rollerActorId,
-            failedCounters: plan.failedCounters
+            attackRetarget: plan.attackRetarget,
+            rollerActorId: plan.rollerActorId
           })
-        : buildEncounterActionPendingSnapshot({
-            ...pinned,
-            execution: plan.execution,
-            sourceActorId: plan.prepared.actor.id,
-            targetActorId: plan.prepared.target.id,
-            failedCounters: plan.failedCounters
-          })
+        : plan.kind === 'GATE_PENDING'
+          ? buildEncounterIncomingGatePendingSnapshot({
+              ...pinned,
+              continuation: plan.continuation,
+              incomingGate: plan.incomingGate,
+              rollerActorId: plan.rollerActorId
+            })
+          : plan.kind === 'CAST_PENDING'
+            ? buildEncounterCastReactionPendingSnapshot({
+                ...pinned,
+                continuation: plan.continuation,
+                castReaction: plan.castReaction,
+                rollerActorId: plan.rollerActorId,
+                failedCounters: plan.failedCounters,
+                passedIncomingGate: plan.passedIncomingGate
+              })
+            : buildEncounterActionPendingSnapshot({
+                ...pinned,
+                execution: plan.execution,
+                sourceActorId: plan.prepared.actor.id,
+                targetActorId: plan.prepared.target.id,
+                failedCounters: plan.failedCounters,
+                passedIncomingGate: plan.passedIncomingGate
+              })
   })
 }
 
@@ -1438,6 +1880,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
     consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
+    spentUseGrants: plan.spentUseGrants,
     turnUses: plan.turnUses,
     forcedMovements: plan.forcedMovements
   })

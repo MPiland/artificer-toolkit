@@ -5,7 +5,6 @@ import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/sche
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
-  encounterBasicActionCheckLabel,
   evaluateEncounterBasicActionCheck,
   storedCheckResult
 } from './encounterBasicActionCheck.js'
@@ -17,7 +16,11 @@ import {
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { EncounterValidationError } from './encounterErrors.js'
-import { actorContestFacts } from './encounterMovementPassagePreparation.js'
+import {
+  actorContestFacts,
+  checkAbilityCode,
+  encounterBasicActionCheckLabel
+} from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 
 export const ESCAPE_ACTION_LABEL = 'Escape'
@@ -84,6 +87,37 @@ export function findEncounterHolderEscape(
           zoneLabel: null
         }
     }
+  }
+  return null
+}
+
+/**
+ * The escape a held creature may attempt from an effect whose holder contests it (D152), or null:
+ * the escaper rolls one of `checks`, and the holder (`holderActorId`, the effect's source) answers
+ * with one of `contestChecks`.
+ */
+export function findEncounterHolderContestEscape(
+  effect: Pick<ActiveRuleEffectRecord, 'definition'>
+) {
+  if (effect.definition.schemaVersion !== 2) return null
+  const { origin } = effect.definition
+  if (origin.kind !== 'ENCOUNTER' || origin.sourceActorId === null) return null
+  const holderActorId = origin.sourceActorId
+  for (const contribution of effect.definition.stateContributions) {
+    if (contribution.kind !== 'ACTOR_RELATIONSHIP') continue
+    for (const module of contribution.modules)
+      if (
+        module.kind === 'ESCAPE_CHECK' &&
+        module.dc.kind === 'CONTEST' &&
+        module.actorKinds.includes('TARGET')
+      )
+        return {
+          escapeSourceId: module.id,
+          activation: module.activation,
+          checks: module.checks,
+          contestChecks: module.dc.checks,
+          holderActorId
+        }
   }
   return null
 }
@@ -184,9 +218,14 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
       rollMode: facts.rollMode,
       contributors: facts.contributors,
       contributorChecksum: checksumRuleDocument(facts.contributors),
-      modifier: facts.modifier
+      modifier: facts.modifier,
+      ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice }),
+      ...(facts.minimumRoll && { minimumRoll: facts.minimumRoll })
     },
-    consumedGrants: effectsEndedBy(holder.activeEffects, 'ON_ABILITY_CHECK')
+    consumedGrants: effectsEndedBy(holder.activeEffects, {
+      event: 'ON_ABILITY_CHECK',
+      abilityCode: checkAbilityCode(input.system, checkKind, input.checkDefinitionId)
+    })
   })
 }
 

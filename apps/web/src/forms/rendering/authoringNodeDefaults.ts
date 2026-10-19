@@ -76,6 +76,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'SOURCE_SAVE_DC' }
     case 'spellCast':
       return { castLevel: 1 }
+    case 'featureWeaponAttack':
+      return {}
     case 'chargeBonus':
       return createChargeBonus(order)
     case 'chargeLevelScaling':
@@ -252,6 +254,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { amount: 1 }
     case 'hitPointPool':
       return { diceConfig: '1d8' }
+    case 'sizeLimit':
+      return { stepsAboveActor: 1 }
     case 'hitPointPoolScalingBreakpoint':
       return {
         id: crypto.randomUUID(),
@@ -348,12 +352,18 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return createGrantLevel(order)
     case 'featGrantProgression':
       return createGrantProgression()
+    case 'modifierAttackDecoyArmorClass':
+      return { amount: 10, abilities: [] }
+    case 'modifierAttackDecoyThreshold':
+      return { id: crypto.randomUUID(), remaining: 1, minimumRoll: 11 }
     case 'modifierChargeLimitLevel':
       return {
         id: crypto.randomUUID(),
         level: order,
         amount: 1
       }
+    case 'incomingGateSuccessImmunity':
+      return { duration: { durationKind: 'INSTANTANEOUS' } }
     case 'modifierGrant':
       return createModifierGrant(order)
     case 'modifierGrantDomain':
@@ -480,6 +490,14 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         order,
         bonusKind: 'PROFICIENCY_BONUS'
       }
+    case 'forcedMovementCollision':
+      return {
+        id: crypto.randomUUID(),
+        diceConfig: '1d6',
+        damageTypeId: '',
+        savingThrow: createDefaultAuthoringNodeValue('savingThrow'),
+        conditionId: ''
+      }
     case 'followUpSaveBranch':
       return { kind: 'END' }
     case 'followUpSaveAttempts':
@@ -533,6 +551,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         valueKind: 'FIXED',
         amount: 1
       }
+    case 'pathChosenItem':
     case 'pathLifecycle':
       return {}
     case 'pathLifecycleEndTrigger':
@@ -568,6 +587,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       }
     case 'rollTableRepeat':
       return { count: 2, rerollValues: [] }
+    case 'perTargetLockout':
+      return { until: 'SOURCE_LONG_REST' }
     case 'proficiencyGrant':
       return createProficiencyGrant(order)
     case 'raceAncestry':
@@ -680,6 +701,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { amount: 1 }
     case 'targeting':
       return createTargeting('SELF') as AuthoringGroupValues
+    case 'damageDieCastLevelScaling':
+      return { level: 1, count: 1 }
     case 'damageLevelScalingEntry':
       return {
         id: crypto.randomUUID(),

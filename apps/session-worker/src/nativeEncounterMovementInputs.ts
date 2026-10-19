@@ -21,11 +21,20 @@ import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounter
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
+import { encounterMovementDrag } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
+import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import {
+  encounterActorMovementProvokesNoOpportunityAttacks,
+  encounterMovementPassageFacts
+} from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
+import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
+import { creatureTokenLights } from '@artificer-toolkit/rules-runtime/creatureLight'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneTokenMovementFailure,
   selectTeleportAllowance,
+  withSceneTokenLights,
   type CampaignSceneState,
   type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
@@ -167,18 +176,11 @@ export async function readNativeLiveMovementInputs(input: {
     )
   )
     throw new Error('Movement actor bindings are inconsistent.')
-  if (!save.movementResolution) {
-    if (checksumCanonicalJson(command.path[0]) !== checksumCanonicalJson(token.position))
-      throw new Error('Movement path does not begin at the current token position.')
-    const failure = sceneTokenMovementFailure(
-      scene,
-      token.id,
-      command.path.at(-1)!,
-      command.path,
-      command.movementKind
-    )
-    if (failure) throw new Error(failure)
-  }
+  if (
+    !save.movementResolution &&
+    checksumCanonicalJson(command.path[0]) !== checksumCanonicalJson(token.position)
+  )
+    throw new Error('Movement path does not begin at the current token position.')
   const teleportCastCommandId =
     !save.movementResolution && command.movementKind === 'TELEPORT'
       ? await teleportAllowanceToSpend({
@@ -241,22 +243,44 @@ export async function readNativeLiveMovementInputs(input: {
     state,
     capture
   })
-  const prepared =
-    state.automationMode === 'MANUAL'
-      ? []
-      : await Promise.all(
-          actors.map((actor) =>
-            prepareNativeLiveMovementTarget({
-              scope,
-              state,
-              actor,
-              activeEffectsByActorId,
-              captures
-            })
-          )
-        )
+  // Manual automation runs no rules but the mover's own passage, which walls still answer to.
+  const moverActorId = actorIdByTokenId.get(token.id)!
+  const prepared = await Promise.all(
+    actors
+      .filter((actor) => state.automationMode !== 'MANUAL' || actor.id === moverActorId)
+      .map((actor) =>
+        prepareNativeLiveMovementTarget({
+          scope,
+          state,
+          actor,
+          activeEffectsByActorId,
+          captures
+        })
+      )
+  )
   for (const target of prepared) revisions = mergeNativeRulesRevisions(revisions, target.revisions)
-  const targets = new Map(prepared.map(({ target }) => [target.actor.id, target]))
+  const preparedTargets = new Map(prepared.map(({ target }) => [target.actor.id, target]))
+  if (!save.movementResolution) {
+    // The mover passes blocking barriers by its own resolved passage, as the composed token shows.
+    const passesBlockingBarriers = encounterMovementPassageFacts(preparedTargets, moverActorId)
+      .mover.throughBarriers
+    const failure = sceneTokenMovementFailure(
+      {
+        ...scene,
+        tokens: scene.tokens.map((entry) => {
+          if (entry.id !== token.id) return entry
+          const { passesBlockingBarriers: _composed, ...mover } = entry
+          return passesBlockingBarriers ? { ...mover, passesBlockingBarriers } : mover
+        })
+      },
+      token.id,
+      command.path.at(-1)!,
+      command.path,
+      command.movementKind
+    )
+    if (failure) throw new Error(failure)
+  }
+  const targets = new Map(state.automationMode === 'MANUAL' ? [] : preparedTargets)
   const definitions = {
     requireCurrent: async (definitionId: string) => {
       const response = await capture({ kind: 'DEFINITION', definitionId })
@@ -322,6 +346,26 @@ export async function readNativeLiveMovementInputs(input: {
       throw new Error('Movement spatial effect cursor mismatch.')
     afterEffectId = page.continueAfter
   }
+  // A grappler's voluntary move drags the creatures its own holds bind (D105). A new move checks
+  // each dragged creature's whole translated path; every segment re-reads who is held.
+  const planned =
+    state.automationMode === 'MANUAL' || command.movementKind !== 'VOLUNTARY'
+      ? null
+      : encounterMovementDrag({
+          scene,
+          mover: { tokenId: token.id, actorId: actorIdByTokenId.get(token.id)! },
+          actorIdByTokenId,
+          activeEffectsByActorId,
+          sizeOf: (actorId) => {
+            const target = targets.get(actorId)
+            return target ? encounterActorEffectiveSize(target) : null
+          },
+          effects: toSpatialInstances(spatialEffects, actors),
+          path: save.movementResolution ? null : command.path
+        })
+  if (planned?.kind === 'REFUSED') rejectDomain('MOVEMENT_BLOCKED', 'Release the grapple first.')
+  const drag = planned?.tokens.length ? planned : null
+  const draggedTokenIds = new Set(drag?.tokens.map(({ tokenId }) => tokenId))
   const facts =
     state.automationMode === 'MANUAL'
       ? null
@@ -336,6 +380,14 @@ export async function readNativeLiveMovementInputs(input: {
           }),
           runtime: capturedRuntime
         }
+  // Perception sees the light each bound Creature sheds, as the room's Scene vision draws it.
+  const perceptionScene = withSceneTokenLights(
+    scene,
+    creatureTokenLights(
+      [...actorIdByTokenId].map(([tokenId, actorId]) => ({ tokenId, actorId })),
+      actors
+    )
+  )
   const resolvePerception =
     facts === null
       ? null
@@ -347,7 +399,7 @@ export async function readNativeLiveMovementInputs(input: {
           sceneId: scene.id,
           sceneVersion: scene.version,
           sceneGrid: scene.grid,
-          scene,
+          scene: perceptionScene,
           loadSystem: async () => system,
           loadDefinition: async (id) => {
             const current = await definitions.requireCurrent(id)
@@ -359,8 +411,10 @@ export async function readNativeLiveMovementInputs(input: {
           },
           loadSpatialEffects: async () => spatialEffects
         })
-  // A mover holding the Disengage grant provokes no opportunity attacks this turn.
+  // A mover holding the Disengage grant provokes no opportunity attacks this turn, nor does one
+  // whose own features grant that immunity (Flyby).
   const mover = actors.find((actor) => actor.id === actorIdByTokenId.get(token.id))
+  const moverTarget = preparedTargets.get(moverActorId)
   const reactions =
     !facts ||
     !resolvePerception ||
@@ -368,6 +422,11 @@ export async function readNativeLiveMovementInputs(input: {
       encounterGrantsEnabledDomain(
         activeEffectsByActorId.get(mover.id) ?? [],
         'OPPORTUNITY_ATTACK_IMMUNITY'
+      )) ||
+    (moverTarget &&
+      encounterActorMovementProvokesNoOpportunityAttacks(
+        moverTarget.actor,
+        moverTarget.effectiveRulePolicyOutput
       )) ||
     (response && response.context.kind !== 'ENCOUNTER_SPATIAL_MOVEMENT')
       ? { reactionTimeline: [], firstBoundaryDistance: null }
@@ -379,7 +438,8 @@ export async function readNativeLiveMovementInputs(input: {
           occurrenceId,
           path: command.path,
           actorIdByTokenId,
-          tokens: scene.tokens,
+          // A creature being dragged moves with its grappler, so it never reacts to that move.
+          tokens: scene.tokens.filter(({ id }) => !draggedTokenIds.has(id)),
           resolvePerception
         })
   return {
@@ -394,7 +454,9 @@ export async function readNativeLiveMovementInputs(input: {
     targets,
     actorIdByTokenId,
     token,
+    perceptionScene,
     spatialEffects,
+    drag,
     facts,
     resolvePerception,
     reactions,

@@ -25,6 +25,7 @@ import {
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
+import { conditionTypeId } from '../spells/shared.js'
 import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
@@ -133,12 +134,20 @@ export const halfling: RaceAuthored = {
       description: 'You have advantage on saving throws against being frightened.',
       availableAtLevel: 1,
       order: 2,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(3, 3, entry),
-          CLOSED_RULE_KIND.RACE_HALFLING_BRAVE
-        )
-      ]
+      grants: {
+        // Frightening effects call for saves of any ability, so each ability gets the advantage.
+        modifiers: Object.values(ABILITY_CODE).map((ability, index) => ({
+          id: raceFeatureId(3, 3, 2 + index),
+          grantKind: GRANT_KIND.MODIFIER_GRANT,
+          valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+          domain: { ability, conditionTypeId: conditionTypeId('FRIGHTENED') },
+          modifierKind: MODIFIER_KIND.ADVANTAGE,
+          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+          payload: undefined,
+          order: index
+        }))
+      }
     },
     {
       id: raceFeatureId(3, 4, 1),
@@ -147,12 +156,26 @@ export const halfling: RaceAuthored = {
         'You can move through the space of any creature that is of a size larger than yours.',
       availableAtLevel: 1,
       order: 3,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(3, 4, entry),
-          CLOSED_RULE_KIND.RACE_HALFLING_NIMBLENESS
-        )
-      ]
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(3, 4, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: {
+              creatures: 'LARGER_THAN_SELF' as const,
+              mayEndInCreature: false,
+              blockingBarriers: false,
+              costMultiplier: 1 as const
+            },
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(3, 5, 1),
@@ -222,13 +245,7 @@ export const lightfoot: RaceAuthored = {
       description:
         'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
       availableAtLevel: 1,
-      order: 1,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(106, 2, entry),
-          CLOSED_RULE_KIND.RACE_NATURALLY_STEALTHY
-        )
-      ]
+      order: 1
     }
   ]
 }

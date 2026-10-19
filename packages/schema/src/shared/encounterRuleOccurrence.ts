@@ -5,6 +5,8 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
+import { d20AddedDiceDtoSchema } from './d20AddedDice.js'
+import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spatialFacts.js'
 
 const uuidSchema = lazySchema(() =>
   z.pipe(
@@ -148,6 +150,11 @@ const d20EvidenceRequestDtoSchema = lazySchema(() =>
         .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
         .check(z.maxLength(32)),
       /**
+       * Dice the roller rolls with the d20 and adds or subtracts after the mode keeps one d20
+       * (D156), such as "+1d4 Bless". Absent when the test has none.
+       */
+      addedDice: z.optional(d20AddedDiceDtoSchema),
+      /**
        * The d20 already rolled when the server needs one more to settle the true mode
        * (ATTACK-10.1): the roller enters one more d20, or asks the app to roll it.
        */
@@ -186,6 +193,34 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         trigger: z.optional(encounterRuleRollTriggerDtoSchema),
         request: d20EvidenceRequestDtoSchema,
         allowedResponses: z.tuple([z.literal('ENTER_DICE'), z.literal('SYSTEM_ROLL')])
+      }),
+      /**
+       * A contest defender's roll: it picks one of the checks the contest sealed for it and rolls it
+       * in the same answer (D152), such as Strength (Athletics) or Dexterity (Acrobatics) against a
+       * Grapple.
+       */
+      z.strictObject({
+        kind: z.literal('CONTEST_CHECK'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        rollerActorId: uuidSchema,
+        actionLabel: triggerLabelSchema,
+        requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+        checks: z
+          .array(
+            z.strictObject({
+              checkDefinitionId: uuidSchema,
+              label: triggerLabelSchema,
+              rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+              derivedRollModeReasons: z
+                .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
+                .check(z.maxLength(32))
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        allowedResponses: z.tuple([z.literal('CONTEST_CHECK')])
       }),
       z
         .strictObject({
@@ -335,6 +370,39 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .check(z.minLength(1))
           .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1)),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
+      }),
+      /** An attack or spell a ward stopped, whose attacker may turn it on another creature or let it be lost. */
+      z.strictObject({
+        kind: z.literal('ATTACK_RETARGET_CHOICE'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        attackerActorId: uuidSchema,
+        options: z
+          .array(
+            z.strictObject({
+              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+              targetActorId: uuidSchema
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
+      }),
+      /** A push whose source chooses the square it leaves one creature on, from the legal ones (D157). */
+      z.strictObject({
+        kind: z.literal('FORCED_MOVEMENT_DESTINATION'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        sourceActorId: uuidSchema,
+        targetActorId: uuidSchema,
+        requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+        positions: z
+          .array(spatialPointDtoSchema)
+          .check(z.minLength(2))
+          .check(z.maxLength(MAX_FORCED_MOVEMENT_DESTINATIONS)),
+        allowedResponses: z.tuple([z.literal('FORCED_MOVEMENT')])
       }),
       z.strictObject({
         kind: z.literal('LEGENDARY_ACTION_CHOICE'),
@@ -504,3 +572,21 @@ export type PendingEncounterRuleOccurrenceSummaryDto = z.infer<
 export type EncounterRuleOccurrenceSummaryDto = z.infer<
   typeof encounterRuleOccurrenceSummaryDtoSchema
 >
+type ContestCheckPendingDto = Extract<
+  PendingEncounterRuleOccurrenceSummaryDto,
+  { kind: 'CONTEST_CHECK' }
+>
+
+/** The one d20 a contest defender rolls for the check it picked, in that check's mode (D152). */
+export function contestCheckD20Request(
+  pending: ContestCheckPendingDto,
+  check: ContestCheckPendingDto['checks'][number]
+): z.infer<typeof d20EvidenceRequestDtoSchema> {
+  return {
+    requestId: pending.requestId,
+    min: 1,
+    max: 20,
+    rollMode: check.rollMode,
+    derivedRollModeReasons: check.derivedRollModeReasons
+  }
+}

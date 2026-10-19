@@ -1,21 +1,20 @@
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import {
-  effectiveSpatialGeometry,
   measureScenePathMovementCost,
-  spatialSegmentMovementMultiplier,
+  zoneMovementSegmentMultiplier,
   type SceneBarrier,
   type SceneGrid,
+  type SpatialEffectInstance,
   type SpatialSceneToken
 } from '@artificer-toolkit/shared/vtt'
 import { EncounterValidationError } from './encounterErrors.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import { sliceMovementPath } from './encounterMovementPath.js'
 import { spatialExecutionStopsMovement } from './encounterSpatialCandidateExecution.js'
-import { isVisibleHalfSpeedField } from './halfSpeedField.js'
 
 type Point = { x: number; y: number }
 type MovementOutcome = SceneSpatialPreparation['outcome']
+type TokenMoved = { kind: 'TOKEN_MOVED'; tokenId: string; position: Point }
 
 function pathLength(path: readonly Point[]): number {
   return path
@@ -75,14 +74,40 @@ export function preparedMovementSegment(input: {
 /**
  * The token delta a move publishes: a terminal result moves to its terminal position unless it
  * ended where the Scene already has it, a pause moves only by its movement intent, and an
- * uninterrupted or unbound move reaches the end of its path.
+ * uninterrupted or unbound move reaches the end of its path. A drag publishes one batch: the
+ * mover's move, then each dragged token's (D105).
  */
 export function preparedMovementSceneDelta(input: {
   tokenId: string
   path: readonly Point[]
   outcome: MovementOutcome | null
   sceneVersion: number
-}): { kind: 'TOKEN_MOVED'; tokenId: string; position: Point } | null {
+  draggedTokens?: SceneSpatialPreparation['draggedTokens']
+}): TokenMoved | { kind: 'BATCH'; deltas: TokenMoved[] } | null {
+  const moved = preparedMoverSceneDelta(input)
+  const dragged = input.draggedTokens ?? []
+  // The room drags only behind a mover that moves; persistence refuses a stored drag that does not.
+  if (!dragged.length || !moved) return moved
+  return {
+    kind: 'BATCH',
+    deltas: [
+      moved,
+      ...dragged.map(({ tokenId, to }) => ({
+        kind: 'TOKEN_MOVED' as const,
+        tokenId,
+        position: to
+      }))
+    ]
+  }
+}
+
+/** The mover's own token delta, before any drag. */
+export function preparedMoverSceneDelta(input: {
+  tokenId: string
+  path: readonly Point[]
+  outcome: MovementOutcome | null
+  sceneVersion: number
+}): TokenMoved | null {
   const { outcome } = input
   if (outcome?.kind === 'TERMINAL') {
     const { result } = outcome
@@ -105,7 +130,9 @@ export function preparedMovementSceneDelta(input: {
  * segment's end less its cost to the segment's start. Measuring from the path's origin keeps grid
  * rounding consistent, so a move's segments sum to its whole walk across decision pauses.
  * A careful mover (SPELLS-17) pays double for the stretch its footprint spends inside a field that
- * allows passage at half speed.
+ * allows passage at half speed, and a zone's movement cost applies to the movers it catches (D154);
+ * a mover whose passage takes it through other creatures pays its passage multiplier inside them.
+ * A drag doubles the whole cost on top (D105).
  */
 export function preparedMovementCost(input: {
   grid: SceneGrid
@@ -116,34 +143,66 @@ export function preparedMovementCost(input: {
   /** A bound mover and the zones on its Scene; absent for an unbound move. */
   mover?: {
     tokenId: string
+    actorId: string
     tokens: readonly SpatialSceneToken[]
-    effects: readonly Pick<EncounterSpatialRuleEffectRecord, 'placement' | 'spatialState'>[]
+    effects: readonly SpatialEffectInstance[]
     /** A careful mover pays double inside a visible field that allows passage at half speed. */
     carefully: boolean
+    /** A grappler dragging a creature not two sizes smaller pays double (D105). */
+    dragDoublesCost?: boolean
+    /** What each foot inside another creature's space costs a mover whose passage takes it through. */
+    passage?: { costMultiplier: number; creatureTokenIds: readonly string[] }
   }
 }): number {
-  const mover = input.mover
-  const token = mover?.tokens.find(({ id }) => id === mover.tokenId)
-  // Every mover pays a zone's movement cost (D154); the highest multiplier applies.
-  const zones =
-    mover && token
-      ? mover.effects.flatMap((effect) => {
-          const multiplier = Math.max(
-            effect.placement.movementCostMultiplier ?? 1,
-            mover.carefully && isVisibleHalfSpeedField(effect) ? 2 : 1
+  const { mover } = input
+  // A passed creature's space is a zone of the passage multiplier, its footprint around the token.
+  const passage = mover?.passage
+  const creatureZones = (passage?.creatureTokenIds ?? []).flatMap((tokenId) => {
+    const token = mover?.tokens.find(({ id }) => id === tokenId)
+    if (!token || !passage) return []
+    const [x, y] = [token.width / 2, token.height / 2]
+    return [
+      {
+        anchorKind: 'TOKEN' as const,
+        sourceTokenId: tokenId,
+        geometry: {
+          frame: 'TOKEN_LOCAL' as const,
+          shape: {
+            kind: 'POLYGON' as const,
+            points: [
+              { x: -x, y: -y },
+              { x, y: -y },
+              { x, y },
+              { x: -x, y }
+            ]
+          }
+        },
+        unaffectedActorIds: [],
+        suppressed: false,
+        multiplier: passage.costMultiplier
+      }
+    ]
+  })
+  // The highest of the terrain, zone, passage and careful multipliers applies (D154); a drag doubles it (D105).
+  const zoneMultiplier =
+    mover &&
+    zoneMovementSegmentMultiplier({
+      zones: [
+        ...mover.effects.map((effect) => ({
+          ...effect,
+          multiplier: Math.max(
+            effect.movementCostMultiplier ?? 1,
+            mover.carefully && effect.bypassAtHalfSpeed ? 2 : 1
           )
-          const geometry =
-            multiplier > 1 ? effectiveSpatialGeometry(effect.placement, mover.tokens) : null
-          return geometry ? [{ geometry, multiplier }] : []
-        })
-      : []
-  const segmentMultiplier =
-    token && zones.length
-      ? (from: Point, to: Point, floor: number) =>
-          spatialSegmentMovementMultiplier({ zones, token, from, to, floor })
-      : undefined
+        })),
+        ...creatureZones
+      ],
+      mover,
+      tokens: mover.tokens,
+      dragDoublesCost: mover.dragDoublesCost ?? false
+    })
   const walked = (path: readonly Point[]) =>
-    measureScenePathMovementCost(input.grid, input.scene, path, segmentMultiplier)
+    measureScenePathMovementCost(input.grid, input.scene, path, zoneMultiplier)
   const toEnd = preparedMovementSegment({ ...input, startDistance: 0 }).path
   const toStart =
     input.startDistance > 0 ? walked(sliceMovementPath(input.path, 0, input.startDistance)) : 0

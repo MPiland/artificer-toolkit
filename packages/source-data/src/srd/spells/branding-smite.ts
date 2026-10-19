@@ -1,20 +1,29 @@
 import {
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
+  CASTING_TIME_UNIT_CODE,
+  DAMAGE_DIE_RECIPIENT,
+  DURATION_KIND,
+  EFFECT_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
-  CASTING_TIME_UNIT_CODE,
-  EFFECT_KIND,
   RANGE_KIND,
+  ROLLED_DIE_SIGN,
   SPELL_ATTRIBUTE,
+  SPELL_COMPONENT,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TRIGGER,
-  type SpellAuthored,
-  SPELL_COMPONENT
+  VALUE_DOMAIN_CODE,
+  type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import { damageTypeId, spellChildId } from './shared.js'
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry)
@@ -63,11 +72,39 @@ export const brandingSmite: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.BRANDING_SMITE, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            // The next weapon hit; the light and lost invisibility stay with the reader.
+            duration: {
+              id: spellChildId(SPELL_IDS.BRANDING_SMITE, 0x213, 1),
+              durationKind: DURATION_KIND.MINUTE,
+              amount: 1
+            },
+            lifecycle: { consumeOnFirstEvents: ['ON_HIT'] },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BRANDING_SMITE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'BRANDING_SMITE' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [ATTACK_DOMAIN_CODE.MELEE, ATTACK_DOMAIN_CODE.RANGED].map(
+                    (attackDomain, index) => ({
+                      id: spellChildId(SPELL_IDS.BRANDING_SMITE, 0x215, index + 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+                      domain: { attackDomain },
+                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: {
+                        count: 2,
+                        faces: 6,
+                        sign: ROLLED_DIE_SIGN.ADD,
+                        recipient: DAMAGE_DIE_RECIPIENT.HOLDER_DEALS,
+                        damageTypeId: damageTypeId('RADIANT'),
+                        countPerCastLevelAbove: { level: 2, count: 1 }
+                      },
+                      order: index + 1
+                    })
+                  )
+                }
               }
             ]
           }

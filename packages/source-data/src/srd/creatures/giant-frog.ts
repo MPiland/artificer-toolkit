@@ -42,18 +42,6 @@ export const giantFrog: CreatureAuthored = {
       id: S.featureId(124, 1),
       label: 'Amphibious',
       description: 'Amphibious. The frog can breathe air and water.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(124, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(124, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
-        })
-      ],
       order: 1
     },
     {
@@ -140,13 +128,9 @@ export const giantFrog: CreatureAuthored = {
                     localIndex: 1,
                     escapeDc: 11,
                     heldAtOnce: 1,
-                    untilEnds: ['RESTRAINED']
-                  }),
-                  {
-                    id: S.actionId(124, 4),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.GIANT_FROG_BITE
-                  }
+                    untilEnds: ['RESTRAINED'],
+                    restrictedActionEffectIds: [S.actionId(124, 1)]
+                  })
                 ]
               }
             }

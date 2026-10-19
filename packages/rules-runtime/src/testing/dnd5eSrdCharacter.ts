@@ -69,7 +69,7 @@ function registryWith(
   }).registry
 }
 
-const srdRegistry = registryWith([], [])
+export const srdRegistry = registryWith([], [])
 
 /** The SRD vocabulary slice that saving-throw projection reads. */
 export const vocabulary = {
@@ -133,6 +133,9 @@ export type SrdCharacter = {
   facts: CharacterRulePolicyInput
   /** Server-only authored action entries, index-aligned with `facts.actionCandidates`. */
   entryPoints: ReturnType<typeof buildCharacterActionRuleFacts>['entryPoints']
+  /** Server-only passive zone sources, as the Character's rule evaluation carries them (D155). */
+  passiveZoneSources: ReturnType<typeof buildCharacterActionRuleFacts>['passiveZones']
+  snapshot: CharacterBuildSnapshot
   output: CharacterRulePolicyOutput
   itemInstanceId: (label: string) => string
 }
@@ -230,6 +233,8 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
   return {
     facts,
     entryPoints: actionFacts.entryPoints,
+    passiveZoneSources: actionFacts.passiveZones,
+    snapshot,
     output: resolveCharacterRulePolicyRollModes(
       evaluateDnd5e2014CharacterPolicy(facts),
       vocabulary

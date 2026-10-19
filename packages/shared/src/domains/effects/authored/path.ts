@@ -1,5 +1,6 @@
 import type { CheckChoiceAuthored, HeldEscapeDcAuthored } from './check.js'
 import type { ActivationAuthored } from './effect.js'
+import type { FailureMarginRiderAuthored } from './followUpSave.js'
 import type {
   DurationAuthored,
   FacetAuthored,
@@ -10,6 +11,8 @@ import type {
 } from '#authored'
 import type {
   ActivationCode,
+  EquipmentCategoryCode,
+  EquipmentPropertyCode,
   PathCodesByTrigger,
   PathGroupType,
   PathLifecycleConsumeEvent,
@@ -40,7 +43,8 @@ export type PathLifecycleAuthored = {
    * Events that end the effect early. Damage taken is filtered by whose damage counts (`SOURCE_SIDE`
    * is the effect source and its allies, for Charm Person) and, when set, which damage types; an
    * attack roll or a cast ends it only against an enemy (Sanctuary); another creature using one of
-   * the named basic actions on the holder ends it (rousing a sleeper).
+   * the named basic actions on the holder ends it (rousing a sleeper); the effect source being
+   * incapacitated or defeated ends it on every holder (Knight Leadership).
    */
   endOnTriggers?: (
     | {
@@ -50,11 +54,27 @@ export type PathLifecycleAuthored = {
       }
     | { event: 'ATTACK_ROLL' | 'SPELL_CAST'; against: 'ENEMY' }
     | { event: 'ACTION_USED_ON_HOLDER'; actionDefinitionIds: string[] }
+    | { event: 'INCAPACITATED'; of: 'SOURCE' }
   )[]
   /** Condition types that end the effect early while its holder has any of them. */
   endOnConditionIds?: string[]
   /** The holder may end the effect themselves, at the cost of this activation. */
   holderEnd?: { activation: ActivationCode }
+  /**
+   * Only the effect's source meets it: its grants about attackers apply, and an attack consumes
+   * it, only when the source is the attacker.
+   */
+  fromSourceOnly?: boolean
+  /**
+   * The effect ends after this many uses; a modifier domain spends them (Mirror Image's
+   * duplicates). The runtime counts them down in `remainingUses`.
+   */
+  uses?: number
+  /**
+   * The effect is dormant until its anchor actor's final counted turn and active only during that
+   * turn: a timed effect made now that waits for that actor's next turn.
+   */
+  activeOnlyOnFinalAnchorTurn?: boolean
   /**
    * A zone's failed-save condition is held by the zone (D142, D146): it ends when the zone ends,
    * on `ON_LEAVING_AREA` when the creature leaves the area, and on a successful `escape`.
@@ -75,6 +95,8 @@ export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthor
   maintenanceDefinitionId?: string
   duration?: DurationAuthored
   lifecycle?: PathLifecycleAuthored
+  /** Only a direct saving throw's failed result block (ON_SAVE_FAIL) carries one. */
+  failureMarginRider?: FailureMarginRiderAuthored
   outcomes: TOutcome[]
 }
 
@@ -101,6 +123,19 @@ export type PathRollTableRowAuthored<TOutcome extends OutcomeAuthored = OutcomeA
         }
     )
 
+/**
+ * One item the target holds or wears, chosen when the action is used (Heat Metal's metal object,
+ * Magic Weapon's weapon). Every listed filter must hold; `equipmentIds` matches the item or a
+ * variant ancestor. A grant with `bindsChosenItem` applies only to that item, and the effect ends
+ * when it leaves the holder's equipment.
+ */
+export type PathChosenItemAuthored = {
+  category?: EquipmentCategoryCode
+  requiredProperties?: EquipmentPropertyCode[]
+  excludedProperties?: EquipmentPropertyCode[]
+  equipmentIds?: string[]
+}
+
 export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   id: string
   order: number // int
@@ -116,6 +151,7 @@ export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   usage?: PathUsage
   rangeOverride?: RangeAuthored
   targetingOverride?: TargetingAuthored
+  chosenItem?: PathChosenItemAuthored
 }
 
 export type EffectPathAuthored<

@@ -8,7 +8,7 @@ export const chainShirt: EquipmentAuthored = {
   description:
     "Made of interlocking metal rings, a chain shirt is worn between layers of clothing or leather. This armor offers modest protection to the wearer's upper body and allows the sound of the rings rubbing against one another to be muffled by outer layers.",
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
-  properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM],
+  properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM, S.EQUIPMENT_PROPERTY_CODE.METAL],
   armorClass: 13,
   cost: S.gp(50),
   weight: S.lbs(20),

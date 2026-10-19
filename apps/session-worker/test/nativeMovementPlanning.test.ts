@@ -2,9 +2,12 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import type { SceneBarrier, ScenePoint } from '@artificer-toolkit/shared/vtt'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
+import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf, reactionWolf } from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
@@ -244,6 +247,7 @@ describe('movement through a hostile creature', () => {
     /** A second HOSTILE Wolf further along the path, past the first. */
     laterBlocker?: boolean
     rolls?: readonly number[]
+    optionalCombatKinds?: MovementRoomConfig['optionalCombatKinds']
   }) {
     const mover = srdCreatureActor({ id: MOVER_ID, creature: plainWolf, disposition: 'FRIENDLY' })
     const blocker = srdCreatureActor({ id: BLOCKER_ID, creature: plainWolf })
@@ -257,7 +261,7 @@ describe('movement through a hostile creature', () => {
         ...(options.laterBlocker ? { [LATER_BLOCKER_ID]: { x: 550, y: 150 } } : {})
       },
       automationMode: options.automationMode,
-      optionalCombatKinds: ['OVERRUN', 'TUMBLE'],
+      optionalCombatKinds: options.optionalCombatKinds ?? ['OVERRUN', 'TUMBLE'],
       autoRoll: 'GAME_MASTER',
       rolls: options.rolls
     })
@@ -358,6 +362,103 @@ describe('movement through a hostile creature', () => {
     expect(logged).not.toHaveBeenCalled()
     expect(await room.pending()).toBeNull()
     expect(await room.receipts()).toEqual([])
+  })
+
+  it('refuses a move through the hostile creature when the mover has no way to pass it', async () => {
+    // The Encounter offers no Overrun or Tumble, so nothing lets the mover through.
+    const room = await passageRoom({ optionalCombatKinds: [] })
+
+    const answer = await room.move([MOVER_START, { x: 550, y: 150 }])
+
+    expect(answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      code: 'DOMAIN_REJECTED',
+      reason: 'MOVEMENT_BLOCKED'
+    })
+    expect(await room.pending()).toBeNull()
+    expect(await room.receipts()).toEqual([])
+  })
+})
+
+describe('a mover whose passage grants let it through (SPELLS-33.T6k1)', () => {
+  const ghost = srdBaselineContent.subjects.creatures.find((entry) => entry.label === 'Ghost')
+  if (!ghost) throw new Error('The SRD Ghost is missing.')
+  const wall: SceneBarrier = {
+    id: testUuid(0x3310),
+    kind: 'WALL',
+    a: { x: 250, y: 0 },
+    b: { x: 250, y: 400 },
+    blocksLight: true,
+    blocksMovement: true
+  }
+
+  /** A FRIENDLY mover walking east toward a HOSTILE Wolf one cell ahead, or across a wall. */
+  function passingRoom(options: { mover: 'GHOST' | 'WOLF'; walled?: boolean }) {
+    return movementRoom({
+      actors: [
+        srdCreatureActor({
+          id: MOVER_ID,
+          creature: options.mover === 'GHOST' ? ghost! : plainWolf,
+          disposition: 'FRIENDLY'
+        }),
+        ...(options.walled ? [] : [srdCreatureActor({ id: BLOCKER_ID, creature: plainWolf })])
+      ],
+      moverActorId: MOVER_ID,
+      positions: {
+        [MOVER_ID]: MOVER_START,
+        ...(options.walled ? {} : { [BLOCKER_ID]: { x: 350, y: 150 } })
+      },
+      optionalCombatKinds: ['OVERRUN', 'TUMBLE'],
+      autoRoll: 'GAME_MASTER',
+      ...(options.walled ? { sceneOverrides: { barriers: [wall] } } : {})
+    })
+  }
+
+  async function feetMoved(room: Room) {
+    const movements = await runInDurableObject(room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage).documents('encounterTurnMovements')
+    )
+    return movements
+      .filter((movement) => movement.actorId === MOVER_ID)
+      .reduce((total, { usedFeet }) => total + usedFeet, 0)
+  }
+
+  it('moves an incorporeal Ghost through the hostile creature without a contest, paying double inside it', async () => {
+    const room = await passingRoom({ mover: 'GHOST' })
+
+    const answer = await room.move([MOVER_START, { x: 550, y: 150 }])
+
+    expect(answer).toMatchObject({
+      type: 'COMMAND_COMMITTED',
+      delta: { result: { delta: { kind: 'TOKEN_MOVED', position: { x: 550, y: 150 } } } }
+    })
+    expect(await room.pending()).toBeNull()
+    // 20 ft walked; the footprints overlap while the Ghost's centre is between x=250 and x=450,
+    // and those 10 ft cost double.
+    expect(await feetMoved(room)).toBe(30)
+  })
+
+  it('still refuses to let the Ghost end its move inside the hostile creature', async () => {
+    const room = await passingRoom({ mover: 'GHOST' })
+
+    const answer = await room.move([MOVER_START, { x: 350, y: 150 }])
+
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'MOVEMENT_BLOCKED' })
+    expect(await room.pending()).toBeNull()
+  })
+
+  it('moves the Ghost through a wall that stops a Wolf', async () => {
+    const ghostRoom = await passingRoom({ mover: 'GHOST', walled: true })
+    expect(await ghostRoom.move([MOVER_START, { x: 350, y: 150 }])).toMatchObject({
+      type: 'COMMAND_COMMITTED',
+      delta: { result: { delta: { kind: 'TOKEN_MOVED', position: { x: 350, y: 150 } } } }
+    })
+    closeTrackedSockets()
+
+    const wolfRoom = await passingRoom({ mover: 'WOLF', walled: true })
+    expect(await wolfRoom.move([MOVER_START, { x: 350, y: 150 }])).toMatchObject({
+      type: 'COMMAND_REJECTED'
+    })
   })
 })
 

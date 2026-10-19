@@ -7,6 +7,7 @@ import type {
   EncounterGmProjectionDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -104,10 +105,13 @@ function drawerElement(
     authoredBasicActions = [],
     escapes = [],
     heldGrantEnds = [],
+    releases = [],
     openAttackAction = null,
+    defaultActionId = null,
     encounter = tabletopGmEncounter,
     onEscape = vi.fn(),
     onEndHeldGrant = vi.fn(),
+    onRelease = vi.fn(),
     escapeResult = resolved,
     isGm = false,
     waitingOn = null,
@@ -124,10 +128,13 @@ function drawerElement(
     authoredBasicActions?: EncounterActionChoiceDto[]
     escapes?: EncounterEscapeChoiceDto[]
     heldGrantEnds?: EncounterActionChoicesDto['heldGrantEnds']
+    releases?: EncounterActionChoicesDto['releases']
     openAttackAction?: EncounterActionChoicesDto['openAttackAction']
+    defaultActionId?: EncounterActionChoicesDto['defaultActionId']
     encounter?: EncounterGmProjectionDto
     onEscape?: (command: EscapeRelationshipInputDto) => Promise<unknown>
     onEndHeldGrant?: (command: EndHeldGrantInputDto) => Promise<unknown>
+    onRelease?: (command: ReleaseRelationshipInputDto) => Promise<unknown>
     /** What the room answers an escape with. */
     escapeResult?: EncounterCommandResultDto
     isGm?: boolean
@@ -148,7 +155,9 @@ function drawerElement(
       basicActionChoices={authoredBasicActions}
       escapes={escapes}
       heldGrantEnds={heldGrantEnds}
+      releases={releases}
       openAttackAction={openAttackAction}
+      defaultActionId={defaultActionId}
       actionsLoading={false}
       actorIdByTokenId={actorIdByTokenId}
       connected
@@ -167,6 +176,7 @@ function drawerElement(
       onPickAreaOrigin={onPickAreaOrigin}
       onClose={vi.fn()}
       onLoadOptionalChoices={vi.fn()}
+      onLoadItemChoices={vi.fn()}
       onOpen={vi.fn()}
       onResolve={async (command) => {
         await onResolve(command)
@@ -178,6 +188,10 @@ function drawerElement(
       }}
       onEndHeldGrant={async (command) => {
         await onEndHeldGrant(command)
+        return resolved
+      }}
+      onRelease={async (command) => {
+        await onRelease(command)
         return resolved
       }}
     />
@@ -616,6 +630,44 @@ describe('CampaignTabletopActionDrawer held grant ends', () => {
   })
 })
 
+const releaseChoices = validated(encounterActionChoicesDtoSchema.shape.releases)([
+  {
+    heldActorId: '00000000-0000-4000-8000-000000000f11',
+    activeEffectId: '00000000-0000-4000-8000-000000000f12',
+    label: 'Release Wolf'
+  }
+])
+
+describe('CampaignTabletopActionDrawer releases (D152)', () => {
+  it('offers each creature the actor holds for no action, and sends the release command', async () => {
+    const user = userEvent.setup()
+    const onRelease = vi.fn().mockResolvedValue(resolved)
+    renderDrawer(vi.fn(), { releases: releaseChoices, onRelease })
+
+    const section = await screen.findByRole('region', { name: 'Holding' })
+    expect(within(section).getByText(/No action/)).toBeVisible()
+
+    await user.click(within(section).getByRole('button', { name: 'Release Wolf' }))
+    expect(onRelease).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'RELEASE_RELATIONSHIP',
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        actorId: tabletopGmEncounter.currentActorId,
+        heldActorId: releaseChoices[0].heldActorId,
+        activeEffectId: releaseChoices[0].activeEffectId
+      })
+    )
+    expect(await screen.findByText('Released.')).toBeVisible()
+  })
+
+  it('shows no section when the actor holds no creature', async () => {
+    renderDrawer(vi.fn())
+    await screen.findByRole('button', { name: 'Resolve action' })
+    expect(screen.queryByRole('region', { name: 'Holding' })).not.toBeInTheDocument()
+  })
+})
+
 describe('CampaignTabletopActionDrawer escapes', () => {
   it('offers the escape with its DC and cost in its own section', async () => {
     renderDrawer(vi.fn(), { escapes: escapeChoices })
@@ -624,6 +676,14 @@ describe('CampaignTabletopActionDrawer escapes', () => {
     expect(within(section).getByText('Escape from Giant Toad')).toBeVisible()
     expect(within(section).getByText(/DC 13/)).toBeVisible()
     expect(within(section).getByText(/Action/)).toBeVisible()
+  })
+
+  it('names a contested escape, which its holder resists with no DC (D152)', async () => {
+    renderDrawer(vi.fn(), { escapes: [{ ...escapeChoices[0], dc: null }] })
+
+    const section = await screen.findByRole('region', { name: 'Escape' })
+    expect(within(section).getByText(/Contested/)).toBeVisible()
+    expect(within(section).queryByText(/DC/)).not.toBeInTheDocument()
   })
 
   it('sends the first allowed check unless another is chosen', async () => {
@@ -810,7 +870,11 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
   it('preselects the last weapon and target of the open Attack action without submitting', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
-    renderDrawer(onResolve, { choices: [slotted(2)], openAttackAction: openAction(1) })
+    renderDrawer(onResolve, {
+      choices: [slotted(2)],
+      openAttackAction: openAction(1),
+      defaultActionId: actions[0]!.id
+    })
 
     expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue(
       'Quarterstaff · Equipment'
@@ -839,6 +903,7 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
       drawerElement(onResolve, {
         choices: [slotted(2)],
         openAttackAction: openAction(1),
+        defaultActionId: actions[0]!.id,
         encounter: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 }
       })
     )
@@ -862,7 +927,8 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
 
     const missing = renderDrawer(vi.fn(), {
       choices: [slotted(2)],
-      openAttackAction: { ...stale, lastActionId: 'gone:attack', lastTargetIds: ['gone-target'] }
+      openAttackAction: { ...stale, lastActionId: 'gone:attack', lastTargetIds: ['gone-target'] },
+      defaultActionId: 'gone:attack'
     })
     expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue('')
     expect(screen.getByRole('combobox', { name: 'Target' })).toHaveValue('')
@@ -878,6 +944,17 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
 
     renderDrawer(vi.fn(), { choices: [actions[0]!], openAttackAction: stale })
     expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue('')
+  })
+
+  it('starts on the held weapon the server picks before any Attack action is open (D107)', async () => {
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { choices: actions, defaultActionId: actions[0]!.id })
+
+    expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue(
+      'Quarterstaff · Equipment'
+    )
+    expect(screen.getByRole('combobox', { name: 'Target' })).toHaveValue('')
+    expect(onResolve).not.toHaveBeenCalled()
   })
 
   it('still warns about an attack outside the action and offers "Do it anyway"', async () => {
@@ -1231,6 +1308,13 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
     }
   })
 
+  const passWithoutTrace = validatedChoice({
+    ...healingWord,
+    id: 'spell-pass-without-trace:cast',
+    label: 'Pass without Trace',
+    target: { kind: 'ACTORS' as const, area: null }
+  })
+
   const magicMissile = validatedChoice({
     ...healingWord,
     id: 'spell-magic-missile:cast',
@@ -1305,6 +1389,25 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
             point: null
           }
         }
+      })
+    )
+  })
+
+  it('shows no cap for a list that names each chosen creature once (SPELLS-4.T2a3)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { choices: [passWithoutTrace] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('combobox', { name: 'Targets' }))
+    await user.click(screen.getByRole('option', { name: first.label }))
+    await user.click(screen.getByRole('option', { name: second.label }))
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: passWithoutTrace.id,
+        target: expect.objectContaining({ kind: 'ACTORS', actorIds: [first.id, second.id] })
       })
     )
   })
@@ -1561,6 +1664,33 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
       expect.objectContaining({
         actionId: burst.id,
         sceneContext: null,
+        target: {
+          kind: 'CASTER_CENTERED',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version
+        }
+      })
+    )
+  })
+
+  it('asks for no aim when the area is the caster’s own space', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const whirlwind = validatedChoice({
+      ...breath,
+      id: 'creature-wolf:whirlwind',
+      label: 'Whirlwind',
+      target: { kind: 'CASTER_CENTERED' as const, area: { kind: 'OWN_SPACE' as const } }
+    })
+    renderDrawer(onResolve, { choices: [whirlwind], actorIdByTokenId })
+    await chooseBreath(user)
+
+    expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
+    expect(screen.getByText('Creatures sharing your space are caught.')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: whirlwind.id,
         target: {
           kind: 'CASTER_CENTERED',
           sceneId: tabletopLiveScene.id,

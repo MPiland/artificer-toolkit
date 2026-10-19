@@ -51,18 +51,6 @@ export const fleshGolem: CreatureAuthored = {
       label: 'Berserk',
       description:
         "Berserk. Whenever the golem starts its turn with 40 hit points or fewer, roll a d6. On a 6, the golem goes berserk. On each of its turns while berserk, the golem attacks the nearest creature it can see. If no creature is near enough to move to and attack, the golem attacks an object, with preference for an object smaller than itself. Once the golem goes berserk, it continues to do so until it is destroyed or regains all its hit points. The golem's creator, if within 60 feet of the berserk golem, can try to calm it by speaking firmly and persuasively. The golem must be able to hear its creator, who must take an action to make a DC 15 Charisma (Persuasion) check. If the check succeeds, the golem ceases being berserk. If it takes damage while still at 40 hit points or fewer, the golem might go berserk again.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(103, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(103, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FLESH_GOLEM_BERSERK
-        })
-      ],
       order: 1
     },
     {
@@ -71,16 +59,22 @@ export const fleshGolem: CreatureAuthored = {
       description:
         'Aversion of Fire. If the golem takes fire damage, it has disadvantage on attack rolls and ability checks until the end of its next turn.',
       effects: [
-        S.closedRuleEffect({
-          id: S.actionId(103, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(103, 1202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FLESH_GOLEM_AVERSION_OF_FIRE
-        })
+        S.incomingDamageGrantEffect(
+          S.actionId(103, 202),
+          ['FIRE'],
+          [
+            ...Object.values(S.ATTACK_DOMAIN_CODE).map((attackDomain) => ({
+              valueDomainCode: S.VALUE_DOMAIN_CODE.ATTACK_ROLL,
+              domain: { attackDomain },
+              modifierKind: S.MODIFIER_KIND.DISADVANTAGE
+            })),
+            {
+              valueDomainCode: S.VALUE_DOMAIN_CODE.ABILITY_CHECK,
+              domain: {},
+              modifierKind: S.MODIFIER_KIND.DISADVANTAGE
+            }
+          ]
+        )
       ],
       order: 2
     },
@@ -145,18 +139,7 @@ export const fleshGolem: CreatureAuthored = {
       id: S.featureId(103, 6),
       label: 'Magic Weapons',
       description: "Magic Weapons. The golem's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(103, 206),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(103, 1206), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(103, 206),
       order: 6
     },
     {

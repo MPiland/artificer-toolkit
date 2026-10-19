@@ -271,7 +271,8 @@ export const PATH_CODES_BY_TRIGGER: Record<Trigger, readonly PathCode[]> = {
   [TRIGGER.INCOMING_SAVING_THROW]: [PATH_CODE.PASSIVE],
   [TRIGGER.SAVING_THROW]: [PATH_CODE.ON_SAVE_FAIL, PATH_CODE.ON_SAVE_SUCCESS],
   [TRIGGER.CHECK]: [PATH_CODE.ON_CHECK_SUCCESS],
-  [TRIGGER.ENTER_AREA]: [PATH_CODE.PASSIVE]
+  [TRIGGER.ENTER_AREA]: [PATH_CODE.PASSIVE],
+  [TRIGGER.INCOMING_DAMAGE]: [PATH_CODE.PASSIVE]
 } as const
 
 export type PathCodesByTrigger<TTrigger extends Trigger> =
@@ -314,7 +315,10 @@ export const PATH_LIFECYCLE_RECURRING_KIND_OPTIONS = valuesOf(
 
 export const PATH_LIFECYCLE_CONSUME_EVENT = {
   ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
+  ON_HIT: 'ON_HIT',
+  ON_ATTACKED: 'ON_ATTACKED',
   ON_ABILITY_CHECK: 'ON_ABILITY_CHECK',
+  ON_SAVING_THROW: 'ON_SAVING_THROW',
   ON_CAST_SPELL: 'ON_CAST_SPELL'
 } as const
 
@@ -331,10 +335,25 @@ export const PATH_LIFECYCLE_CONSUME_EVENT_REGISTRY: Record<
     label: 'On Attack Roll',
     description: 'Consumed by first attack roll.'
   },
+  [PATH_LIFECYCLE_CONSUME_EVENT.ON_HIT]: {
+    code: PATH_LIFECYCLE_CONSUME_EVENT.ON_HIT,
+    label: 'On Hit',
+    description: 'Consumed by the first attack that hits, after it adds to that attack.'
+  },
+  [PATH_LIFECYCLE_CONSUME_EVENT.ON_ATTACKED]: {
+    code: PATH_LIFECYCLE_CONSUME_EVENT.ON_ATTACKED,
+    label: 'On Attacked',
+    description: 'Consumed by the first attack roll made against the holder.'
+  },
   [PATH_LIFECYCLE_CONSUME_EVENT.ON_ABILITY_CHECK]: {
     code: PATH_LIFECYCLE_CONSUME_EVENT.ON_ABILITY_CHECK,
     label: 'On Ability Check',
     description: 'Consumed by first ability check.'
+  },
+  [PATH_LIFECYCLE_CONSUME_EVENT.ON_SAVING_THROW]: {
+    code: PATH_LIFECYCLE_CONSUME_EVENT.ON_SAVING_THROW,
+    label: 'On Saving Throw',
+    description: 'Consumed by first saving throw the die applied to.'
   },
   [PATH_LIFECYCLE_CONSUME_EVENT.ON_CAST_SPELL]: {
     code: PATH_LIFECYCLE_CONSUME_EVENT.ON_CAST_SPELL,
@@ -411,7 +430,9 @@ export const PATH_LIFECYCLE_END_EVENT = {
   ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED',
   ON_INCAPACITATED: 'ON_INCAPACITATED',
   ON_IDLE_TURN: 'ON_IDLE_TURN',
-  ON_LEAVING_AREA: 'ON_LEAVING_AREA'
+  ON_LEAVING_AREA: 'ON_LEAVING_AREA',
+  ON_LONG_REST: 'ON_LONG_REST',
+  ON_CHOSEN_ITEM_RELEASED: 'ON_CHOSEN_ITEM_RELEASED'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -452,6 +473,16 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_END_EVENT.ON_LEAVING_AREA,
     label: 'On Leaving Area',
     description: 'Ends when the holder leaves the area of the zone that holds it.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_LONG_REST]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_LONG_REST,
+    label: 'On Long Rest',
+    description: 'Ends when the holder finishes a long rest.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_CHOSEN_ITEM_RELEASED]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_CHOSEN_ITEM_RELEASED,
+    label: 'On Chosen Item Released',
+    description: 'Ends when the path’s chosen item leaves the holder’s hands or equipment.'
   }
 } as const
 

@@ -1,6 +1,11 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -15,6 +20,7 @@ import {
   TARGET_DISPOSITION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
+  VALUE_DOMAIN_CODE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
@@ -72,12 +78,13 @@ export const slow: SpellAuthored = {
           id: spellChildId(SPELL_IDS.SLOW, 0x214, 1),
           order: 1,
           pathCode: PATH_CODE.ON_SAVE_FAIL,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.SLOW, 0x214, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            // A repeat-save result block is an Encounter active effect, so it carries its own UUID.
+            id: spellChildId(SPELL_IDS.SLOW, 0x219, 1),
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SLOW, 0x215, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -86,8 +93,90 @@ export const slow: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SLOW, 0x214, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SLOW' as const
+                // The delayed 1-action spell (the d20 roll) stays with the description.
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.SLOW, 0x216, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.MULTIPLY,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { numerator: 1, denominator: 2 },
+                      order: 1
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.SLOW, 0x216, 2),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.PENALTY,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { valueKind: 'FIXED', amount: 2 },
+                      order: 2
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.SLOW, 0x216, 3),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                      domain: { ability: ABILITY_CODE.DEXTERITY },
+                      modifierKind: MODIFIER_KIND.PENALTY,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { valueKind: 'FIXED', amount: 2 },
+                      order: 3
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.SLOW, 0x216, 4),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.REACTION_COUNT,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.SET_VALUE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { amount: 0 },
+                      order: 4
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.SLOW, 0x216, 5),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ACTION_BONUS_ACTION_EXCLUSIVITY,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.ENABLE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 5
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.SLOW, 0x216, 6),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_PER_ATTACK_ACTION,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.CAP_VALUE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { amount: 1 },
+                      order: 6
+                    }
+                  ]
+                }
+              },
+              {
+                id: spellChildId(SPELL_IDS.SLOW, 0x217, 1),
+                effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                timing: 'TARGET_TURN_END' as const,
+                savingThrow: {
+                  id: spellChildId(SPELL_IDS.SLOW, 0x218, 1),
+                  dcMethod: 'SOURCE_SAVE_DC' as const,
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+                },
+                attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                onSuccess: { kind: 'END' as const },
+                onFailure: { kind: 'CONTINUE' as const }
               }
             ]
           }

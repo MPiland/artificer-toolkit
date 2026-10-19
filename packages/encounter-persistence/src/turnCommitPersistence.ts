@@ -40,7 +40,10 @@ import {
 import { persistEncounterInitiativeRollCards } from './initiativeRollCards.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import { persistEncounterTurnZoneEffects } from './turnZoneEffectsPersistence.js'
-import { placeEncounterPassiveZones } from './placedSpatialEffects.js'
+import {
+  placeEncounterPassiveZones,
+  type EncounterPassiveZoneReaders
+} from './placedSpatialEffects.js'
 import {
   persistEncounterTurnDeathSave,
   persistEncounterTurnResources
@@ -65,6 +68,7 @@ export async function persistEncounterTurnCommit(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
     readScene(sceneId: string): Promise<Pick<CampaignSceneState, 'grid' | 'tokens'>>
+    readCharacterRules: EncounterPassiveZoneReaders['readCharacterRules']
     readDefinition(id: string, userId: string): Promise<ReusableDefinitionCurrentDto | null>
     bindConcentrationApplications(
       state: EncounterRunState,
@@ -309,17 +313,18 @@ export async function persistEncounterTurnCommit(
     },
     callbacks.applyMechanics
   )
-  // A Creature's passive zones are in place from the Encounter's start, before its first turn (D144).
+  // Passive zones are in place from the Encounter's start, before any first turn (D144, D155).
   if (root.commandType === 'START')
     await placeEncounterPassiveZones(
       ctx,
       {
         state,
+        campaign,
         actors: durableActors,
         occurrenceId: input.occurrenceId,
         rootCommandId: root.rootCommandId
       },
-      callbacks.readScene
+      callbacks
     )
   const incomingZones = await persistEncounterTurnZoneEffects(
     ctx,

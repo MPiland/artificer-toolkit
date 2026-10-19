@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { FacetAuthored, FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { CharacterGrantFoldSource } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import {
   SRD_ABILITIES,
-  SRD_CONDITION_TYPES
+  SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeCharacterGrantRestrictions } from '../character/characterGrantFoldRestrictionFacts.js'
@@ -536,11 +537,57 @@ describe('D&D 5e movement', () => {
     expect(walk(6, [{ label: 'Shield', equipped: true }])).toBe(30)
     expect(walk(6, [{ label: 'Leather Armor', equipped: true }])).toBe(30)
   })
+
+  it('Barbarian Fast Movement adds 10 ft. of walking speed unless heavy armor is worn (SPELLS-31.T3a)', () => {
+    const walk = (level: number, items: { label: string; equipped: boolean }[] = []) =>
+      evaluateSrdCharacter({
+        abilities: { STRENGTH: 15 },
+        race: 'Human',
+        classes: [{ label: 'Barbarian', level }],
+        features: [
+          srdFeature({
+            owner: 'CLASS',
+            classLabel: 'Barbarian',
+            featureLabel: 'Fast Movement',
+            level: 5
+          })
+        ],
+        items
+      }).output.movement.speeds[0]!.amount
+    expect(walk(5)).toBe(40)
+    expect(walk(5, [{ label: 'Hide Armor', equipped: true }])).toBe(40)
+    expect(walk(5, [{ label: 'Chain Mail', equipped: true }])).toBe(30)
+  })
 })
 
 describe('D&D 5e saving throws and defenses', () => {
   const frightened = SRD_CONDITION_TYPES.find((condition) => condition.code === 'FRIGHTENED')!.id
   const poisoned = SRD_CONDITION_TYPES.find((condition) => condition.code === 'POISONED')!.id
+
+  it('Monk Purity of Body grants poison damage and poisoned condition immunity (SPELLS-31.T3a)', () => {
+    const poison = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === 'POISON')!.id
+    const monk = (level: number) =>
+      evaluateSrdCharacter({
+        classes: [{ label: 'Monk', level }],
+        features:
+          level < 10
+            ? []
+            : [
+                srdFeature({
+                  owner: 'CLASS',
+                  classLabel: 'Monk',
+                  featureLabel: 'Purity of Body',
+                  level: 10
+                })
+              ]
+      }).output
+    expect(monk(10).defenses).toContainEqual(
+      expect.objectContaining({ kind: 'IMMUNITY', damageTypeId: poison })
+    )
+    expect(monk(10).conditionImmunityIds).toEqual([poisoned])
+    expect(monk(9).defenses).toEqual([])
+    expect(monk(9).conditionImmunityIds).toEqual([])
+  })
 
   it('Steel Will grants advantage on saves against being frightened only', () => {
     const character = evaluateSrdCharacter({
@@ -568,6 +615,39 @@ describe('D&D 5e saving throws and defenses', () => {
     expect(save([])).toBe('NORMAL')
     expect(save([poisoned])).toBe('NORMAL')
     expect(character.output.rollModes.savingThrows.WISDOM).toBe('NORMAL')
+  })
+
+  it('Halfling Brave authors the Steel Will advantage: saves of every ability against being frightened only', () => {
+    const halfling = evaluateSrdCharacter({
+      race: 'Halfling',
+      subrace: 'Lightfoot',
+      classes: [{ label: 'Fighter', level: 1 }]
+    })
+    const steelWill = evaluateSrdCharacter({
+      classes: [{ label: 'Ranger', level: 7, subclass: 'Hunter' }],
+      features: [
+        srdFeature({
+          owner: 'SUBCLASS',
+          classLabel: 'Ranger',
+          subclassLabel: 'Hunter',
+          featureLabel: 'Defensive Tactics',
+          level: 7,
+          optionLabels: ['Steel Will']
+        })
+      ]
+    })
+    for (const ability of SRD_ABILITIES) {
+      const save = (character: typeof halfling, conditionIds: string[]) =>
+        selectDnd5eTargetSavingThrow({
+          savingThrowDefinitions: character.output.savingThrowDefinitions,
+          abilityDefinitionId: ability.id,
+          conditionIds
+        }).rollMode
+      expect(save(halfling, [frightened])).toBe('ADVANTAGE')
+      expect(save(halfling, [])).toBe('NORMAL')
+      expect(save(halfling, [poisoned])).toBe('NORMAL')
+      expect(save(halfling, [frightened])).toBe(save(steelWill, [frightened]))
+    }
   })
 
   it('Danger Sense keeps its Dexterity advantage out of the Sheet and hands the Encounter the source-sight grant', () => {
@@ -605,7 +685,14 @@ describe('D&D 5e saving throws and defenses', () => {
       contributor: { influence: 'ADVANTAGE' }
     })
     // The authored "can act" is decided from the holder's state; sight is left to the Scene.
-    const holderState = (canAct: boolean) => ({ canAct, speedAboveZero: true, freeHand: true })
+    const holderState = (canAct: boolean) => ({
+      kind: 'CHARACTER' as const,
+      creatureTypeIds: [],
+      canAct,
+      speedAboveZero: true,
+      freeHand: true,
+      stowableHeldItemInstanceId: null
+    })
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(true))).toBe(true)
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(false))).toBe(false)
   })
@@ -770,10 +857,36 @@ describe('D&D 5e saving throws and defenses', () => {
         candidate: itemAction(character, label, { attackKind: 'MELEE', grip: 'ONE_HANDED' })
           .candidate,
         attackKind: 'MELEE',
-        itemMechanics: character.output.itemMechanics
+        policy: character.output
       })
     expect(traits('Longsword +1').magical).toBe(true)
     expect(traits('Longsword').magical).toBe(false)
+  })
+})
+
+describe('Monk Ki-Empowered Strikes (SPELLS-31.T4e)', () => {
+  it('makes unarmed strikes magical for overcoming resistance, and no weapon attack', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { DEXTERITY: 16, WISDOM: 14 },
+      classes: [{ label: 'Monk', level: 6 }],
+      features: [
+        srdFeature({
+          owner: 'CLASS',
+          classLabel: 'Monk',
+          featureLabel: 'Ki-Empowered Strikes',
+          level: 6
+        })
+      ],
+      items: [{ label: 'Quarterstaff' }]
+    })
+    const candidate = itemAction(character, 'Quarterstaff', {
+      attackKind: 'MELEE',
+      grip: 'ONE_HANDED'
+    }).candidate
+    const traits = (attackKind: 'MELEE' | 'UNARMED') =>
+      dnd5eCharacterAttackTraits({ candidate, attackKind, policy: character.output })
+    expect(traits('UNARMED').magical).toBe(true)
+    expect(traits('MELEE').magical).toBe(false)
   })
 })
 
@@ -944,8 +1057,128 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
       ...character.facts,
       grantFoldFacts: { ...character.facts.grantFoldFacts, background: source }
     })
-    expect(group!.conditions[0]!.kind).toBe('UNAVAILABLE')
+    expect(group!.conditions.find(({ conditionId }) => conditionId === 'skill-score')!.kind).toBe(
+      'UNAVAILABLE'
+    )
     expect(output.derivedStats.armorClass.effective).toBe(10)
+  })
+
+  it('decides the holder kind and creature type as constants, so the fold output is unchanged', () => {
+    const predicate = (id: string, predicateCode: 'CHARACTER_LEVEL' | 'CAN_ACT') => {
+      const base = { id, order: 0, kind: 'PREDICATE', constraint: 'INCLUDE' } as const
+      return predicateCode === 'CHARACTER_LEVEL'
+        ? { ...base, predicateCode, min: 1 }
+        : { ...base, predicateCode }
+    }
+    const restricted = (id: string, characterPredicate: 'CHARACTER_LEVEL' | 'CAN_ACT') => {
+      const facet: FacetAuthored = {
+        id,
+        groups: [
+          {
+            id: `${id}-character`,
+            order: 0,
+            contexts: [
+              {
+                id: `${id}-character-context`,
+                order: 0,
+                subject: 'CHARACTER',
+                conditions: [predicate(`${id}-predicate`, characterPredicate)]
+              }
+            ]
+          },
+          {
+            id: `${id}-creature`,
+            order: 1,
+            contexts: [
+              {
+                id: `${id}-creature-context`,
+                order: 0,
+                subject: 'CREATURE',
+                authoringModeKind: 'ALL',
+                conditions: [
+                  {
+                    id: `${id}-creature-type`,
+                    order: 0,
+                    kind: 'PREDICATE',
+                    constraint: 'INCLUDE',
+                    predicateCode: 'CREATURE_TYPE',
+                    authoringModeKind: 'ALL'
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+      return normalizeCharacterGrantRestrictions(facet)
+    }
+    const character = evaluateSrdCharacter({ abilities: { DEXTERITY: 10 }, classes: [fighter()] })
+    const armorClassBonus = (
+      grantId: string,
+      restrictions: CharacterGrantFoldSource['modifiers'][number]['restrictions']
+    ): CharacterGrantFoldSource['modifiers'][number] => ({
+      grantId,
+      valueDomainCode: 'ARMOR_CLASS',
+      modifierKind: 'BONUS',
+      scope: 'GLOBAL',
+      domain: {},
+      payload: { valueKind: 'FIXED', amount: 5 },
+      restrictions,
+      scopeSpellIds: [],
+      scopeResourceIds: []
+    })
+    type Restrictions = ReturnType<typeof normalizeCharacterGrantRestrictions>
+    const evaluateWith = (
+      only: (restrictions: Restrictions) => Restrictions
+    ): ReturnType<typeof evaluateDnd5e2014CharacterPolicy> => {
+      return evaluateDnd5e2014CharacterPolicy({
+        ...character.facts,
+        grantFoldFacts: {
+          ...character.facts.grantFoldFacts,
+          background: {
+            sourceId: 'holder-kind-source',
+            mechanicSource: {
+              kind: 'SYSTEM',
+              systemId: character.facts.grantFoldFacts.base.systemId
+            },
+            sourceState: null,
+            restrictions: [],
+            proficiencies: [],
+            senses: [],
+            modifiers: [
+              armorClassBonus('levelled', only(restricted('levelled', 'CHARACTER_LEVEL'))),
+              armorClassBonus('can-act', only(restricted('can-act', 'CAN_ACT')))
+            ],
+            feats: [],
+            spells: []
+          }
+        }
+      })
+    }
+    // Before D152 the normalizer emitted no holder-kind condition and left CREATURE_TYPE unsupported.
+    const beforeHolderConditions = (restrictions: Restrictions): Restrictions =>
+      restrictions.map(({ conditions }) => ({
+        conditions: conditions.flatMap((condition) =>
+          condition.kind === 'HOLDER_KIND'
+            ? []
+            : [
+                condition.kind === 'CREATURE_TYPE'
+                  ? { ...condition, kind: 'UNSUPPORTED' as const }
+                  : condition
+              ]
+        )
+      }))
+    const withHolderConditions = evaluateWith((restrictions) => restrictions)
+
+    expect(withHolderConditions).toEqual(evaluateWith(beforeHolderConditions))
+    expect(withHolderConditions.derivedStats.armorClass.effective).toBe(15)
+    expect(
+      withHolderConditions.grantFold.modifiers.find(({ grantId }) => grantId === 'can-act')
+    ).toMatchObject({
+      deferredRequirements: [
+        { conditions: [{ conditionId: 'can-act-predicate', kind: 'CAN_ACT' }] }
+      ]
+    })
   })
 
   it('an Equipment context becomes an attacking-item condition', () => {

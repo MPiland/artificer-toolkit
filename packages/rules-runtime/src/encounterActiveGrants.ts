@@ -1,3 +1,5 @@
+import { v5 as uuidv5 } from 'uuid'
+import { innateConditionIds } from './encounterInnateConditions.js'
 import type {
   CharacterGrantFoldModifier,
   CharacterGrantFoldOutput,
@@ -5,11 +7,14 @@ import type {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
   feetInLengthUnit,
   type AttackDomainCode,
+  type AttackOccasionCode,
   type ValueDomainCode
 } from '@artificer-toolkit/shared/core'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
@@ -19,12 +24,15 @@ import {
 } from '@artificer-toolkit/shared/rules'
 
 import {
+  activeAttackRollDice,
   activeFixedGrantTotal,
+  activeSavingThrowDice,
   activeSpeedGrantFeet,
   listActiveEffectGrants,
   record
 } from './character/activeEffectGrantTotals.js'
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
+import { effectEventScope, type EffectEventScope } from './encounterGrantLifetimes.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
 import {
@@ -33,10 +41,15 @@ import {
 } from './systems/dnd5e/identity.js'
 import { dnd5eSaveRequiresSourceSight } from './systems/dnd5e/modifierApplicability.js'
 
+// Namespaces the per-instance identity of an active grant's suppression contribution.
+const grantSuppressionNamespace = '5b0c4e0a-7a52-4d2b-9a0e-3c1f6d8b2e47'
+
 /**
  * The capabilities a holder's active grants switch off: a `REACTION_COUNT SET_VALUE 0` grant
  * (Shocking Grasp's "can't take reactions") suppresses its reaction allowance, so it is offered no
- * reaction while the grant lasts (D99).
+ * reaction while the grant lasts (D99). A suppression is keyed by the grant instance, the active
+ * effect and its authored grant, because several effects of one authored grant (or a grant id that
+ * is no UUID) would otherwise collide in the availability resolver.
  */
 export function encounterActiveGrantCapabilitySuppressions(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
@@ -51,7 +64,7 @@ export function encounterActiveGrantCapabilitySuppressions(
         ? [
             {
               activeEffectId: effectId,
-              contributionId: modifier.grantId,
+              contributionId: uuidv5(`${effectId}:${modifier.grantId}`, grantSuppressionNamespace),
               capabilityDefinitionIds: [DND5E_REACTION_ALLOWANCE_DEFINITION_ID]
             }
           ]
@@ -80,11 +93,12 @@ function activeGrantContributor(
 function encounterActiveGrantFoldSources(
   effects: readonly ActiveRuleEffectRecord[]
 ): CharacterGrantFoldSource[] {
-  return listActiveEffectGrants(effects).map(({ effectId, modifiers, senses }) => {
+  return listActiveEffectGrants(effects).map(({ effectId, modifiers, senses, boundItem }) => {
     const mechanicSource = { kind: 'ACTIVE_EFFECT', activeEffectId: effectId } as const
     return {
       sourceId: createCharacterMechanicSourceKey(mechanicSource),
       mechanicSource,
+      ...(boundItem && { boundSourceId: createCharacterMechanicSourceKey(boundItem) }),
       sourceState: null,
       restrictions: normalizeCharacterGrantRestrictions(undefined),
       proficiencies: [],
@@ -120,7 +134,8 @@ export function withCharacterActiveGrants(
 export function withCreatureActiveGrantSaves(
   savingThrowDefinitions: readonly unknown[],
   holderActorId: string,
-  effects: readonly ActiveRuleEffectRecord[]
+  effects: readonly ActiveRuleEffectRecord[],
+  featureModifiers: CharacterGrantFoldOutput['modifiers']
 ): unknown[] {
   const scoped = new Map<
     string,
@@ -131,36 +146,50 @@ export function withCreatureActiveGrantSaves(
     }
   >()
   const plain = new Map<string, EncounterRelationshipD20Contributor[]>()
-  for (const { effectId, modifiers } of listActiveEffectGrants(effects)) {
-    for (const modifier of modifiers) {
-      const { domain } = modifier
-      const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(domain.ability)]
-      const { conditionTypeId } = domain
-      if (
-        (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
-        modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
-        abilityDefinitionId === undefined ||
-        modifier.scope !== 'GLOBAL'
-      )
-        continue
-      const contributor: EncounterRelationshipD20Contributor = activeGrantContributor(
-        effectId,
-        holderActorId,
-        modifier.grantId,
-        modifier.modifierKind
-      )
-      if (conditionTypeId !== undefined) {
-        const key = `${abilityDefinitionId}:${conditionTypeId}`
-        const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
-        entry.contributors.push(contributor)
-        scoped.set(key, entry)
-      } else if (
-        domain.ruleDefinitionId === undefined &&
-        !hasHolderStateRestriction(modifier.restrictions) &&
-        !dnd5eSaveRequiresSourceSight(modifier)
-      ) {
-        plain.set(abilityDefinitionId, [...(plain.get(abilityDefinitionId) ?? []), contributor])
-      }
+  const grants = [
+    ...listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
+      modifiers.map((modifier) => ({
+        modifier,
+        restrictions: modifier.restrictions,
+        contributor: (influence: EncounterRelationshipD20Contributor['influence']) =>
+          activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)
+      }))
+    ),
+    ...featureModifiers.map((modifier) => ({
+      modifier,
+      restrictions: modifier.deferredRequirements,
+      contributor: (influence: EncounterRelationshipD20Contributor['influence']) => ({
+        sourceId: modifier.sourceId,
+        grantId: modifier.grantId,
+        domainKey: modifier.domainKey,
+        influence,
+        source: rollModeContributorSourceOfMechanicSource(modifier.source, holderActorId)
+      })
+    }))
+  ]
+  for (const { modifier, restrictions, contributor: contributorOf } of grants) {
+    const { domain } = modifier
+    const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(domain.ability)]
+    const { conditionTypeId } = domain
+    if (
+      (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
+      modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
+      abilityDefinitionId === undefined ||
+      modifier.scope !== 'GLOBAL'
+    )
+      continue
+    const contributor = contributorOf(modifier.modifierKind)
+    if (conditionTypeId !== undefined) {
+      const key = `${abilityDefinitionId}:${conditionTypeId}`
+      const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
+      entry.contributors.push(contributor)
+      scoped.set(key, entry)
+    } else if (
+      domain.ruleDefinitionId === undefined &&
+      !hasHolderStateRestriction(restrictions) &&
+      !dnd5eSaveRequiresSourceSight(modifier)
+    ) {
+      plain.set(abilityDefinitionId, [...(plain.get(abilityDefinitionId) ?? []), contributor])
     }
   }
   const rows = [
@@ -201,10 +230,23 @@ const CREATURE_DEFENSE_KIND_BY_DOMAIN: Readonly<
 }
 
 /**
- * What a holder can do now, read by the holder-state restrictions `CAN_ACT`, `SPEED_ABOVE_ZERO` and
- * `FREE_HAND` (either hand slot empty, D107).
+ * What a holder is and can do now, read by the holder-state restrictions `CAN_ACT`,
+ * `SPEED_ABOVE_ZERO`, `FREE_HAND` (a hand slot empty and not holding a creature, D107) and the
+ * holder restrictions `HOLDER_KIND` and `CREATURE_TYPE` (D152).
  */
-export type EncounterHolderState = { canAct: boolean; speedAboveZero: boolean; freeHand: boolean }
+export type EncounterHolderState = {
+  kind: 'CHARACTER' | 'CREATURE' | 'CUSTOM'
+  /** A Creature holder's type; empty for any other holder. */
+  creatureTypeIds: readonly string[]
+  canAct: boolean
+  speedAboveZero: boolean
+  freeHand: boolean
+  /**
+   * When no hand is free, the held weapon a Character can stow for free to free one (its off hand
+   * first, never a shield, D152); null otherwise.
+   */
+  stowableHeldItemInstanceId: string | null
+}
 
 type ModifierRestrictions = CharacterGrantFoldModifier['restrictions']
 
@@ -218,10 +260,30 @@ function isHolderStateKind(kind: string): kind is keyof typeof HOLDER_STATE_FLAG
   return Object.hasOwn(HOLDER_STATE_FLAG, kind)
 }
 
+/** Whether the holder meets a condition, or `undefined` when it cannot be decided here. */
+function holderConditionMatches(
+  condition: ModifierRestrictions[number]['conditions'][number],
+  holderState: EncounterHolderState
+): boolean | undefined {
+  switch (condition.kind) {
+    case 'HOLDER_KIND':
+      return condition.requiredIds.includes(holderState.kind)
+    case 'CREATURE_TYPE':
+      return (
+        condition.mode === 'ALL' ||
+        condition.requiredIds.some((id) => holderState.creatureTypeIds.includes(id))
+      )
+    default:
+      return isHolderStateKind(condition.kind)
+        ? holderState[HOLDER_STATE_FLAG[condition.kind]]
+        : undefined
+  }
+}
+
 /**
- * Whether a modifier's holder-state restrictions hold: some group has only holder-state conditions
- * and every one is met. Any other condition cannot be decided here and fails closed, so the group
- * does not hold.
+ * Whether a modifier's holder restrictions hold: some group has only holder conditions and every
+ * one is met. Any other condition cannot be decided here and fails closed, so the group does not
+ * hold.
  */
 export function holderStateRestrictionsHold(
   restrictions: ModifierRestrictions,
@@ -230,11 +292,10 @@ export function holderStateRestrictionsHold(
   return (
     restrictions.length === 0 ||
     restrictions.some((group) =>
-      group.conditions.every(
-        (condition) =>
-          isHolderStateKind(condition.kind) &&
-          holderState[HOLDER_STATE_FLAG[condition.kind]] === (condition.constraint === 'INCLUDE')
-      )
+      group.conditions.every((condition) => {
+        const matches = holderConditionMatches(condition, holderState)
+        return matches !== undefined && matches === (condition.constraint === 'INCLUDE')
+      })
     )
   )
 }
@@ -278,45 +339,111 @@ export function encounterGrantsEnabledDomain(
   )
 }
 
-/** An attack-roll contributor the target's active grants give attacks of one attack domain against it. */
+/** An `ATTACKS_AGAINST` grant the target holds, for attacks of one attack domain against it. */
 export type EncounterAttackAgainstContributor = {
   attackDomain: AttackDomainCode
   /** Holds only while the holder can see the attacker (D100). */
   requiresHolderSeesAttacker: boolean
-  contributor: EncounterRelationshipD20Contributor
+  /** System Senses through which an attacker that sees the holder is unaffected. */
+  exemptAttackerSenseDefinitionIds: readonly string[]
+  /** Holds only for attacks made on this occasion (an opportunity attack); absent for every attack. */
+  attackOccasion?: AttackOccasionCode
+  /** The attackers, and the turn, the grant's effect admits; a feature's grant admits every one. */
+  eventScope: EffectEventScope
+  /** The advantage or disadvantage the grant gives, or null when it negates advantage (Elusive). */
+  contributor: EncounterRelationshipD20Contributor | null
 }
 
+type AttacksAgainstModifier = Pick<
+  CharacterGrantFoldModifier,
+  'valueDomainCode' | 'modifierKind' | 'domain'
+>
+
+/** The grant's part of an attacks-against entry, or null when it is no `ATTACKS_AGAINST` grant. */
+function attacksAgainstEntry(
+  modifier: AttacksAgainstModifier,
+  contributor: (
+    influence: EncounterRelationshipD20Contributor['influence']
+  ) => EncounterRelationshipD20Contributor
+): Omit<EncounterAttackAgainstContributor, 'eventScope'> | null {
+  const { attackDomain, requiresHolderSeesAttacker, exemptAttackerSenseDefinitionIds } =
+    modifier.domain
+  const { modifierKind } = modifier
+  if (
+    modifier.valueDomainCode !== 'ATTACKS_AGAINST' ||
+    attackDomain === undefined ||
+    (modifierKind !== 'ADVANTAGE' &&
+      modifierKind !== 'DISADVANTAGE' &&
+      modifierKind !== 'NEGATE_ADVANTAGE')
+  )
+    return null
+  return {
+    attackDomain,
+    requiresHolderSeesAttacker: requiresHolderSeesAttacker === true,
+    exemptAttackerSenseDefinitionIds: exemptAttackerSenseDefinitionIds ?? [],
+    ...(modifier.domain.attackOccasion && { attackOccasion: modifier.domain.attackOccasion }),
+    contributor: modifierKind === 'NEGATE_ADVANTAGE' ? null : contributor(modifierKind)
+  }
+}
+
+/** A Character feature's grants admit every attacker, on every turn. */
+const EVERY_EVENT: EffectEventScope = { actorId: null, turnActorId: null }
+
 /**
- * The advantage and disadvantage a holder's active `ATTACKS_AGAINST` grants give attack rolls made
- * against it, for the grants whose holder-state restrictions hold now.
+ * The `ATTACKS_AGAINST` grants a holder's active effects and, for a Character, its own features
+ * (Elusive) apply to attack rolls made against it, for the grants whose holder-state restrictions
+ * hold now. The Character fold also carries its active effects' grants; those are read from the
+ * effects, which scope them to their attackers and turns.
  */
-export function encounterAttackAgainstContributors(
-  holderActorId: string,
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+export function encounterAttackAgainstContributors(input: {
+  holderActorId: string
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>[]
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers' | 'modifierGroups'> | null
   holderState: EncounterHolderState
-): EncounterAttackAgainstContributor[] {
-  return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
-    modifiers.flatMap((modifier) => {
-      const { attackDomain, requiresHolderSeesAttacker } = modifier.domain
-      return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
-        modifier.valueDomainCode === 'ATTACKS_AGAINST' &&
-        attackDomain !== undefined &&
-        modifier.scope === 'GLOBAL' &&
-        holderStateRestrictionsHold(modifier.restrictions, holderState)
-        ? [
-            {
-              attackDomain,
-              requiresHolderSeesAttacker: requiresHolderSeesAttacker === true,
-              contributor: activeGrantContributor(
-                effectId,
-                holderActorId,
-                modifier.grantId,
-                modifier.modifierKind
-              )
-            }
-          ]
-        : []
+}): EncounterAttackAgainstContributor[] {
+  const { holderActorId, effects, grantFold, holderState } = input
+  const fromFeatures = (grantFold?.modifierGroups ?? []).flatMap(({ contributions }) =>
+    contributions.flatMap(({ acceptedModifierIndex, grantId }) => {
+      const modifier = grantFold!.modifiers[acceptedModifierIndex]!
+      const entry =
+        modifier.source.kind === 'ACTIVE_EFFECT' ||
+        !holderStateRestrictionsHold(modifier.deferredRequirements, holderState)
+          ? null
+          : attacksAgainstEntry(modifier, (influence) => ({
+              sourceId: modifier.sourceId,
+              grantId,
+              domainKey: modifier.domainKey,
+              influence,
+              source: rollModeContributorSourceOfMechanicSource(modifier.source, holderActorId)
+            }))
+      return entry ? [{ ...entry, eventScope: EVERY_EVENT }] : []
     })
+  )
+  const fromEffects = listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) => {
+    const effect = effects.find(({ id }) => id === effectId)
+    const eventScope = effect ? effectEventScope(effect, holderActorId) : null
+    if (eventScope === null) return []
+    return modifiers.flatMap((modifier) => {
+      const entry =
+        modifier.scope !== 'GLOBAL' ||
+        !holderStateRestrictionsHold(modifier.restrictions, holderState)
+          ? null
+          : attacksAgainstEntry(modifier, (influence) =>
+              activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)
+            )
+      return entry ? [{ ...entry, eventScope }] : []
+    })
+  })
+  return [...fromFeatures, ...fromEffects]
+}
+
+/** Whether a Character's own features carry an `ATTACKS_AGAINST` grant. */
+export function hasFeatureAttacksAgainstGrants(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
+): boolean {
+  return (grantFold?.modifiers ?? []).some(
+    (modifier) =>
+      modifier.valueDomainCode === 'ATTACKS_AGAINST' && modifier.source.kind !== 'ACTIVE_EFFECT'
   )
 }
 
@@ -501,10 +628,35 @@ export function withCreatureActiveGrantProtection<
       sourceEffectIds?: readonly string[]
     }[]
     conditionImmunityIds: readonly string[]
+    spellSchoolImmunityIds: readonly string[]
   }
->(protection: TProtection, effects: readonly ActiveRuleEffectRecord[]): TProtection {
+>(
+  protection: TProtection,
+  effects: readonly ActiveRuleEffectRecord[],
+  featureModifiers: CharacterGrantFoldOutput['modifiers']
+): TProtection {
   const defenses = new Map(protection.defenses.map((defense) => [defenseKey(defense), defense]))
   const conditionImmunityIds = new Set(protection.conditionImmunityIds)
+  const spellSchoolImmunityIds = new Set(protection.spellSchoolImmunityIds)
+  const foldSpellSchoolImmunity = (modifier: {
+    modifierKind: string
+    valueDomainCode: string
+    payload?: object
+  }) => {
+    if (
+      modifier.valueDomainCode !== 'SPELL_SCHOOL_IMMUNITY' ||
+      !modifier.payload ||
+      !('magicSchoolId' in modifier.payload) ||
+      typeof modifier.payload.magicSchoolId !== 'string'
+    )
+      return
+    if (modifier.modifierKind === 'ADD_OPTION')
+      spellSchoolImmunityIds.add(modifier.payload.magicSchoolId)
+    else if (modifier.modifierKind === 'REMOVE_OPTION')
+      spellSchoolImmunityIds.delete(modifier.payload.magicSchoolId)
+  }
+  // A Creature's features grant spell school immunity through the folded feature modifiers.
+  featureModifiers.forEach(foldSpellSchoolImmunity)
   for (const { modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
       const { payload } = modifier
@@ -515,6 +667,7 @@ export function withCreatureActiveGrantProtection<
         payload === undefined
       )
         continue
+      foldSpellSchoolImmunity(modifier)
       const kind = CREATURE_DEFENSE_KIND_BY_DOMAIN[modifier.valueDomainCode]
       const option = kind
         ? 'damageTypeId' in payload
@@ -546,8 +699,20 @@ export function withCreatureActiveGrantProtection<
         left.kind.localeCompare(right.kind) ||
         defenseKey(left).localeCompare(defenseKey(right))
     ),
-    conditionImmunityIds: [...conditionImmunityIds]
+    conditionImmunityIds: [...conditionImmunityIds],
+    spellSchoolImmunityIds: [...spellSchoolImmunityIds]
   }
+}
+
+/** The condition types a Creature holder always has: its features' and active grants' innate conditions. */
+export function creatureInnateConditionIds(
+  effects: readonly ActiveRuleEffectRecord[],
+  featureModifiers: CharacterGrantFoldOutput['modifiers']
+): string[] {
+  return innateConditionIds([
+    ...featureModifiers,
+    ...listActiveEffectGrants(effects).flatMap(({ modifiers }) => modifiers)
+  ])
 }
 
 /**
@@ -559,6 +724,39 @@ export function creatureAttackAbility(outcomes: readonly unknown[]): string | nu
   const bonuses = Array.isArray(damage?.bonuses) ? damage.bonuses.map(record) : []
   const ability = bonuses.find((bonus) => bonus?.bonusKind === 'ABILITY_BONUS')?.ability
   return typeof ability === 'string' ? ability : null
+}
+
+/**
+ * A holder's added attack-roll dice (D156) by attack domain, for attacks made with `attackAbility`:
+ * the `attackAddedDice` source fact its attack graphs read. Domains with no dice are omitted.
+ */
+export function encounterAttackAddedDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  attackAbility: string | null
+): Record<string, D20AddedDieDto[]> {
+  return Object.fromEntries(
+    attackDomainCodeSchema.options.flatMap((attackDomain) => {
+      const dice = activeAttackRollDice(effects, attackDomain, attackAbility)
+      return dice.length > 0 ? [[attackDomain, dice]] : []
+    })
+  )
+}
+
+/**
+ * A holder's added saving-throw dice (D156) by D&D ability definition id: the
+ * `savingThrowAddedDice` target fact its save graphs read. Abilities with no dice are omitted.
+ */
+export function encounterSavingThrowAddedDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+): Record<string, D20AddedDieDto[]> {
+  return Object.fromEntries(
+    Object.entries(DND5E_ABILITY_DEFINITION_ID_BY_CODE).flatMap(
+      ([ability, abilityDefinitionId]) => {
+        const dice = activeSavingThrowDice(effects, ability)
+        return dice.length > 0 ? [[abilityDefinitionId, dice]] : []
+      }
+    )
+  )
 }
 
 /**
@@ -579,11 +777,48 @@ export function creatureActiveGrantAttackContributors(
       return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
         modifier.valueDomainCode === 'ATTACK_ROLL' &&
         modifier.domain.attackDomain === attackDomain &&
+        modifier.domain.againstEffectSource !== true &&
         (grantAbility === null || grantAbility === attackAbility) &&
         modifier.scope === 'GLOBAL'
         ? [activeGrantContributor(effectId, holderActorId, modifier.grantId, modifier.modifierKind)]
         : []
     })
+  )
+}
+
+/**
+ * The advantage and disadvantage an attacker's active grants give only its attacks against the
+ * source of the effect holding them (Bestow Curse's disadvantage against the caster), for a
+ * Character and a Creature alike.
+ */
+export function activeEffectSourceAttackContributors(input: {
+  attackerActorId: string
+  targetActorId: string
+  attackDomain: string
+  effects: readonly ActiveRuleEffectRecord[]
+}): EncounterRelationshipD20Contributor[] {
+  const fromTarget = input.effects.filter(
+    ({ definition }) =>
+      definition.schemaVersion === 2 &&
+      definition.origin.kind === 'ENCOUNTER' &&
+      definition.origin.sourceActorId === input.targetActorId
+  )
+  return listActiveEffectGrants(fromTarget).flatMap(({ effectId, modifiers }) =>
+    modifiers.flatMap((modifier) =>
+      (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+      modifier.valueDomainCode === 'ATTACK_ROLL' &&
+      modifier.domain.attackDomain === input.attackDomain &&
+      modifier.domain.againstEffectSource === true
+        ? [
+            activeGrantContributor(
+              effectId,
+              input.attackerActorId,
+              modifier.grantId,
+              modifier.modifierKind
+            )
+          ]
+        : []
+    )
   )
 }
 
@@ -621,6 +856,22 @@ export function withCreatureActiveGrantArmorClass(
   effects: readonly ActiveRuleEffectRecord[]
 ): number | null {
   return armorClass === null ? null : armorClass + activeFixedGrantTotal(effects, 'ARMOR_CLASS')
+}
+
+/**
+ * A Creature holder's skill total with its active fixed bonuses and penalties to that skill (Pass
+ * without Trace's +10 Stealth) added to its stat block total. A Character folds the same grants
+ * through its own policy instead.
+ */
+export function withCreatureActiveGrantSkillTotal(
+  total: number | undefined,
+  skillId: string,
+  effects: readonly ActiveRuleEffectRecord[]
+): number | undefined {
+  return total === undefined
+    ? undefined
+    : total +
+        activeFixedGrantTotal(effects, 'SKILL_MODIFIER', (domain) => domain.skillId === skillId)
 }
 
 /**

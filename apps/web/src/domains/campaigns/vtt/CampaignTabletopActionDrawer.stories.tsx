@@ -6,13 +6,16 @@ import type {
   EncounterCommandResultDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
   encounterActionChoiceDtoSchema,
   encounterActionChoicesDtoSchema,
   encounterOptionalActionChoicesDtoSchema,
+  type EncounterActionItemChoicesDto,
   type EncounterOptionalActionChoicesDto,
+  type GetEncounterActionItemChoicesInputDto,
   type GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { validated } from '../../../test/validatedFixture'
@@ -115,6 +118,13 @@ const loadOptionalChoices = fn(
     _request: GetEncounterOptionalActionChoicesInputDto
   ): Promise<EncounterOptionalActionChoicesDto> => optionalChoices
 )
+const loadItemChoices = fn(
+  async (
+    _request: GetEncounterActionItemChoicesInputDto
+  ): Promise<EncounterActionItemChoicesDto> => ({
+    items: []
+  })
+)
 const pendingOptionalChoiceResponses: Array<(value: EncounterOptionalActionChoicesDto) => void> = []
 const loadSlowOptionalChoices = fn(
   (_request: GetEncounterOptionalActionChoicesInputDto) =>
@@ -169,6 +179,7 @@ const basicActionChoices = validatedActions([
 
 const escapeSent = fn()
 const endHeldGrantSent = fn()
+const releaseSent = fn()
 const escapes = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   {
     activeEffectId: '00000000-0000-4000-8000-000000000e01',
@@ -205,6 +216,11 @@ async function sendEndHeldGrantCommand(command: EndHeldGrantInputDto) {
   return resolvedCommand()
 }
 
+async function sendReleaseCommand(command: ReleaseRelationshipInputDto) {
+  releaseSent(command)
+  return resolvedCommand()
+}
+
 const meta = {
   component: CampaignTabletopActionDrawer,
   args: {
@@ -214,7 +230,9 @@ const meta = {
     basicActionChoices: [],
     escapes: [],
     heldGrantEnds: [],
+    releases: [],
     openAttackAction: null,
+    defaultActionId: null,
     areaAim: null,
     onAreaAimChange: fn(),
     onAreaSizeChange: fn(),
@@ -225,6 +243,7 @@ const meta = {
     pickedTargetActorId: undefined,
     onEscape: sendEscapeCommand,
     onEndHeldGrant: sendEndHeldGrantCommand,
+    onRelease: sendReleaseCommand,
     onOpen: fn(),
     onClose: fn()
   },
@@ -280,7 +299,8 @@ export const ResolveTargetedAction: Story = {
     onResolve: resolveActionCommand,
     optionalRules,
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -326,7 +346,8 @@ export const ResolveDisarm: Story = {
     onResolve: resolveActionCommand,
     optionalRules,
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -398,7 +419,8 @@ export const CreatureSource: Story = {
     onResolve: resolveActionCommand,
     optionalRules: [],
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -433,7 +455,8 @@ export const StaleOptionalScope: Story = {
     onResolve: resolveActionCommand,
     optionalRules,
     unavailableActions: [],
-    onLoadOptionalChoices: loadSlowOptionalChoices
+    onLoadOptionalChoices: loadSlowOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -477,7 +500,8 @@ export const ConfirmShieldStow: Story = {
     onResolve: resolveActionCommand,
     optionalRules: [],
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -524,7 +548,8 @@ export const ChooseVersatileGrip: Story = {
     onResolve: resolveActionCommand,
     optionalRules: [],
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -591,7 +616,8 @@ export const SecondAttackPreselected: Story = {
       total: 2,
       lastActionId: actions[0].id,
       lastTargetIds: [targetActor.id]
-    }
+    },
+    defaultActionId: actions[0].id
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -676,6 +702,37 @@ export const EscapeFromGrapple: Story = {
         actorId: sourceActor.id,
         activeEffectId: escapes[0].activeEffectId,
         checkDefinitionId: escapes[0].checks[1].checkDefinitionId
+      })
+    )
+  }
+}
+
+const releases = validated(encounterActionChoicesDtoSchema.shape.releases)([
+  {
+    heldActorId: targetActor.id,
+    activeEffectId: '00000000-0000-4000-8000-000000000e21',
+    label: `Release ${targetActor.label}`
+  }
+])
+
+/** The grappler lets go of the creature it holds, for no action (D152). */
+export const ReleaseHeldCreature: Story = {
+  args: { ...ResolveTargetedAction.args, releases },
+  play: async ({ canvasElement }) => {
+    releaseSent.mockClear()
+    const { drawer } = await openActions(canvasElement)
+    const section = within(drawer.getByRole('region', { name: 'Holding' }))
+
+    await userEvent.click(section.getByRole('button', { name: releases[0].label }))
+
+    await waitFor(() => expect(releaseSent).toHaveBeenCalledTimes(1))
+    await expect(await section.findByText('Released.')).toBeVisible()
+    await expect(releaseSent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'RELEASE_RELATIONSHIP',
+        actorId: sourceActor.id,
+        heldActorId: targetActor.id,
+        activeEffectId: releases[0].activeEffectId
       })
     )
   }
