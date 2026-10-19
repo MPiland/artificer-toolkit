@@ -11420,7 +11420,7 @@
             },
             {
               "id": "SPELLS-31.T4k2c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 3,
@@ -11430,7 +11430,7 @@
                 "after": ["SPELLS-31.T4k2b"]
               },
               "text": "new (split from T4k2b, 2026-10-19): Nature's Sanctuary successImmunity at runtime. Extend the Character-target action receipt (CHARACTER_MECHANICS_BATCH) with grantEffectTransitions, classifyCreatedEffects and its checksums, and revert, so a successful save persists a 24h SOURCE_IMMUNITY Active Rule Effect (T5l) with a frozen graph; the attacker then stops re-saving.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m202 (2b5281863)."
             },
             {
               "id": "SPELLS-31.T4k2d",
