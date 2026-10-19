@@ -412,7 +412,14 @@ export async function prepareNativeLiveMovement(
     >(step, {
       discoverPassage: async () => {
         try {
-          return discoverEncounterMovementPassage({ ...step, actors: captured.actors })
+          // A creature the mover drags moves with it, so it never blocks the mover's way (D105).
+          return discoverEncounterMovementPassage({
+            ...step,
+            sceneTokens: step.sceneTokens.filter(
+              ({ id }) => !captured.drag?.tokens.some(({ tokenId }) => tokenId === id)
+            ),
+            actors: captured.actors
+          })
         } catch (error) {
           // The message names no creature, so a fogged hostile at the endpoint stays hidden.
           if (error instanceof MovementEndpointOccupiedError) rejectDomain('MOVEMENT_BLOCKED')

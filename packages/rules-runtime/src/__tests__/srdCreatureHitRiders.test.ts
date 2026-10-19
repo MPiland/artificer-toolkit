@@ -198,6 +198,34 @@ describe('SRD Creature critical hits and hit point maximum drains', () => {
       })
     )
   })
+
+  it.each([
+    // DC 15 Constitution, the Ogre +3: a 5 fails, a 15 succeeds; 5d10 + 5 psychic, every die a 3.
+    ['fails', 4, 'ON_SAVE_FAIL', 3 * 5 + 5],
+    ['makes', 14, 'ON_SAVE_SUCCESS', Math.floor((3 * 5 + 5) / 2)]
+  ] as const)(
+    'drains the hit point maximum by the psychic damage of the Succubus’s Draining Kiss when the target %s its save',
+    async (_result, saveFace, resultPath, damage) => {
+      const kissed = await attackOgre({
+        attacker: 'Succubus/Incubus',
+        feature: 'Draining Kiss',
+        rolls: [saveFace, 2, 2, 2, 2, 2]
+      })
+      expect(kissed.execution.d20).toMatchObject({ defenseOrDc: 15, resultPath })
+      expect(kissed.damage).toEqual([[damage, srdDamageTypeId('PSYCHIC')]])
+      expect(kissed.transition.after.maximumHitPoints).toBe(
+        kissed.transition.before.maximumHitPoints - damage
+      )
+      expect(kissed.receiptApplications).toContainEqual(
+        expect.objectContaining({
+          kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+          reductionAmount: damage,
+          resolvedPath: resultPath,
+          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
+        })
+      )
+    }
+  )
 })
 
 describe('SRD Creature weapon attacks through held Equipment (D62, M9)', () => {

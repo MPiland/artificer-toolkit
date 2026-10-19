@@ -279,23 +279,31 @@ export function parseGeometryCommand(row: Record<string, unknown>, version: numb
   const command = sceneStoredGeometryCommandSchema.parse(stored(row))
   const bound =
     command.input.type === 'MOVE_SCENE_TOKEN' && command.input.expectedEncounterVersion !== null
+  // A drag (D105) stores the mover's TOKEN_MOVED first, then each dragged token's, in one BATCH.
+  const [primary, ...dragged] =
+    command.result.delta?.kind === 'BATCH' ? command.result.delta.deltas : [command.result.delta]
+  const draggedMatch =
+    dragged.length === 0 ||
+    (command.input.type === 'MOVE_SCENE_TOKEN' &&
+      dragged.every((move) => move?.kind === 'TOKEN_MOVED'))
   const geometryMatches =
-    bound && command.result.occurrence !== null
+    draggedMatch &&
+    (bound && command.result.occurrence !== null
       ? command.result.version >= command.input.expectedSceneVersion &&
         command.result.version <= command.input.expectedSceneVersion + 1 &&
         (command.result.delta === null
           ? command.result.version ===
             command.input.expectedSceneVersion + (command.result.fogPatches.length > 0 ? 1 : 0)
-          : command.result.delta.kind === 'TOKEN_MOVED' &&
+          : primary?.kind === 'TOKEN_MOVED' &&
             command.input.type === 'MOVE_SCENE_TOKEN' &&
-            command.result.delta.tokenId === command.input.tokenId &&
+            primary.tokenId === command.input.tokenId &&
             command.result.version === command.input.expectedSceneVersion + 1)
       : (bound
           ? command.input.expectedSceneVersion + 1 === command.result.version
           : command.input.expectedSceneVersion < command.result.version) &&
         command.result.occurrence === null &&
-        checksumCanonicalJson(command.result.delta) ===
-          checksumCanonicalJson(geometryTarget(command.input).delta)
+        checksumCanonicalJson(primary) ===
+          checksumCanonicalJson(geometryTarget(command.input).delta))
   if (
     command.inputChecksum !== checksumCanonicalJson(command.input) ||
     command.inputChecksum !== checksumCanonicalJson(normalizeGeometryInput(command.input)) ||

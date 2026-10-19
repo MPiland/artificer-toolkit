@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
   SRD_CONDITION_TYPES,
   SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
+  endedEffectReleases,
+  expiredEffectReleases,
   targetEndedEffects,
-  endedEffectConditionReleases
+  withOwnedTemporaryHitPoints
 } from '../encounterEndedEffectRelease.js'
+import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 
@@ -46,7 +48,7 @@ describe('conditions released with the effects an event ended', () => {
   it('releases the condition the ended effect alone held, naming the effect that owned it', () => {
     const ended = owning(FIRST_ID, { [INVISIBLE]: false })
     expect(
-      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [ended], ended: [ended] })
+      endedEffectReleases({ holderActorId: HOLDER_ID, held: [ended], ended: [ended] })
     ).toEqual([
       {
         kind: 'CONDITION_REMOVE',
@@ -54,7 +56,7 @@ describe('conditions released with the effects an event ended', () => {
         sourceActiveEffectId: FIRST_ID,
         targetActorId: HOLDER_ID,
         sourceNodeId: ended.definition.frozenGraphNodeId,
-        sourceOperationKey: ENDED_EFFECT_CONDITION_OPERATION_KEY,
+        sourceOperationKey: ENDED_EFFECT_RELEASE_OPERATION_KEY,
         authoredPath: null,
         resolvedPath: null
       }
@@ -64,7 +66,7 @@ describe('conditions released with the effects an event ended', () => {
   it('keeps a condition the holder had before the effect', () => {
     const ended = owning(FIRST_ID, { [INVISIBLE]: true })
     expect(
-      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [ended], ended: [ended] })
+      endedEffectReleases({ holderActorId: HOLDER_ID, held: [ended], ended: [ended] })
     ).toEqual([])
   })
 
@@ -72,7 +74,7 @@ describe('conditions released with the effects an event ended', () => {
     const ended = owning(FIRST_ID, { [INVISIBLE]: false })
     const remaining = owning(SECOND_ID, { [INVISIBLE]: false }, 2)
     expect(
-      endedEffectConditionReleases({
+      endedEffectReleases({
         holderActorId: HOLDER_ID,
         held: [ended, remaining],
         ended: [ended]
@@ -83,22 +85,24 @@ describe('conditions released with the effects an event ended', () => {
   it('releases several conditions in a stable order, each citing its own owner', () => {
     const first = owning(FIRST_ID, { [INVISIBLE]: false })
     const second = owning(SECOND_ID, { [CHARMED]: false }, 2)
-    const released = endedEffectConditionReleases({
+    const released = endedEffectReleases({
       holderActorId: HOLDER_ID,
       held: [first, second],
       ended: [second, first]
     })
-    expect(released.map(({ conditionId: id }) => id)).toEqual([INVISIBLE, CHARMED].sort())
+    const conditionIdOf = (entry: (typeof released)[number]) =>
+      entry.kind === 'CONDITION_REMOVE' ? entry.conditionId : entry.kind
+    expect(released.map(conditionIdOf)).toEqual([INVISIBLE, CHARMED].sort())
     expect(
-      Object.fromEntries(released.map((entry) => [entry.conditionId, entry.sourceActiveEffectId]))
+      Object.fromEntries(
+        released.map((entry) => [conditionIdOf(entry), entry.sourceActiveEffectId])
+      )
     ).toEqual({ [INVISIBLE]: FIRST_ID, [CHARMED]: SECOND_ID })
   })
 
   it('releases nothing when no effect ended or the ended effect owns no condition', () => {
     const held = owning(FIRST_ID, { [INVISIBLE]: false })
-    expect(
-      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [] })
-    ).toEqual([])
+    expect(endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [] })).toEqual([])
     const plain = activeEffect({
       id: SECOND_ID,
       owner,
@@ -117,8 +121,77 @@ describe('conditions released with the effects an event ended', () => {
       ]
     })
     expect(
-      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [plain], ended: [plain] })
+      endedEffectReleases({ holderActorId: HOLDER_ID, held: [plain], ended: [plain] })
     ).toEqual([])
+  })
+})
+
+describe('temporary hit points released with the effects that gave them (D156)', () => {
+  const owningTemporary = (id: string) =>
+    activeEffect({
+      id,
+      owner,
+      createdOrdinal: 1,
+      stateContributions: [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' }]
+    })
+  const release = (effect: ReturnType<typeof owningTemporary>) => ({
+    kind: 'TEMPORARY_HIT_POINTS_RELEASE',
+    sourceActiveEffectId: effect.id,
+    targetActorId: HOLDER_ID,
+    sourceNodeId: effect.definition.frozenGraphNodeId,
+    sourceOperationKey: ENDED_EFFECT_RELEASE_OPERATION_KEY,
+    authoredPath: null,
+    resolvedPath: null
+  })
+
+  it('releases the temporary hit points of each event-ended effect that owns them, after its conditions', () => {
+    const conditions = owning(FIRST_ID, { [INVISIBLE]: false })
+    const temporary = owningTemporary(SECOND_ID)
+    expect(
+      endedEffectReleases({
+        holderActorId: HOLDER_ID,
+        held: [conditions, temporary],
+        ended: [temporary, conditions]
+      }).map(({ kind, sourceActiveEffectId }) => [kind, sourceActiveEffectId])
+    ).toEqual([
+      ['CONDITION_REMOVE', FIRST_ID],
+      ['TEMPORARY_HIT_POINTS_RELEASE', SECOND_ID]
+    ])
+  })
+
+  it('releases only the temporary hit points of an effect that expires at a turn boundary', () => {
+    const conditions = owning(FIRST_ID, { [INVISIBLE]: false })
+    const temporary = owningTemporary(SECOND_ID)
+    expect(expiredEffectReleases(temporary, HOLDER_ID)).toEqual([release(temporary)])
+    expect(expiredEffectReleases(conditions, HOLDER_ID)).toEqual([])
+  })
+
+  it('marks the temporary hit points an owning effect gives as its own, and no other application', () => {
+    const base = {
+      sourceNodeId: 'entry',
+      sourceOperationKey: 'dnd5e.temporary-hit-points-proposal',
+      authoredPath: null,
+      resolvedPath: null,
+      requestedAmount: 3,
+      resolvedAmount: 3,
+      appliedAmount: 3,
+      beforeCurrentHitPoints: 5,
+      afterCurrentHitPoints: 5,
+      beforeTemporaryHitPoints: 0,
+      afterTemporaryHitPoints: 3,
+      targetActorId: HOLDER_ID
+    }
+    const applications = [
+      { ...base, kind: 'TEMPORARY_HIT_POINTS' },
+      { ...base, kind: 'HEAL' }
+    ] as CharacterRuleActionApplication[]
+    expect(withOwnedTemporaryHitPoints(applications, owningTemporary(SECOND_ID))).toEqual([
+      { ...applications[0], sourceActiveEffectId: SECOND_ID },
+      applications[1]
+    ])
+    expect(
+      withOwnedTemporaryHitPoints(applications, owning(FIRST_ID, { [INVISIBLE]: false }))
+    ).toEqual(applications)
   })
 })
 
@@ -147,7 +220,7 @@ describe('what an attack roll ends for its roller', () => {
     })
     expect(consumedGrants).toEqual([held])
     expect(sourceReleases).toEqual(
-      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+      endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
     )
     expect(sourceReleases).toHaveLength(1)
   })
@@ -247,7 +320,7 @@ describe('what an action ends on its target', () => {
     const { endedEffects, releases } = taken([held], [damage(FIRE)])
     expect(endedEffects).toEqual([held])
     expect(releases).toEqual(
-      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+      endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
     )
     expect(releases).toHaveLength(1)
   })
@@ -318,7 +391,7 @@ describe('what an action ends on its target', () => {
       const { endedEffects, releases } = attackedBy([held], true)
       expect(endedEffects).toEqual([held])
       expect(releases).toEqual(
-        endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+        endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
       )
       expect(releases).toHaveLength(1)
     })
@@ -373,7 +446,7 @@ describe('what another creature rousing the holder ends (SPELLS-27.T12)', () => 
     const { endedEffects, releases } = roused([held], ROUSE_ID)
     expect(endedEffects).toEqual([held])
     expect(releases).toEqual(
-      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+      endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
     )
     expect(releases).toHaveLength(1)
   })
@@ -430,7 +503,7 @@ describe('what a spell cast ends for its caster (SPELLS-27.T3)', () => {
     })
     expect(consumedGrants).toEqual([held])
     expect(sourceReleases).toEqual(
-      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+      endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
     )
   })
 
@@ -513,7 +586,7 @@ describe('what an attack roll or cast against an enemy ends (SPELLS-27.T4b)', ()
     })
     expect(consumedGrants).toEqual([held])
     expect(sourceReleases).toEqual(
-      endedEffectConditionReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+      endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
     )
   })
 

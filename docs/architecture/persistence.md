@@ -163,6 +163,10 @@ record of the move: the action's `RESOLVE_ACTION` receipt keeps only references 
 `{sceneId, sceneCommandId}[]`, default `[]`), the GM's `UNDO_LAST_SCENE_MOVE` refuses a latest move whose
 origin is an action, and the action's `REVERT_LAST_ACTION` undoes each referenced move through
 `publishSceneUndo`, refused (`REVERT_UNAVAILABLE`) once the token has moved since.
+A drag (D105) writes the mover's and each dragged token's live row at the move's version; publication refuses it
+unless every dragged token still stands at its recorded `from` and moves by the mover's displacement.
+`publishSceneUndo` restores the mover and every token in the preparation's `draggedTokens`, refusing when any of
+them has moved since.
 
 ## Encounter persistence package
 
