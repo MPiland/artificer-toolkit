@@ -2,10 +2,7 @@ import {
   dnd5eAttackTraitGrants,
   type Dnd5eAttackTraitGrant
 } from './systems/dnd5e/attackDamageDefenses.js'
-import {
-  dnd5eAcceptedModifierApplicability,
-  dnd5eCreatureModifierApplicability
-} from './systems/dnd5e/modifierApplicability.js'
+import { dnd5eAcceptedModifierApplicability } from './systems/dnd5e/modifierApplicability.js'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
@@ -575,7 +572,7 @@ export function buildMovementTarget<
     conditionImmunityIds: targetProtection.conditionImmunityIds,
     attackTraitGrants: dnd5eAttackTraitGrants(
       creatureFacts?.modifiers ?? [],
-      dnd5eCreatureModifierApplicability
+      dnd5eAcceptedModifierApplicability
     ),
     innateConditionIds: creatureInnateConditionIds(activeEffects, creatureFacts?.modifiers ?? []),
     spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,

@@ -178,21 +178,6 @@ export function dnd5eAcceptedModifierApplicability(
   }
 }
 
-/**
- * A Creature feature's modifier applicability: it has no grant-fold source, so a SOURCE-scoped
- * modifier names no item the Creature wields and never applies.
- */
-export function dnd5eCreatureModifierApplicability(
-  modifier: CharacterGrantFoldModifier
-): Dnd5eModifierApplicability {
-  return {
-    sourceId: modifier.grantId,
-    scope: modifier.scope,
-    deferredRequirements: modifier.restrictions,
-    scopeSpellIds: modifier.scopeSpellIds
-  }
-}
-
 /** Reads a resolved contribution's applicability from the grant fold that accepted it. */
 export function dnd5eFoldedModifierApplicability(
   grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>,
