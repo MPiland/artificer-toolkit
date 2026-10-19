@@ -8,6 +8,7 @@ import { EncounterValidationError } from './encounterErrors.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
 import { dnd5eConcentrationHolderSaves } from './systems/dnd5e/concentrationPolicy.js'
+import { resolveSavingThrowDc } from './systems/dnd5e/savingThrowDc.js'
 import { derivedAddedDice } from './systems/dnd5e/d20AddedDiceGraph.js'
 
 type IncomingGatePayload = ReturnType<typeof incomingAttackGatePayloadDtoSchema.parse>
@@ -82,28 +83,14 @@ export function incomingGateSaveDc(
   owner: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'effectiveScalarValues'>
 ): number | null {
   const derived = owner.effectiveRulePolicyOutput?.derivedStats
-  if (savingThrow.dcMethod === 'SOURCE_SAVE_DC')
-    return derived?.spellcasting?.saveDc.effective ?? null
-  let dc = savingThrow.baseDc
-  for (const bonus of savingThrow.bonuses ?? []) {
-    if (bonus.bonusKind === 'STATIC_BONUS') {
-      dc += bonus.amount
-      continue
+  return resolveSavingThrowDc(savingThrow, {
+    spellSaveDc: derived?.spellcasting?.saveDc.effective ?? null,
+    proficiencyBonus: derived?.proficiencyBonus.effective ?? null,
+    abilityModifier: (abilityDefinitionId) => {
+      const score = owner.effectiveScalarValues[abilityDefinitionId]
+      return score === undefined ? null : abilityModifier(score)
     }
-    const score =
-      bonus.bonusKind === 'ABILITY_MODIFIER'
-        ? owner.effectiveScalarValues[bonus.abilityDefinitionId]
-        : undefined
-    const value =
-      bonus.bonusKind === 'PROFICIENCY_BONUS'
-        ? derived?.proficiencyBonus.effective
-        : score === undefined
-          ? undefined
-          : abilityModifier(score)
-    if (value === undefined) return null
-    dc += value
-  }
-  return dc
+  })
 }
 
 /**

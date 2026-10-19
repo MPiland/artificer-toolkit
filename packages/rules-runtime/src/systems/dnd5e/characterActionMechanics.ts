@@ -5,6 +5,7 @@ import type {
 
 import { formatAmount, rangeLabel } from '../../rangeLabel.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
+import { resolveSavingThrowDc } from './savingThrowDc.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
@@ -387,23 +388,19 @@ export function resolveDnd5eActionMechanic(
     if (savingThrow === null) return null
     const ability = abilityFromDefinitionId(input, savingThrow.abilityDefinitionId)
     if (ability === null) return null
-    if (savingThrow.dcMethod === 'SOURCE_SAVE_DC')
-      return { ability, dc: context.spellcasting?.saveDc ?? null }
-    if (savingThrow.dcMethod === 'FIXED_DC') return { ability, dc: savingThrow.baseDc }
-    const bonuses = savingThrow.bonuses.map((bonus) => {
-      if (bonus.bonusKind === 'STATIC_BONUS') return bonus.amount
-      if (bonus.bonusKind === 'PROFICIENCY_BONUS') return input.proficiencyBonus
-      const bonusAbility = abilityFromDefinitionId(input, bonus.abilityDefinitionId)
-      return bonusAbility === null
-        ? null
-        : abilityModifier(input, bonusAbility, context.spellcasting)
-    })
-    let dc = Number(savingThrow.baseDc)
-    for (const bonus of bonuses) {
-      if (bonus === null) return { ability, dc: null }
-      dc += bonus
+    return {
+      ability,
+      dc: resolveSavingThrowDc(savingThrow, {
+        spellSaveDc: context.spellcasting?.saveDc ?? null,
+        proficiencyBonus: input.proficiencyBonus,
+        abilityModifier: (abilityDefinitionId) => {
+          const bonusAbility = abilityFromDefinitionId(input, abilityDefinitionId)
+          return bonusAbility === null
+            ? null
+            : abilityModifier(input, bonusAbility, context.spellcasting)
+        }
+      })
     }
-    return { ability, dc }
   }
   const resolveOutcome = (outcome: RawOutcome): ResolvedOutcome => {
     if (outcome.kind === 'CONDITION' || outcome.kind === 'EFFECT') return outcome
