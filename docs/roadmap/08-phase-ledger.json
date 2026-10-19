@@ -12177,7 +12177,7 @@
             },
             {
               "id": "SPELLS-33.T6e4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12187,11 +12187,11 @@
                 "after": ["SPELLS-33.T6e"]
               },
               "text": "Bug: damage from the turn-zone, melee-retaliation and occupant-aura roots does not end the target's \"until it takes damage\" effects, so Sleep or Hypnotic Pattern survive Spirit Guardians or Fire Shield damage. Wire targetEndedEffects into each root's plan, evidence and persistence checksum, with a regression test per root that fails before the fix (split from SPELLS-33.T6e; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m174 (ea25b4c4c)."
             },
             {
               "id": "SPELLS-33.T6e3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12200,7 +12200,8 @@
                 "size": 5,
                 "after": ["SPELLS-33.T6e"]
               },
-              "text": "Flesh Golem Aversion of Fire (disadvantage on attacks and checks) and Water Elemental Freeze (-20 ft speed), part a: a passive damage-type trigger whose outcome is a generic timed self grant, returned by the one damage-taken seam alongside ended effects ({endedEffects, releases, grants}; releases first, then grants), refreshed by source feature rather than stacked, wired end to end on the action damage root with receipt, persistence verify, revert and a room journey. Authoring-parity proofs for both grant kinds; deletes its kinds (2026-10-19 ruling; T6e3b wires the other roots; workbook slice-spells-33.md)."
+              "text": "Flesh Golem Aversion of Fire (disadvantage on attacks and checks) and Water Elemental Freeze (-20 ft speed), part a: a passive damage-type trigger whose outcome is a generic timed self grant, returned by the one damage-taken seam alongside ended effects ({endedEffects, releases, grants}; releases first, then grants), refreshed by source feature rather than stacked, wired end to end on the action damage root with receipt, persistence verify, revert and a room journey. Authoring-parity proofs for both grant kinds; deletes its kinds (2026-10-19 ruling; T6e3b wires the other roots; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6e3b",
@@ -12343,11 +12344,24 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": ["SPELLS-33.T6k2"]
               },
-              "text": "new: Whirlwind collision part 2 (D159): a `collision` block with per-mover damage of floor(feet/10) dice, the struck creature's save pause on the AREA_PENDING pattern with damage and PRONE, per-entry area plans, the authoring-parity proof, and deleting CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION (workbook slice-spells-33.md).",
+              "text": "Whirlwind collision part 2 (D159): own-space area for a Self area action with no shape, the authored `collision` block (schema, node map, compiler port, spatial echo) and the mover's own collision damage of floor(feet/10) dice at full distance or on an object or creature stop; the struck-creature effect fails closed or stays on the old kind until T6k2b2 (2026-10-19 split; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6k2b2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T6k2b"]
+              },
+              "text": "new: Whirlwind collision part 3 (D159): the struck creature's Dex save as a second compiled plan and sealed pending step (rolled ray plus struck save; player rolls their own) with damage and PRONE, answer routing through the snapshot schema, actionAreaPending and areaCommitPersistence, replay/revert fences and snapshot determinism; the two-mover landing-order test with actor-id tie-break; deletes CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION with the authoring-parity proof (2026-10-19 split; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6k3",
