@@ -422,7 +422,10 @@ describe('persistEncounterConcentrationChildren ends a source grants on every ho
   /** Persists a commit for the Knight, who holds no grant, with a Leadership die on each ally. */
   async function endLeadership(
     knightInput: Parameters<typeof creatureActor>[0],
-    { sendGrants = true, damaged = true }: { sendGrants?: boolean; damaged?: boolean } = {}
+    {
+      sendGrants = 'ALL',
+      damaged = true
+    }: { sendGrants?: 'ALL' | 'FIRST' | 'NONE'; damaged?: boolean } = {}
   ) {
     const source = creatureActor(knightInput)
     const allies = ALLY_IDS.map((id) => creatureActor({ id, kind: 'CUSTOM', snapshot: {} }))
@@ -462,7 +465,8 @@ describe('persistEncounterConcentrationChildren ends a source grants on every ho
           concentration: [],
           pendingConcentration: null,
           concentrationEnds: [],
-          endedGrants: sendGrants ? grants : [],
+          endedGrants:
+            sendGrants === 'ALL' ? grants : sendGrants === 'FIRST' ? grants.slice(0, 1) : [],
           damagedActorIds: new Set(damaged ? [source.id] : [])
         },
         { currentCharacterStreamVersion: vi.fn(), applyCleanup: vi.fn() }
@@ -491,15 +495,15 @@ describe('persistEncounterConcentrationChildren ends a source grants on every ho
     expect(held()).toHaveLength(2)
   })
 
-  it('refuses a commit that omits a die its damaged Knight state ends', async () => {
-    const { persist, held } = await endLeadership(incapacitated, { sendGrants: false })
+  it('refuses a commit that sends one holder die but omits another', async () => {
+    const { persist, held } = await endLeadership(incapacitated, { sendGrants: 'FIRST' })
     await expect(persist()).rejects.toThrow('Live Session grant end is missing.')
     expect(held()).toHaveLength(2)
   })
 
   it('leaves the dice alone when the commit did not reach the Knight', async () => {
     const { persist, held } = await endLeadership(incapacitated, {
-      sendGrants: false,
+      sendGrants: 'NONE',
       damaged: false
     })
     await persist()

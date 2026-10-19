@@ -192,11 +192,16 @@ export async function persistEncounterConcentrationChildren(
     sourceReasons.set(sourceActorId, reason)
     return reason
   }
-  // Reads the reason of the Encounter actor that applied the grant; a grant with none can't follow
-  // its source's state.
-  const readGrantSourceReason = async ({ definition: { origin } }: ActiveRuleEffectRecord) => {
-    if (origin.kind === 'ENCOUNTER' && origin.sourceActorId)
-      await readSourceReason(origin.sourceActorId)
+  // The Encounter actor that applied a source-bound grant; any other grant doesn't follow one.
+  const sourceActorOf = (grant: ActiveRuleEffectRecord) =>
+    sourceBoundGrants([grant]).length > 0 && grant.definition.origin.kind === 'ENCOUNTER'
+      ? (grant.definition.origin.sourceActorId ?? null)
+      : null
+  async function endedBySourceState(grant: ActiveRuleEffectRecord) {
+    const sourceActorId = sourceActorOf(grant)
+    if (sourceActorId === null) return false
+    await readSourceReason(sourceActorId)
+    return grantsEndedBySourceState([grant], sourceReasons).length > 0
   }
   // The grants the holder's or source's state ends must be stored as sent and be ones the committed state ends.
   for (const grant of args.endedGrants) {
@@ -208,7 +213,6 @@ export async function persistEncounterConcentrationChildren(
     )
     const holderState =
       holder && (await readHolderEndState(ctx, { state, actor: holder, userId: args.userId }))
-    if (stored) await readGrantSourceReason(stored)
     if (
       state.automationMode === 'MANUAL' ||
       !stored ||
@@ -216,7 +220,7 @@ export async function persistEncounterConcentrationChildren(
       !holderState ||
       (!spentDice.has(grant.id) &&
         !grantsEndedByHolderState([stored], holderState).length &&
-        !grantsEndedBySourceState([stored], sourceReasons).length)
+        !(await endedBySourceState(stored)))
     )
       throw new Error('Live Session grant end is unexpected.')
   }
@@ -237,17 +241,23 @@ export async function persistEncounterConcentrationChildren(
       if (grantsEndedByHolderState(stateBound, holderState).some(({ id }) => !sent.has(id)))
         throw new Error('Live Session grant end is missing.')
     }
-    // A damaged source that can no longer act ends the grants it applied, on whichever actor holds
-    // them. No index answers "which grants did this actor apply", so only a source that can no
-    // longer act pays for a scan of the Encounter's holders.
-    for (const damaged of actors.filter(({ id }) => args.damagedActorIds.has(id))) {
-      if ((await readSourceReason(damaged.id)) === null) continue
+    // A damaged source whose grant end was sent can't act, so it ends every grant it applied, on
+    // whichever actor holds them. No index answers "which grants did this actor apply", so only
+    // such a source pays for a scan of the Encounter's holders.
+    const endedSources = new Set(
+      args.endedGrants.flatMap((grant) => {
+        const sourceActorId = sourceActorOf(grant)
+        return sourceActorId !== null && args.damagedActorIds.has(sourceActorId)
+          ? [sourceActorId]
+          : []
+      })
+    )
+    if (endedSources.size)
       for (const holder of actors) {
         const held = sourceBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
         if (grantsEndedBySourceState(held, sourceReasons).some(({ id }) => !sent.has(id)))
           throw new Error('Live Session grant end is missing.')
       }
-    }
   }
   for (const { end, slot, holder } of ends) {
     actors = await callbacks.applyCleanup({
