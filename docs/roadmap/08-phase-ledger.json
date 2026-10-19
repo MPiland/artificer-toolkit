@@ -8150,8 +8150,21 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2c1"]
               },
-              "text": "Rolled die on ability checks, ON_SAVING_THROW consumption, Sheet roll expressions that include and consume held dice; converts GUIDANCE and RESISTANCE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md).",
+              "text": "Rolled die on ability checks, ON_SAVING_THROW consumption, Sheet roll expressions that include and consume held dice; converts GUIDANCE and RESISTANCE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md). 2026-10-19 split: T2c2 ships Guidance with Sheet ability-check inclusion and consumption and its parity proof; Resistance and saving-throw consumption move to T2c2b.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2c2b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2c2"]
+              },
+              "text": "Resistance: ON_SAVING_THROW bonus-die consumption narrowed by save ability across every save commit site (effect action, area, reactions, legendary, concentration, death, repeat saves), recording the save ability in settled evidence through one shared seam. Authoring-parity proof; deletes the RESISTANCE kind (2026-10-19 ruling on the T2c2 split; workbook slice-spells-4.md)."
             },
             {
               "id": "SPELLS-4.T2c3",
