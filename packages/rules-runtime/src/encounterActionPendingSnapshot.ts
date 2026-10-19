@@ -1,5 +1,6 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type {
+  EncounterAttackRetargetOfferDto,
   EncounterCastReactionOfferDto,
   EncounterFailedCounterDto,
   EncounterIncomingGateOfferDto
@@ -140,16 +141,39 @@ export function buildEncounterCastReactionPendingSnapshot(input: {
  * against a warded target's gate. The continuation is that one d20; the action itself is not held, it
  * replays from the command once the save is rolled.
  */
-export function buildEncounterIncomingGatePendingSnapshot(input: {
+export function buildEncounterIncomingGatePendingSnapshot(
+  input: HeldBeforeExecutionInput & { incomingGate: EncounterIncomingGateOfferDto }
+): ServerKernelRuleExecutionPendingSnapshotDto {
+  return buildHeldBeforeExecutionSnapshot(input, { incomingGate: input.incomingGate })
+}
+
+/**
+ * The sealed pending snapshot of an action a ward stopped, for the attacker offered the chance to turn
+ * it on another creature. The continuation is that bounded choice; the action itself is not held, it
+ * replays from the command (retargeted when a creature is chosen) once the offer is answered.
+ */
+export function buildEncounterAttackRetargetPendingSnapshot(
+  input: HeldBeforeExecutionInput & { attackRetarget: EncounterAttackRetargetOfferDto }
+): ServerKernelRuleExecutionPendingSnapshotDto {
+  return buildHeldBeforeExecutionSnapshot(input, { attackRetarget: input.attackRetarget })
+}
+
+type HeldBeforeExecutionInput = {
   continuation: ServerRuleExecutionContinuationDto
-  incomingGate: EncounterIncomingGateOfferDto
   rollerActorId: string
   optionalCombatSnapshotChecksum: string | null | undefined
   commandJson: string
   commandFingerprint: string
   initiatorUserId: string
   currentnessChecksum: string
-}): ServerKernelRuleExecutionPendingSnapshotDto {
+}
+
+function buildHeldBeforeExecutionSnapshot(
+  input: HeldBeforeExecutionInput,
+  pause:
+    | { incomingGate: EncounterIncomingGateOfferDto }
+    | { attackRetarget: EncounterAttackRetargetOfferDto }
+): ServerKernelRuleExecutionPendingSnapshotDto {
   return {
     ...input.continuation,
     snapshotKind: 'KERNEL_EVIDENCE',
@@ -164,7 +188,7 @@ export function buildEncounterIncomingGatePendingSnapshot(input: {
       currentnessChecksum: input.currentnessChecksum,
       d20Policy: null,
       twoPhase: null,
-      incomingGate: input.incomingGate
+      ...pause
     }
   }
 }

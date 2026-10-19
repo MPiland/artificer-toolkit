@@ -8372,6 +8372,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
+              "id": "SPELLS-4.T2k3c",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["SPELLS-4.T2k3b"]
+              },
+              "text": "new (redaction): ATTACK_RETARGET offers list only creatures the attacker's side can perceive, so hidden or unseen creatures' ids never reach the offer (found in T2k3b review, 2026-10-19). Regression test that fails before the fix: a hidden creature is absent from the offer and a pick naming it is refused. Range and sight pre-filtering stays deferred."
+            },
+            {
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2l",
@@ -11844,7 +11857,7 @@
             },
             {
               "id": "SPELLS-33.T4c2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11854,7 +11867,7 @@
                 "after": ["SPELLS-33.T4c"]
               },
               "text": "new (bug): encounterActiveGrantCapabilitySuppressions keys suppressions by authored grantId, so resolveRuleCapabilityAvailability throws on overlapping contributions for a Character such as the D99 room fixture when its capability state is read off the holder path. Confirm the cause of the ~130 failures from T4c's committed-reason gate, key suppressions by grant instance with a regression test that fails before the fix, then restore the persistence gate (a commit that incapacitates a source must end every holder's source-bound grant, including when the plan sends none) and its test (2026-10-19 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m191 (0ce1d2f6b)."
             },
             {
               "id": "SPELLS-33.T4de",
@@ -12482,7 +12495,7 @@
             },
             {
               "id": "SPELLS-33.T6k2b4a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12492,11 +12505,11 @@
                 "after": ["SPELLS-33.T6k2b3"]
               },
               "text": "new: Whirlwind collision part 5a (D159): switch the Whirlwind to the authored collision block and delete CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION (enum and SRD data) with its authored-from-core-options parity proof, the two-mover landing-order test with actor-id tie-break, and a Whirlwind room journey for mover damage (2026-10-19 split of T6k2b4; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m190 (25c26f858)."
             },
             {
               "id": "SPELLS-33.T6k2b4b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12505,7 +12518,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T6k2b4a"]
               },
-              "text": "new: Whirlwind collision part 5b (D159): the struck creature's Dex save as a second AREA_PENDING hold after the movers land (collision-target entry in context.targets; player rolls their own, creatures server-rolled), damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the sealed-ray room journey moved from T6k2b3 (a RANDOM ray held across the struck save keeps its roll on replan; ruling 2026-10-19) replacing the cast-faked seam test, and the full Whirlwind room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split of T6k2b4; workbook slice-spells-33.md)."
+              "text": "new: Whirlwind collision part 5b (D159): the struck creature's Dex save as a second AREA_PENDING hold after the movers land (collision-target entry in context.targets; player rolls their own, creatures server-rolled), damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the sealed-ray room journey moved from T6k2b3 (a RANDOM ray held across the struck save keeps its roll on replan; ruling 2026-10-19) replacing the cast-faked seam test, and the full Whirlwind room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split of T6k2b4; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6k3",

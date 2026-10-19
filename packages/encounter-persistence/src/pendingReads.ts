@@ -75,7 +75,7 @@ export async function readEncounterWaitingOn(
               : decision.kind === 'LEGENDARY_RESISTANCE_CHOICE' ||
                   decision.kind === 'REACTION_CHOICE'
                 ? decision.targetActorId
-                : decision.kind === 'ON_HIT_CHOICE'
+                : decision.kind === 'ON_HIT_CHOICE' || decision.kind === 'ATTACK_RETARGET_CHOICE'
                   ? decision.attackerActorId
                   : null
   if (!actorId) return 'GM'

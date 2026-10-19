@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -172,6 +173,16 @@ const cleavingPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema
   encounterVersion: tabletopGmEncounter.version,
   sourceActorId: tabletopGmEncounter.actors[0]!.id,
   options: [{ optionId: 'd'.repeat(64), targetActorId: tabletopGmEncounter.actors[1]!.id }],
+  allowedResponses: ['DECLINE', 'OPTION']
+})
+
+const retargetPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+  kind: 'ATTACK_RETARGET_CHOICE',
+  occurrenceId,
+  occurrenceVersion: 6,
+  encounterVersion: tabletopGmEncounter.version,
+  attackerActorId: tabletopGmEncounter.actors[0]!.id,
+  options: [{ optionId: 'e'.repeat(64), targetActorId: tabletopGmEncounter.actors[1]!.id }],
   allowedResponses: ['DECLINE', 'OPTION']
 })
 
@@ -523,6 +534,51 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
     )
     expect(screen.getByRole('button', { name: 'Roll dice' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Submit roll' })).toBeDisabled()
+  })
+})
+
+describe('CampaignTabletopDecisionDrawer attack retarget', () => {
+  function renderRetarget(
+    onResolve: ComponentProps<typeof CampaignTabletopDecisionDrawer>['onResolve']
+  ) {
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={retargetPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+  }
+
+  it('turns the lost action on the chosen creature', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderRetarget(onResolve)
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.click(
+      screen.getByRole('button', { name: `Target ${tabletopGmEncounter.actors[1]!.label}` })
+    )
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'OPTION', optionId: 'e'.repeat(64) } })
+    )
+  })
+
+  it('loses the action on a decline', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderRetarget(onResolve)
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.click(screen.getByRole('button', { name: 'Lose the action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'DECLINE' } })
+    )
   })
 })
 

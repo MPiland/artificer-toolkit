@@ -42,6 +42,14 @@ describe('offeredDecisionOptionIds', () => {
     ).toEqual(['first', 'second'])
   })
 
+  it('offers each creature a lost action can be turned on', () => {
+    expect(
+      offeredDecisionOptionIds({
+        attackRetarget: { options: [{ useOptionId: 'one' }, { useOptionId: 'two' }] }
+      })
+    ).toEqual(['one', 'two'])
+  })
+
   it('offers nothing for a pause that holds no decision', () => {
     expect(offeredDecisionOptionIds({})).toEqual([])
   })
@@ -61,6 +69,53 @@ describe('castPendingContinues', () => {
 
   it('lets an unrelated pause continue on any answer', () => {
     expect(castPendingContinues({}, option, {})).toBe(true)
+  })
+
+  describe('a failed ward save offering a new target', () => {
+    const gateHeld = { rollerActorId: 'attacker', incomingGate: { effectId: 'ward' } }
+    const offered = { rollerActorId: 'attacker', attackRetarget: { gate: { effectId: 'ward' } } }
+
+    it('follows the roll that failed that ward, and no other ward', () => {
+      expect(castPendingContinues(gateHeld, dice, offered)).toBe(true)
+      expect(
+        castPendingContinues(gateHeld, dice, {
+          ...offered,
+          attackRetarget: { gate: { effectId: 'other' } }
+        })
+      ).toBe(false)
+      expect(castPendingContinues({ rollerActorId: 'attacker' }, dice, offered)).toBe(false)
+    })
+
+    it('carries no passed ward and no counters', () => {
+      expect(castPendingContinues(gateHeld, dice, { ...offered, passedIncomingGate: 'ward' })).toBe(
+        false
+      )
+      expect(
+        castPendingContinues(gateHeld, dice, { ...offered, failedCounters: [failedBy('first')] })
+      ).toBe(false)
+    })
+
+    it('is left only by choosing a creature, who begins afresh', () => {
+      expect(castPendingContinues(offered, option, {})).toBe(true)
+      expect(castPendingContinues(offered, decline, {})).toBe(false)
+      expect(castPendingContinues(offered, dice, {})).toBe(false)
+      expect(castPendingContinues(offered, null, {})).toBe(false)
+      expect(
+        castPendingContinues(offered, option, {
+          incomingGate: { effectId: 'second-ward' },
+          passedIncomingGate: 'ward'
+        })
+      ).toBe(false)
+      expect(castPendingContinues(offered, option, { failedCounters: [failedBy('first')] })).toBe(
+        false
+      )
+    })
+
+    it('may offer again from the chosen creature’s own ward, and only after a choice', () => {
+      const again = { ...offered, attackRetarget: { gate: { effectId: 'second-ward' } } }
+      expect(castPendingContinues(offered, option, again)).toBe(true)
+      expect(castPendingContinues(offered, decline, again)).toBe(false)
+    })
   })
 
   it('lets a held cast leave its pause only by a decline or by a counter that owes a check', () => {

@@ -119,7 +119,10 @@ export async function executeRoomEncounterAction(input: {
       ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)
       : plan.kind === 'AREA_COMMIT'
         ? buildNativeLiveEncounterAreaCommitInput(scope, plan)
-        : plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING' || plan.kind === 'GATE_PENDING'
+        : plan.kind === 'PENDING' ||
+            plan.kind === 'CAST_PENDING' ||
+            plan.kind === 'GATE_PENDING' ||
+            plan.kind === 'RETARGET_PENDING'
           ? buildNativeLiveEncounterActionPendingInput(scope, plan)
           : plan.kind === 'COUNTERED'
             ? buildNativeLiveEncounterCounteredCastCommitInput(scope, plan)
@@ -204,7 +207,10 @@ export async function executeRoomEncounterAction(input: {
       { ...buildNativeLiveEncounterGatedActionCommitInput(scope, plan), revisions },
       callbacks
     )
-  return plan.kind === 'PENDING' || plan.kind === 'CAST_PENDING' || plan.kind === 'GATE_PENDING'
+  return plan.kind === 'PENDING' ||
+    plan.kind === 'CAST_PENDING' ||
+    plan.kind === 'GATE_PENDING' ||
+    plan.kind === 'RETARGET_PENDING'
     ? persistEncounterActionPending(
         ctx,
         {
