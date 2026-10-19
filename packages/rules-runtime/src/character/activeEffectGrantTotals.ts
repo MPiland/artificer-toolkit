@@ -3,7 +3,10 @@ import type {
   CharacterGrantFoldSense
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type {
+  D20AddedDieDto,
+  DamageAddedDieDto
+} from '@artificer-toolkit/schema/shared/d20AddedDice'
 
 import { modifierLengthFeet } from '../modifierLength.js'
 import {
@@ -91,19 +94,23 @@ export function activeFixedGrantTotal(
   return total
 }
 
+type RolledDieGrant = {
+  label: string
+  payload: Extract<NonNullable<CharacterGrantFoldModifier['payload']>, { count: number }>
+}
+
 /**
- * The dice a holder's active global rolled-die grants add to, or subtract from, one d20 test of a
- * value domain (D156), for the grants whose domain `applies` accepts. Dice from different sources
- * stack; one authored grant gives one die however many of its effects the holder carries (two
- * casters' Bless). A hidden source reads as "Unseen source". Sorted by label, then grant, so every
- * roll site and replay sees one order.
+ * A holder's active global rolled-die grants to one value domain (D156), for the grants whose
+ * domain `applies` accepts. Dice from different sources stack; one authored grant gives one die
+ * however many of its effects the holder carries (two casters' Bless). A hidden source reads as
+ * "Unseen source". Sorted by label, then grant, so every roll site and replay sees one order.
  */
-function activeRolledDice(
+function activeRolledDieGrants(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER',
+  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER' | 'DAMAGE',
   applies: DomainFilter
-): D20AddedDieDto[] {
-  const dice = new Map<string, D20AddedDieDto>()
+): RolledDieGrant[] {
+  const dice = new Map<string, RolledDieGrant>()
   for (const { modifiers, sourceLabel, sourceHidden } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
       const { payload } = modifier
@@ -117,12 +124,7 @@ function activeRolledDice(
         continue
       if (payload === undefined || !('count' in payload))
         throw new Error('An active rolled-die grant must carry its dice.')
-      dice.set(modifier.grantId, {
-        label: sourceHidden ? 'Unseen source' : sourceLabel,
-        count: payload.count,
-        faces: payload.faces,
-        sign: payload.sign
-      })
+      dice.set(modifier.grantId, { label: sourceHidden ? 'Unseen source' : sourceLabel, payload })
     }
   }
   return [...dice]
@@ -132,6 +134,63 @@ function activeRolledDice(
         : left.label.localeCompare(right.label)
     )
     .map(([, die]) => die)
+}
+
+/** The dice a holder's active grants add to, or subtract from, one d20 test of a value domain. */
+function activeRolledDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER',
+  applies: DomainFilter
+): D20AddedDieDto[] {
+  return activeRolledDieGrants(effects, valueDomainCode, applies).map(
+    ({ label, payload: { count, faces, sign } }) => ({ label, count, faces, sign })
+  )
+}
+
+/**
+ * The dice active grants add to, or take from, one creature's damage to another (D156): the
+ * dealer's own `HOLDER_DEALS` dice, then the `SOURCE_DEALS_TO_HOLDER` dice the damaged creature
+ * holds from effects the dealer is the Encounter source of (the Hunter's Mark it placed). A grant
+ * naming an attack domain covers only attacks of that domain; `attackDomain` is null for damage no
+ * attack roll delivers. A die naming no damage type takes the damage it joins.
+ */
+export function activeDamageDice(input: {
+  dealerActorId: string
+  dealerEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  targetEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  attackDomain: string | null
+}): DamageAddedDieDto[] {
+  const dice = (
+    effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+    recipient: 'HOLDER_DEALS' | 'SOURCE_DEALS_TO_HOLDER'
+  ) =>
+    activeRolledDieGrants(
+      effects,
+      'DAMAGE',
+      (domain) => domain.attackDomain === undefined || domain.attackDomain === input.attackDomain
+    ).flatMap(({ label, payload }) =>
+      'recipient' in payload && payload.recipient === recipient
+        ? [
+            {
+              label,
+              count: payload.count,
+              faces: payload.faces,
+              sign: payload.sign,
+              damageTypeId: 'damageTypeId' in payload ? payload.damageTypeId : null
+            }
+          ]
+        : []
+    )
+  const placedByDealer = input.targetEffects.filter(
+    ({ definition }) =>
+      definition.schemaVersion === 2 &&
+      definition.origin.kind === 'ENCOUNTER' &&
+      definition.origin.sourceActorId === input.dealerActorId
+  )
+  return [
+    ...dice(input.dealerEffects, 'HOLDER_DEALS'),
+    ...dice(placedByDealer, 'SOURCE_DEALS_TO_HOLDER')
+  ]
 }
 
 /**

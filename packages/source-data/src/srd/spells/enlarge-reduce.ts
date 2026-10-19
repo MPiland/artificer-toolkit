@@ -1,18 +1,27 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
-  PATH_CODE,
-  PATH_GROUP_TYPE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_DIE_RECIPIENT,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
   RANGE_KIND,
+  ROLLED_DIE_SIGN,
   SPELL_ATTRIBUTE,
-  SUBJECT,
-  TARGET_SELECTION_KIND,
-  TARGET_DISPOSITION_KIND,
-  TRIGGER,
   SPELL_COMPONENT,
+  SUBJECT,
+  TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  VALUE_DOMAIN_CODE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
@@ -25,6 +34,28 @@ function schoolId(code: string): string {
   }
   return entry.id
 }
+const grant = {
+  grantKind: GRANT_KIND.MODIFIER_GRANT,
+  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+  selectionKind: AUTHORING_SELECTION_KIND.GRANTED
+} as const
+// The size change itself stays with the reader; the floor of Reduce's damage is the System's 0.
+const sizeChanges = [
+  {
+    label: 'Enlarge',
+    description:
+      'The target grows one size category, has advantage on Strength checks and Strength saving throws, and its weapon attacks deal 1d4 extra damage.',
+    sign: ROLLED_DIE_SIGN.ADD,
+    rollMode: MODIFIER_KIND.ADVANTAGE
+  },
+  {
+    label: 'Reduce',
+    description:
+      'The target shrinks one size category, has disadvantage on Strength checks and Strength saving throws, and its weapon attacks deal 1d4 less damage.',
+    sign: ROLLED_DIE_SIGN.SUBTRACT,
+    rollMode: MODIFIER_KIND.DISADVANTAGE
+  }
+] as const
 export const enlargeReduce: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.ENLARGE_REDUCE,
@@ -65,25 +96,65 @@ export const enlargeReduce: SpellAuthored = {
           id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.CHOICE,
           originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x213, 1),
-              durationKind: DURATION_KIND.MINUTE,
-              amount: 1
-            },
-            outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'ENLARGE_REDUCE' as const
-              }
-            ]
-          }
+          selectionKind: 'CHOICE' as const,
+          options: sizeChanges.map((change, index) => ({
+            id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x220, index + 1),
+            order: index + 1,
+            label: change.label,
+            description: change.description,
+            resultBlock: {
+              id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x221, index + 1),
+              resultKind: 'SINGLE' as const,
+              duration: {
+                id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x222, index + 1),
+                durationKind: DURATION_KIND.MINUTE,
+                amount: 1
+              },
+              outcomes: [
+                {
+                  id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x223, index + 1),
+                  effectKind: EFFECT_KIND.APPLY_GRANT,
+                  grants: {
+                    modifiers: [
+                      ...[ATTACK_DOMAIN_CODE.MELEE, ATTACK_DOMAIN_CODE.RANGED].map(
+                        (attackDomain) => ({
+                          ...grant,
+                          valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+                          domain: { attackDomain },
+                          modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                          payload: {
+                            count: 1,
+                            faces: 4 as const,
+                            sign: change.sign,
+                            recipient: DAMAGE_DIE_RECIPIENT.HOLDER_DEALS,
+                            damageTypeSource: 'ATTACK' as const
+                          }
+                        })
+                      ),
+                      {
+                        ...grant,
+                        valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+                        domain: { ability: ABILITY_CODE.STRENGTH },
+                        modifierKind: change.rollMode
+                      },
+                      {
+                        ...grant,
+                        valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                        domain: { ability: ABILITY_CODE.STRENGTH },
+                        modifierKind: change.rollMode
+                      }
+                    ].map((modifier, grantIndex) => ({
+                      id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x224 + index, grantIndex + 1),
+                      ...modifier,
+                      order: grantIndex + 1
+                    }))
+                  }
+                }
+              ]
+            }
+          }))
         }
       ]
     }

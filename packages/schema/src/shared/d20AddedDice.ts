@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { ruleExecutionUuidSchema } from './ruleExecutionPrimitives.js'
 
 import { MAX_ROLLED_DIE_COUNT, ROLLED_DIE_FACES } from '@artificer-toolkit/shared/core'
 
@@ -28,6 +29,33 @@ export type D20AddedDieDto = z.infer<typeof d20AddedDieDtoSchema>
 export const d20AddedDiceDtoSchema = lazySchema(() =>
   z.array(d20AddedDieDtoSchema).check(z.maxLength(MAX_D20_ADDED_DICE))
 )
+
+/**
+ * Dice an attack or a spell rolls beside its damage and adds to, or takes from, it (D156): "+1d4
+ * Divine Favor" radiant, "+1d6 Hunter's Mark" of the attack's own type, "-1d4 Reduce". A die with no
+ * damage type takes the damage it joins; a subtracted die always does.
+ */
+export const damageAddedDieDtoSchema = lazySchema(() =>
+  z.strictObject({ ...addedDieShape(), damageTypeId: z.nullable(ruleExecutionUuidSchema) })
+)
+export type DamageAddedDieDto = z.infer<typeof damageAddedDieDtoSchema>
+
+export const damageAddedDiceDtoSchema = lazySchema(() =>
+  z.array(damageAddedDieDtoSchema).check(z.maxLength(MAX_D20_ADDED_DICE))
+)
+
+/** The graph node prefix of the damage the `index`th added die deals: how its receipt names it. */
+export function damageAddedDieNodePrefix(index: number): string {
+  return `added-${index + 1}-`
+}
+
+/** The added die whose damage the graph node `sourceNodeId` dealt, if it dealt one. */
+export function damageAddedDieOfNode(
+  dice: readonly DamageAddedDieDto[] | undefined,
+  sourceNodeId: string
+): DamageAddedDieDto | undefined {
+  return dice?.find((_, index) => sourceNodeId.startsWith(damageAddedDieNodePrefix(index)))
+}
 
 /** An added die as the receipt records it: the request's die with the faces it rolled. */
 export const d20RolledAddedDieDtoSchema = lazySchema(() =>

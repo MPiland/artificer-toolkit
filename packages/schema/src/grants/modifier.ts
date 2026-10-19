@@ -10,6 +10,7 @@ import {
 } from '../shared/authoredLimits.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { rolledDieShape } from '../shared/d20AddedDice.js'
+import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
 import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
@@ -32,11 +33,20 @@ const attackDomainParamDtoSchema = lazySchema(() =>
   })
 )
 
+/** One attack domain's damage, or every damage when absent (attacks and spells alike). */
+const optionalAttackDomainParamDtoSchema = lazySchema(() =>
+  z.object({
+    attackDomain: z.optional(attackDomainCodeSchema)
+  })
+)
+
 /** An attack roll advantage or disadvantage that names an ability covers only attacks made with it. */
 const attackRollRollModeParamDtoSchema = lazySchema(() =>
   z.object({
     attackDomain: attackDomainCodeSchema,
-    ability: z.optional(abilityCodeSchema)
+    ability: z.optional(abilityCodeSchema),
+    /** Only attacks against the source of the effect holding the grant (Bestow Curse). */
+    againstEffectSource: z.optional(z.boolean())
   })
 )
 
@@ -242,6 +252,32 @@ const damageTypePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ damageTypeId: authoredIdentifierSchema })
 )
 
+const damageDieShape = () => ({
+  ...rolledDieShape(),
+  recipient: z.enum(['HOLDER_DEALS', 'SOURCE_DEALS_TO_HOLDER']),
+  countPerCastLevelAbove: z.optional(
+    z.strictObject({
+      level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(9)),
+      count: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ROLLED_DIE_COUNT))
+    })
+  )
+})
+
+/**
+ * Dice a damage roll adds or subtracts (D156): an added die names its damage type or takes the
+ * attack's; a subtracted die always lowers the attack's own damage.
+ */
+export const damageDiePayloadDtoSchema = lazySchema(() =>
+  z.union([
+    z.strictObject({
+      ...damageDieShape(),
+      sign: z.literal('ADD'),
+      damageTypeId: authoredIdentifierSchema
+    }),
+    z.strictObject({ ...damageDieShape(), damageTypeSource: z.literal('ATTACK') })
+  ])
+)
+
 /** An immunity can be limited to damage from actions owned by the named authored content. */
 const damageImmunityPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -336,6 +372,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
     rolledDiePayloadDtoSchema,
+    damageDiePayloadDtoSchema,
     damageResistancePayloadDtoSchema,
     damageImmunityPayloadDtoSchema,
     conditionTypePayloadDtoSchema,
@@ -617,6 +654,12 @@ const buildModifierGrantVariants = () =>
       'OPTIONAL_ABILITY_MODIFIER_BONUS',
       attackDomainParamDtoSchema,
       optionalAbilityModifierBonusPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'DAMAGE',
+      'ADD_BONUS_DIE',
+      optionalAttackDomainParamDtoSchema,
+      damageDiePayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'DAMAGE',
