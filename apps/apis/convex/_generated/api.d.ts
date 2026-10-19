@@ -3189,6 +3189,7 @@ export declare const api: {
               rollSequences?: Array<Array<number>>;
               rolls: Array<number>;
               subtotal: number;
+              subtracted?: true;
             }>;
             total: number;
             transform:
@@ -7234,6 +7235,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -7328,6 +7330,7 @@ export declare const api: {
                   rollSequences?: Array<Array<number>>;
                   rolls: Array<number>;
                   subtotal: number;
+                  subtracted?: true;
                 }>;
                 total: number;
                 transform:
@@ -7427,6 +7430,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -7514,6 +7518,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -10365,6 +10370,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -10461,6 +10467,7 @@ export declare const api: {
               rollSequences?: Array<Array<number>>;
               rolls: Array<number>;
               subtotal: number;
+              subtracted?: true;
             }>;
             total: number;
             transform:
@@ -10551,6 +10558,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -32727,6 +32735,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -42561,6 +42610,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -52404,6 +52494,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -62238,6 +62369,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -72107,6 +72279,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -81941,6 +82154,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -91652,6 +91906,47 @@ export declare const api: {
                   order: number;
                   paths: Array<any>;
                   spellCast?: { castLevel: number };
+                  weaponAttack?: {
+                    requiredPropertyCodes?: Array<
+                      | "LIGHT"
+                      | "ONE_HANDED"
+                      | "TWO_HANDED"
+                      | "FINESSE"
+                      | "RANGED"
+                      | "THROWN"
+                      | "HEAVY"
+                      | "LOADING"
+                      | "AMMUNITION"
+                      | "REACH"
+                      | "SPECIAL"
+                      | "VERSATILE"
+                      | "MEDIUM"
+                      | "SIMPLE"
+                      | "MARTIAL"
+                      | "MELEE"
+                      | "FLASK"
+                      | "VIAL"
+                      | "POISON"
+                      | "CONTAINER"
+                      | "POTION"
+                      | "SCROLL"
+                      | "WONDEROUS_ITEM"
+                      | "ARCANE_FOCUS"
+                      | "HOLY_SYMBOL"
+                      | "DRINK"
+                      | "FOOD"
+                      | "ARTISANAL_TOOL"
+                      | "MUSICAL_INSTRUMENT"
+                      | "GAMING_SET"
+                      | "DRUIDIC_FOCUS"
+                      | "PROFESSIONAL_TOOL"
+                      | "WOOD"
+                      | "METAL"
+                      | "MAGIC"
+                      | "VEX"
+                      | "CLOTHING"
+                    >;
+                  };
                 }>;
                 gameSystemId: string;
                 id: string;
@@ -101481,6 +101776,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -111315,6 +111651,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -116321,6 +116698,12 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 request: {
+                  addedDice?: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
                   max: 20;
@@ -116378,6 +116761,12 @@ export declare const api: {
                 saves: Array<{
                   actorId: string;
                   request: {
+                    addedDice?: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     max: 20;
@@ -116632,6 +117021,7 @@ export declare const api: {
         },
         {
           evidenceRoll?: {
+            addedFaces?: Array<number>;
             attempt: number;
             derivedRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
             faces: Array<number>;
@@ -116653,6 +117043,12 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   request: {
+                    addedDice?: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     max: 20;
@@ -116714,6 +117110,12 @@ export declare const api: {
                   saves: Array<{
                     actorId: string;
                     request: {
+                      addedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
                       derivedRollModeReasons: Array<string>;
                       heldD20?: {
                         caption: string | null;
@@ -117215,6 +117617,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -117455,6 +117858,7 @@ export declare const api: {
                 rollSequences?: Array<Array<number>>;
                 rolls: Array<number>;
                 subtotal: number;
+                subtracted?: true;
               }>;
               total: number;
               transform:
@@ -117520,6 +117924,12 @@ export declare const api: {
             occurrenceId: string;
             occurrenceVersion: number;
             request: {
+              addedDice?: Array<{
+                count: number;
+                faces: 4 | 6 | 8 | 10 | 12;
+                label: string;
+                sign: "ADD" | "SUBTRACT";
+              }>;
               derivedRollModeReasons: Array<string>;
               heldD20?: { caption: string | null; faces: Array<number> };
               max: 20;
@@ -117574,6 +117984,12 @@ export declare const api: {
             saves: Array<{
               actorId: string;
               request: {
+                addedDice?: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 derivedRollModeReasons: Array<string>;
                 heldD20?: { caption: string | null; faces: Array<number> };
                 max: 20;
@@ -118372,6 +118788,12 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 request: {
+                  addedDice?: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
                   max: 20;
@@ -118429,6 +118851,12 @@ export declare const api: {
                 saves: Array<{
                   actorId: string;
                   request: {
+                    addedDice?: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     max: 20;
@@ -119963,6 +120391,7 @@ export declare const api: {
             rollSequences?: Array<Array<number>>;
             rolls: Array<number>;
             subtotal: number;
+            subtracted?: true;
           }>;
           total: number;
           transform:
@@ -120030,6 +120459,7 @@ export declare const api: {
             rollSequences?: Array<Array<number>>;
             rolls: Array<number>;
             subtotal: number;
+            subtracted?: true;
           }>;
           total: number;
           transform:
@@ -120063,6 +120493,7 @@ export declare const api: {
             rollSequences?: Array<Array<number>>;
             rolls: Array<number>;
             subtotal: number;
+            subtracted?: true;
           }>;
           total: number;
           transform:

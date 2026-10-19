@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import {
   MAX_TURN_TELEPORT_ALLOWANCES,
   teleportAllowanceDtoSchema
@@ -166,6 +167,8 @@ export const encounterStoredEvidenceRollSchema = lazySchema(() =>
     value: z.number().check(z.int()),
     rollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
     derivedRollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+    /** The faces of the request's added dice (D156), rolled with the d20. */
+    addedFaces: z.optional(d20AddedFacesDtoSchema),
     createdAt: z.iso.datetime()
   })
 )

@@ -189,6 +189,21 @@ describe('Creature attack roll publication rule', () => {
     )
   })
 
+  it('refuses an attack with the wielded weapons, since a Creature wields no items (D156)', () => {
+    const bite = feature({ triggerCode: 'MELEE_WEAPON_ATTACK', rollDefinitions: [attackRoll(30)] })
+    const [attack] = 'effects' in bite ? bite.effects : []
+    expect(
+      creatureAuthoredDtoSchema.safeParse(
+        creature([{ ...bite, effects: [{ ...attack, weaponAttack: {} }] }])
+      ).error?.issues
+    ).toEqual([
+      expect.objectContaining({
+        path: ['features', 0, 'effects', 0, 'weaponAttack'],
+        message: '"Bite" belongs to a Creature, which wields no items to attack with.'
+      })
+    ])
+  })
+
   it('lets a draft be saved, and a published Creature be read, without the ATTACK roll', () => {
     const withoutRoll = creature([
       feature({ triggerCode: 'MELEE_WEAPON_ATTACK', rollDefinitions: [] })

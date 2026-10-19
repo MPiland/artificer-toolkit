@@ -98,7 +98,10 @@ export function projectEncounterSpatialOccurrenceSummary(
               derivedRollModeReasons: reasons({
                 rollMode: context.phase.concentration.save.rollMode,
                 contributors: context.phase.concentration.save.contributors
-              })
+              }),
+              ...(context.phase.concentration.save.addedDice?.length
+                ? { addedDice: context.phase.concentration.save.addedDice }
+                : {})
             },
             allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
           }
@@ -226,6 +229,8 @@ export function projectEncounterSpatialOccurrenceSummary(
                   requestId: pendingSnapshot.request.requestId,
                   min: 1,
                   max: 20,
+                  // The roller rolls the test's added dice with the d20 that settles it (D156).
+                  ...(d20Policy?.addedDice?.length ? { addedDice: d20Policy.addedDice } : {}),
                   ...(heldD20
                     ? {
                         rollMode: 'NORMAL' as const,
@@ -331,7 +336,10 @@ export function projectEncounterSpatialOccurrenceSummary(
         derivedRollModeReasons: reasons({
           rollMode: spatialCandidate.d20Policy.rollMode,
           contributors: spatialCandidate.d20Policy.contributors
-        })
+        }),
+        ...(spatialCandidate.d20Policy.addedDice?.length
+          ? { addedDice: spatialCandidate.d20Policy.addedDice }
+          : {})
       },
       allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
     }
