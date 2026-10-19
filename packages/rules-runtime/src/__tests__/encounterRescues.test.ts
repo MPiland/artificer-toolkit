@@ -105,31 +105,7 @@ describe('the holds a creature within reach may break for another creature', () 
   })
 
   it('offers nothing for a CONTEST escape: a rescuer has no contest to make', () => {
-    const fixed = hold()
-    const contested = {
-      ...fixed,
-      definition: {
-        ...fixed.definition,
-        stateContributions: fixed.definition.stateContributions.map((contribution) =>
-          contribution.kind === 'ACTOR_RELATIONSHIP'
-            ? {
-                ...contribution,
-                modules: contribution.modules.map((module) =>
-                  module.kind === 'ESCAPE_CHECK'
-                    ? {
-                        ...module,
-                        dc: {
-                          kind: 'CONTEST' as const,
-                          checks: { skillIds: [], abilityDefinitionIds: [] }
-                        }
-                      }
-                    : module
-                )
-              }
-            : contribution
-        )
-      }
-    }
+    const contested = hold({ contestChecks: { skillIds: [], abilityDefinitionIds: [] } })
     expect(rescues({ hold: contested })).toEqual([])
   })
 })
