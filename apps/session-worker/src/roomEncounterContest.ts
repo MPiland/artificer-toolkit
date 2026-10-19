@@ -1,7 +1,7 @@
 import {
-  persistEncounterDisarmPending,
-  persistEncounterDisarmCommit
-} from '@artificer-toolkit/encounter-persistence/disarmPersistence'
+  persistEncounterContestPending,
+  persistEncounterContestCommit
+} from '@artificer-toolkit/encounter-persistence/contestPersistence'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type {
   ResolveEncounterActionInputDto,
@@ -12,7 +12,7 @@ import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/li
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
-import { planNativeLiveDisarm, type planNativeLiveContestRolls } from './nativeDisarm.js'
+import { planNativeLiveContest, type planNativeLiveContestRolls } from './nativeContest.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomActionSceneInputs } from './roomActionSceneInputs.js'
@@ -23,8 +23,8 @@ import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.j
 import type { RoomInputs } from './roomInputs.js'
 
 /** The sealed contest, item transition, action economy and receipts use the same native commit. */
-export async function executeRoomEncounterDisarm(input: {
-  ctx: Parameters<typeof persistEncounterDisarmCommit>[0]
+export async function executeRoomEncounterContest(input: {
+  ctx: Parameters<typeof persistEncounterContestCommit>[0]
   store: RoomEncounterStore
   transaction: RoomTransaction
   inputs: RoomInputs
@@ -35,7 +35,7 @@ export async function executeRoomEncounterDisarm(input: {
   random(maximum: number): number
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
-  const plan = await planNativeLiveDisarm(scope, input.command, {
+  const plan = await planNativeLiveContest(scope, input.command, {
     runtime: input.runtime,
     random: input.random,
     captures: {
@@ -64,7 +64,7 @@ export async function executeRoomEncounterDisarm(input: {
  * outcome. A Disarm and a basic action contest the ordinary action planner starts share it.
  */
 export async function persistRoomEncounterContest(input: {
-  ctx: Parameters<typeof persistEncounterDisarmCommit>[0]
+  ctx: Parameters<typeof persistEncounterContestCommit>[0]
   store: RoomEncounterStore
   transaction: RoomTransaction
   inputs: RoomInputs
@@ -87,7 +87,7 @@ export async function persistRoomEncounterContest(input: {
     (revision) => revision.scope !== 'CHARACTER' || ids.has(revision.id)
   )
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
-  const callbacks: Parameters<typeof persistEncounterDisarmCommit>[2] = {
+  const callbacks: Parameters<typeof persistEncounterContestCommit>[2] = {
     readActionSceneInputs: (state, command) =>
       readRoomActionSceneInputs(ctx, transaction, state, command),
     validateReadFence: async (state, characterIds, revisions) =>
@@ -107,6 +107,6 @@ export async function persistRoomEncounterContest(input: {
       applyRoomForcedMovements({ ctx, transaction, userId: scope.expectedUserId, movement })
   }
   return plan.kind === 'PENDING'
-    ? persistEncounterDisarmPending(ctx, { ...plan.input, revisions }, callbacks)
-    : persistEncounterDisarmCommit(ctx, { ...plan.input, revisions }, callbacks)
+    ? persistEncounterContestPending(ctx, { ...plan.input, revisions }, callbacks)
+    : persistEncounterContestCommit(ctx, { ...plan.input, revisions }, callbacks)
 }

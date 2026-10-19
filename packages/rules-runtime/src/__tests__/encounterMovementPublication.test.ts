@@ -168,6 +168,28 @@ describe('prepared movement publication', () => {
     }
     // Terrain 3 on the whole segment outranks the careful doubling; nothing multiplies.
     expect(preparedMovementCost({ ...walk, scene: terrain, mover: careful(true) })).toBeCloseTo(60)
+
+    // ATTACK-7.T7 (D105): a drag doubles the whole cost on top of the highest multiplier, so
+    // dragging through difficult terrain costs four times as much.
+    const dragging = (effect: ReturnType<typeof costly>) => ({
+      ...mover(effect, false),
+      dragDoublesCost: true
+    })
+    expect(preparedMovementCost({ ...walk, mover: dragging(costly(1)) })).toBe(plain * 2)
+    expect(preparedMovementCost({ ...walk, mover: dragging(costly(4)) })).toBeCloseTo((10 + 40) * 2)
+    const difficult = {
+      barriers: [{ ...terrain.barriers[0]!, movementCostMultiplier: 2 }]
+    }
+    expect(
+      preparedMovementCost({ ...walk, scene: difficult, mover: dragging(costly(1)) })
+    ).toBeCloseTo(plain * 4)
+    expect(
+      preparedMovementCost({
+        ...walk,
+        scene: difficult,
+        mover: { ...dragging(costly(1)), dragDoublesCost: false }
+      })
+    ).toBeCloseTo(plain * 2)
   })
 
   it('charges a zone’s movement cost only to the movers it catches (SPELLS-20 T4d)', () => {
@@ -275,5 +297,21 @@ describe('prepared movement publication', () => {
         tokenId,
         position: { x: 100, y: 50 }
       })
+  })
+
+  it('publishes a drag as one batch: the mover, then each dragged token (D105)', () => {
+    const draggedTokenId = '00000000-0000-4000-8000-000000000003'
+    const draggedTokens = [
+      { tokenId: draggedTokenId, from: { x: 100, y: 0 }, to: { x: 200, y: 50 } }
+    ]
+    expect(
+      preparedMovementSceneDelta({ tokenId, path, outcome: null, sceneVersion: 4, draggedTokens })
+    ).toEqual({
+      kind: 'BATCH',
+      deltas: [
+        { kind: 'TOKEN_MOVED', tokenId, position: { x: 100, y: 50 } },
+        { kind: 'TOKEN_MOVED', tokenId: draggedTokenId, position: { x: 200, y: 50 } }
+      ]
+    })
   })
 })

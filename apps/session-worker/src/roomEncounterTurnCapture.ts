@@ -46,7 +46,7 @@ import { readAreaRemovalCommitAdmission } from '@artificer-toolkit/encounter-per
 import { readNativeEncounterActionResponseAdmission } from '@artificer-toolkit/encounter-persistence/actionResumeAdmission'
 import { readLiveEncounterActionScope } from '@artificer-toolkit/encounter-persistence/liveActionAdmission'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
-import { readDisarmAdmission } from '@artificer-toolkit/encounter-persistence/disarmAdmission'
+import { readContestAdmission } from '@artificer-toolkit/encounter-persistence/contestAdmission'
 import { readRoomLiveMovementAdmission } from './roomSceneGeometryRead.js'
 import { readMovementResolution } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 
@@ -96,7 +96,7 @@ export async function readRoomEncounterTurnCapture(
     movementAdmission &&
     [
       'CONCENTRATION_RESPONSE',
-      'DISARM',
+      'CONTEST',
       'ACTION_COMMAND',
       'ACTION_RESPONSE',
       'AREA_REMOVAL',
@@ -149,7 +149,7 @@ export async function readRoomEncounterTurnCapture(
   }
   if (concentrationAdmission?.kind === 'REPLAY')
     throw new Error('Completed concentration response cannot capture rules inputs.')
-  if (input.request.kind === 'DISARM') {
+  if (input.request.kind === 'CONTEST') {
     if (
       input.expectedRole !== 'OWNER' &&
       checksumCanonicalJson(input.action) !== checksumCanonicalJson(input.request)
@@ -157,12 +157,12 @@ export async function readRoomEncounterTurnCapture(
       throw new Error('Live Session action scope mismatch.')
     if (input.turnCommand || input.concentrationResponse)
       throw new Error('Room action capture cannot use another command scope.')
-    const admission = await readDisarmAdmission(ctx, {
+    const admission = await readContestAdmission(ctx, {
       ...input,
       command: input.request.command
     })
     const response = {
-      kind: 'DISARM' as const,
+      kind: 'CONTEST' as const,
       ready:
         admission.kind === 'READY'
           ? {

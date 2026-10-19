@@ -2103,3 +2103,41 @@ describe('a zone that only prices movement, placed with no save (SPELLS-4.T2a4, 
     expect(placement).toMatchObject({ maintenance: null, entry: { maintenance: null } })
   })
 })
+
+describe('a save cast that owns a bundle of modifiers, repeated at the end of each turn (SPELLS-4.T2a5, D156)', () => {
+  it('owns Slow’s six modifiers for a minute under Concentration, with a plain-d20 turn-end save', () => {
+    const plan = compiledCast(spell('Slow'))?.activeEffectPlan
+    expect(plan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 10,
+      conditionContributions: [],
+      modifierGrantContribution: {
+        countedByTurnEffects: true,
+        modifiers: [
+          { valueDomainCode: 'SPEED', modifierKind: 'MULTIPLY' },
+          { valueDomainCode: 'ARMOR_CLASS', modifierKind: 'PENALTY' },
+          { valueDomainCode: 'SAVING_THROW_MODIFIER', modifierKind: 'PENALTY' },
+          { valueDomainCode: 'REACTION_COUNT', modifierKind: 'SET_VALUE' },
+          { valueDomainCode: 'ACTION_BONUS_ACTION_EXCLUSIVITY', modifierKind: 'ENABLE' },
+          { valueDomainCode: 'ATTACKS_PER_ATTACK_ACTION', modifierKind: 'CAP_VALUE' }
+        ]
+      },
+      frozenGraphNodeId: 'repeat-save-test'
+    })
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+  })
+})
+
+describe('a cast that departs its travelers beside a GM ruling (SPELLS-4.T2a5, D156)', () => {
+  it('departs Teleport’s caster and up to eight chosen creatures with the destination ruling riding the commit, and no effect to hold', () => {
+    const compiled = compiledCast(spell('Teleport'))
+    if (compiled?.executionPlan.kind !== 'SINGLE_GRAPH')
+      throw new Error('Teleport must compile to a graph.')
+    const keys = compiled.executionPlan.published.definition.nodes.map(
+      ({ operation }) => operation.key
+    )
+    expect(keys).toContain('dnd5e.depart-proposal')
+    expect(keys).toContain('dnd5e.manual-adjudication-proposal')
+    expect(compiled.activeEffectPlan).toBeNull()
+  })
+})

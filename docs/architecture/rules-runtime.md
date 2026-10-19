@@ -35,7 +35,7 @@ flowchart TD
 
 - **Session Durable Object** (`apps/session-worker`): the `native*` modules (`nativeEncounterRules`,
   `nativeEncounterTurn`, `nativeEncounterMovement`, `nativeCharacterRules`, `nativeCheckAction`,
-  `nativeDisarm`, and the Concentration, Cleaving and maintenance modules) plan and execute Encounter,
+  `nativeContest`, and the Concentration, Cleaving and maintenance modules) plan and execute Encounter,
   movement and Sheet-play rules from the room's SQLite inputs, and the `room*` modules commit the results
   there. Held Sheet play runs through `roomCharacterSheetCommands` and `roomCharacterWrites`. See
   [live sessions](live-sessions.md) for the room protocol, ordering and recovery.
@@ -1310,7 +1310,11 @@ doubling apply unchanged. A rider with `usesTriggeringWeaponDamageType` takes th
 first `ON_HIT` damage; an unmerged one fails closed. A rider whose dice grow with class level lists `CLASS_LEVEL`
 rows with a `classId`; `bindFacts` supplies the actor's class levels (`dnd5e.class-levels`) and
 `exactDiceConfiguration` picks the highest row at or below that level. It is the shared row selector that
-other level-keyed dice (T12) reuse. Riders are collected from class, subclass, race and feat Features only.
+other level-keyed dice (T12) reuse. A Character's riders are collected from class, subclass, race and feat
+Features only. A Creature's attack takes the riders of its own passive Features through the same collect, merge
+and `reduceEffectRestrictions` path in `encounterFeatureActionCapabilityDiscovery` (SPELLS-33.T3a5), with no
+Equipment facts, so a rider's weapon checks never hold. An Effect that still carries a `CLOSED_RULE` outcome
+contributes no rider, since its gate or remainder would be lost (D156).
 A path restriction's `DAMAGE_TYPE` check on the `EQUIPMENT` subject ("an attack that deals bludgeoning
 damage") is settled with the weapon checks in `reduceEffectRestrictions`, against the types of the hit's
 `ON_HIT` damage that no restriction, use limit or player choice withholds.
@@ -1393,6 +1397,13 @@ attacks, timed conditions (one effect owning several conditions and, beside them
 measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
 (`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one
 reason, and may only shrink. Versatile grips author one effect per grip.
+
+**Hit point maximum reduction (SPELLS-33.T3a4).** A `HIT_POINT_MAXIMUM_REDUCTION` whose `DAMAGE_TAKEN`
+amount names a damage outcome of its own result path compiles on a direct test path too, not only in an
+immediate follow-up save's failure: each path's OUTCOME graph gets one reduction proposal bound to that
+path's damage proposal. The proposal carries the path that authorizes it (`authorizedPath`: `ON_SAVE_FAIL`
+for a nested save, the selected path for a direct one), and interpretation reduces the maximum by the
+damage the target took. SRD Succubus/Incubus Draining Kiss authors it on both save paths.
 
 **Legendary and Recharge.** Policy lives in `dnd5e-encounter-lifecycle` documents; usage state stays with
 Feature-owned charge identities. Recharge runs for the incoming actor in the shared turn occurrence.
@@ -1570,6 +1581,16 @@ conditions from its frozen `relationship-state` graph, which is not part of the 
 Character target's `CHARACTER_MECHANICS_BATCH` binds each of those `CONDITION_APPLY` applications to the
 batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's result path rather than to a
 kernel trace.
+
+**Drag (D105, ATTACK-7.T7).** An outcome's `TARGET_DRAGGED` module makes its hold drag: the SRD Grapple and
+the creature grapple riders author it. `encounterMovementDrag` finds the actors the mover itself holds through
+such a hold (one level deep; nothing keys on the Grappled condition) for a voluntary, automated move. Each held
+token moves by the mover's displacement in the same Scene move, spends no movement and provokes no opportunity
+attack, and the mover's path ignores it as an obstacle. The drag doubles the mover's cost on top of the D154
+maximum (difficult terrain costs ×4) unless every held creature is two or more sizes smaller; an unknown size
+counts as not smaller. A mover stopped mid-path drags only the walked part. The room refuses a drag
+(`MOVEMENT_BLOCKED`, "Release the grapple first.") whose dragged path is blocked, ends on an occupied place, or
+enters, leaves or crosses a Scene effect (SPELLS-4.T1j).
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's

@@ -121,7 +121,8 @@ describe('the CHECK action test compiles through the dnd5e adapter', () => {
     expect(plan?.actorRelationshipContribution?.heldAtOnce).toBe(2)
     expect(plan?.actorRelationshipContribution?.modules.map(({ kind }) => kind)).toEqual([
       'SOURCE_OCCUPIES_HAND',
-      'ESCAPE_CHECK'
+      'ESCAPE_CHECK',
+      'TARGET_DRAGGED'
     ])
   })
 

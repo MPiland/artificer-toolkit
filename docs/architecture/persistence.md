@@ -163,6 +163,10 @@ record of the move: the action's `RESOLVE_ACTION` receipt keeps only references 
 `{sceneId, sceneCommandId}[]`, default `[]`), the GM's `UNDO_LAST_SCENE_MOVE` refuses a latest move whose
 origin is an action, and the action's `REVERT_LAST_ACTION` undoes each referenced move through
 `publishSceneUndo`, refused (`REVERT_UNAVAILABLE`) once the token has moved since.
+A drag (D105) writes the mover's and each dragged token's live row at the move's version; publication refuses it
+unless every dragged token still stands at its recorded `from` and moves by the mover's displacement.
+`publishSceneUndo` restores the mover and every token in the preparation's `draggedTokens`, refusing when any of
+them has moved since.
 
 ## Encounter persistence package
 
@@ -309,10 +313,10 @@ store.
   `createCommandFingerprint`, index `by_campaignId_createCommandId`) so a `runs.create` retry returns
   the same Run after COMPLETE. Run deletion and Campaign deletion delete the remaining rows too.
 - **Contest commands (D152):** every contest commits through the one contest path
-  (`disarmPersistence.ts`). A Disarm or basic action contest is a `RESOLVE_ACTION` row rooted in its
+  (`contestPersistence.ts`). A Disarm or basic action contest is a `RESOLVE_ACTION` row rooted in its
   `RULE_OCCURRENCE`; a contested escape keeps the existing `ESCAPE` row, whose `receipt.checkOccurrenceId`
   is the contest occurrence and whose rule receipt's `commandType` is `ESCAPE`. Replay and resume
-  (`actionDisarmReplay.ts`, `disarmAdmission.ts`) read either root through `ContestRootCommand`.
+  (`actionContestReplay.ts`, `contestAdmission.ts`) read either root through `ContestRootCommand`.
 - **Ended grants and undo (D113):** state-bound grants the engine ends (incapacitation or defeat for `ON_INCAPACITATED` grants, a named Condition for `endOnConditionIds`) are deleted in
   the same commit. A `RESOLVE_ACTION`, area or cleaving root keeps them in `consumedGrants` (`receiptConsumedGrants`,
   `addResponseChangesToRoot`), so `REVERT_LAST_ACTION` restores them with the consumed grants. The commit validates every

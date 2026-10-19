@@ -130,8 +130,9 @@ export const succubusIncubus: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(267, 210),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUCCUBUS_INCUBUS_DRAINING_KISS
+                    effectKind: S.EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION,
+                    amountSource: { kind: 'DAMAGE_TAKEN', damageOutcomeId: S.actionId(267, 209) },
+                    recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
                   }
                 ]
               }
@@ -158,8 +159,9 @@ export const succubusIncubus: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(267, 214),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUCCUBUS_INCUBUS_DRAINING_KISS
+                    effectKind: S.EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION,
+                    amountSource: { kind: 'DAMAGE_TAKEN', damageOutcomeId: S.actionId(267, 213) },
+                    recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
                   }
                 ]
               }

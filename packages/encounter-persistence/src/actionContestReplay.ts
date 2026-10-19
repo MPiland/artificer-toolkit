@@ -9,13 +9,13 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createDnd5eOptionalCombatContestGraph } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestGraph'
-import type { ContestRootCommand } from './disarmAdmission.js'
+import type { ContestRootCommand } from './contestAdmission.js'
 import { readEncounterReplayReceipt } from './replayReceipts.js'
 import { presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 
 /** Validates the original action and its terminal rule receipt without reevaluating changed facts. */
-export async function readNativeDisarmReplay(
+export async function readNativeContestReplay(
   ctx: EncounterReadContext,
   input: {
     run: EncounterDocument<'encounterRuns'>
@@ -46,7 +46,7 @@ export async function readNativeDisarmReplay(
     receipt.version !== command.expectedVersion + 1 ||
     receipt.version > run.version
   )
-    throw new Error('Stored Disarm command receipt mismatch.')
+    throw new Error('Stored contest command receipt mismatch.')
   const { ruleOccurrenceId, ruleResultChecksum, optionalCombatSnapshotChecksum } = rooted
   const replayReceipt = readEncounterReplayReceipt(receipt)
   const occurrence = await ctx.db
@@ -59,7 +59,7 @@ export async function readNativeDisarmReplay(
       q.eq('encounterId', run.id).eq('commandId', command.commandId)
     )
     .unique()
-  if (!occurrence || !ruleReceipt) throw new Error('Stored Disarm rule receipt is missing.')
+  if (!occurrence || !ruleReceipt) throw new Error('Stored contest rule receipt is missing.')
   const { _id: _occurrenceId, _creationTime: _occurrenceTime, ...storedOccurrence } = occurrence
   const { _id: _receiptId, _creationTime: _receiptTime, ...storedReceipt } = ruleReceipt
   encounterStoredRuleOccurrenceSchema.parse(storedOccurrence)
@@ -73,7 +73,7 @@ export async function readNativeDisarmReplay(
     payload.applicationOutputs.kind !== 'CONTESTED_ACTION' ||
     metadata.transition !== 'START'
   )
-    throw new Error('Stored Disarm rule receipt mismatch.')
+    throw new Error('Stored contest rule receipt mismatch.')
   const application = payload.applicationOutputs
   const { policy } = application
   // An optional combat contest rebuilds its System graph from the pin; a basic action contest runs
@@ -133,12 +133,12 @@ export async function readNativeDisarmReplay(
     replayReceipt.occurrence.pending !== null ||
     replayReceipt.roll !== null
   )
-    throw new Error('Stored Disarm rule receipt mismatch.')
+    throw new Error('Stored contest rule receipt mismatch.')
   return { payload, occurrence, receipt }
 }
 
 /** Evidence command IDs replay their original authorized response, including an earlier pause. */
-export function readNativeDisarmEvidenceReplay(input: {
+export function readNativeContestEvidenceReplay(input: {
   receipt: EncounterDocument<'encounterRuleReceipts'>
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
   response: ResolveRuleOccurrenceInputDto
@@ -158,7 +158,7 @@ export function readNativeDisarmEvidenceReplay(input: {
     !metadata.replayReceipt ||
     (payload.status !== 'PAUSED' && payload.status !== 'COMPLETE')
   )
-    throw new Error('Stored Disarm evidence receipt mismatch.')
+    throw new Error('Stored contest evidence receipt mismatch.')
   const replayReceipt = readEncounterReplayReceipt(metadata.replayReceipt)
   if (
     metadata.rootCommandId !== input.rootCommand.commandId ||
@@ -188,7 +188,7 @@ export function readNativeDisarmEvidenceReplay(input: {
     replayReceipt.occurrence.status !== (payload.status === 'COMPLETE' ? 'COMPLETE' : 'PENDING') ||
     replayReceipt.roll !== null
   )
-    throw new Error('Stored Disarm evidence receipt mismatch.')
+    throw new Error('Stored contest evidence receipt mismatch.')
   const pending = replayReceipt.occurrence.pending
   if (
     payload.status === 'COMPLETE'
@@ -202,6 +202,6 @@ export function readNativeDisarmEvidenceReplay(input: {
             payload.pending?.kind !== 'D20_EVIDENCE' ||
             pending.request.rollMode !== payload.pending.rollMode)
   )
-    throw new Error('Stored Disarm evidence response mismatch.')
+    throw new Error('Stored contest evidence response mismatch.')
   return { replayReceipt: metadata.replayReceipt, payload }
 }

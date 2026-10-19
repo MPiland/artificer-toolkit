@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Timed self actions with several outcomes (D156, SPELLS-31.T3b):** the Encounter compiler accepts one outcome per self action, so Empty Body (invisible plus resistance) and Gaze of Two Minds stay MANUAL in play, as their closed rules did. Only an 18th-level monk and one warlock invocation have them, and the GM applies them in a moment.
+
 - **Plant Growth excluded areas (D156, SPELLS-4.T2a4):** the caster can't cut holes in the zone, so allies in an excluded patch still pay the difficult-terrain cost. The real fix is a zone shape with authored exclusions. A GM-ruling prompt would add a reminder without changing any movement.
 
 - **Choosing when to spend a rolled die (D156, SPELLS-4.T2c):** Guidance and Resistance are used up on the holder's first matching test. The player can't save them for a later roll or decide after seeing the d20. Most Guidance casts happen right before the check they're cast for.
@@ -104,6 +106,10 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Disarm does not use up an `ON_ATTACKED` grant (SPELLS-4.T2a3):** Disarm's attack roll reads the defender's grants but consumes only the defender's `ON_ABILITY_CHECK` grants, and it has no defender batch to release a condition in, so a Guiding Bolt mark survives a Disarm attempt for the next attack. Consume it with `targetEndedEffects` once Disarm settles the defender in its own batch.
 - **A Creature's sense grants in Encounter perception (SPELLS-4.T2a4):** A Creature perceives only with its stat-block Senses; a sense an Active Effect grants it (a Creature casting See Invisibility or Darkvision on itself) is not folded in, unlike a Character's. Fold Creature sense grants into `perceptionSenses` and Scene vision if a Creature caster needs it.
 - **See Invisibility in darkness (D156, SPELLS-4.T2a4):** See Invisibility grants ordinary sight that perceives invisible creatures. Each of a creature's senses is checked on its own, so a caster who also has Darkvision still cannot see an Invisible creature standing in darkness: Darkvision reaches the darkness but not the invisibility, and this sense reaches the invisibility but not the darkness. Fix by combining a creature's visual senses into one check if players hit this.
+- **Slow's spellcasting delay (D156, SPELLS-4.T2a5):** a slowed creature casting a 1-action spell rolls a d20 and on an 11 or higher the spell takes effect on its next turn. The delay stays description-only (a GM ruling cannot follow a saving throw). Author it as a Modifier if slowed casters come up often.
+- **Slow's chosen targets (D156, SPELLS-4.T2a5):** Slow is authored as the 40-foot cube's contents; the caster's choice of up to six creatures inside it is the GM's (unaffected actors can be left out of the area cast).
+- **Silent Image in Encounters (D156, SPELLS-4.T2a5):** the illusion manifest is authored but the compiler places no illusion in Encounters, so the cast stays a manual action; the Investigation check against the spell DC is the GM's.
+- **True Seeing's secret doors and Ethereal sight (D156, SPELLS-4.T2a5):** truesight is granted; noticing magically hidden secret doors and seeing into the Ethereal Plane stay description-only.
 - **Couatl poison duration (D156, SPELLS-4.T2a3):** the 24-hour active-effect bound now fits the Couatl's Bite poison, which still stays description-only until its duration is authored.
 - **Random fling direction (D157).** The Air Elemental's Whirlwind flings a creature in a random direction; its controller picks the square instead. Add a rolled direction if GMs ask for it.
 
@@ -259,6 +265,7 @@ The user cut these from pre-alpha scope for time to market (D145 amendment). The
 - **QUALITY-3.T1b (lint).** knip in CI for dead exports, files and dependencies, configured per workspace (entry points: routes, Convex functions, Worker entry, stories, tests); its current findings deleted (deleting unused code is pre-approved) or listed as public package entry points.
 - **QUALITY-3.T1c1 (lint).** Package boundary rule (D145): survey each web import of rules-runtime (38), source-data (38), authoring (6) and design-system (5) and each Convex and Worker package import, propose the allowed matrix in the workbook for an orchestrator ruling, then enforce it in lint with the crossing imports fixed.
 - **QUALITY-3.T1c2 (lint).** Root-barrel ban: codemod the 1,072 root @artificer-toolkit/schema and @artificer-toolkit/shared imports in non-test code to their narrow subpaths, then make the root barrel import a lint error.
+- **Web unit tests share workers (PLATFORM-13.T15, 2026-10-18).** With `isolate: false`, the web vitest step took 232 s against 340–553 s isolated. But 42 of 297 files failed because `vi.mock` and module state leak between files: no Convex client, vi.fn called 0 times, duplicate role=alert, missing QueryClient. Planned work: give every web test its own mock and provider setup and teardown, then flip the web unit project to `isolate: false` once three full runs are clean (run 39173494325 lists the failing files).
 - **QUALITY-3.T1d (lint).** Large-file flag (D145): a non-test file over 1,500 lines fails lint unless it is in a reviewed allowlist. Each of the 18 current files gets a responsibility review: split at a real seam, or stays allowlisted with a one-line reason. The allowlist may only shrink.
 
 ### Pit Fiend Fear Aura as a passive zone (D147)

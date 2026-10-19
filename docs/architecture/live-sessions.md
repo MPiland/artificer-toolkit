@@ -163,8 +163,9 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
 `packages/rules-runtime` and `packages/encounter-persistence` through `executeRoomEncounterCommand`
 (`roomEncounterCommands.ts`), drawing dice from the room's secure random source:
 
-- `RESOLVE_ACTION` runs the action planner, or the Disarm planner (`nativeDisarm.ts`) when it carries
-  an optional-combat intent, and an action authored with the `CHECK` test (First Aid) takes the check branch
+- `RESOLVE_ACTION` runs the action planner, or the contest planner (`nativeContest.ts`) when it carries
+  an optional-combat intent (Disarm); a contested basic action (Grapple, Shove) starts in the action
+  planner and settles through the same contest path, and an action authored with the `CHECK` test (First Aid) takes the check branch
   (`nativeCheckAction.ts`, persisted through `roomEncounterBasicActions.ts`); `ESCAPE` runs
   `nativeEscapeAction.ts`; `START` and `ADVANCE_TURN` run the turn planner (`nativeEncounterTurn.ts`).
 - `ESCAPE` (D105, D146) is the current actor's attempt to break a hold: a fixed-DC grapple, or a condition
@@ -191,7 +192,7 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   `persistLiveMovementAreaDeparture` re-derives the holder effect from current rows and ends it through the
   escape end path. The spatial receipt is unchanged.
 - Pending decisions are routed by `roomEncounterResponseRouting.ts` from the Run's retained occurrence:
-  TURN, ACTION, CONCENTRATION, CLEAVING, BASIC_ACTION, ESCAPE, DISARM or MOVEMENT. The selected planner repeats canonical
+  TURN, ACTION, CONCENTRATION, CLEAVING, BASIC_ACTION, ESCAPE, CONTEST or MOVEMENT. The selected planner repeats canonical
   admission. A decision no planner owns is refused with `VERSION_STALE` unless it names the Run's one
   pending occurrence and the caller may answer it.
 - `REMOVE_AREA_TARGET` (GM-only) takes one creature out of a pending area action (point or directed)
