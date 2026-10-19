@@ -634,6 +634,7 @@ export type Dnd5eCompiledEffectActionSource = Pick<
   | 'spellCastLevel'
   | 'characterLevel'
   | 'zoneAppearSave'
+  | 'perTargetLockout'
 >
 interface TestPlan {
   kind: TestKind
@@ -662,7 +663,8 @@ function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind 
  * Outcomes a test action leaves to its active-effect plan rather than its TEST/OUTCOME graphs: an
  * actor relationship, a grant an attack's hit applies (Shocking Grasp's "can't take reactions"),
  * and a grant a failed save applies beside the timed conditions the same effect owns (Hypnotic
- * Pattern's speed of 0). Any other failed-save grant stays an ordinary test outcome.
+ * Pattern's speed of 0). Any other failed-save grant stays an ordinary test outcome. A source
+ * immunity is always the plan's (see `sourceImmunityPlan`).
  */
 function isActiveEffectPlanOutcome(
   entry: CompiledEffectGroup['entries'][number],
@@ -671,6 +673,7 @@ function isActiveEffectPlanOutcome(
   if (!('outcome' in entry)) return false
   return (
     entry.outcome.effectKind === 'ACTOR_RELATIONSHIP' ||
+    entry.outcome.effectKind === 'SOURCE_IMMUNITY' ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT')) ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
@@ -2009,7 +2012,10 @@ function timedImmediateConditionPlan(
 function timedConditionPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { entries } = action.compiledEffect
+  // A successful save's immunity is planned beside the conditions, not held by their effect.
+  const entries = action.compiledEffect.entries.filter(
+    (entry) => !('outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY')
+  )
   const outcomeEntries = entries.filter((entry) => 'outcome' in entry)
   const conditionEntries = outcomeEntries.flatMap((entry) =>
     entry.outcome.effectKind === 'CONDITION' ? [{ entry, outcome: entry.outcome }] : []
@@ -2111,21 +2117,79 @@ function timedConditionPlan(
  * Breath, "unconscious for 1 minute, ending if the creature takes damage"): the effect, not the
  * save's outcome, carries the duration and the triggers that end it early. A timed condition that
  * authors no early end stays refused, for the spells that print a repeat save or an end event this
- * form does not yet carry (Hold Monster, Dominate, Charm Person). The plan owns every entry of the
- * action, so any entry on the failure path is owned when the plan exists.
+ * form does not yet carry (Hold Monster, Dominate, Charm Person), unless it lasts at most one round
+ * (Intimidating Presence), too short for a repeat save or end event to apply. The plan owns every
+ * entry of the action, so any entry on the failure path is owned when the plan exists.
  */
 function ownsTimedSaveCondition(
   action: Dnd5eCompiledEffectActionSource,
   entry: CompiledEffectGroup['entries'][number]
 ): boolean {
+  if (!('outcome' in entry)) return false
+  const turns = entry.duration ? conditionDurationTurns(entry.duration) : null
   return (
     testPhaseKindOrNull(action) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
-    'outcome' in entry &&
     ((entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 ||
-      (entry.lifecycle?.endOnEvents?.length ?? 0) > 0) &&
+      (entry.lifecycle?.endOnEvents?.length ?? 0) > 0 ||
+      (turns !== null && turns <= 1)) &&
     timedConditionPlan(action) !== null
   )
+}
+
+/**
+ * The immunity the action leaves on its target against this source (D156). A successful save's
+ * ("immune to this effect for 24 hours") is one SOURCE_IMMUNITY outcome on the success path, lasting
+ * its result block's duration in the target's turns, keyed by the action. An at-will grant's lockout
+ * (Chains of Carceri's "can't target it again until you finish a long rest") lands on every creature
+ * the cast meets, keyed by the grant, and lasts until the source Character's long rest.
+ */
+function sourceImmunityPlan(
+  action: Dnd5eCompiledEffectActionSource
+): CharacterRuleActionActiveEffectPlan['sourceImmunity'] {
+  const entries = action.compiledEffect.entries.flatMap((entry) =>
+    'outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY' ? [entry] : []
+  )
+  const entry = entries[0]
+  const lockout = action.perTargetLockout
+  if (lockout) {
+    if (entry || !UUID.test(lockout.grantId))
+      unsupported('A D&D lockout is the grant’s alone, keyed by the grant.')
+    const plan = {
+      compiledEntryId: lockout.grantId,
+      frozenGraphNodeId: 'source-lockout'
+    }
+    return {
+      ...plan,
+      appliesTo: 'EVERY_TARGET',
+      immuneToId: lockout.grantId,
+      initialRemaining: null,
+      frozenGraph: durationPublishedGraph({ action, plan: { ...plan, marginRider: null } })
+    }
+  }
+  if (!entry) return null
+  const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
+  if (
+    entries.length > 1 ||
+    testPhaseKindOrNull(action) !== 'SAVE' ||
+    entry.pathCode !== 'ON_SAVE_SUCCESS' ||
+    initialRemaining === null ||
+    Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
+    entry.maintenanceDefinitionId ||
+    !UUID.test(entry.entryId)
+  )
+    unsupported('D&D source immunity is one timed outcome of a successful saving throw.')
+  const plan = {
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'source-immunity'
+  }
+  return {
+    ...plan,
+    appliesTo: 'SAVE_SUCCESS',
+    immuneToId: action.effectId,
+    initialRemaining,
+    frozenGraph: durationPublishedGraph({ action, plan: { ...plan, marginRider: null } })
+  }
 }
 
 /** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
@@ -2458,7 +2522,16 @@ function concealmentPlan(
  */
 function durationPublishedGraph(input: {
   action: Dnd5eCompiledEffectActionSource
-  plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
+  plan: Pick<
+    CharacterRuleActionActiveEffectPlan,
+    | 'compiledEntryId'
+    | 'frozenGraphNodeId'
+    | 'conditionContributions'
+    | 'modifierGrantContribution'
+    | 'actorLinkContribution'
+    | 'creatureFormContribution'
+    | 'marginRider'
+  >
 }): ServerPublishedRuleDefinitionDto {
   const {
     conditionContributions,
@@ -8991,6 +9064,15 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       relationship ??
       supportedRecurringPlan(action) ??
       concealmentPlan(action)
+    const sourceImmunity = sourceImmunityPlan(action)
+    // The immunity rides the plan the action makes; with no such plan it would silently vanish. A
+    // save's immunity under a Concentration would end with it, so it is refused; a lockout is
+    // created apart from the Concentration it outlasts, and takes the slot a failure rider would.
+    if (
+      sourceImmunity &&
+      (!plan || (sourceImmunity.appliesTo === 'SAVE_SUCCESS' ? plan.maintenance : plan.marginRider))
+    )
+      unsupported('D&D source immunity needs a lasting effect it can ride.')
     if (!plan) return []
     const frozenGraph = repeatPlan
       ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
@@ -9044,7 +9126,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError(
         'The D&D active effect plan does not bind one exact authored result block.'
       )
-    return [{ ...plan, frozenGraph }]
+    return [{ ...plan, frozenGraph, ...(sourceImmunity && { sourceImmunity }) }]
   },
   bindFacts: ({
     actionMechanic,
@@ -9756,12 +9838,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : { applications: [], terminal: false, emptyApplicationAllowed: true }
     }
-    // A link or a creature form holds state for its duration: each counted turn applies nothing,
-    // and the turn pass expires the effect after the last one.
+    // A link, a creature form or a source immunity holds state for its duration: each counted turn
+    // applies nothing, and the turn pass expires the effect after the last one.
     if (
       definition.schemaVersion === 2 &&
       definition.stateContributions.some(
-        ({ kind }) => kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM'
+        ({ kind }) =>
+          kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM' || kind === 'SOURCE_IMMUNITY'
       )
     )
       return { applications: [], terminal: false, emptyApplicationAllowed: true }

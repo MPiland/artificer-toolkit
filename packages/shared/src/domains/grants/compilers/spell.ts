@@ -23,6 +23,8 @@ export type CompiledSpellGrant = CompiledScalingGrant<
   attributes?: SpellGrantAttribute[]
   filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
   restrictions?: FacetAuthored
+  allowedCreatureTypeIds?: string[]
+  perTargetLockout?: SpellGrantAuthored['perTargetLockout']
 }
 
 function compileSpellTarget(
@@ -53,6 +55,10 @@ export function compileSpellGrantResult(
     attributes: authored.attributes && authored.attributes.length ? authored.attributes : undefined,
     filters: authored.filters,
     restrictions: authored.restrictions,
+    ...(authored.allowedCreatureTypeIds?.length
+      ? { allowedCreatureTypeIds: authored.allowedCreatureTypeIds }
+      : {}),
+    ...(authored.perTargetLockout ? { perTargetLockout: authored.perTargetLockout } : {}),
     order: authored.order
   }
 

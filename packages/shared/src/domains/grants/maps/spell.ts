@@ -20,6 +20,26 @@ type SpellGrantLevel = SpellGrantProgression['levels'][number]
 
 const SPELL_FILTER_NODE_MAP = FACET_NODE_MAP as NodeMap<FacetAuthored<'SPELL'>>
 
+const perTargetLockout = buildNodeMap<NonNullable<SpellGrantAuthored['perTargetLockout']>>()
+
+const PER_TARGET_LOCKOUT_NODE_MAP = perTargetLockout.define(
+  'perTargetLockout',
+  ({ map, nodes }) => {
+    map.set(
+      'until',
+      nodes.selectSingle(
+        ['until'],
+        'Until',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'SOURCE_LONG_REST', label: 'The Caster’s Long Rest' }]
+        },
+        { requiredIf: true }
+      )
+    )
+  }
+)
+
 const spellGrantLevel = buildNodeMap<SpellGrantLevel>()
 
 const SPELL_GRANT_LEVEL_NODE_MAP = spellGrantLevel.define(
@@ -228,6 +248,22 @@ export const SPELL_GRANT_NODE_MAP = spellGrant.define(
         selectSingle(['castingAbility'], 'Casting Ability', {
           kind: 'INLINE_OPTIONS',
           options: ABILITY_OPTIONS
+        })
+      )
+      .set(
+        'allowedCreatureTypeIds',
+        selectMulti(['allowedCreatureTypeIds'], 'Allowed Creature Types', {
+          kind: 'DATA',
+          relationship: table('creature_types', {
+            selectColumns: ['id', 'label', 'description']
+          })
+        })
+      )
+      .set(
+        'perTargetLockout',
+        groupObject(['perTargetLockout'], 'Once per Target', () => PER_TARGET_LOCKOUT_NODE_MAP, {
+          presentation: 'inline',
+          showIf: local.field(['attributes']).contains(['CAST_AT_WILL'])
         })
       )
       .set(

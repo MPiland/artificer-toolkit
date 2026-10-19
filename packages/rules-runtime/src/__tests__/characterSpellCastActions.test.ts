@@ -422,6 +422,7 @@ function build(
 ) {
   return buildCharacterSpellCastActions({
     spellCastCandidates: candidates,
+    spellAccessCandidates: [],
     castableCandidateIds: new Set(candidates.map((cast) => cast.candidateId)),
     spellDocumentsById: authoredById,
     firstSequence: 10,
@@ -1734,14 +1735,17 @@ describe('a repeat save attempted only by what the target perceives (SPELLS-29.T
     })
   })
 
-  it('keeps an ungated repeat save on its plain d20: Hold Person', () => {
-    const { plan, node } = repeatD20(HOLD_PERSON)
-    expect(plan?.frozenGraphNodeId).toBe('repeat-save-test')
-    expect(Object.keys(plan?.adapterFacts ?? {})).not.toContain(
-      'dnd5e.active-effect-repeat-save-attempt-gate'
-    )
-    expect(node?.operation).toEqual({ key: 'evidence.integer-range', contractVersion: 1 })
-  })
+  it.each([HOLD_PERSON, spell('Hold Monster')])(
+    'keeps an ungated repeat save on its plain d20: $label',
+    (authored) => {
+      const { plan, node } = repeatD20(authored)
+      expect(plan?.frozenGraphNodeId).toBe('repeat-save-test')
+      expect(Object.keys(plan?.adapterFacts ?? {})).not.toContain(
+        'dnd5e.active-effect-repeat-save-attempt-gate'
+      )
+      expect(node?.operation).toEqual({ key: 'evidence.integer-range', contractVersion: 1 })
+    }
+  )
 })
 
 describe('the scaling heal a cast carries', () => {
