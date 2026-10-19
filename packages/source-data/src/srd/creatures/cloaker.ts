@@ -105,15 +105,16 @@ export const cloaker: CreatureAuthored = {
               baseDc: 13
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(65, 109),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 60,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            range: { id: S.actionId(65, 109), rangeKind: S.RANGE_KIND.SELF },
+            shape: {
+              id: S.actionId(65, 127),
+              shapeKind: 'SPHERE',
+              radius: { amount: 60, unit: S.MEASUREMENT_UNIT_CODE.FEET }
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              excludedCreatureTypeIds: [S.CREATURE_TYPE.ABERRATION]
             }
           },
           paths: [
@@ -138,34 +139,11 @@ export const cloaker: CreatureAuthored = {
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('FRIGHTENED'),
                     recordsSource: true
-                  },
-                  {
-                    id: S.actionId(65, 113),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLOAKER_MOAN
                   }
                 ]
               }
             },
-            {
-              id: S.actionId(65, 114),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${S.actionId(65, 114)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.actionId(65, 115),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLOAKER_MOAN_IMMUNITY
-                  }
-                ]
-              }
-            }
+            S.saveImmunityPath(65, 128)
           ]
         }
       ],

@@ -179,7 +179,7 @@ export async function prepareNativeLiveMovement(
       sceneId: scene.id,
       sceneVersion: scene.version,
       sceneGrid: scene.grid,
-      scene,
+      scene: captured.perceptionScene,
       loadSystem: async () => system,
       loadDefinition,
       loadSpatialEffects: async () => spatialEffects
@@ -232,7 +232,7 @@ export async function prepareNativeLiveMovement(
                 attacker: sourceFacts,
                 target: targetFacts,
                 placement: {
-                  scene,
+                  scene: captured.perceptionScene,
                   sceneGrid: scene.grid,
                   attackerToken,
                   targetToken: { ...movingToken, position: contact },

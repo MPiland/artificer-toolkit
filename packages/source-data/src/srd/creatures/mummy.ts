@@ -174,27 +174,43 @@ export const mummy: CreatureAuthored = {
               id: S.actionId(201, 803),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(201, 803) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                resultKind: 'SINGLE' as const,
+                // Until the end of the mummy's next turn: one round counted on the source's turns.
+                duration: {
+                  id: S.actionId(201, 940),
+                  durationKind: 'ROUND' as const,
+                  amount: 1
+                },
+                lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } },
+                // Failing by 5 or more also paralyzes it for the same duration.
+                failureMarginRider: {
+                  id: S.actionId(201, 941),
+                  failedBy: 5,
+                  outcomes: [
+                    {
+                      id: S.actionId(201, 942),
+                      effectKind: S.EFFECT_KIND.CONDITION,
+                      conditionId: conditionTypeId('PARALYZED')
+                    }
+                  ],
+                  lifecycle: {}
+                },
                 outcomes: [
                   {
                     id: S.actionId(201, 930),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('FRIGHTENED'),
                     recordsSource: true
-                  },
-                  {
-                    id: S.actionId(201, 938),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MUMMY_DREADFUL_GLARE
                   }
                 ]
               }
-            }
+            },
+            S.saveImmunityPath(201, 945)
           ]
         }
       ],

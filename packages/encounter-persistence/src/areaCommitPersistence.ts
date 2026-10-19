@@ -138,6 +138,8 @@ type CommitScope = {
   targets: readonly { actorId: string; perceivedByCaster: boolean }[]
   caughtChecksum: string
   removedActorIds: readonly string[]
+  /** The caught creatures the action had no effect on, which took no save. */
+  unaffectedActorIds: readonly string[]
   /** The Scene the commit places its zone on; null when it places none. */
   zoneSceneId: string | null
 }
@@ -247,6 +249,7 @@ export async function persistEncounterAreaCommit(
       targets: reachedActorIds.map((actorId) => ({ actorId, perceivedByCaster: true })),
       caughtChecksum: encounterChosenActorsChecksum(reachedActorIds),
       removedActorIds: [],
+      unaffectedActorIds: [],
       zoneSceneId: null
     }
   } else {
@@ -351,6 +354,7 @@ export async function persistEncounterAreaCommit(
       targets: context.targets,
       caughtChecksum: context.caughtChecksum,
       removedActorIds: context.removedActorIds,
+      unaffectedActorIds: context.unaffectedActorIds ?? [],
       zoneSceneId: context.placesZone ? (context.scene?.sceneId ?? null) : null
     }
   }
@@ -948,11 +952,18 @@ export async function persistEncounterAreaCommit(
         // An unperceived creature reaches the caster only by failing, and then unnamed.
         return failed ? ['An unseen creature failed its save'] : []
       }),
-      gmLines: scope.removedActorIds.map((actorId) => {
-        const removed = actors.find((actor) => actor.id === actorId)
-        if (!removed) throw new Error('Live Session area removed an unknown creature.')
-        return `GM removed ${removed.label} from the area`
-      })
+      gmLines: [
+        ...scope.removedActorIds.map((actorId) => {
+          const removed = actors.find((actor) => actor.id === actorId)
+          if (!removed) throw new Error('Live Session area removed an unknown creature.')
+          return `GM removed ${removed.label} from the area`
+        }),
+        ...scope.unaffectedActorIds.map((actorId) => {
+          const unaffected = actors.find((actor) => actor.id === actorId)
+          if (!unaffected) throw new Error('Live Session area left out an unknown creature.')
+          return `${unaffected.label} was unaffected`
+        })
+      ]
     },
     occurredAt: input.occurredAt
   })

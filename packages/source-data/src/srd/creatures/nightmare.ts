@@ -61,26 +61,7 @@ export const nightmare: CreatureAuthored = {
       label: 'Illumination',
       description:
         'Illumination. The nightmare sheds bright light in a 10-foot radius and dim light for an additional 10 feet.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(205, 502),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: {
-              id: S.actionId(205, 602),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 20,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_NIGHTMARE_ILLUMINATION
-        })
-      ],
+      effects: [S.shedLightEffect(205, 502, 10, 10)],
       order: 2
     },
     {

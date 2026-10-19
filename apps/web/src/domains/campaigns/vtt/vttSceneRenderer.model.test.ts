@@ -735,7 +735,12 @@ describe('VTT scene renderer model', () => {
       sourceTokenId
     })
     const route = (zones: NonNullable<Parameters<typeof formatSceneRoute>[2]>['zones']) =>
-      formatSceneRoute(scene, path, { actorId: 'wolf', tokenId: mover.id, zones })
+      formatSceneRoute(scene, path, {
+        actorId: 'wolf',
+        tokenId: mover.id,
+        zones,
+        dragDoublesCost: false
+      })
 
     it('shows the cost a zone that slows the mover adds, as the room charges it', () => {
       expect(route([zone])).toBe('20 ft · costs 40 ft')
@@ -747,6 +752,27 @@ describe('VTT scene renderer model', () => {
       expect(route([aura(mover.id)])).toBe('20 ft')
       expect(route([])).toBe('20 ft')
       expect(formatSceneRoute(scene, path, null)).toBe('20 ft')
+    })
+
+    it('doubles the cost of a drag, on top of difficult terrain (D105)', () => {
+      const dragging = { actorId: 'wolf', tokenId: mover.id, zones: [], dragDoublesCost: true }
+      expect(formatSceneRoute(scene, path, dragging)).toBe('20 ft · costs 40 ft')
+      const rough = {
+        ...scene,
+        barriers: [
+          {
+            id: 'rough',
+            kind: 'TERRAIN' as const,
+            a: { x: 455, y: 245 },
+            b: { x: 455, y: 385 },
+            movementCostMultiplier: 2
+          }
+        ]
+      }
+      expect(formatSceneRoute(rough, path, { ...dragging, dragDoublesCost: false })).toBe(
+        '20 ft · costs 40 ft'
+      )
+      expect(formatSceneRoute(rough, path, dragging)).toBe('20 ft · costs 80 ft')
     })
   })
 

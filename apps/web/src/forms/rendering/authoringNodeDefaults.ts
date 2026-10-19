@@ -76,6 +76,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'SOURCE_SAVE_DC' }
     case 'spellCast':
       return { castLevel: 1 }
+    case 'featureWeaponAttack':
+      return {}
     case 'chargeBonus':
       return createChargeBonus(order)
     case 'chargeLevelScaling':

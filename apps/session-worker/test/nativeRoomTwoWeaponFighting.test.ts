@@ -102,6 +102,28 @@ async function undo(room: Room) {
 }
 
 describe('a Fighter fighting with two Light weapons in the room', () => {
+  it('starts the Attack action on the main-hand weapon, then the bonus attack on the off-hand weapon, proficient with both (D107)', async () => {
+    const room = await fighterRoom(false)
+    const before = await room.actionChoices()
+    expect(before.defaultActionId).toBe(room.actionId)
+    const main = before.actions.find(({ id }) => id === room.actionId)
+    expect(main?.label).toContain('Club')
+
+    const first = await attack(room)
+    expect(first.answer.type, JSON.stringify(first.answer)).toBe('COMMAND_COMMITTED')
+
+    // The level 1 Fighter's one attack is spent, so the drawer moves to the off-hand Shortsword.
+    const after = await room.actionChoices()
+    const offHand = after.actions.find(({ id }) => id === after.defaultActionId)
+    expect(offHand?.actionCost).toBe('BONUS_ACTION')
+    expect(offHand?.label).toContain('Shortsword')
+    // Proficiency applies to the off-hand attack as to the main-hand one; its damage adds no
+    // positive ability modifier.
+    expect(offHand?.attackBonus).toBe(main?.attackBonus)
+    expect(main?.damageLabel).toMatch(/\+ \d/)
+    expect(offHand?.damageLabel).not.toMatch(/\+ \d/)
+  })
+
   it('offers the off-hand attack only after another Light weapon attack, and adds no damage modifier to it', async () => {
     const room = await fighterRoom(false)
     // No Attack action this turn, so neither Light weapon offers a bonus attack.

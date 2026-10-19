@@ -10,7 +10,7 @@ import { useWarnedCommand } from './useWarnedCommand'
 import * as styles from './CampaignTabletopActionList.css'
 
 type ReleasesProps = {
-  releases: EncounterHeldRelationshipDto[]
+  releases: Omit<EncounterHeldRelationshipDto, 'drag'>[]
   encounterId: string
   encounterVersion: number
   disabled: boolean
@@ -39,7 +39,7 @@ function ReleaseList({
   const titleId = useId()
   const { submittingId, feedback, error, run, cancelConfirmation } = useWarnedCommand(encounterId)
 
-  function release(choice: EncounterHeldRelationshipDto) {
+  function release(choice: ReleasesProps['releases'][number]) {
     return run(
       choice.activeEffectId,
       () =>

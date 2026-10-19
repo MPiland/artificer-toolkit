@@ -7,7 +7,7 @@ import { damageDtoSchema } from './damage.js'
 import { hitPointMaximumReductionDtoSchema } from './hitPointMaximumReduction.js'
 import { scalarReductionDtoSchema } from './scalarReduction.js'
 import { forcedMovementDtoSchema } from './forcedMovement.js'
-import { createFollowUpSaveDtoSchema } from './followUpSave.js'
+import { createFollowUpSaveDtoSchema, failureMarginRiderDtoSchema } from './followUpSave.js'
 import { createFollowUpCheckDtoSchema } from './followUpCheck.js'
 import { healDtoSchema } from './heal.js'
 import { manifestDtoSchema } from './manifest.js'
@@ -169,6 +169,7 @@ const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
     maintenanceDefinitionId: z.optional(postgresUuidSchema),
     duration: z.optional(durationDtoSchema),
     lifecycle: z.optional(pathLifecycleDtoSchema),
+    failureMarginRider: z.optional(failureMarginRiderDtoSchema),
     outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)
   })
 
