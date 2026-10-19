@@ -78,13 +78,12 @@ export function targetStateAfterEndedEffects<
         : current,
     targetTemporaryHitPoints(state)
   )
-  const { temporaryHitPointsSourceEffectId: _source, ...rest } = state
-  return {
-    ...rest,
+  const next = {
+    ...state,
     temporaryHitPoints: pool.amount,
-    ...(pool.sourceEffectId === null
-      ? {}
-      : { temporaryHitPointsSourceEffectId: pool.sourceEffectId }),
     conditionIds: state.conditionIds.filter((conditionId) => !released.has(conditionId))
-  } as TState
+  }
+  if (pool.sourceEffectId === null) delete next.temporaryHitPointsSourceEffectId
+  else next.temporaryHitPointsSourceEffectId = pool.sourceEffectId
+  return next
 }
