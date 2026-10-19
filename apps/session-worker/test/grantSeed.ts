@@ -17,6 +17,8 @@ export function seedModifierGrant(input: {
   ownedConditionId?: string
   /** The effect also ends on its holder's spell cast, as Invisibility does; a timed grant cannot author it. */
   endsOnCast?: true
+  /** The d20 path a result-gated grant holds on (a failed save's grant), as its planner reads it. */
+  resultPath?: 'ON_HIT' | 'ON_CRIT' | 'ON_SAVE_FAIL'
 }): NonNullable<MovementRoomConfig['seed']> {
   return async ({ effects, encounterId, occurredAt }) => {
     const { ownedConditionId, endsOnCast, ...grant } = input
