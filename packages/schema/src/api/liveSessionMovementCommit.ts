@@ -59,6 +59,8 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(2 * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      /** A decoy of the mover the attack struck without it being the last: the commit spends one use of its effect. */
+      spentUseGrants: z.array(activeRuleEffectRecordSchema).check(z.maxLength(1)),
       /** The once-per-turn uses the reaction attack spent from the reactor's turn record (D119). */
       turnUses: encounterTurnUseKeysSchema
     }),

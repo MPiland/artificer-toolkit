@@ -934,6 +934,21 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'exemptAttackerSenseDefinitionIds',
+        selectMulti(
+          ['exemptAttackerSenseDefinitionIds'],
+          'Attackers Seeing Through These Senses Are Unaffected',
+          {
+            kind: 'DATA',
+            relationship: table('senses', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_DECOYS'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
         'savingThrow',
         groupObject(['savingThrow'], 'Attacker Saving Throw', () => SAVING_THROW_NODE_MAP, {
           presentation: 'inline',

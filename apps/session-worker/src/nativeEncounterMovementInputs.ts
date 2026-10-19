@@ -23,7 +23,10 @@ import { createEncounterMovementReactionPerception } from '@artificer-toolkit/ru
 import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
 import { encounterMovementDrag } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
-import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
+import {
+  encounterActorMovementProvokesNoOpportunityAttacks,
+  encounterMovementPassageFacts
+} from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
 import { creatureTokenLights } from '@artificer-toolkit/rules-runtime/creatureLight'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -408,8 +411,10 @@ export async function readNativeLiveMovementInputs(input: {
           },
           loadSpatialEffects: async () => spatialEffects
         })
-  // A mover holding the Disengage grant provokes no opportunity attacks this turn.
+  // A mover holding the Disengage grant provokes no opportunity attacks this turn, nor does one
+  // whose own features grant that immunity (Flyby).
   const mover = actors.find((actor) => actor.id === actorIdByTokenId.get(token.id))
+  const moverTarget = preparedTargets.get(moverActorId)
   const reactions =
     !facts ||
     !resolvePerception ||
@@ -417,6 +422,11 @@ export async function readNativeLiveMovementInputs(input: {
       encounterGrantsEnabledDomain(
         activeEffectsByActorId.get(mover.id) ?? [],
         'OPPORTUNITY_ATTACK_IMMUNITY'
+      )) ||
+    (moverTarget &&
+      encounterActorMovementProvokesNoOpportunityAttacks(
+        moverTarget.actor,
+        moverTarget.effectiveRulePolicyOutput
       )) ||
     (response && response.context.kind !== 'ENCOUNTER_SPATIAL_MOVEMENT')
       ? { reactionTimeline: [], firstBoundaryDistance: null }

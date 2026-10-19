@@ -1070,7 +1070,10 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   decoy d20 from the minted occurrence id; at or above the minimum for the decoys left the attack is prepared again against
   the decoy's armor class and the binding carries `absorbedByDecoy`, which makes the TEST `TEST_ONLY` and skips reactions and on-hit holds. A hit
   or critical spends a use (`spentUseGrants`, a lifecycle CAS at commit) or, on the last, ends the effect (`consumedGrants`); the root
-  receipt keeps both so an undo restores them. Single-target attack actions only; see the T2k2 handoff for the gaps.
+  receipt keeps both so an undo restores them. Every attack path goes through `prepareAttackBehindDecoys` (SPELLS-4.T2k2b): the action,
+  an opportunity attack (salted `${occurrenceId}:${reactorActorId}`, settled through `spentUseGrants` on the REACTION arm) and a Legendary
+  attack (salted `${occurrenceId}:legendary:${ordinal}`, `decoyEffectId` in its evidence). An attacker that cannot see the target or has a
+  sense in the payload's `exemptAttackerSenseDefinitionIds` (blindsight, truesight) never meets a decoy.
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
@@ -1134,8 +1137,14 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `floor(feet/10)` times the authored dice as an unsaved damage action of the pusher (`collisionDamageCapability`), one
   more ordinal entry after the caught creatures' (`kept`), skipped while a pick is still owed. A RANDOM ray is rolled
   once and sealed in `context.forcedMovement.rays` when a pick is first held; a replan reuses it. The Air Elemental's
-  Whirlwind authors this block (the closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION` kind is gone); the struck
-  creature's save is T6k2b4b.
+  Whirlwind authors this block (the closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION` kind is gone).
+  The struck creature's save (T6k2b4b, D159) is a second AREA_PENDING hold opened after the movers land
+  (`holdEncounterAreaCollisionSaves`): one entry per strike, appended to `context.targets` with a `collision` marker
+  (mover, dice, damage type, ability, DC, condition) and its own occurrence id (`encounterCollisionSaveOccurrenceId`).
+  Struck entries are not caught: they stay out of the caught checksum, GM removal and the root `sealed` list, and the
+  struck creature rolls its own save (a creature's is server-rolled). A failed save takes the mover's dice times
+  `floor(feet/10)` plus the authored condition; kept order is caught, movers, struck. Legendary Resistance is the
+  generic offer, matched to a creature's first undecided entry.
   The authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
   creature save, a condition) rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
   echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; a

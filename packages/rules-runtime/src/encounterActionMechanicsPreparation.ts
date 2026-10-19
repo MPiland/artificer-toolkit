@@ -22,7 +22,7 @@ import {
   encounterAttackAddedDice,
   withSourceSightSave
 } from './encounterActiveGrants.js'
-import { withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
+import { type EncounterAttackDecoy, withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
 import { CastChoiceUnavailableError, StaleCharacterActionError } from './encounterErrors.js'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
@@ -285,7 +285,7 @@ export async function prepareEncounterActionMechanics<
    * decoy's armor class and none of its OUTCOME reaches the target. Ignored for an action that
    * makes no attack roll.
    */
-  attackDecoy?: { armorClass: number } | null
+  attackDecoy?: EncounterAttackDecoy | null
   /** The occasion the attack is made on (an opportunity attack), which a target's grants can limit themselves to. */
   attackOccasion?: AttackOccasionCode | null
   /**
@@ -635,6 +635,8 @@ export async function prepareEncounterActionMechanics<
     targetPolicy,
     makesAttackRoll: attackKind !== null,
     attackSight,
+    /** The decoy the attack was rolled against, for the settlement to destroy when it hit. */
+    attackDecoy,
     plan,
     characterActionState,
     acceptedWieldConflict,

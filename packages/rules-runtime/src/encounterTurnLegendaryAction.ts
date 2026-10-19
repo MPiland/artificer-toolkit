@@ -1,3 +1,4 @@
+import { decoyStrikeEffects, withDecoyStrikeApplied } from './encounterAttackDecoys.js'
 import { v5 as uuidv5 } from 'uuid'
 import { stageEncounterLegendaryActionRefreshes } from './encounterLegendaryActionDiscovery.js'
 import { stageEncounterActionEconomyRefreshes } from './encounterActionEconomy.js'
@@ -91,6 +92,8 @@ type TurnLegendaryActionInput<
     actionId: string
     wieldConflictAcceptance: EncounterWieldConflictAcceptance
     movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+    /** Seeds the target's decoy roll; the turn's occurrence is shared by every window, so it is salted. */
+    decoyOccurrenceId: string
   }): Promise<Awaited<ReturnType<typeof prepareEncounterActionMechanics<TCharacterFacts>>>>
   /**
    * Plans the zones a melee hit's target holds around itself against the owner (D153) from the
@@ -198,7 +201,8 @@ export async function prepareTurnLegendaryActions<
       actors,
       actionId: option.actionId,
       wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-      movementTargets: targets
+      movementTargets: targets,
+      decoyOccurrenceId: `${occurrenceId}:legendary:${ordinal}`
     })
     if (checksumRuleDocument(prepared.plan) !== option.actionSourceChecksum)
       throw new Error('Legendary Action source is stale.')
@@ -411,7 +415,11 @@ export async function prepareTurnLegendaryActions<
               })()
           }
         : { kind: 'ENCOUNTER_ACTOR' as const, encounterId: state.id, targetActorId: target.id }
-    const targetEffects = [...prepared.targetFacts.activeEffects]
+    // A hit on one of the target's decoys destroys it, so later windows see what is left.
+    const targetEffects = withDecoyStrikeApplied(
+      prepared.targetFacts.activeEffects,
+      decoyStrikeEffects(prepared.attackDecoy, result.d20?.resultPath)
+    )
     const createdEffects: ActiveRuleEffectRecord[] = []
     const createEffect = (
       kind: 'STATE' | 'RECURRING' | 'RIDER',
@@ -479,7 +487,8 @@ export async function prepareTurnLegendaryActions<
       isMeleeRetaliationHit({
         gameSystemId: state.gameSystemId,
         prepared,
-        resultPath: result.d20?.resultPath
+        // A hit on a decoy does not reach the target.
+        resultPath: prepared.attackDecoy ? undefined : result.d20?.resultPath
       })
         ? await input.meleeRetaliation({
             initialActors: actors,
@@ -530,6 +539,7 @@ export async function prepareTurnLegendaryActions<
         targetActorId: target.id,
         attackRoll: makesAttackRoll,
         castsSpell,
+        ...(prepared.attackDecoy ? { decoyEffectId: prepared.attackDecoy.effect.id } : {}),
         execution: result.execution,
         initialFactsChecksum: result.initialFactsChecksum,
         ...(result.phaseReceipts ? { phaseReceipts: result.phaseReceipts } : {}),

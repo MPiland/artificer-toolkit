@@ -603,6 +603,7 @@ export type ModifierFractionAuthored = { numerator: number; denominator: number 
 export type ModifierAttackDecoysAuthored = {
   armorClass: { amount: number; abilities: AbilityCode[] }
   thresholds: { id: string; remaining: number; minimumRoll: number }[]
+  exemptAttackerSenseDefinitionIds?: string[]
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   prepareNativeActionEffectsPlan,
   prepareNativeIncomingDamageGrantTriggers
 } from './encounterActionEffects.js'
+import { decoyStrikeEffects } from './encounterAttackDecoys.js'
 import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
 import {
   actionEndedEffects,
@@ -147,6 +148,8 @@ export function planEncounterMovementReactionEffects<
       dispositions
     })
   })
+  // A hit on one of the mover's decoys destroys it: the last ends the effect, any other spends a use.
+  const decoyStrike = decoyStrikeEffects(prepared.attackDecoy, input.execution.d20?.resultPath)
   const mover = targetEndedEffects({
     holderActorId: prepared.target.id,
     held: (prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []).filter(
@@ -180,7 +183,12 @@ export function planEncounterMovementReactionEffects<
     maintainedState,
     createdEffects,
     ended: {
-      consumedGrants: [...reactor.consumedGrants, ...mover.endedEffects],
+      consumedGrants: [
+        ...reactor.consumedGrants,
+        ...decoyStrike.endedGrants,
+        ...mover.endedEffects
+      ],
+      decoyStrike,
       sourceReleases: reactor.sourceReleases,
       damageReleases: mover.releases
     },

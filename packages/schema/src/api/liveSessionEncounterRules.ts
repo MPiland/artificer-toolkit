@@ -139,6 +139,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('TURN_USES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TELEPORT_ALLOWANCES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('ACTOR_TOKEN_BINDINGS') }),
+    z.strictObject({ kind: z.literal('SEEN_ACTORS') }),
     z.strictObject({ kind: z.literal('OCCUPANT_SAVE_AURAS'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('SYSTEM_VOCABULARY') }),
     z.strictObject({
@@ -298,6 +299,12 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
           })
         )
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+    }),
+    z.strictObject({
+      kind: z.literal('SEEN_ACTORS'),
+      revisions: liveSessionRulesRevisionsSchema,
+      /** The creatures the requesting member's list shows; a GM sees every creature. */
+      actorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     }),
     z.strictObject({
       kind: z.literal('OCCUPANT_SAVE_AURAS'),

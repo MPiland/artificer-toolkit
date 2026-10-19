@@ -45,6 +45,11 @@ export type EncounterAreaTarget = {
   /** The occurrence the entry's sealed roll and outcome run under (`encounterChosenActorEntries`). */
   occurrenceId: string
   binding: NativeActionInput['binding']
+  /**
+   * The binding the outcome runs on when the creature already took damage earlier in the same commit
+   * than the one its roll was sealed against (a creature a mover struck, D159).
+   */
+  currentBinding?: NativeActionInput['binding']
   /** What the creature's save has of the origin's sight, when its roller is shown a belief of it. */
   attackSight?: NativeActionInput['attackSight']
   autoRoll: EncounterActionAutoRoll
@@ -251,7 +256,7 @@ export async function settleEncounterAreaAction(
   for (const target of input.targets) {
     const test = input.tests.find((entry) => entry.occurrenceId === target.occurrenceId)
     if (test?.kind !== 'TESTED') throw new Error('The area roll is unavailable.')
-    const binding = bindings.get(target.actorId) ?? target.binding
+    const binding = bindings.get(target.actorId) ?? target.currentBinding ?? target.binding
     const result = await continueNativeActionAfterTest({
       ...input,
       occurrenceId: target.occurrenceId,

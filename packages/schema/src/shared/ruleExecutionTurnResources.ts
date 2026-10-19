@@ -343,6 +343,8 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
           attackRoll: z.boolean(),
           /** Whether the owner cast a spell (a spell attack), which ends its cast-ended effects at commit. */
           castsSpell: z.boolean(),
+          /** The target's decoy effect the attack was rolled against (Mirror Image); a hit destroys the decoy at commit. */
+          decoyEffectId: z.optional(uuidSchema),
           execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
           initialFactsChecksum: checksumSchema,
           phaseReceipts: z.optional(z.lazy(() => ruleExecutionPhaseReceiptsDtoSchema)),

@@ -1,17 +1,20 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { attackDecoyFor } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import {
   characterActor,
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { placedFireShieldZone } from '@artificer-toolkit/rules-runtime/testing/fireShieldZoneFixture'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID } from '@artificer-toolkit/schema/shared/encounterLifecycle'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { ancientRedDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-red-dragon.js'
+import { mirrorImage } from '@artificer-toolkit/source-data/srd/spells/mirror-image.js'
 import { unicorn as srdUnicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -23,7 +26,7 @@ import {
   SRD_DAMAGE_TYPES,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -58,6 +61,7 @@ const allowanceIds = [
 
 afterEach(() => {
   closeTrackedSockets()
+  vi.restoreAllMocks()
 })
 
 const fire = SRD_DAMAGE_TYPES.find((entry) => entry.label === 'Fire')
@@ -1118,4 +1122,170 @@ describe('a warm Fire Shield answers a Legendary Action’s melee hit (SPELLS-20
       }
     })
   })
+})
+
+describe('a Legendary Action attack against a Mirror Image (SPELLS-4.T2k2b)', () => {
+  const EFFECT_ID = testUuid(0x5752)
+  const TURN_ACTOR_ID = testUuid(0x735)
+  const [mirrorImageEffect] = mirrorImage.effects ?? []
+
+  /** The dragon's Legendary Tail attack strikes the Wolf, which holds a Mirror Image with `remaining` decoys. */
+  async function decoyStrike(remaining: number, wolfConditionIds: string[] = []) {
+    if (!mirrorImageEffect) throw new Error('The SRD Mirror Image has no effect.')
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: TURN_ACTOR_ID, creature: plainWolf }),
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf, conditionIds: wolfConditionIds }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon })
+      ],
+      // The turn that ends is another creature's, so the Mirror Image holder's effects stay.
+      moverActorId: TURN_ACTOR_ID,
+      positions: {
+        [TURN_ACTOR_ID]: { x: 50, y: 150 },
+        [WOLF_ID]: { x: 150, y: 150 },
+        [FIRST_DRAGON_ID]: { x: 250, y: 150 }
+      },
+      autoRoll: 'GAME_MASTER',
+      // An unseen target is attacked with disadvantage: two d20s, both the same.
+      rolls: [18, 18],
+      fallbackRoll: 0,
+      seed: async ({ effects, encounterId, occurredAt }) => {
+        const planned = plannedModifierGrant({
+          encounterId,
+          sourceActorId: WOLF_ID,
+          holderActorId: WOLF_ID,
+          lifecycle: {},
+          effect: mirrorImageEffect,
+          sourceLabel: mirrorImage.label
+        })
+        await effects.create({
+          id: EFFECT_ID,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: WOLF_ID },
+          definition: planned.definition,
+          lifecycle: { ...planned.lifecycle, remainingUses: remaining },
+          occurredAt
+        })
+      }
+    })
+    const planned = plannedModifierGrant({
+      encounterId: room.encounterId,
+      sourceActorId: WOLF_ID,
+      holderActorId: WOLF_ID,
+      lifecycle: {},
+      effect: mirrorImageEffect,
+      sourceLabel: mirrorImage.label
+    })
+    const held = {
+      ...planned,
+      id: EFFECT_ID,
+      owner: {
+        kind: 'ENCOUNTER_ACTOR' as const,
+        encounterId: room.encounterId,
+        targetActorId: WOLF_ID
+      },
+      sourceEncounterId: room.encounterId,
+      maintainedEffectStateId: null,
+      createdOrdinal: 1,
+      version: 1,
+      definitionChecksum: 'a'.repeat(64),
+      lifecycleChecksum: 'b'.repeat(64),
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      lifecycle: { ...planned.lifecycle, remainingUses: remaining }
+    }
+
+    async function strike(intercepts: boolean) {
+      const mint = crypto.randomUUID.bind(crypto)
+      vi.spyOn(crypto, 'randomUUID').mockImplementation(() => {
+        for (;;) {
+          const occurrenceId = mint()
+          const decoy = attackDecoyFor({
+            occurrenceId: `${occurrenceId}:legendary:0`,
+            effects: [held],
+            scalarValues: {},
+            abilities: [],
+            perception: null
+          })
+          if ((decoy !== null) === intercepts) return occurrenceId
+        }
+      })
+      const commandId = crypto.randomUUID()
+      const { runs } = await readRoomHistory(room.base.stub)
+      const advanced = await room.send(commandId, {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'ADVANCE_TURN',
+          encounterId: room.encounterId,
+          commandId,
+          expectedVersion: runs[0]!.version
+        }
+      })
+      expect(advanced.type, JSON.stringify(advanced)).toBe('COMMAND_COMMITTED')
+      const option = (await readLegendaryChoice(room.base.stub))?.options[0]
+      if (!option) throw new Error('Expected a Legendary option.')
+      const { answer } = await respond(room, {
+        kind: 'LEGENDARY_OPTION',
+        optionId: option.optionId,
+        targetActorId: WOLF_ID
+      })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      vi.restoreAllMocks()
+    }
+
+    async function wolf() {
+      const history = await readRoomHistory(room.base.stub)
+      return {
+        remainingUses: history.activeEffects.find(({ id }) => id === EFFECT_ID)?.lifecycle
+          .remainingUses,
+        effectIds: history.activeEffects.map(({ id }) => id),
+        hitPoints: readActorHitPoints(history, WOLF_ID)
+      }
+    }
+
+    return { strike, wolf }
+  }
+
+  it('spends a decoy and spares the target when the attack hits the decoy', async () => {
+    const room = await decoyStrike(3)
+    const before = await room.wolf()
+
+    await room.strike(true)
+
+    const after = await room.wolf()
+    expect(after.remainingUses).toBe(2)
+    expect(after.hitPoints).toBe(before.hitPoints)
+  }, 60_000)
+
+  it('ends the effect when the attack hits its last decoy', async () => {
+    const room = await decoyStrike(1)
+    const before = await room.wolf()
+
+    await room.strike(true)
+
+    const after = await room.wolf()
+    expect(after.effectIds).toEqual([])
+    expect(after.hitPoints).toBe(before.hitPoints)
+  }, 60_000)
+
+  it('resolves the attack against the real armor class when the roll falls short of the minimum', async () => {
+    const room = await decoyStrike(3)
+    const before = await room.wolf()
+
+    await room.strike(false)
+
+    const after = await room.wolf()
+    expect(after.remainingUses).toBe(3)
+    expect(after.hitPoints).toBeLessThan(before.hitPoints)
+  }, 60_000)
+
+  it('is exempt when the attacker cannot see the target', async () => {
+    const room = await decoyStrike(3, [INVISIBLE_ID])
+    const before = await room.wolf()
+
+    await room.strike(true)
+
+    const after = await room.wolf()
+    expect(after.remainingUses).toBe(3)
+    expect(after.hitPoints).toBeLessThan(before.hitPoints)
+  }, 60_000)
 })

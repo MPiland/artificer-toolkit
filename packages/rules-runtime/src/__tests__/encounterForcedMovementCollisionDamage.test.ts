@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_DAMAGE_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
   collisionDamageCapability,
-  collisionDamageDiceConfig
+  collisionDamageDiceConfig,
+  collisionStruckCapability
 } from '../encounterForcedMovementCollision.js'
 import { SRD_SYSTEM_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
@@ -47,4 +52,37 @@ describe('a forced movement’s collision damage to its mover (SPELLS-33.T6k2b3,
       savingThrowAbilityDefinitionId: null
     })
   })
+
+  it.each([
+    ['damage and the condition', '2d6'],
+    ['the condition alone when the mover travelled under 10 feet', null]
+  ])(
+    'builds the struck creature’s authored save with %s on a failure',
+    (_label, damageDiceConfig) => {
+      const struck = {
+        damageTypeId: SRD_DAMAGE_TYPES.find(({ code }) => code === 'BLUDGEONING')!.id,
+        abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+        dc: 13,
+        conditionId: srdSystemRecord.conditionTypes.find(({ code }) => code === 'PRONE')!.id,
+        diceConfig: '1d6',
+        damageDiceConfig
+      }
+      const capability = collisionStruckCapability({
+        actorId: testUuid(0xc01),
+        gameSystemId: SRD_SYSTEM_ID,
+        sourceId: testUuid(0xc03),
+        struck
+      })
+
+      expect(capability).toMatchObject({
+        kind: 'BASIC_ACTION',
+        savingThrowAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+        conditionDefinitionIds: [struck.conditionId]
+      })
+      expect(capability.compiledEffect.invocation).toMatchObject({
+        triggerCode: 'SAVING_THROW',
+        savingThrow: { abilityDefinitionId: struck.abilityDefinitionId }
+      })
+    }
+  )
 })

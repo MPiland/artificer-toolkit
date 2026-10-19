@@ -46,18 +46,7 @@ export const giantOwl: CreatureAuthored = {
       label: 'Flyby',
       description:
         "Flyby. The owl doesn't provoke opportunity attacks when it flies out of an enemy's reach.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(129, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(129, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FLYBY
-        })
-      ],
+      grants: S.flybyGrants(129, 1),
       order: 1
     },
     {
