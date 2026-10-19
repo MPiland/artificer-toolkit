@@ -65,6 +65,52 @@ describe('incoming attack gate (Sanctuary)', () => {
   })
 })
 
+describe('holder-owned incoming attack gate', () => {
+  const grantId = testUuid(0xe030)
+  const holderFold = (payload: Record<string, unknown>) =>
+    ({
+      modifiers: [
+        { valueDomainCode: 'INCOMING_ATTACK_GATE', source: { kind: 'CLASS_FEATURE' }, payload }
+      ],
+      modifierGroups: [{ contributions: [{ acceptedModifierIndex: 0, grantId }] }]
+    }) as unknown as NonNullable<Parameters<typeof heldIncomingGate>[0]['grantFold']>
+  const savingThrow = {
+    id: 'save',
+    dcMethod: 'SOURCE_SAVE_DC',
+    abilityDefinitionId: testUuid(0xe031)
+  }
+  const BEAST = testUuid(0xe032)
+  const heldByFold = (payload: Record<string, unknown>, attackerCreatureTypeId: string | null) =>
+    heldIncomingGate({
+      holderActorId: HOLDER_ID,
+      effects: [],
+      grantFold: holderFold(payload),
+      attackerCreatureTypeId
+    })
+
+  it('makes the holder the owner of a feature grant, keyed by the grant', () => {
+    const held = heldByFold({ savingThrow }, null)
+    expect(held?.ownerActorId).toBe(HOLDER_ID)
+    expect(held?.wardId).toBe(grantId)
+  })
+
+  it('covers only the listed Creature types, and never a Character', () => {
+    const payload = { savingThrow, attackerCreatureTypeIds: [BEAST] }
+    expect(heldByFold(payload, BEAST)?.wardId).toBe(grantId)
+    expect(heldByFold(payload, testUuid(0xe033))).toBeNull()
+    expect(heldByFold(payload, null)).toBeNull()
+  })
+
+  // Success immunity is authored but not enforced until T4k2c adds the Character-target SOURCE_IMMUNITY
+  // receipt; until then a ward that carries it is owed exactly as one that does not.
+  it('accepts a success immunity without yet acting on it (T4k2c)', () => {
+    const successImmunity = { duration: { id: 'immunity', durationKind: 'HOUR', amount: 24 } }
+    expect(heldByFold({ savingThrow, successImmunity }, null)).toEqual(
+      expect.objectContaining({ wardId: grantId, ownerActorId: HOLDER_ID })
+    )
+  })
+})
+
 describe('incoming gate save DC', () => {
   const ability = testUuid(0xe020)
   const owner = {
