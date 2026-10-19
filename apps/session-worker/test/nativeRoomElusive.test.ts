@@ -58,6 +58,8 @@ async function biteRollMode(input: { elusive: boolean; incapacitated?: boolean }
       },
       wolfActor
     ],
+    // The room needs an action source; the Wolf's Bite is the action under test.
+    characterAction: () => true,
     characterClassFeatures: input.elusive ? [elusive()] : [],
     ...(input.incapacitated
       ? {
