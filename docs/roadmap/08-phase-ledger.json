@@ -6433,8 +6433,9 @@
             {
               "id": "ATTACK-7.T9",
               "text": "A rescuer within reach of the grappled creature escapes for it when the module's actorKinds include CREATURE_WITHIN_REACH: offer, reach check, the rescuer rolls, success ends the grapple. After slice B.",
-              "status": "TODO",
-              "closes": ["ATTACK-7.9"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.9"],
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             }
           ],
           "wsjf": {
@@ -7532,8 +7533,9 @@
             {
               "id": "ATTACK-19.T2",
               "text": "Auto-draw on attack and the release-on-draw prompt, both on the hand-occupancy function.",
-              "status": "TODO",
-              "closes": ["ATTACK-19.2"]
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-19.2"],
+              "activeWorkbook": "docs/handoffs/slice-attack-19.md"
             },
             {
               "id": "ATTACK-19.T3",
@@ -8331,7 +8333,7 @@
             },
             {
               "id": "SPELLS-4.T2k2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8341,7 +8343,7 @@
                 "after": ["SPELLS-4.T2k2"]
               },
               "text": "new: Mirror Image ATTACK_DECOYS on the remaining attack paths: opportunity and reaction attacks and legendary-action attacks intercept through the same decoy planner, and an attacker with blindsight or truesight (or that cannot see) is exempt; room proof per path (2026-10-19 ruling on the T2k2 gaps; workbook slice-spells-4.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m198 (f7cc24f65)."
             },
             {
               "id": "SPELLS-4.T2k3",
@@ -8373,7 +8375,7 @@
             },
             {
               "id": "SPELLS-4.T2k3c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -8383,7 +8385,7 @@
                 "after": ["SPELLS-4.T2k3b"]
               },
               "text": "new (redaction): ATTACK_RETARGET offers list only creatures the attacker's side can perceive, so hidden or unseen creatures' ids never reach the offer (found in T2k3b review, 2026-10-19). Regression test that fails before the fix: a hidden creature is absent from the offer and a pick naming it is refused. Range and sight pre-filtering stays deferred.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m196 (7f177504e)."
             },
             {
               "status": "TODO",
@@ -11216,6 +11218,19 @@
               "text": "new (split from T4k2b, 2026-10-19): Nature's Sanctuary successImmunity at runtime. Extend the Character-target action receipt (CHARACTER_MECHANICS_BATCH) with grantEffectTransitions, classifyCreatedEffects and its checksums, and revert, so a successful save persists a 24h SOURCE_IMMUNITY Active Rule Effect (T5l) with a frozen graph; the attacker then stops re-saving."
             },
             {
+              "id": "SPELLS-31.T4k2d",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-31.T4k2b"]
+              },
+              "text": "new (user ruling 2026-10-19): Tranquility spends its use when the long rest finishes; the ward turns on at that moment, and the charge stays spent if the ward ends early (an attack or forced save breaks it). The sheet shows the ward as active or ended. Use an existing Character-side active status (as concentration or other long-lasting features do); build it generically only if none fits."
+            },
+            {
               "id": "SPELLS-31.T4l1",
               "status": "TODO",
               "closes": ["SPELLS-31.1"],
@@ -12109,7 +12124,7 @@
             },
             {
               "id": "SPELLS-33.T5k",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12119,7 +12134,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-31.T4k2a"]
               },
               "text": "Flyby (opportunity-attack qualifier) (1 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m197 (5f6a4866e)."
             },
             {
               "id": "SPELLS-33.T5l",
