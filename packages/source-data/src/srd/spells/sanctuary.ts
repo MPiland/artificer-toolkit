@@ -1,5 +1,12 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  DURATION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -62,11 +69,43 @@ export const sanctuary: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.SANCTUARY, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.SANCTUARY, 0x213, 1),
+              durationKind: DURATION_KIND.MINUTE,
+              amount: 1
+            },
+            // The ward ends when the warded creature attacks or casts a spell that affects an enemy.
+            lifecycle: {
+              endOnTriggers: [
+                { event: 'ATTACK_ROLL' as const, against: 'ENEMY' as const },
+                { event: 'SPELL_CAST' as const, against: 'ENEMY' as const }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SANCTUARY, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SANCTUARY' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.SANCTUARY, 0x214, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.ENABLE,
+                      payload: {
+                        savingThrow: {
+                          id: spellChildId(SPELL_IDS.SANCTUARY, 0x215, 1),
+                          dcMethod: 'SOURCE_SAVE_DC' as const,
+                          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+                        }
+                      },
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 1
+                    }
+                  ]
+                }
               }
             ]
           }

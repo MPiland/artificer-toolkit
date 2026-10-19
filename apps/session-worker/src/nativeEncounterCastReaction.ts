@@ -76,6 +76,7 @@ import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runti
 import { executionCancelsTriggeringEvent } from '@artificer-toolkit/rules-runtime/systems/dnd5e/cancelTriggeringEvent'
 
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
+import { planNativeLostSourceAction } from './nativeEncounterLostAction.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   nativeReactionCandidate,
@@ -751,18 +752,24 @@ export function planNativeCounteredCast(input: {
   const { found } = countered
   const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
   // A countered cast makes no attack roll, but it is still a cast: aimed at the cast's target, and the
-  // Counterspell at the caster it counters.
-  const { consumedGrants, sourceReleases } = actionEndedEffects({
-    holderActorId: prepared.actor.id,
-    held: input.casterEffects,
+  // Counterspell at the caster it counters. The caster's counter to a counter cast against its cast spends
+  // in the caster's one batch with the cast.
+  const caster = planNativeLostSourceAction({
+    state,
+    actors: input.actors,
+    prepared,
+    sourceEffects: input.casterEffects,
     makesAttackRoll: false,
     castsSpell: true,
-    againstEnemy: actsAgainstEnemy({
-      actorId: prepared.actor.id,
-      targetActorIds: [prepared.target.id],
-      dispositions
-    })
+    actionEconomy,
+    ruleOverrides: input.ruleOverrides,
+    occurrenceId: input.occurrenceId,
+    commandId: input.commandId,
+    occurredAt: input.occurredAt,
+    userId: input.userId,
+    counterSpellConsumptions: counterConsumptionsOf(input.failedCounters, prepared.actor.id)
   })
+  const casterSpend = caster.spend
   const reactorEnded = actionEndedEffects({
     holderActorId: found.prepared.actor.id,
     held: input.reactorEffects,
@@ -774,43 +781,22 @@ export function planNativeCounteredCast(input: {
       dispositions
     })
   })
-  const spendOf = (
-    spending: Prepared,
-    releases: typeof sourceReleases,
-    counterSpellConsumptions: ReturnType<typeof counterConsumptionsOf> = []
-  ) =>
-    planNativeEncounterAreaSourceSpend(
-      {
-        prepared: spending,
-        encounterId: state.id,
-        expectedEncounterVersion: state.version,
-        occurrenceId: input.occurrenceId,
-        sourceCommandId: input.commandId,
-        commandId: input.commandId,
-        occurredAt: input.occurredAt,
-        sourceReleases: releases,
-        counterSpellConsumptions
-      },
-      input.userId
-    )
-  // The caster's counter to a counter cast against its cast spends in the caster's one batch with the cast.
-  const casterSpend = spendOf(
-    prepared,
-    sourceReleases,
-    counterConsumptionsOf(input.failedCounters, prepared.actor.id)
+  const reactorSpend = planNativeEncounterAreaSourceSpend(
+    {
+      prepared: found.prepared,
+      encounterId: state.id,
+      expectedEncounterVersion: state.version,
+      occurrenceId: input.occurrenceId,
+      sourceCommandId: input.commandId,
+      commandId: input.commandId,
+      occurredAt: input.occurredAt,
+      sourceReleases: reactorEnded.sourceReleases,
+      counterSpellConsumptions: []
+    },
+    input.userId
   )
-  const reactorSpend = spendOf(found.prepared, reactorEnded.sourceReleases)
   const settled = new Map([
-    [
-      prepared.actor.id,
-      actionEconomy
-        ? consumeEncounterActionEconomy({
-            actor: casterSpend.settledSource,
-            consumption: actionEconomy,
-            overridden: overridesActionEconomy(input.ruleOverrides)
-          })
-        : casterSpend.settledSource
-    ],
+    [prepared.actor.id, caster.settledSource],
     [
       found.prepared.actor.id,
       consumeEncounterActionEconomy({
@@ -850,7 +836,7 @@ export function planNativeCounteredCast(input: {
     ),
     reactionSpellConsumption: found.prepared.characterActionState?.spellConsumption ?? null,
     failedCounters: input.failedCounters,
-    consumedGrants: [...consumedGrants, ...reactorEnded.consumedGrants]
+    consumedGrants: [...caster.consumedGrants, ...reactorEnded.consumedGrants]
   }
 }
 

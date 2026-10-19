@@ -105,19 +105,7 @@ export const noble: CreatureAuthored = {
       label: 'Parry',
       description:
         'Parry. The noble adds 2 to its AC against one melee attack that would hit it. To do so, the noble must see the attacker and be wielding a melee weapon.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.reactionId(206, 501),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.REACTION, amount: 1 },
-            range: { id: S.reactionId(206, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_NOBLE_PARRY
-        })
-      ],
+      effects: [S.parryReaction(206, 501, 2)],
       order: 2
     }
   ]

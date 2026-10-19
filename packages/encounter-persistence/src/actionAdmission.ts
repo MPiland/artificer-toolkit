@@ -152,11 +152,12 @@ export async function readNativeEncounterActionAdmission(
       replayReceipt.occurrence.occurrenceVersion !== occurrence.version ||
       replayReceipt.occurrence.pending !== null ||
       replayReceipt.roll !== null
-    // A countered cast ran no graph: its receipt names the Character spends, not rebuilt facts.
+    // A countered or gated action ran no graph: its receipt names the Character spends, not rebuilt facts.
     if (payload.status === 'AGGREGATE_CHOICE_COMPLETE') {
       if (
         commonMismatch ||
-        payload.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST' ||
+        (payload.applicationOutputs.kind !== 'ENCOUNTER_COUNTERED_CAST' &&
+          payload.applicationOutputs.kind !== 'ENCOUNTER_GATED_ACTION') ||
         payload.applicationOutputs.occurrenceId !== occurrence.id ||
         payload.applicationOutputs.sourceActorId !== input.actorId
       )

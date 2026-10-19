@@ -214,13 +214,16 @@ export function markEncounterAreaLegendaryResistanceDecided(
 
 type ForcedMovementPick = NonNullable<NonNullable<AreaContext['forcedMovement']>['pick']>
 
+const sealedRays = <Ray>(rays: readonly Ray[] | undefined) => (rays?.length ? { rays } : {})
+
 /**
  * The settled area holding the push pick it owes next (D157), after the landings picked so far. The
  * request is named for the creature, which is picked once.
  */
 export function holdEncounterAreaForcedMovement(
   snapshot: ServerAggregateChoicePendingSnapshotDto,
-  pick: Pick<ForcedMovementPick, 'targetActorId' | 'positions'>
+  pick: Pick<ForcedMovementPick, 'targetActorId' | 'positions'>,
+  rays?: NonNullable<NonNullable<AreaContext['forcedMovement']>['rays']>
 ): ServerAggregateChoicePendingSnapshotDto {
   const applicationContext = requireAreaContext(snapshot)
   if (!encounterAreaSettled(snapshot) || applicationContext.forcedMovement?.pick)
@@ -231,6 +234,8 @@ export function holdEncounterAreaForcedMovement(
       ...applicationContext,
       forcedMovement: {
         landed: applicationContext.forcedMovement?.landed ?? [],
+        // The first hold seals the rays; a later hold keeps them.
+        ...sealedRays(applicationContext.forcedMovement?.rays ?? rays),
         pick: {
           requestId: `forced-movement:${pick.targetActorId}`,
           targetActorId: pick.targetActorId,
@@ -248,7 +253,7 @@ export function landEncounterAreaForcedMovement(
   position: { x: number; y: number }
 ): ServerAggregateChoicePendingSnapshotDto {
   const applicationContext = requireAreaContext(snapshot)
-  const { pick, landed = [] } = applicationContext.forcedMovement ?? {}
+  const { pick, landed = [], rays } = applicationContext.forcedMovement ?? {}
   if (
     pick?.requestId !== requestId ||
     !pick.positions.some(({ x, y }) => x === position.x && y === position.y)
@@ -259,7 +264,8 @@ export function landEncounterAreaForcedMovement(
     applicationContext: {
       ...applicationContext,
       forcedMovement: {
-        landed: [...landed, { targetActorId: pick.targetActorId, position }]
+        landed: [...landed, { targetActorId: pick.targetActorId, position }],
+        ...sealedRays(rays)
       }
     }
   })

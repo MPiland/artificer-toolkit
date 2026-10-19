@@ -321,39 +321,7 @@ export const erinyes: CreatureAuthored = {
       label: 'Parry',
       description:
         'The erinyes adds 4 to its AC against one melee attack that would hit it. To do so, the erinyes must see the attacker and be wielding a melee weapon.',
-      effects: [
-        {
-          id: S.reactionId(98, 1),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.REACTION, amount: 1 },
-            range: { id: S.reactionId(98, 2), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          paths: [
-            {
-              id: S.reactionId(98, 3),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.reactionId(98, 3) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.reactionId(98, 3),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.ERINYES_PARRY
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
+      effects: [S.parryReaction(98, 1, 4)],
       order: 7
     }
   ]

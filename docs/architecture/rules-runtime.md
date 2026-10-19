@@ -695,7 +695,7 @@ meet Legendary Resistance on the same TEST: that choice exists only for `ON_SAVE
 either an attack path or a save path, and `continueNativeActionAfterTest` rejects an audit carrying both.
 A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REACTION_COUNT SET_VALUE 0`
 grant (D99) all drop the offer through the same discovery as an action. Every eligible reaction is offered
-as a menu (a Character has one reaction a round, so one choice), only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
+as a menu (a reactor has one reaction a round, so one choice), and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
 every action path (single-target and area) through `refuseActionOutsideItsWindow`, the one admission point it
 shares with `LEGENDARY_WINDOW_ONLY`. Resume admission accepts any option the offer carries
 (`offeredDecisionOptionIds`) and refuses one it does not as stale. Settlement answers the reaction whose use
@@ -705,6 +705,25 @@ button for each; every pin names the same reactor. The reaction's effect id is d
 (`encounterReactionEffectId`, rules-runtime), so replaying the answer mints the same id. A reaction that needs rolls or does not
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
+
+#### Creature reactors and `ATTACKED_SELF` qualifiers (current, SPELLS-33.T4k1)
+
+A Creature reactor is discovered the same way (`encounterReactorCandidates`): its reactions are the
+`REACTION`-activated actions its own turn reads through `discoverEncounterFeatureActions`, and its controller
+(the GM unless a player controls it) answers the choice. Its pin and candidate carry no Character
+(`characterId`/`characterStreamVersion` both null), and the receipt is the `ENCOUNTER_ACTOR_MECHANICS_BATCH`
+`reaction` (`encounterActorReactionReceiptDtoSchema`: the reactor's allowance and effects, no slot); commit
+checks the reactor is the batch target, and undo restores the allowance as for a Character. A Creature reaction
+that spends a feature resource is not offered yet.
+
+`ATTACKED_SELF` takes two optional qualifiers: `attackRange: 'MELEE'` admits only a hit whose trigger is an
+installed melee attack trigger (`isInstalledMeleeAttackTrigger`), and `requiresSight` only a hit whose attacker
+the reactor sees, read from the attack's perception (`attackSight.actual.targetSeesAttacker`). Parry is authored
+with both (`parryReaction` in the SRD creature data) and grants an `ARMOR_CLASS` bonus whose lifecycle is
+consumed `ON_ATTACKED`. Such an effect counts against the answered attack's TEST and is never kept when that
+action makes an attack roll (`effectsEndedBy(..., 'ON_ATTACKED')`), so the receipt's `activeEffectTransitions`
+is empty and the next attack sees the original Armor Class. Shield, whose effect lasts the round, is kept as
+before.
 
 #### `SPELL_CAST` (current, REACTION-4.T3b-2; D126)
 
@@ -1039,6 +1058,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   the decoy's armor class and the binding carries `absorbedByDecoy`, which makes the TEST `TEST_ONLY` and skips reactions and on-hit holds. A hit
   or critical spends a use (`spentUseGrants`, a lifecycle CAS at commit) or, on the last, ends the effect (`consumedGrants`); the root
   receipt keeps both so an undo restores them. Single-target attack actions only; see the T2k2 handoff for the gaps.
+- **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
+  targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
+  `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
+  d20 pause (`incomingGate` on the `ENCOUNTER_ACTION` context), anyone else is rolled server-side. A pass is remembered as
+  `passedIncomingGate`, carried by every later pause so a replay skips the gate; a fail commits `ENCOUNTER_GATED_ACTION`, the
+  source's spend with nothing of the action. Area effects are not gated. See the T2k3 handoff for the gaps.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
@@ -1080,10 +1105,14 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   first, each against the Scene after the earlier landings. The report rides the commit (`forcedMovementLandings`) and
   is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
   passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
-  collision itself is not resolved yet: the Whirlwind keeps its closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION`
-  kind until T6k2b2. T6k2b1 adds the authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
-  creature save, a condition). It rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
-  echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; nothing at runtime reads it yet, and a
+  collision's mover damage (T6k2b3, D159) settles in the area commit: each mover that travelled 10 ft or more takes
+  `floor(feet/10)` times the authored dice as an unsaved damage action of the pusher (`collisionDamageCapability`), one
+  more ordinal entry after the caught creatures' (`kept`), skipped while a pick is still owed. A RANDOM ray is rolled
+  once and sealed in `context.forcedMovement.rays` when a pick is first held; a replan reuses it. The struck creature's
+  save, the Whirlwind switch and the closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION` kind's removal are T6k2b4.
+  The authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
+  creature save, a condition) rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
+  echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; a
   collision the System cannot settle (non-fixed-DC save, bonuses, non-UUID id, bad dice) fails closed.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;

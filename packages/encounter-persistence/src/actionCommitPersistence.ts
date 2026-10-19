@@ -119,7 +119,9 @@ export async function persistEncounterActionCommit(
     (!resume && input.failedCounters.length > 0) ||
     (resume &&
       !castPendingContinues(resume.pending.context, input.response, {
-        failedCounters: input.failedCounters.map(({ receipt }) => receipt)
+        failedCounters: input.failedCounters.map(({ receipt }) => receipt),
+        // A ward passed earlier stays passed through the terminal commit; only the planner passes it.
+        passedIncomingGate: resume.pending.context.passedIncomingGate
       })) ||
     command.optionalCombatIntent != null ||
     command.target.kind !== 'ACTOR'
@@ -209,12 +211,11 @@ export async function persistEncounterActionCommit(
     receipts: batch
   })
   // A reaction the target used spends its own slot and allowance with the outcome it answered.
-  const reaction = batch.kind === 'CHARACTER_MECHANICS_BATCH' ? batch.reaction : null
+  const reaction = batch.reaction
   if (
     reaction &&
-    (target.kind !== 'CHARACTER' ||
-      reaction.reaction.reactorActorId !== target.id ||
-      reaction.reaction.characterId !== target.sourceId)
+    (reaction.reaction.reactorActorId !== target.id ||
+      reaction.reaction.characterId !== (target.kind === 'CHARACTER' ? target.sourceId : null))
   )
     throw new Error('Live Session reaction scope mismatch.')
   if (!reaction && input.reactionSpellConsumption)

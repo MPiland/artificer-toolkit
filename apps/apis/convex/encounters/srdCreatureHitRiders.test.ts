@@ -13,6 +13,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
+  SRD_REACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
@@ -93,6 +94,8 @@ async function setup(input: {
     definitions: SRD_RULE_STATE_DEFINITIONS.filter(
       (definition) =>
         definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID ||
+        // A Creature's own reactions (Parry) are listed with its actions, priced by its reaction.
+        definition.id === SRD_REACTION_ALLOWANCE_DEFINITION_ID ||
         conditionIds.includes(definition.id) ||
         // A basic action's holder restrictions read whether the actor can act.
         (input.basicActions === true && definition.id === SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID)

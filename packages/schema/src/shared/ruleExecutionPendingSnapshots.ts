@@ -532,10 +532,12 @@ export type EncounterAreaActionPendingContextDto = {
   /**
    * Once every save settled, the pushes whose source picks where each creature lands (D157): the
    * landings picked so far, farthest creature first, and the pick owed next. The area commits once
-   * no pick is owed.
+   * no pick is owed. `rays` seals the direction each random push rolled when the pick was first
+   * held, so a replan after an answer lands the same rays the offers were derived with.
    */
   forcedMovement?: {
     landed: { targetActorId: string; position: SpatialPointDto }[]
+    rays?: { targetActorId: string; ray: SpatialPointDto }[]
     pick?: { requestId: string; targetActorId: string; positions: SpatialPointDto[] }
   }
   targets: {
@@ -628,6 +630,11 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
           landed: z
             .array(z.strictObject({ targetActorId: uuidSchema, position: spatialPointDtoSchema }))
             .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          rays: z.optional(
+            z
+              .array(z.strictObject({ targetActorId: uuidSchema, ray: spatialPointDtoSchema }))
+              .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+          ),
           pick: z.optional(
             z.strictObject({
               requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
