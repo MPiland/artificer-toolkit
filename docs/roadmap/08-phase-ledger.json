@@ -12259,7 +12259,7 @@
             },
             {
               "id": "SPELLS-33.T7b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12268,7 +12268,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T7a"]
               },
-              "text": "Generic option: failureMarginRider on direct-save timed conditions (compiler and planner, red-first test), then convert MUMMY_DREADFUL_GLARE and MUMMY_LORD_DREADFUL_GLARE with their SOURCE_IMMUNITY (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (2026-10-18 ruling on the T7a split; workbook slice-spells-33.md)."
+              "text": "Generic option: failureMarginRider on direct-save timed conditions (compiler and planner, red-first test), then convert MUMMY_DREADFUL_GLARE and MUMMY_LORD_DREADFUL_GLARE with their SOURCE_IMMUNITY (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (2026-10-18 ruling on the T7a split; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             }
           ]
         }
