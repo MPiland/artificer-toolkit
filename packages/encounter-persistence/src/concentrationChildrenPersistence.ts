@@ -247,7 +247,9 @@ export async function persistEncounterConcentrationChildren(
     // committed reason is read only when a holder carries a grant it applied.
     const held = (
       await Promise.all(
-        actors.map(async (holder) => sourceBoundGrants(await store.list(turnEffectOwner(holder, state.id))))
+        actors.map(async (holder) =>
+          sourceBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
+        )
       )
     ).flat()
     for (const source of actors.filter(({ id }) => args.damagedActorIds.has(id))) {
