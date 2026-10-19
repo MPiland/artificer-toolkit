@@ -174,7 +174,7 @@ describe('a zone acting at a turn boundary (SPELLS-20 T4b2b)', () => {
     )
     expect(phase.plan?.executions).toHaveLength(1)
     const woken = phase.actors.find(({ id }) => id === GOBLIN_ID)
-    expect(woken?.conditions).toEqual([])
+    expect(woken && woken.kind !== 'CHARACTER' ? woken.conditions : null).toEqual([])
     expect(phase.movementTargets.get(GOBLIN_ID)?.activeEffects).toEqual([])
   })
 

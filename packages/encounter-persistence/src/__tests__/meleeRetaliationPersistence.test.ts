@@ -76,7 +76,17 @@ async function sleepingAttackerBurnt() {
   // The only cast: the host ports are the platform, and the wider port surface is unused here.
   const ctx = {
     db: memory.store,
-    ports: { requireIdentity: async () => ({ userId: GM_USER_ID }) }
+    ports: {
+      requireIdentity: async () => ({ userId: GM_USER_ID }),
+      requireCampaignAuthority: async () => ({
+        campaign: {
+          id: CAMPAIGN_ID,
+          status: 'ACTIVE',
+          gameSystemId: SRD_SYSTEM_ID,
+          ownerUserId: GM_USER_ID
+        }
+      })
+    }
   } as unknown as EncounterCharacterWriteTransaction
   const run = encounterRunStateSchema.parse(state)
   await memory.store.insert('encounterRuns', {
@@ -205,6 +215,6 @@ describe('persisting a melee retaliation that ends the attacker’s effects (SPE
     expect(await effects.list(sleeper.owner)).toEqual([])
     const stored = await readRunActor(ctx, state, GOBLIN_ID)
     expect(stored).toEqual(settled)
-    expect(stored.conditions).toEqual([])
+    expect(stored.kind === 'CHARACTER' ? null : stored.conditions).toEqual([])
   })
 })
