@@ -167,7 +167,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
     handRelease: z.optional(
       z.strictObject({
         holds: z
-          .array(z.strictObject({ activeEffectId: postgresUuidSchema, heldActorId: postgresUuidSchema }))
+          .array(
+            z.strictObject({ activeEffectId: postgresUuidSchema, heldActorId: postgresUuidSchema })
+          )
           .check(z.minLength(1))
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       })

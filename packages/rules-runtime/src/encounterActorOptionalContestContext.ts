@@ -187,7 +187,9 @@ export function applyEncounterActorOptionalContestSuccess<
 }
 
 /** Moves a carried loadout item into a hand: the draw an attack makes (D107). */
-export function applyEncounterActorItemDraw<TActor extends EncounterActorOptionalContestActor>(input: {
+export function applyEncounterActorItemDraw<
+  TActor extends EncounterActorOptionalContestActor
+>(input: {
   actor: TActor
   loadoutEntryId: string
   slot: HandSlotCode
@@ -231,7 +233,9 @@ export function applyEncounterActorItemDraw<TActor extends EncounterActorOptiona
  * Puts a drawn item back to carried (the undo of a draw), or null when the loadout entry no
  * longer reproduces the held state the transition recorded.
  */
-export function revertEncounterActorItemDraw<TActor extends EncounterActorOptionalContestActor>(input: {
+export function revertEncounterActorItemDraw<
+  TActor extends EncounterActorOptionalContestActor
+>(input: {
   actor: TActor
   transition: {
     loadoutEntryId: string

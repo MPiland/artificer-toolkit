@@ -669,7 +669,10 @@ describe('CampaignTabletopActionDrawer releases (D152)', () => {
     }
     const handRelease = (...holds: { heldActorId: string; activeEffectId: string }[]) =>
       validatedChoices([{ ...actions[0]!, handRelease: { holds } }])
-    const wolf = releaseChoices[0]
+    const wolf = {
+      heldActorId: releaseChoices[0].heldActorId,
+      activeEffectId: releaseChoices[0].activeEffectId
+    }
 
     it('preselects the only hold, releases it for free, then sends the attack', async () => {
       const user = userEvent.setup()
@@ -714,7 +717,10 @@ describe('CampaignTabletopActionDrawer releases (D152)', () => {
         .fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
         .mockResolvedValue(resolved)
       renderDrawer(onResolve, {
-        choices: handRelease(wolf, secondHold),
+        choices: handRelease(wolf, {
+          heldActorId: secondHold.heldActorId,
+          activeEffectId: secondHold.activeEffectId
+        }),
         releases: validated(encounterActionChoicesDtoSchema.shape.releases)([wolf, secondHold]),
         onRelease
       })

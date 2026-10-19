@@ -227,9 +227,9 @@ describe('hand draw plan', () => {
       kind: 'RELEASE_REQUIRED',
       slot: 'MAIN_HAND'
     })
-    expect(
-      planHandDraw({ id: 'maul', twoHanded: true }, [item('shield', 'OFF_HAND')], 0)
-    ).toEqual({ kind: 'NO_HAND' })
+    expect(planHandDraw({ id: 'maul', twoHanded: true }, [item('shield', 'OFF_HAND')], 0)).toEqual({
+      kind: 'NO_HAND'
+    })
   })
 })
 

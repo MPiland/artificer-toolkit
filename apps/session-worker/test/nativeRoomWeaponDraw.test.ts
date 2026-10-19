@@ -111,7 +111,7 @@ describe('an attack draws its carried weapon into a free hand (D107, ATTACK-19.2
   it('draws a Creature loadout weapon for free and undo puts it back in the carried state', async () => {
     const { room, clubState, revert } = await drawRoom()
     expect(await clubState()).toBe('CARRIED')
-    const { answer } = await room.startAction(TARGET_ID)
+    const { answer } = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await clubState()).toBe('MAIN_HAND')
 
@@ -122,7 +122,7 @@ describe('an attack draws its carried weapon into a free hand (D107, ATTACK-19.2
 
   it('draws nothing for a natural attack, leaving a carried item carried', async () => {
     const { room, clubState } = await drawRoom({ naturalAttack: true })
-    const { answer } = await room.startAction(TARGET_ID)
+    const { answer } = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await clubState()).toBe('CARRIED')
   })
@@ -131,12 +131,13 @@ describe('an attack draws its carried weapon into a free hand (D107, ATTACK-19.2
     const { room, clubState } = await drawRoom({ holding: true })
     const choices = await room.actionChoices(OGRE_ID)
     const attack = choices.actions.find(({ label }) => label.includes('Greatclub'))
+    expect(attack, JSON.stringify(choices.actions.map(({ label }) => label))).toBeDefined()
     expect(attack?.handRelease).toEqual({
       holds: [{ activeEffectId: EFFECT_ID, heldActorId: HELD_ID }]
     })
 
     const refused = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const blocked = await room.startAction(TARGET_ID)
+    const blocked = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
     expect(blocked.answer.type, JSON.stringify(blocked.answer)).toBe('COMMAND_REJECTED')
     expect(
       refused.mock.calls.flatMap(([, error]) => (error instanceof Error ? [error.message] : []))
@@ -154,7 +155,7 @@ describe('an attack draws its carried weapon into a free hand (D107, ATTACK-19.2
     })
     expect(released.type, JSON.stringify(released)).toBe('COMMAND_COMMITTED')
 
-    const { answer } = await room.startAction(TARGET_ID)
+    const { answer } = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await clubState()).toBe('MAIN_HAND')
   })
