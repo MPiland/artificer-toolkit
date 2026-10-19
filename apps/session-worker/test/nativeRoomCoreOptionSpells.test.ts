@@ -324,7 +324,10 @@ async function appliedDamage(room: ActionRoom, commandId: string) {
   const result = parseReceiptExecution(receipt)
   if (result.status !== 'COMPLETE') throw new Error('Expected a settled action.')
   const outputs = result.applicationOutputs
-  if (outputs.kind !== 'CHARACTER_MECHANICS_BATCH')
+  if (
+    outputs.kind !== 'CHARACTER_MECHANICS_BATCH' &&
+    outputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+  )
     throw new Error(`Expected a mechanics batch, not ${outputs.kind}.`)
   return outputs.applications.flatMap((application) =>
     application.kind === 'DAMAGE' ? [[application.requestedAmount, application.damageTypeId]] : []
@@ -350,7 +353,7 @@ describe('room Shillelagh (SPELLS-4.T2e)', () => {
     expect(items.map(({ label }) => label)).toEqual(['Club'])
     const cast = await room.startAction(
       CHARACTER_ACTOR_ID,
-      [],
+      RANGE,
       null,
       null,
       room.actionId,
@@ -374,7 +377,7 @@ describe('room Shillelagh (SPELLS-4.T2e)', () => {
 
   it('refuses the cast without the item it is used on', async () => {
     const room = await shillelaghRoom()
-    const cast = await room.startAction(CHARACTER_ACTOR_ID, [], null, null, room.actionId)
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE, null, null, room.actionId)
     expect(cast.answer.type).not.toBe('COMMAND_COMMITTED')
     expect(JSON.stringify(cast.answer)).toContain('Choose the item this action is used on.')
   }, 120000)

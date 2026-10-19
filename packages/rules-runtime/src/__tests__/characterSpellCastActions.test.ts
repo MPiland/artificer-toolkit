@@ -30,6 +30,7 @@ import {
 } from '../character/characterSpellCastActions.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
+import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../encounterAreaAction.js'
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
@@ -463,6 +464,29 @@ function compiledCastEntry(authored: SpellAuthored, castLevel = authored.level) 
 }
 
 /** The compiled plans the Encounter would run for the spell's cast, or null when it stays manual. */
+const zzProbe = (authored: SpellAuthored) => {
+  const cast = candidate(authored, authored.level)
+  const documents = new Map([...authoredById, [authored.id, authored]])
+  const built = build([cast], {
+    policyOutput: policyFor([cast], documents),
+    spellDocumentsById: documents
+  })
+  return compileCharacterActionEntryPoints({
+    gameSystemId: SRD_SYSTEM_ID,
+    candidates: built.candidates,
+    descriptors: discoverCharacterActionCapabilities({
+      gameSystemId: SRD_SYSTEM_ID,
+      candidates: built.candidates,
+      conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
+      abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+      entryPoints: built.entryPoints
+    })
+  }).map((entry) =>
+    'compilation' in entry
+      ? { ...entry.compilation, plan: undefined, executionPlan: undefined }
+      : entry
+  )
+}
 const compiledCast = (authored: SpellAuthored, castLevel = authored.level) =>
   compiledCastEntry(authored, castLevel)?.compilation ?? null
 
@@ -2183,7 +2207,6 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
     const plan = compiledCast(SHILLELAGH)?.activeEffectPlan
     expect(plan).toMatchObject({
       initialRemaining: 10,
-      lifecycle: { endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'] },
       chosenItem: {
         category: null,
         requiredProperties: [],
@@ -2194,6 +2217,7 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
         grantUnlessReleased: false
       },
       modifierGrantContribution: {
+        endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'],
         modifiers: [
           {
             valueDomainCode: 'ATTACK_ROLL',
@@ -2240,7 +2264,7 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
         grantUnlessReleased: false
       })
       // The weapon stays magic when it is dropped: no release ends the spell.
-      expect(plan?.lifecycle.endOnEvents).toEqual([])
+      expect(plan?.modifierGrantContribution?.endOnEvents).toEqual([])
       expect(
         plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, scope, payload }) => [
           valueDomainCode,
@@ -2326,6 +2350,18 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
     )
     const plan = compiledCast(core)?.activeEffectPlan
     const srd = compiledCast(SHILLELAGH)?.activeEffectPlan
+    const zzMessages: string[] = []
+    Object.defineProperty(CharacterRuleActionUnsupportedCompilationError.prototype, 'name', {
+      configurable: true,
+      get: () => 'Unsupported',
+      set(this: Error) {
+        zzMessages.push(this.message)
+      }
+    })
+    console.log(
+      'PROBE',
+      JSON.stringify([zzMessages, compiledCast(core) === null, zzProbe(core)]).slice(0, 3000)
+    )
     expect(comparablePlan(plan)).toBeTruthy()
     expect(comparablePlan(plan)).toEqual(comparablePlan(srd))
     expect(plan?.chosenItem).toEqual(srd?.chosenItem)

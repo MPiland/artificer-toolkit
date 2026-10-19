@@ -1,5 +1,6 @@
 import type { ModifierGrantAuthored } from '#authored'
 import {
+  ABILITY_MODIFIER_REFERENCE_OPTIONS,
   ABILITY_OPTIONS,
   ATTACK_DOMAIN_OPTIONS,
   AUTHORING_SELECTION_REGISTRY,
@@ -452,10 +453,11 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           'Abilities',
           {
             kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            options: ABILITY_MODIFIER_REFERENCE_OPTIONS
           },
           {
-            // An armor class formula adds each listed ability modifier to its amount.
+            // An armor class formula adds each listed ability modifier to its amount; only the best-of
+            // bonus may name the spellcasting ability (the schema refuses it in a formula).
             showIf: or([
               parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS'),
               and([

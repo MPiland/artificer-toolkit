@@ -24,12 +24,7 @@ import {
   planEncounterDisarmSuccess
 } from '../encounterDisarmPreparation.js'
 import { prepareDnd5eOptionalCombatContestPendingContext } from '../systems/dnd5e/optionalCombatContestPendingContext.js'
-import {
-  characterActor,
-  creatureActor,
-  creatureRuleFacts,
-  srdCreatureTarget
-} from '../testing/dnd5eSrdEncounter.js'
+import { characterActor, creatureActor, creatureRuleFacts } from '../testing/dnd5eSrdEncounter.js'
 
 const SOURCE_ACTOR_ID = '00000000-0000-4000-8000-00000000d101'
 const TARGET_ACTOR_ID = '00000000-0000-4000-8000-00000000d102'
@@ -667,7 +662,7 @@ describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
   it.each(['MAIN_HAND', 'OFF_HAND'] as const)(
     "lists a Creature's metal dagger held in its %s as releasable, and not its carried club",
     (heldState) => {
-      const target = srdCreatureTarget(creatureTarget(heldState))
+      const target = { actor: creatureTarget(heldState), characterFacts: null }
       expect(listEncounterChosenItems({ plan: metalItem, target })).toEqual([
         { item: daggerItem, releasable: true }
       ])
@@ -676,7 +671,7 @@ describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
   )
 
   it('lists nothing once the dagger is put away, and refuses to read it', () => {
-    const target = srdCreatureTarget(creatureTarget('CARRIED'))
+    const target = { actor: creatureTarget('CARRIED'), characterFacts: null }
     expect(listEncounterChosenItems({ plan: metalItem, target })).toEqual([])
     expect(() =>
       readEncounterChosenItem({ plan: metalItem, target, itemInstanceId: HELD_ENTRY_ID })
@@ -684,7 +679,7 @@ describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
   })
 
   it('filters by equipment, category and excluded properties', () => {
-    const target = srdCreatureTarget(creatureTarget())
+    const target = { actor: creatureTarget(), characterFacts: null }
     const plan = { ...metalItem, requiredProperties: [] }
     expect(
       listEncounterChosenItems({ plan: { ...plan, equipmentIds: [carriedWeapon.id] }, target })
@@ -699,14 +694,14 @@ describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
   })
 
   it('lists no item for a grant bound to it on a Creature, whose modifiers do not read the item it attacks with', () => {
-    const target = srdCreatureTarget(creatureTarget())
+    const target = { actor: creatureTarget(), characterFacts: null }
     expect(listEncounterChosenItems({ plan: { ...metalItem, bindsGrant: true }, target })).toEqual(
       []
     )
   })
 
   it('reads the chosen item, and requires one exactly when the action chooses an item', () => {
-    const target = srdCreatureTarget(creatureTarget())
+    const target = { actor: creatureTarget(), characterFacts: null }
     expect(
       readEncounterChosenItem({ plan: metalItem, target, itemInstanceId: HELD_ENTRY_ID })
     ).toEqual({ item: daggerItem, releasable: true })

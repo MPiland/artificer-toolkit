@@ -312,10 +312,11 @@ describe('Character Sheet inventory', () => {
     expect(longswordItem.properties?.map((property) => property.label)).toEqual([
       'Martial',
       'Melee',
+      'Metal',
       'Versatile'
     ])
     expect(screen.queryByText(/properties:/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/martial|melee|versatile/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/martial|melee|metal|versatile/i)).not.toBeInTheDocument()
 
     await user.click(row)
     expect(openPanel).toHaveBeenCalledWith({ kind: 'ITEM', itemInstanceId: longswordItem.id })

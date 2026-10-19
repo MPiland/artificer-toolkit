@@ -535,6 +535,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         valueKind: 'FIXED',
         amount: 1
       }
+    case 'pathChosenItem':
     case 'pathLifecycle':
       return {}
     case 'pathLifecycleEndTrigger':

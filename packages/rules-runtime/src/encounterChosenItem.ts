@@ -6,6 +6,8 @@ import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSour
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 
 type ChosenItemPlan = NonNullable<CompiledActionActiveEffectPlan['chosenItem']>
+/** What a chosen item is read from: the creature and, for a Character, its loaded facts. */
+type ChosenItemHolder = Pick<MovementTarget<CharacterMovementFacts>, 'actor' | 'characterFacts'>
 
 /** An item a creature has equipped: what a chosen-item action may name, and whether a hand holds it. */
 type EquippedItem = {
@@ -24,7 +26,7 @@ const isHeldSlot = (slot: string) => slot !== 'WORN'
 const isCreatureEntryHeld = (actor: EncounterRunActorState, loadoutEntryId: string) =>
   readEncounterActorOptionalContestContext({ actor, loadoutEntryId }) !== null
 
-function equippedItems(target: MovementTarget<CharacterMovementFacts>): EquippedItem[] {
+function equippedItems(target: ChosenItemHolder): EquippedItem[] {
   const facts = target.characterFacts
   if (target.actor.kind === 'CHARACTER') {
     if (!facts) throw new Error('Chosen item Character facts are unavailable.')
@@ -76,7 +78,7 @@ function equippedItems(target: MovementTarget<CharacterMovementFacts>): Equipped
  */
 export function listEncounterChosenItems(input: {
   plan: ChosenItemPlan
-  target: MovementTarget<CharacterMovementFacts>
+  target: ChosenItemHolder
 }): { item: EquipmentInstanceMechanicSource; releasable: boolean }[] {
   const { plan, target } = input
   // A Creature's modifiers do not yet read the item an attack is made with.
@@ -99,7 +101,7 @@ export function listEncounterChosenItems(input: {
  */
 export function readEncounterChosenItem(input: {
   plan: ChosenItemPlan | null | undefined
-  target: MovementTarget<CharacterMovementFacts>
+  target: ChosenItemHolder
   itemInstanceId: string | undefined
 }): { item: EquipmentInstanceMechanicSource; releasable: boolean } | null {
   const { plan, target, itemInstanceId } = input
