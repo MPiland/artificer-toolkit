@@ -107,7 +107,7 @@ export function dnd5eCharacterAttackTraits(input: {
     CharacterActionCandidate,
     'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts' | 'activationSourceKind'
   >
-  attackKind: string | null
+  attackKind: AttackKind | null
   policy: Pick<CharacterRulePolicyOutput, 'itemMechanics' | 'grantFold'>
 }): Dnd5eAttackTraits {
   const equipment = input.candidate.equipment
@@ -118,7 +118,7 @@ export function dnd5eCharacterAttackTraits(input: {
           (entry) => entry.itemInstanceId === equipment.itemInstanceId
         )
   const attackDomain =
-    input.attackKind === null ? null : dnd5eAttackModifierDomain(input.attackKind as AttackKind)
+    input.attackKind === null ? null : dnd5eAttackModifierDomain(input.attackKind)
   const granted = dnd5eGrantedAttackTraits(
     dnd5eAttackTraitGrants(
       input.policy.grantFold.modifiers.filter(
