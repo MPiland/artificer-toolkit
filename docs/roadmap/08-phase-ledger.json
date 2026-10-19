@@ -8169,7 +8169,7 @@
             },
             {
               "id": "SPELLS-4.T2c3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8179,7 +8179,7 @@
                 "after": ["SPELLS-4.T2c1"]
               },
               "text": "MINIMUM_ROLL d20 floor option (Reliable Talent can reuse it); converts GLIBNESS (truth clause stays description-only). Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m180 (d6a457d34)."
             },
             {
               "status": "DONE",
@@ -11880,7 +11880,7 @@
             },
             {
               "id": "SPELLS-33.T4k",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11889,7 +11889,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2k"]
               },
-              "text": "four Parry reactions, Remorhaz Heated Body (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "four Parry reactions, Remorhaz Heated Body (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4l1",
