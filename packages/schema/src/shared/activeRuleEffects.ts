@@ -71,7 +71,7 @@ const activeEffectFactsSchema = lazySchema(() =>
 /**
  * Events whose consumer deletes the effect without releasing the condition it owns. A
  * condition-owning effect may not list one; a consumer leaves this set once it plans the release
- * (`endedEffectConditionReleases`).
+ * (`endedEffectReleases`).
  */
 const NON_RELEASING_EFFECT_EVENTS: ReadonlySet<string> = new Set([
   'ON_ABILITY_CHECK',
@@ -344,6 +344,14 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * Temporary hit points the effect gave its holder are the effect's own (D156): the holder's pool names
+ * the effect as its source, and the effect ending takes them with it while it still is.
+ */
+const activeRuleEffectTemporaryHitPointsContributionDtoSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('TEMPORARY_HIT_POINTS_OWNERSHIP') })
+)
+
+/**
  * The holder's location is unknown to the observers its lifecycle lists. The Stealth total is
  * frozen here; the observer set is the mutable part and lives in `concealedFromActorIds`.
  */
@@ -386,6 +394,22 @@ const activeRuleEffectCreatureFormContributionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The holder is immune to one source's use of one authored effect or spell grant (D156, SPELLS-31.T5l):
+ * that source's action refuses the holder as a single target and leaves it out of an area. The
+ * source is the origin's actor in its Run, and `sourceCharacterId` once the immunity is carried.
+ */
+const activeRuleEffectSourceImmunityContributionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('SOURCE_IMMUNITY'),
+    /** The authored effect whose save was made, or the spell grant whose use locks the holder out. */
+    immuneToId: uuidSchema,
+    sourceCharacterId: z.nullable(uuidSchema),
+    /** The source's Feature or action label ("Intimidating Presence"), frozen at creation. */
+    sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
+  })
+)
+
+/**
  * Version one is retained byte-faithfully for existing rows and receipts.
  * Version two adds a bounded, immutable aggregate-state contribution list.
  */
@@ -406,9 +430,11 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               activeRuleEffectConditionEscapeContributionDtoSchema,
               activeRuleEffectActorRelationshipContributionDtoSchema,
               activeRuleEffectModifierGrantContributionDtoSchema,
+              activeRuleEffectTemporaryHitPointsContributionDtoSchema,
               activeRuleEffectLocationConcealmentContributionDtoSchema,
               activeRuleEffectActorLinkContributionDtoSchema,
-              activeRuleEffectCreatureFormContributionDtoSchema
+              activeRuleEffectCreatureFormContributionDtoSchema,
+              activeRuleEffectSourceImmunityContributionDtoSchema
             ])
           )
           .check(z.minLength(1))

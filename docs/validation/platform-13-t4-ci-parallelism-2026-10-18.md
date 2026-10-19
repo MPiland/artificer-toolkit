@@ -53,3 +53,18 @@ The suite keeps `--no-isolate`, so files that share a worker share a workerd run
 ## Remaining critical path
 
 At the kept setting, Convex shards (7–10 min) and Web tests (6–10 min, unchanged) finish at about the same time. Web time varies with runner speed: the same 297 files took 340 s in one run and 553 s in another.
+
+## PLATFORM-13.T15: web workers and isolation
+
+Full dispatches on `ci/platform-13-t15` at the T4 settings (Convex 2, Worker 4). Before: the web Vitest step took 340–553 s and the Web job 8.8–10.2 min (T4 runs 39169874564, 39170817276, 39171847103), at 2 workers (`maxWorkers: '50%'`), isolated.
+
+| Run                                                                                  | Web setting                | Vitest step | Web job (min) | Run wall (min) | Result                                   |
+| ------------------------------------------------------------------------------------ | -------------------------- | ----------- | ------------- | -------------- | ---------------------------------------- |
+| [39173494325](https://github.com/MPiland/artificer-toolkit/actions/runs/39173494325) | 2 workers, `isolate:false` | 232 s       | –             | cancelled      | **rejected:** 42 files, 182 tests failed |
+| [39174223509](https://github.com/MPiland/artificer-toolkit/actions/runs/39174223509) | 3 workers, isolated        | 426 s       | 8.2           | 11.9           | clean 1/3                                |
+| [39175129001](https://github.com/MPiland/artificer-toolkit/actions/runs/39175129001) | 3 workers, isolated        | 547 s       | 10.1          | 12.3           | clean 2/3                                |
+| [39176036156](https://github.com/MPiland/artificer-toolkit/actions/runs/39176036156) | 3 workers, isolated        | 574 s       | 10.7          | 12.7           | clean 3/3                                |
+
+- **`isolate:false` rejected.** Reusing one jsdom environment and module cache per worker halves the step, but `vi.mock` registrations and module state leak between files: missing Convex and QueryClient providers, mocks called 0 times, duplicate alerts. Making the suite isolation-safe is a test-hygiene migration across about 42 files, deferred to future enhancements.
+- **3 workers not kept.** All three runs were clean, but the step (426–574 s) and job (8.2–10.7 min) times sit in or above the 2-worker range: on 4 vCPUs (2 physical cores) the third worker shares a core, as the config comment predicts. The config stays at `50%`. The `web_workers` dispatch input stays for future trials.
+- **Convex 3 workers** waits on PLATFORM-13.T17. The two 30 s `developmentCustody` tests spend their time in the shared public drivers, not in test code, and 56% of that CPU is Zod parsing of the same few retained-rules and published Equipment documents on every query.

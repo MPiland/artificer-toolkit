@@ -95,12 +95,14 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Rolled dice on initiative (D156, SPELLS-4.T2c):** Guidance doesn't apply to initiative, which is a Dexterity check. Using it there is a table trick.
 
 - **Intimidating Presence extension and range end (D156, SPELLS-31.T5l):** the barbarian can't spend an action to extend the fear, and it doesn't end when the creature ends its turn beyond 60 feet or out of sight. Only a 14th-level Berserker has it, and the shipped turn of fear is the common case.
+- **Chains of Carceri lockout on a carried Character (D156, SPELLS-31.T5l):** the lockout is an Encounter-scoped effect, so a Character it reaches is free of it after the Run instead of at the warlock's next long rest. A warlock meeting the same Character twice between long rests is rare.
 - **After-save immunity edge forms (D156, SPELLS-31.T5l):** a creature trait whose immunity also ends the effect on that creature, and the Mummy's immunity keyed to every Mummy rather than to one source, stay description-only.
 
 - **Area push picks outside the ordinary area flow (ATTACK-7.T5d, D157).** An area push that needs a destination pick fails closed when the area settles through a GM removal, through a hit-point-pool area or a chosen-creatures action with no saves, or when one creature is moved two ways by the same action. No SRD action does any of these with a choice; hold the pick on those paths if content needs it.
 
 - **Spell grants that spend a class resource pool (D156, SPELLS-31.T3b):** a spell grant's charges are its own pool or an item's charges, so Empty Body's Astral Projection (8 ki, 18th-level monk) stays description-only. To support it, add a class-pool cost to spell grants (SOURCE_CHARGES for class resources).
 
+- **Darkmantle engulfing a large head (D156, SPELLS-33.T3a):** the Darkmantle's Crush blinds the target it attaches to on an advantaged hit whatever its size; the SRD limits the engulfing to a Medium or smaller target. A relationship's conditional target state has no size limit; add one if a Large target comes up.
 - **Mage Armor after armor comes off (D156, SPELLS-4.T2a3):** Mage Armor is suppressed while its target wears armor instead of ending, so it returns if the armor comes off within its 8 hours.
 - **Mage Armor on a Creature (SPELLS-4.T2a3):** a Creature's armor class adds only fixed armor-class bonuses (`withCreatureActiveGrantArmorClass`), so Mage Armor's 13 + Dexterity formula does nothing on a Creature. Characters are the usual targets; fold formula grants into Creature facts when a table casts it on a Creature.
 - **Disarm does not use up an `ON_ATTACKED` grant (SPELLS-4.T2a3):** Disarm's attack roll reads the defender's grants but consumes only the defender's `ON_ABILITY_CHECK` grants, and it has no defender batch to release a condition in, so a Guiding Bolt mark survives a Disarm attempt for the next attack. Consume it with `targetEndedEffects` once Disarm settles the defender in its own batch.
@@ -249,6 +251,9 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **A reinstated Concentration emptied by its own dependents does not record the caster (SPELLS-5.T12):** when the last relinked grant expires or is consumed, `TERMINATE_WHEN_EMPTY` deletes the state without appending the caster to `concentrationCasterCharacterIds`, so stamped grants on Characters outside the Run stay until the caster's next Concentration or the clock ends them.
 - **Crusher's move is not optional (ATTACK-7.T5):** the homebrew Crusher fixture moves its target on every qualifying hit, because an on-hit rider's only player choice is a paid one (`optionalOnHit: SPELL_SLOT`, D123). Candidate: a free optional rider kind, so "you can move it" spends the once-per-turn use only when chosen.
 
+- **Heroism's last temporary hit points leave at once (SPELLS-4.T2t, D156):** a recurring effect's final tick and its expiry fall on the same turn boundary, so the temporary hit points of the tenth start-of-turn tick are released in the same execution. The spell ends a moment later in the rules, so the gap is cosmetic.
+- **A form's temporary hit points carry no source (SPELLS-4.T2t):** entering or leaving a form drops the pool's effect source, so an effect that gave temporary hit points before the change cannot take them back when it ends. Rare: it needs a temporary-hit-point effect held across a form change.
+
 ### Code-quality refactors (deferred from Phase 8.2, 2026-10-17)
 
 The user cut these from pre-alpha scope for time to market (D145 amendment). They came from the five-surface code-quality audit; QUALITY-1 (diverging duplicates) and QUALITY-3.T1a (lint in CI) shipped. Re-register as PBIs when picked up.
@@ -308,6 +313,10 @@ Web's restraint, escape and difficult terrain ship in SPELLS-4 and SPELLS-20.T4d
 ### Day-scale durations on the Campaign clock (D156)
 
 Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM ruling. Day-scale durations counted on the Campaign clock would let it, and other effects that last days, run on their own.
+
+### Regenerate regrows limbs (D156)
+
+Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. Regrowing severed body parts after 2 minutes stays in the description, because no limb model exists.
 
 ### Surprise (D156)
 

@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 import {
   CREATURE_ORIGIN_KIND_CODE,
@@ -203,6 +204,8 @@ const characterHitpointsStateDtoSchemaRaw = lazySchema(() =>
   z.object({
     current: z.number().check(z.int()),
     temp: z.number().check(z.int()),
+    /** The active effect whose temporary hit points `temp` holds; they end with it (D156). */
+    tempSourceEffectId: z.optional(postgresUuidSchema),
     hitDice: characterHitDiceUsageStateDtoSchema,
     deathSaves: characterDeathSavesDtoSchema
   })

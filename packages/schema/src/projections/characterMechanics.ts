@@ -184,6 +184,14 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       z.nullable(z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))),
       null
     ),
+    /** Cast evidence facts the effect keeps for its recurring executions (D156). */
+    castFactKeys: z.optional(
+      z.array(z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))).check(z.maxLength(8))
+    ),
+    /** The recurring entry first fires at its stage, not at cast (D156). */
+    recurrenceDeferred: z.optional(z.boolean()),
+    /** The effect owns the temporary hit points it gives, released when it ends (D156). */
+    ownsTemporaryHitPoints: z.optional(z.boolean()),
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     conditionContributions: z._default(
       z
@@ -320,6 +328,28 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
           endOnTriggers: activeEffectEndTriggersSchema
         })
       })
+    ),
+    /**
+     * The immunity a successful save gives the target against this source's action (D156), held by a
+     * second active effect under its own frozen graph; null for none.
+     */
+    sourceImmunity: z._default(
+      z.nullable(
+        z.strictObject({
+          compiledEntryId: serverUuidIdentityDtoSchema,
+          frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
+          /** A successful save's immunity, or a grant's lockout every creature the cast meets holds. */
+          appliesTo: z.enum(['SAVE_SUCCESS', 'EVERY_TARGET']),
+          /** The action effect or the grant whose uses the holder is immune to. */
+          immuneToId: serverUuidIdentityDtoSchema,
+          /** Target turns the immunity lasts; null lasts until something ends it (a long rest). */
+          initialRemaining: z.nullable(
+            z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
+          ),
+          frozenGraph: serverPublishedRuleDefinitionDtoSchema
+        })
+      ),
+      null
     )
   })
 )

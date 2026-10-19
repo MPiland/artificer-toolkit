@@ -26,6 +26,7 @@ import type {
 import type { CharacterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { EncounterConflictError } from './encounterErrors.js'
+import { withOwnedTemporaryHitPoints } from './encounterEndedEffectRelease.js'
 import {
   resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
@@ -549,7 +550,10 @@ function complete(input: {
           movementInterruption: execution.outputs.movementInterruption ? { kind: 'STOP' } : null
         }
       : execution,
-    applications: interpreted.applications,
+    applications: withOwnedTemporaryHitPoints(interpreted.applications, {
+      id: prepared.activeEffectId,
+      definition: prepared.definition
+    }),
     terminal: interpreted.terminal,
     d20: d20EvidenceForCompletion({
       policy: prepared.evidencePolicy,

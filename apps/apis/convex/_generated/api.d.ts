@@ -11752,6 +11752,7 @@ export declare const api: {
               };
               hitDice: Array<{ die: number; total: number; used: number }>;
               temp: number;
+              tempSourceEffectId?: string;
             };
             inspiration?: boolean;
             noteGroups?: Array<{
@@ -12132,6 +12133,7 @@ export declare const api: {
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
                 temp: number;
+                tempSourceEffectId?: string;
               };
               inspiration?: boolean;
               noteGroups?: Array<{
@@ -12511,6 +12513,7 @@ export declare const api: {
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
                 temp: number;
+                tempSourceEffectId?: string;
               };
               inspiration?: boolean;
               noteGroups?: Array<{
@@ -13216,6 +13219,7 @@ export declare const api: {
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
                   temp: number;
+                  tempSourceEffectId?: string;
                 };
                 inspiration?: boolean;
                 noteGroups?: Array<{
@@ -13929,6 +13933,7 @@ export declare const api: {
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
                   temp: number;
+                  tempSourceEffectId?: string;
                 };
                 inspiration?: boolean;
                 noteGroups?: Array<{
@@ -14654,6 +14659,7 @@ export declare const api: {
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
                 temp: number;
+                tempSourceEffectId?: string;
               };
               inspiration?: boolean;
               noteGroups?: Array<{
@@ -15353,6 +15359,7 @@ export declare const api: {
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
                   temp: number;
+                  tempSourceEffectId?: string;
                 };
                 inspiration?: boolean;
                 noteGroups?: Array<{

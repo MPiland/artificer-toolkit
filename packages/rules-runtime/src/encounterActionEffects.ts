@@ -155,6 +155,7 @@ export function prepareNativeActionEffectsPlan<
     commandId: input.commandId,
     sourceActorId: prepared.actor.id,
     sourceLabel: encounterActionSourceLabel(prepared.source),
+    sourceCharacterId: prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null,
     sourceHidden: !prepared.actor.public,
     currentActorId: prepared.state.currentActorId,
     target: effectTarget(target),
@@ -196,9 +197,10 @@ export function prepareNativeActionEffectsPlan<
           application.kind === 'DAMAGE' ||
           application.kind === 'TEMPORARY_HIT_POINTS')
     )
-  // A grant, concealment, link or form applies no stored state, so its effect exists exactly when
-  // its plan does (a concealment plan yields none when its check beats no observer).
+  // A grant, concealment, link, form or deferred recurrence applies no stored state at cast, so its
+  // effect exists exactly when its plan does (a concealment plan yields none when its check beats no observer).
   const grant = Boolean(
+    plan?.recurrenceDeferred ||
     plan?.modifierGrantContribution ||
     plan?.concealmentContribution ||
     plan?.actorLinkContribution ||
@@ -208,17 +210,25 @@ export function prepareNativeActionEffectsPlan<
     relationship || grant || appliedCondition || appliedRecurringOutcome
       ? effects.recurringEffect
       : null
-  // A rider's effect exists exactly when the save failed by its margin and applied its conditions.
-  const riderEffect = execution.applications.some(
-    (application) =>
-      application.kind === 'CONDITION_APPLY' &&
-      application.targetActorId === prepared.target.id &&
-      plan?.marginRider?.conditionContributions.some(
-        ({ conditionId }) => application.conditionId === conditionId
-      )
+  // A rider's effect exists exactly when the save failed by its margin and applied its conditions;
+  // a source immunity on every target the action meets, or a save's on its success.
+  const immunity = plan?.sourceImmunity
+  const immune = Boolean(
+    immunity &&
+    (immunity.appliesTo === 'EVERY_TARGET' || execution.d20?.resultPath === 'ON_SAVE_SUCCESS')
   )
-    ? effects.riderEffect
-    : null
+  const riderEffect =
+    immune ||
+    execution.applications.some(
+      (application) =>
+        application.kind === 'CONDITION_APPLY' &&
+        application.targetActorId === prepared.target.id &&
+        plan?.marginRider?.conditionContributions.some(
+          ({ conditionId }) => application.conditionId === conditionId
+        )
+    )
+      ? effects.riderEffect
+      : null
   const { holdingZone } = input
   if (holdingZone && plan) throw new Error('A zone holds its condition alone.')
   const hold =
@@ -237,6 +247,8 @@ export function prepareNativeActionEffectsPlan<
     recurringEffect:
       recurringEffect ?? (hold ? { definition: hold.definition, lifecycle: hold.lifecycle } : null),
     riderEffect,
+    // A source immunity outlasts the Concentration its action's effect depends on.
+    riderMaintained: !immune,
     maintenance: recurringEffect
       ? (plan?.maintenance ?? null)
       : hold

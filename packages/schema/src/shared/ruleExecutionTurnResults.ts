@@ -8,7 +8,8 @@ import {
 } from './activeRuleEffects.js'
 import {
   characterMechanicsTargetStateDtoSchema,
-  ENDED_EFFECT_CONDITION_OPERATION_KEY
+  ENDED_EFFECT_RELEASE_OPERATION_KEY,
+  isEndedEffectRelease
 } from './ruleExecutionMechanics.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
 import {
@@ -669,10 +670,10 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           let priorTraceIndex = -1
           for (const application of execution.applications) {
             if (repeatedSaveTerminal || refusedRepeatSaveTerminal) continue
-            if (application.sourceOperationKey === ENDED_EFFECT_CONDITION_OPERATION_KEY) {
-              // A condition an effect that the damage ended released from its holder follows from
-              // the effect's end, not from a trace of this execution (SPELLS-27.T4b).
-              if (application.kind !== 'CONDITION_REMOVE')
+            if (application.sourceOperationKey === ENDED_EFFECT_RELEASE_OPERATION_KEY) {
+              // What an effect that ended released from its holder follows from the effect's end, not
+              // from a trace of this execution (SPELLS-27.T4b, D156).
+              if (!isEndedEffectRelease(application))
                 context.addIssue({
                   code: 'custom',
                   path: ['executions', index, 'applications'],
@@ -693,15 +694,18 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 trace.outputs.targetActorId === execution.targetActorId &&
                 (trace.outputs.authoredPath ?? null) === application.authoredPath &&
                 (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
-                (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
-                  ? trace.outputs.conditionId === application.conditionId
-                  : application.kind === 'STABILIZE' || application.kind === 'DEPART'
-                    ? true
-                    : application.kind === 'SCALAR_REDUCTION'
-                      ? trace.outputs.amount === application.reductionAmount
-                      : trace.outputs.amount === application.requestedAmount &&
-                        (application.kind !== 'DAMAGE' ||
-                          trace.outputs.damageTypeId === application.damageTypeId))
+                (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+                  ? false
+                  : application.kind === 'CONDITION_APPLY' ||
+                      application.kind === 'CONDITION_REMOVE'
+                    ? trace.outputs.conditionId === application.conditionId
+                    : application.kind === 'STABILIZE' || application.kind === 'DEPART'
+                      ? true
+                      : application.kind === 'SCALAR_REDUCTION'
+                        ? trace.outputs.amount === application.reductionAmount
+                        : trace.outputs.amount === application.requestedAmount &&
+                          (application.kind !== 'DAMAGE' ||
+                            trace.outputs.damageTypeId === application.damageTypeId))
             )
             if (
               matches.length !== 1 ||

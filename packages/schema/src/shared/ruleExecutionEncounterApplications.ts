@@ -9,6 +9,11 @@ import {
   isCharacterDying
 } from './characterDeathSaves.js'
 import {
+  temporaryHitPointsAfterGrant,
+  temporaryHitPointsAfterLoss,
+  temporaryHitPointsAfterRelease
+} from './temporaryHitPoints.js'
+import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
   concentrationCheckTriggerDtoSchema,
@@ -511,6 +516,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         })
         let current = value.targetTransition.before.currentHitPoints
         let temporary = value.targetTransition.before.temporaryHitPoints
+        let temporarySource = value.targetTransition.before.temporaryHitPointsSourceEffectId ?? null
         let maximum = value.targetTransition.before.maximumHitPoints
         let deathSaves = value.targetTransition.before.deathSaves
         const conditions = new Set(value.targetTransition.before.conditionIds)
@@ -609,6 +615,25 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
               deathSaves = deathSavesAfterStabilize({ deathSaves, currentHitPoints: current })
             continue
           }
+          if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {
+            const released = temporaryHitPointsAfterRelease(
+              { amount: temporary, sourceEffectId: temporarySource },
+              application.sourceActiveEffectId
+            )
+            if (
+              application.beforeTemporaryHitPoints !== temporary ||
+              application.afterTemporaryHitPoints !== released.amount ||
+              application.applied !== (temporarySource === application.sourceActiveEffectId)
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['applications', index],
+                message: 'Temporary hit-point release receipt is invalid.'
+              })
+            temporary = released.amount
+            temporarySource = released.sourceEffectId
+            continue
+          }
           if (
             application.beforeCurrentHitPoints > application.maximumHitPoints ||
             application.afterCurrentHitPoints > application.maximumHitPoints ||
@@ -644,10 +669,15 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
                 message: 'Heal receipt arithmetic is invalid.'
               })
           } else if (application.kind === 'TEMPORARY_HIT_POINTS') {
-            const afterTemporary = Math.max(
-              application.beforeTemporaryHitPoints,
-              application.resolvedAmount
+            const granted = temporaryHitPointsAfterGrant(
+              { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
+              {
+                amount: application.resolvedAmount,
+                sourceEffectId: application.sourceActiveEffectId ?? null
+              }
             )
+            const afterTemporary = granted.amount
+            temporarySource = granted.sourceEffectId
             if (
               application.resolvedAmount !== application.requestedAmount ||
               application.afterCurrentHitPoints !== application.beforeCurrentHitPoints ||
@@ -665,6 +695,10 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
               application.requestedAmount
             )
             const temporaryLost = Math.min(application.beforeTemporaryHitPoints, resolved)
+            temporarySource = temporaryHitPointsAfterLoss(
+              { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
+              temporaryLost
+            ).sourceEffectId
             const currentLost = Math.min(
               application.beforeCurrentHitPoints,
               resolved - temporaryLost
@@ -698,6 +732,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         if (
           after.currentHitPoints !== current ||
           after.temporaryHitPoints !== temporary ||
+          (after.temporaryHitPointsSourceEffectId ?? null) !== temporarySource ||
           after.maximumHitPoints !== maximum ||
           JSON.stringify(after.deathSaves) !== JSON.stringify(deathSaves) ||
           after.conditionIds.length !== conditions.size ||

@@ -65,6 +65,7 @@ import {
   prepareEncounterAreaTests,
   settleEncounterAreaAction
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
+import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import {
   encounterActionTargetKind,
   encounterZoneChoiceTarget,
@@ -349,7 +350,7 @@ export async function prepareAreaScene(
   prepared?: Awaited<ReturnType<typeof prepareCasterSource>>
 ) {
   const { command, state, capture } = input
-  const { caster, casterFacts, movementTargets, targetPolicy, zone, appearSave } =
+  const { caster, casterFacts, movementTargets, source, targetPolicy, zone, appearSave } =
     prepared ?? (await prepareCasterSource(input, command.target.kind))
   const captured = await capture({
     kind: 'ACTION_AREA_SCENE',
@@ -436,6 +437,7 @@ export async function prepareAreaScene(
     caster,
     casterFacts,
     movementTargets,
+    source,
     targetPolicy,
     scene: { ...scene, grid },
     area: { ...area, origin },
@@ -797,8 +799,9 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const { caster, casterFacts, movementTargets, scene, area, targetPolicy } = base
 
   // A zone is entered later, by movement; placing it puts nobody through its entry save, only
-  // through the save its cast authors for when it appears.
-  const caughtActorIds =
+  // through the save its cast authors for when it appears. A creature immune to this source's use
+  // of the action (D156) is caught but left out, with no save.
+  const inArea =
     base.placement && !base.placement.appearSave
       ? []
       : catchEncounterAreaActorIds({
@@ -808,6 +811,14 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
           tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
           fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
         })
+  const immuneActorIds = inArea.filter(
+    (actorId) =>
+      encounterSourceImmunityLabel({
+        source: base.source,
+        holderEffects: input.activeEffectsByActorId.get(actorId) ?? []
+      }) !== null
+  )
+  const caughtActorIds = inArea.filter((actorId) => !immuneActorIds.includes(actorId))
   const caughtInArea = caughtActorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
@@ -948,6 +959,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     reach: base,
     lead: lead.prepared,
     targets: reached,
+    immuneActorIds,
     evaluation,
     ruleOverrides,
     window: opened.window
@@ -972,13 +984,23 @@ export async function sealReachSaves(
     reach: AreaReach
     lead: AreaPrepared
     targets: readonly ReachTarget[]
+    /** The caught creatures immune to this source's use of the action, which take no save (D156). */
+    immuneActorIds: readonly string[]
     evaluation: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>
     ruleOverrides: ReturnType<typeof reachRuleOverrides>
     window: ReachCastWindow
   }
 ) {
   const { command, state, actors, capture } = input
-  const { reach, lead, targets: reached, evaluation, ruleOverrides, window } = sealed
+  const {
+    reach,
+    lead,
+    targets: reached,
+    immuneActorIds,
+    evaluation,
+    ruleOverrides,
+    window
+  } = sealed
   const { economy, attackAction } = evaluation
   const actionEconomy = economy?.consumption ?? null
   const maintenance = await prepareNativeLiveActionMaintenance({
@@ -1056,6 +1078,7 @@ export async function sealReachSaves(
     scene: reach.scene && { sceneId: reach.scene.sceneId, sceneVersion: reach.scene.sceneVersion },
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
     ...(window.failedCounters.length > 0 ? { failedCounters: [...window.failedCounters] } : {}),
+    ...(immuneActorIds.length > 0 ? { immuneActorIds: [...immuneActorIds] } : {}),
     targets
   })
   // An entry whose roller auto-rolls has its roll made now, so an auto-rolled failed save opens its
@@ -2025,7 +2048,7 @@ export async function completeAreaCommit(args: {
       effects.riderEffect &&
       createNativeActiveEffect(effects.riderEffect, {
         ...effectInput,
-        maintainedEffectStateId: joined?.id
+        maintainedEffectStateId: effects.riderMaintained ? joined?.id : undefined
       })
     const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
     // The effect of a reaction the creature used on being chosen lands with its first outcome.

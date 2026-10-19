@@ -267,10 +267,11 @@ export const marilith: CreatureAuthored = {
       description:
         'Teleport. The marilith magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.',
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(192, 507),
+          order: 1,
           invocation: {
-            kind: 'ACTION',
+            kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.ACTIVATED,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
@@ -279,13 +280,31 @@ export const marilith: CreatureAuthored = {
               amount: 120,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MARILITH_TELEPORT
-        })
+          paths: [
+            {
+              id: S.actionId(192, 707),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(192, 707) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(192, 707),
+                    effectKind: S.EFFECT_KIND.TELEPORT,
+                    targetKind: 'SELF',
+                    destinationKind: 'VISIBLE'
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 8
     },

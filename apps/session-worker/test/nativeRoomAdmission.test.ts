@@ -103,6 +103,19 @@ async function room() {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
+      // Every room in the isolate calls this spy, and a room an earlier test left can wake during
+      // this one; only this Campaign's requests are this room's.
+      const body: unknown = await request
+        .clone()
+        .json()
+        .catch(() => null)
+      if (
+        typeof body === 'object' &&
+        body !== null &&
+        'campaignId' in body &&
+        body.campaignId !== campaignId
+      )
+        return new Response('another room', { status: 404 })
       routes.push(pathname)
       const current = [...members].map(([userId, member]) => ({ ...member, userId }))
       if (pathname === ROOM_AUTHORIZATION_PATH)
@@ -406,6 +419,27 @@ it('renews the authorization lease with one read per half-lease while a member i
   await vi.waitFor(() => expect(syncs()).toBe(6))
   expect(base.count(ROOM_AUTHORIZATION_PATH)).toBe(reads + 1)
   clock.mockRestore()
+})
+
+it("counts only its own room's reads while a room an earlier test left renews through the same fetch", async () => {
+  const earlier = await room()
+  const player = await earlier.connect('PLAYER')
+  await admitted(player)
+  const base = await room()
+  const reads = base.count(ROOM_AUTHORIZATION_PATH)
+  const fetched = () =>
+    vi
+      .mocked(globalThis.fetch)
+      .mock.calls.filter(
+        ([input]) =>
+          new URL(input instanceof Request ? input.url : input).pathname === ROOM_AUTHORIZATION_PATH
+      ).length
+  const before = fetched()
+
+  vi.spyOn(Date, 'now').mockReturnValue(Date.now() + halfLease + 1_000)
+  player.socket.send(resume)
+  await vi.waitFor(() => expect(fetched()).toBe(before + 1))
+  expect(base.count(ROOM_AUTHORIZATION_PATH)).toBe(reads)
 })
 
 it('does not renew the lease from an alarm while no socket is connected', async () => {

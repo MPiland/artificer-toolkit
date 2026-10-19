@@ -218,10 +218,37 @@ describe('SRD Creature grapple riders (D105)', () => {
       }))
     )
 
-    expect(riders).toHaveLength(27)
+    expect(riders).toHaveLength(28)
+    // The SRD prints the Darkmantle's detach DC in a paragraph of its own, so its Crush paragraph
+    // reads no rider; it attaches to a creature of any size, with a DC 13 Strength check to detach.
     expect(
       riders.filter(({ printed, authored }) => JSON.stringify(printed) !== JSON.stringify(authored))
-    ).toEqual([])
+    ).toEqual([
+      {
+        name: 'Darkmantle: Crush',
+        printed: undefined,
+        authored: { dc: 13, conditions: [] }
+      }
+    ])
+  })
+
+  it('lets every grappler drag the creature it grapples (D105 amendment)', () => {
+    const grapples = authoredAttacks.flatMap(({ name, relationships }) =>
+      relationships
+        .filter(({ conditions }) =>
+          (conditions ?? []).some(
+            ({ conditionId }) => conditionCodeById.get(conditionId) === 'GRAPPLED'
+          )
+        )
+        .map((relationship) => ({ name, relationship }))
+    )
+    const undragged = grapples.flatMap(({ name, relationship }) =>
+      relationship.modules.some(({ kind }) => kind === 'TARGET_DRAGGED') ? [] : [name]
+    )
+
+    // Every Actor Relationship above but the Cloaker's Bite, which attaches without grappling.
+    expect(grapples).toHaveLength(26)
+    expect(undragged).toEqual([])
   })
 
   it('authors an Actor Relationship for every attack that prints "grappled (escape DC"', () => {
