@@ -32735,6 +32735,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -42569,6 +42610,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -52412,6 +52494,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -62246,6 +62369,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -72115,6 +72279,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -81949,6 +82154,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -91660,6 +91906,47 @@ export declare const api: {
                   order: number;
                   paths: Array<any>;
                   spellCast?: { castLevel: number };
+                  weaponAttack?: {
+                    requiredPropertyCodes?: Array<
+                      | "LIGHT"
+                      | "ONE_HANDED"
+                      | "TWO_HANDED"
+                      | "FINESSE"
+                      | "RANGED"
+                      | "THROWN"
+                      | "HEAVY"
+                      | "LOADING"
+                      | "AMMUNITION"
+                      | "REACH"
+                      | "SPECIAL"
+                      | "VERSATILE"
+                      | "MEDIUM"
+                      | "SIMPLE"
+                      | "MARTIAL"
+                      | "MELEE"
+                      | "FLASK"
+                      | "VIAL"
+                      | "POISON"
+                      | "CONTAINER"
+                      | "POTION"
+                      | "SCROLL"
+                      | "WONDEROUS_ITEM"
+                      | "ARCANE_FOCUS"
+                      | "HOLY_SYMBOL"
+                      | "DRINK"
+                      | "FOOD"
+                      | "ARTISANAL_TOOL"
+                      | "MUSICAL_INSTRUMENT"
+                      | "GAMING_SET"
+                      | "DRUIDIC_FOCUS"
+                      | "PROFESSIONAL_TOOL"
+                      | "WOOD"
+                      | "METAL"
+                      | "MAGIC"
+                      | "VEX"
+                      | "CLOTHING"
+                    >;
+                  };
                 }>;
                 gameSystemId: string;
                 id: string;
@@ -101489,6 +101776,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -111323,6 +111651,47 @@ export declare const api: {
                     order: number;
                     paths: Array<any>;
                     spellCast?: { castLevel: number };
+                    weaponAttack?: {
+                      requiredPropertyCodes?: Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >;
+                    };
                   }>;
                   gameSystemId: string;
                   id: string;
@@ -115860,6 +116229,7 @@ export declare const api: {
               | { itemInstanceId: string; kind: "STOW_HELD_WEAPON" }
               | null;
           }>;
+          defaultActionId: string | null;
           encounterId: string;
           encounterVersion: number;
           escapes: Array<{
@@ -120303,6 +120673,7 @@ export declare const api: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
@@ -120597,6 +120968,7 @@ export declare const api: {
                   hidden: boolean;
                   id: string;
                   label: string;
+                  light?: { brightRadius: number; dimRadius: number };
                   locked: boolean;
                   position: { x: number; y: number };
                   rotationDegrees: number;
@@ -120934,6 +121306,7 @@ export declare const api: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
@@ -121230,6 +121603,7 @@ export declare const api: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
@@ -121460,6 +121834,7 @@ export declare const api: {
               hidden: boolean;
               id: string;
               label: string;
+              light?: { brightRadius: number; dimRadius: number };
               locked: boolean;
               position: { x: number; y: number };
               rotationDegrees: number;
@@ -129868,6 +130243,7 @@ export declare const internal: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;

@@ -171,19 +171,8 @@ export const willOWisp: CreatureAuthored = {
       label: 'Variable Illumination',
       description:
         "Variable Illumination. The will-o'-wisp sheds bright light in a 5- to 20-foot radius and dim light for an additional number of feet equal to the chosen radius. The will-o'-wisp can alter the radius as a bonus action.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(294, 215),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
-            range: { id: S.actionId(294, 216), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_VARIABLE_ILLUMINATION
-        })
-      ],
+      // Shed at its widest radius; choosing a smaller one is a deferred edge case.
+      effects: [S.shedLightEffect(294, 215, 20, 20)],
       order: 4
     },
     {
