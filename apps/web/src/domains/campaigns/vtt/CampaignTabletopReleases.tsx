@@ -10,7 +10,7 @@ import { useWarnedCommand } from './useWarnedCommand'
 import * as styles from './CampaignTabletopActionList.css'
 
 type ReleasesProps = {
-  releases: EncounterHeldRelationshipDto[]
+  releases: Omit<EncounterHeldRelationshipDto, 'drag'>[]
   encounterId: string
   encounterVersion: number
   disabled: boolean

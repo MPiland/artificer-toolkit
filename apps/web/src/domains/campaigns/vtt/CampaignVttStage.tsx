@@ -444,14 +444,15 @@ export function CampaignVttStage({
   )
   // A grappler whose drag of a creature on this Scene doubles its movement (D105). Sizes are read
   // with the holds, so a size change mid-hold can lag here; settlement recomputes the cost.
+  const holds = heldRelationships.routed ? heldRelationships.value : undefined
   const dragDoublingActorIds = useMemo(() => {
     const boundActorIds = new Set(actorIdByTokenId.values())
     return new Set(
-      ((heldRelationships.routed && heldRelationships.value) || [])
+      (holds ?? [])
         .filter(({ heldActorId, drag }) => drag?.doublesCost && boundActorIds.has(heldActorId))
         .map(({ sourceActorId }) => sourceActorId)
     )
-  }, [actorIdByTokenId, heldRelationships.routed, heldRelationships.value])
+  }, [actorIdByTokenId, holds])
   const targeting = actionsOpened ? targetingRequest : null
   const targetModifiers = useActionTargetModifiers({
     input:
@@ -1434,7 +1435,7 @@ export function CampaignVttStage({
               connected={live.status === 'CONNECTED'}
               currentActorMine={currentActorMine}
               encounter={activeEncounter}
-              holds={(heldRelationships.routed && heldRelationships.value) || []}
+              holds={holds ?? []}
               memberships={campaign.memberships}
               pending={
                 encounterCommand.isPending ||
