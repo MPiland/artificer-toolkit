@@ -344,6 +344,27 @@ export function magicWeaponsGrants(
   }
 }
 
+/** A feature that makes the Creature's movement provoke no opportunity attacks (Flyby). */
+export function flybyGrants(
+  creatureIndex: number,
+  localIndex: number
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: [
+      {
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        modifierKind: MODIFIER_KIND.ENABLE,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        id: grantId(creatureIndex, localIndex),
+        valueDomainCode: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
+        domain: {},
+        order: 0
+      }
+    ]
+  }
+}
+
 /** A feature that gives the Creature a condition it always has (Invisible Stalker's Invisibility). */
 export function innateConditionGrants(
   creatureIndex: number,

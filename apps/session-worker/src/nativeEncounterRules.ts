@@ -1088,8 +1088,13 @@ export async function planNativeLiveEncounterAction(
     const bindings = command.sceneContext ? await capture({ kind: 'ACTOR_TOKEN_BINDINGS' }) : null
     if (bindings && bindings.kind !== 'ACTOR_TOKEN_BINDINGS')
       throw new Error('Retarget bindings are unavailable.')
+    // Only creatures the attacker's own list shows are offered: a hidden creature's id never leaves.
+    const seen = await capture({ kind: 'SEEN_ACTORS' })
+    if (seen.kind !== 'SEEN_ACTORS') throw new Error('Retarget sight is unavailable.')
+    const seenIds = new Set(seen.actorIds)
     const candidates = actors.flatMap((actor): EncounterAttackRetargetCandidate[] => {
       if (actor.id === prepared.actor.id || actor.id === prepared.target.id) return []
+      if (!seenIds.has(actor.id)) return []
       if (!bindings) return [{ actorId: actor.id, tokenId: null }]
       const binding = bindings.bindings.find((entry) => entry.actorId === actor.id)
       return binding ? [{ actorId: actor.id, tokenId: binding.tokenId }] : []

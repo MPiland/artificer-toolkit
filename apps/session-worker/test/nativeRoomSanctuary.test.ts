@@ -3,6 +3,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { encounterAttackRetargetUseOptionId } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { sanctuary } from '@artificer-toolkit/source-data/srd/spells/sanctuary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -59,11 +60,17 @@ async function wardedRoom(
     ownerFeatureId?: string
     /** The bystander is under the same caster's ward too. */
     bystanderWarded?: boolean
+    /** The attacker is a player's creature, and these creatures have tokens that player cannot see. */
+    attackerPlayer?: { hiddenActorIds: string[] }
   } = { rolls: [] }
 ) {
   if (!warding) throw new Error('The SRD Sanctuary has no effect.')
   const creature = config.creature ?? attacker
   return actionRoom({
+    ...(config.attackerPlayer && {
+      playerControlledActorIds: [ATTACKER_ID],
+      hiddenActorIds: config.attackerPlayer.hiddenActorIds
+    }),
     actors: [
       srdCreatureActor({ id: ATTACKER_ID, creature, disposition: 'HOSTILE' }),
       srdCreatureActor({ id: WARDED_ID, creature: plainWolf, disposition: 'FRIENDLY' }),
@@ -283,6 +290,50 @@ describe('A failed Sanctuary save offers a new target (SPELLS-4.T2k3b)', () => {
     expect(after.gated).toEqual([])
     expect(after.wardedHitPoints).toBe(before.wardedHitPoints)
     expect(readActorHitPoints(after.history, BYSTANDER_ID)).toBeLessThan(bystanderBefore)
+  })
+})
+
+describe('A retarget offer names only creatures the attacker can see (SPELLS-4.T2k3c)', () => {
+  /** The player's creature bites the warded one, with the bystander's token hidden from the player. */
+  async function biteAsPlayer(room: WardedRoom) {
+    const answer = await room.sendAsPlayer({
+      type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED'],
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: ATTACKER_ID,
+      target: { kind: 'ACTOR', actorId: WARDED_ID },
+      actionId: room.actionId,
+      optionalCombatIntent: null,
+      sceneContext: null
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  }
+
+  it('leaves a hidden creature out of the offer and refuses a pick naming it', async () => {
+    const room = await wardedRoom({
+      rolls: [SAVE_FAILS, ATTACK_HITS],
+      attackerPlayer: { hiddenActorIds: [BYSTANDER_ID] }
+    })
+    await biteAsPlayer(room)
+
+    const { decision, options } = await retargetOffer(room)
+    expect(options.map((option) => option.targetActorId)).toEqual([CASTER_ACTOR_ID])
+
+    const { history } = await standing(room)
+    const ward = history.activeEffects.find((effect) => effect.targetActorId === WARDED_ID)
+    if (!ward) throw new Error('The warded creature holds no effect.')
+    const refused = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: encounterAttackRetargetUseOptionId({
+        gateEffectId: ward.id,
+        targetActorId: BYSTANDER_ID
+      })
+    })
+    expect(refused.type).not.toBe('COMMAND_COMMITTED')
+    expect((await retargetOffer(room)).options).toHaveLength(1)
   })
 })
 

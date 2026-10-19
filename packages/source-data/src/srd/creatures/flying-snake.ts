@@ -42,6 +42,7 @@ export const flyingSnake: CreatureAuthored = {
       label: 'Flyby',
       description:
         "Flyby. The snake doesn't provoke opportunity attacks when it flies out of an enemy's reach.",
+      grants: S.flybyGrants(104, 1),
       order: 1
     },
     {
