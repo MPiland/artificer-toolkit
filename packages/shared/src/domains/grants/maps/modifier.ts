@@ -377,7 +377,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             options: ABILITY_OPTIONS
           },
           {
-            showIf: parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
+            showIf: or([
+              parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
+              and([isBonus, local.field(['valueKind']).eq('ABILITY_MODIFIER')])
+            ])
           }
         )
       )
@@ -419,6 +422,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           constraints: { minimum: 0 },
           showIf: or([
             and([isBonus, usesScalarMultiplier]),
+            and([isBonus, local.field(['valueKind']).eq('ABILITY_MODIFIER')]),
             parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
           ])
         })
@@ -756,6 +760,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         number(['min'], 'Min', {
           constraints: { minimum: 0 },
           showIf: or([
+            and([isBonus, local.field(['valueKind']).eq('ABILITY_MODIFIER')]),
             parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
             parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
           ])
@@ -772,6 +777,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         number(['max'], 'Max', {
           constraints: { minimum: 0 },
           showIf: or([
+            and([isBonus, local.field(['valueKind']).eq('ABILITY_MODIFIER')]),
             parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
             parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
           ])

@@ -393,6 +393,7 @@ export type ModifierValueDomainOptionPayloadByDomain = {
 export const MODIFIER_VALUE_SOURCE_CODE = {
   FIXED: 'FIXED',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
+  ABILITY_MODIFIER: 'ABILITY_MODIFIER',
   SKILL_BONUS: 'SKILL_BONUS',
   CHARACTER_LEVEL: 'CHARACTER_LEVEL',
   CLASS_LEVEL: 'CLASS_LEVEL',
@@ -417,6 +418,12 @@ export const MODIFIER_VALUE_SOURCE_REGISTRY: Record<
     code: MODIFIER_VALUE_SOURCE_CODE.PROFICIENCY_BONUS,
     label: 'Proficiency Bonus',
     description: 'Automatically scales with character level.'
+  },
+
+  ABILITY_MODIFIER: {
+    code: MODIFIER_VALUE_SOURCE_CODE.ABILITY_MODIFIER,
+    label: 'Ability Modifier',
+    description: 'Adds an ability modifier, optionally scaled and bounded.'
   },
 
   SKILL_BONUS: {
@@ -455,6 +462,13 @@ export const MODIFIER_VALUE_SOURCE_OPTIONS = valuesOf(
 export type ModifierScalarValueAuthored =
   | { valueKind: 'FIXED'; amount: number }
   | { valueKind: 'PROFICIENCY_BONUS'; multiplier?: number }
+  | {
+      valueKind: 'ABILITY_MODIFIER'
+      ability: AbilityCode
+      multiplier?: number
+      min?: number
+      max?: number
+    }
   | { valueKind: 'SKILL_BONUS'; skillId: string; multiplier?: number }
   | { valueKind: 'CHARACTER_LEVEL'; multiplier?: number }
   | { valueKind: 'CLASS_LEVEL'; classId: string; multiplier?: number }

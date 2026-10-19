@@ -166,10 +166,14 @@ export const oathOfDevotion: ClassAuthored = {
                           grantKind: GRANT_KIND.MODIFIER_GRANT,
                           valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
                           domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-                          modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+                          modifierKind: MODIFIER_KIND.BONUS,
                           scope: MODIFIER_SCOPE_KIND.SOURCE,
                           selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                          payload: { abilities: [ABILITY_CODE.CHARISMA], min: 1 },
+                          payload: {
+                            valueKind: 'ABILITY_MODIFIER',
+                            ability: ABILITY_CODE.CHARISMA,
+                            min: 1
+                          },
                           order: 1
                         },
                         {
@@ -177,10 +181,14 @@ export const oathOfDevotion: ClassAuthored = {
                           grantKind: GRANT_KIND.MODIFIER_GRANT,
                           valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
                           domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
-                          modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+                          modifierKind: MODIFIER_KIND.BONUS,
                           scope: MODIFIER_SCOPE_KIND.SOURCE,
                           selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                          payload: { abilities: [ABILITY_CODE.CHARISMA], min: 1 },
+                          payload: {
+                            valueKind: 'ABILITY_MODIFIER',
+                            ability: ABILITY_CODE.CHARISMA,
+                            min: 1
+                          },
                           order: 2
                         },
                         {

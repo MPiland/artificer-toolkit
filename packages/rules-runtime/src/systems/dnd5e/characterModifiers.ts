@@ -54,6 +54,8 @@ export function evaluateDnd5eCharacterModifiers(
           (input.grantFoldFacts.base.classes.find((entry) => entry.classId === payload.classId)
             ?.level ?? 0) * (payload.multiplier ?? 1)
         )
+      // Read from the effective ability scores, which these groups feed; resolved below.
+      case 'ABILITY_MODIFIER':
       case 'SKILL_BONUS':
       case 'SPELL_SLOT_LEVEL':
         return 0
@@ -201,6 +203,18 @@ export function evaluateDnd5eCharacterModifiers(
         ).map((contribution): Contribution => {
           // An armor class formula ("10 + DEX + CON") adds each listed ability modifier.
           const payload = payloadOf(contribution)
+          if (
+            (group.modifierKind === 'BONUS' || group.modifierKind === 'PENALTY') &&
+            payload !== undefined &&
+            'valueKind' in payload &&
+            payload.valueKind === 'ABILITY_MODIFIER'
+          ) {
+            const amount = resolveAbilityModifierBonus(abilityModifierOf(payload.ability), payload)
+            return {
+              ...contribution,
+              resolvedValue: group.modifierKind === 'PENALTY' ? -amount : amount
+            }
+          }
           return group.modifierKind === 'SET_VALUE' &&
             payload !== undefined &&
             'abilities' in payload

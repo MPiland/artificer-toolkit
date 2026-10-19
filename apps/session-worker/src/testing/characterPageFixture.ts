@@ -178,6 +178,8 @@ export interface CharacterPlayOverrides {
   characterClass?: ClassAuthored
   /** The Character's Class level (default 1); each level after the first adds 7 fixed hit points and a hit die. */
   classLevel?: number
+  /** Ability scores that replace the captured assignments (default Strength 15, Charisma 8), by ability code. */
+  abilityScores?: Readonly<Record<string, number>>
   /** Sheet conditions the Character already carries. */
   conditions?: { conditionTypeId: string; label: string }[]
   /** The spells the Character's Class has learned and prepared. */
@@ -198,6 +200,7 @@ export function characterOwnerRowFor({
     carriedQuantity = 1,
     characterClass,
     classLevel = 1,
+    abilityScores = {},
     conditions,
     spells,
     spellSlots
@@ -219,6 +222,15 @@ export function characterOwnerRowFor({
     userId,
     intent: {
       ...capturedPage.inputs.character.intent,
+      abilities: {
+        ...capturedPage.inputs.character.intent.abilities,
+        assignments: capturedPage.inputs.character.intent.abilities.assignments.map(
+          (assignment) => ({
+            ...assignment,
+            option: String(abilityScores[assignment.ability] ?? assignment.option)
+          })
+        )
+      },
       classes: [{ ...capturedClass!, classId, classLevel }],
       hitpoints: {
         ...capturedPage.inputs.character.intent.hitpoints,

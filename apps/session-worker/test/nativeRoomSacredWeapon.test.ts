@@ -48,7 +48,7 @@ const featureOf = (label: string) => {
  * A 3rd-level Paladin (first in the order) holding a Club, the Gargoyle, then a Wolf whose Bite
  * deals 5 damage. The Paladin's d20 and d4 show 19 and 4; the Wolf's d20 shows 19.
  */
-async function paladinRoom(currentHitPoints?: number) {
+async function paladinRoom(currentHitPoints?: number, abilityScores?: Record<string, number>) {
   const wolf = biteWolf('ATTACK', { damage: 5 })
   const wolfActor = srdCreatureActor({ id: WOLF_ID, creature: wolf })
   const room = await actionRoom({
@@ -68,7 +68,8 @@ async function paladinRoom(currentHitPoints?: number) {
       characterClass: { ...paladin, resources: oathOfDevotion.resources },
       classLevel: 3,
       equipped: true,
-      ...(currentHitPoints !== undefined ? { currentHitPoints } : {})
+      ...(currentHitPoints !== undefined ? { currentHitPoints } : {}),
+      ...(abilityScores ? { abilityScores } : {})
     },
     characterAction: (action) => action.label === 'Channel Divinity: Sacred Weapon'
   })
@@ -154,6 +155,20 @@ describe('room Sacred Weapon (SPELLS-31.T4e)', () => {
     // The Gargoyle halves nonmagical weapon damage; the imbued Club's damage is magical.
     expect(plain.damage).toBeGreaterThan(0)
     expect(imbued.damage).toBe(plain.damage * 2)
+  }, 120000)
+
+  it('adds the Charisma modifier on top of the Strength modifier', async () => {
+    const plain = await clubAttackOnGargoyle((await paladinRoom(undefined, { CHARISMA: 16 })).room)
+
+    const { room } = await paladinRoom(undefined, { CHARISMA: 16 })
+    await imbueClub(room)
+    await room.advanceTurn()
+    await room.advanceTurn()
+    await room.advanceTurn()
+    const imbued = await clubAttackOnGargoyle(room)
+
+    // Strength 15 is +2 either way; Charisma 16 adds its +3 (not the larger of the two).
+    expect(imbued.modifier).toBe(plain.modifier + 3)
   }, 120000)
 
   it('ends when the Paladin falls unconscious', async () => {

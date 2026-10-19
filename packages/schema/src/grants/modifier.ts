@@ -133,6 +133,10 @@ const modifierScalarValueDtoSchema = lazySchema(() =>
       multiplier: z.optional(z.number())
     }),
     z.object({
+      valueKind: z.literal(modifierValueKindSchema._zod.def.entries.ABILITY_MODIFIER),
+      ...abilityModifierBonusPayloadDtoSchema.shape
+    }),
+    z.object({
       valueKind: z.literal(modifierValueKindSchema._zod.def.entries.SKILL_BONUS),
       skillId: authoredIdentifierSchema,
       multiplier: z.optional(z.number())
