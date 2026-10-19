@@ -213,13 +213,16 @@ async function attackerBurnt(options: { creature: string; asleep: boolean }) {
 
 describe('persisting a melee retaliation that ends the attacker’s effects (SPELLS-33.T6e4)', () => {
   it('deletes the sleep the shield’s damage ends and releases the condition it held', async () => {
-    const { ctx, state, effects, sleeper, persist } = await attackerBurnt({
+    const { ctx, state, effects, sleeper, evidence, persist } = await attackerBurnt({
       creature: 'Goblin',
       asleep: true
     })
-    const settled = await persist()
+    const { actor: settled, endedEffects } = await persist()
 
     expect(await effects.list(sleeper!.owner)).toEqual([])
+    // What an undo gives back: the ended sleep, and the condition the plan says it released.
+    expect(endedEffects.map(({ id }) => id)).toEqual([sleeper!.id])
+    expect(evidence.releasedConditionIds).toEqual([SLEEP_CONDITION_ID])
     const stored = await readRunActor(ctx, state, GOBLIN_ID)
     expect(stored).toEqual(settled)
     expect(stored.kind === 'CHARACTER' ? null : stored.conditions).toEqual([])

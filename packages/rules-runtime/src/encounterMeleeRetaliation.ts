@@ -2,6 +2,7 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
+import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   collectSpatialMeleeRetaliationCandidates,
@@ -214,6 +215,12 @@ export async function planEncounterMeleeRetaliation<
           recurring: grant,
           targetActorId: attacker.actor.id
         }).activeEffectTransitions
+    ),
+    releasedConditionIds: (settlement?.batch.applications ?? []).flatMap((application) =>
+      application.kind === 'CONDITION_REMOVE' &&
+      application.sourceOperationKey === ENDED_EFFECT_RELEASE_OPERATION_KEY
+        ? [application.conditionId]
+        : []
     )
   }
   if (

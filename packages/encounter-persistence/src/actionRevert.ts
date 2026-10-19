@@ -688,6 +688,9 @@ export async function revertLastEncounterAction(
     endedConditionReleases(spend.sourceApplications),
     spend.sourceCharacterStreamVersion
   )
+  // So do the ones the retaliation's damage released from the attacker; the effects themselves
+  // come back with the root's consumed grants, after the grants that damage made are deleted.
+  restoreReleasedConditions(source, batch?.meleeRetaliation?.releasedConditionIds ?? [], null)
   const feature = spend.featureResourceConsumption
   if (feature) {
     const owner = actorsById.get(feature.ownerActorId)

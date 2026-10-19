@@ -391,6 +391,13 @@ export const meleeRetaliationEvidenceDtoSchema = lazySchema(() =>
       grantEffectTransitions: z._default(
         z.array(encounterActorActiveEffectCreateReceiptDtoSchema).check(z.maxLength(4)),
         []
+      ),
+      /** Conditions the damage-ended effects released from the attacker; undo gives them back with the effects. */
+      releasedConditionIds: z._default(
+        z
+          .array(z.string().check(z.minLength(1)))
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+        []
       )
     })
     .check(

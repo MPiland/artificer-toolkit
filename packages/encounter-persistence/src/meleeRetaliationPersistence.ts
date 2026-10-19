@@ -2,6 +2,7 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import { prepareNativeIncomingDamageGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
@@ -64,7 +65,8 @@ export async function readMeleeRetaliationScene(
  * Applies the zones a melee hit set off against its attacker (D153) as the attacker's one mechanics
  * batch, after the attack's own writes. The zones are derived again from the locked Scene and the
  * attack's tokens, so a plan made against an edited zone or a moved token is refused. Returns the
- * attacker as the batch left it, or unchanged when the zones changed nothing.
+ * attacker as the batch left it (unchanged when the zones changed nothing) and the effects the
+ * damage ended, which an undoable root keeps in its receipt.
  */
 export async function persistEncounterMeleeRetaliation(
   ctx: EncounterCharacterWriteTransaction,
@@ -84,7 +86,7 @@ export async function persistEncounterMeleeRetaliation(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
   }
-): Promise<EncounterRunActorState> {
+): Promise<{ actor: EncounterRunActorState; endedEffects: ActiveRuleEffectRecord[] }> {
   const { state, attacker, scene, evidence } = input
   const stale = () => new Error('Melee retaliation selection is stale.')
   const scope =
@@ -130,7 +132,7 @@ export async function persistEncounterMeleeRetaliation(
   const last = executions.at(-1)!
   const before = first.targetTransition.before
   if (checksumRuleDocument(before) === checksumRuleDocument(last.targetTransition.after))
-    return attacker
+    return { actor: attacker, endedEffects: [] }
   const applications = executions.flatMap((execution) =>
     execution.applications.map((application) => ({ ...application, targetActorId: attacker.id }))
   )
@@ -214,5 +216,5 @@ export async function persistEncounterMeleeRetaliation(
     ) !== checksumRuleDocument(evidence.grantEffectTransitions)
   )
     throw new Error('Melee retaliation grants differ from its plan.')
-  return applied.updatedActor
+  return { actor: applied.updatedActor, endedEffects: ends.endedEffects }
 }
