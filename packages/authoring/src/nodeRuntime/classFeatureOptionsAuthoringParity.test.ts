@@ -242,7 +242,12 @@ const CASES: ReadonlyArray<{
       const path = effect?.paths[0]
       const grant = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
       const [bonus] = grant?.effectKind === 'APPLY_GRANT' ? (grant.grants?.modifiers ?? []) : []
-      if (bonus?.modifierKind !== 'BONUS' || bonus.payload?.valueKind !== 'ABILITY_MODIFIER')
+      if (
+        bonus?.modifierKind !== 'BONUS' ||
+        !bonus.payload ||
+        !('valueKind' in bonus.payload) ||
+        bonus.payload.valueKind !== 'ABILITY_MODIFIER'
+      )
         throw new Error('Sacred Weapon must author an ability modifier bonus on attack rolls.')
       bonus.payload = {
         valueKind: 'ABILITY_MODIFIER',
