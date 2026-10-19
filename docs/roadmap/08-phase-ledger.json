@@ -12163,7 +12163,7 @@
             },
             {
               "id": "SPELLS-33.T6e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12173,11 +12173,11 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "new: Chain Devil Unnerving Mask, a visibility gate on the passive zone occupant-turn trigger (1 kind); also wires targetEndedEffects into the turn-zone, retaliation and aura damage roots with a regression test that fails before the fix. Authoring-parity proof; deletes its kind (D156 SPELLS-32/33.T1 ruling; 2026-10-18 rulings: \"touched\" stays with T6i and T4k, Vampire Charm moves to T6e2, Balor to T6e1; 2026-10-19 ruling: Flesh Golem and Water Elemental move to T6e3 because the Absorb Elements reaction path is Character- and attack-only; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m172 (e9be5f759)."
             },
             {
               "id": "SPELLS-33.T6e4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12186,7 +12186,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T6e"]
               },
-              "text": "Bug: damage from the turn-zone, melee-retaliation and occupant-aura roots does not end the target's \"until it takes damage\" effects, so Sleep or Hypnotic Pattern survive Spirit Guardians or Fire Shield damage. Wire targetEndedEffects into each root's plan, evidence and persistence checksum, with a regression test per root that fails before the fix (split from SPELLS-33.T6e; workbook slice-spells-33.md)."
+              "text": "Bug: damage from the turn-zone, melee-retaliation and occupant-aura roots does not end the target's \"until it takes damage\" effects, so Sleep or Hypnotic Pattern survive Spirit Guardians or Fire Shield damage. Wire targetEndedEffects into each root's plan, evidence and persistence checksum, with a regression test per root that fails before the fix (split from SPELLS-33.T6e; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6e3",
