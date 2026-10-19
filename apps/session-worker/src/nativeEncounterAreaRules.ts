@@ -66,6 +66,7 @@ import {
   settleEncounterAreaAction
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   encounterActionTargetKind,
   encounterZoneChoiceTarget,
@@ -819,12 +820,19 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     if (!actor || !token) throw new Error('Encounter rules input binding mismatch.')
     return { actor, token }
   })
+  for (const { actor } of inAreaActors)
+    if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
   const unaffectedActorIds = inAreaActors.flatMap(({ actor }) => {
     const creatureTypeId = snapshotCreatureTypeId(actor)
     return encounterSourceImmunityLabel({
       source: base.source,
       holderEffects: input.activeEffectsByActorId.get(actor.id) ?? []
     }) !== null ||
+      encounterSpellSchoolImmunity({
+        source: base.source,
+        sourceFacts: casterFacts,
+        target: movementTargets.get(actor.id)!
+      }) ||
       (creatureTypeId !== null &&
         targetingExcludesCreatureType(targetPolicy.targeting, creatureTypeId))
       ? [actor.id]
@@ -832,8 +840,6 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   })
   const caughtInArea = inAreaActors.filter(({ actor }) => !unaffectedActorIds.includes(actor.id))
   const caughtActorIds = caughtInArea.map(({ actor }) => actor.id)
-  for (const { actor } of caughtInArea)
-    if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
   // An area with a hit-point pool affects the creatures the pool covers, lowest hit points first.
   const contents =
     targetPolicy.targeting?.selectionKind === 'AREA_CONTENTS' ? targetPolicy.targeting : null

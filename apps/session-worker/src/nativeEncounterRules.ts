@@ -37,6 +37,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
@@ -650,6 +651,18 @@ export async function planNativeLiveEncounterAction(
     })
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
+  if (
+    encounterSpellSchoolImmunity({
+      source: prepared.source,
+      sourceFacts: actorTarget,
+      target: prepared.targetFacts
+    })
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'Immune to spells of this school'
+    })
   await refuseUnmetBasicActionRestrictions(
     { source: prepared.source, acceptedWieldConflict: command.acceptedWieldConflict },
     {

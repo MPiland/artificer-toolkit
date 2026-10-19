@@ -1822,6 +1822,19 @@ the server from the same prepared targets, and the room's Scene read model marks
 `passesBlockingBarriers` from the same resolved passage (`roomSceneVision`) so the client's drag
 validation (`sceneTokenMovementIndex`) cannot drift from it.
 
+**Spell school immunity and checks against the holder (current, SPELLS-33.T6m1).** Two authored `ADD_OPTION`
+modifier grants. `SPELL_SCHOOL_IMMUNITY` (`magicSchoolId`) folds into `spellSchoolImmunityIds`, a required
+field of the folded target protection: a Character's from its rule policy (`characterDefenses`), a Creature's
+from its feature grants and its active effects (`withCreatureActiveGrantProtection`). A Character's spell
+cast carries the school of each spell it can cast (`CharacterSpellCastActions.magicSchoolIdBySpellId`), and
+`encounterSpellSchoolImmunity` compares it with the target's. An area action leaves an immune creature out
+with the creature-type exclusions (caught, no save, "was unaffected" in the GM's line); the other creatures
+resolve. One target or a list of chosen creatures that includes an immune one is refused, like a source
+immunity. A Creature's spell actions carry no school and are not gated. `CHECKS_AGAINST_HOLDER` (`skillId`)
+folds into a Creature's feature modifiers and lists beneficially on the holder; it implies disadvantage on
+the named skill's checks made against the holder, and is not enforced, since a check has no subject. The
+Gynosphinx and Androsphinx Inscrutable and Mind Blank's divination clause are authored with them.
+
 **Creature passive save grants (current, SPELLS-33.T3a2).** A Creature feature's condition-scoped
 `SAVING_THROW_MODIFIER` advantage or disadvantage grant is authored with the Character option and accepted by the
 same feature-grant fold into `ruleFacts.modifiers`. The Encounter target build passes them to

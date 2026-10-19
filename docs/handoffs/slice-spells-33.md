@@ -457,6 +457,23 @@ Done on `ci/spells-33-t3a2` (closes SPELLS-33.1).
 
 - Death Dog's Perception advantage is folded as a `SKILL_MODIFIER` grant, but no Creature check path reads roll modes yet (contests read `checkTotals` only), so it has no effect until one does.
 
+## T6m1: checks against the holder
+
+Done on `ci/spells-33-t6m1`.
+
+- `SPELL_SCHOOL_IMMUNITY` and `CHECKS_AGAINST_HOLDER` are core options (see `rules-runtime.md`). Inscrutable (Gynosphinx, Androsphinx) is `inscrutableGrants` in `creatures/shared.ts`; Mind Blank's divination clause is a third grant on its effect. The kinds `CREATURE_GYNOSPHINX_INSCRUTABLE`, `CREATURE_INSCRUTABLE` and `CREATURE_INVISIBLE_STALKER_FAULTLESS_TRACKER` are deleted.
+- The Invisible Stalker's Faultless Tracker is description-only (class C): the GM tells the player the direction and distance. No relationship or UI.
+- Gate: an area action leaves out an immune creature as it does a creature-type exclusion; a single target or a chosen list with an immune creature is refused.
+- Proof: `spellSchoolImmunity.test.ts` (folds, Mind Blank, sphinxes, the gate) and `nativeRoomSpellSchoolImmunity.test.ts` (a cone with a Mind Blank holder).
+
+### Deferred edge cases
+
+- Thought-reading and emotion-sensing beyond divination spells, and the "unless it wishes" opt-out, are not modelled; the GM applies them.
+- A Creature's spell actions carry no school, so they aren't gated.
+- Insight checks have no subject, so Inscrutable's disadvantage isn't enforced and the GM applies it.
+- A chosen list that includes an immune creature is refused instead of skipping that creature.
+- The Faultless Tracker quarry is not tracked (future-enhancements).
+
 ## T6j token light (implemented)
 
 No LIGHT_EMISSION kind: the MANIFEST OBJECT `light` (SOURCE attachment) that equipment torches and lanterns and the Light, Continual Flame and Prismatic Wall spells already author is the one home. The Nightmare and Will-o'-wisp author it (`shedLightEffect`), their two closed rule kinds are deleted, and passive creature light is composed onto tokens at runtime for D108 illumination and drawing (see [rules-runtime](../architecture/rules-runtime.md)). The wisp is fixed at bright 20 / dim 20 more (orchestrator ruling); no setter. Activated torches, lanterns and spell lights are still not consumed by the runtime. Proofs: `creatureLightAuthoringParity.test.ts`, `creatureLight.test.ts`, `turnCaptureTokenLights.test.ts`, the token-light cases in `vtt-scene-combat-perception.test.ts`, `vtt-scene.test.ts`, `vtt-scene-contracts.test.ts` and `nativeTurnEffectPerception.test.ts`.

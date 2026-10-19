@@ -563,10 +563,35 @@ export function withCreatureActiveGrantProtection<
       sourceEffectIds?: readonly string[]
     }[]
     conditionImmunityIds: readonly string[]
+    spellSchoolImmunityIds: readonly string[]
   }
->(protection: TProtection, effects: readonly ActiveRuleEffectRecord[]): TProtection {
+>(
+  protection: TProtection,
+  effects: readonly ActiveRuleEffectRecord[],
+  featureModifiers: CharacterGrantFoldOutput['modifiers']
+): TProtection {
   const defenses = new Map(protection.defenses.map((defense) => [defenseKey(defense), defense]))
   const conditionImmunityIds = new Set(protection.conditionImmunityIds)
+  const spellSchoolImmunityIds = new Set(protection.spellSchoolImmunityIds)
+  const foldSpellSchoolImmunity = (modifier: {
+    modifierKind: string
+    valueDomainCode: string
+    payload?: object
+  }) => {
+    if (
+      modifier.valueDomainCode !== 'SPELL_SCHOOL_IMMUNITY' ||
+      !modifier.payload ||
+      !('magicSchoolId' in modifier.payload) ||
+      typeof modifier.payload.magicSchoolId !== 'string'
+    )
+      return
+    if (modifier.modifierKind === 'ADD_OPTION')
+      spellSchoolImmunityIds.add(modifier.payload.magicSchoolId)
+    else if (modifier.modifierKind === 'REMOVE_OPTION')
+      spellSchoolImmunityIds.delete(modifier.payload.magicSchoolId)
+  }
+  // A Creature's features grant spell school immunity through the folded feature modifiers.
+  featureModifiers.forEach(foldSpellSchoolImmunity)
   for (const { modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
       const { payload } = modifier
@@ -577,6 +602,7 @@ export function withCreatureActiveGrantProtection<
         payload === undefined
       )
         continue
+      foldSpellSchoolImmunity(modifier)
       const kind = CREATURE_DEFENSE_KIND_BY_DOMAIN[modifier.valueDomainCode]
       const option = kind
         ? 'damageTypeId' in payload
@@ -608,7 +634,8 @@ export function withCreatureActiveGrantProtection<
         left.kind.localeCompare(right.kind) ||
         defenseKey(left).localeCompare(defenseKey(right))
     ),
-    conditionImmunityIds: [...conditionImmunityIds]
+    conditionImmunityIds: [...conditionImmunityIds],
+    spellSchoolImmunityIds: [...spellSchoolImmunityIds]
   }
 }
 
