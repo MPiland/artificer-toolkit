@@ -85,7 +85,7 @@ effect's source meets its attacker grants and its attack consume) and `activeOnl
 dormant until its tick anchor's final counted turn and active only during it; SPELLS-4.T2k1). Modifier facets include
 `ATTACK_ABILITY` / `ITEM_ATTACK_ABILITY` (gate a modifier on the ability an attack used), `ATTACK_ACTIVATION` / `ITEM_ACTIVATION` (gate it on the
 activation the attack is made with, such as the bonus action of an off-hand attack; ATTACK-9.T5b) and the `SPELLCASTING_LOCK` `ENABLE`
-domain (bars every spell cast). Rage (ATTACK-9.T1) is authored with these and has parity with the authoring form.
+domain (bars every spell cast) and the `ATTACK_DECOYS` `ENABLE` domain (an armor class and a threshold per decoys-left count, counted by the path lifecycle `uses`; Mirror Image, SPELLS-4.T2k2). Rage (ATTACK-9.T1) is authored with these and has parity with the authoring form.
 
 Maps live in `packages/shared/src/domains/{subjects,features,grants,effects,shared}/maps`. The authoring package's `mapRegistry` registers roots and recursively registers child maps by `mapId`. Duplicate IDs with conflicting signatures fail inventory validation; unknown IDs are `NodeRuntimeInputError`. Add-enabled child maps must have an exact web default factory—there is no generic `{ id, order }` fallback.
 

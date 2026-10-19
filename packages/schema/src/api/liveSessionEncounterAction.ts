@@ -268,6 +268,7 @@ export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   | 'endedGrants'
   | 'cleaving'
   | 'turnUses'
+  | 'spentUseGrants'
   | 'forcedMovements'
 >
 
@@ -330,7 +331,12 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
  */
 export type LiveSessionEncounterAreaCommitInput = Omit<
   LiveSessionEncounterActionCommitInput,
-  'execution' | 'createdEffects' | 'cleaving' | 'turnUses' | 'reactionSpellConsumption'
+  | 'execution'
+  | 'createdEffects'
+  | 'cleaving'
+  | 'turnUses'
+  | 'spentUseGrants'
+  | 'reactionSpellConsumption'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   targets: {
