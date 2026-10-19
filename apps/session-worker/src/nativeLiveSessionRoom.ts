@@ -4090,7 +4090,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   ): void {
     if (!(error instanceof LiveSessionRouteError))
       console.error('Live Session command failed in the room.', error)
-    this.#rejectCommand(socket, commandId, 'UNAVAILABLE', `T4C2 ${(error as Error)?.message}`.slice(0, 1500)) // TEMP
+    this.#rejectCommand(socket, commandId, 'UNAVAILABLE', message)
   }
 
   /** Admissions and drains retry a retained checkpoint; commands save at save points and at the backlog bound. */

@@ -47,9 +47,8 @@ export function encounterCommandRefusal(error: unknown): {
   code: LiveSessionCommandRejectionCodeDto
   message: string
 } {
-  console.error('T4C2-CAUSE', error instanceof Error ? error.stack : String(error)) // TEMP
   if (error instanceof RetryableCommandError)
-    return { code: 'UNAVAILABLE', message: `T4C2 ${(error as Error).stack ?? String(error)}`.slice(0, 900) } // TEMP
+    return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   if (!(error instanceof LiveSessionRouteError))
     console.error('Live Session Encounter command failed in the room.', error)
   const status = error instanceof LiveSessionRouteError ? error.status : 0
@@ -61,7 +60,7 @@ export function encounterCommandRefusal(error: unknown): {
   // Convex ran out of time (503): nothing changed and the same command can be retried.
   if (status === 503) return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   return {
-    code: 'STALE_STATE', // TEMP
-    message: `T4C2 ${(error as Error).stack ?? String(error)}`.slice(0, 900) // TEMP
+    code: status === 401 || status === 403 ? 'FORBIDDEN' : 'UNAVAILABLE',
+    message: 'The Encounter command could not be completed.'
   }
 }

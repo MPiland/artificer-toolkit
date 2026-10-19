@@ -243,15 +243,19 @@ export async function persistEncounterConcentrationChildren(
     }
     // A damaged actor whose committed state can no longer act ends every grant it applied, on
     // whichever actor holds them. No index answers "which grants did this actor apply", so only
-    // the commit that drops a creature pays for a scan of the Encounter's holders.
+    // the commit that drops a creature pays for a scan of the Encounter's holders, and a source's
+    // committed reason is read only when a holder carries a grant it applied.
+    const held = (
+      await Promise.all(
+        actors.map(async (holder) => sourceBoundGrants(await store.list(turnEffectOwner(holder, state.id))))
+      )
+    ).flat()
     for (const source of actors.filter(({ id }) => args.damagedActorIds.has(id))) {
-      if ((await readSourceReason(source.id)) === null) continue
-      for (const holder of actors) {
-        const held = sourceBoundGrants(await store.list(turnEffectOwner(holder, state.id)))
-        if (grantsEndedBySourceState(held, sourceReasons).some(({ id }) => !sent.has(id)))
-          throw new Error('Live Session grant end is missing.')
-      }
+      if (!held.some((grant) => sourceActorOf(grant) === source.id)) continue
+      await readSourceReason(source.id)
     }
+    if (grantsEndedBySourceState(held, sourceReasons).some(({ id }) => !sent.has(id)))
+      throw new Error('Live Session grant end is missing.')
   }
   for (const { end, slot, holder } of ends) {
     actors = await callbacks.applyCleanup({
