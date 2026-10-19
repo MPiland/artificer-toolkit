@@ -1510,7 +1510,9 @@ export async function planNativeLiveEncounterAction(
     damagerActorId: prepared.actor.id,
     dispositions,
     grantTriggers: prepareNativeIncomingDamageGrantTriggers({
-      prepared: settledPrepared,
+      encounter: settledPrepared.state,
+      holder: settledPrepared.target,
+      held: settledPrepared.targetFacts.activeEffects,
       occurrenceId,
       commandId: command.commandId,
       activeEffectsByActorId

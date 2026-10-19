@@ -6,6 +6,7 @@ import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounterData'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterRunStateSchema,
   type EncounterRunState
@@ -410,6 +411,7 @@ export async function persistEncounterActionCommit(
   const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
   await spendEffectUses(ctx, input.spentUseGrants)
   // The zones the melee hit set off burn the attacker after the hit lands (D153).
+  let retaliationEnded: ActiveRuleEffectRecord[] = []
   if (batch.meleeRetaliation) {
     const retaliated = await persistEncounterMeleeRetaliation(
       ctx,
@@ -429,7 +431,8 @@ export async function persistEncounterActionCommit(
       },
       { applyMechanics: callbacks.applyMechanics }
     )
-    nextActors = nextActors.map((actor) => (actor.id === source.id ? retaliated : actor))
+    nextActors = nextActors.map((actor) => (actor.id === source.id ? retaliated.actor : actor))
+    retaliationEnded = retaliated.endedEffects
   }
   const sourceVersion =
     sourceMechanics?.characterStreamVersion ??
@@ -551,7 +554,7 @@ export async function persistEncounterActionCommit(
       ruleOverrides: input.ruleOverrides,
       consumedGrants: receiptConsumedGrants({
         consumedGrants: [...input.consumedGrants, ...input.spentUseGrants],
-        endedGrants: [...input.endedGrants, ...mechanics.endedGrants]
+        endedGrants: [...input.endedGrants, ...mechanics.endedGrants, ...retaliationEnded]
       }),
       endedMaintainedStates,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,

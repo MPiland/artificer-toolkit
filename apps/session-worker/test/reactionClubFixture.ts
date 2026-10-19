@@ -11,11 +11,11 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 
 const REACTION_CLUB_ID = testUuid(0xe120)
 
-/** A Club the Fighter attacks with as an opportunity attack, taken as a Reaction when a creature leaves its reach. */
-export const reactionClub: EquipmentAuthored = (() => {
+/** A one-handed weapon of `damageTypeCode` the Fighter attacks with as an opportunity attack, taken as a Reaction when a creature leaves its reach. */
+export function reactionWeapon(damageTypeCode: string): EquipmentAuthored {
   const [attack] = meleeWeaponEffects(
     REACTION_CLUB_ID,
-    'BLUDGEONING',
+    damageTypeCode,
     '1d4',
     EQUIPMENT_GRIP.ONE_HANDED
   )
@@ -43,4 +43,7 @@ export const reactionClub: EquipmentAuthored = (() => {
       }
     ]
   }
-})()
+}
+
+/** A Club the Fighter attacks with as an opportunity attack, taken as a Reaction when a creature leaves its reach. */
+export const reactionClub = reactionWeapon('BLUDGEONING')

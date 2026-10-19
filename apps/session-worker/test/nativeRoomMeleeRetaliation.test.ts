@@ -137,9 +137,9 @@ describe('a Character’s Fire Shield answers a melee hit (SPELLS-20 T6d2a, D153
   }
 
   /** The Character casts the warm shield, then (unless `endTurn` is false) the Goblin beside it takes its turn. */
-  async function shieldedRoom(endTurn = true) {
+  async function shieldedRoom(endTurn = true, attacker = goblin) {
     const room = await actionRoom({
-      actors: [casterActor, srdCreatureActor({ id: GOBLIN_ID, creature: goblin })],
+      actors: [casterActor, srdCreatureActor({ id: GOBLIN_ID, creature: attacker })],
       characterSpellcasting: { spells: [fireShield], prepared: [fireShield.id] },
       characterAction: (action) => action.label === 'Fire Shield (4th level)',
       autoRoll: 'EVERYONE',
@@ -154,10 +154,10 @@ describe('a Character’s Fire Shield answers a melee hit (SPELLS-20 T6d2a, D153
   }
 
   /** The Goblin's attack with its feature `label` at the caster, from the Goblin's token. */
-  async function goblinAttacks(room: Room, label: string) {
+  async function goblinAttacks(room: Room, label: string, attacker = goblin) {
     const [casterToken, goblinToken] = room.room.scene.tokens
     if (!casterToken || !goblinToken) throw new Error('The Scene holds no tokens.')
-    const goblinActor = srdCreatureActor({ id: GOBLIN_ID, creature: goblin })
+    const goblinActor = srdCreatureActor({ id: GOBLIN_ID, creature: attacker })
     return room.startAction(
       CASTER_ACTOR_ID,
       [],
@@ -168,7 +168,7 @@ describe('a Character’s Fire Shield answers a melee hit (SPELLS-20 T6d2a, D153
         targetTokenId: casterToken.id
       },
       null,
-      room.featureActionId(goblinActor, creatureFeature(goblin, label).id),
+      room.featureActionId(goblinActor, creatureFeature(attacker, label).id),
       GOBLIN_ID
     )
   }
@@ -229,6 +229,41 @@ describe('a Character’s Fire Shield answers a melee hit (SPELLS-20 T6d2a, D153
 
     await revertLastAction(room)
     expect(await hitPointsOf(room, GOBLIN_ID)).toBe(goblinBefore)
+  })
+
+  describe('an attacker with a passive damage trigger (SPELLS-33.T6e3b)', () => {
+    const golem = srdByLabel(SRD.creatures, 'Flesh Golem')
+    const goblinEffects = async (room: Room) =>
+      (await readRoomHistory(room.room.base.stub)).activeEffects.filter(
+        ({ targetActorId }) => targetActorId === GOBLIN_ID
+      )
+
+    it('gives the burnt attacker its grant, and an undo takes it back', async () => {
+      const room = await shieldedRoom(true, golem)
+
+      const { answer } = await goblinAttacks(room, 'Slam', golem)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      expect(await goblinEffects(room)).toHaveLength(1)
+
+      await revertLastAction(room)
+      expect(await goblinEffects(room)).toEqual([])
+    })
+
+    it('gives back the grant a repeated burn replaced when that burn is undone', async () => {
+      const room = await shieldedRoom(true, golem)
+      const first = await goblinAttacks(room, 'Slam', golem)
+      expect(first.answer.type, JSON.stringify(first.answer)).toBe('COMMAND_COMMITTED')
+      const [original] = await goblinEffects(room)
+      // The Golem's next turn keeps the first grant until it ends, so a second burn replaces it.
+      await room.advanceTurn()
+      await room.advanceTurn()
+      const second = await goblinAttacks(room, 'Slam', golem)
+      expect(second.answer.type, JSON.stringify(second.answer)).toBe('COMMAND_COMMITTED')
+      expect((await goblinEffects(room)).map(({ id }) => id)).not.toContain(original!.id)
+
+      await revertLastAction(room)
+      expect((await goblinEffects(room)).map(({ id }) => id)).toEqual([original!.id])
+    })
   })
 
   it('leaves the Goblin that hits the caster with its Shortbow unburned', async () => {

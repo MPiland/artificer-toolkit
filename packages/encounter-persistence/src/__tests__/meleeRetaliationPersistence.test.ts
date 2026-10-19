@@ -61,14 +61,15 @@ beforeAll(() => {
 })
 
 /**
- * The attacker sleeps under a real Sleep effect when the creature it hit answers with a Fire
- * Shield, all stored in a memory store: the plan and the persistence both run real product code.
+ * The attacker (asleep under a real Sleep effect, or not) is burnt when the creature it hit answers
+ * with a Fire Shield, all stored in a memory store: the plan and the persistence both run real
+ * product code.
  */
-async function sleepingAttackerBurnt() {
+async function attackerBurnt(options: { creature: string; asleep: boolean }) {
   const asleep = srdCreatureActor({
     id: GOBLIN_ID,
-    creature: srdByLabel(SRD.creatures, 'Goblin'),
-    conditionIds: [SLEEP_CONDITION_ID]
+    creature: srdByLabel(SRD.creatures, options.creature),
+    conditionIds: options.asleep ? [SLEEP_CONDITION_ID] : []
   })
   const actors = [asleep, source]
   const state = srdEncounterState({ actors, currentActorId: GOBLIN_ID })
@@ -135,18 +136,21 @@ async function sleepingAttackerBurnt() {
   })
   await scope.create({ id, definition, lifecycle, placement, spatialState })
   const effects = createActiveRuleEffectStore(ctx)
-  const sleeper = sleepEffectOn({
-    encounterId: ENCOUNTER_ID,
-    id: testUuid(0x3d2),
-    sourceActorId: SOURCE_ID,
-    holder: asleep
-  })
-  await effects.create({
-    id: sleeper.id,
-    owner: sleeper.owner,
-    definition: sleeper.definition,
-    lifecycle: sleeper.lifecycle
-  })
+  const sleeper = options.asleep
+    ? sleepEffectOn({
+        encounterId: ENCOUNTER_ID,
+        id: testUuid(0x3d2),
+        sourceActorId: SOURCE_ID,
+        holder: asleep
+      })
+    : null
+  if (sleeper)
+    await effects.create({
+      id: sleeper.id,
+      owner: sleeper.owner,
+      definition: sleeper.definition,
+      lifecycle: sleeper.lifecycle
+    })
   const scene = await readMeleeRetaliationScene(
     ctx,
     { state, attackerActorId: GOBLIN_ID, hitActorId: SOURCE_ID },
@@ -160,7 +164,7 @@ async function sleepingAttackerBurnt() {
   })!
   const { evidence } = await planEncounterMeleeRetaliation({
     selected,
-    attacker: srdCreatureTarget(asleep, [sleeper]),
+    attacker: srdCreatureTarget(asleep, sleeper ? [sleeper] : []),
     encounter: state,
     occurrenceId: OCCURRENCE_ID,
     sourceCommandId: testUuid(0x3b0),
@@ -204,17 +208,56 @@ async function sleepingAttackerBurnt() {
         }
       }
     )
-  return { ctx, state, effects, sleeper, persist }
+  return { ctx, state, effects, sleeper, evidence, persist }
 }
 
 describe('persisting a melee retaliation that ends the attacker’s effects (SPELLS-33.T6e4)', () => {
   it('deletes the sleep the shield’s damage ends and releases the condition it held', async () => {
-    const { ctx, state, effects, sleeper, persist } = await sleepingAttackerBurnt()
-    const settled = await persist()
+    const { ctx, state, effects, sleeper, evidence, persist } = await attackerBurnt({
+      creature: 'Goblin',
+      asleep: true
+    })
+    const { actor: settled, endedEffects } = await persist()
 
-    expect(await effects.list(sleeper.owner)).toEqual([])
+    expect(await effects.list(sleeper!.owner)).toEqual([])
+    // What an undo gives back: the ended sleep, and the condition the plan says it released.
+    expect(endedEffects.map(({ id }) => id)).toEqual([sleeper!.id])
+    expect(evidence.releasedConditionIds).toEqual([SLEEP_CONDITION_ID])
     const stored = await readRunActor(ctx, state, GOBLIN_ID)
     expect(stored).toEqual(settled)
     expect(stored.kind === 'CHARACTER' ? null : stored.conditions).toEqual([])
+  })
+})
+
+describe('persisting a melee retaliation that gives the attacker a timed grant (SPELLS-33.T6e3b)', () => {
+  it('creates the grant the planned evidence names when the shield’s fire meets Aversion of Fire', async () => {
+    const { effects, evidence, persist } = await attackerBurnt({
+      creature: 'Flesh Golem',
+      asleep: false
+    })
+    expect(evidence.grantEffectTransitions).toHaveLength(1)
+
+    await persist()
+
+    const held = await effects.list({
+      kind: 'ENCOUNTER_ACTOR',
+      encounterId: ENCOUNTER_ID,
+      targetActorId: GOBLIN_ID
+    })
+    expect(held.map(({ id }) => id)).toEqual(
+      evidence.grantEffectTransitions.map(({ activeEffectId }) => activeEffectId)
+    )
+  })
+
+  it('refuses a settlement whose recorded grants no longer match the held effects', async () => {
+    const { evidence, persist } = await attackerBurnt({ creature: 'Flesh Golem', asleep: false })
+    evidence.grantEffectTransitions.length = 0
+
+    await expect(persist()).rejects.toThrow('Melee retaliation grants differ from its plan.')
+  })
+
+  it('gives a creature without the feature no grant', async () => {
+    const { evidence } = await attackerBurnt({ creature: 'Goblin', asleep: false })
+    expect(evidence.grantEffectTransitions).toEqual([])
   })
 })

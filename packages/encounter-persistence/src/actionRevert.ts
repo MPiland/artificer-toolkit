@@ -445,6 +445,13 @@ export async function revertLastEncounterAction(
       ...firstRetaliation.targetTransition,
       after: retaliation.at(-1)!.targetTransition.after
     })
+  // The timed grants the attacker's own passive triggers made from that damage go with it.
+  for (const grant of batch?.meleeRetaliation?.grantEffectTransitions ?? [])
+    await store.deleteCas({
+      id: grant.activeEffectId,
+      owner: { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: grant.targetActorId },
+      expectedVersion: grant.afterVersion
+    })
 
   // Characters: only when their Sheet is exactly the version this action (and its maintenance) left.
   const characterInverses = new Map<string, CharacterInverse>()
@@ -689,6 +696,9 @@ export async function revertLastEncounterAction(
     endedConditionReleases(spend.sourceApplications),
     spend.sourceCharacterStreamVersion
   )
+  // So do the ones the retaliation's damage released from the attacker; the effects themselves
+  // come back with the root's consumed grants, after the grants that damage made are deleted.
+  restoreReleasedConditions(source, batch?.meleeRetaliation?.releasedConditionIds ?? [], null)
   const feature = spend.featureResourceConsumption
   if (feature) {
     const owner = actorsById.get(feature.ownerActorId)

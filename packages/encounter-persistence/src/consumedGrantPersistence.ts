@@ -1,4 +1,6 @@
+import { incomingDamageGrantRecords } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterIdleTurnMark } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import type {
   ActiveRuleEffectRecord,
@@ -16,6 +18,37 @@ export async function deleteGrants(
   const store = createActiveRuleEffectStore(ctx)
   for (const grant of grants)
     await store.deleteCas({ id: grant.id, owner: grant.owner, expectedVersion: grant.version })
+}
+
+/**
+ * Creates the timed grants a holder's passive features owe the damage a spatial root dealt it, after
+ * the effects that damage ended are deleted. Returns the records, which planning built the same way.
+ */
+export async function createIncomingDamageGrants(
+  ctx: EncounterWriteContext,
+  input: {
+    grants: Parameters<typeof incomingDamageGrantRecords>[0]['grants']
+    owner: ActiveRuleEffectRecord['owner']
+    occurredAt: string
+  }
+) {
+  const store = createActiveRuleEffectStore(ctx)
+  const records = incomingDamageGrantRecords({
+    ...input,
+    current: input.grants.length ? await store.list(input.owner) : []
+  })
+  for (const record of records) {
+    const created = await store.create({
+      id: record.id,
+      owner: record.owner,
+      definition: record.definition,
+      lifecycle: record.lifecycle,
+      occurredAt: input.occurredAt
+    })
+    if (checksumCanonicalJson(created) !== checksumCanonicalJson(record))
+      throw new Error('Created damage grant changed before settlement.')
+  }
+  return records
 }
 
 /**

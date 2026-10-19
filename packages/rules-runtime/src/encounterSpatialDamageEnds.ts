@@ -4,7 +4,11 @@ import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api
 import type { CharacterEndedEffectReleaseApplication } from './characterRuleActionSystemAdapter.js'
 import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
 import { type TargetState, targetTemporaryHitPoints } from './encounterCharacterMechanicsBatch.js'
-import { endedEffectReleases, targetEndedEffects } from './encounterEndedEffectRelease.js'
+import {
+  endedEffectReleases,
+  targetEndedEffects,
+  type IncomingDamageGrantTrigger
+} from './encounterEndedEffectRelease.js'
 import { temporaryHitPointsAfterRelease } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 
 /** What a spatial execution carries of the damage it dealt and the zone's source that dealt it. */
@@ -29,10 +33,17 @@ export function spatialDamageEnds(input: {
   turnActorId: string | null
   /** Every Encounter actor's disposition, to tell a zone source's side from the rest. */
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
-}): { endedEffects: ActiveRuleEffectRecord[]; releases: CharacterEndedEffectReleaseApplication[] } {
+  /** The grants the holder's passive features give when a zone's damage meets them; none when omitted. */
+  grantTriggers?: readonly IncomingDamageGrantTrigger[]
+}): {
+  endedEffects: ActiveRuleEffectRecord[]
+  releases: CharacterEndedEffectReleaseApplication[]
+  grants: ReturnType<typeof targetEndedEffects>['grants']
+} {
   const ended = new Map<string, ActiveRuleEffectRecord>()
-  for (const execution of input.executions)
-    for (const effect of targetEndedEffects({
+  const grants = new Map<string, ReturnType<typeof targetEndedEffects>['grants'][number]>()
+  for (const execution of input.executions) {
+    const endedBy = targetEndedEffects({
       holderActorId: input.holderActorId,
       held: input.held,
       attacked: false,
@@ -43,9 +54,12 @@ export function spatialDamageEnds(input: {
         targetActorId: input.holderActorId
       })),
       damagerActorId: execution.candidate.candidate.sourceActorId,
-      dispositions: input.dispositions
-    }).endedEffects)
-      ended.set(effect.id, effect)
+      dispositions: input.dispositions,
+      ...(input.grantTriggers ? { grantTriggers: input.grantTriggers } : {})
+    })
+    for (const effect of endedBy.endedEffects) ended.set(effect.id, effect)
+    for (const grant of endedBy.grants) grants.set(grant.id, grant)
+  }
   const endedEffects = input.held.filter(({ id }) => ended.has(id))
   return {
     endedEffects,
@@ -53,7 +67,8 @@ export function spatialDamageEnds(input: {
       holderActorId: input.holderActorId,
       held: input.held,
       ended: endedEffects
-    })
+    }),
+    grants: [...grants.values()]
   }
 }
 

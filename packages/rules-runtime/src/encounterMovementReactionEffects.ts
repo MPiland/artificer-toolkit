@@ -5,7 +5,17 @@ import {
   prepareActiveRuleEffectRecord,
   prepareMaintainedEffectStateRecord
 } from './activeRuleEffectRecords.js'
-import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
+import {
+  prepareNativeActionEffectsPlan,
+  prepareNativeIncomingDamageGrantTriggers
+} from './encounterActionEffects.js'
+import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
+import {
+  actionEndedEffects,
+  actsAgainstEnemy,
+  incomingDamageGrantRecords,
+  targetEndedEffects
+} from './encounterEndedEffectRelease.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { MovementCharacterRow } from './encounterMovementMaintenance.js'
@@ -24,14 +34,15 @@ export function planEncounterMovementReactionEffects<
   }
 ) {
   const prepared = input.prepared.prepared
+  const activeEffectsByActorId = new Map(
+    [...prepared.movementTargets].map(([actorId, target]) => [actorId, target.activeEffects])
+  )
   const effects = prepareNativeActionEffectsPlan({
     prepared,
     execution: input.execution,
     occurrenceId: input.occurrenceId,
     commandId: input.commandId,
-    activeEffectsByActorId: new Map(
-      [...prepared.movementTargets].map(([actorId, target]) => [actorId, target.activeEffects])
-    )
+    activeEffectsByActorId
   })
   const maintenance = effects.maintenance ? input.prepared.maintenance : null
   if (
@@ -117,10 +128,70 @@ export function planEncounterMovementReactionEffects<
   const state = create('STATE', effects.stateEffect)
   const recurring = create('RECURRING', effects.recurringEffect)
   const rider = create('RIDER', effects.riderEffect)
+  // The reactor's attack roll or spell cast uses up its grants; the mover's effects that end on
+  // damage end, and its own damage triggers give it timed grants, each freeing the conditions it
+  // alone held in its holder's own batch.
+  const dispositions = new Map([
+    [prepared.actor.id, prepared.actor.disposition],
+    [prepared.target.id, prepared.target.disposition]
+  ])
+  const makesAttackRoll = typeof prepared.binding.actionMechanic.attackBonus === 'number'
+  const reactor = actionEndedEffects({
+    holderActorId: prepared.actor.id,
+    held: prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? [],
+    makesAttackRoll,
+    castsSpell: preparedCastsSpell(prepared),
+    againstEnemy: actsAgainstEnemy({
+      actorId: prepared.actor.id,
+      targetActorIds: [prepared.target.id],
+      dispositions
+    })
+  })
+  const mover = targetEndedEffects({
+    holderActorId: prepared.target.id,
+    held: (prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []).filter(
+      ({ id }) => !reactor.consumedGrants.some((ended) => ended.id === id)
+    ),
+    attacked: makesAttackRoll,
+    testEvidence: [input.execution.d20, input.execution.nestedD20],
+    turnActorId: prepared.state.currentActorId,
+    applications: [...input.execution.applications, ...effects.relationshipConditionApplications],
+    damagerActorId: prepared.actor.id,
+    dispositions,
+    grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+      encounter: prepared.state,
+      holder: prepared.target,
+      held: prepared.targetFacts.activeEffects,
+      occurrenceId: input.occurrenceId,
+      commandId: input.commandId,
+      ordinal: input.ordinal,
+      activeEffectsByActorId
+    })
+  })
+  const grants = incomingDamageGrantRecords({
+    grants: mover.grants,
+    owner,
+    current: currentEffects,
+    occurredAt: input.occurredAt
+  })
+  createdEffects.push(...grants)
   return {
     effects,
     maintainedState,
     createdEffects,
+    ended: {
+      consumedGrants: [...reactor.consumedGrants, ...mover.endedEffects],
+      sourceReleases: reactor.sourceReleases,
+      damageReleases: mover.releases
+    },
+    grantEffectTransitions: grants.flatMap(
+      (grant) =>
+        projectNativeActionEffectTransitions({
+          state: null,
+          recurring: grant,
+          targetActorId: prepared.target.id
+        }).activeEffectTransitions
+    ),
     ...projectNativeActionEffectTransitions({
       state,
       recurring,
