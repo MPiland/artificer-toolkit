@@ -202,6 +202,7 @@ function placedZoneRecord(
         ? { maxApplicationsPerTurn: zone.maxApplicationsPerTurn }
         : {}),
       ...(zone.requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+      ...(zone.requiredSight ? { requiredSight: zone.requiredSight } : {}),
       ...(zone.movementCostMultiplier
         ? { movementCostMultiplier: zone.movementCostMultiplier }
         : {}),

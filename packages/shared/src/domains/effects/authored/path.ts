@@ -11,6 +11,8 @@ import type {
 } from '#authored'
 import type {
   ActivationCode,
+  EquipmentCategoryCode,
+  EquipmentPropertyCode,
   PathCodesByTrigger,
   PathGroupType,
   PathLifecycleConsumeEvent,
@@ -119,6 +121,19 @@ export type PathRollTableRowAuthored<TOutcome extends OutcomeAuthored = OutcomeA
         }
     )
 
+/**
+ * One item the target holds or wears, chosen when the action is used (Heat Metal's metal object,
+ * Magic Weapon's weapon). Every listed filter must hold; `equipmentIds` matches the item or a
+ * variant ancestor. A grant with `bindsChosenItem` applies only to that item, and the effect ends
+ * when it leaves the holder's equipment.
+ */
+export type PathChosenItemAuthored = {
+  category?: EquipmentCategoryCode
+  requiredProperties?: EquipmentPropertyCode[]
+  excludedProperties?: EquipmentPropertyCode[]
+  equipmentIds?: string[]
+}
+
 export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   id: string
   order: number // int
@@ -134,6 +149,7 @@ export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   usage?: PathUsage
   rangeOverride?: RangeAuthored
   targetingOverride?: TargetingAuthored
+  chosenItem?: PathChosenItemAuthored
 }
 
 export type EffectPathAuthored<

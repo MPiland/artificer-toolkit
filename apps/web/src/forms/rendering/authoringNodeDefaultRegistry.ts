@@ -95,6 +95,7 @@ type AuthoringDefaultKind =
   | 'outcomeBreakpointValue'
   | 'outcomeBonus'
   | 'pathChoiceOption'
+  | 'pathChosenItem'
   | 'pathLifecycle'
   | 'pathLifecycleEndTrigger'
   | 'pathLifecycleEscape'
@@ -248,6 +249,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   outcomeBreakpointValue: ['outcomeBreakpointValue'],
   outcomeBonus: ['outcomeBonus'],
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
+  pathChosenItem: ['pathChosenItem'],
   pathLifecycle: ['pathLifecycle'],
   pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
   pathLifecycleEscape: ['pathLifecycleEscape'],

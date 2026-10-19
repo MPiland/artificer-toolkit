@@ -7,7 +7,9 @@ import {
   deriveSquareGridShoveAsideDestinations,
   enumerateSquareGridFootprint,
   findSquareGridCreatureCoverIntervenors,
-  findSquareGridFlankingPairs
+  findSquareGridFlankingPairs,
+  SQUARE_GRID_COMPASS_RAYS,
+  traceSquareGridForcedMovementRay
 } from '../domains/vtt/optionalCombatGeometry.js'
 import type { CampaignSceneState, SceneGrid, SceneToken } from '../domains/vtt/scene.js'
 
@@ -481,6 +483,108 @@ describe('square-grid forced movement', () => {
       { x: 25, y: 45 },
       { x: 35, y: 45 }
     ])
+  })
+
+  describe('a rolled ray', () => {
+    const trace = (
+      overrides: Partial<Parameters<typeof traceSquareGridForcedMovementRay>[0]> = {}
+    ) =>
+      traceSquareGridForcedMovementRay({
+        direction: 'RAY',
+        ray: { x: 0, y: 1 },
+        distance: 15,
+        upTo: false,
+        sourceReach: null,
+        source,
+        target: token({ x: 45, y: 45 }),
+        occupants: [source],
+        state: state(),
+        ...overrides
+      })
+
+    it('lists eight unit compass rays, north first and clockwise', () => {
+      expect(SQUARE_GRID_COMPASS_RAYS).toEqual([
+        { x: 0, y: -1 },
+        { x: 1, y: -1 },
+        { x: 1, y: 0 },
+        { x: 1, y: 1 },
+        { x: 0, y: 1 },
+        { x: -1, y: 1 },
+        { x: -1, y: 0 },
+        { x: -1, y: -1 }
+      ])
+    })
+
+    it('walks the given line whatever side of the source the target is on, diagonals included', () => {
+      expect(push({ direction: 'RAY', ray: { x: 0, y: 1 } })).toEqual([{ x: 25, y: 75 }])
+      expect(push({ direction: 'RAY', ray: { x: -1, y: -1 }, distance: 10 })).toEqual([
+        { x: 5, y: 25 }
+      ])
+      expect(push({ direction: 'RAY', ray: { x: 1, y: 0 }, upTo: true, distance: 10 })).toEqual([
+        { x: 25, y: 45 },
+        { x: 35, y: 45 },
+        { x: 45, y: 45 }
+      ])
+    })
+
+    it('fails closed without a direction to follow', () => {
+      expect(trace({ ray: undefined })).toBeNull()
+      expect(trace({ ray: { x: 0, y: 0 } })).toBeNull()
+    })
+
+    it('reports a distance stop when nothing was in the way', () => {
+      expect(trace()).toEqual({
+        reached: [
+          { x: 45, y: 45 },
+          { x: 45, y: 55 },
+          { x: 45, y: 65 },
+          { x: 45, y: 75 }
+        ],
+        stop: { kind: 'DISTANCE' }
+      })
+    })
+
+    it('reports the creature, by its place among the occupants, that stopped the line', () => {
+      expect(trace({ occupants: [source, token({ x: 45, y: 65 })] })).toEqual({
+        reached: [
+          { x: 45, y: 45 },
+          { x: 45, y: 55 }
+        ],
+        stop: { kind: 'CREATURE', occupantIndex: 1 }
+      })
+    })
+
+    it('reports an object when a wall or the map edge stopped the line', () => {
+      const wall = {
+        a: { x: 40, y: 60 },
+        b: { x: 50, y: 60 },
+        blocksLight: true,
+        blocksMovement: true,
+        id: 'wall',
+        kind: 'WALL' as const
+      }
+      expect(trace({ state: state({ barriers: [wall] }) })?.stop).toEqual({ kind: 'OBJECT' })
+      expect(trace({ distance: 100, target: token({ x: 45, y: 85 }) })?.stop).toEqual({
+        kind: 'OBJECT'
+      })
+    })
+
+    it('reports a creature in the way of a straight push the same way', () => {
+      expect(
+        trace({
+          direction: 'AWAY_FROM_SOURCE',
+          ray: undefined,
+          target: token({ x: 25, y: 45 }),
+          occupants: [source, token({ x: 45, y: 45 })]
+        })
+      ).toEqual({
+        reached: [
+          { x: 25, y: 45 },
+          { x: 35, y: 45 }
+        ],
+        stop: { kind: 'CREATURE', occupantIndex: 1 }
+      })
+    })
   })
 
   describe('a direction the mover picks', () => {

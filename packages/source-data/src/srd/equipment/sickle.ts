@@ -10,7 +10,8 @@ export const sickle: EquipmentAuthored = {
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.SIMPLE,
     S.EQUIPMENT_PROPERTY_CODE.MELEE,
-    S.EQUIPMENT_PROPERTY_CODE.LIGHT
+    S.EQUIPMENT_PROPERTY_CODE.LIGHT,
+    S.EQUIPMENT_PROPERTY_CODE.METAL
   ],
   modifiers: S.withOffHandDamage(S.equipId(9), S.meleeWeaponAbilityModifiers(S.equipId(9))),
   effects: S.withOffHandAttack(

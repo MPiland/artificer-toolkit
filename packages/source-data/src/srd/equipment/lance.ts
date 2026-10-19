@@ -12,7 +12,8 @@ export const lance: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,
     S.EQUIPMENT_PROPERTY_CODE.MELEE,
     S.EQUIPMENT_PROPERTY_CODE.REACH,
-    S.EQUIPMENT_PROPERTY_CODE.SPECIAL
+    S.EQUIPMENT_PROPERTY_CODE.SPECIAL,
+    S.EQUIPMENT_PROPERTY_CODE.METAL
   ],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(21)),
   effects: [

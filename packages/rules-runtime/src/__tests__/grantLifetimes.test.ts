@@ -703,20 +703,32 @@ describe('a Rage made on the Barbarian’s own turn', () => {
     expect(
       grantsEndedByHolderState([record], {
         reason: null,
-        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        heldItemInstanceIds: []
       }).map(({ id }) => id)
     ).toEqual([record.id])
     expect(
-      grantsEndedByHolderState([record], { reason: 'INCAPACITATED', conditionIds: [stunned] })
+      grantsEndedByHolderState([record], {
+        reason: 'INCAPACITATED',
+        conditionIds: [stunned],
+        heldItemInstanceIds: []
+      })
     ).toEqual([])
-    expect(grantsEndedByHolderState([record], { reason: 'DEFEATED', conditionIds: [] })).toEqual([])
+    expect(
+      grantsEndedByHolderState([record], {
+        reason: 'DEFEATED',
+        conditionIds: [],
+        heldItemInstanceIds: []
+      })
+    ).toEqual([])
   })
 
   it('reads no conditions from a defeated holder, as persistence does', () => {
     expect(
       grantsEndedByHolderState([record], {
         reason: 'DEFEATED',
-        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        heldItemInstanceIds: []
       })
     ).toEqual([])
   })
@@ -833,7 +845,11 @@ describe('a grant that ends on incapacitation', () => {
     'ends when its holder is %s, whatever conditions it has',
     (reason) => {
       expect(
-        grantsEndedByHolderState([incapacitation], { reason, conditionIds: [] }).map(({ id }) => id)
+        grantsEndedByHolderState([incapacitation], {
+          reason,
+          conditionIds: [],
+          heldItemInstanceIds: []
+        }).map(({ id }) => id)
       ).toEqual([incapacitation.id])
     }
   )
@@ -842,9 +858,57 @@ describe('a grant that ends on incapacitation', () => {
     expect(
       grantsEndedByHolderState([incapacitation], {
         reason,
-        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID]
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        heldItemInstanceIds: []
       })
     ).toEqual([])
+  })
+})
+
+describe('a grant bound to an item that ends when it is let go (SPELLS-4.T2e)', () => {
+  const ITEM_ID = testUuid(0xc3a1)
+  const bound = (endOnEvents: 'ON_CHOSEN_ITEM_RELEASED'[]) => {
+    const record = grantRecord(storedGrant({ lifecycle: { endOnEvents }, currentActorId: null }), {
+      id: 0xc3a2,
+      holderId: TARGET_ID
+    })
+    if (record.definition.schemaVersion !== 2) throw new Error('Expected a v2 grant definition.')
+    return {
+      ...record,
+      definition: {
+        ...record.definition,
+        stateContributions: record.definition.stateContributions.map((contribution) =>
+          contribution.kind === 'MODIFIER_GRANT'
+            ? {
+                ...contribution,
+                boundItem: {
+                  kind: 'EQUIPMENT_INSTANCE' as const,
+                  equipmentId: testUuid(0xc3a3),
+                  itemInstanceId: ITEM_ID
+                }
+              }
+            : contribution
+        )
+      }
+    }
+  }
+  const ended = (record: ActiveRuleEffectRecord, heldItemInstanceIds: string[]) =>
+    grantsEndedByHolderState([record], { reason: null, conditionIds: [], heldItemInstanceIds }).map(
+      ({ id }) => id
+    )
+
+  it('ends when no hand of its holder holds the bound item', () => {
+    const record = bound(['ON_CHOSEN_ITEM_RELEASED'])
+    expect(ended(record, [])).toEqual([record.id])
+    expect(ended(record, [testUuid(0xc3a4)])).toEqual([record.id])
+  })
+
+  it('stays while a hand holds the bound item', () => {
+    expect(ended(bound(['ON_CHOSEN_ITEM_RELEASED']), [ITEM_ID])).toEqual([])
+  })
+
+  it('stays when dropped if it does not end on release (Magic Weapon)', () => {
+    expect(ended(bound([]), [])).toEqual([])
   })
 })
 

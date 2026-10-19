@@ -1,4 +1,12 @@
 import {
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
+  DAMAGE_DEFENSE_BYPASS_CODE,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
+  SPELLCASTING_ABILITY_REFERENCE,
   ACTIVATION_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -13,6 +21,8 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
+import { club } from '../equipment/club.js'
+import { quarterstaff } from '../equipment/quarterstaff.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const shillelagh: SpellAuthored = {
@@ -55,6 +65,7 @@ export const shillelagh: SpellAuthored = {
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
+          chosenItem: { equipmentIds: [club.id, quarterstaff.id] },
           resultBlock: {
             id: spellChildId(SPELL_IDS.SHILLELAGH, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
@@ -63,11 +74,59 @@ export const shillelagh: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            lifecycle: { endOnEvents: ['ON_CHOSEN_ITEM_RELEASED' as const] },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SHILLELAGH, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SHILLELAGH' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                bindsChosenItem: true,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.SHILLELAGH, 0x214, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
+                      modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+                      scope: MODIFIER_SCOPE_KIND.SOURCE,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { abilities: [SPELLCASTING_ABILITY_REFERENCE] },
+                      order: 1
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.SHILLELAGH, 0x214, 2),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+                      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
+                      modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+                      scope: MODIFIER_SCOPE_KIND.SOURCE,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { abilities: [SPELLCASTING_ABILITY_REFERENCE] },
+                      order: 2
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.SHILLELAGH, 0x214, 3),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.SET_VALUE,
+                      scope: MODIFIER_SCOPE_KIND.SOURCE,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { amount: 8 },
+                      order: 3
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.SHILLELAGH, 0x214, 4),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+                      domain: { trait: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL },
+                      modifierKind: MODIFIER_KIND.ENABLE,
+                      scope: MODIFIER_SCOPE_KIND.SOURCE,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 4
+                    }
+                  ]
+                }
               }
             ]
           }

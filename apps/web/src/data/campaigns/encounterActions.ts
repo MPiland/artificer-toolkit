@@ -9,11 +9,15 @@ import {
 } from '@artificer-toolkit/schema/api/encounterActionTargetModifiers'
 import {
   encounterActionChoicesResponseDtoSchema,
+  encounterActionItemChoicesDtoSchema,
   encounterOptionalActionChoicesDtoSchema,
   getEncounterActionChoicesInputDtoSchema,
+  getEncounterActionItemChoicesInputDtoSchema,
   getEncounterOptionalActionChoicesInputDtoSchema,
+  type EncounterActionItemChoicesDto,
   type EncounterOptionalActionChoicesDto,
   type GetEncounterActionChoicesInputDto,
+  type GetEncounterActionItemChoicesInputDto,
   type GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
@@ -53,6 +57,18 @@ export async function loadCampaignEncounterActionTargetModifiers(
     await client.query(
       api.encounters.actionTargetModifiers.get,
       getEncounterActionTargetModifiersInputDtoSchema.parse(input)
+    )
+  )
+}
+
+export async function loadCampaignEncounterActionItemChoices(
+  client: ConvexReactClient,
+  input: GetEncounterActionItemChoicesInputDto
+): Promise<EncounterActionItemChoicesDto> {
+  return encounterActionItemChoicesDtoSchema.parse(
+    await client.query(
+      api.encounters.actionChoices.items,
+      getEncounterActionItemChoicesInputDtoSchema.parse(input)
     )
   )
 }

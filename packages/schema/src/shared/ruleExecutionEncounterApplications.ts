@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { forcedMovementDirectionSchema } from './enums.js'
 import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 import {
   deathSavesAfterDamage,
@@ -280,7 +281,10 @@ export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
     )
 )
 
-/** One committed Character equipment change: Disarm, or a shield stowed for an accepted attack. */
+/**
+ * One committed Character equipment change: Disarm, a shield stowed for an accepted attack, or an
+ * item the target dropped (Heat Metal).
+ */
 export const characterItemUseStateTransitionDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -412,6 +416,23 @@ export const encounterActionEconomyTransitionDtoSchema = lazySchema(() =>
     )
 )
 
+/** One committed Creature loadout change: Disarm, or an item the target dropped (Heat Metal). */
+export const encounterActorItemUseStateTransitionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_ACTOR_ITEM_USE_STATE'),
+    actorId: uuidSchema,
+    loadoutEntryId: uuidSchema,
+    equipmentId: uuidSchema,
+    fromState: z.enum(['MAIN_HAND', 'OFF_HAND']),
+    toState: z.literal('CARRIED'),
+    beforeStateChecksum: checksumSchema,
+    afterStateChecksum: checksumSchema
+  })
+)
+export type EncounterActorItemUseStateTransitionDto = z.infer<
+  typeof encounterActorItemUseStateTransitionDtoSchema
+>
+
 export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -442,6 +463,11 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         null
       ),
       sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
+      /** The item the target dropped with this outcome (Heat Metal); undo puts it back in hand. */
+      targetItemUseStateTransition: z._default(
+        z.nullable(encounterActorItemUseStateTransitionDtoSchema),
+        null
+      ),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
@@ -774,6 +800,15 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             path: ['sourceCharacterId'],
             message: 'Character resource consumption requires a Character source.'
           })
+        if (
+          value.targetItemUseStateTransition &&
+          value.targetItemUseStateTransition.actorId !== value.targetActorId
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['targetItemUseStateTransition'],
+            message: 'Target item state transition must match the target.'
+          })
         const stow = value.sourceItemUseStateTransition
         if (
           stow &&
@@ -1008,16 +1043,7 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
       stateTransition: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('NONE') }),
         characterItemUseStateTransitionDtoSchema,
-        z.strictObject({
-          kind: z.literal('ENCOUNTER_ACTOR_ITEM_USE_STATE'),
-          actorId: uuidSchema,
-          loadoutEntryId: uuidSchema,
-          equipmentId: uuidSchema,
-          fromState: z.enum(['MAIN_HAND', 'OFF_HAND']),
-          toState: z.literal('CARRIED'),
-          beforeStateChecksum: checksumSchema,
-          afterStateChecksum: checksumSchema
-        }),
+        encounterActorItemUseStateTransitionDtoSchema,
         /** The conditions a won contest's picked outcome newly applied to the target (Shove, D105). */
         z.strictObject({
           kind: z.literal('CONDITIONS_APPLIED'),
@@ -1028,7 +1054,7 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
         /** The push a won contest's picked outcome settles on the target (Shove, D105, D157). */
         z.strictObject({
           kind: z.literal('FORCED_MOVEMENT'),
-          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY']),
+          direction: forcedMovementDirectionSchema,
           feet: z.number().check(z.positive()),
           upTo: z.boolean()
         }),

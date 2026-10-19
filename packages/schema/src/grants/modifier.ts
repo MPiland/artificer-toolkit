@@ -14,9 +14,11 @@ import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
 import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
+  damageDefenseBypassCodeSchema,
   durationKindSchema,
   attackDomainCodeSchema,
   abilityCodeSchema,
+  abilityModifierReferenceSchema,
   modifierKindSchema,
   modifierScopeKindSchema,
   modifierValueKindSchema,
@@ -56,6 +58,13 @@ const attacksAgainstParamDtoSchema = lazySchema(() =>
     requiresHolderSeesAttacker: z.boolean(),
     /** System Senses that free an attacker perceiving the holder through one of them (Blur). */
     exemptAttackerSenseDefinitionIds: z.optional(z.array(postgresUuidSchema))
+  })
+)
+
+/** The trait an attack gains, which overcomes a defense "from attacks" without it. */
+const attackTraitParamDtoSchema = lazySchema(() =>
+  z.object({
+    trait: damageDefenseBypassCodeSchema
   })
 )
 
@@ -139,7 +148,9 @@ const modifierScalarValueDtoSchema = lazySchema(() =>
     z.object({
       valueKind: z.literal(modifierValueKindSchema._zod.def.entries.SPELL_SLOT_LEVEL),
       multiplier: z.optional(z.number()),
-      subtractLevels: z.optional(z.number().check(z.int()).check(z.nonnegative()))
+      subtractLevels: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+      levelsPerStep: z.optional(z.number().check(z.int()).check(z.gte(1))),
+      maximum: z.optional(z.number())
     })
   ])
 )
@@ -153,9 +164,10 @@ const abilityModifierBonusPayloadDtoSchema = lazySchema(() =>
   })
 )
 
+/** The best of several ability modifiers; `SPELLCASTING` is the holder's spellcasting ability. */
 const optionalAbilityModifierBonusPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
-    abilities: authoredReferenceCollectionSchema(abilityCodeSchema),
+    abilities: authoredReferenceCollectionSchema(abilityModifierReferenceSchema),
     min: z.optional(z.number()),
     max: z.optional(z.number())
   })
@@ -218,6 +230,13 @@ const modifyChargeLimitPayloadDtoSchema = lazySchema(() =>
 )
 
 const amountPayloadDtoSchema = lazySchema(() => z.strictObject({ amount: z.number() }))
+
+/** A weapon damage die by its faces: a d4 through a d12. */
+const weaponDamageDiePayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    amount: z.union([z.literal(4), z.literal(6), z.literal(8), z.literal(10), z.literal(12)])
+  })
+)
 
 /** An armor class formula: the amount plus each listed ability modifier ("10 + DEX + CON"). */
 const armorClassFormulaPayloadDtoSchema = lazySchema(() =>
@@ -368,6 +387,7 @@ export const modifierDomainParamsDtoSchema = lazySchema(() =>
     z.strictObject({
       ...attacksAgainstParamDtoSchema.shape,
       ...attackRollRollModeParamDtoSchema.shape,
+      ...attackTraitParamDtoSchema.shape,
       ...savingThrowParamDtoSchema.shape,
       ...skillParamDtoSchema.shape,
       ...speedParamDtoSchema.shape,
@@ -621,6 +641,13 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
+    buildModifierGrantVariant('ATTACK_TRAIT', 'ENABLE', attackTraitParamDtoSchema),
+    buildModifierGrantVariant(
+      'WEAPON_DAMAGE_DIE',
+      'SET_VALUE',
+      emptyDomainDtoSchema,
+      weaponDamageDiePayloadDtoSchema
+    ),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),

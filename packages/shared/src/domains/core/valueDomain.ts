@@ -5,7 +5,8 @@ import type {
   DurationKind,
   RangeKind,
   ShapeKind,
-  CoreMeta
+  CoreMeta,
+  DamageDefenseBypassCode
 } from '#core'
 import { type EmptyObject, valuesOf } from '#utils'
 
@@ -13,6 +14,8 @@ export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
   ATTACK_ROLL: 'ATTACK_ROLL',
   ATTACKS_AGAINST: 'ATTACKS_AGAINST',
+  ATTACK_TRAIT: 'ATTACK_TRAIT',
+  WEAPON_DAMAGE_DIE: 'WEAPON_DAMAGE_DIE',
   CRITICAL_HIT_THRESHOLD: 'CRITICAL_HIT_THRESHOLD',
   CRITICAL_EXTRA_DICE: 'CRITICAL_EXTRA_DICE',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
@@ -101,6 +104,19 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
     label: 'Attacks Against',
     description: 'Advantage or disadvantage on attack rolls made against the holder.'
+  },
+
+  [VALUE_DOMAIN_CODE.ATTACK_TRAIT]: {
+    code: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+    label: 'Attack Trait',
+    description:
+      'A trait the attack has, such as magical, that overcomes defenses against attacks without it.'
+  },
+
+  [VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE]: {
+    code: VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE,
+    label: 'Weapon Damage Die',
+    description: "The die a weapon's damage is rolled with, by its number of faces."
   },
 
   [VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD]: {
@@ -405,6 +421,12 @@ export type ValueDomainParamByCode = {
   }
   CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
   CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
+
+  // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks").
+  ATTACK_TRAIT: { trait: DamageDefenseBypassCode }
+
+  // The weapon's damage die is replaced by one with this many faces (Shillelagh's d8).
+  WEAPON_DAMAGE_DIE: EmptyObject
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
