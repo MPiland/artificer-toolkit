@@ -1,3 +1,4 @@
+import { v5 as uuidv5 } from 'uuid'
 import type {
   CharacterGrantFoldModifier,
   CharacterGrantFoldOutput,
@@ -38,10 +39,15 @@ import {
 } from './systems/dnd5e/identity.js'
 import { dnd5eSaveRequiresSourceSight } from './systems/dnd5e/modifierApplicability.js'
 
+// Namespaces the per-instance identity of an active grant's suppression contribution.
+const grantSuppressionNamespace = '5b0c4e0a-7a52-4d2b-9a0e-3c1f6d8b2e47'
+
 /**
  * The capabilities a holder's active grants switch off: a `REACTION_COUNT SET_VALUE 0` grant
  * (Shocking Grasp's "can't take reactions") suppresses its reaction allowance, so it is offered no
- * reaction while the grant lasts (D99).
+ * reaction while the grant lasts (D99). A suppression is keyed by the grant instance, the active
+ * effect and its authored grant, because several effects of one authored grant (or a grant id that
+ * is no UUID) would otherwise collide in the availability resolver.
  */
 export function encounterActiveGrantCapabilitySuppressions(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
@@ -56,7 +62,7 @@ export function encounterActiveGrantCapabilitySuppressions(
         ? [
             {
               activeEffectId: effectId,
-              contributionId: modifier.grantId,
+              contributionId: uuidv5(`${effectId}:${modifier.grantId}`, grantSuppressionNamespace),
               capabilityDefinitionIds: [DND5E_REACTION_ALLOWANCE_DEFINITION_ID]
             }
           ]
