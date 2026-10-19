@@ -7,7 +7,15 @@ import type { NativeEncounterActionSource } from './encounterActionSources.js'
  * Creature's spell actions carry no school, so they are never gated.
  */
 export function encounterSpellSchoolImmunity(input: {
-  source: NativeEncounterActionSource
+  source:
+    | Pick<Extract<NativeEncounterActionSource, { kind: 'CREATURE' | 'BASIC_ACTION' }>, 'kind'>
+    | {
+        kind: 'CHARACTER_ACTION'
+        candidate: Pick<
+          Extract<NativeEncounterActionSource, { kind: 'CHARACTER_ACTION' }>['candidate'],
+          'mechanicsOwner'
+        >
+      }
   sourceFacts: Pick<MovementTarget, 'characterSpellCast'>
   target: Pick<MovementTarget, 'spellSchoolImmunityIds'>
 }): boolean {

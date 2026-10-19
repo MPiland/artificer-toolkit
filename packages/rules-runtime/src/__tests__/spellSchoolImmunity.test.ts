@@ -11,11 +11,17 @@ import { describe, expect, it } from 'vitest'
 import { listActiveGrantListings } from '../activeGrantListings.js'
 import { withCharacterActiveGrants } from '../encounterActiveGrants.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
+import type { NativeEncounterActionSource } from '../encounterActionSources.js'
 import { encounterSpellSchoolImmunity } from '../encounterSpellSchoolImmunity.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { installedSrdCreature, srdCreatureActor } from '../testing/dnd5eSrdEncounter.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 import { plannedGrantEffect } from './antitoxinEffectFixture.js'
+
+type CharacterActionMechanicsOwner = Extract<
+  NativeEncounterActionSource,
+  { kind: 'CHARACTER_ACTION' }
+>['candidate']['mechanicsOwner']
 
 const HOLDER_ID = '00000000-0000-4000-8000-00000000d301'
 const EFFECT_ID = '00000000-0000-4000-8000-00000000d302'
@@ -84,8 +90,8 @@ describe('SPELL_SCHOOL_IMMUNITY (SPELLS-33.T6m1)', () => {
   })
 
   it('gates a Character spell of the school, and no other cast', () => {
-    const source = (mechanicsOwner: { kind: 'SPELL' | 'ITEM'; id: string }) =>
-      ({ kind: 'CHARACTER_ACTION', candidate: { mechanicsOwner } }) as never
+    const source = (mechanicsOwner: CharacterActionMechanicsOwner) =>
+      ({ kind: 'CHARACTER_ACTION', candidate: { mechanicsOwner } }) as const
     const casting = (spellId: string, schoolCode: string) => ({
       characterSpellCast: {
         candidates: [],
