@@ -11,7 +11,8 @@ export const TRIGGER = {
   INCOMING_SAVING_THROW: 'INCOMING_SAVING_THROW',
   SAVING_THROW: 'SAVING_THROW',
   CHECK: 'CHECK',
-  ENTER_AREA: 'ENTER_AREA'
+  ENTER_AREA: 'ENTER_AREA',
+  INCOMING_DAMAGE: 'INCOMING_DAMAGE'
 } as const
 
 export type Trigger = keyof typeof TRIGGER
@@ -77,6 +78,12 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
     code: TRIGGER.ENTER_AREA,
     label: 'Enter area',
     description: 'Triggers when target enters area.'
+  },
+
+  INCOMING_DAMAGE: {
+    code: TRIGGER.INCOMING_DAMAGE,
+    label: 'Incoming damage',
+    description: 'Triggers when the holder takes damage.'
   }
 }
 

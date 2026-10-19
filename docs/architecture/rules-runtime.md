@@ -452,6 +452,14 @@ rebinding its token, deletes them first. While the source is defeated its passiv
 `suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
 candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
 placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
+A Creature's passive damage trigger (SPELLS-33 T6e3a) is a PASSIVE feature Effect with `triggerCode: INCOMING_DAMAGE` and a non-empty
+`damageTypeIds`, whose single FIXED outcome is a timed self `APPLY_GRANT` (roll-mode or speed modifiers, `turnAnchor` the holder's end of
+turn). It is derived, not stored: `discoverEncounterFeatureActions` returns it as `passiveDamageGrants` (compiled by the System adapter's
+`passiveDamageGrantPlan`), `prepareNativeIncomingDamageGrantTriggers` makes the effect each would create, and `targetEndedEffects` returns
+`{endedEffects, releases, grants}` for the damage dealt: ended effects release first, then grants are created, and a held grant from the same
+source feature (`authoredEffectId`) is ended in the same call, so a repeat hit replaces the expiry. The action root writes the grants through
+the settlement and the receipt's `grantEffectTransitions`; persistence checks their origin is the holder, and undo deletes them. Creature
+holders only; the area, zone, melee-retaliation, legendary and movement-reaction roots do not yet call this seam.
 A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
 source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
 zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. A source
@@ -1078,10 +1086,14 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   first, each against the Scene after the earlier landings. The report rides the commit (`forcedMovementLandings`) and
   is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
   passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
-  collision itself is not resolved yet: the Whirlwind keeps its closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION`
-  kind until T6k2b2. T6k2b1 adds the authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
-  creature save, a condition). It rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
-  echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; nothing at runtime reads it yet, and a
+  collision's mover damage (T6k2b3, D159) settles in the area commit: each mover that travelled 10 ft or more takes
+  `floor(feet/10)` times the authored dice as an unsaved damage action of the pusher (`collisionDamageCapability`), one
+  more ordinal entry after the caught creatures' (`kept`), skipped while a pick is still owed. A RANDOM ray is rolled
+  once and sealed in `context.forcedMovement.rays` when a pick is first held; a replan reuses it. The struck creature's
+  save, the Whirlwind switch and the closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION` kind's removal are T6k2b4.
+  The authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
+  creature save, a condition) rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
+  echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; a
   collision the System cannot settle (non-fixed-DC save, bonuses, non-UUID id, bad dice) fails closed.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;

@@ -431,8 +431,9 @@ export type ValueDomainParamByCode = {
   CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
   CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
 
-  // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks").
-  ATTACK_TRAIT: { trait: DamageDefenseBypassCode }
+  // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks"), for one
+  // attack domain when named (Ki-Empowered Strikes: unarmed strikes).
+  ATTACK_TRAIT: { trait: DamageDefenseBypassCode; attackDomain?: AttackDomainCode }
 
   // The weapon's damage die is replaced by one with this many faces (Shillelagh's d8).
   WEAPON_DAMAGE_DIE: EmptyObject

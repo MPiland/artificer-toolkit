@@ -64,6 +64,8 @@ export async function completeActionOccurrence(
  * and returns the Scene moves it committed, in the order it made them, and where each creature it
  * moved ended up.
  */
+export type EncounterForcedMovementLanding = z.infer<typeof encounterForcedMovementLandingSchema>
+
 export type ApplyEncounterForcedMovements = (input: {
   state: EncounterRunState
   sourceActorId: string
@@ -71,7 +73,7 @@ export type ApplyEncounterForcedMovements = (input: {
   movements: readonly LiveSessionForcedMovement[]
 }) => Promise<{
   moves: { sceneId: string; sceneCommandId: string }[]
-  landings: z.infer<typeof encounterForcedMovementLandingSchema>[]
+  landings: EncounterForcedMovementLanding[]
 }>
 
 /**

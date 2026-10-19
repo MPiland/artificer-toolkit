@@ -65,7 +65,8 @@ const attacksAgainstParamDtoSchema = lazySchema(() =>
 /** The trait an attack gains, which overcomes a defense "from attacks" without it. */
 const attackTraitParamDtoSchema = lazySchema(() =>
   z.object({
-    trait: damageDefenseBypassCodeSchema
+    trait: damageDefenseBypassCodeSchema,
+    attackDomain: z.optional(attackDomainCodeSchema)
   })
 )
 
@@ -131,6 +132,10 @@ const modifierScalarValueDtoSchema = lazySchema(() =>
     z.object({
       valueKind: z.literal(modifierValueKindSchema._zod.def.entries.PROFICIENCY_BONUS),
       multiplier: z.optional(z.number())
+    }),
+    z.object({
+      valueKind: z.literal(modifierValueKindSchema._zod.def.entries.ABILITY_MODIFIER),
+      ...abilityModifierBonusPayloadDtoSchema.shape
     }),
     z.object({
       valueKind: z.literal(modifierValueKindSchema._zod.def.entries.SKILL_BONUS),

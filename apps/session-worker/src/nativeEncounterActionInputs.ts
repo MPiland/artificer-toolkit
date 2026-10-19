@@ -10,7 +10,7 @@ import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounter
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActionReachFeet } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
-import { SQUARE_GRID_COMPASS_RAYS } from '@artificer-toolkit/shared/vtt'
+import { SQUARE_GRID_COMPASS_RAYS, type ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
@@ -121,17 +121,22 @@ export function refuseUnmetItemActionRequirements(
 /**
  * The forced movements an action's completed outcome on one target settles in its commit, each still
  * without the square its source may pick (D157); one aside stays within the action's reach. A
- * `RANDOM` move rolls its direction now, once per plan: it never lets its source pick a shorter
- * distance, so no pick holds an area across a replan, and it stops early only when blocked.
+ * `RANDOM` move rolls its direction now: it never lets its source pick a shorter distance and stops
+ * early only when blocked. A ray already sealed for its target (an area holding a pick for another
+ * creature) is kept, never rerolled.
  */
 export function interpretForcedMovements(
-  prepared: Pick<Prepared, 'adapter' | 'targetPolicy'>,
+  prepared: { adapter: Pick<Prepared['adapter'], 'interpretSpatial'> } & Pick<
+    Prepared,
+    'targetPolicy'
+  >,
   input: {
     execution: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['execution']
     occurrenceId: string
     published: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['published']
     targetActorId: string
     random?: (maximum: number) => number
+    sealedRays?: readonly { targetActorId: string; ray: ScenePoint }[]
   }
 ): LiveSessionForcedMovement[] {
   return (prepared.adapter.interpretSpatial?.(input) ?? []).map(
@@ -145,9 +150,10 @@ export function interpretForcedMovements(
       position: null,
       ray:
         direction === 'RANDOM'
-          ? SQUARE_GRID_COMPASS_RAYS[
+          ? (input.sealedRays?.find((sealed) => sealed.targetActorId === targetActorId)?.ray ??
+            SQUARE_GRID_COMPASS_RAYS[
               (input.random ?? nextRollInt)(SQUARE_GRID_COMPASS_RAYS.length)
-            ]!
+            ]!)
           : null,
       collision
     })
