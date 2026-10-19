@@ -5369,6 +5369,10 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.TEXT
     },
     {
+      key: DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
       key: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
