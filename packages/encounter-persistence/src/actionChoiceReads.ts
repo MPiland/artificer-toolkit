@@ -20,6 +20,8 @@ import {
   findEncounterHolderEscape
 } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -489,7 +491,7 @@ async function readHeldRelationships(
     membership: CampaignAuthority['membership']
     sourceActorIds: ReadonlySet<string>
   }
-): Promise<EncounterHeldRelationshipDto[]> {
+): Promise<(Omit<EncounterHeldRelationshipDto, 'drag'> & { drags: boolean })[]> {
   const { state, membership, sourceActorIds } = input
   const runActors = await readRunActors(tx, state)
   const activeEffectsByActorId = new Map(
@@ -502,7 +504,7 @@ async function readHeldRelationships(
   )
   return encounterRelationships(activeEffectsByActorId)
     .filter(({ sourceActorId }) => sourceActorIds.has(sourceActorId))
-    .map(({ sourceActorId, actorId: heldActorId, effect }) => {
+    .map(({ sourceActorId, actorId: heldActorId, effect, contribution }) => {
       const held = runActors.find((candidate) => candidate.id === heldActorId)
       return {
         sourceActorId,
@@ -511,7 +513,8 @@ async function readHeldRelationships(
         label:
           held && (membership.role === 'OWNER' || held.public)
             ? `Release ${held.label}`
-            : 'Release a creature'
+            : 'Release a creature',
+        drags: contribution.modules.some(({ kind }) => kind === 'TARGET_DRAGGED')
       }
     })
 }
@@ -530,11 +533,37 @@ export async function readEncounterHeldRelationships(
     throw new Error('Encounter Campaign is stale.')
   if (state.status !== 'ACTIVE' || state.automationMode === 'MANUAL') return []
   const actors = await readRunActors(tx, state)
-  return readHeldRelationships(tx, {
+  const holds = await readHeldRelationships(tx, {
     state,
     membership,
     sourceActorIds: await readEncounterControlledActorIds(tx, { campaign, membership, actors })
   })
+  const targets = await loadMovementTargets(tx, {
+    state,
+    campaign,
+    targetActorIds: [
+      ...new Set(
+        holds
+          .filter(({ drags }) => drags)
+          .flatMap(({ sourceActorId, heldActorId }) => [sourceActorId, heldActorId])
+      )
+    ]
+  })
+  const sizeOf = (actorId: string) => {
+    const target = targets.get(actorId)
+    return target ? encounterActorEffectiveSize(target) : null
+  }
+  // The route preview prices a drag from the sizes now; settlement recomputes them (D105).
+  return holds.map(({ drags, ...hold }) => ({
+    ...hold,
+    drag: drags
+      ? {
+          doublesCost: encounterDragDoublesCost(sizeOf(hold.sourceActorId), [
+            sizeOf(hold.heldActorId)
+          ])
+        }
+      : null
+  }))
 }
 
 /** The current Disarm choices for one target of the Run's acting actor. */

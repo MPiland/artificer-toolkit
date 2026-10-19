@@ -96,7 +96,8 @@ describe('CampaignTabletopEncounterDrawer', () => {
       sourceActorId: character!.id,
       heldActorId: warden!.id,
       activeEffectId: '00000000-0000-4000-8000-000000000e31',
-      label: 'Release Vault Warden'
+      label: 'Release Vault Warden',
+      drag: null
     }
     renderWithAppProviders(
       <CampaignTabletopEncounterDrawer

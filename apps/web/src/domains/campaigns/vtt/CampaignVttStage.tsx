@@ -442,6 +442,16 @@ export function CampaignVttStage({
       ),
     [activeEncounterSceneBinding, actorTokenBindings.data, actorTokenBindings.error]
   )
+  // A grappler whose drag of a creature on this Scene doubles its movement (D105). Sizes are read
+  // with the holds, so a size change mid-hold can lag here; settlement recomputes the cost.
+  const dragDoublingActorIds = useMemo(() => {
+    const boundActorIds = new Set(actorIdByTokenId.values())
+    return new Set(
+      ((heldRelationships.routed && heldRelationships.value) || [])
+        .filter(({ heldActorId, drag }) => drag?.doublesCost && boundActorIds.has(heldActorId))
+        .map(({ sourceActorId }) => sourceActorId)
+    )
+  }, [actorIdByTokenId, heldRelationships.routed, heldRelationships.value])
   const targeting = actionsOpened ? targetingRequest : null
   const targetModifiers = useActionTargetModifiers({
     input:
@@ -735,7 +745,11 @@ export function CampaignVttStage({
         mode: effectiveMode,
         movementCost:
           activeEncounterSceneBinding && encounterSessionState
-            ? { actorIdByTokenId, zones: encounterSessionState.movementCostZones }
+            ? {
+                actorIdByTokenId,
+                zones: encounterSessionState.movementCostZones,
+                dragDoublingActorIds
+              }
             : null,
         overlays,
         previewTokenId: effectivePreviewTokenId,
