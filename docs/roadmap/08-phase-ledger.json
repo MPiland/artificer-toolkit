@@ -15006,8 +15006,25 @@
                   "SPELLS-33.T6k1"
                 ]
               },
-              "text": "new: thrown-target collision damage, Air Elemental Whirlwind, with a server-rolled RANDOM forced-movement direction and a struck-creature save pause on the AREA_PENDING pattern (1 kind, D159). Authoring-parity proof; deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "new: Air Elemental Whirlwind part 1 (D159): a server-rolled RANDOM forced-movement direction drawn once at plan time, the landing report (feet travelled, stopped by nothing, an object or a creature), stopping before a creature, and the Whirlwind path accepted by the area compiler. The collision kind stays until T6k2b (workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6k2b",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-33.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-33.T6k2"
+                ]
+              },
+              "text": "new: Whirlwind collision part 2 (D159): a `collision` block with per-mover damage of floor(feet/10) dice, the struck creature's save pause on the AREA_PENDING pattern with damage and PRONE, per-entry area plans, the authoring-parity proof, and deleting CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION (workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6k3",
@@ -15021,7 +15038,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": [
-                  "SPELLS-33.T6k2",
+                  "SPELLS-33.T6k2b",
                   "SPELLS-33.T5n"
                 ]
               },
