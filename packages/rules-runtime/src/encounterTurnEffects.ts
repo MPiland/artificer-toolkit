@@ -531,6 +531,7 @@ async function evaluateEncounterTurnEffects(input: {
         ...damageEnded,
         ...input.candidates.slice(0, ordinal + 1).map(({ id }) => id)
       ]),
+      testEvidence: [result.d20],
       applications: result.applications,
       dispositions
     })

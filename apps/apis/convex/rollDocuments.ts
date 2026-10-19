@@ -6,7 +6,7 @@ import {
 import { createRollRecord } from '@artificer-toolkit/rules-runtime/character/rollRecord'
 import { nextRollInt } from './lib/rollRandom'
 import {
-  carriedCheckDice,
+  carriedTestDice,
   resolveCharacterSheetRoll
 } from '@artificer-toolkit/rules-runtime/character/sheetRoll'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
@@ -56,9 +56,9 @@ export async function evaluateCharacterRoll(
         rollMode: input.rollMode ?? 'NORMAL',
         source: { kind: 'MANUAL' as const, label: 'Manual roll' }
       }
-  // A carried die (Guidance) joins an ability check and is spent with it, in the roll's transaction.
+  // A carried die (Guidance, Resistance) joins a check or save and is spent with it, in the roll's transaction.
   const { addedDice, spent } = sheet
-    ? carriedCheckDice(resolved, sheet.activeEffects)
+    ? carriedTestDice(resolved, sheet.activeEffects)
     : { addedDice: [], spent: [] }
   const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
   for (const effect of spent)

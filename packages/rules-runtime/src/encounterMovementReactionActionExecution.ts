@@ -19,6 +19,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import {
+  savingThrowAbility,
   selectEncounterActionD20Natural,
   type EncounterD20RollMode
 } from './encounterEvidenceAnswer.js'
@@ -89,6 +90,7 @@ export function deriveEncounterActionD20Policy(input: {
     contributorChecksum: input.bound.d20Audit.contributorChecksum,
     modifier: input.bound.d20Audit.modifier,
     dc: input.bound.d20Audit.defenseOrDc,
+    ...savingThrowAbility(input.bound.d20Audit),
     ...policyAddedDice(input.bound.d20Audit.addedDice)
   })
 }
@@ -107,6 +109,7 @@ export function nestedOutcomeD20Policy(input: {
     modifier: number
     defenseOrDc: number
     addedDice: readonly D20AddedDieDto[]
+    savingThrowAbilityDefinitionId?: string
   } | null
 }): ServerRuleExecutionD20PolicyDto | null {
   const requestNode = input.published.definition.nodes?.find(
@@ -133,6 +136,7 @@ export function nestedOutcomeD20Policy(input: {
     contributorChecksum: input.d20.contributorChecksum,
     modifier: input.d20.modifier,
     dc: input.d20.defenseOrDc,
+    ...savingThrowAbility(input.d20),
     ...policyAddedDice(input.d20.addedDice)
   })
 }
@@ -172,6 +176,7 @@ export function buildEncounterActionD20Evidence(input: {
     total: natural + input.policy.modifier + d20AddedDiceTotal(input.addedDice),
     defenseOrDc: input.policy.dc,
     resultPath,
+    ...savingThrowAbility(input.policy),
     ...(input.modeAdjustment ? { modeAdjustment: input.modeAdjustment } : {}),
     ...(input.addedDice.length > 0 ? { addedDice: [...input.addedDice] } : {})
   })
@@ -200,6 +205,7 @@ export function buildEncounterSaveD20Evidence(input: {
     total,
     defenseOrDc: input.policy.dc,
     resultPath: total >= input.policy.dc ? 'ON_SAVE_SUCCESS' : 'ON_SAVE_FAIL',
+    ...savingThrowAbility(input.policy),
     ...(input.addedDice.length > 0 ? { addedDice: [...input.addedDice] } : {})
   })
 }

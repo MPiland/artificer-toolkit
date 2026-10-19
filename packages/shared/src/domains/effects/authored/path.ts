@@ -11,6 +11,8 @@ import type {
 } from '#authored'
 import type {
   ActivationCode,
+  EquipmentCategoryCode,
+  EquipmentPropertyCode,
   PathCodesByTrigger,
   PathGroupType,
   PathLifecycleConsumeEvent,
@@ -41,7 +43,8 @@ export type PathLifecycleAuthored = {
    * Events that end the effect early. Damage taken is filtered by whose damage counts (`SOURCE_SIDE`
    * is the effect source and its allies, for Charm Person) and, when set, which damage types; an
    * attack roll or a cast ends it only against an enemy (Sanctuary); another creature using one of
-   * the named basic actions on the holder ends it (rousing a sleeper).
+   * the named basic actions on the holder ends it (rousing a sleeper); the effect source being
+   * incapacitated or defeated ends it on every holder (Knight Leadership).
    */
   endOnTriggers?: (
     | {
@@ -51,6 +54,7 @@ export type PathLifecycleAuthored = {
       }
     | { event: 'ATTACK_ROLL' | 'SPELL_CAST'; against: 'ENEMY' }
     | { event: 'ACTION_USED_ON_HOLDER'; actionDefinitionIds: string[] }
+    | { event: 'INCAPACITATED'; of: 'SOURCE' }
   )[]
   /** Condition types that end the effect early while its holder has any of them. */
   endOnConditionIds?: string[]
@@ -119,6 +123,19 @@ export type PathRollTableRowAuthored<TOutcome extends OutcomeAuthored = OutcomeA
         }
     )
 
+/**
+ * One item the target holds or wears, chosen when the action is used (Heat Metal's metal object,
+ * Magic Weapon's weapon). Every listed filter must hold; `equipmentIds` matches the item or a
+ * variant ancestor. A grant with `bindsChosenItem` applies only to that item, and the effect ends
+ * when it leaves the holder's equipment.
+ */
+export type PathChosenItemAuthored = {
+  category?: EquipmentCategoryCode
+  requiredProperties?: EquipmentPropertyCode[]
+  excludedProperties?: EquipmentPropertyCode[]
+  equipmentIds?: string[]
+}
+
 export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   id: string
   order: number // int
@@ -134,6 +151,7 @@ export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   usage?: PathUsage
   rangeOverride?: RangeAuthored
   targetingOverride?: TargetingAuthored
+  chosenItem?: PathChosenItemAuthored
 }
 
 export type EffectPathAuthored<

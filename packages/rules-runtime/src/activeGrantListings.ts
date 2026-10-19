@@ -24,6 +24,8 @@ const OPTION_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPola
   DAMAGE_RESISTANCE: 'BENEFICIAL',
   DAMAGE_IMMUNITY: 'BENEFICIAL',
   CONDITION_IMMUNITY: 'BENEFICIAL',
+  SPELL_SCHOOL_IMMUNITY: 'BENEFICIAL',
+  CHECKS_AGAINST_HOLDER: 'BENEFICIAL',
   MOVEMENT_MODE: 'BENEFICIAL',
   MOVEMENT_PASSAGE: 'BENEFICIAL',
   DAMAGE_VULNERABILITY: 'HARMFUL',
@@ -33,6 +35,7 @@ const OPTION_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPola
 /** What enabling something does for the holder; any other enabled domain is neutral. */
 const ENABLE_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPolarity>>> = {
   OPPORTUNITY_ATTACK_IMMUNITY: 'BENEFICIAL',
+  ATTACK_TRAIT: 'BENEFICIAL',
   SPELLCASTING_LOCK: 'HARMFUL',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'HARMFUL',
   ATTACK_DECOYS: 'BENEFICIAL'
@@ -47,6 +50,7 @@ const SET_VALUE_DOMAIN_POLARITY: Readonly<
 > = {
   SPEED: { zero: 'HARMFUL', positive: 'BENEFICIAL' },
   ACTION_COUNT: { positive: 'BENEFICIAL' },
+  WEAPON_DAMAGE_DIE: { positive: 'BENEFICIAL' },
   REACTION_COUNT: { zero: 'HARMFUL' }
 }
 

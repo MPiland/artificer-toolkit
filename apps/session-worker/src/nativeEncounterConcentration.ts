@@ -30,10 +30,16 @@ import {
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
+import { encounterSavingThrowAddedDice } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { dnd5eAbilityCode } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import {
   grantsEndedByHolderState,
+  grantsEndedBySourceState,
+  sourceBoundGrants,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { encounterHeldItemInstanceIds } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -296,12 +302,23 @@ export async function planNativeLiveConcentration(input: {
     const heldTargets = [...projection.projectedTargets.values()].sort((left, right) =>
       left.actor.id.localeCompare(right.actor.id)
     )
+    // Why each changed actor can no longer act, for the grants it applied to others.
+    const sourceReasons = new Map<
+      string,
+      Awaited<ReturnType<typeof encounterConcentrationEndReason>>
+    >()
     for (const target of heldTargets) {
       const actor = projection.actors.find((value) => value.id === target.actor.id)
       if (!actor) throw new Error('Concentration actor is unavailable.')
       const maintained = await slotFor(actor.id)
       const stateBound = stateBoundGrants(target.activeEffects)
-      if (!maintained && !stateBound.length) continue
+      const sourcesGrants = [...projection.activeEffectsByActorId.values()].some((effects) =>
+        sourceBoundGrants(effects).some(
+          ({ definition }) =>
+            definition.origin.kind === 'ENCOUNTER' && definition.origin.sourceActorId === actor.id
+        )
+      )
+      if (!maintained && !stateBound.length && !sourcesGrants) continue
       const reason = await encounterConcentrationEndReason({
         actor,
         deadCharacterIds: deadCharacterIdsOfTargets([target]),
@@ -317,10 +334,23 @@ export async function planNativeLiveConcentration(input: {
           reason,
           cleanup: await loseConcentration(maintained)
         })
+      sourceReasons.set(actor.id, reason)
       endedGrants.push(
-        ...grantsEndedByHolderState(stateBound, { reason, conditionIds: target.state.conditions })
+        ...grantsEndedByHolderState(stateBound, {
+          reason,
+          conditionIds: target.state.conditions,
+          heldItemInstanceIds: encounterHeldItemInstanceIds(
+            target.actor,
+            target.characterFacts?.character.state.equipment.equipped
+          )
+        })
       )
     }
+    // Grants on other actors end with their source, in the same commit as its incapacitation.
+    const endedIds = new Set(endedGrants.map(({ id }) => id))
+    for (const effects of projection.activeEffectsByActorId.values())
+      for (const grant of grantsEndedBySourceState(effects, sourceReasons))
+        if (!endedIds.has(grant.id)) endedGrants.push(grant)
   }
   if (!input.applications.length)
     return {
@@ -354,14 +384,30 @@ export async function planNativeLiveConcentration(input: {
   )
     throw new Error('The concentration damage does not match its finalized parent receipt.')
   let correlationId = input.parentOccurrenceId
+  const spentDiceIds = new Set<string>()
   while (remaining.length) {
     const { maintainedStateId, ...application } = remaining[0]!
     remaining = remaining.slice(1)
     const loaded = await current(application.targetActorId)
     if (!loaded || loaded.maintained.id !== maintainedStateId)
       throw new Error('The concentration state changed before its check.')
+    // A die an earlier check of this batch spent (D156) is gone for this one.
+    const unspent = spentDiceIds.size
+      ? {
+          ...loaded,
+          target: {
+            ...loaded.target,
+            targetDerivedFacts: {
+              ...loaded.target.targetDerivedFacts,
+              savingThrowAddedDice: encounterSavingThrowAddedDice(
+                loaded.target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
+              )
+            }
+          }
+        }
+      : loaded
     const { context, facts } = createNativeConcentrationContext({
-      current: loaded,
+      current: unspent,
       parentOccurrenceId: input.parentOccurrenceId,
       parentCommandFingerprint: input.parentCommandFingerprint,
       application,
@@ -434,6 +480,13 @@ export async function planNativeLiveConcentration(input: {
       random: input.random ?? nextRollInt
     })
     if (evidence.failed) failed = true
+    for (const die of savingThrowSpentEffects(
+      unspent.target.activeEffects,
+      dnd5eAbilityCode(context.save.savingThrowAbilityDefinitionId)
+    )) {
+      spentDiceIds.add(die.id)
+      endedGrants.push(die)
+    }
     const cleanup = evidence.failed ? await loseConcentration(loaded.maintained) : null
     const result = completeNativeConcentrationResult({
       context,

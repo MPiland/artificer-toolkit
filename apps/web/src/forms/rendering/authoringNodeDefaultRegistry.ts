@@ -65,6 +65,7 @@ type AuthoringDefaultKind =
   | 'followUpSaveBranch'
   | 'followUpSaveFailureMarginRider'
   | 'followUpSaveFailureMarginRiderLifecycle'
+  | 'forcedMovementCollision'
   | 'followUpSaveRepeatAttemptGate'
   | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
@@ -95,6 +96,7 @@ type AuthoringDefaultKind =
   | 'outcomeBreakpointValue'
   | 'outcomeBonus'
   | 'pathChoiceOption'
+  | 'pathChosenItem'
   | 'pathLifecycle'
   | 'pathLifecycleEndTrigger'
   | 'pathLifecycleEscape'
@@ -218,6 +220,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveBranch: ['followUpSaveBranch'],
   followUpSaveFailureMarginRider: ['followUpSaveFailureMarginRider'],
   followUpSaveFailureMarginRiderLifecycle: ['followUpSaveFailureMarginRiderLifecycle'],
+  forcedMovementCollision: ['forcedMovementCollision'],
   followUpSaveRepeatAttemptGate: ['followUpSaveRepeatAttemptGate'],
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
@@ -248,6 +251,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   outcomeBreakpointValue: ['outcomeBreakpointValue'],
   outcomeBonus: ['outcomeBonus'],
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
+  pathChosenItem: ['pathChosenItem'],
   pathLifecycle: ['pathLifecycle'],
   pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
   pathLifecycleEscape: ['pathLifecycleEscape'],

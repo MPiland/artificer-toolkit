@@ -13,7 +13,8 @@ import {
   ruleExecutionIdentifierSchema as identifierSchema,
   ruleExecutionIntegerSchema as integerSchema,
   ruleExecutionLocalNodeIdSchema as localNodeIdSchema,
-  ruleExecutionReceiptD20FaceSchema as receiptD20FaceSchema
+  ruleExecutionReceiptD20FaceSchema as receiptD20FaceSchema,
+  ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 import {
   d20AddedDiceDtoSchema,
@@ -110,7 +111,9 @@ export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
       modifier: integerSchema,
       dc: integerSchema,
       /** Dice the test rolls beside its d20 (D156), from the roller's active effects. */
-      addedDice: z.optional(d20AddedDiceDtoSchema)
+      addedDice: z.optional(d20AddedDiceDtoSchema),
+      /** The ability a saving throw is made with; absent on every other test. */
+      savingThrowAbilityDefinitionId: z.optional(uuidSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -247,7 +250,12 @@ const serverRuleExecutionD20EvidenceShape = lazySchema(() =>
     resultPath: identifierSchema,
     modeAdjustment: z.optional(serverRuleExecutionD20ModeAdjustmentDtoSchema),
     /** The added dice with the faces they rolled; `total` includes their signed sum. */
-    addedDice: z.optional(d20RolledAddedDiceDtoSchema)
+    addedDice: z.optional(d20RolledAddedDiceDtoSchema),
+    /**
+     * The ability a saving throw was made with, which narrows the dice its holder's effects
+     * spend (D156); absent on every other test.
+     */
+    savingThrowAbilityDefinitionId: z.optional(uuidSchema)
   })
 )
 
@@ -261,6 +269,16 @@ function validateServerRuleExecutionD20Evidence(
       code: 'custom',
       path: ['rawFaces'],
       message: 'd20 evidence face count is invalid.'
+    })
+  if (
+    value.savingThrowAbilityDefinitionId !== undefined &&
+    value.resultPath !== 'ON_SAVE_SUCCESS' &&
+    value.resultPath !== 'ON_SAVE_FAIL'
+  )
+    context.addIssue({
+      code: 'custom',
+      path: ['savingThrowAbilityDefinitionId'],
+      message: 'Only saving-throw d20 evidence names an ability.'
     })
   const expectedSelected =
     value.rollMode === 'ADVANTAGE'
@@ -342,6 +360,7 @@ export type ServerRuleExecutionD20EvidenceDto = {
   resultPath: string
   modeAdjustment?: ServerRuleExecutionD20ModeAdjustmentDto
   addedDice?: D20RolledAddedDieDto[]
+  savingThrowAbilityDefinitionId?: string
 }
 export type ServerRuleExecutionNestedD20EvidenceDto = ServerRuleExecutionD20EvidenceDto & {
   requestNodeId: string

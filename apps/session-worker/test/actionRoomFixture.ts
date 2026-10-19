@@ -8,6 +8,7 @@ import type {
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import type { ForcedMovementDirection } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { vi } from 'vitest'
@@ -325,7 +326,7 @@ export function frightenOnFailedSave(base: CreatureAuthored): CreatureAuthored {
  */
 export function forceOnFailedSave(
   base: CreatureAuthored,
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'ASIDE' | 'ANY',
+  direction: ForcedMovementDirection,
   feet: number,
   distanceMode: 'EXACT' | 'UP_TO' = 'EXACT'
 ): CreatureAuthored {
@@ -567,9 +568,18 @@ export async function actionRoom(config: ActionRoomConfig) {
         targetTokenId: targetToken.id
       }
     },
+    /** The items of `targetActorId` the acting actor's action may be used on, as the GM reads them. */
+    async actionItemChoices(targetActorId: string, chosenActionId = actionId, actorId = source.id) {
+      const choices = await readRoomEncounter(room.base, {
+        kind: 'ACTION_ITEM_CHOICES',
+        input: { encounterId: room.encounterId, actorId, actionId: chosenActionId, targetActorId }
+      })
+      if (!choices) throw new Error('The room offers no item choices.')
+      return choices.items
+    },
     /**
      * The acting actor's action at `targetActorId`, with `choiceOptionId` the option a cast-time pick
-     * names (D148); the room's answer, not yet checked.
+     * names (D148) and `boundItemInstanceId` the item it is used on; the room's answer, not yet checked.
      */
     async startAction(
       targetActorId: string,
@@ -578,7 +588,8 @@ export async function actionRoom(config: ActionRoomConfig) {
       optionalCombatIntent: ResolveEncounterActionInputDto['optionalCombatIntent'] = null,
       chosenActionId = actionId,
       actorId = source.id,
-      choiceOptionId?: string
+      choiceOptionId?: string,
+      boundItemInstanceId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -591,7 +602,8 @@ export async function actionRoom(config: ActionRoomConfig) {
         target: {
           kind: 'ACTOR',
           actorId: targetActorId,
-          ...(choiceOptionId && { choiceOptionId })
+          ...(choiceOptionId && { choiceOptionId }),
+          ...(boundItemInstanceId && { boundItemInstanceId })
         },
         actionId: chosenActionId,
         optionalCombatIntent,

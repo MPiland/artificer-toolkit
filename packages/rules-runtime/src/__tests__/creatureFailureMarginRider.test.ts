@@ -142,6 +142,7 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
       holderActorId: TARGET_ID,
       held,
       attacked: false,
+      testEvidence: [],
       turnActorId: null,
       applications: [
         {

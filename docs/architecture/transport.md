@@ -366,6 +366,7 @@ dice add after advantage keeps one d20. `ENTER_DICE` carries the added dice's fa
 request's order, and "Roll dice" (`ROLL_RULE_EVIDENCE`) rolls them with the d20 and stores them on the held roll, so
 `SYSTEM_ROLL` settles both. The receipt's d20 evidence records each die's `rolledFaces`, and the roll card appends one
 term per added die after the d20, a subtracted one marked `subtracted`. Contest checks carry no added dice yet (T2c2).
+Saving-throw d20 evidence (resultPath `ON_SAVE_SUCCESS` or `ON_SAVE_FAIL`) also carries `savingThrowAbilityDefinitionId` (SPELLS-4.T2c2b), the ability the save was rolled with, so the settled commit can spend the roller's saving-throw dice by ability; the schema refuses it on any other result path, and a save with no ability (a death save) omits it.
 
 Added damage dice (D156, SPELLS-4.T2d): `ADD_BONUS_DIE` on `DAMAGE` adds rolled dice to a hit's damage (Divine Favor,
 Branding Smite, Hunter's Mark, Enlarge/Reduce, Bestow Curse). Each die is its own damage node (`added-<k>-`), of a fixed
@@ -390,7 +391,10 @@ Forced-movement destinations (D157): an action whose push has two or more legal 
 `position`); a square the summary did not offer is rejected and the pick stays open. An area action's pushes surface
 the same summary once every save settled, one creature at a time, farthest first, its `requestId` naming the creature;
 only the GM and the caster's controllers read it. The commit's
-`LiveSessionForcedMovement` carries `upTo`, `sourceReachFeet` (set only for `ASIDE`) and the picked `position`.
+`LiveSessionForcedMovement` carries `collision` (the authored collision, or null; T6k2b1, unread until T6k2b2), `upTo`, `sourceReachFeet` (set only for `ASIDE`), the picked `position` and, for
+`RANDOM`, the unit compass `ray` the server rolled at plan time (null otherwise). Each committed `RESOLVE_ACTION`
+command records `forcedMovementLandings`, one per moved creature, farthest first: `{targetActorId, feet, stoppedBy,
+ray}` with `stoppedBy` `NONE`, `OBJECT` or the struck creature's actor ID (`encounterForcedMovementLandingSchema`).
 
 Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag
 (forced and teleport movement ignore it). The held `ENCOUNTER_SESSION` frame and `encounters/activeReads:active`

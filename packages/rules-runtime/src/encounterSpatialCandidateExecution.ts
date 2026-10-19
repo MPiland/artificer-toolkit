@@ -132,6 +132,8 @@ export function spatialExecutionInput(input: {
   state: SpatialTargetState
   occurrenceId: string
   runtime: RulesRuntimeService
+  /** Facts a planner reads about this contact, merged over the target's derived facts. */
+  contactFacts?: Readonly<Record<string, unknown>>
 }): TargetBoundActiveRuleEffectExecutionInput {
   if (input.effect.definition.frozenGraph.source.gameSystemId !== input.target.actor.systemId)
     throw new EncounterValidationError('The spatial effect and target Game Systems do not match.')
@@ -148,7 +150,7 @@ export function spatialExecutionInput(input: {
     maximumHitPoints: input.target.maximumHitPoints,
     targetScalarValues: input.target.scalarValues,
     targetConditionIds: input.state.conditions,
-    targetDerivedFacts: input.target.targetDerivedFacts,
+    targetDerivedFacts: { ...input.target.targetDerivedFacts, ...input.contactFacts },
     defenses: input.target.defenses,
     conditionImmunityIds: input.target.conditionImmunityIds,
     runtime: input.runtime,

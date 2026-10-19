@@ -1,4 +1,6 @@
+import type { ForcedMovementDirection } from '@artificer-toolkit/shared/core'
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
+import { forcedMovementDirectionSchema } from '../shared/enums.js'
 import {
   activeRuleEffectDefinitionDtoSchema,
   activeRuleEffectLifecycleDtoSchema,
@@ -49,7 +51,7 @@ import {
   encounterRuleWarningsDtoSchema,
   type EncounterRuleWarningDto
 } from '../shared/encounterRuleWarnings.js'
-import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
@@ -123,14 +125,29 @@ const liveSessionFailedCountersSchema = lazySchema(() =>
  * the straight line, aside within its reach, or in any direction, by an exact or up-to distance. The
  * room settles it on the Encounter's Scene in the commit, at `position` when its source chose one.
  */
+export type LiveSessionForcedMovementCollision = {
+  /** The damage dice for each full 10 feet travelled, such as `1d6`. */
+  diceConfig: string
+  damageTypeId: string
+  /** The ability of the save a struck creature makes against `dc`. */
+  abilityDefinitionId: string
+  dc: number
+  /** The condition a struck creature that fails the save is left with. */
+  conditionId: string
+}
+
 export type LiveSessionForcedMovement = {
   targetActorId: string
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'ASIDE' | 'ANY'
+  direction: ForcedMovementDirection
   feet: number
   upTo: boolean
   /** The reach of the action an ASIDE move stays within; null for every other direction. */
   sourceReachFeet: number | null
   position: SpatialPointDto | null
+  /** The line a `RANDOM` move follows, rolled once when the action was planned; null for every other direction. */
+  ray: SpatialPointDto | null
+  /** What the move does where it strikes an object or a creature (D159); null for a move that does nothing there. */
+  collision: LiveSessionForcedMovementCollision | null
 }
 
 export const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[]> =
@@ -139,11 +156,21 @@ export const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMo
       .array(
         z.strictObject({
           targetActorId: postgresUuidSchema,
-          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY']),
+          direction: forcedMovementDirectionSchema,
           feet: z.number().check(z.positive()),
           upTo: z.boolean(),
           sourceReachFeet: z.nullable(z.number().check(z.nonnegative())),
-          position: z.nullable(spatialPointDtoSchema)
+          position: z.nullable(spatialPointDtoSchema),
+          ray: z.nullable(spatialPointDtoSchema),
+          collision: z.nullable(
+            z.strictObject({
+              diceConfig: authoredIdentifierSchema,
+              damageTypeId: postgresUuidSchema,
+              abilityDefinitionId: postgresUuidSchema,
+              dc: z.number().check(z.int()),
+              conditionId: postgresUuidSchema
+            })
+          )
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
@@ -351,6 +378,8 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
    */
   rollsPerTarget: boolean
   area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
+  /** The caught creatures the action had no effect on, which took no save. */
+  unaffectedActorIds: string[]
   /** The GM removal that left the area settled, when it rather than an answer committed it. */
   removal: RemoveAreaTargetInputDto | null
   /**
@@ -384,6 +413,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       rollsPerTarget: z.boolean(),
       area: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
+      unaffectedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       removal: z.nullable(removeAreaTargetInputDtoSchema),
       placedZones: z.array(liveSessionPlacedSpatialEffectSchema).check(z.maxLength(5)),
       zoneSourceGrant: z.nullable(activeRuleEffectRecordSchema),

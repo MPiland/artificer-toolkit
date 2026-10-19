@@ -8,6 +8,8 @@ import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { quarterstaff } from '@artificer-toolkit/source-data/srd/equipment/quarterstaff.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
 import {
@@ -466,7 +468,6 @@ function compiledCastEntry(authored: SpellAuthored, castLevel = authored.level) 
     : null
 }
 
-/** The compiled plans the Encounter would run for the spell's cast, or null when it stays manual. */
 const compiledCast = (authored: SpellAuthored, castLevel = authored.level) =>
   compiledCastEntry(authored, castLevel)?.compilation ?? null
 
@@ -2079,7 +2080,8 @@ describe('a day-long grant (SPELLS-4.T2a3, D156)', () => {
       modifierGrantContribution: {
         modifiers: [
           { valueDomainCode: 'DAMAGE_IMMUNITY' },
-          { valueDomainCode: 'CONDITION_IMMUNITY' }
+          { valueDomainCode: 'CONDITION_IMMUNITY' },
+          { valueDomainCode: 'SPELL_SCHOOL_IMMUNITY' }
         ]
       }
     })
@@ -2177,6 +2179,204 @@ describe('a cast that departs its travelers beside a GM ruling (SPELLS-4.T2a5, D
     expect(keys).toContain('dnd5e.depart-proposal')
     expect(keys).toContain('dnd5e.manual-adjudication-proposal')
     expect(compiled.activeEffectPlan).toBeNull()
+  })
+})
+
+describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', () => {
+  const SHILLELAGH = spell('Shillelagh')
+  const MAGIC_WEAPON = spell('Magic Weapon')
+  const HEAT_METAL = spell('Heat Metal')
+  const boundModifier = (valueDomainCode: string, domain: object, modifierKind: string) => ({
+    grantKind: 'MODIFIER_GRANT',
+    valueDomainCode,
+    domain,
+    modifierKind,
+    scope: 'SOURCE',
+    selectionKind: 'GRANTED'
+  })
+
+  it('compiles Shillelagh to a minute on a club or quarterstaff that ends when it is let go', () => {
+    const plan = compiledCast(SHILLELAGH)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      initialRemaining: 10,
+      chosenItem: {
+        category: null,
+        requiredProperties: [],
+        excludedProperties: [],
+        equipmentIds: [club.id, quarterstaff.id].sort(),
+        bindsGrant: true,
+        releasedOn: null,
+        grantUnlessReleased: false
+      },
+      modifierGrantContribution: {
+        endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'],
+        modifiers: [
+          {
+            valueDomainCode: 'ATTACK_ROLL',
+            modifierKind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
+            scope: 'SOURCE',
+            payload: { abilities: [SPELLCASTING_ABILITY_REFERENCE] }
+          },
+          {
+            valueDomainCode: 'DAMAGE',
+            modifierKind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
+            scope: 'SOURCE',
+            payload: { abilities: [SPELLCASTING_ABILITY_REFERENCE] }
+          },
+          {
+            valueDomainCode: 'WEAPON_DAMAGE_DIE',
+            modifierKind: 'SET_VALUE',
+            payload: { amount: 8 }
+          },
+          { valueDomainCode: 'ATTACK_TRAIT', modifierKind: 'ENABLE', domain: { trait: 'MAGICAL' } }
+        ]
+      },
+      maintenance: null
+    })
+  })
+
+  it.each([
+    [2, 1],
+    [3, 1],
+    [4, 2],
+    [5, 2],
+    [6, 3],
+    [9, 3]
+  ])(
+    'compiles Magic Weapon cast at level %i to a +%i bonus on a nonmagical weapon',
+    (level, bonus) => {
+      const plan = compiledCast(MAGIC_WEAPON, level)?.activeEffectPlan
+      expect(plan?.chosenItem).toEqual({
+        category: 'WEAPON',
+        requiredProperties: [],
+        excludedProperties: ['MAGIC'],
+        equipmentIds: [],
+        bindsGrant: true,
+        releasedOn: null,
+        grantUnlessReleased: false
+      })
+      // The weapon stays magic when it is dropped: no release ends the spell.
+      expect(plan?.modifierGrantContribution?.endOnEvents).toEqual([])
+      expect(
+        plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, scope, payload }) => [
+          valueDomainCode,
+          scope,
+          payload
+        ])
+      ).toEqual([
+        ['ATTACK_ROLL', 'SOURCE', { valueKind: 'FIXED', amount: bonus }],
+        ['ATTACK_ROLL', 'SOURCE', { valueKind: 'FIXED', amount: bonus }],
+        ['DAMAGE', 'SOURCE', { valueKind: 'FIXED', amount: bonus }],
+        ['DAMAGE', 'SOURCE', { valueKind: 'FIXED', amount: bonus }],
+        ['ATTACK_TRAIT', 'SOURCE', undefined]
+      ])
+    }
+  )
+
+  it('compiles Heat Metal to a Constitution save on a metal item, dropped if held on a failure, with disadvantage otherwise', () => {
+    const compiled = compiledCast(HEAT_METAL)
+    expect(compiled?.executionPlan.kind).toBe('TEST_OUTCOME')
+    expect(compiled?.activeEffectPlan).toMatchObject({
+      initialRemaining: 1,
+      chosenItem: {
+        category: null,
+        requiredProperties: ['METAL'],
+        excludedProperties: [],
+        equipmentIds: [],
+        bindsGrant: false,
+        releasedOn: 'ON_SAVE_FAIL',
+        grantUnlessReleased: true
+      },
+      maintenance: { definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
+    })
+    // Owed on either save result, so no authored path narrows it.
+    expect(compiled?.activeEffectPlan?.adapterFacts).toEqual({})
+    expect(
+      compiled?.activeEffectPlan?.modifierGrantContribution?.modifiers.map(
+        ({ valueDomainCode, modifierKind, scope }) => [valueDomainCode, modifierKind, scope]
+      )
+    ).toEqual([
+      ...Array.from({ length: 4 }, () => ['ATTACK_ROLL', 'DISADVANTAGE', 'GLOBAL']),
+      ['ABILITY_CHECK', 'DISADVANTAGE', 'GLOBAL']
+    ])
+  })
+
+  // Parity: Shillelagh written out in core options alone compiles to the SRD plan.
+  const shillelaghFromCoreOptions = (chosenItem: object, modifiers: unknown[]) =>
+    touchSpellFromCoreOptions(SHILLELAGH, 0x3700, 'ANY', [
+      {
+        id: testUuid(0x3710),
+        order: 1,
+        pathCode: 'ON_USE',
+        groupType: 'SINGLE',
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        chosenItem,
+        resultBlock: {
+          id: testUuid(0x3711),
+          resultKind: 'SINGLE',
+          duration: { id: testUuid(0x3712), durationKind: 'MINUTE', amount: 1 },
+          // The grant ends when the target lets go of the item it is bound to.
+          lifecycle: { endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'] },
+          outcomes: [
+            {
+              id: testUuid(0x3713),
+              effectKind: 'APPLY_GRANT',
+              bindsChosenItem: true,
+              grants: {
+                modifiers: modifiers.map((modifier, index) => ({
+                  id: testUuid(0x3720 + index),
+                  order: index + 1,
+                  ...(modifier as object)
+                }))
+              }
+            }
+          ]
+        }
+      }
+    ])
+  const SHILLELAGH_MODIFIERS = [
+    {
+      ...boundModifier('ATTACK_ROLL', { attackDomain: 'MELEE' }, 'OPTIONAL_ABILITY_MODIFIER_BONUS'),
+      payload: { abilities: ['SPELLCASTING'] }
+    },
+    {
+      ...boundModifier('DAMAGE', { attackDomain: 'MELEE' }, 'OPTIONAL_ABILITY_MODIFIER_BONUS'),
+      payload: { abilities: ['SPELLCASTING'] }
+    },
+    { ...boundModifier('WEAPON_DAMAGE_DIE', {}, 'SET_VALUE'), payload: { amount: 8 } },
+    boundModifier('ATTACK_TRAIT', { trait: 'MAGICAL' }, 'ENABLE')
+  ]
+
+  it('compiles Shillelagh authored from core options only to the same plan as the SRD data', () => {
+    const core = shillelaghFromCoreOptions(
+      { equipmentIds: [quarterstaff.id, club.id] },
+      SHILLELAGH_MODIFIERS
+    )
+    const plan = compiledCast(core)?.activeEffectPlan
+    const srd = compiledCast(SHILLELAGH)?.activeEffectPlan
+    expect(comparablePlan(plan)).toBeTruthy()
+    expect(comparablePlan(plan)).toEqual(comparablePlan(srd))
+    expect(plan?.chosenItem).toEqual(srd?.chosenItem)
+  })
+
+  it('refuses a grant bound to the chosen item that reaches past it', () => {
+    const global = shillelaghFromCoreOptions({ equipmentIds: [club.id] }, [
+      { ...SHILLELAGH_MODIFIERS[2], scope: 'GLOBAL' }
+    ])
+    expect(compiledCast(global)?.activeEffectPlan ?? null).toBeNull()
+  })
+
+  it('refuses a bound grant whose cast names no item', () => {
+    const unnamed = shillelaghFromCoreOptions({}, SHILLELAGH_MODIFIERS)
+    const withoutItem = {
+      ...unnamed,
+      effects: unnamed.effects?.map((effect) => ({
+        ...effect,
+        paths: effect.paths.map(({ chosenItem: _chosenItem, ...path }) => path)
+      }))
+    } as SpellAuthored
+    expect(compiledCast(withoutItem)?.activeEffectPlan ?? null).toBeNull()
   })
 })
 

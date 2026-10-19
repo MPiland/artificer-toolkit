@@ -162,6 +162,7 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       defenses: [],
       qualifiedDefenses: [],
       conditionImmunityIds: [],
+      spellSchoolImmunityIds: [],
       characterCurrentness: null,
       attackAgainstContributors: [],
       sourceSightSaves: [],

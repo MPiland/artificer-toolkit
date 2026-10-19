@@ -5,7 +5,8 @@ import type {
   DurationKind,
   RangeKind,
   ShapeKind,
-  CoreMeta
+  CoreMeta,
+  DamageDefenseBypassCode
 } from '#core'
 import { type EmptyObject, valuesOf } from '#utils'
 
@@ -13,6 +14,8 @@ export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
   ATTACK_ROLL: 'ATTACK_ROLL',
   ATTACKS_AGAINST: 'ATTACKS_AGAINST',
+  ATTACK_TRAIT: 'ATTACK_TRAIT',
+  WEAPON_DAMAGE_DIE: 'WEAPON_DAMAGE_DIE',
   CRITICAL_HIT_THRESHOLD: 'CRITICAL_HIT_THRESHOLD',
   CRITICAL_EXTRA_DICE: 'CRITICAL_EXTRA_DICE',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
@@ -51,6 +54,8 @@ export const VALUE_DOMAIN_CODE = {
   DAMAGE_IMMUNITY: 'DAMAGE_IMMUNITY',
   DAMAGE_VULNERABILITY: 'DAMAGE_VULNERABILITY',
   CONDITION_IMMUNITY: 'CONDITION_IMMUNITY',
+  SPELL_SCHOOL_IMMUNITY: 'SPELL_SCHOOL_IMMUNITY',
+  CHECKS_AGAINST_HOLDER: 'CHECKS_AGAINST_HOLDER',
   ATTRIBUTE: 'ATTRIBUTE'
 } as const
 
@@ -99,6 +104,19 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
     label: 'Attacks Against',
     description: 'Advantage or disadvantage on attack rolls made against the holder.'
+  },
+
+  [VALUE_DOMAIN_CODE.ATTACK_TRAIT]: {
+    code: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+    label: 'Attack Trait',
+    description:
+      'A trait the attack has, such as magical, that overcomes defenses against attacks without it.'
+  },
+
+  [VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE]: {
+    code: VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE,
+    label: 'Weapon Damage Die',
+    description: "The die a weapon's damage is rolled with, by its number of faces."
   },
 
   [VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD]: {
@@ -222,6 +240,18 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
     label: 'Condition Immunity',
     description: 'Immunity to a condition.'
+  },
+
+  [VALUE_DOMAIN_CODE.SPELL_SCHOOL_IMMUNITY]: {
+    code: VALUE_DOMAIN_CODE.SPELL_SCHOOL_IMMUNITY,
+    label: 'Spell School Immunity',
+    description: 'Spells of a magic school have no effect on the holder.'
+  },
+
+  [VALUE_DOMAIN_CODE.CHECKS_AGAINST_HOLDER]: {
+    code: VALUE_DOMAIN_CODE.CHECKS_AGAINST_HOLDER,
+    label: 'Checks Against The Holder',
+    description: 'Skill checks made to read the holder have disadvantage.'
   },
 
   [VALUE_DOMAIN_CODE.RANGE]: {
@@ -392,6 +422,12 @@ export type ValueDomainParamByCode = {
   CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
   CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
 
+  // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks").
+  ATTACK_TRAIT: { trait: DamageDefenseBypassCode }
+
+  // The weapon's damage die is replaced by one with this many faces (Shillelagh's d8).
+  WEAPON_DAMAGE_DIE: EmptyObject
+
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
 
@@ -497,6 +533,8 @@ export type ValueDomainParamByCode = {
 
   CONDITION: EmptyObject
   CONDITION_IMMUNITY: EmptyObject
+  SPELL_SCHOOL_IMMUNITY: EmptyObject
+  CHECKS_AGAINST_HOLDER: EmptyObject
   ATTRIBUTE: EmptyObject
 }
 
@@ -537,6 +575,12 @@ export type ValueDomainOptionPayloadByDomain = {
 
   // Condition immunity: prevents a specific condition from being applied
   CONDITION_IMMUNITY: { conditionTypeId: string }
+
+  // Spell school immunity: a spell of the school has no effect on the holder
+  SPELL_SCHOOL_IMMUNITY: { magicSchoolId: string }
+
+  // Checks against the holder: checks of the skill made to read the holder have disadvantage
+  CHECKS_AGAINST_HOLDER: { skillId: string }
 
   // Attribute is likely from a registry (ritual, concentration, etc.)
   ATTRIBUTE: { attributeId: string }
