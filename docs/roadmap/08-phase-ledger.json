@@ -11696,7 +11696,7 @@
             },
             {
               "id": "SPELLS-33.T3a6",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11705,7 +11705,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "Creature feature discovery compiles per cast-choice option like the character entry point (pick at use, D148); convert Vampire Spawn Claws and Vampire Unarmed Strike damage-or-grapple (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+              "text": "Creature feature discovery compiles per cast-choice option like the character entry point (pick at use, D148); convert Vampire Spawn Claws and Vampire Unarmed Strike damage-or-grapple (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T3b",
