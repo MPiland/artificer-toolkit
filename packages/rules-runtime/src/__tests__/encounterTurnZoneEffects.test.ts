@@ -68,6 +68,8 @@ function prepare(input: {
   tokens?: typeof tokens
   actors?: typeof actors
   actorIdByTokenId?: typeof actorIdByTokenId
+  /** Whether the occupant and the zone's source see each other; both do by default. */
+  sight?: { occupantSeesSource: boolean; sourceSeesOccupant: boolean }
 }) {
   const sceneActors = input.actors ?? actors
   return prepareEncounterTurnZoneEffects({
@@ -86,6 +88,8 @@ function prepare(input: {
     }),
     loadTarget: async (actorId) =>
       srdCreatureTarget(sceneActors.find((actor) => actor.id === actorId)!),
+    loadSourceSight: async () =>
+      input.sight ?? { occupantSeesSource: true, sourceSeesOccupant: true },
     createRuntime: async () => runtime,
     definitions: srdDefinitions,
     random: () => 0,
@@ -310,6 +314,62 @@ describe('a zone that catches only some creatures (SPELLS-20 T4b3a)', () => {
     expect(failed!.targetTransition.after.currentHitPoints).toBe(
       failed!.targetTransition.before.currentHitPoints - 1
     )
+  })
+})
+
+describe('a zone that needs sight of its source (SPELLS-33.T6e)', () => {
+  const sightZone = (requiredSight: ('OCCUPANT_SEES_SOURCE' | 'SOURCE_SEES_OCCUPANT')[]) =>
+    placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE'], undefined, { requiredSight }), 1)
+  const saved = (phase: Awaited<ReturnType<typeof complete>>) => {
+    const [execution] = phase.plan!.executions
+    return (
+      execution!.targetTransition.after.currentHitPoints ===
+      execution!.targetTransition.before.currentHitPoints
+    )
+  }
+
+  it('rolls the save of an occupant that sees the source, which the lowest face fails', async () => {
+    const zone = sightZone(['OCCUPANT_SEES_SOURCE'])
+    expect(saved(await complete(prepare({ zones: [zone], boundary: START })))).toBe(false)
+  })
+
+  it('lets an occupant that cannot see the source succeed on the save unrolled', async () => {
+    const zone = sightZone(['OCCUPANT_SEES_SOURCE'])
+    const phase = await complete(
+      prepare({
+        zones: [zone],
+        boundary: START,
+        sight: { occupantSeesSource: false, sourceSeesOccupant: true }
+      })
+    )
+    expect(saved(phase)).toBe(true)
+    expect(phase.plan!.executions[0]!.execution.outputs.resultPath).toBe('ON_SAVE_SUCCESS')
+  })
+
+  it('needs each sight the zone names, and ignores one it does not', async () => {
+    const both = sightZone(['OCCUPANT_SEES_SOURCE', 'SOURCE_SEES_OCCUPANT'])
+    const unseenBySource = { occupantSeesSource: true, sourceSeesOccupant: false }
+    expect(
+      saved(await complete(prepare({ zones: [both], boundary: START, sight: unseenBySource })))
+    ).toBe(true)
+    const occupantOnly = sightZone(['OCCUPANT_SEES_SOURCE'])
+    expect(
+      saved(
+        await complete(prepare({ zones: [occupantOnly], boundary: START, sight: unseenBySource }))
+      )
+    ).toBe(false)
+  })
+
+  it('reads no sight for a zone that needs none', async () => {
+    const zone = placedZone(0x3a1, authoredZone(['START_TURN_IN_SPACE']), 1)
+    const phase = await complete(
+      prepare({
+        zones: [zone],
+        boundary: START,
+        sight: { occupantSeesSource: false, sourceSeesOccupant: false }
+      })
+    )
+    expect(saved(phase)).toBe(false)
   })
 })
 

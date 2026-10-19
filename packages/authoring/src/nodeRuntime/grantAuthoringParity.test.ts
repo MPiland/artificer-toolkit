@@ -12,6 +12,7 @@ import { enlargeReduce } from '@artificer-toolkit/source-data/srd/spells/enlarge
 import { foresight } from '@artificer-toolkit/source-data/srd/spells/foresight.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
+import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { slow } from '@artificer-toolkit/source-data/srd/spells/slow.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -26,6 +27,7 @@ describe('a spell authored from core Modifier Grants through the effect node map
     ['Bless', bless],
     ['Foresight', foresight],
     ['Guidance', guidance],
+    ['Resistance', resistance],
     ['Slow', slow],
     // SPELLS-4.T2d: rolled damage dice, a mark, a hit-consumed die and a cast choice.
     ['Divine Favor', divineFavor],

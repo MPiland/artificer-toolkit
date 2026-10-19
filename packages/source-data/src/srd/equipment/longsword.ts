@@ -10,7 +10,8 @@ export const longsword: EquipmentAuthored = {
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,
     S.EQUIPMENT_PROPERTY_CODE.MELEE,
-    S.EQUIPMENT_PROPERTY_CODE.VERSATILE
+    S.EQUIPMENT_PROPERTY_CODE.VERSATILE,
+    S.EQUIPMENT_PROPERTY_CODE.METAL
   ],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(22)),
   effects: S.meleeVersatileWeaponEffects(S.equipId(22), 'SLASHING', '1d8', '1d10'),

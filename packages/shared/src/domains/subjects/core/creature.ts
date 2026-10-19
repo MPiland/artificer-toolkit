@@ -10,6 +10,12 @@ export const DAMAGE_DEFENSE_BYPASS_CODE = {
 
 export type DamageDefenseBypassCode = keyof typeof DAMAGE_DEFENSE_BYPASS_CODE
 
+export const DAMAGE_DEFENSE_BYPASS_OPTIONS: readonly CoreMeta<DamageDefenseBypassCode>[] = [
+  { code: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL, label: 'Magical' },
+  { code: DAMAGE_DEFENSE_BYPASS_CODE.SILVERED, label: 'Silvered' },
+  { code: DAMAGE_DEFENSE_BYPASS_CODE.ADAMANTINE, label: 'Adamantine' }
+]
+
 export const CREATURE_CATEGORY_CODE = {
   NPC: 'NPC',
   MONSTER: 'MONSTER',

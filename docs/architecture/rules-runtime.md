@@ -583,6 +583,13 @@ creature interacts with (Wind Wall). Its appear save may hold its failed conditi
 zone carries the `heldCondition`, the cast's own timed condition plan is dropped, and `prepareNativeActionEffectsPlan`
 plans the hold (`planSpatialHeldCondition`) under the zone's Concentration; a zone with components cannot, and an
 appear save that holds its condition may contribute nothing else.
+A component's `requiredSight` (`OCCUPANT_SEES_SOURCE`, `SOURCE_SEES_OCCUPANT`; SPELLS-33.T6e, Chain Devil Unnerving Mask)
+gates a save-bearing turn trigger on mutual sight: the Worker's turn preparation reads live perception through
+`loadSourceSight` and `prepareEncounterTurnZoneEffects` injects `zoneSightRequirementMet` into the contact's derived facts, and
+the compiled save evaluator treats a false value as an unrolled success. Convex persistence trusts the planned executions.
+A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
+`heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
+decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.
 The multiplier applies to every mover for the footprint share of the walk inside the zone: `preparedMovementCost`
 gives `measureScenePathMovementCost` a segment multiplier (`spatialSegmentMovementMultiplier`), so each stretch of
 a segment costs the highest of the terrain multiplier, the multipliers of the zones the footprint is inside, and
@@ -1479,7 +1486,7 @@ such effect anchored to the boundary actor, whoever holds it, and an expired one
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
 restores (`effectsEndedBy` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
-grant that carries both events. **Ability checks (SPELLS-4.T2c2, D156):** `ABILITY_CHECK` takes `ADD_BONUS_DIE` (Guidance). A check passes `effectsEndedBy` a `ScopedAbilityCheck` (`{event: 'ON_ABILITY_CHECK', abilityCode}`), which spends only the effects whose ability-check grant applied to that ability; a bare `ON_ABILITY_CHECK` spends none that hold such a die. The Sheet adds and spends a carried die in `evaluateCharacterRoll` (`carriedCheckDice`). **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
+grant that carries both events. **Ability checks (SPELLS-4.T2c2, D156):** `ABILITY_CHECK` takes `ADD_BONUS_DIE` (Guidance). A check passes `effectsEndedBy` a `ScopedD20Test` (`{event: 'ON_ABILITY_CHECK', abilityCode}`), which spends only the effects whose ability-check grant applied to that ability; a bare `ON_ABILITY_CHECK` spends none that hold such a die. The Sheet adds and spends a carried die in `evaluateCharacterRoll` (`carriedTestDice`). **Saving throws (SPELLS-4.T2c2b, D156):** `ON_SAVING_THROW` is the same scoped test over `SAVING_THROW_MODIFIER` grants (Resistance, any ability; a death save has `abilityCode: null` and spends an unfiltered die). `savingThrowSpentEffects` (`encounterEndedEffectRelease`) is the one spend rule: `targetEndedEffects` calls it for the saves an action settled (the d20 evidence names the save's `savingThrowAbilityDefinitionId`, set where the compiler builds the save policy), the Concentration plan and its persistence call it for the Constitution check, the turn-start death save and the Sheet's `carriedTestDice` call it with their own ability. Persistence re-derives the spent set and refuses a plan that omits or adds a die. **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
 roll made against its holder, hit or miss (Guiding Bolt's mark). The roll reads the grant's modifiers first; the target's
 `targetEndedEffects` (`attacked`, the action's `makesAttackRoll`) then ends it with the target's damage-ended effects, once
 each, on the same receipt (`consumedGrants`, so GM undo restores it). Every attack root passes it: the action, an area or
@@ -1822,6 +1829,13 @@ D154's highest-of terrain, zones and passage applies. A passage through blocking
 the server from the same prepared targets, and the room's Scene read model marks the token
 `passesBlockingBarriers` from the same resolved passage (`roomSceneVision`) so the client's drag
 validation (`sceneTokenMovementIndex`) cannot drift from it.
+
+**Creature passive save grants (current, SPELLS-33.T3a2).** A Creature feature's condition-scoped
+`SAVING_THROW_MODIFIER` advantage or disadvantage grant is authored with the Character option and accepted by the
+same feature-grant fold into `ruleFacts.modifiers`. The Encounter target build passes them to
+`withCreatureActiveGrantSaves`, which adds each as a contributor, sourced from its feature, to the
+condition-scoped save rows beside the active-effect ones. A `SKILL_MODIFIER` grant folds the same way, but
+no Creature check reads roll modes yet.
 
 **Combat Perception.** `encounterCombatPerception` is a pure resolver over pinned sense capabilities
 (`pinnedSenseDefinitions` on the Character mechanics projection, `senseDefinitionId` identity), Scene

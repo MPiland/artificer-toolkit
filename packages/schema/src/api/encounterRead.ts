@@ -1,9 +1,11 @@
 import { z, lazySchema } from '../zod.js'
 import {
   encounterActionChoicesResponseDtoSchema,
+  encounterActionItemChoicesDtoSchema,
   encounterHeldRelationshipDtoSchema,
   encounterOptionalActionChoicesDtoSchema,
   getEncounterActionChoicesInputDtoSchema,
+  getEncounterActionItemChoicesInputDtoSchema,
   getEncounterOptionalActionChoicesInputDtoSchema
 } from './encounterActionChoices.js'
 import {
@@ -30,6 +32,10 @@ export const encounterReadDtoSchema = lazySchema(() =>
       input: z.omit(getEncounterOptionalActionChoicesInputDtoSchema, { expectedVersion: true })
     }),
     z.strictObject({
+      kind: z.literal('ACTION_ITEM_CHOICES'),
+      input: z.omit(getEncounterActionItemChoicesInputDtoSchema, { expectedVersion: true })
+    }),
+    z.strictObject({
       kind: z.literal('ACTION_TARGET_MODIFIERS'),
       input: z.omit(getEncounterActionTargetModifiersInputDtoSchema, { expectedVersion: true })
     }),
@@ -53,6 +59,10 @@ export const encounterReadResultDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('OPTIONAL_ACTION_CHOICES'),
       result: encounterOptionalActionChoicesDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('ACTION_ITEM_CHOICES'),
+      result: encounterActionItemChoicesDtoSchema
     }),
     z.strictObject({
       kind: z.literal('ACTION_TARGET_MODIFIERS'),

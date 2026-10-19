@@ -8155,7 +8155,7 @@
             },
             {
               "id": "SPELLS-4.T2c2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8165,7 +8165,7 @@
                 "after": ["SPELLS-4.T2c2"]
               },
               "text": "Resistance: ON_SAVING_THROW bonus-die consumption narrowed by save ability across every save commit site (effect action, area, reactions, legendary, concentration, death, repeat saves), recording the save ability in settled evidence through one shared seam. Authoring-parity proof; deletes the RESISTANCE kind (2026-10-19 ruling on the T2c2 split; workbook slice-spells-4.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m169 (c456a98f3)."
             },
             {
               "id": "SPELLS-4.T2c3",
@@ -8209,7 +8209,7 @@
               "text": "Generic option: move a held effect to a new target as a granted action (Hunter’s Mark re-mark after its target drops to 0 HP), with a parity proof and a room journey. Split from SPELLS-4.T2d (2026-10-18 ruling)."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2e",
               "wsjf": {
@@ -8220,7 +8220,7 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "New generic option (D156 T2 split, class B), ruled before coding: A weapon-scoped modifier on a chosen held weapon. Converts SHILLELAGH, MAGIC_WEAPON, HEAT_METAL (its later-turn bonus-action repeat moves to SPELLS-4.T2l), with parity proofs; each kind deleted. EQUIPMENT_MAGIC_AMMUNITION moved to ATTACK-19.T4 (2026-10-18 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m171 (0a3f11741)."
             },
             {
               "status": "TODO",
@@ -11052,7 +11052,7 @@
             },
             {
               "id": "SPELLS-31.T4e",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11061,7 +11061,8 @@
                 "size": 2,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2e"]
               },
-              "text": "Join SPELLS-4.T2e: Sacred Weapon (regression test for its Holy Nimbus charge bug), Ki-Empowered Strikes. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2e: Sacred Weapon (regression test for its Holy Nimbus charge bug), Ki-Empowered Strikes. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T4f",
@@ -11687,7 +11688,7 @@
             },
             {
               "id": "SPELLS-33.T3a2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11697,7 +11698,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6k1"]
               },
               "text": "Fold creature feature passive saving throw and skill modifier grants into creature rule facts through the option Characters use (reusing the creature feature-grant fold SPELLS-33.T6k1 adds), then convert Dark Devotion (cultist, cult fanatic), Death Dog Two-Headed and Knight Brave (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m170 (10f30c735)."
             },
             {
               "id": "SPELLS-33.T3a3",
@@ -12162,7 +12163,7 @@
             },
             {
               "id": "SPELLS-33.T6e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12172,6 +12173,20 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "new: Chain Devil Unnerving Mask, a visibility gate on the passive zone occupant-turn trigger (1 kind); also wires targetEndedEffects into the turn-zone, retaliation and aura damage roots with a regression test that fails before the fix. Authoring-parity proof; deletes its kind (D156 SPELLS-32/33.T1 ruling; 2026-10-18 rulings: \"touched\" stays with T6i and T4k, Vampire Charm moves to T6e2, Balor to T6e1; 2026-10-19 ruling: Flesh Golem and Water Elemental move to T6e3 because the Absorb Elements reaction path is Character- and attack-only; workbook slice-spells-33.md).",
+              "note": "Merged m172 (e9be5f759)."
+            },
+            {
+              "id": "SPELLS-33.T6e4",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-33.T6e"]
+              },
+              "text": "Bug: damage from the turn-zone, melee-retaliation and occupant-aura roots does not end the target's \"until it takes damage\" effects, so Sleep or Hypnotic Pattern survive Spirit Guardians or Fire Shield damage. Wire targetEndedEffects into each root's plan, evidence and persistence checksum, with a regression test per root that fails before the fix (split from SPELLS-33.T6e; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
@@ -12304,8 +12319,21 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6k1"]
               },
-              "text": "new: thrown-target collision damage, Air Elemental Whirlwind, with a server-rolled RANDOM forced-movement direction and a struck-creature save pause on the AREA_PENDING pattern (1 kind, D159). Authoring-parity proof; deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "new: Air Elemental Whirlwind part 1 (D159): a server-rolled RANDOM forced-movement direction drawn once at plan time, the landing report (feet travelled, stopped by nothing, an object or a creature), stopping before a creature, and the Whirlwind path accepted by the area compiler. The collision kind stays until T6k2b (workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6k2b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T6k2"]
+              },
+              "text": "new: Whirlwind collision part 2 (D159): a `collision` block with per-mover damage of floor(feet/10) dice, the struck creature's save pause on the AREA_PENDING pattern with damage and PRONE, per-entry area plans, the authoring-parity proof, and deleting CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION (workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6k3",
@@ -12316,13 +12344,13 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T6k2", "SPELLS-33.T5n"]
+                "after": ["SPELLS-33.T6k2b", "SPELLS-33.T5n"]
               },
               "text": "new: Bulette Deadly Leap, a target-chosen saving-throw ability (players choose, creatures take the higher modifier) and landing in an occupied space through the T6k1 passage rule, with prone as the fallback (1 kind, D159 split). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6m1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12331,7 +12359,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: checks against the holder (auto-fail, divination immunity, quarry tracking) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: checks against the holder (auto-fail, divination immunity, quarry tracking) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6m2",

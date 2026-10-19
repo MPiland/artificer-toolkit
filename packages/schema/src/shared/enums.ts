@@ -42,6 +42,11 @@ export const manifestBlockingRuleSchema = lazySchema(() =>
   ])
 )
 
+/** The sight a zone's occupant must have, between itself and the zone's source, to be put through the zone. */
+export const manifestRequiredSightSchema = lazySchema(() =>
+  z.enum(['OCCUPANT_SEES_SOURCE', 'SOURCE_SEES_OCCUPANT'])
+)
+
 export const creatureCategoryCodeSchema = lazySchema(() =>
   z.enum(['NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON'])
 )
@@ -353,7 +358,14 @@ export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
 )
 export const pathLifecycleConsumeEventSchema = lazySchema(() =>
-  z.enum(['ON_ATTACK_ROLL', 'ON_HIT', 'ON_ATTACKED', 'ON_ABILITY_CHECK', 'ON_CAST_SPELL'])
+  z.enum([
+    'ON_ATTACK_ROLL',
+    'ON_HIT',
+    'ON_ATTACKED',
+    'ON_ABILITY_CHECK',
+    'ON_SAVING_THROW',
+    'ON_CAST_SPELL'
+  ])
 )
 export const pathLifecycleEndEventSchema = lazySchema(() =>
   z.enum([
@@ -363,7 +375,8 @@ export const pathLifecycleEndEventSchema = lazySchema(() =>
     'ON_INCAPACITATED',
     'ON_IDLE_TURN',
     'ON_LEAVING_AREA',
-    'ON_LONG_REST'
+    'ON_LONG_REST',
+    'ON_CHOSEN_ITEM_RELEASED'
   ])
 )
 /** Whose damage ends an effect: anyone's, or only that of the effect source and its allies. */
@@ -379,15 +392,22 @@ export const pathLifecycleEndTriggerOfSchema = lazySchema(() => z.enum(['SOURCE'
  * used up.
  */
 export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
-  z.enum(['ON_ATTACK_ROLL', 'ON_HIT', 'ON_ATTACKED', 'ON_ABILITY_CHECK'] satisfies z.infer<
-    typeof pathLifecycleConsumeEventSchema
-  >[])
+  z.enum([
+    'ON_ATTACK_ROLL',
+    'ON_HIT',
+    'ON_ATTACKED',
+    'ON_ABILITY_CHECK',
+    'ON_SAVING_THROW'
+  ] satisfies z.infer<typeof pathLifecycleConsumeEventSchema>[])
 )
 /** The end events a timed grant can carry (it is never ended by an attack roll or a cast). */
 export const pathLifecycleGrantEndEventSchema = lazySchema(() =>
-  z.enum(['ON_HIT_POINTS_REGAINED', 'ON_INCAPACITATED', 'ON_IDLE_TURN'] satisfies z.infer<
-    typeof pathLifecycleEndEventSchema
-  >[])
+  z.enum([
+    'ON_HIT_POINTS_REGAINED',
+    'ON_INCAPACITATED',
+    'ON_IDLE_TURN',
+    'ON_CHOSEN_ITEM_RELEASED'
+  ] satisfies z.infer<typeof pathLifecycleEndEventSchema>[])
 )
 export const forcedMovementDirectionSchema = lazySchema(() =>
   z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY'])

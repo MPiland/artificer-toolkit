@@ -30,11 +30,15 @@ import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import {
+  activeSavingThrowDice,
+  effectiveHitPointMaximum
+} from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import {
   actionEndedEffects,
   actsAgainstEnemy,
   endedEffectReleaseKey,
+  savingThrowSpentEffects,
   targetEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -252,6 +256,7 @@ export async function persistEncounterTurnResources(
         ({ id }) => !consumedGrants.some((ended) => ended.id === id)
       ),
       attacked: attackRoll,
+      testEvidence: [application.d20, application.nestedD20],
       turnActorId: state.currentActorId,
       applications: application.applications.map((planned) => ({
         ...planned,
@@ -648,6 +653,14 @@ export async function persistEncounterTurnDeathSave(
     effectiveMaximumHitPoints: candidate.effectiveMaximumHitPoints,
     forceVersionAdvance: true
   })
+  // The save spent the dice (D156) every saving throw does: the ones its plan rolled.
+  const held = await createActiveRuleEffectStore(ctx).list(turnEffectOwner(actor, state.id))
+  if (
+    checksumCanonicalJson(activeSavingThrowDice(held, null)) !==
+    checksumCanonicalJson(candidate.addedDice)
+  )
+    throw new Error('Live Session death save dice differ from its plan.')
+  await deleteGrants(ctx, savingThrowSpentEffects(held, null))
   const { before, after } = applied.targetTransition
   if (
     applied.receiptApplications.length !== 0 ||

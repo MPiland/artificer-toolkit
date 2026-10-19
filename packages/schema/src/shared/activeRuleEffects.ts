@@ -2,7 +2,11 @@ import { z, lazySchema } from '../zod.js'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
-import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
+import {
+  equipmentInstanceMechanicSourceSchema,
+  modifierOperationSchema,
+  senseOperationSchema
+} from '../api/characterGrantFoldRules.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import { activationDtoSchema } from '../effects/activation.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
@@ -77,8 +81,10 @@ const activeEffectFactsSchema = lazySchema(() =>
  */
 const NON_RELEASING_EFFECT_EVENTS: ReadonlySet<string> = new Set([
   'ON_ABILITY_CHECK',
+  'ON_SAVING_THROW',
   'ON_HIT_POINTS_REGAINED',
-  'ON_INCAPACITATED'
+  'ON_INCAPACITATED',
+  'ON_CHOSEN_ITEM_RELEASED'
 ])
 
 const activeEffectOriginDtoSchema = lazySchema(() =>
@@ -343,6 +349,11 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
       sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
       /** Whether the source was hidden from players when the grant was created. */
       sourceHidden: z.boolean(),
+      /**
+       * The holder's item the cast chose and bound the grant to (Shillelagh's staff): its
+       * SOURCE-scoped modifiers apply to that item. Absent for an unbound grant.
+       */
+      boundItem: z.optional(equipmentInstanceMechanicSourceSchema),
       /**
        * Only on the template a placed zone carries: the events that end the grant the zone leaves
        * on a creature. A created grant reads them from its own `recurrence.endOnEvents`.

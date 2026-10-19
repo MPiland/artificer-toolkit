@@ -23,6 +23,7 @@ import { activeSavingThrowDice } from './character/activeEffectGrantTotals.js'
 import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import { deriveEncounterCharacterMechanicsEventCommandId } from './encounterCharacterMechanicsBatch.js'
 import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import { savingThrowSpentEffects } from './encounterEndedEffectRelease.js'
 import { encounterEvidenceMode } from './encounterEvidenceMode.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import {
@@ -144,11 +145,13 @@ function projectDeathSaveTarget<TCharacterFacts extends ProjectableCharacterFact
     gameSystemId: input.state.gameSystemId,
     occurredAt
   })
+  // A death save has no ability: it spends the dice (D156) every saving throw does.
+  const spent = new Set(savingThrowSpentEffects(target.activeEffects, null).map(({ id }) => id))
   return applyEncounterConditionMechanics({
     target: {
       ...buildMovementTarget({
         actor: projected.actor,
-        activeEffects: projected.activeEffects,
+        activeEffects: projected.activeEffects.filter(({ id }) => !spent.has(id)),
         characterFacts: projected.characterFacts,
         campaignId: input.state.campaignId,
         gameSystemId: input.state.gameSystemId,

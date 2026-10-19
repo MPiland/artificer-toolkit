@@ -25,6 +25,7 @@ import type {
   ClosedRuleAuthored,
   FacetAuthored,
   FailureMarginRiderAuthored,
+  PathChosenItemAuthored,
   PathLifecycleAuthored,
   RangeAuthored,
   ResultBlockAuthored,
@@ -77,6 +78,7 @@ export type CompiledEffect = {
   usageKey?: string
   rangeOverride?: RangeAuthored
   targetingOverride?: TargetingAuthored
+  chosenItem?: PathChosenItemAuthored
   /**
    * Set on an optional on-hit rider's entry merged into a weapon attack (D123): the entry resolves
    * only when its rider is among the ones the player chose, paying this cost.
@@ -224,6 +226,7 @@ export type CompiledEffectOutcome =
   | import('#authored').DetectConcealedAuthored
   | import('#authored').CancelTriggeringEventAuthored
   | import('#authored').SourceImmunityAuthored
+  | import('#authored').ReleaseChosenItemAuthored
   | ClosedRuleAuthored
   | import('#authored').TeleportAuthored
   | import('#authored').ManualAdjudicationAuthored
@@ -338,6 +341,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.DETECT_CONCEALED:
     case EFFECT_KIND.CANCEL_TRIGGERING_EVENT:
     case EFFECT_KIND.SOURCE_IMMUNITY:
+    case EFFECT_KIND.RELEASE_CHOSEN_ITEM:
     case EFFECT_KIND.CLOSED_RULE:
     case EFFECT_KIND.MANUAL_ADJUDICATION:
       return [outcome]
@@ -413,7 +417,8 @@ function compileResultBlock(
         ...(path.restrictions ? { restrictions: path.restrictions } : {}),
         ...(path.usage ? { usage: path.usage } : {}),
         ...(path.rangeOverride ? { rangeOverride: path.rangeOverride } : {}),
-        ...(path.targetingOverride ? { targetingOverride: path.targetingOverride } : {})
+        ...(path.targetingOverride ? { targetingOverride: path.targetingOverride } : {}),
+        ...(path.chosenItem ? { chosenItem: path.chosenItem } : {})
       }
 
       if (rollTableMeta) {

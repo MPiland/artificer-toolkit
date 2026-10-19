@@ -27,6 +27,7 @@ export const EFFECT_KIND = {
   DETECT_CONCEALED: 'DETECT_CONCEALED',
   CANCEL_TRIGGERING_EVENT: 'CANCEL_TRIGGERING_EVENT',
   SOURCE_IMMUNITY: 'SOURCE_IMMUNITY',
+  RELEASE_CHOSEN_ITEM: 'RELEASE_CHOSEN_ITEM',
   CLOSED_RULE: 'CLOSED_RULE',
   MANUAL_ADJUDICATION: 'MANUAL_ADJUDICATION'
 } as const
@@ -168,6 +169,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Source Immunity',
     description:
       'Makes the target immune to this source’s use of this effect for the result’s duration.'
+  },
+  [EFFECT_KIND.RELEASE_CHOSEN_ITEM]: {
+    code: EFFECT_KIND.RELEASE_CHOSEN_ITEM,
+    label: 'Release Chosen Item',
+    description:
+      'The target lets go of the path’s chosen item when it is releasable (held, not worn).'
   },
   [EFFECT_KIND.CLOSED_RULE]: {
     code: EFFECT_KIND.CLOSED_RULE,

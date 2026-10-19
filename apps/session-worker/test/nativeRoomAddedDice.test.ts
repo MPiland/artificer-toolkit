@@ -4,6 +4,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { bane } from '@artificer-toolkit/source-data/srd/spells/bane.js'
 import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
+import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
+import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -30,7 +32,8 @@ afterEach(() => {
 async function addedDieSaveRoom(
   spell: SpellAuthored,
   rolls: readonly number[] = [],
-  resultPath?: 'ON_SAVE_FAIL'
+  resultPath?: 'ON_SAVE_FAIL',
+  effect: EffectAuthored | undefined = spell.effects?.[0]
 ) {
   const biter = biteWolf('SAVE')
   const biterActor = srdCreatureActor({ id: BITER_ID, creature: biter })
@@ -42,7 +45,7 @@ async function addedDieSaveRoom(
       sourceActorId: TARGET_ID,
       holderActorId: TARGET_ID,
       lifecycle: {},
-      effect: spell.effects?.[0],
+      effect,
       sourceLabel: spell.label,
       resultPath
     })
@@ -109,5 +112,59 @@ describe('a rolled-die grant on an Encounter saving throw (SPELLS-4.T2c1, D156)'
         total: 6
       }
     })
+  })
+})
+
+describe('a Resistance die is spent by the holder’s saving throw (SPELLS-4.T2c2b, D156)', () => {
+  /** The real Resistance effect, its die limited to one ability when given. */
+  function resistanceFor(ability?: 'STRENGTH') {
+    const effect = structuredClone(resistance.effects![0]!)
+    for (const path of effect.paths)
+      if (path.selectionKind === 'FIXED')
+        for (const outcome of path.resultBlock.outcomes)
+          if (outcome.effectKind === 'APPLY_GRANT' && ability)
+            for (const modifier of outcome.grants.modifiers ?? []) modifier.domain = { ability }
+    return effect
+  }
+  const heldEffectIds = async (room: Awaited<ReturnType<typeof actionRoom>>) =>
+    (await readRoomHistory(room.room.base.stub)).activeEffects.map(({ id }) => id)
+
+  it('asks for the d4 with the Dexterity save, then the die is gone', async () => {
+    const { room, decision, request } = await addedDieSaveRoom(
+      resistance,
+      [],
+      undefined,
+      resistanceFor()
+    )
+    expect(request.addedDice).toEqual([{ label: 'Resistance', count: 1, faces: 4, sign: 'ADD' }])
+    expect(await heldEffectIds(room)).toHaveLength(1)
+
+    const answer = await room.resolve(decision, {
+      kind: 'ENTER_DICE',
+      requestId: request.requestId,
+      rawFaces: [5],
+      addedFaces: [3],
+      rollMode: request.rollMode
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await heldEffectIds(room)).toEqual([])
+  })
+
+  it('offers no die for a save of another ability, and keeps it', async () => {
+    const { room, decision, request } = await addedDieSaveRoom(
+      resistance,
+      [],
+      undefined,
+      resistanceFor('STRENGTH')
+    )
+    expect(request.addedDice ?? []).toEqual([])
+    const answer = await room.resolve(decision, {
+      kind: 'ENTER_DICE',
+      requestId: request.requestId,
+      rawFaces: [5],
+      rollMode: request.rollMode
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await heldEffectIds(room)).toHaveLength(1)
   })
 })

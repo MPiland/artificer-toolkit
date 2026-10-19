@@ -206,6 +206,7 @@ describe('Creature mechanics batch plan', () => {
       ),
       characterStreamVersion: null,
       itemUseStateTransition: null,
+      itemReleaseTransition: null,
       stateChanged: true,
       shouldAdvance: false,
       characterUpdate: null
