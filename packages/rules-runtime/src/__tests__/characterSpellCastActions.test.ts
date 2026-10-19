@@ -422,6 +422,7 @@ function build(
 ) {
   return buildCharacterSpellCastActions({
     spellCastCandidates: candidates,
+    spellAccessCandidates: [],
     castableCandidateIds: new Set(candidates.map((cast) => cast.candidateId)),
     spellDocumentsById: authoredById,
     firstSequence: 10,
@@ -1734,14 +1735,17 @@ describe('a repeat save attempted only by what the target perceives (SPELLS-29.T
     })
   })
 
-  it('keeps an ungated repeat save on its plain d20: Hold Person', () => {
-    const { plan, node } = repeatD20(HOLD_PERSON)
-    expect(plan?.frozenGraphNodeId).toBe('repeat-save-test')
-    expect(Object.keys(plan?.adapterFacts ?? {})).not.toContain(
-      'dnd5e.active-effect-repeat-save-attempt-gate'
-    )
-    expect(node?.operation).toEqual({ key: 'evidence.integer-range', contractVersion: 1 })
-  })
+  it.each([HOLD_PERSON, spell('Hold Monster')])(
+    'keeps an ungated repeat save on its plain d20: $label',
+    (authored) => {
+      const { plan, node } = repeatD20(authored)
+      expect(plan?.frozenGraphNodeId).toBe('repeat-save-test')
+      expect(Object.keys(plan?.adapterFacts ?? {})).not.toContain(
+        'dnd5e.active-effect-repeat-save-attempt-gate'
+      )
+      expect(node?.operation).toEqual({ key: 'evidence.integer-range', contractVersion: 1 })
+    }
+  )
 })
 
 describe('the scaling heal a cast carries', () => {
@@ -2101,6 +2105,24 @@ describe('a zone that only prices movement, placed with no save (SPELLS-4.T2a4, 
     const placement = compiledCast(spell('Plant Growth'))?.zonePlacement
 
     expect(placement).toMatchObject({ maintenance: null, entry: { maintenance: null } })
+  })
+})
+
+describe('a condition until dispelled that damage ends, beside a GM ruling (SPELLS-4.T2a4, D156)', () => {
+  it('owns Sequester’s invisible on a willing creature with no end of turns, ending on anyone’s damage', () => {
+    const entry = compiledCastEntry(spell('Sequester'))
+    expect(entry?.targetPolicy?.targeting).toMatchObject({ dispositionKind: 'WILLING' })
+    expect(entry?.compilation.activeEffectPlan).toMatchObject({
+      initialRemaining: null,
+      conditionContributions: [{ conditionId: conditionId('INVISIBLE') }],
+      lifecycle: { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] },
+      maintenance: null
+    })
+    const plan = entry?.compilation.executionPlan
+    if (plan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected one direct graph.')
+    expect(plan.published.definition.nodes.map((node) => node.operation.key)).toContain(
+      'dnd5e.manual-adjudication-proposal'
+    )
   })
 })
 

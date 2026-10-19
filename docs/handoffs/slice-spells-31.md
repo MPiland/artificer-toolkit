@@ -298,6 +298,19 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
     - A CHARACTER context now offers every equipment category and property, seeded the same way the `.all` branches seed them.
   - **Circle of the Land:** the restriction context now authors SELECTED `subclassIds: [Circle of the Land]` instead of ALL with no subclass ids. Specialization options derive from the context's subclass ids, so the old record could not be authored. Spell access reads only `specializationIds` (`characterSpellRuleFacts.ts`), so play does not change.
   - The parity file's emptied-starting-equipment Cleric workaround is removed.
+- **T5l (new: per-target immunity), 2026-10-18:** done under D156 and rulings 48a9a71ef and 24e1f431d. Two kinds were deleted: `BERSERKER_INTIMIDATING_PRESENCE` and `WARLOCK_CHAINS_OF_CARCERI`. Intimidating Presence is a Wisdom save against 8 + proficiency + Charisma. A failure leaves the target Frightened until the end of the barbarian's next turn. A success makes it immune to this barbarian's use for 24 hours (a `SOURCE_IMMUNITY` outcome). Chains of Carceri grants Hold Monster at will, against celestials, fiends and elementals only (`allowedCreatureTypeIds`), with a `perTargetLockout` until the long rest. Design: `docs/architecture/rules-runtime.md`, "Source immunity".
+  - **MANUAL→automated (gate: a save condition with no authored end compiles when it lasts at most one round; no named cases).** A real-code census covered SRD spells, creature actions and class features with a ≤1-round save condition and no authored end. Results:
+    - **Intimidating Presence:** automated. It has a one-round fear with no repeat save inside that round, and the extend and the 60 ft / sight end are deferred (future-enhancements).
+    - **Hold Monster:** automated by its authored repeat Wisdom save at the end of each of the target's turns, the same form as Hold Person.
+    - **Cloaker Moan and Dretch Fetid Cloud:** still MANUAL, because of other unsupported shapes. Fetid Cloud now authors its "until the start of its next turn" anchor. Its "action or bonus action, not both; no reactions" restriction is not modeled.
+    - **Hezrou Stench:** a passive aura, not an action, so it is not affected.
+    - **Color Spray:** has no save, so it is not affected.
+  - **Chains:** stays MANUAL in play until SPELLS-31.T5t wires a chosen invocation's spell grant into spell access. `sourceImmunity.test.ts` proves the lockout, the narrowing and the admission. It runs the real spell-access, cast, compile, planning and admission code on a cast built from a test registry that offers the compiled invocation as a Warlock feature.
+  - **Lockout on a carried Character:** lasts the Run, not until the warlock's long rest. This is a deferred edge case.
+  - **Proofs:**
+    - `sourceImmunity.test.ts` covers the homebrew Roar from core options, Intimidating Presence and Chains.
+    - `encounterAreaActionCompilation.test.ts` and `characterSpellCastActions.test.ts` cover Hold Monster.
+    - Session-worker tests cover the room's single-target refusal and the area exclusion.
 - **T5s (class B, Volley and Whirlwind Attack), 2026-10-18:** both kinds deleted. Ruling: D156 amendment (T5s).
   - **Option:** `weaponAttack` on a Feature effect. It takes an optional `requiredPropertyCodes`, and its node is "Attacks with each wielded weapon".
     - Deviation from the ruling's "invocation field": `weaponAttack` sits on the Feature effect beside `grip`, not inside the invocation. The invocation node map is shared with items and spells, so this keeps the option Feature-only.

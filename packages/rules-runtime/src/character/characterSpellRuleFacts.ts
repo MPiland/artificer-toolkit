@@ -164,7 +164,9 @@ function appendGrantCandidates(params: {
         attributes: grant.attributes ?? [],
         castAtLevel: grant.castAtLevel ?? null,
         castingAbility: grant.castingAbility ?? null,
-        charge: chargeDescriptor(grant)
+        charge: chargeDescriptor(grant),
+        allowedCreatureTypeIds: grant.allowedCreatureTypeIds ?? [],
+        perTargetLockout: grant.perTargetLockout !== undefined
       })
     }
   }

@@ -572,6 +572,8 @@ export interface CharacterActionRuleEntryPoint {
   spellCastLevel?: number
   /** The Character's level, which selects a cap scaled by it (Eldritch Blast's beams). */
   characterLevel?: number
+  /** Set for an at-will grant's cast whose targets are each locked out of the grant (D156). */
+  perTargetLockout?: { grantId: string }
 }
 export type CharacterResolvedActionMechanic = z.infer<typeof characterResolvedActionMechanicSchema>
 

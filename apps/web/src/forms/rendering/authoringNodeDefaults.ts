@@ -572,6 +572,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       }
     case 'rollTableRepeat':
       return { count: 2, rerollValues: [] }
+    case 'perTargetLockout':
+      return { until: 'SOURCE_LONG_REST' }
     case 'proficiencyGrant':
       return createProficiencyGrant(order)
     case 'raceAncestry':

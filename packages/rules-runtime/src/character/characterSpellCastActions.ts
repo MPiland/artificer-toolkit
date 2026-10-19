@@ -26,6 +26,7 @@ import {
 import { getPreparationCapableClassIds, getSheetSpellIdsByClass } from './sheetSpellIds.js'
 
 type SpellCastCandidate = CharacterRulePolicyInput['spellCastCandidates'][number]
+type SpellAccessCandidate = CharacterRulePolicyInput['spellAccessCandidates'][number]
 type ActionDecision = CharacterRulePolicyOutput['actionDecisions'][number]
 type SpellPolicyOutput = Pick<
   CharacterRulePolicyOutput,
@@ -147,12 +148,41 @@ function activeSpellEffects(spell: SpellAuthored): readonly CompiledEffectGroup[
 }
 
 /**
+ * The cast's Effect group with its targeting narrowed to the creature types its grant allows
+ * (Chains of Carceri's celestials, fiends and elementals, D156): the types both allow, or the
+ * grant's when the spell names none.
+ */
+function withGrantCreatureTypes(
+  group: CompiledEffectGroup,
+  allowedCreatureTypeIds: readonly string[]
+): CompiledEffectGroup {
+  const { targeting } = group.invocation
+  if (!allowedCreatureTypeIds.length || !targeting || targeting.selectionKind === 'SELF')
+    return group
+  const own = targeting.allowedCreatureTypeIds ?? []
+  return {
+    ...group,
+    invocation: {
+      ...group.invocation,
+      targeting: {
+        ...targeting,
+        allowedCreatureTypeIds: own.length
+          ? own.filter((id) => allowedCreatureTypeIds.includes(id))
+          : [...allowedCreatureTypeIds]
+      }
+    }
+  }
+}
+
+/**
  * The Encounter's action candidates, entry points and decisions for the spells a Character may cast:
  * one per offered `spellCastCandidates` entry, built from the same candidate the Sheet reads. They
  * are never part of the Sheet's own actions, so they exist only where an Encounter asks for them.
  */
 export function buildCharacterSpellCastActions(input: {
   spellCastCandidates: readonly SpellCastCandidate[]
+  /** The grants the casts come from, read for what a grant adds to its casts. */
+  spellAccessCandidates: readonly SpellAccessCandidate[]
   castableCandidateIds: ReadonlySet<string>
   policyOutput: SpellPolicyOutput
   spellDocumentsById: ReadonlyMap<string, SpellAuthored> | undefined
@@ -171,6 +201,7 @@ export function buildCharacterSpellCastActions(input: {
   const mechanicsByCandidateId = new Map(
     policyOutput.spellCastMechanics.map((entry) => [entry.candidateId, entry])
   )
+  const accessById = new Map(input.spellAccessCandidates.map((access) => [access.accessId, access]))
   const candidates: CharacterActionCandidate[] = []
   const entryPoints: CharacterActionRuleEntryPoint[] = []
   const decisions: ActionDecision[] = []
@@ -193,7 +224,15 @@ export function buildCharacterSpellCastActions(input: {
     )
       continue
     const mechanics = mechanicsByCandidateId.get(cast.candidateId)?.mechanics ?? []
-    for (const [index, group] of effects.entries()) {
+    const access =
+      cast.source.sourceKind === 'FEATURE'
+        ? accessById.get(`${cast.source.sourceInstanceId}:${cast.spellId}`)
+        : undefined
+    // An at-will grant's lockout keys every creature its casts target to the grant (D156).
+    const perTargetLockout =
+      access?.perTargetLockout && cast.castMode === 'AT_WILL' ? { grantId: access.grantId } : null
+    for (const [index, spellGroup] of effects.entries()) {
+      const group = withGrantCreatureTypes(spellGroup, access?.allowedCreatureTypeIds ?? [])
       const actionId = spellCastActionId(cast.candidateId, index === 0 ? undefined : group.id)
       const mechanic = mechanics.find((entry) => entry.effectId === group.id)
       if (!mechanic) continue
@@ -241,7 +280,8 @@ export function buildCharacterSpellCastActions(input: {
         activationSourceKind: 'ACTIVE_SOURCE',
         compiledEffect: group,
         spellCastLevel: cast.castLevel,
-        characterLevel: input.characterLevel
+        characterLevel: input.characterLevel,
+        ...(perTargetLockout && { perTargetLockout })
       })
       decisions.push({
         sequence,
