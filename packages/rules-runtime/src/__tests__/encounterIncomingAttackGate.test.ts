@@ -138,7 +138,7 @@ describe('holder-owned incoming attack gate', () => {
       ...heldSanctuary(testUuid(0xe042)),
       definition,
       lifecycle
-    } as unknown as ActiveRuleEffectRecord
+    }
   }
 
   it('stops asking an attacker that passed the ward, for the length of the immunity', () => {
