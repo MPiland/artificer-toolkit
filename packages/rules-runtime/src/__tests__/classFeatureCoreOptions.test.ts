@@ -146,3 +146,46 @@ describe('Cleric Divine Intervention (SPELLS-31.T3c)', () => {
     expect(outcome.instructions).toMatch(/7 days/)
   })
 })
+
+describe('Oath of Devotion Channel Divinity (SPELLS-31.T4e)', () => {
+  const oathFeature = (featureLabel: string) =>
+    evaluateSrdCharacter({
+      classes: [{ label: 'Paladin', level: 3, subclass: 'Oath of Devotion' }],
+      features: [
+        srdFeature({
+          owner: 'SUBCLASS',
+          classLabel: 'Paladin',
+          subclassLabel: 'Oath of Devotion',
+          featureLabel,
+          level: 3
+        })
+      ]
+    })
+  const channelDivinity = srdByLabel(
+    srdByLabel(SRD.classes, 'Oath of Devotion').features ?? [],
+    'Channel Divinity'
+  )
+
+  it.each(['Channel Divinity: Sacred Weapon', 'Channel Divinity: Turn the Unholy'])(
+    '%s spends the Channel Divinity charge, not Holy Nimbus',
+    (actionLabel) => {
+      const candidates = oathFeature(actionLabel).facts.actionCandidates.filter(
+        ({ label }) => label === actionLabel
+      )
+      expect(candidates).toHaveLength(1)
+      expect(candidates[0]!.resourceUse).toEqual(
+        expect.objectContaining({ chargeId: channelDivinity.charges?.id, cost: 1 })
+      )
+    }
+  )
+
+  it('imbues a held weapon for 1 minute and ends when it is released or the holder is unconscious', () => {
+    const [candidate] = oathFeature(
+      'Channel Divinity: Sacred Weapon'
+    ).facts.actionCandidates.filter(({ label }) => label === 'Channel Divinity: Sacred Weapon')
+    expect(candidate!.mechanicFacts.invocation.activation?.code).toBe('ACTION')
+    expect(candidate!.mechanicFacts.outcomes).toEqual([
+      expect.objectContaining({ kind: 'EFFECT', effectKind: 'APPLY_GRANT' })
+    ])
+  })
+})

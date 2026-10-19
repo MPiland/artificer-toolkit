@@ -9,6 +9,7 @@ import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
 import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
+import { oathOfDevotion } from '@artificer-toolkit/source-data/srd/classes/oath-of-devotion.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
@@ -20,7 +21,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 /**
  * SPELLS-31.T3a-T3c and T5s (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets,
  * Divine Sense, Signature Spells, Empty Body, Devil's Sight, Gaze of Two Minds, Divine Intervention,
- * Volley and Whirlwind Attack resolve from the
+ * Volley, Whirlwind Attack (T3), Sacred Weapon and Ki-Empowered Strikes (T4e) resolve from the
  * same core options a Builder author has on a class feature or option, so each must pass the class
  * node map exactly as authored, as must a homebrew variant built from those options.
  */
@@ -217,6 +218,33 @@ const CASES: ReadonlyArray<{
         throw new Error('Whirlwind Attack must attack with the wielded weapons within a distance.')
       effect.invocation.range.amount = 10
       effect.weaponAttack.requiredPropertyCodes = ['REACH']
+      return record
+    }
+  },
+  {
+    record: monk,
+    label: 'Ki-Empowered Strikes',
+    variant: () => {
+      const record = structuredClone(monk)
+      const [trait] = feature(record, 'Ki-Empowered Strikes').grants?.modifiers ?? []
+      if (trait?.valueDomainCode !== 'ATTACK_TRAIT' || !('attackDomain' in trait.domain))
+        throw new Error('Ki-Empowered Strikes must author a trait for one attack domain.')
+      trait.domain = { ...trait.domain, attackDomain: 'MELEE' }
+      return record
+    }
+  },
+  {
+    record: oathOfDevotion,
+    label: 'Channel Divinity: Sacred Weapon',
+    variant: () => {
+      const record = structuredClone(oathOfDevotion)
+      const [effect] = feature(record, 'Channel Divinity: Sacred Weapon').effects ?? []
+      const path = effect?.paths[0]
+      const grant = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      const [bonus] = grant?.effectKind === 'APPLY_GRANT' ? (grant.grants?.modifiers ?? []) : []
+      if (bonus?.modifierKind !== 'OPTIONAL_ABILITY_MODIFIER_BONUS')
+        throw new Error('Sacred Weapon must author an ability bonus on attack rolls.')
+      bonus.payload = { abilities: ['WISDOM'], min: 2 }
       return record
     }
   }

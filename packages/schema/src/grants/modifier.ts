@@ -64,7 +64,8 @@ const attacksAgainstParamDtoSchema = lazySchema(() =>
 /** The trait an attack gains, which overcomes a defense "from attacks" without it. */
 const attackTraitParamDtoSchema = lazySchema(() =>
   z.object({
-    trait: damageDefenseBypassCodeSchema
+    trait: damageDefenseBypassCodeSchema,
+    attackDomain: z.optional(attackDomainCodeSchema)
   })
 )
 

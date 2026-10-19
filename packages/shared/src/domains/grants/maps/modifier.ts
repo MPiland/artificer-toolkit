@@ -126,6 +126,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
             showIf: or([
               parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
               parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+              parent.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
               parent.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
               parent.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
               parent.field(['valueDomainCode']).eq('DAMAGE')

@@ -1,13 +1,20 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DAMAGE_DEFENSE_BYPASS_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
+  EQUIPMENT_CATEGORY_CODE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   RANGE_KIND,
@@ -16,8 +23,10 @@ import {
   SPELL_GRANT_ATTRIBUTE,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { closedRuleEffect } from './mechanics.js'
@@ -30,6 +39,9 @@ function classRowId(classIndex: number, group: number, entry: number): string {
 }
 
 const P = 7
+
+/** The Paladin's one Channel Divinity use, shared by this oath's options. */
+const channelDivinityChargeId = classRowId(P, 22, 2)
 
 const devotionOathSpellLevels = [
   { level: 3, spellIds: [SPELL_IDS.PROTECTION_FROM_EVIL_AND_GOOD, SPELL_IDS.SANCTUARY] },
@@ -79,25 +91,109 @@ export const oathOfDevotion: ClassAuthored = {
       }
     },
     {
+      id: classRowId(P, 11, 7),
+      label: 'Channel Divinity',
+      description:
+        'When you take this oath at 3rd level, you gain the following two Channel Divinity options. You can use only one Channel Divinity option per short or long rest.',
+      availableAtLevel: 3,
+      order: 6,
+      attributes: ['LIMITED_USE'],
+      charges: {
+        id: channelDivinityChargeId,
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'SHORT_REST',
+        amount: 1
+      }
+    },
+    {
       id: classRowId(P, 11, 2),
       label: 'Channel Divinity: Sacred Weapon',
       description:
         'As an action, you can imbue one weapon that you are holding with positive energy, using your Channel Divinity. For 1 minute, you add your Charisma modifier to attack rolls made with that weapon (with a minimum bonus of +1). The weapon also emits bright light in a 20-foot radius and dim light 20 feet beyond that. If the weapon is not already magical, it becomes magical for the duration. You can end this effect on your turn as part of any other action. If you are no longer holding or carrying this weapon, or if you fall unconscious, this effect ends.',
       availableAtLevel: 3,
       order: 1,
+      // The 20-foot light and ending it as part of another action stay description (D156).
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(P, 20, 1),
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
-            resourceUse: { chargeId: classRowId(P, 22, 1), cost: 1 },
+            resourceUse: { chargeId: channelDivinityChargeId, cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             range: { id: classRowId(P, 21, 1), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_OATH_OF_DEVOTION_SACRED_WEAPON
-        })
+          paths: [
+            {
+              id: classRowId(P, 27, 1),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              chosenItem: { category: EQUIPMENT_CATEGORY_CODE.WEAPON },
+              resultBlock: {
+                id: `${classRowId(P, 27, 1)}__result`,
+                resultKind: 'SINGLE',
+                duration: {
+                  id: classRowId(P, 28, 1),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
+                lifecycle: {
+                  endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'],
+                  endOnConditionIds: [conditionTypeId('UNCONSCIOUS')]
+                },
+                outcomes: [
+                  {
+                    id: classRowId(P, 29, 1),
+                    effectKind: EFFECT_KIND.APPLY_GRANT,
+                    bindsChosenItem: true,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: classRowId(P, 31, 1),
+                          grantKind: GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                          domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
+                          modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+                          scope: MODIFIER_SCOPE_KIND.SOURCE,
+                          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { abilities: [ABILITY_CODE.CHARISMA], min: 1 },
+                          order: 1
+                        },
+                        {
+                          id: classRowId(P, 31, 2),
+                          grantKind: GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                          domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
+                          modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+                          scope: MODIFIER_SCOPE_KIND.SOURCE,
+                          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { abilities: [ABILITY_CODE.CHARISMA], min: 1 },
+                          order: 2
+                        },
+                        {
+                          id: classRowId(P, 31, 3),
+                          grantKind: GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+                          domain: { trait: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL },
+                          modifierKind: MODIFIER_KIND.ENABLE,
+                          scope: MODIFIER_SCOPE_KIND.SOURCE,
+                          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                          order: 3
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {
@@ -119,6 +215,7 @@ export const oathOfDevotion: ClassAuthored = {
               dcMethod: 'SOURCE_SAVE_DC',
               abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
             },
+            resourceUse: { chargeId: channelDivinityChargeId, cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
               id: classRowId(P, 21, 2),

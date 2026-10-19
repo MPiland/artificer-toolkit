@@ -1,8 +1,9 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import type { AttackKind } from '@artificer-toolkit/schema/shared/enums'
 import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 
-import { isDnd5eSpellAttackKind } from './attackKind.js'
+import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
 import {
   dnd5eAcceptedModifierApplicability,
   dnd5eCharacterActionTarget,
@@ -87,6 +88,10 @@ export function dnd5eCharacterAttackTraits(input: {
     input.policy.grantFold.modifiers.flatMap((modifier) =>
       modifier.valueDomainCode === 'ATTACK_TRAIT' &&
       modifier.domain.trait !== undefined &&
+      (modifier.domain.attackDomain === undefined ||
+        (input.attackKind !== null &&
+          modifier.domain.attackDomain ===
+            dnd5eAttackModifierDomain(input.attackKind as AttackKind))) &&
       dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
         ? [modifier.domain.trait]
         : []
