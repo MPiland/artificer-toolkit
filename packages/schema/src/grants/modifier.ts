@@ -555,6 +555,18 @@ const buildModifierGrantVariants = () =>
       attackRollRollModeParamDtoSchema,
       rolledDiePayloadDtoSchema
     ),
+    buildModifierGrantVariant(
+      'CRITICAL_HIT_THRESHOLD',
+      'CAP_VALUE',
+      attackDomainParamDtoSchema,
+      z.object({ amount: z.number() })
+    ),
+    buildModifierGrantVariant(
+      'CRITICAL_EXTRA_DICE',
+      'BONUS',
+      attackDomainParamDtoSchema,
+      modifierScalarValueDtoSchema
+    ),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),

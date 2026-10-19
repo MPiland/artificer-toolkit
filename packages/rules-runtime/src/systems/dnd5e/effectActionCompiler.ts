@@ -131,6 +131,10 @@ import {
   damageAddedDieNodePrefix,
   type DamageAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import {
+  attackCriticalRulesDtoSchema,
+  DEFAULT_CRITICAL_HIT_THRESHOLD
+} from '@artificer-toolkit/schema/shared/attackCriticalRules'
 import { dnd5eConcentrationCapabilityContribution } from './concentrationPolicy.js'
 import { dnd5eEncounterLifecycleCapabilityContribution } from './encounterLifecyclePolicy.js'
 import { dnd5eInitiativeCapabilityContribution } from './initiativeFactAdapter.js'
@@ -190,6 +194,10 @@ export const DND5E_SAVE_DC_FACT_KEY = 'dnd5e.save-dc'
 export const DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY = 'dnd5e.roll-contributor-checksum'
 /** The target's condition test-outcome rule (D94): `NONE`, `SAVE_AUTO_FAIL` or `HIT_IS_CRITICAL`. */
 export const DND5E_TEST_OUTCOME_RULE_FACT_KEY = 'dnd5e.test-outcome-rule'
+/** The lowest natural d20 that scores a critical hit with this attack: 20 unless a grant lowers it. */
+export const DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY = 'dnd5e.attack-critical-threshold'
+/** The extra rolls of the attack's own damage die a critical hit adds (Brutal Critical); absent for none. */
+const DND5E_CRITICAL_EXTRA_DICE_FACT_KEY = 'dnd5e.critical-extra-dice'
 export const DND5E_TARGET_STATE_CHECKSUM_FACT_KEY = 'dnd5e.target-state-checksum'
 export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-immune'
 const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
@@ -431,6 +439,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   attackEnemyProximity?: Dnd5eEnemyProximity
   attackTurnUses?: readonly string[]
   damageAddedDice?: readonly DamageAddedDieDto[]
+  criticalExtraDice?: number
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
@@ -473,6 +482,7 @@ function dndScalingFactsFromRuleValues(
     attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
     attackTurnUses: parseTurnUses(facts[DND5E_ATTACK_TURN_USES_FACT_KEY]),
     damageAddedDice: parseDamageAddedDice(facts[DND5E_DAMAGE_ADDED_DICE_FACT_KEY]),
+    criticalExtraDice: positiveInteger(facts[DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -5029,24 +5039,28 @@ function isDnd5eTestOutcomeRule(value: unknown): value is Dnd5eTestOutcomeRule {
 }
 
 /**
- * The D&D test result path. A natural 20 always hits critically and a natural 1 always misses; a
- * target's condition can make a hit critical or a save fail without counting the roll (D94), and an
- * authored automatic success (a poison-immune creature) makes a save succeed without counting it.
+ * The D&D test result path. An attack's roll at or above its critical threshold (a natural 20 unless
+ * a grant lowers it, D158) hits critically whatever the target's defense, and a natural 1 always
+ * misses; a target's condition can make a hit critical or a save fail without counting the roll
+ * (D94), and an authored automatic success (a poison-immune creature) makes a save succeed without
+ * counting it.
  */
-function dnd5eTestResultPath(input: {
-  kind: TestKind
-  naturalD20: number
-  total: number
-  threshold: number
-  outcomeRule: Dnd5eTestOutcomeRule
-}) {
+function dnd5eTestResultPath(
+  input: {
+    naturalD20: number
+    total: number
+    threshold: number
+    outcomeRule: Dnd5eTestOutcomeRule
+  } & ({ kind: 'SAVE' } | { kind: 'ATTACK'; criticalThreshold: number })
+) {
   if (input.kind === 'SAVE')
     return input.outcomeRule === 'SAVE_AUTO_SUCCESS' ||
       (input.outcomeRule !== 'SAVE_AUTO_FAIL' && input.total >= input.threshold)
       ? 'ON_SAVE_SUCCESS'
       : 'ON_SAVE_FAIL'
-  if (input.naturalD20 === 20) return 'ON_CRIT'
-  if (input.naturalD20 === 1 || input.total < input.threshold) return 'ON_MISS'
+  if (input.naturalD20 === 1) return 'ON_MISS'
+  if (input.naturalD20 >= input.criticalThreshold) return 'ON_CRIT'
+  if (input.total < input.threshold) return 'ON_MISS'
   return input.outcomeRule === 'HIT_IS_CRITICAL' ? 'ON_CRIT' : 'ON_HIT'
 }
 
@@ -5058,11 +5072,18 @@ function dnd5eSaveOutcomeRule(
   return rules?.saveAutoFailAbilityIds.includes(abilityDefinitionId) ? 'SAVE_AUTO_FAIL' : 'NONE'
 }
 
+/**
+ * Version 3 adds the test's added dice (D156) after the kept d20; the attack's version 4 adds its
+ * required critical threshold (D158).
+ */
+function testContractVersion(kind: TestKind) {
+  return kind === 'ATTACK' ? 4 : 3
+}
+
 function testOperation(key: string, kind: TestKind): PureRuleOperationContract {
   return {
     key,
-    // Version 3 adds the test's added dice (D156) after the kept d20.
-    contractVersion: 3,
+    contractVersion: testContractVersion(kind),
     executionKind: 'PURE',
     inputs: {
       targetActorId: RULE_VALUE_KIND.TEXT,
@@ -5070,6 +5091,7 @@ function testOperation(key: string, kind: TestKind): PureRuleOperationContract {
       modifier: RULE_VALUE_KIND.NUMBER,
       addedTotal: RULE_VALUE_KIND.NUMBER,
       threshold: RULE_VALUE_KIND.NUMBER,
+      ...(kind === 'ATTACK' ? { criticalThreshold: RULE_VALUE_KIND.NUMBER } : {}),
       contributorChecksum: RULE_VALUE_KIND.TEXT,
       outcomeRule: RULE_VALUE_KIND.TEXT
     },
@@ -5106,7 +5128,27 @@ function testOperation(key: string, kind: TestKind): PureRuleOperationContract {
       const total = naturalD20 + modifier + addedTotal
       if (!Number.isSafeInteger(total))
         throw new Error('D&D test total exceeds safe integer range.')
-      const resultPath = dnd5eTestResultPath({ kind, naturalD20, total, threshold, outcomeRule })
+      const criticalThreshold = inputs.criticalThreshold
+      if (
+        kind === 'ATTACK' &&
+        (typeof criticalThreshold !== 'number' ||
+          !Number.isInteger(criticalThreshold) ||
+          criticalThreshold < 2 ||
+          criticalThreshold > DEFAULT_CRITICAL_HIT_THRESHOLD)
+      )
+        throw new Error('D&D attack resolution requires a critical threshold from 2 to 20.')
+      const resultPath = dnd5eTestResultPath(
+        kind === 'ATTACK'
+          ? {
+              kind,
+              naturalD20,
+              total,
+              threshold,
+              outcomeRule,
+              criticalThreshold: criticalThreshold as number
+            }
+          : { kind, naturalD20, total, threshold, outcomeRule }
+      )
       const contributorChecksum = inputs.contributorChecksum
       if (typeof contributorChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(contributorChecksum))
         throw new Error('D&D test resolution requires contributor evidence checksum.')
@@ -5302,6 +5344,8 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.TEXT
     },
     { key: DND5E_TEST_OUTCOME_RULE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
+    { key: DND5E_CRITICAL_EXTRA_DICE_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
     {
       key: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
       valueKind: RULE_VALUE_KIND.TEXT
@@ -5602,13 +5646,21 @@ function compileTestDefinition(
       dnd5eAddedDiceNode('d20'),
       {
         id: 'test',
-        operation: { key: testOperation, contractVersion: 3 },
+        operation: { key: testOperation, contractVersion: testContractVersion(plan.kind) },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
           addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' },
           modifier: { kind: 'FACT', factKey: modifierFact },
           threshold: { kind: 'FACT', factKey: thresholdFact },
+          ...(plan.kind === 'ATTACK'
+            ? {
+                criticalThreshold: {
+                  kind: 'FACT' as const,
+                  factKey: DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY
+                }
+              }
+            : {}),
           contributorChecksum: {
             kind: 'FACT',
             factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
@@ -5805,13 +5857,21 @@ function compileDnd5eEffectActionTestTemplate({
       dnd5eAddedDiceNode('d20'),
       {
         id: 'test',
-        operation: { key: testOperation, contractVersion: 3 },
+        operation: { key: testOperation, contractVersion: testContractVersion(kind) },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
           addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' },
           modifier: { kind: 'FACT', factKey: modifierFact },
           threshold: { kind: 'FACT', factKey: thresholdFact },
+          ...(kind === 'ATTACK'
+            ? {
+                criticalThreshold: {
+                  kind: 'FACT' as const,
+                  factKey: DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY
+                }
+              }
+            : {}),
           contributorChecksum: {
             kind: 'FACT',
             factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
@@ -7773,13 +7833,20 @@ function testApplications(
     throw new Dnd5eEffectActionCompilerError(
       'The committed D&D test outcome rule does not match D&D policy.'
     )
-  const expectedPath = dnd5eTestResultPath({
-    kind: attack ? 'ATTACK' : 'SAVE',
-    naturalD20,
-    total: naturalD20 + modifier + addedTotal,
-    threshold,
-    outcomeRule
-  })
+  const criticalThreshold = execution.evidence.facts[DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY]
+  if (
+    attack &&
+    (typeof criticalThreshold !== 'number' || testTrace.inputs.criticalThreshold !== criticalThreshold)
+  )
+    throw new Dnd5eEffectActionCompilerError(
+      'The committed D&D attack critical threshold does not match D&D policy.'
+    )
+  const resultInput = { naturalD20, total: naturalD20 + modifier + addedTotal, threshold, outcomeRule }
+  const expectedPath = dnd5eTestResultPath(
+    attack
+      ? { kind: 'ATTACK', ...resultInput, criticalThreshold: criticalThreshold as number }
+      : { kind: 'SAVE', ...resultInput }
+  )
   if (
     modifier !== expectedModifier ||
     threshold !== expectedThreshold ||
