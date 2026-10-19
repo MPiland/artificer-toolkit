@@ -1,10 +1,16 @@
 import type { RemoveAreaTargetInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterActionPendingInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionActionCaptureScope } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
+import {
+  chosenEncounterAttackRetarget,
+  retargetEncounterAction
+} from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readNativeEncounterActionAdmission } from './actionAdmission.js'
 import { readNativeEncounterActionResponseAdmission } from './actionResumeAdmission.js'
 import { rejectDomain } from './domainRejections.js'
+import { readRunActor } from './documents.js'
+import { requireTargetSeenByMember } from './targetVisibility.js'
 import { readAreaRemovalCommitAdmission } from './areaTargetRemoval.js'
 import { readCleavingResponseAdmission } from './cleavingResponseAdmission.js'
 import { readContestAdmission } from './contestAdmission.js'
@@ -62,11 +68,29 @@ export async function readLiveEncounterActionAdmission(
     responseAdmission?.admission ??
     removalAdmission?.admission ??
     (await readNativeEncounterActionAdmission(ctx, input.command, userId))
+  // An answer that turns a ward-stopped action on another creature continues it as that creature's
+  // action: the transaction carries the retargeted command, not the stored root it replaces.
+  const retarget =
+    responseAdmission?.kind === 'READY' &&
+    responseAdmission.pending.context.attackRetarget &&
+    responseAdmission.resolution.kind === 'OPTION'
+      ? chosenEncounterAttackRetarget(responseAdmission.pending.context.attackRetarget, {
+          kind: 'OPTION',
+          optionId: responseAdmission.resolution.optionId
+        })
+      : null
+  const retargeted = retarget ? retargetEncounterAction(admission.input, retarget) : null
+  if (retarget)
+    await requireTargetSeenByMember(ctx, {
+      encounterId: admission.state.id,
+      target: await readRunActor(ctx, admission.state, retarget.targetActorId),
+      membership: admission.membership
+    })
+  const fingerprint = retargeted ? checksumCanonicalJson(retargeted) : admission.fingerprint
   if (
     admission.state.campaignId !== input.campaignId ||
     admission.membership.role !== input.expectedRole ||
-    ((responseAdmission || removal) &&
-      checksumCanonicalJson(input.command) !== admission.fingerprint)
+    ((responseAdmission || removal) && checksumCanonicalJson(input.command) !== fingerprint)
   )
     throw new Error('Live Session Encounter scope mismatch.')
   // A lost response replays before checking the revisions consumed by its transaction.
@@ -87,7 +111,9 @@ export async function readLiveEncounterActionAdmission(
     resume.resolution.requestId !== resume.pending.snapshot.request.requestId
   )
     rejectDomain('VERSION_STALE', 'The action evidence request is stale.')
-  return { ...admission, resume, removal }
+  return retargeted
+    ? { ...admission, input: retargeted, fingerprint, resume, removal }
+    : { ...admission, resume, removal }
 }
 
 /**

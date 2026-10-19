@@ -118,6 +118,18 @@ export function refuseUnmetItemActionRequirements(
     })
 }
 
+/** A `RANDOM` push's ray: the one sealed for its target, else a compass ray rolled once with `roll`. */
+export function randomRay(
+  targetActorId: string,
+  sealedRays: readonly { targetActorId: string; ray: ScenePoint }[] | undefined,
+  roll: (maximum: number) => number
+): ScenePoint {
+  return (
+    sealedRays?.find((sealed) => sealed.targetActorId === targetActorId)?.ray ??
+    SQUARE_GRID_COMPASS_RAYS[roll(SQUARE_GRID_COMPASS_RAYS.length)]!
+  )
+}
+
 /**
  * The forced movements an action's completed outcome on one target settles in its commit, each still
  * without the square its source may pick (D157); one aside stays within the action's reach. A
@@ -126,10 +138,7 @@ export function refuseUnmetItemActionRequirements(
  * creature) is kept, never rerolled.
  */
 export function interpretForcedMovements(
-  prepared: { adapter: Pick<Prepared['adapter'], 'interpretSpatial'> } & Pick<
-    Prepared,
-    'targetPolicy'
-  >,
+  prepared: Pick<Prepared, 'adapter' | 'targetPolicy'>,
   input: {
     execution: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['execution']
     occurrenceId: string
@@ -150,10 +159,7 @@ export function interpretForcedMovements(
       position: null,
       ray:
         direction === 'RANDOM'
-          ? (input.sealedRays?.find((sealed) => sealed.targetActorId === targetActorId)?.ray ??
-            SQUARE_GRID_COMPASS_RAYS[
-              (input.random ?? nextRollInt)(SQUARE_GRID_COMPASS_RAYS.length)
-            ]!)
+          ? randomRay(targetActorId, input.sealedRays, input.random ?? nextRollInt)
           : null,
       collision
     })

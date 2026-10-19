@@ -130,17 +130,24 @@ export const airElemental: CreatureAuthored = {
                     actionEconomy: 'NONE',
                     distanceMode: 'UP_TO',
                     amount: 20,
-                    unit: S.MEASUREMENT_UNIT_CODE.FEET
+                    unit: S.MEASUREMENT_UNIT_CODE.FEET,
+                    collision: {
+                      id: S.actionId(13, 111),
+                      damageTypeId: S.damageTypeId('BLUDGEONING'),
+                      diceConfig: '1d6',
+                      savingThrow: {
+                        id: S.actionId(13, 122),
+                        dcMethod: 'FIXED_DC',
+                        abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
+                        baseDc: 13
+                      },
+                      conditionId: conditionTypeId('PRONE')
+                    }
                   },
                   {
                     id: S.actionId(13, 110),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('PRONE')
-                  },
-                  {
-                    id: S.actionId(13, 111),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION
                   }
                 ]
               }

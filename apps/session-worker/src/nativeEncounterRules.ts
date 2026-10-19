@@ -124,8 +124,19 @@ import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCa
 import {
   buildEncounterActionPendingSnapshot,
   buildEncounterCastReactionPendingSnapshot,
+  buildEncounterAttackRetargetPendingSnapshot,
   buildEncounterIncomingGatePendingSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import {
+  chosenEncounterAttackRetarget,
+  encounterAttackRetargetOffer,
+  openEncounterAttackRetargetChoice,
+  retargetEncounterAction,
+  settleEncounterAttackRetarget,
+  type EncounterAttackRetargetCandidate,
+  type EncounterAttackRetargetSelection
+} from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
+import type { EncounterAttackRetargetOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import {
   withEncounterAppRoll,
   type EncounterEvidenceAnswer
@@ -267,7 +278,6 @@ export async function planNativeLiveEncounterAction(
   if (admission.kind !== 'AREA_REMOVAL' && admission.result)
     return { kind: 'REPLAY' as const, result: admission.result }
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
-  const command = admission.command
   const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
   const areaSnapshot = admission.kind === 'ACTION_COMMAND' ? null : admission.areaSnapshot
   let evidenceResolution: EncounterEvidenceAnswer | null = null
@@ -289,6 +299,10 @@ export async function planNativeLiveEncounterAction(
   } | null = null
   let castAnswer: NativeCastReactionAnswer | null = null
   let gateAnswer: NativeIncomingGateAnswer | null = null
+  let retargetAnswer: {
+    offer: EncounterAttackRetargetOfferDto
+    selection: EncounterAttackRetargetSelection
+  } | null = null
   let onHitAnswer: {
     offer: EncounterOnHitOfferDto
     selection: EncounterOnHitSelection
@@ -321,6 +335,10 @@ export async function planNativeLiveEncounterAction(
       if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
         throw new Error('The action requires a reaction decision.')
       reactionAnswer = { offer: snapshot.applicationContext.reactionChoice, selection: resolution }
+    } else if (snapshot.applicationContext.attackRetarget) {
+      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
+        throw new Error('The action requires a retarget decision.')
+      retargetAnswer = { offer: snapshot.applicationContext.attackRetarget, selection: resolution }
     } else if (snapshot.applicationContext.incomingGate) {
       // The attacker's save against a ward is its own d20: the answer settles it and the action replays.
       if (
@@ -398,6 +416,15 @@ export async function planNativeLiveEncounterAction(
     if (context.contest || snapshot.deferredCleaving || root.optionalCombatIntent != null)
       throw new Error('The pending action is not an ordinary action.')
   }
+  // A creature chosen at a retarget continues the action as that creature's: every later pause and the
+  // terminal commit carry the retargeted command, and the pause that offered it is replaced.
+  const retargetOption = retargetAnswer
+    ? chosenEncounterAttackRetarget(retargetAnswer.offer, retargetAnswer.selection)
+    : null
+  const command = retargetOption
+    ? retargetEncounterAction(admission.command, retargetOption)
+    : admission.command
+  const fingerprint = retargetOption ? checksumCanonicalJson(command) : admission.fingerprint
   const { autoRollByActorId } = admission
   const requireAutoRoll = (actorId: string) => {
     const autoRoll = autoRollByActorId[actorId]
@@ -870,7 +897,7 @@ export async function planNativeLiveEncounterAction(
     const checkInput = {
       scope,
       command,
-      fingerprint: admission.fingerprint,
+      fingerprint,
       capability,
       state,
       system,
@@ -936,7 +963,9 @@ export async function planNativeLiveEncounterAction(
   })
   if (
     snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION' &&
-    snapshot.applicationContext.currentnessChecksum !== currentnessChecksum
+    snapshot.applicationContext.currentnessChecksum !== currentnessChecksum &&
+    // The retargeted action's facts are the new creature's, not the ones the offer was made against.
+    !retargetOption
   )
     throw new Error('The pending action source or target changed.')
   const resume =
@@ -982,32 +1011,43 @@ export async function planNativeLiveEncounterAction(
   const gateOwed =
     prepared.actor.id !== prepared.target.id && (makesAttackRoll || (castsSpell && againstEnemy))
   if (gateAnswer && !gateOwed) throw new Error('The incoming gate is no longer owed.')
-  const gate = gateOwed
-    ? await advanceNativeIncomingGate({
-        runtime: executionOptions.runtime,
-        random: executionOptions.random,
-        gameSystemId: state.gameSystemId,
-        occurrenceId,
-        holderActorId: prepared.target.id,
-        holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? [],
-        attacker: actorTarget,
-        casterSaveDc: async (casterActorId) => {
-          const caster = actors.find((actor) => actor.id === casterActorId)
-          if (!caster) return null
-          const casterTarget = movementTargets.get(caster.id) ?? (await loadTarget(caster))
-          return (
-            casterTarget.effectiveRulePolicyOutput?.derivedStats.spellcasting?.saveDc.effective ??
-            null
-          )
-        },
-        autoRoll: requireAutoRoll(prepared.actor.id),
-        passedEffectId:
-          snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-            ? snapshot.applicationContext.passedIncomingGate
-            : undefined,
-        answer: gateAnswer
-      })
-    : { kind: 'NONE' as const }
+  if (retargetAnswer)
+    await settleEncounterAttackRetarget({
+      runtime: executionOptions.runtime,
+      occurrenceId,
+      gameSystemId: state.gameSystemId,
+      ...retargetAnswer
+    })
+  // Declining the offered retarget loses the action by the save already failed; it is not rolled again.
+  const declinedRetarget = retargetAnswer && !retargetOption ? retargetAnswer.offer.gate : null
+  const gate = declinedRetarget
+    ? { kind: 'FAILED' as const, gate: declinedRetarget }
+    : gateOwed
+      ? await advanceNativeIncomingGate({
+          runtime: executionOptions.runtime,
+          random: executionOptions.random,
+          gameSystemId: state.gameSystemId,
+          occurrenceId,
+          holderActorId: prepared.target.id,
+          holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? [],
+          attacker: actorTarget,
+          casterSaveDc: async (casterActorId) => {
+            const caster = actors.find((actor) => actor.id === casterActorId)
+            if (!caster) return null
+            const casterTarget = movementTargets.get(caster.id) ?? (await loadTarget(caster))
+            return (
+              casterTarget.effectiveRulePolicyOutput?.derivedStats.spellcasting?.saveDc.effective ??
+              null
+            )
+          },
+          autoRoll: requireAutoRoll(prepared.actor.id),
+          passedEffectId:
+            snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+              ? snapshot.applicationContext.passedIncomingGate
+              : undefined,
+          answer: gateAnswer
+        })
+      : { kind: 'NONE' as const }
   /** The ward whose save the attacker has passed, carried by every later pause of this action. */
   const passedIncomingGate =
     gate.kind === 'PASSED'
@@ -1025,7 +1065,7 @@ export async function planNativeLiveEncounterAction(
       snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
         ? snapshot.applicationContext.initiatorUserId
         : initial.expectedUserId,
-    fingerprint: admission.fingerprint,
+    fingerprint,
     occurrenceId,
     occurrenceVersion,
     occurredAt,
@@ -1043,6 +1083,31 @@ export async function planNativeLiveEncounterAction(
     revisions
   })
   if (gate.kind === 'PENDING') return { ...preflight(), ...gate, kind: 'GATE_PENDING' as const }
+  if (gate.kind === 'FAILED' && !declinedRetarget && command.target.kind === 'ACTOR') {
+    // The attacker may turn the lost action on another creature before it is lost.
+    const bindings = command.sceneContext ? await capture({ kind: 'ACTOR_TOKEN_BINDINGS' }) : null
+    if (bindings && bindings.kind !== 'ACTOR_TOKEN_BINDINGS')
+      throw new Error('Retarget bindings are unavailable.')
+    const candidates = actors.flatMap((actor): EncounterAttackRetargetCandidate[] => {
+      if (actor.id === prepared.actor.id || actor.id === prepared.target.id) return []
+      if (!bindings) return [{ actorId: actor.id, tokenId: null }]
+      const binding = bindings.bindings.find((entry) => entry.actorId === actor.id)
+      return binding ? [{ actorId: actor.id, tokenId: binding.tokenId }] : []
+    })
+    if (candidates.length)
+      return {
+        ...preflight(),
+        kind: 'RETARGET_PENDING' as const,
+        continuation: await openEncounterAttackRetargetChoice({
+          runtime: executionOptions.runtime,
+          occurrenceId,
+          gameSystemId: state.gameSystemId,
+          optionCount: candidates.length
+        }),
+        rollerActorId: prepared.actor.id,
+        attackRetarget: encounterAttackRetargetOffer(gate.gate, candidates)
+      }
+  }
   if (gate.kind === 'FAILED')
     return {
       ...preflight(),
@@ -1603,7 +1668,7 @@ export async function planNativeLiveEncounterAction(
     state: nextState,
     autoRollByActorId,
     parentOccurrenceId: occurrenceId,
-    parentCommandFingerprint: admission.fingerprint,
+    parentCommandFingerprint: fingerprint,
     applications: nativeConcentrationDamageApplications(damage, true),
     sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
     occurredAt,
@@ -1718,7 +1783,7 @@ export function buildNativeLiveEncounterActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Extract<
     Awaited<ReturnType<typeof planNativeLiveEncounterAction>>,
-    { kind: 'PENDING' | 'CAST_PENDING' | 'GATE_PENDING' }
+    { kind: 'PENDING' | 'CAST_PENDING' | 'GATE_PENDING' | 'RETARGET_PENDING' }
   >
 ) {
   const pinned = {
@@ -1737,30 +1802,37 @@ export function buildNativeLiveEncounterActionPendingInput(
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     ),
     snapshot:
-      plan.kind === 'GATE_PENDING'
-        ? buildEncounterIncomingGatePendingSnapshot({
+      plan.kind === 'RETARGET_PENDING'
+        ? buildEncounterAttackRetargetPendingSnapshot({
             ...pinned,
             continuation: plan.continuation,
-            incomingGate: plan.incomingGate,
+            attackRetarget: plan.attackRetarget,
             rollerActorId: plan.rollerActorId
           })
-        : plan.kind === 'CAST_PENDING'
-          ? buildEncounterCastReactionPendingSnapshot({
+        : plan.kind === 'GATE_PENDING'
+          ? buildEncounterIncomingGatePendingSnapshot({
               ...pinned,
               continuation: plan.continuation,
-              castReaction: plan.castReaction,
-              rollerActorId: plan.rollerActorId,
-              failedCounters: plan.failedCounters,
-              passedIncomingGate: plan.passedIncomingGate
+              incomingGate: plan.incomingGate,
+              rollerActorId: plan.rollerActorId
             })
-          : buildEncounterActionPendingSnapshot({
-              ...pinned,
-              execution: plan.execution,
-              sourceActorId: plan.prepared.actor.id,
-              targetActorId: plan.prepared.target.id,
-              failedCounters: plan.failedCounters,
-              passedIncomingGate: plan.passedIncomingGate
-            })
+          : plan.kind === 'CAST_PENDING'
+            ? buildEncounterCastReactionPendingSnapshot({
+                ...pinned,
+                continuation: plan.continuation,
+                castReaction: plan.castReaction,
+                rollerActorId: plan.rollerActorId,
+                failedCounters: plan.failedCounters,
+                passedIncomingGate: plan.passedIncomingGate
+              })
+            : buildEncounterActionPendingSnapshot({
+                ...pinned,
+                execution: plan.execution,
+                sourceActorId: plan.prepared.actor.id,
+                targetActorId: plan.prepared.target.id,
+                failedCounters: plan.failedCounters,
+                passedIncomingGate: plan.passedIncomingGate
+              })
   })
 }
 

@@ -29,6 +29,7 @@ const ATTACKER_ID = testUuid(0x930)
 const WARDED_ID = testUuid(0x931)
 const CASTER_ACTOR_ID = testUuid(0x932)
 const CASTER_ID = testUuid(0x933)
+const BYSTANDER_ID = testUuid(0x934)
 /** The save faces (zero-based dice; a player enters one more) that pass any Sanctuary DC and fail it. */
 const SAVE_PASSES = 19
 const SAVE_FAILS = 0
@@ -56,6 +57,8 @@ async function wardedRoom(
     autoRoll?: 'BOTH' | 'PLAYER'
     creature?: typeof attacker
     ownerFeatureId?: string
+    /** The bystander is under the same caster's ward too. */
+    bystanderWarded?: boolean
   } = { rolls: [] }
 ) {
   if (!warding) throw new Error('The SRD Sanctuary has no effect.')
@@ -64,20 +67,24 @@ async function wardedRoom(
     actors: [
       srdCreatureActor({ id: ATTACKER_ID, creature, disposition: 'HOSTILE' }),
       srdCreatureActor({ id: WARDED_ID, creature: plainWolf, disposition: 'FRIENDLY' }),
-      characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID })
+      characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+      srdCreatureActor({ id: BYSTANDER_ID, creature: plainWolf, disposition: 'NEUTRAL' })
     ],
     ownerFeatureId: config.ownerFeatureId ?? creatureFeature(creature, 'Bite').id,
     autoRoll: config.autoRoll ?? 'BOTH',
     rolls: config.rolls,
     fallbackRoll: 0,
     characterSpellcasting: { spells: [fireball], prepared: [fireball.id] },
-    seed: seedModifierGrant({
-      sourceActorId: CASTER_ACTOR_ID,
-      holderActorId: WARDED_ID,
-      lifecycle: {},
-      effect: warding,
-      sourceLabel: sanctuary.label
-    })
+    seed: async (context) => {
+      for (const holderActorId of config.bystanderWarded ? [WARDED_ID, BYSTANDER_ID] : [WARDED_ID])
+        await seedModifierGrant({
+          sourceActorId: CASTER_ACTOR_ID,
+          holderActorId,
+          lifecycle: {},
+          effect: warding,
+          sourceLabel: sanctuary.label
+        })(context)
+    }
   })
 }
 
@@ -106,6 +113,21 @@ async function bite(room: WardedRoom) {
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
+/** The retarget offer a failed save earned the attacker; every other creature is a candidate. */
+async function retargetOffer(room: WardedRoom) {
+  const decision = await readPendingActionDecision(room.room.base.stub)
+  if (decision?.pending.kind !== 'ATTACK_RETARGET_CHOICE')
+    throw new Error(`No retarget is pending (${decision?.pending.kind}).`)
+  return { decision, options: decision.pending.options }
+}
+
+/** Lets the failed save lose the action instead of turning it on another creature. */
+async function declineRetarget(room: WardedRoom) {
+  const { decision } = await retargetOffer(room)
+  const lost = await room.resolve(decision, { kind: 'DECLINE' })
+  expect(lost.type, JSON.stringify(lost)).toBe('COMMAND_COMMITTED')
+}
+
 describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () => {
   it('lets a creature that passes the save attack, and leaves the ward standing', async () => {
     const room = await wardedRoom({ rolls: [SAVE_PASSES, ATTACK_HITS] })
@@ -124,6 +146,7 @@ describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () 
     const before = await standing(room)
 
     await bite(room)
+    await declineRetarget(room)
 
     const after = await standing(room)
     expect(after.wardedHitPoints).toBe(before.wardedHitPoints)
@@ -187,6 +210,7 @@ describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () 
     )
     expect(failed.type, JSON.stringify(failed)).toBe('COMMAND_COMMITTED')
 
+    await declineRetarget(room)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     const after = await standing(room)
     expect(after.wardedHitPoints).toBe(before.wardedHitPoints)
@@ -196,6 +220,7 @@ describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () 
   it('gives the action back when the lost attack is undone', async () => {
     const room = await wardedRoom({ rolls: [SAVE_FAILS, ATTACK_HITS] })
     await bite(room)
+    await declineRetarget(room)
     expect((await standing(room)).gated).toHaveLength(1)
 
     const undone = await room.send({
@@ -225,6 +250,86 @@ describe('Sanctuary gates an attack on the warded creature (SPELLS-4.T2k3)', () 
     const after = await standing(room)
     expect(after.gated).toEqual([])
     expect(after.wardedHitPoints).toBeLessThan(before.wardedHitPoints)
+  })
+})
+
+describe('A failed Sanctuary save offers a new target (SPELLS-4.T2k3b)', () => {
+  it('offers every other creature, never the attacker or the warded one', async () => {
+    const room = await wardedRoom({ rolls: [SAVE_FAILS, ATTACK_HITS] })
+    await bite(room)
+
+    const { options } = await retargetOffer(room)
+    expect(options.map((option) => option.targetActorId).sort()).toEqual(
+      [CASTER_ACTOR_ID, BYSTANDER_ID].sort()
+    )
+    expect((await standing(room)).gated).toEqual([])
+  })
+
+  it('turns the attack on the creature the attacker chooses', async () => {
+    const room = await wardedRoom({ rolls: [SAVE_FAILS, ATTACK_HITS] })
+    const before = await standing(room)
+    const bystanderBefore = readActorHitPoints(before.history, BYSTANDER_ID)
+    await bite(room)
+
+    const { decision, options } = await retargetOffer(room)
+    const turned = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: options.find((option) => option.targetActorId === BYSTANDER_ID)!.optionId
+    })
+    expect(turned.type, JSON.stringify(turned)).toBe('COMMAND_COMMITTED')
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const after = await standing(room)
+    expect(after.gated).toEqual([])
+    expect(after.wardedHitPoints).toBe(before.wardedHitPoints)
+    expect(readActorHitPoints(after.history, BYSTANDER_ID)).toBeLessThan(bystanderBefore)
+  })
+})
+
+describe('A retargeted action meets the new creature’s ward afresh (SPELLS-4.T2k3b)', () => {
+  async function turnOnBystander(room: WardedRoom) {
+    const { decision, options } = await retargetOffer(room)
+    const turned = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: options.find((option) => option.targetActorId === BYSTANDER_ID)!.optionId
+    })
+    expect(turned.type, JSON.stringify(turned)).toBe('COMMAND_COMMITTED')
+  }
+
+  it('lets the retargeted attack land when it passes the second ward', async () => {
+    const room = await wardedRoom({
+      rolls: [SAVE_FAILS, SAVE_PASSES, ATTACK_HITS],
+      bystanderWarded: true
+    })
+    const before = await standing(room)
+    await bite(room)
+
+    await turnOnBystander(room)
+
+    const after = await standing(room)
+    expect(after.gated).toEqual([])
+    expect(readActorHitPoints(after.history, BYSTANDER_ID)).toBeLessThan(
+      readActorHitPoints(before.history, BYSTANDER_ID)
+    )
+  })
+
+  it('offers a new target again when the second ward is failed, and loses the action on a decline', async () => {
+    const room = await wardedRoom({
+      rolls: [SAVE_FAILS, SAVE_FAILS, ATTACK_HITS],
+      bystanderWarded: true
+    })
+    await bite(room)
+    await turnOnBystander(room)
+
+    const { options } = await retargetOffer(room)
+    expect(options.map((option) => option.targetActorId).sort()).toEqual(
+      [CASTER_ACTOR_ID, WARDED_ID].sort()
+    )
+    await declineRetarget(room)
+
+    const { gated } = await standing(room)
+    expect(gated).toHaveLength(1)
+    expect(gated[0]?.gate.holderActorId).toBe(BYSTANDER_ID)
   })
 })
 

@@ -371,6 +371,24 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1)),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
+      /** An attack or spell a ward stopped, whose attacker may turn it on another creature or let it be lost. */
+      z.strictObject({
+        kind: z.literal('ATTACK_RETARGET_CHOICE'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        attackerActorId: uuidSchema,
+        options: z
+          .array(
+            z.strictObject({
+              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+              targetActorId: uuidSchema
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
+      }),
       /** A push whose source chooses the square it leaves one creature on, from the legal ones (D157). */
       z.strictObject({
         kind: z.literal('FORCED_MOVEMENT_DESTINATION'),
