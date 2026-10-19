@@ -883,7 +883,13 @@ describe('a grant that ends when its source is incapacitated (Knight Leadership)
   it('follows its source, not its holder', () => {
     expect(idsOf(sourceBoundGrants(dice))).toEqual(idsOf(dice))
     expect(stateBoundGrants(dice)).toEqual([])
-    expect(grantsEndedByHolderState(dice, { reason: 'DEFEATED', conditionIds: [] })).toEqual([])
+    expect(
+      grantsEndedByHolderState(dice, {
+        reason: 'DEFEATED',
+        conditionIds: [],
+        heldItemInstanceIds: []
+      })
+    ).toEqual([])
   })
 
   it.each([['INCAPACITATED' as const], ['DEFEATED' as const]])(
