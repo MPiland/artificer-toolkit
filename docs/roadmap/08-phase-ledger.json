@@ -10056,7 +10056,25 @@
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Attacker or source qualifiers on grants. Converts PROTECTION_FROM_EVIL_AND_GOOD, HOLY_AURA, DISPEL_EVIL_AND_GOOD, STONESKIN, WIND_WALK, with parity proofs; each kind deleted."
             },
             {
+              "id": "SPELLS-4.T2k1",
               "status": "IN_PROGRESS",
+              "closes": [
+                "SPELLS-4.1"
+              ],
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": [
+                  "SPELLS-4.T1"
+                ]
+              },
+              "text": "Incoming-attack roll modes from existing options: BLUR (ATTACKS_AGAINST with exemptAttackerSenses), TRUE_STRIKE (PATH_TARGET-scoped advantage from the holder’s next turn), ENTHRALL (Perception disadvantage; two clauses MANUAL_ADJUDICATION), with parity proofs; each kind deleted. Split from SPELLS-4.T2k (2026-10-18 ruling)."
+            },
+            {
+              "status": "TODO",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -10067,11 +10085,11 @@
                 "rr": 3,
                 "size": 5,
                 "after": [
-                  "SPELLS-4.T1"
+                  "SPELLS-4.T1",
+                  "SPELLS-4.T2k1"
                 ]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Incoming-attack gates and decoys. Converts SANCTUARY, BLUR, TRUE_STRIKE, MIRROR_IMAGE, ENTHRALL, with parity proofs; each kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "text": "New generic options (D156 T2 split, class B), ruled 2026-10-18: INCOMING_ATTACK_GATE with the ATTACK_RETARGET pause (SANCTUARY) and ATTACK_DECOYS with a lifecycle counter (MIRROR_IMAGE), with parity proofs; each kind deleted. BLUR, TRUE_STRIKE and ENTHRALL split to SPELLS-4.T2k1."
             },
             {
               "status": "TODO",
