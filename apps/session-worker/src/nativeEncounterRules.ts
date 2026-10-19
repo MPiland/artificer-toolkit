@@ -35,6 +35,11 @@ import {
   isEncounterBasicActionId,
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import {
+  attackDecoyFor,
+  decoyIsLast,
+  decoyStruck
+} from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
@@ -580,8 +585,12 @@ export async function planNativeLiveEncounterAction(
     loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId })
   }
   // The attack is prepared again against a target's facts once a reaction has changed them.
-  const prepareAttack = (targets: typeof movementTargets) =>
+  const prepareAttackAs = (
+    targets: typeof movementTargets,
+    attackDecoy: { armorClass: number } | null
+  ) =>
     prepareEncounterActionMechanics({
+      attackDecoy,
       state,
       actor: actors.find((actor) => actor.id === command.actorId)!,
       target: actors.find((actor) => actor.id === targetActorId)!,
@@ -630,7 +639,20 @@ export async function planNativeLiveEncounterAction(
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
-  const prepared = await prepareAttack(movementTargets)
+  const prepareAttack = (targets: typeof movementTargets) => prepareAttackAs(targets, null)
+  const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
+  const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
+  const unshielded = await prepareAttack(movementTargets)
+  // An attack that a decoy of the target intercepts is rolled against the decoy's armor class.
+  const attackDecoy = unshielded.makesAttackRoll
+    ? attackDecoyFor({
+        occurrenceId,
+        effects: activeEffectsByActorId.get(unshielded.target.id) ?? [],
+        scalarValues: unshielded.targetFacts.effectiveScalarValues,
+        abilities: system.abilities
+      })
+    : null
+  const prepared = attackDecoy ? await prepareAttackAs(movementTargets, attackDecoy) : unshielded
   // A spell that takes a list of creatures is not aimed at one.
   if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS')
     throw new LiveSessionDomainRejectionError(422, {
@@ -898,8 +920,6 @@ export async function planNativeLiveEncounterAction(
     snapshot.applicationContext.currentnessChecksum !== currentnessChecksum
   )
     throw new Error('The pending action source or target changed.')
-  const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
-  const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
   const resume =
     responseCommand &&
     evidenceResolution &&
@@ -1320,6 +1340,9 @@ export async function planNativeLiveEncounterAction(
     ),
     resultPath: execution.d20?.resultPath
   })
+  // A hit on a decoy destroys it: the last one ends the effect, any other spends a use of it.
+  const decoyStrike = attackDecoy && decoyStruck(execution.d20?.resultPath) ? attackDecoy : null
+  const spentUseGrants = decoyStrike && !decoyIsLast(decoyStrike) ? [decoyStrike.effect] : []
   // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
   // that end on damage; the conditions only they held are released in the target's own batch.
   const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
@@ -1573,6 +1596,7 @@ export async function planNativeLiveEncounterAction(
     cleaving,
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
+    spentUseGrants,
     failedSpends,
     forcedMovements,
     revisions,
@@ -1580,6 +1604,7 @@ export async function planNativeLiveEncounterAction(
     consumedGrants: [
       ...consumedGrants,
       ...hitEnded.consumedGrants,
+      ...(decoyStrike && decoyIsLast(decoyStrike) ? [decoyStrike.effect] : []),
       ...damageEnded.endedEffects,
       ...(actionEnded?.endedEffects ?? [])
     ]
@@ -1669,6 +1694,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
     consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
+    spentUseGrants: plan.spentUseGrants,
     turnUses: plan.turnUses,
     forcedMovements: plan.forcedMovements
   })

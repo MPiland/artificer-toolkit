@@ -223,7 +223,8 @@ export async function executeNativeActionGraphs(input: {
       execution: first.execution,
       adapter: input.adapter,
       facts: first.bound.facts,
-      testRollMode: requireTestRollMode(d20)
+      testRollMode: requireTestRollMode(d20),
+      absorbedByDecoy: input.binding.absorbedByDecoy
     })
     if (resolution.kind === 'OUTCOME') {
       terminal = await executePhase(resolution.outcome.published, 'OUTCOME')
@@ -1601,7 +1602,9 @@ export async function advanceNativeActionGraphs(input: {
     }
     const reaction = input.reaction
     const reactionCandidates =
-      reaction && (testD20.resultPath === 'ON_HIT' || testD20.resultPath === 'ON_CRIT')
+      reaction &&
+      !input.binding.absorbedByDecoy &&
+      (testD20.resultPath === 'ON_HIT' || testD20.resultPath === 'ON_CRIT')
         ? await reaction.discover(testD20.resultPath === 'ON_CRIT')
         : []
     const [firstReaction] = reactionCandidates
@@ -1628,6 +1631,7 @@ export async function advanceNativeActionGraphs(input: {
     }
     if (
       input.onHitCandidates?.length &&
+      !input.binding.absorbedByDecoy &&
       isHitPath(testD20.resultPath) &&
       twoPhase?.phase === 'TEST'
     )
@@ -1648,7 +1652,8 @@ export async function advanceNativeActionGraphs(input: {
       execution: result,
       adapter: input.adapter,
       facts: initialBound.facts,
-      testRollMode: requireTestRollMode(testD20)
+      testRollMode: requireTestRollMode(testD20),
+      absorbedByDecoy: input.binding.absorbedByDecoy
     })
     if (outcome.kind === 'TEST_ONLY')
       return actionComplete({

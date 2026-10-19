@@ -262,7 +262,7 @@ const attackDecoyThresholdDtoSchema = lazySchema(() =>
 )
 
 /** Decoys an attack against the holder may target instead: their armor class and roll thresholds. */
-const attackDecoysPayloadDtoSchema = lazySchema(() =>
+export const attackDecoysPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
     armorClass: armorClassFormulaPayloadDtoSchema,
     thresholds: authoredNestedCollectionSchema(attackDecoyThresholdDtoSchema)
