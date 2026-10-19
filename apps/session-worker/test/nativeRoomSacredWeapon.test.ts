@@ -158,17 +158,17 @@ describe('room Sacred Weapon (SPELLS-31.T4e)', () => {
   }, 120000)
 
   it('adds the Charisma modifier on top of the Strength modifier', async () => {
-    const plain = await clubAttackOnGargoyle((await paladinRoom(undefined, { CHARISMA: 16 })).room)
+    const plain = await clubAttackOnGargoyle((await paladinRoom(undefined, { CHARISMA: 15 })).room)
 
-    const { room } = await paladinRoom(undefined, { CHARISMA: 16 })
+    const { room } = await paladinRoom(undefined, { CHARISMA: 15 })
     await imbueClub(room)
     await room.advanceTurn()
     await room.advanceTurn()
     await room.advanceTurn()
     const imbued = await clubAttackOnGargoyle(room)
 
-    // Strength 15 is +2 either way; Charisma 16 adds its +3 (not the larger of the two).
-    expect(imbued.modifier).toBe(plain.modifier + 3)
+    // Strength 15 is +2 either way; Charisma 15 adds its +2 on top (the larger of the two would add 0).
+    expect(imbued.modifier).toBe(plain.modifier + 2)
   }, 120000)
 
   it('ends when the Paladin falls unconscious', async () => {

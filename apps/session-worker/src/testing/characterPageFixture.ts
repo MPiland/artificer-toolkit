@@ -178,7 +178,7 @@ export interface CharacterPlayOverrides {
   characterClass?: ClassAuthored
   /** The Character's Class level (default 1); each level after the first adds 7 fixed hit points and a hit die. */
   classLevel?: number
-  /** Ability scores that replace the captured assignments (default Strength 15, Charisma 8), by ability code. */
+  /** Ability scores (8 to 15, a standard-array option) that replace the captured assignments (default Strength 15, Charisma 8), by ability code. */
   abilityScores?: Readonly<Record<string, number>>
   /** Sheet conditions the Character already carries. */
   conditions?: { conditionTypeId: string; label: string }[]
