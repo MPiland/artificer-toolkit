@@ -3960,7 +3960,8 @@ function validateDiceOutcomeGroup(
         (dice) =>
           dice !== undefined &&
           !/^[1-9]\d*$/.test(dice) &&
-          parseBoundedDiceConfiguration(dice).terms[0]!.count > 15
+          // A critical hit doubles the dice and Brutal Critical adds up to 3 (31 dice at most).
+          parseBoundedDiceConfiguration(dice).terms[0]!.count > 14
       )
     )
       unsupported('D&D critical dice exceed the bounded exact-dice contract.')
@@ -6070,14 +6071,30 @@ function isCriticalHitDamage(
   )
 }
 
+/** A critical hit's dice change for an entry: doubled, plus the attack's extra dice (D158). */
+function criticalHitDice(
+  selectedPath: SpecializedPath,
+  entry: CompiledEffectGroup['entries'][number],
+  facts: Dnd5eEffectScalingFacts
+): { extraDice: number } | undefined {
+  return isCriticalHitDamage(selectedPath, entry)
+    ? { extraDice: facts.criticalExtraDice ?? 0 }
+    : undefined
+}
+
 type BoundedDiceTerm = ReturnType<typeof parseBoundedDiceConfiguration>['terms'][number]
 
-/** The one exact dice term a graph can roll, doubled for a critical hit, with the flat modifier it carries. */
-function boundedDiceTerm(diceConfig: string, critical?: boolean) {
+/**
+ * The one exact dice term a graph can roll, doubled for a critical hit plus the extra dice the
+ * attack's critical rules add (D158), with the flat modifier it carries.
+ */
+function boundedDiceTerm(diceConfig: string, critical?: { extraDice: number }) {
   const parsed = parseBoundedDiceConfiguration(diceConfig)
   const authoredTerm = parsed.terms[0]
   if (!authoredTerm) unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
-  const term = critical ? { ...authoredTerm, count: authoredTerm.count * 2 } : authoredTerm
+  const term = critical
+    ? { ...authoredTerm, count: authoredTerm.count * 2 + critical.extraDice }
+    : authoredTerm
   if (
     term.reroll ||
     term.selection ||
@@ -6154,8 +6171,8 @@ function diceGraphDefinition(input: {
   action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
   diceConfig: string
-  /** Roll the dice twice for a critical hit; the modifier is still added once. */
-  critical?: boolean
+  /** Roll the dice twice plus the extra dice for a critical hit; the modifier is still added once. */
+  critical?: { extraDice: number }
   modifierFactKey?: string
   nodePrefix?: string
   recurring?: Pick<CharacterRuleActionActiveEffectPlan, 'compiledEntryId' | 'frozenGraphNodeId'>
@@ -7019,6 +7036,8 @@ function withDamageAddedDice(input: {
     return input.definitions
   const joined = primaryEntry.outcome
   const critical = isCriticalHitDamage(input.selectedPath, primaryEntry)
+    ? { extraDice: 0 }
+    : undefined
   const term = (die: DamageAddedDieDto) =>
     boundedDiceTerm(`${die.count}d${die.faces}`, critical).term
   const added = input.dice.flatMap((die, index) =>
@@ -7138,7 +7157,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
         action: input.action,
         entry: primaryDamageEntry,
         diceConfig: primaryDiceConfiguration,
-        critical: isCriticalHitDamage(input.selectedPath, primaryDamageEntry),
+        critical: criticalHitDice(input.selectedPath, primaryDamageEntry, input.facts),
         ...nodePrefix
       })
     })
@@ -7258,7 +7277,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
               : outcome.kind === 'DICE_SCALAR_REDUCTION'
                 ? outcome.diceConfig
                 : compiledDiceConfiguration(entry),
-          critical: isCriticalHitDamage(input.selectedPath, entry),
+          critical: criticalHitDice(input.selectedPath, entry, input.facts),
           ...(outcome.kind === 'DICE_HEAL'
             ? { modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY }
             : {}),
@@ -7902,12 +7921,18 @@ function testApplications(
   const criticalThreshold = execution.evidence.facts[DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY]
   if (
     attack &&
-    (typeof criticalThreshold !== 'number' || testTrace.inputs.criticalThreshold !== criticalThreshold)
+    (typeof criticalThreshold !== 'number' ||
+      testTrace.inputs.criticalThreshold !== criticalThreshold)
   )
     throw new Dnd5eEffectActionCompilerError(
       'The committed D&D attack critical threshold does not match D&D policy.'
     )
-  const resultInput = { naturalD20, total: naturalD20 + modifier + addedTotal, threshold, outcomeRule }
+  const resultInput = {
+    naturalD20,
+    total: naturalD20 + modifier + addedTotal,
+    threshold,
+    outcomeRule
+  }
   const expectedPath = dnd5eTestResultPath(
     attack
       ? { kind: 'ATTACK', ...resultInput, criticalThreshold: criticalThreshold as number }
@@ -9904,10 +9929,20 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         | Dnd5eEnemyProximity
         | undefined
       const turnUses = sourceDerivedFacts.attackTurnUses as readonly string[] | undefined
+      const criticalRules = attackCriticalRulesDtoSchema.parse(
+        sourceDerivedFacts.attackCriticalRules ?? {
+          threshold: DEFAULT_CRITICAL_HIT_THRESHOLD,
+          extraDice: 0
+        }
+      )
       return {
         facts: {
           ...baseFacts,
           ...dnd5eAddedDiceFacts(addedDice),
+          [DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY]: criticalRules.threshold,
+          ...(criticalRules.extraDice > 0
+            ? { [DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]: criticalRules.extraDice }
+            : {}),
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
           ...(typeof targetDerivedFacts.creatureTypeId === 'string'

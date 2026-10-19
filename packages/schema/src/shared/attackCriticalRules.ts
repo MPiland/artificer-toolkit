@@ -12,7 +12,11 @@ export const DEFAULT_CRITICAL_HIT_THRESHOLD = 20
  */
 export const attackCriticalRulesDtoSchema = lazySchema(() =>
   z.strictObject({
-    threshold: z.number().check(z.int()).check(z.gte(2)).check(z.lte(DEFAULT_CRITICAL_HIT_THRESHOLD)),
+    threshold: z
+      .number()
+      .check(z.int())
+      .check(z.gte(2))
+      .check(z.lte(DEFAULT_CRITICAL_HIT_THRESHOLD)),
     extraDice: z.number().check(z.int()).check(z.gte(0)).check(z.lte(MAX_ROLLED_DIE_COUNT))
   })
 )
