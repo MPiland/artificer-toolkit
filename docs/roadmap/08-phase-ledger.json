@@ -12175,6 +12175,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
+              "id": "SPELLS-33.T6e4",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["SPELLS-33.T6e"]
+              },
+              "text": "Bug: damage from the turn-zone, melee-retaliation and occupant-aura roots does not end the target's \"until it takes damage\" effects, so Sleep or Hypnotic Pattern survive Spirit Guardians or Fire Shield damage. Wire targetEndedEffects into each root's plan, evidence and persistence checksum, with a regression test per root that fails before the fix (split from SPELLS-33.T6e; workbook slice-spells-33.md)."
+            },
+            {
               "id": "SPELLS-33.T6e3",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
