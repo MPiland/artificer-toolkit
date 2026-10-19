@@ -98,7 +98,8 @@ const playerHold = validated(encounterHeldRelationshipDtoSchema)({
   sourceActorId: playerCharacter!.id,
   heldActorId: vaultWarden!.id,
   activeEffectId: '00000000-0000-4000-8000-000000000e31',
-  label: `Release ${vaultWarden!.label}`
+  label: `Release ${vaultWarden!.label}`,
+  drag: null
 })
 
 /** On the held creature's own turn, the player's Character lets go of it for no action (D152). */

@@ -14,11 +14,16 @@ export function evaluateDnd5e2014CharacterActions(
   const parsedInput = characterActionModelInputSchema.parse(input)
   const actionDecisions = parsedInput.candidates.map((candidate) => {
     const resourceUse = candidate.resourceUse
+    const sourceActive = parsedInput.activeSourceIds.includes(candidate.sourceId)
+    const equipmentActive =
+      candidate.equipment !== null &&
+      parsedInput.activeEquipmentInstanceIds.includes(candidate.equipment.itemInstanceId)
     const sourceAvailable =
-      candidate.activationSourceKind === 'ACTIVE_EQUIPMENT'
-        ? candidate.equipment !== null &&
-          parsedInput.activeEquipmentInstanceIds.includes(candidate.equipment.itemInstanceId)
-        : parsedInput.activeSourceIds.includes(candidate.sourceId)
+      candidate.activationSourceKind === 'ACTIVE_SOURCE'
+        ? sourceActive
+        : candidate.activationSourceKind === 'ACTIVE_EQUIPMENT'
+          ? equipmentActive
+          : sourceActive && equipmentActive
     const resource =
       resourceUse === null || resourceUse.poolId === null
         ? null

@@ -710,7 +710,8 @@ function isSupportedTestActivation(
 
 /**
  * An AREA_CONTENTS action over a fixed-size area: a save action, or a hit-point pool action (Sleep)
- * that rolls a pool, tests no one and may filter by creature type. Either a sphere, cylinder, circle or cube
+ * that rolls a pool and tests no one. Either may filter by creature type: the area still catches a
+ * creature of a type it has no effect on, which takes no save. Either a sphere, cylinder, circle or cube
  * centered on a point within a distance (or unlimited), or a cone, line or cube that extends from
  * the caster (a Self range). Walls, domes, a Self sphere, Touch origins and breakpoint-scaled sizes
  * stay refused. The area only decides who is caught: each caught creature runs the same
@@ -729,9 +730,10 @@ function isSupportedArea(
     (pooled
       ? invocation.triggerCode !== 'ACTIVATED' ||
         !hitPointPoolDiceOptions(targeting).every(isBoundedDice)
-      : targeting.allowedCreatureTypeIds?.length ||
-        targeting.excludedCreatureTypeIds?.length ||
-        invocation.triggerCode !== 'SAVING_THROW') ||
+      : invocation.triggerCode !== 'SAVING_THROW') ||
+    // A zone's later entry saves do not filter by creature type, so its appear save may not either.
+    (overZone &&
+      (targeting.allowedCreatureTypeIds?.length || targeting.excludedCreatureTypeIds?.length)) ||
     invocation.activation.code !== 'ACTION' ||
     invocation.activation.amount !== 1
   )
@@ -792,7 +794,8 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
   // A resolved list of chosen creatures runs the same test on each. A save list (Acid Splash) tests
   // each creature once: a creature named again would save twice, so a repeating save list is
   // refused. An attack list (Scorching Ray) is one roll per ray, so it may aim several rays at one
-  // creature, and it has no area.
+  // creature; one that names each creature once may be bounded by a round area at a point
+  // (Volley, D156), which a repeating list is not.
   if (targeting?.selectionKind === 'CHOSEN_CREATURES') {
     const attacks = dnd5eAttackKind(invocation.triggerCode) !== null
     if (
@@ -801,7 +804,7 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
         (targeting.allowRepeatedTargets === true || invocation.triggerCode !== 'SAVING_THROW')) ||
       !chosenCreaturesListResolves(targeting) ||
       (invocation.shape !== undefined &&
-        (attacks ||
+        (targeting.allowRepeatedTargets === true ||
           !chosenCreaturesAreaSupported(invocation.range.rangeKind, invocation.shape.shapeKind)))
     )
       return false

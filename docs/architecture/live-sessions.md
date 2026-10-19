@@ -385,7 +385,11 @@ version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result 
   with the held creature's name hidden from a player unless it is public
   (`readEncounterHeldRelationships`). It reads on any turn, and the turn-order drawer lists them under
   Holding with a Release that sends `RELEASE_RELATIONSHIP` for the hold's source (D152). The current actor's
-  action choices carry the same holds as `releases`.
+  action choices carry the same holds as `releases`. A `TARGET_DRAGGED` hold also carries
+  `drag: { doublesCost }` (null for a hold that does not drag), decided by `encounterDragDoublesCost`
+  from the source's and the held creature's sizes at read time, the same rule settlement uses; the Scene's
+  route preview doubles a dragging grappler's priced route with it (D105). A size that changes mid-hold
+  can leave the preview stale until the next read; settlement recomputes the cost.
 - `ACTION_TARGET_MODIFIERS { encounterId, actorId, actionId, scene }` answers ATTACK-17.2's hover readout
   ([encounterActionTargetModifiers.ts](../../packages/schema/src/api/encounterActionTargetModifiers.ts),
   [actionTargetModifierReads.ts](../../packages/encounter-persistence/src/actionTargetModifierReads.ts)). For

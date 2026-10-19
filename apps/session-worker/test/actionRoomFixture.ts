@@ -21,6 +21,28 @@ import { readPendingActionDecision } from './roomHistoryReads.js'
 /** Which roll a Bite resolves with: the target's Dexterity save (DC 10) or the source's attack d20. */
 export type BiteKind = 'SAVE' | 'ATTACK'
 
+/** A version-keyed read the room answers on `reader`'s socket. */
+export async function readRoomEncounter<Kind extends EncounterReadDto['kind']>(
+  reader: Pick<Awaited<ReturnType<typeof connectPlayer>>, 'messages' | 'socket'>,
+  read: Extract<EncounterReadDto, { kind: Kind }>
+) {
+  const requestId = crypto.randomUUID()
+  const first = reader.messages.length
+  reader.socket.send(JSON.stringify({ type: 'ENCOUNTER_READ', requestId, read }))
+  const answer = await vi.waitFor(() => {
+    const found = reader.messages
+      .slice(first)
+      .find(
+        (message) => message.type === 'ENCOUNTER_READ_RESULT' && message.requestId === requestId
+      )
+    if (found?.type !== 'ENCOUNTER_READ_RESULT')
+      throw new Error('The room has not answered the read.')
+    return found
+  }, ROOM_REPLY_WAIT)
+  if (answer.result.kind !== read.kind) throw new Error(`Expected the ${read.kind} answer.`)
+  return answer.result.result as Extract<EncounterReadResultDto, { kind: Kind }>['result']
+}
+
 /**
  * The SRD Wolf with its Bite rewritten to `damage` (one point) that needs a roll: on a failed save
  * (DC 10, Dexterity unless `save` says otherwise) or on a hit (attack d20 + 4), within `reachFeet` or at any range. The rest of the stat block stays the SRD's.
@@ -444,30 +466,9 @@ export async function actionRoom(config: ActionRoomConfig) {
     )
   })
 
-  /** A version-keyed read the room answers on the GM's socket, or on `reader`'s. */
-  async function readRoom<Kind extends EncounterReadDto['kind']>(
-    read: Extract<EncounterReadDto, { kind: Kind }>,
-    reader: Pick<typeof room.base, 'messages' | 'socket'> = room.base
-  ) {
-    const requestId = crypto.randomUUID()
-    const first = reader.messages.length
-    reader.socket.send(JSON.stringify({ type: 'ENCOUNTER_READ', requestId, read }))
-    const answer = await vi.waitFor(() => {
-      const found = reader.messages
-        .slice(first)
-        .find(
-          (message) => message.type === 'ENCOUNTER_READ_RESULT' && message.requestId === requestId
-        )
-      if (found?.type !== 'ENCOUNTER_READ_RESULT')
-        throw new Error('The room has not answered the read.')
-      return found
-    }, ROOM_REPLY_WAIT)
-    if (answer.result.kind !== read.kind) throw new Error(`Expected the ${read.kind} answer.`)
-    return answer.result.result as Extract<EncounterReadResultDto, { kind: Kind }>['result']
-  }
   /** The actions the room offers the acting actor, or `actorId` on its own turn, as the GM reads them. */
   async function actionChoices(actorId = source.id) {
-    const choices = await readRoom({
+    const choices = await readRoomEncounter(room.base, {
       kind: 'ACTION_CHOICES',
       input: { encounterId: room.encounterId, actorId }
     })
@@ -540,19 +541,19 @@ export async function actionRoom(config: ActionRoomConfig) {
     actionChoices,
     /** The actions the room offers `actorId`, as a player's socket reads them. */
     async actionChoicesAsPlayer(actorId: string) {
-      const choices = await readRoom(
-        { kind: 'ACTION_CHOICES', input: { encounterId: room.encounterId, actorId } },
-        await connectPlayer(room.base)
-      )
+      const choices = await readRoomEncounter(await connectPlayer(room.base), {
+        kind: 'ACTION_CHOICES',
+        input: { encounterId: room.encounterId, actorId }
+      })
       if (!choices) throw new Error('The room offers the player no action choices.')
       return choices
     },
     /** The holds the room offers to release on any turn, as the GM or, with `asPlayer`, a player reads them. */
     async heldRelationships(asPlayer = false) {
-      return readRoom(
-        { kind: 'HELD_RELATIONSHIPS', input: { encounterId: room.encounterId } },
-        asPlayer ? await connectPlayer(room.base) : room.base
-      )
+      return readRoomEncounter(asPlayer ? await connectPlayer(room.base) : room.base, {
+        kind: 'HELD_RELATIONSHIPS',
+        input: { encounterId: room.encounterId }
+      })
     },
     /** The Scene context of the acting actor's token and the token of the actor at `targetIndex`. */
     sceneContext(targetIndex = 1) {
@@ -762,7 +763,7 @@ export async function actionRoom(config: ActionRoomConfig) {
       definitionId: string,
       sceneContext: ResolveEncounterActionInputDto['sceneContext'] = null
     ) {
-      return readRoom({
+      return readRoomEncounter(room.base, {
         kind: 'OPTIONAL_ACTION_CHOICES',
         input: {
           encounterId: room.encounterId,
@@ -776,7 +777,7 @@ export async function actionRoom(config: ActionRoomConfig) {
     },
     /** What each creature would add to the acting actor's attack with its action, off the Scene. */
     async actionTargetModifiers() {
-      return readRoom({
+      return readRoomEncounter(room.base, {
         kind: 'ACTION_TARGET_MODIFIERS',
         input: { encounterId: room.encounterId, actorId: source.id, actionId, scene: null }
       })
