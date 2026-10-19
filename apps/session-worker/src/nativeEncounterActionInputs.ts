@@ -135,7 +135,7 @@ export function interpretForcedMovements(
   }
 ): LiveSessionForcedMovement[] {
   return (prepared.adapter.interpretSpatial?.(input) ?? []).map(
-    ({ targetActorId, direction, feet, upTo }) => ({
+    ({ targetActorId, direction, feet, upTo, collision }) => ({
       targetActorId,
       direction,
       feet,
@@ -148,7 +148,8 @@ export function interpretForcedMovements(
           ? SQUARE_GRID_COMPASS_RAYS[
               (input.random ?? nextRollInt)(SQUARE_GRID_COMPASS_RAYS.length)
             ]!
-          : null
+          : null,
+      collision
     })
   )
 }

@@ -460,7 +460,22 @@ export interface CharacterRuleActionSpatialDirective {
   feet: number
   /** The target moves at most `feet`, its source choosing how far (D157). */
   upTo: boolean
+  /** What the move does where it strikes an object or a creature (D159); null for a move that does nothing there. */
+  collision: CharacterRuleActionForcedMovementCollision | null
   targetStateChecksum: string
+}
+
+/**
+ * The collision an authored forced movement carries (D159): the mover takes `diceConfig` of
+ * `damageTypeId` for every full 10 feet it travelled, and a creature it strikes makes the
+ * `abilityDefinitionId` save against `dc` or takes the same damage and `conditionId`.
+ */
+export type CharacterRuleActionForcedMovementCollision = {
+  diceConfig: string
+  damageTypeId: string
+  abilityDefinitionId: string
+  dc: number
+  conditionId: string
 }
 
 export type CharacterRuleActionForcedMovementDirection = ForcedMovementDirection

@@ -1062,7 +1062,10 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
   passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
   collision itself is not resolved yet: the Whirlwind keeps its closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION`
-  kind until T6k2b.
+  kind until T6k2b2. T6k2b1 adds the authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
+  creature save, a condition). It rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
+  echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; nothing at runtime reads it yet, and a
+  collision the System cannot settle (non-fixed-DC save, bonuses, non-UUID id, bad dice) fails closed.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;
   legendary and reaction actions still refuse spatial directives; an area pick after a GM removal, on an area with no

@@ -51,7 +51,7 @@ import {
   encounterRuleWarningsDtoSchema,
   type EncounterRuleWarningDto
 } from '../shared/encounterRuleWarnings.js'
-import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
@@ -125,6 +125,17 @@ const liveSessionFailedCountersSchema = lazySchema(() =>
  * the straight line, aside within its reach, or in any direction, by an exact or up-to distance. The
  * room settles it on the Encounter's Scene in the commit, at `position` when its source chose one.
  */
+export type LiveSessionForcedMovementCollision = {
+  /** The damage dice for each full 10 feet travelled, such as `1d6`. */
+  diceConfig: string
+  damageTypeId: string
+  /** The ability of the save a struck creature makes against `dc`. */
+  abilityDefinitionId: string
+  dc: number
+  /** The condition a struck creature that fails the save is left with. */
+  conditionId: string
+}
+
 export type LiveSessionForcedMovement = {
   targetActorId: string
   direction: ForcedMovementDirection
@@ -135,6 +146,8 @@ export type LiveSessionForcedMovement = {
   position: SpatialPointDto | null
   /** The line a `RANDOM` move follows, rolled once when the action was planned; null for every other direction. */
   ray: SpatialPointDto | null
+  /** What the move does where it strikes an object or a creature (D159); null for a move that does nothing there. */
+  collision: LiveSessionForcedMovementCollision | null
 }
 
 export const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[]> =
@@ -148,7 +161,16 @@ export const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMo
           upTo: z.boolean(),
           sourceReachFeet: z.nullable(z.number().check(z.nonnegative())),
           position: z.nullable(spatialPointDtoSchema),
-          ray: z.nullable(spatialPointDtoSchema)
+          ray: z.nullable(spatialPointDtoSchema),
+          collision: z.nullable(
+            z.strictObject({
+              diceConfig: authoredIdentifierSchema,
+              damageTypeId: postgresUuidSchema,
+              abilityDefinitionId: postgresUuidSchema,
+              dc: z.number().check(z.int()),
+              conditionId: postgresUuidSchema
+            })
+          )
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
