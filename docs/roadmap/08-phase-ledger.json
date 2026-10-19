@@ -11309,7 +11309,7 @@
             },
             {
               "id": "SPELLS-31.T5l",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11319,7 +11319,7 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2a3"]
               },
               "text": "New option (ruling at start): per-target immunity after a save or use; Intimidating Presence, Chains of Carceri. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m149 (097b1e01c)."
             },
             {
               "id": "SPELLS-31.T5m",
