@@ -15,11 +15,11 @@ export type NativeReaction<Candidate, Spend = Prepared> = {
   economy: NonNullable<Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['economy']>
 }
 
-/** The reaction a Character holds and can afford now, as the offer will seal it. */
+/** The reaction a Character or creature holds and can afford now, as the offer will seal it. */
 export function nativeReactionCandidate<Trigger extends string>(input: {
   trigger: Trigger
   reactorActorId: string
-  source: Extract<Prepared['source'], { kind: 'CHARACTER_ACTION' }>
+  source: Extract<Prepared['source'], { kind: 'CHARACTER_ACTION' | 'CREATURE' }>
   actionId: string
   consumption: Pick<
     NativeReaction<unknown>['economy']['consumption'],
@@ -31,10 +31,14 @@ export function nativeReactionCandidate<Trigger extends string>(input: {
   return {
     trigger: input.trigger,
     reactorActorId: input.reactorActorId,
-    characterId: source.characterId,
-    characterStreamVersion: source.characterStreamVersion,
+    ...(source.kind === 'CHARACTER_ACTION'
+      ? {
+          characterId: source.characterId,
+          characterStreamVersion: source.characterStreamVersion,
+          effectId: source.candidate.effectId
+        }
+      : { characterId: null, characterStreamVersion: null, effectId: source.capability.effectId }),
     actionId: input.actionId,
-    effectId: source.candidate.effectId,
     allowance: {
       definitionId: consumption.definitionId,
       beforeUsed: consumption.beforeUsed,

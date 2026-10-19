@@ -123,18 +123,7 @@ export const gladiator: CreatureAuthored = {
       label: 'Parry',
       description:
         'Parry. The gladiator adds 3 to its AC against one melee attack that would hit it. To do so, the gladiator must see the attacker and be wielding a melee weapon.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.reactionId(143, 101),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.REACTION, amount: 1 },
-            range: { id: S.reactionId(143, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PARRY
-        })
-      ],
+      effects: [S.parryReaction(143, 101, 3)],
       order: 6
     }
   ]

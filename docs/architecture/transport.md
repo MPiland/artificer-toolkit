@@ -393,7 +393,7 @@ Forced-movement destinations (D157): an action whose push has two or more legal 
 `position`); a square the summary did not offer is rejected and the pick stays open. An area action's pushes surface
 the same summary once every save settled, one creature at a time, farthest first, its `requestId` naming the creature;
 only the GM and the caster's controllers read it. The commit's
-`LiveSessionForcedMovement` carries `collision` (the authored collision, or null; T6k2b1, unread until T6k2b2), `upTo`, `sourceReachFeet` (set only for `ASIDE`), the picked `position` and, for
+`LiveSessionForcedMovement` carries `collision` (the authored collision, or null; T6k2b1; its mover damage is settled in T6k2b3 as commit entries after the caught creatures'), `upTo`, `sourceReachFeet` (set only for `ASIDE`), the picked `position` and, for
 `RANDOM`, the unit compass `ray` the server rolled at plan time (null otherwise). Each committed `RESOLVE_ACTION`
 command records `forcedMovementLandings`, one per moved creature, farthest first: `{targetActorId, feet, stoppedBy,
 ray}` with `stoppedBy` `NONE`, `OBJECT` or the struck creature's actor ID (`encounterForcedMovementLandingSchema`).

@@ -1,4 +1,4 @@
-import type { ChargeLimitPayload } from '#authored'
+import type { ChargeLimitPayload, SavingThrowAuthored } from '#authored'
 import type {
   AbilityCode,
   AbilityModifierReference,
@@ -274,6 +274,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   ATTACK_DECOYS: [MODIFIER_KIND.ENABLE],
 
+  INCOMING_ATTACK_GATE: [MODIFIER_KIND.ENABLE],
+
   SKILL_MODIFIER: [
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
@@ -413,6 +415,7 @@ export type ModifierValueDomainOptionPayloadByDomain = {
 export const MODIFIER_VALUE_SOURCE_CODE = {
   FIXED: 'FIXED',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
+  ABILITY_MODIFIER: 'ABILITY_MODIFIER',
   SKILL_BONUS: 'SKILL_BONUS',
   CHARACTER_LEVEL: 'CHARACTER_LEVEL',
   CLASS_LEVEL: 'CLASS_LEVEL',
@@ -437,6 +440,12 @@ export const MODIFIER_VALUE_SOURCE_REGISTRY: Record<
     code: MODIFIER_VALUE_SOURCE_CODE.PROFICIENCY_BONUS,
     label: 'Proficiency Bonus',
     description: 'Automatically scales with character level.'
+  },
+
+  ABILITY_MODIFIER: {
+    code: MODIFIER_VALUE_SOURCE_CODE.ABILITY_MODIFIER,
+    label: 'Ability Modifier',
+    description: 'Adds an ability modifier, optionally scaled and bounded.'
   },
 
   SKILL_BONUS: {
@@ -475,6 +484,13 @@ export const MODIFIER_VALUE_SOURCE_OPTIONS = valuesOf(
 export type ModifierScalarValueAuthored =
   | { valueKind: 'FIXED'; amount: number }
   | { valueKind: 'PROFICIENCY_BONUS'; multiplier?: number }
+  | {
+      valueKind: 'ABILITY_MODIFIER'
+      ability: AbilityCode
+      multiplier?: number
+      min?: number
+      max?: number
+    }
   | { valueKind: 'SKILL_BONUS'; skillId: string; multiplier?: number }
   | { valueKind: 'CHARACTER_LEVEL'; multiplier?: number }
   | { valueKind: 'CLASS_LEVEL'; classId: string; multiplier?: number }
@@ -578,12 +594,20 @@ export type ModifierAttackDecoysAuthored = {
   thresholds: { id: string; remaining: number; minimumRoll: number }[]
 }
 
+/**
+ * While held, a creature that targets the holder with a single-target attack or harmful spell must
+ * first make this save against the holder's source; on a failure the attack or spell is lost.
+ */
+export type ModifierIncomingAttackGateAuthored = { savingThrow: SavingThrowAuthored }
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
   K extends 'ENABLE'
     ? V extends 'ATTACK_DECOYS'
       ? ModifierAttackDecoysAuthored
-      : undefined
+      : V extends 'INCOMING_ATTACK_GATE'
+        ? ModifierIncomingAttackGateAuthored
+        : undefined
     : K extends 'MULTIPLY'
       ? ModifierFractionAuthored
       : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'

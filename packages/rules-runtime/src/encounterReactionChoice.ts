@@ -25,8 +25,9 @@ export type EncounterReactionSelection = { kind: 'DECLINE' } | { kind: 'OPTION';
 export interface EncounterReactionCandidate<Trigger extends string> {
   trigger: Trigger
   reactorActorId: string
-  characterId: string
-  characterStreamVersion: number
+  /** The reacting Character; null for a creature reacting with its own authored action. */
+  characterId: string | null
+  characterStreamVersion: number | null
   actionId: string
   effectId: string
   allowance: { definitionId: string; beforeUsed: number; maximum: number }

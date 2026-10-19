@@ -8,6 +8,7 @@ import {
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
+import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { rolledDieShape } from '../shared/d20AddedDice.js'
 import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
@@ -64,7 +65,8 @@ const attacksAgainstParamDtoSchema = lazySchema(() =>
 /** The trait an attack gains, which overcomes a defense "from attacks" without it. */
 const attackTraitParamDtoSchema = lazySchema(() =>
   z.object({
-    trait: damageDefenseBypassCodeSchema
+    trait: damageDefenseBypassCodeSchema,
+    attackDomain: z.optional(attackDomainCodeSchema)
   })
 )
 
@@ -130,6 +132,10 @@ const modifierScalarValueDtoSchema = lazySchema(() =>
     z.object({
       valueKind: z.literal(modifierValueKindSchema._zod.def.entries.PROFICIENCY_BONUS),
       multiplier: z.optional(z.number())
+    }),
+    z.object({
+      valueKind: z.literal(modifierValueKindSchema._zod.def.entries.ABILITY_MODIFIER),
+      ...abilityModifierBonusPayloadDtoSchema.shape
     }),
     z.object({
       valueKind: z.literal(modifierValueKindSchema._zod.def.entries.SKILL_BONUS),
@@ -267,6 +273,11 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
     armorClass: armorClassFormulaPayloadDtoSchema,
     thresholds: authoredNestedCollectionSchema(attackDecoyThresholdDtoSchema)
   })
+)
+
+/** The save an attacker makes against the holder's source before a single-target attack or harmful spell lands. */
+export const incomingAttackGatePayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ savingThrow: savingThrowDtoSchema })
 )
 
 /** Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). */
@@ -416,6 +427,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     amountPayloadDtoSchema,
     armorClassFormulaPayloadDtoSchema,
     attackDecoysPayloadDtoSchema,
+    incomingAttackGatePayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
     rolledDiePayloadDtoSchema,
@@ -667,6 +679,12 @@ const buildModifierGrantVariants = () =>
       'ENABLE',
       emptyDomainDtoSchema,
       attackDecoysPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'INCOMING_ATTACK_GATE',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      incomingAttackGatePayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'SKILL_MODIFIER',

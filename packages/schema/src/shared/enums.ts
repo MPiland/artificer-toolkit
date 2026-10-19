@@ -430,6 +430,7 @@ export const modifierValueKindSchema = lazySchema(() =>
   z.enum([
     'FIXED',
     'PROFICIENCY_BONUS',
+    'ABILITY_MODIFIER',
     'SKILL_BONUS',
     'CHARACTER_LEVEL',
     'CLASS_LEVEL',
