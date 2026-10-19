@@ -117,7 +117,7 @@ describe('SPELL_SCHOOL_IMMUNITY (SPELLS-33.T6m1)', () => {
     ).toBe(false)
     expect(
       encounterSpellSchoolImmunity({
-        source: source({ kind: 'ITEM', id: 'wand' }),
+        source: source({ kind: 'EQUIPMENT', id: 'wand' }),
         sourceFacts: casting('wand', 'DIVINATION'),
         target: holder
       })
