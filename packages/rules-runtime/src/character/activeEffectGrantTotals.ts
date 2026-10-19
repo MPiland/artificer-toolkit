@@ -138,8 +138,8 @@ function activeRolledDieGrants(
 
 /** The dice a holder's active grants add to, or subtract from, one d20 test of a value domain. */
 function activeRolledDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
   valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER' | 'ABILITY_CHECK',
-  valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER',
   applies: DomainFilter
 ): D20AddedDieDto[] {
   return activeRolledDieGrants(effects, valueDomainCode, applies).map(
