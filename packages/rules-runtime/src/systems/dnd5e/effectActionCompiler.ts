@@ -3081,10 +3081,11 @@ function zonePlacementPlan(
         )
   // Each band is a record of its own, sparing whom the zone spares.
   const regionComponents = later.map((planned) => {
-    const { region, choosesUnaffected, label } = planned.component
+    const { region, choosesUnaffected, perDistanceMoved, label } = planned.component
     if (!planned.behavior) unsupported('A zone’s band beside its wall acts where it reaches.')
     if (choosesUnaffected)
       unsupported('A zone’s region component spares the creatures the zone spares.')
+    if (perDistanceMoved) unsupported('Only a zone’s own component acts per distance moved.')
     const { attachment, shape, ringThickness, maintenance, ...component } = zoneComponentPlan(
       action,
       zone,
@@ -3128,6 +3129,7 @@ function occupantBonusZonePlacementPlan(
     component.requiresFullyWithin ||
     component.requiredSight?.length ||
     component.movementCostMultiplier !== undefined ||
+    component.perDistanceMoved ||
     component.blockingRules?.length ||
     component.automaticSaveSuccessImmunityDamageTypeId !== undefined ||
     zone.ringThickness ||
@@ -3205,6 +3207,7 @@ function zoneComponentPlan(
     requiresFullyWithin,
     requiredSight,
     movementCostMultiplier,
+    perDistanceMoved,
     blockingRules,
     automaticSaveSuccessImmunityDamageTypeId: successImmunity
   } = component
@@ -3218,6 +3221,17 @@ function zoneComponentPlan(
     unsupported('A zone movement cost multiplies the cost of moving by more than 1, up to 100.')
   if (triggers.retaliatesMeleeHits && zone.attachment !== 'SOURCE')
     unsupported('Only a zone centered on its source answers a melee hit on that source.')
+  // Transitional (D156): per distance moved, a zone deals damage to whoever enters or moves within
+  // it, until content needs a save, a turn boundary or a per-turn limit beside it.
+  if (
+    perDistanceMoved &&
+    (!triggers.triggerModes.includes('ENTER') ||
+      triggers.turnTriggers ||
+      triggers.retaliatesMeleeHits ||
+      component.maxApplicationsPerTurn !== undefined ||
+      action.compiledEffect.invocation.triggerCode === 'SAVING_THROW')
+  )
+    unsupported('A zone acting per distance moved deals damage with no save to whoever enters it.')
   const placement = {
     attachment: zone.attachment,
     label: zone.label,
@@ -3232,6 +3246,9 @@ function zoneComponentPlan(
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
     ...(requiredSight?.length ? { requiredSight: [...new Set(requiredSight)].sort() } : {}),
     ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
+    ...(perDistanceMoved
+      ? { perDistanceMoved: { amount: perDistanceMoved.amount, unit: perDistanceMoved.unit } }
+      : {}),
     ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
   }
   if (!behavior) return { ...placement, ...lastingZoneEntry(action, zone) }

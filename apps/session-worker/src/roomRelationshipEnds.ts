@@ -31,7 +31,7 @@ function activeRuns(store: RoomEncounterStore) {
 }
 
 /** The Run's bound tokens on its Scene; a Scene the room does not hold places none. */
-function readRoomBoundSceneTokens(
+export function readRoomBoundSceneTokens(
   ctx: EncounterReadContext,
   reader: RoomRecordReader,
   state: EncounterRunState

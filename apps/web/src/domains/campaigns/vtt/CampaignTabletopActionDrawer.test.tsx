@@ -574,6 +574,7 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
 
 const escapeChoices = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   {
+    heldActorId: null,
     activeEffectId: '00000000-0000-4000-8000-000000000e01',
     label: 'Escape from Giant Toad',
     dc: 13,
@@ -710,6 +711,26 @@ describe('CampaignTabletopActionDrawer escapes', () => {
     await user.click(screen.getByRole('button', { name: 'Escape from Giant Toad' }))
     expect(onEscape).toHaveBeenLastCalledWith(
       expect.objectContaining({ checkDefinitionId: escapeChoices[0].checks[1].checkDefinitionId })
+    )
+  })
+
+  it('names the held creature when freeing it, and sends it with the escape (ATTACK-7.9)', async () => {
+    const user = userEvent.setup()
+    const onEscape = vi.fn().mockResolvedValue(resolved)
+    const heldActorId = '00000000-0000-4000-8000-000000000e31'
+    renderDrawer(vi.fn(), {
+      escapes: [{ ...escapeChoices[0], heldActorId, label: 'Free Ally' }],
+      onEscape
+    })
+
+    await user.click(await screen.findByRole('button', { name: 'Free Ally' }))
+    expect(onEscape).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'ESCAPE',
+        actorId: tabletopGmEncounter.currentActorId,
+        heldActorId,
+        activeEffectId: escapeChoices[0].activeEffectId
+      })
     )
   })
 

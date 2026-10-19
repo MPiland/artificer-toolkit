@@ -17,10 +17,11 @@ export type EscapeCheckOutput = Extract<
 >
 
 /**
- * Settles an Escape check: checks the planned result against the frozen check and the holder's
- * current effects, ends the relationship effect and the conditions it owned when the escape
- * succeeded, then posts the holder's roll card unless the app already carded that die. Returns the
- * actors with the holder released.
+ * Settles an Escape check: checks the planned result against the frozen check and the held
+ * creature's current effects, ends the relationship effect and the conditions it owned when the
+ * escape succeeded, then posts the roller's roll card unless the app already carded that die. The
+ * roller is the held creature, or the rescuer within reach that frees it. Returns the actors with
+ * the held creature released.
  */
 export async function settleEncounterEscapeCheck(
   ctx: EncounterWriteTransaction,
@@ -41,12 +42,19 @@ export async function settleEncounterEscapeCheck(
     execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'ESCAPE_CHECK'
       ? execution.applicationOutputs
       : null
-  const holder = actors.find((actor) => actor.id === context.actorId)
+  const roller = actors.find((actor) => actor.id === context.actorId)
+  // A rescuer rolls; the effect lives on, and the escape frees, the creature it holds.
+  const holder = context.heldActorId
+    ? actors.find((actor) => actor.id === context.heldActorId)
+    : roller
   if (
     !output ||
     execution.status !== 'COMPLETE' ||
+    !roller ||
+    roller.kind === 'CUSTOM' ||
     !holder ||
     holder.kind === 'CUSTOM' ||
+    output.heldActorId !== context.heldActorId ||
     execution.occurrenceVersion !== input.occurrenceVersion ||
     output.occurrenceId !== execution.occurrenceId ||
     output.commandId !== context.commandId ||
@@ -92,14 +100,14 @@ export async function settleEncounterEscapeCheck(
       d20: output.d20,
       actionLabel: context.actionLabel,
       checkLabel: context.check.label,
-      rollerLabel: holder.label,
+      rollerLabel: roller.label,
       ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
       createdAt: input.occurredAt
     })
     await recordRuleRollCard(ctx, {
       campaign: input.campaign,
       encounterId: state.id,
-      roller: holder,
+      roller,
       initiatorUserId: input.initiatorUserId,
       visibility: undefined,
       clientNonce: roll.id,

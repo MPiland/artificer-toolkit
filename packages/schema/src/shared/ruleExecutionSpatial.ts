@@ -430,7 +430,8 @@ export const compareSpatialPendingCandidates = (
     left.candidate.pathDistance - right.candidate.pathDistance,
     left.candidate.effectId.localeCompare(right.candidate.effectId),
     left.candidate.targetActorId.localeCompare(right.candidate.targetActorId),
-    left.candidate.trigger.localeCompare(right.candidate.trigger)
+    left.candidate.trigger.localeCompare(right.candidate.trigger),
+    (left.candidate.step ?? 0) - (right.candidate.step ?? 0)
   ]
   return keys.find((value) => value !== 0) ?? 0
 }

@@ -17,8 +17,11 @@ import {
   encounterEscapeEndedConditionIds,
   findEncounterHolderContestEscape,
   findEncounterHolderEscape,
+  findEncounterRescues,
   prepareEncounterEscapeCheck
 } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
+import type { EncounterReachScene } from '@artificer-toolkit/rules-runtime/encounterRelationshipEnds'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -46,6 +49,8 @@ export async function planNativeLiveEscape(
     runtime: RulesRuntimeService
     random(maximum: number): number
     captures: LiveCaptureReads
+    /** The Run's bound Scene, which a rescuer's reach to the held creature is measured on. */
+    readReachScene(state: EncounterRunState): Promise<EncounterReachScene | null>
   }
 ) {
   const admitted = await admitNativeLiveHolderCommand(scope, command, executionOptions.captures)
@@ -59,13 +64,17 @@ export async function planNativeLiveEscape(
     capture
   })
   const actor = actors.find((entry) => entry.id === root.actorId)
-  const heldEffects = activeEffectsByActorId.get(root.actorId)
+  // A rescuer within reach frees a creature it does not itself hold (ATTACK-7.9): the effect and
+  // its release belong to that held creature, never to the actor.
+  const heldActorId = root.heldActorId ?? root.actorId
+  const heldEffects = activeEffectsByActorId.get(heldActorId)
   const effect = heldEffects?.find((entry) => entry.id === root.activeEffectId)
-  if (!actor || !heldEffects) throw new Error('Escape actors are unavailable.')
+  if (!actor || !heldEffects || !actors.some((entry) => entry.id === heldActorId))
+    throw new Error('Escape actors are unavailable.')
   if (actor.kind === 'CUSTOM')
     throw new EncounterValidationError('A custom actor has no check to make.')
-  // An escape the holder contests rolls through the one contest path (D152).
-  if (effect && findEncounterHolderContestEscape(effect)) {
+  // An escape the holder contests rolls through the one contest path (D152); a rescuer never contests.
+  if (!root.heldActorId && effect && findEncounterHolderContestEscape(effect)) {
     const { command: _command, ...contestReady } = ready
     const contest = await planNativeLiveEscapeContest({
       scope,
@@ -95,9 +104,20 @@ export async function planNativeLiveEscape(
     })
     return { kind: 'CONTEST' as const, contest }
   }
-  const escape = effect ? findEncounterHolderEscape(effect) : null
+  const rescue = root.heldActorId
+    ? findEncounterRescues({
+        actorId: actor.id,
+        activeEffectsByActorId,
+        scene: await executionOptions.readReachScene(state)
+      }).find((entry) => entry.heldActorId === heldActorId && entry.effect.id === effect?.id)
+    : null
+  const escape = root.heldActorId ? rescue : effect ? findEncounterHolderEscape(effect) : null
   if (!effect || !escape)
-    throw new EncounterValidationError('The creature is not held by an effect it can escape.')
+    throw new EncounterValidationError(
+      root.heldActorId
+        ? 'The creature cannot free that creature from this effect.'
+        : 'The creature is not held by an effect it can escape.'
+    )
   const prepared = await prepareNativeLiveMovementTarget({
     scope: initial,
     state,
@@ -113,6 +133,7 @@ export async function planNativeLiveEscape(
     commandFingerprint: ready.fingerprint,
     system,
     holder,
+    ...(root.heldActorId && { rescued: { actorId: root.heldActorId, effect } }),
     activeEffectId: effect.id,
     checkDefinitionId: root.checkDefinitionId
   })
@@ -169,7 +190,7 @@ export async function planNativeLiveEscape(
       nextActors = encounterActorsAfterEscape({
         encounterId: state.id,
         actors: nextActors,
-        holderId: actor.id,
+        holderId: heldActorId,
         holderEffects: heldEffects,
         activeEffectId: effect.id
       })
