@@ -70,7 +70,7 @@ export function dnd5eAttackDamageDefenses(
 export function dnd5eCharacterAttackTraits(input: {
   candidate: Pick<
     CharacterActionCandidate,
-    'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts'
+    'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts' | 'activationSourceKind'
   >
   attackKind: string | null
   policy: Pick<CharacterRulePolicyOutput, 'itemMechanics' | 'grantFold'>
