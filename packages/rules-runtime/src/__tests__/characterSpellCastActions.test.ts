@@ -39,6 +39,7 @@ import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../enc
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { attackDecoysSpell } from '../testing/attackDecoysSpell.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
@@ -2235,5 +2236,37 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
         domain: { requiresHolderSeesAttacker: false }
       })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+  })
+
+  it('compiles three attack decoys that end the effect after three uses, which the caster can dismiss with an Action', () => {
+    const decoySpell = attackDecoysSpell()
+    const plan = compiledCast(decoySpell)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      initialRemaining: 10,
+      modifierGrantContribution: { uses: 3, holderEnd: { activation: 'ACTION' } }
+    })
+    const [decoys, ...others] = plan?.modifierGrantContribution?.modifiers ?? []
+    expect(others).toEqual([])
+    expect(decoys).toMatchObject({
+      valueDomainCode: 'ATTACK_DECOYS',
+      modifierKind: 'ENABLE',
+      payload: {
+        armorClass: { amount: 10, abilities: ['DEXTERITY'] },
+        thresholds: [
+          { remaining: 3, minimumRoll: 6 },
+          { remaining: 2, minimumRoll: 8 },
+          { remaining: 1, minimumRoll: 11 }
+        ]
+      }
+    })
+    const effect = plannedTimedCondition({
+      encounterId: testUuid(0xd921),
+      sourceActorId: testUuid(0xd922),
+      holderActorId: testUuid(0xd922),
+      spell: decoySpell,
+      lifetimeScope: 'ENCOUNTER'
+    })
+    expect(effect.definition.recurrence).toMatchObject({ uses: 3 })
+    expect(effect.lifecycle).toMatchObject({ remainingTicks: 10, remainingUses: 3 })
   })
 })

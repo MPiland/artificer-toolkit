@@ -8141,7 +8141,7 @@
             },
             {
               "id": "SPELLS-4.T2c2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8151,7 +8151,7 @@
                 "after": ["SPELLS-4.T2c1"]
               },
               "text": "Rolled die on ability checks, ON_SAVING_THROW consumption, Sheet roll expressions that include and consume held dice; converts GUIDANCE and RESISTANCE. Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md). 2026-10-19 split: T2c2 ships Guidance with Sheet ability-check inclusion and consumption and its parity proof; Resistance and saving-throw consumption move to T2c2b.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m166 (6de6495e6)."
             },
             {
               "id": "SPELLS-4.T2c2b",
@@ -8301,7 +8301,7 @@
               "note": "Merged m163 (e076d2aa4)."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2k",
               "wsjf": {
@@ -8312,11 +8312,11 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2k1"]
               },
               "text": "New generic options (D156 T2 split, class B), ruled 2026-10-18: INCOMING_ATTACK_GATE with the ATTACK_RETARGET pause (SANCTUARY) and ATTACK_DECOYS with a lifecycle counter (MIRROR_IMAGE), with parity proofs; each kind deleted. BLUR, TRUE_STRIKE and ENTHRALL split to SPELLS-4.T2k1. 2026-10-19 split: T2k ships the ATTACK_DECOYS modifier domain and the generic path-lifecycle uses counter (contract and compile only); the Mirror Image runtime moves to T2k2 and Sanctuary to T2k3.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m167 (ed4557635)."
             },
             {
               "id": "SPELLS-4.T2k2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8325,7 +8325,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2k"]
               },
-              "text": "Mirror Image runtime: server-rolled decoy d20 sealed in the pending context, the attack resolved against decoy AC, hit suppression, remainingUses spend and undo, a decoy receipt. Converts MIRROR_IMAGE with its authoring-parity proof and deletes the kind (2026-10-19 ruling on the T2k split; workbook slice-spells-4.md)."
+              "text": "Mirror Image runtime: server-rolled decoy d20 sealed in the pending context, the attack resolved against decoy AC, hit suppression, remainingUses spend and undo, a decoy receipt. Converts MIRROR_IMAGE with its authoring-parity proof and deletes the kind (2026-10-19 ruling on the T2k split; workbook slice-spells-4.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2k3",

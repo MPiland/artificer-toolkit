@@ -215,6 +215,54 @@ function noHeavyArmorRestriction(index: number): FacetAuthored {
   }
 }
 
+/** Brutal Critical's levels: each adds one more weapon damage die on a melee critical hit. */
+const BRUTAL_CRITICAL_LEVELS = [9, 13, 17] as const
+
+/** One extra damage die per level reached, so the three grants add to one, two, then three dice. */
+function brutalCriticalGrants(): ModifierGrantAuthored[] {
+  return BRUTAL_CRITICAL_LEVELS.map((min, index) => {
+    const id = (entry: number) => classRowId(B, 0x86, index * 8 + entry)
+    return {
+      id: classRowId(B, 0x85, 0x40 + index),
+      grantKind: GRANT_KIND.MODIFIER_GRANT,
+      valueDomainCode: VALUE_DOMAIN_CODE.CRITICAL_EXTRA_DICE,
+      domain: { attackDomain: 'MELEE' },
+      modifierKind: MODIFIER_KIND.BONUS,
+      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      payload: { valueKind: 'FIXED', amount: 1 },
+      order: index,
+      restrictions: {
+        id: id(0),
+        groups: [
+          {
+            id: id(1),
+            order: 0,
+            contexts: [
+              {
+                id: id(2),
+                order: 0,
+                subject: 'CHARACTER',
+                conditions: [
+                  {
+                    id: id(3),
+                    order: 0,
+                    kind: 'PREDICATE',
+                    constraint: 'INCLUDE',
+                    predicateCode: 'CLASS_LEVEL',
+                    classIds: [CLASS_IDS.BARBARIAN],
+                    min
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  })
+}
+
 /**
  * Rage damage applies to the attack when the holder is in that level band, wears no heavy armor
  * and attacked with Strength.
@@ -845,22 +893,7 @@ export const barbarian: ClassAuthored = {
       label: 'Brutal Critical',
       description:
         'Beginning at 9th level, you can roll one additional weapon damage die when determining the extra damage for a critical hit with a melee attack. This increases to two additional dice at 13th level and three additional dice at 17th level.',
-      effects: [
-        closedRuleEffect({
-          id: classRowId(B, 0x60, 12),
-          ruleKind: CLOSED_RULE_KIND.CLASS_BARBARIAN_BRUTAL_CRITICAL,
-          pathCode: PATH_CODE.ON_CRIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(B, 0x69, 12), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'HOSTILE'
-            }
-          }
-        })
-      ],
+      grants: { modifiers: brutalCriticalGrants() },
       availableAtLevel: 9,
       order: 10
     },

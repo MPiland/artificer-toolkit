@@ -29,6 +29,9 @@ type ModifierDomain = ModifierGrantUnion['domain']
 type ChargeLimitLevel = NonNullable<
   Extract<ModifierPayload, { levels: unknown[] }>['levels']
 >[number]
+type AttackDecoys = Extract<ModifierPayload, { thresholds: unknown[] }>
+type AttackDecoyArmorClass = NonNullable<AttackDecoys['armorClass']>
+type AttackDecoyThreshold = NonNullable<AttackDecoys['thresholds']>[number]
 type DamageDieCastLevelScaling = NonNullable<
   AllUnionFields<ModifierPayload>['countPerCastLevelAbove']
 >
@@ -121,6 +124,8 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
             showIf: or([
               parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
               parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+              parent.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
+              parent.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
               parent.field(['valueDomainCode']).eq('DAMAGE')
             ])
           }
@@ -239,6 +244,43 @@ const MODIFIER_CHARGE_LIMIT_LEVEL_NODE_MAP = chargeLimitLevel.define(
       .set('id', text(['id'], 'ID'))
       .set('level', number(['level'], 'Level'))
       .set('amount', number(['amount'], 'Amount'))
+  }
+)
+
+const attackDecoyArmorClass = buildNodeMap<AttackDecoyArmorClass>()
+
+const MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP = attackDecoyArmorClass.define(
+  'modifierAttackDecoyArmorClass',
+  ({ map, nodes }) => {
+    const { number, selectMulti } = nodes
+
+    map.set('amount', number(['amount'], 'Amount')).set(
+      'abilities',
+      selectMulti(['abilities'], 'Abilities', {
+        kind: 'INLINE_OPTIONS',
+        options: ABILITY_OPTIONS
+      })
+    )
+  }
+)
+
+const attackDecoyThreshold = buildNodeMap<AttackDecoyThreshold>()
+
+const MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP = attackDecoyThreshold.define(
+  'modifierAttackDecoyThreshold',
+  ({ map, nodes }) => {
+    const { text, number } = nodes
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set(
+        'remaining',
+        number(['remaining'], 'Decoys Remaining', { constraints: { minimum: 1, maximum: 20 } })
+      )
+      .set(
+        'minimumRoll',
+        number(['minimumRoll'], 'Minimum d20 Roll', { constraints: { minimum: 1, maximum: 21 } })
+      )
   }
 )
 
@@ -776,6 +818,30 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           ])
         })
       )
+      .set(
+        'armorClass',
+        groupObject(
+          ['armorClass'],
+          'Decoy Armor Class',
+          () => MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP,
+          {
+            presentation: 'inline',
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_DECOYS')
+          }
+        )
+      )
+      .set(
+        'thresholds',
+        groupArray(
+          ['thresholds'],
+          'Targeting Rolls',
+          () => MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP,
+          {
+            presentation: 'table',
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_DECOYS')
+          }
+        )
+      )
   }
 )
 
@@ -792,7 +858,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
   ({ map, nodes, cond, logic }) => {
     const { text, number, selectSingle, groupObject } = nodes
     const local = cond.local()
-    const { or } = logic
+    const { and, or } = logic
 
     map
       .set(
@@ -866,6 +932,8 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
           showIf: or([
             local.field(['valueDomainCode']).eq('ATTACK_ROLL'),
             local.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+            local.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
+            local.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
             local.field(['valueDomainCode']).eq('ABILITY_CHECK'),
             local.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
             local.field(['valueDomainCode']).eq('SKILL_MODIFIER'),
@@ -900,7 +968,11 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
             local.field(['modifierKind']).eq('ADD_OPTION'),
             local.field(['modifierKind']).eq('REMOVE_OPTION'),
-            local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
+            local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS'),
+            and([
+              local.field(['modifierKind']).eq('ENABLE'),
+              local.field(['valueDomainCode']).eq('ATTACK_DECOYS')
+            ])
           ])
         })
       )
