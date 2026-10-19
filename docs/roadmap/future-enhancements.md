@@ -480,3 +480,7 @@ lifecycle and Encounter Blueprint model are accepted.
 - Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
 - **Creature forms, later pieces (SPELLS-28):** the form's defenses, speeds, senses and proficiency merge (rest of T4d), a per-form authorable retained-ability set (Polymorph replaces mental scores), object forms, True Polymorph permanence and Shapechange re-form.
 - Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.
+
+- **Innate conditions on Character actors in the Encounter list (SPELLS-33.T4de).** A Character's innate
+  condition (a custom feature's `CONDITION` option) is read by every rule through `heldConditionIds`, but
+  the Encounter projection appends innate rows for Creature actors only; a Character's shows on its Sheet.

@@ -1868,6 +1868,25 @@ folds into a Creature's feature modifiers and lists beneficially on the holder; 
 the named skill's checks made against the holder, and is not enforced, since a check has no subject. The
 Gynosphinx and Androsphinx Inscrutable and Mind Blank's divination clause are authored with them.
 
+**Innate conditions and Magic Weapons (current, SPELLS-33.T4de).** A global `CONDITION` `ADD_OPTION`
+(`conditionTypeId`) is a condition the holder always has: authored on a Creature feature (Invisible
+Stalker's Invisibility) or any grant owner, beneficial on the holder's grant listing. `innateConditionIds`
+folds the holder's features and active grants into `MovementTarget.innateConditionIds`; `state.conditions`
+keeps only the conditions applied to it, so nothing removes or restores an innate one (there is no GM
+command that removes a Creature's conditions). Every rule that reads what a condition does reads
+`heldConditionIds(target)` (persisted plus innate): condition mechanics and perception, the action economy,
+the target's condition ids in the action mechanics, holder defense (`canAct`), the occupant save auras and
+the turn-effect perception. Reads deliberately left on the persisted `state.conditions` are state
+transitions and baselines: the condition and flee sources in `encounterConditionMechanics`, the effect-plan
+baseline in `encounterActionEffects`, and the before/after states, checksums and expected-state checks of
+movement, turn effects and spatial execution. The Creature projection appends one `{conditionTypeId,
+innate: true}` row per innate condition to `conditions`, so the GM and players see it (labelled by the
+session reads, "(innate)" on the token) and the player `unseenReason` treats it like an applied one.
+Magic Weapons is an `ATTACK_TRAIT` `ENABLE` grant (`trait: MAGICAL`): `dnd5eGrantedAttackTraits` is the one
+reader, over a Character's folded modifiers and a Creature's feature modifiers alike, so a Creature's
+attack is magical when it is a spell attack or an applicable grant says so. Both kinds are gone from the
+closed rules.
+
 **Creature passive save grants (current, SPELLS-33.T3a2).** A Creature feature's condition-scoped
 `SAVING_THROW_MODIFIER` advantage or disadvantage grant is authored with the Character option and accepted by the
 same feature-grant fold into `ruleFacts.modifiers`. The Encounter target build passes them to

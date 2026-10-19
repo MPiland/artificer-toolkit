@@ -54,18 +54,7 @@ export const gynosphinx: CreatureAuthored = {
       id: S.featureId(157, 2),
       label: 'Magic Weapons',
       description: "Magic Weapons. The sphinx's weapon attacks are magical.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(157, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(157, 1202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(157, 202),
       order: 2
     },
     {

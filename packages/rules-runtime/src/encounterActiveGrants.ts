@@ -1,3 +1,4 @@
+import { innateConditionIds } from './encounterInnateConditions.js'
 import type {
   CharacterGrantFoldModifier,
   CharacterGrantFoldOutput,
@@ -638,6 +639,17 @@ export function withCreatureActiveGrantProtection<
     conditionImmunityIds: [...conditionImmunityIds],
     spellSchoolImmunityIds: [...spellSchoolImmunityIds]
   }
+}
+
+/** The condition types a Creature holder always has: its features' and active grants' innate conditions. */
+export function creatureInnateConditionIds(
+  effects: readonly ActiveRuleEffectRecord[],
+  featureModifiers: CharacterGrantFoldOutput['modifiers']
+): string[] {
+  return innateConditionIds([
+    ...featureModifiers,
+    ...listActiveEffectGrants(effects).flatMap(({ modifiers }) => modifiers)
+  ])
 }
 
 /**

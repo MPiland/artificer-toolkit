@@ -1,3 +1,4 @@
+import { heldConditionIds } from './encounterInnateConditions.js'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
@@ -88,7 +89,7 @@ export async function withEncounterOccupantSaveBonus<T extends MovementTarget>(i
       sourceCharacterId === null || unconscious === undefined
         ? []
         : sourceActorId === target.actor.id
-          ? target.state.conditions
+          ? heldConditionIds(target)
           : await input.readCharacterConditionIds({ sourceActorId, sourceCharacterId })
     if (unconscious === undefined || !conditionIds.includes(unconscious)) amounts.push(amount)
   }

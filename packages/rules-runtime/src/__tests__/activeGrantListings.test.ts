@@ -272,11 +272,12 @@ describe('grant polarity (VTT_UI-1.2)', () => {
     for (const domain of [
       'DAMAGE_RESISTANCE',
       'DAMAGE_IMMUNITY',
+      'CONDITION',
       'CONDITION_IMMUNITY',
       'MOVEMENT_MODE'
     ])
       expect(polarityOf([{ domain, kind: 'ADD_OPTION' }])).toBe('BENEFICIAL')
-    for (const domain of ['DAMAGE_VULNERABILITY', 'CONDITION'])
+    for (const domain of ['DAMAGE_VULNERABILITY'])
       expect(polarityOf([{ domain, kind: 'ADD_OPTION' }])).toBe('HARMFUL')
     expect(polarityOf([{ domain: 'ATTRIBUTE', kind: 'ADD_OPTION' }])).toBe('NEUTRAL')
   })
