@@ -1,5 +1,7 @@
-import type { z } from 'zod'
-import type { ApplyEncounterForcedMovements } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
+import type {
+  ApplyEncounterForcedMovements,
+  EncounterForcedMovementLanding
+} from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
@@ -7,7 +9,6 @@ import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSp
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type { encounterForcedMovementLandingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/shared/spatial'
 import {
   collectSpatialMovementCandidates,
@@ -20,11 +21,10 @@ import {
   type ScenePoint,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
+import type { ForcedMovementPreview } from './nativeEncounterAreaRules.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
-
-type EncounterForcedMovementLanding = z.infer<typeof encounterForcedMovementLandingSchema>
 
 const MISSING_TOKENS =
   "A forced movement needs the source's and target's tokens on the Encounter's Scene."
@@ -201,8 +201,9 @@ function landForcedMovements(
 }
 
 /**
- * The pick an action's forced movements owe their source next on the Encounter's Scene (D157), with
- * the farther creatures already on the squares picked for them; null when none is owed.
+ * Where an action's forced movements land on the Encounter's Scene (D157): the pick they owe their
+ * source next, with the farther creatures already on the squares picked for them (null when none is
+ * owed), and the landings so far, in the order they land.
  */
 export async function readRoomForcedMovementPick(input: {
   ctx: EncounterReadContext
@@ -210,8 +211,8 @@ export async function readRoomForcedMovementPick(input: {
   encounterId: string
   sourceActorId: string
   movements: readonly LiveSessionForcedMovement[]
-}): Promise<{ targetActorId: string; positions: ScenePoint[] } | null> {
-  if (input.movements.length === 0) return null
+}): Promise<ForcedMovementPreview> {
+  if (input.movements.length === 0) return { owed: null, landings: [] }
   const { sceneId, sourceTokenId, tokenIdByActorId, actorIdByTokenId } =
     await readForcedMovementTokens(
       input.ctx,
@@ -220,13 +221,14 @@ export async function readRoomForcedMovementPick(input: {
       input.movements.map(({ targetActorId }) => targetActorId)
     )
   const { scene } = await readRoomSceneState(input.transaction, sceneId)
-  return landForcedMovements(
+  const { owed, landings } = landForcedMovements(
     scene,
     sourceTokenId,
     tokenIdByActorId,
     actorIdByTokenId,
     input.movements
-  ).owed
+  )
+  return { owed, landings: landings.map(({ report }) => report) }
 }
 
 /**

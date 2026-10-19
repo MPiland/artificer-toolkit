@@ -1278,7 +1278,9 @@ export async function planNativeLiveEncounterAction(
     targetActorId: prepared.target.id
   })
   // A movement with two or more legal squares waits for its source to pick one (D157).
-  const owedPick = await executionOptions.forcedMovementPick({
+  if (interpretedMovements.some(({ collision }) => collision))
+    throw new Error('A forced-movement collision is resolved only in an area action.')
+  const { owed: owedPick } = await executionOptions.forcedMovementPick({
     encounterId: state.id,
     sourceActorId: prepared.actor.id,
     movements: interpretedMovements

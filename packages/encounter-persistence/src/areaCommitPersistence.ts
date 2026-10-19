@@ -318,9 +318,14 @@ export async function persistEncounterAreaCommit(
     )
       throw new Error('Live Session area has an unanswered save or undecided choice.')
     // Every push its source picked lands where the pick left it (D157), and none is still open.
-    const { landed = [], pick } = context.forcedMovement ?? {}
+    const { landed = [], pick, rays } = context.forcedMovement ?? {}
     if (
       pick ||
+      // A random push lands on the ray sealed when the pick was held, never a reroll.
+      input.forcedMovements.some(({ targetActorId, ray }) => {
+        const sealed = rays?.find((entry) => entry.targetActorId === targetActorId)?.ray
+        return sealed && (ray?.x !== sealed.x || ray?.y !== sealed.y)
+      }) ||
       landed.some(
         ({ targetActorId }) =>
           !input.forcedMovements.some((movement) => movement.targetActorId === targetActorId)
@@ -358,10 +363,23 @@ export async function persistEncounterAreaCommit(
       zoneSceneId: context.placesZone ? (context.scene?.sceneId ?? null) : null
     }
   }
-  const kept = encounterChosenActorEntries(
-    areaOccurrenceId,
-    scope.targets.map(({ actorId }) => actorId)
+  // A mover's collision damage (D159) settles as one more entry per mover, after the caught creatures'.
+  const caughtActorIds = scope.targets.map(({ actorId }) => actorId)
+  const collisionActorIds = input.targets.slice(caughtActorIds.length).map(({ actorId }) => actorId)
+  if (
+    new Set(collisionActorIds).size !== collisionActorIds.length ||
+    collisionActorIds.some(
+      (actorId) =>
+        !input.forcedMovements.some(
+          (movement) => movement.targetActorId === actorId && movement.collision
+        )
+    )
   )
+    throw new Error('Live Session area forced movement collision mismatch.')
+  const kept = encounterChosenActorEntries(areaOccurrenceId, [
+    ...caughtActorIds,
+    ...collisionActorIds
+  ])
   if (
     root.sourceActorId !== command.actorId ||
     root.caughtChecksum !== scope.caughtChecksum ||
