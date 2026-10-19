@@ -146,7 +146,7 @@ it('reads BASE then multiple APPENDED pages and returns the complete Scene fence
     scene: { tokens }
   })
   // SPELLS-33 T6j: the light the bound actor sheds lands on its token, in Scene units.
-  expect(loaded.scene.tokens.map(({ light }) => light)).toEqual([
+  expect(loaded?.scene.tokens.map(({ light }) => light)).toEqual([
     undefined,
     undefined,
     { brightRadius: 10, dimRadius: 20 },
