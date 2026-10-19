@@ -1,4 +1,8 @@
-import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { airElemental } from '@artificer-toolkit/source-data/srd/creatures/air-elemental.js'
+import {
+  installedSrdCreature,
+  srdCreatureActor
+} from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { ForcedMovementCollisionAuthored } from '@artificer-toolkit/shared/authored'
 import { SQUARE_GRID_COMPASS_RAYS, type ScenePoint } from '@artificer-toolkit/shared/vtt'
 import {
@@ -14,7 +18,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, directedAreaWolf, forceOnFailedSave } from './actionRoomFixture.js'
 import { answerAllSaves, areaReceipts, tokenPositions, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readActorConditionIds, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-33.T6k2b3 (D159): a forced movement that carries an authored collision damages its mover
@@ -207,4 +211,32 @@ describe('a forced movement’s collision damage to its mover (SPELLS-33.T6k2b3,
       expect((await childTargets(room)).slice(2)).toEqual([NEAR_ID, FAR_ID])
     }
   )
+})
+
+describe('the Air Elemental’s Whirlwind (SPELLS-33.T6k2b4a)', () => {
+  it('throws a creature into another and hurts the thrown one, leaving the struck creature’s save and prone for T6k2b4b', async () => {
+    const elemental = installedSrdCreature(airElemental)
+    const featureId = elemental.features?.find(({ label }) => label.startsWith('Whirlwind'))?.id
+    // The thrown wolf stands in the elemental's space and is thrown east, stopped after 10 feet by FAR.
+    const room = await actionRoom({
+      rolls: [0, 0, 0, EAST, 4],
+      actors: [
+        srdCreatureActor({ id: SOURCE_ID, creature: elemental }),
+        srdCreatureActor({ id: NEAR_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FAR_ID, creature: plainWolf })
+      ],
+      positions: { [SOURCE_ID]: SOURCE_AT, [NEAR_ID]: SOURCE_AT, [FAR_ID]: { x: 450, y: 150 } },
+      ownerFeatureId: featureId
+    })
+    committed((await room.startCasterCenteredAreaAction()).answer)
+    await answerAllSaves(room)
+
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 350, y: 150 })
+    // 3d8 (1 + 1 + 1) + 2, then the 1d6 collision of 10 feet.
+    expect(await hitPointsOf(room, NEAR_ID)).toBe(1)
+    expect(await childTargets(room)).toContain(NEAR_ID)
+    // The struck creature is not yet asked to save: T6k2b4b flips these to its save, damage and prone.
+    expect(await hitPointsOf(room, FAR_ID)).toBe(11)
+    expect(readActorConditionIds(await readRoomHistory(room.room.base.stub), FAR_ID)).toEqual([])
+  })
 })
