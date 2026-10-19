@@ -1181,6 +1181,8 @@ export function zoneMovementSegmentMultiplier(input: {
   readonly zones: readonly SpatialMovementCostZone[]
   readonly mover: { readonly actorId: string; readonly tokenId: string }
   readonly tokens: readonly SpatialSceneToken[]
+  /** A grappler dragging a creature not two sizes smaller pays double on top (D105). */
+  readonly dragDoublesCost?: boolean
 }): ((from: ScenePoint, to: ScenePoint, floor: number) => number) | undefined {
   const { mover, tokens } = input
   const token = tokens.find(({ id }) => id === mover.tokenId)
@@ -1194,9 +1196,13 @@ export function zoneMovementSegmentMultiplier(input: {
     const geometry = effectiveSpatialGeometry(zone, tokens)
     return geometry ? [{ geometry, multiplier: zone.multiplier }] : []
   })
-  return token && zones.length
-    ? (from, to, floor) => spatialSegmentMovementMultiplier({ zones, token, from, to, floor })
-    : undefined
+  const zoned: ((from: ScenePoint, to: ScenePoint, floor: number) => number) | undefined =
+    token && zones.length
+      ? (from, to, floor) => spatialSegmentMovementMultiplier({ zones, token, from, to, floor })
+      : undefined
+  return input.dragDoublesCost
+    ? (from, to, floor) => (zoned?.(from, to, floor) ?? floor) * 2
+    : zoned
 }
 
 /**

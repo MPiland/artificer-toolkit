@@ -568,28 +568,17 @@ describe('excluded creature types in a compiled save', () => {
     ).toBe('TEST_OUTCOME')
   })
 
-  it('still refuses an area restricted to a creature type', () => {
-    expect(() =>
-      compile({
-        targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          dispositionKind: 'ANY',
-          allowedCreatureTypeIds: [UNDEAD]
-        }
-      } as Partial<Invocation>)
-    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
-  })
-
-  it('still refuses an area that excludes a creature type', () => {
-    expect(() =>
-      compile({
-        targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          dispositionKind: 'ANY',
-          excludedCreatureTypeIds: [UNDEAD]
-        }
-      } as Partial<Invocation>)
-    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+  // The area still catches a creature of a type it has no effect on; the room leaves it out of the
+  // saves (SPELLS-33.T3a3).
+  it.each([
+    ['restricted to a creature type', { allowedCreatureTypeIds: [UNDEAD] }],
+    ['that excludes a creature type', { excludedCreatureTypeIds: [UNDEAD] }]
+  ])('compiles an area %s, carrying the restriction on its target policy', (_name, restriction) => {
+    const { action, plan } = compile({
+      targeting: { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY', ...restriction }
+    } as Partial<Invocation>)
+    expect(plan?.kind).toBe('TEST_OUTCOME')
+    expect(buildCompiledActionTargetPolicy(action).targeting).toMatchObject(restriction)
   })
 })
 

@@ -146,12 +146,14 @@ export interface VttSceneRendererUpdate {
   mapDelivery: SignedVttMapDeliveryDto | null
   mode: CampaignVttMode
   /**
-   * For an Encounter's Scene: the actor each bound token moves for and the zones that raise what
-   * moving costs, so a dragged route shows the movement the room will charge.
+   * For an Encounter's Scene: the actor each bound token moves for, the zones that raise what
+   * moving costs and the actors whose drag doubles it, so a dragged route shows the movement the
+   * room will charge.
    */
   movementCost?: {
     actorIdByTokenId: ReadonlyMap<string, string>
     zones: EncounterSessionStateDto['movementCostZones']
+    dragDoublingActorIds: ReadonlySet<string>
   } | null
   overlays?: readonly VttScenePresentationOverlay[]
   /** The GM's token-view preview: draws what a Player controlling this Token sees. */
@@ -1611,7 +1613,14 @@ export async function createVttSceneRenderer(
   function routeMover(tokenId: string) {
     const pricing = current?.movementCost
     const actorId = pricing?.actorIdByTokenId.get(tokenId)
-    return pricing && actorId ? { actorId, tokenId, zones: pricing.zones } : null
+    return pricing && actorId
+      ? {
+          actorId,
+          tokenId,
+          zones: pricing.zones,
+          dragDoublesCost: pricing.dragDoublingActorIds.has(actorId)
+        }
+      : null
   }
 
   function tokenCanMove(token: CampaignSceneStateDto['tokens'][number]): boolean {
