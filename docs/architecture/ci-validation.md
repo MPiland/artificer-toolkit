@@ -1,6 +1,6 @@
 # CI validation and affected-test selection
 
-**Status:** current (PLATFORM-23, 2026-10-16; auto-fix and approved merges PLATFORM-25, 2026-10-18; parallelism and shard balance PLATFORM-13.T4, 2026-10-18).
+**Status:** current (PLATFORM-23, 2026-10-16; auto-fix and approved merges PLATFORM-25, 2026-10-18; parallelism and shard balance PLATFORM-13.T4, 2026-10-18; ledger guard PLATFORM-13.T14, 2026-10-18).
 
 Slices validate on GitHub runners by pushing to `ci/<slice>` (AGENTS.md Validation). `.github/workflows/tests.yml` builds the packages once, typechecks everything, and runs only the Vitest files the slice can affect. `.github/workflows/live-backend.yml` is unchanged by this guide.
 
@@ -76,6 +76,8 @@ The `lint` job runs `yarn lint` on every run, whatever the selection: oxlint wit
 
 The job then runs oxfmt in check mode on the files the branch changed since its merge base with the phase branch (`scripts/formatChanged.mjs`, deleted files skipped, `.oxfmtrc.jsonc` ignore patterns applied). Only those files: the phase branch is not oxfmt-clean, and a repo-wide format would rewrite other slices' files. Before a push, `node scripts/formatChanged.mjs --base origin/codex/phase-08-2-convex-cutover` formats the same files locally.
 
+The job then fails a slice branch that changed `docs/roadmap/08-phase-ledger.json` since that merge base (`scripts/ledgerUntouched.mjs`, PLATFORM-13.T14), naming the commits. The ledger is the orchestrator's and is edited on the phase branch; a slice commit that rewrites it, whether as a stale copy or a reformat, would revert those edits at merge. Ledger edits that a merge of the phase branch brings in move the merge base, so they do not count. `ci/merge-*` batches skip the check. Restore the file from the merge base (`git checkout <merge-base> -- docs/roadmap/08-phase-ledger.json`) and commit.
+
 ## Auto-fix
 
 When Lint is the only failing job of a `ci/<slice>` Tests run, the `auto-fix` job applies `oxlint --fix` (its safe fixes) and `formatChanged.mjs`, reruns `yarn lint` and the format check, and, when both pass, commits the fixes to the same branch with the trailer `Generated-By: tests auto-fix` and dispatches Tests and Live on the new commit. It is the counterpart of `live-backend.yml`'s auto-fix for `_generated` drift (`Generated-By: live-backend auto-fix`). Its guards:
@@ -83,6 +85,7 @@ When Lint is the only failing job of a `ci/<slice>` Tests run, the `auto-fix` jo
 - `ci/**` slice branches only: never the phase branch, main or a `ci/merge-*` batch;
 - every other job passed or was skipped (it waits for them, so a run with a real failure fails as before);
 - HEAD is not already a Tests auto-fix commit, so it never commits twice in a row;
+- the branch left the ledger alone: it runs `ledgerUntouched.mjs` first, since formatting a rewritten ledger would hide the rewrite;
 - a plain push, so a branch that moved meanwhile rejects it and the run fails;
 - write permission only on this job, and the token reaches only its push step, not the install or the fix commands. A fix that would change a file under `.github/workflows` is refused, since `GITHUB_TOKEN` cannot push workflow changes.
 

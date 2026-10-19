@@ -267,6 +267,13 @@ jobs:
         env:
           MERGE_BASE: ${{ needs.build.outputs.merge-base }}
         run: node scripts/formatChanged.mjs --base "$MERGE_BASE" --check
+      # The ledger is the orchestrator's, edited on the phase branch; a slice that rewrote it would revert
+      # those edits at merge (PLATFORM-13.T14). A merge batch carries no slice commits of its own.
+      - name: Slice leaves the phase ledger alone
+        if: (success() || failure()) && !startsWith(github.ref_name, 'ci/merge-')
+        env:
+          MERGE_BASE: ${{ needs.build.outputs.merge-base }}
+        run: node scripts/ledgerUntouched.mjs --base "$MERGE_BASE"
 
   # Proves fail-before in the same run: the slice's new and changed test files run against the production
   # code of the phase branch (the merge-base), on their own runner beside the other jobs, and the summary
@@ -369,6 +376,8 @@ jobs:
         env:
           MERGE_BASE: ${{ needs.build.outputs.merge-base }}
         run: |
+          # A slice that changed the ledger is not a format fix: formatting it would hide the change.
+          node scripts/ledgerUntouched.mjs --base "$MERGE_BASE"
           # oxlint applies only its safe fixes; a finding it cannot fix fails the `yarn lint` check below.
           yarn oxlint --fix || true
           node scripts/formatChanged.mjs --base "$MERGE_BASE"
