@@ -43,7 +43,11 @@ type Holder = ReturnType<typeof creatureActor>
  * A memory store holding the Run, the holder and the holder's Concentration slot. A GM-held actor's
  * chat entries post only when the GM's rolls are public.
  */
-async function holderFixture(actor: Holder, gmRollVisibility: 'PUBLIC' | 'PRIVATE' = 'PRIVATE') {
+async function holderFixture(
+  actor: Holder,
+  gmRollVisibility: 'PUBLIC' | 'PRIVATE' = 'PRIVATE',
+  others: readonly Holder[] = []
+) {
   const memory = createMemoryEncounterStore()
   memory.load(
     'encounterRuns',
@@ -55,7 +59,12 @@ async function holderFixture(actor: Holder, gmRollVisibility: 'PUBLIC' | 'PRIVAT
   memory.load(
     'encounterRunActors',
     [
-      { _id: 'actor', _creationTime: 2, encounterId: ENCOUNTER_ID, id: actor.id }
+      ...[actor, ...others].map(({ id }, index) => ({
+        _id: `actor-${index}`,
+        _creationTime: 2,
+        encounterId: ENCOUNTER_ID,
+        id
+      }))
     ] as unknown as EncounterDocument<'encounterRunActors'>[],
     { validate: false }
   )
@@ -417,7 +426,7 @@ describe('persistEncounterConcentrationChildren ends a source grants on every ho
   ) {
     const source = creatureActor(knightInput)
     const allies = ALLY_IDS.map((id) => creatureActor({ id, kind: 'CUSTOM', snapshot: {} }))
-    const { memory, ctx, postRulesChatMessage } = await holderFixture(source, 'PUBLIC')
+    const { memory, ctx, postRulesChatMessage } = await holderFixture(source, 'PUBLIC', allies)
     const grants: Awaited<ReturnType<typeof storeGrant>>[] = []
     for (const ally of allies)
       grants.push(
