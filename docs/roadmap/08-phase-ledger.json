@@ -8169,7 +8169,7 @@
             },
             {
               "id": "SPELLS-4.T2c3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8178,7 +8178,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2c1"]
               },
-              "text": "MINIMUM_ROLL d20 floor option (Reliable Talent can reuse it); converts GLIBNESS (truth clause stays description-only). Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md)."
+              "text": "MINIMUM_ROLL d20 floor option (Reliable Talent can reuse it); converts GLIBNESS (truth clause stays description-only). Parity proofs; each kind deleted (D156 SPELLS-4.T2c ruling; workbook slice-spells-4.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "DONE",
@@ -11278,7 +11279,7 @@
             },
             {
               "id": "SPELLS-31.T5d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11288,7 +11289,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "New option (ruling at start): critical range and extra critical dice; Improved, Superior and Brutal Critical. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m168 (6e582a677)."
             },
             {
               "id": "SPELLS-31.T5e",
@@ -12294,6 +12295,20 @@
             },
             {
               "id": "SPELLS-33.T6k2",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-33.T6k1"]
+              },
+              "text": "new: thrown-target collision damage, Air Elemental Whirlwind, with a server-rolled RANDOM forced-movement direction and a struck-creature save pause on the AREA_PENDING pattern (1 kind, D159). Authoring-parity proof; deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6k3",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12301,9 +12316,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1", "SPELLS-33.T6k1"]
+                "after": ["SPELLS-33.T6k2", "SPELLS-33.T5n"]
               },
-              "text": "new: collision damage and landing on occupied spaces (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: Bulette Deadly Leap, a target-chosen saving-throw ability (players choose, creatures take the higher modifier) and landing in an occupied space through the T6k1 passage rule, with prone as the fallback (1 kind, D159 split). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6m1",
