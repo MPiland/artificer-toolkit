@@ -1434,6 +1434,24 @@ Source-scoped `ATTACK_ROLL` and `DAMAGE` grants. Armor and shield still use real
 declarations, movement reactions, Legendary Actions, Cleaving and Disarm are `UNPROMPTED`. Player-driven
 action submission, which would move the prompt to the player, is not built.
 
+**Weapon draw (ATTACK-19.T2, D107).** A directly resolved attack (`PROMPTED`) whose bound weapon is
+carried draws it into a free hand for no action; declared, reactive and follow-up attacks never do.
+`evaluateEncounterWeaponDraw` (`encounterWeaponDraw`) decides from `planHandDraw` (`packages/shared`
+core): `DRAW` into the hand `nextEquipSlot` picks, `RELEASE_REQUIRED` when only held creatures
+(`SOURCE_OCCUPIES_HAND` holds, `handHolds` on the `PROMPTED` acceptance) keep both hands from the weapon,
+and `NONE` for a natural attack, a weapon already in hand, or hands full of items (swapping stays free).
+A Character's attack is bound by its action equipment; a Creature's only through a loadout binding, so
+natural attacks draw nothing. The draw composes with the shield stow in one Character stream version
+(stow first, then draw, each with its own equipment checksum) and travels as `drawHeldItem` on the
+source's equipment mutation, `sourceItemDraw` on the batch output and receipt
+(`CHARACTER_ITEM_DRAW` / `ENCOUNTER_ACTOR_ITEM_DRAW`, the Creature draw being the loadout `CARRIED`
+-> hand `useState` change). Undo reverses the draw before the stow and refuses when the hand moved on.
+With no free hand because of holds, `RELEASE_REQUIRED` raises `HandReleaseRequiredError`. The
+action-choices read marks the action `handRelease: { holds }` (the releasable hand holds) so the attack
+flow asks "release which?", sends the existing `RELEASE_RELATIONSHIP`, then the attack; a released hold
+is not restored by undo. The read cannot see target-dependent refusals, so it offers the release
+whenever the listed action would need one; the planner refusal stays as the backstop.
+
 **Action phases.** An authored action compiles to an immutable template; after the owner locks and
 authorizes facts, at most two ordered phases specialize from it: `TEST` (one d20 stage selecting the hit,
 miss, critical or save path) and `OUTCOME` (exact authored dice and scaling). Each phase is acyclic with

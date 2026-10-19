@@ -35,6 +35,8 @@ export function escapeGrappleEffectDefinition(input: {
   actorKinds?: ('TARGET' | 'CREATURE_WITHIN_REACH')[]
   /** The grappler's moves drag the target (D105). */
   dragged?: boolean
+  /** The grappler holds the target by hand, which fills one of its hands (D152). */
+  occupiesHand?: boolean
 }): ActiveRuleEffectDefinitionDto {
   const definitionId = fixtureId(0)
   const entryId = fixtureId(1)
@@ -96,6 +98,9 @@ export function escapeGrappleEffectDefinition(input: {
           },
           ...(input.dragged
             ? [{ id: DRAG_GRAPPLE_MODULE_ID, order: 1, kind: 'TARGET_DRAGGED' as const }]
+            : []),
+          ...(input.occupiesHand
+            ? [{ id: fixtureId(7), order: 2, kind: 'SOURCE_OCCUPIES_HAND' as const }]
             : [])
         ],
         conditionIds: [...input.conditionIds],

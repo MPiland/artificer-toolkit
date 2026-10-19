@@ -17,6 +17,7 @@ import {
   encounterActionSpentTurnUses,
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
   encounterActionSourceLabel,
   resolveEncounterActionSource,
@@ -647,7 +648,8 @@ export async function planNativeLiveEncounterAction(
       choiceOptionId,
       wieldConflictAcceptance: {
         kind: 'PROMPTED',
-        accepted: command.acceptedWieldConflict
+        accepted: command.acceptedWieldConflict,
+        handHolds: encounterSourceHandHolds(activeEffectsByActorId, command.actorId)
       },
       overridable: true,
       movementTargets: targets,

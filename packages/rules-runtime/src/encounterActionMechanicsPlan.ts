@@ -115,14 +115,17 @@ function prepareNativeActionMechanicsBatches(
       ? []
       : [...(castConsumption ? [castConsumption] : []), ...(input.counterSpellConsumptions ?? [])]
   const stow = spend === 'NONE' ? undefined : prepared.acceptedWieldConflict
-  const stowMutation = stow
-    ? { stowEquippedItemInstanceId: encounterStowedItemInstanceId(stow) }
-    : {}
+  const draw = spend === 'NONE' ? undefined : prepared.weaponDraw
+  // The stow comes first in the batch, then the draw it freed a hand for.
+  const equipmentMutation = {
+    ...(stow ? { stowEquippedItemInstanceId: encounterStowedItemInstanceId(stow) } : {}),
+    ...(draw?.kind === 'DRAW' ? { drawHeldItem: { itemId: draw.itemId, slot: draw.slot } } : {})
+  }
   const sourceMutation = {
     ...(resourceConsumption ? { characterResourceConsumption: resourceConsumption } : {}),
     ...(itemConsumption ? { characterItemConsumption: itemConsumption } : {}),
     ...(spellConsumptions.length > 0 ? { characterSpellConsumptions: spellConsumptions } : {}),
-    ...stowMutation
+    ...equipmentMutation
   }
   const sourceReleases = input.sourceReleases ?? []
   const onTargetBatch = actor.id === target.id && spend !== 'ONLY'
@@ -131,6 +134,7 @@ function prepareNativeActionMechanicsBatches(
     ((source.kind === 'CHARACTER_ACTION' &&
       (resourceConsumption || itemConsumption || spellConsumptions.length > 0)) ||
       stow ||
+      draw?.kind === 'DRAW' ||
       sourceReleases.length) &&
     !onTargetBatch
       ? {
@@ -196,7 +200,11 @@ function prepareNativeActionMechanicsBatches(
     ...(input.releaseTargetItemInstanceId
       ? { releaseHeldItemInstanceId: input.releaseTargetItemInstanceId }
       : {}),
-    ...(onTargetBatch ? (source.kind === 'CHARACTER_ACTION' ? sourceMutation : stowMutation) : {})
+    ...(onTargetBatch
+      ? source.kind === 'CHARACTER_ACTION'
+        ? sourceMutation
+        : equipmentMutation
+      : {})
   }
   return { sourceResourceBatch, targetBatch }
 }
@@ -209,6 +217,7 @@ type SettledMechanicsPlan = Pick<
   | 'characterStreamVersion'
   | 'itemUseStateTransition'
   | 'itemReleaseTransition'
+  | 'itemDrawTransition'
 >
 
 /** The receipts of the source's one spend, read from what the action prepared. */
@@ -304,7 +313,8 @@ export function finishNativeActionMechanicsSettlement(
       (prepared.characterActionState?.resourceConsumption ||
         prepared.characterActionState?.itemConsumption ||
         prepared.characterActionState?.spellConsumption)) ||
-      prepared.acceptedWieldConflict) &&
+      prepared.acceptedWieldConflict ||
+      (source.kind === 'CHARACTER_ACTION' && prepared.weaponDraw.kind === 'DRAW')) &&
     actor.id !== target.id
   const sourceCharacterStreamVersion = spendsCharacter
     ? (sourceResourceMechanics?.characterStreamVersion ??
@@ -321,12 +331,20 @@ export function finishNativeActionMechanicsSettlement(
           throw new Error('The accepted stow was not committed.')
         })())
       : null
+  const sourceItemDraw =
+    spendsSource && prepared.weaponDraw.kind === 'DRAW'
+      ? ((actor.id === target.id ? mechanics : sourceResourceMechanics)?.itemDrawTransition ??
+        (() => {
+          throw new Error('The weapon draw was not committed.')
+        })())
+      : null
   return {
     mechanics,
     settledSource,
     sourceResourceMechanics,
     sourceCharacterStreamVersion,
     sourceItemUseStateTransition,
+    sourceItemDraw,
     targetItemUseStateTransition: mechanics.itemReleaseTransition,
     sourceApplications: settledSourceApplications,
     ...(spendsSource
@@ -405,6 +423,8 @@ export function planNativeEncounterAreaSourceSpend(
     : null
   if (prepared.acceptedWieldConflict && !sourceResourcePlan?.itemUseStateTransition)
     throw new Error('The accepted stow was not committed.')
+  if (prepared.weaponDraw.kind === 'DRAW' && !sourceResourcePlan?.itemDrawTransition)
+    throw new Error('The weapon draw was not committed.')
   return {
     sourceResourcePlan,
     settledSource: spendNativeSourceFeatureCharge(
@@ -413,6 +433,7 @@ export function planNativeEncounterAreaSourceSpend(
     ),
     sourceCharacterStreamVersion: sourceResourcePlan?.characterStreamVersion ?? null,
     sourceItemUseStateTransition: sourceResourcePlan?.itemUseStateTransition ?? null,
+    sourceItemDraw: sourceResourcePlan?.itemDrawTransition ?? null,
     sourceApplications: sourceResourcePlan?.receiptApplications ?? [],
     ...nativeSourceSpendReceipts(prepared)
   }

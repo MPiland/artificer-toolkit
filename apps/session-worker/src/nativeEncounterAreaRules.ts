@@ -38,6 +38,7 @@ import {
   prepareEncounterActionMechanics,
   prepareEncounterActionSource
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import {
   encounterActionSuppressedWarning,
@@ -629,7 +630,8 @@ export function prepareCasterActionOnTarget(
     choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',
-      accepted: capability ? null : input.command.acceptedWieldConflict
+      accepted: capability ? null : input.command.acceptedWieldConflict,
+      handHolds: encounterSourceHandHolds(input.activeEffectsByActorId, action.caster.id)
     },
     overridable: true,
     movementTargets: action.movementTargets,

@@ -292,7 +292,7 @@ describe('shield stow on two-handed attacks', () => {
           actor: actors.find((actor) => actor.id === base.actor.id)!,
           target: actors.find((actor) => actor.id === base.target.id)!,
           actionId: base.actionId,
-          wieldConflictAcceptance: { kind: 'PROMPTED', accepted },
+          wieldConflictAcceptance: { kind: 'PROMPTED', accepted, handHolds: 0 },
           overridable: true
         })
       await expect(prepare(null)).rejects.toThrow(

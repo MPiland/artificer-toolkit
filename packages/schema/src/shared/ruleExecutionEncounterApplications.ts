@@ -897,7 +897,6 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
           (draw.kind === 'CHARACTER_ITEM_DRAW'
             ? value.sourceCharacterId == null ||
               draw.characterId !== value.sourceCharacterId ||
-              stow !== null ||
               draw.afterStreamVersion !== value.sourceCharacterStreamVersion
             : draw.actorId !== value.sourceActorId)
         )
@@ -937,6 +936,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
           !(
             resource !== null ||
             stow !== null ||
+            draw?.kind === 'CHARACTER_ITEM_DRAW' ||
             consumption !== null ||
             spell !== null ||
             sourceMaintenanceMutation ||
@@ -1324,6 +1324,7 @@ export function validateSourceSpendReceipts(
     !(
       resource !== null ||
       stow !== null ||
+      draw?.kind === 'CHARACTER_ITEM_DRAW' ||
       consumption !== null ||
       spell !== null ||
       sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)

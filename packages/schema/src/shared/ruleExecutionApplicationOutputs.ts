@@ -550,7 +550,6 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           (draw.kind === 'CHARACTER_ITEM_DRAW'
             ? value.sourceCharacterId === null ||
               draw.characterId !== value.sourceCharacterId ||
-              stow !== null ||
               draw.afterStreamVersion !==
                 (value.sourceActorId === value.targetActorId
                   ? value.targetCharacterStreamVersion

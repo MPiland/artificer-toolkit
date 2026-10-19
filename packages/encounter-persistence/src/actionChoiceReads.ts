@@ -15,6 +15,11 @@ import {
   type DefaultAttackChoice
 } from '@artificer-toolkit/rules-runtime/encounterDefaultAttack'
 import { encounterActorHeldItems } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
+import {
+  characterActionDrawWeapon,
+  creatureActionDrawWeapon,
+  evaluateEncounterWeaponDraw
+} from '@artificer-toolkit/rules-runtime/encounterWeaponDraw'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
@@ -165,6 +170,35 @@ export async function readEncounterActionChoices(
       : actor.kind === 'CREATURE'
         ? actor
         : null
+  // The creatures the actor holds through a relationship it applied; releasing one spends nothing (D152).
+  const heldByActor = await readHeldRelationships(tx, {
+    state,
+    membership,
+    sourceActorIds: new Set([actor.id])
+  })
+  const releases: EncounterActionChoicesDto['releases'] = heldByActor.map(
+    ({ heldActorId, activeEffectId, label }) => ({ heldActorId, activeEffectId, label })
+  )
+  // An attack that must draw its weapon while only the holds that fill a hand keep one from it asks
+  // the actor to release one first (D107, D152).
+  const handHolds = heldByActor.filter(({ occupiesHand }) => occupiesHand)
+  const heldItems = encounterActorHeldItems({
+    actor: creature ?? actor,
+    characterFacts: actorTarget?.characterFacts ?? null
+  })
+  const handReleaseChoice = (draw: ReturnType<typeof evaluateEncounterWeaponDraw>) =>
+    draw.kind === 'RELEASE_REQUIRED'
+      ? {
+          handRelease: {
+            holds: handHolds.map(({ activeEffectId, heldActorId }) => ({
+              activeEffectId,
+              heldActorId
+            }))
+          }
+        }
+      : {}
+  const handReleaseFor = (weapon: Parameters<typeof evaluateEncounterWeaponDraw>[0]['weapon']) =>
+    evaluateEncounterWeaponDraw({ weapon, hands: heldItems, holds: handHolds.length })
   if (actor.kind === 'CHARACTER' && creature === null) {
     const facts = actorTarget?.characterFacts
     const mechanics = actorTarget?.characterReactionSource?.mechanics
@@ -242,6 +276,7 @@ export async function readEncounterActionChoices(
           candidate?.mechanicFacts.invocation.activation ?? null,
           candidate?.mechanicFacts.invocation.triggerCode
         )
+        const draw = handReleaseFor(characterActionDrawWeapon(candidate?.equipment ?? null))
         if (candidate?.equipment)
           itemBindings.set(action.id, {
             itemId: candidate.equipment.itemInstanceId,
@@ -275,6 +310,7 @@ export async function readEncounterActionChoices(
               }
             : null,
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
+          ...handReleaseChoice(draw),
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,
@@ -289,7 +325,8 @@ export async function readEncounterActionChoices(
           ),
           warnings: [
             ...economy.warnings,
-            ...(reasonCode === 'SOURCE_NOT_EQUIPPED'
+            // An attack draws its carried weapon itself (D107), so a carried weapon is no warning.
+            ...(reasonCode === 'SOURCE_NOT_EQUIPPED' && draw.kind !== 'DRAW'
               ? [
                   {
                     code: 'SOURCE_NOT_EQUIPPED' as const,
@@ -345,6 +382,11 @@ export async function readEncounterActionChoices(
                 }
               : null,
             wieldConflict: null,
+            ...handReleaseChoice(
+              handReleaseFor(
+                creatureActionDrawWeapon(heldItems, action.equipmentBinding?.loadoutEntryId)
+              )
+            ),
             attackSlot: economy.attackSlot,
             target: encounterActionChoiceTarget(
               targetPolicy,
@@ -485,10 +527,6 @@ export async function readEncounterActionChoices(
       warnings: economy.warnings
     })
   }
-  // The creatures the actor holds through a relationship it applied; releasing one spends nothing (D152).
-  const releases: EncounterActionChoicesDto['releases'] = (
-    await readHeldRelationships(tx, { state, membership, sourceActorIds: new Set([actor.id]) })
-  ).map(({ heldActorId, activeEffectId, label }) => ({ heldActorId, activeEffectId, label }))
   const attackActionThisTurn =
     openAttackAction && openAttackAction.turnSequence === state.turnSequence
       ? openAttackAction
@@ -552,7 +590,9 @@ async function readHeldRelationships(
     membership: CampaignAuthority['membership']
     sourceActorIds: ReadonlySet<string>
   }
-): Promise<(Omit<EncounterHeldRelationshipDto, 'drag'> & { drags: boolean })[]> {
+): Promise<
+  (Omit<EncounterHeldRelationshipDto, 'drag'> & { drags: boolean; occupiesHand: boolean })[]
+> {
   const { state, membership, sourceActorIds } = input
   const runActors = await readRunActors(tx, state)
   const activeEffectsByActorId = new Map(
@@ -575,7 +615,8 @@ async function readHeldRelationships(
           held && (membership.role === 'OWNER' || held.public)
             ? `Release ${held.label}`
             : 'Release a creature',
-        drags: contribution.modules.some(({ kind }) => kind === 'TARGET_DRAGGED')
+        drags: contribution.modules.some(({ kind }) => kind === 'TARGET_DRAGGED'),
+        occupiesHand: contribution.modules.some(({ kind }) => kind === 'SOURCE_OCCUPIES_HAND')
       }
     })
 }
@@ -615,7 +656,7 @@ export async function readEncounterHeldRelationships(
     return target ? encounterActorEffectiveSize(target) : null
   }
   // The route preview prices a drag from the sizes now; settlement recomputes them (D105).
-  return holds.map(({ drags, ...hold }) => ({
+  return holds.map(({ drags, occupiesHand: _occupiesHand, ...hold }) => ({
     ...hold,
     drag: drags
       ? {

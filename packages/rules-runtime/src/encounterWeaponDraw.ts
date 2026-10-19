@@ -1,4 +1,11 @@
-import { planHandDraw, type HandOccupancyItem, type HandSlotCode } from '@artificer-toolkit/shared/core'
+import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
+import {
+  EQUIPMENT_PROPERTY_CODE,
+  isHandSlot,
+  planHandDraw,
+  type HandOccupancyItem,
+  type HandSlotCode
+} from '@artificer-toolkit/shared/core'
 
 export type EncounterWeaponDraw =
   | { kind: 'NONE' }
@@ -27,4 +34,26 @@ export function evaluateEncounterWeaponDraw(input: {
     case 'NO_HAND':
       return { kind: 'NONE' }
   }
+}
+
+/** The weapon a Character's attack action draws; null for an action with no wielded grip. */
+export function characterActionDrawWeapon(
+  equipment: CharacterActionCandidate['equipment'] | undefined
+): { id: string; twoHanded: boolean; drawn: boolean } | null {
+  return equipment?.grip
+    ? {
+        id: equipment.itemInstanceId,
+        twoHanded: equipment.properties?.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED) ?? false,
+        drawn: equipment.equipped
+      }
+    : null
+}
+
+/** The loadout weapon a Creature's action is bound to; natural attacks bind none. */
+export function creatureActionDrawWeapon(
+  hands: readonly HandOccupancyItem[],
+  loadoutEntryId: string | undefined
+): { id: string; twoHanded: boolean; drawn: boolean } | null {
+  const item = hands.find(({ id }) => id === loadoutEntryId)
+  return item ? { id: item.id, twoHanded: item.twoHanded, drawn: isHandSlot(item.slot) } : null
 }

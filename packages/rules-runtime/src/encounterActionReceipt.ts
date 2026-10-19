@@ -154,6 +154,7 @@ export function buildEncounterActionStoredExecution(input: {
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
+            sourceItemDraw: settled.sourceItemDraw,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
             actionEconomyTransition,
@@ -187,6 +188,7 @@ export function buildEncounterActionStoredExecution(input: {
             targetActorId: target.id,
             ...(input.maintenanceTransition ||
             settled.sourceItemUseStateTransition ||
+            settled.sourceItemDraw?.kind === 'CHARACTER_ITEM_DRAW' ||
             settled.itemConsumptionReceipt ||
             settled.spellConsumptionReceipt ||
             settled.sourceApplications.length
@@ -202,6 +204,7 @@ export function buildEncounterActionStoredExecution(input: {
             legendaryResistance: input.resistance?.legendaryResistance ?? null,
             reaction: reactionReceipt((transition) => transition),
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
+            sourceItemDraw: settled.sourceItemDraw,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
             actionEconomyTransition,

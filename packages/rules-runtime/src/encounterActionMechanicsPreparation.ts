@@ -1,11 +1,7 @@
 import { heldConditionIds } from './encounterInnateConditions.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import {
-  EQUIPMENT_PROPERTY_CODE,
-  isHandSlot,
-  type AttackOccasionCode
-} from '@artificer-toolkit/shared/core'
+import type { AttackOccasionCode } from '@artificer-toolkit/shared/core'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type {
@@ -34,7 +30,11 @@ import {
   StaleCharacterActionError
 } from './encounterErrors.js'
 import { encounterActorHeldItems } from './encounterHolderDefense.js'
-import { evaluateEncounterWeaponDraw } from './encounterWeaponDraw.js'
+import {
+  characterActionDrawWeapon,
+  creatureActionDrawWeapon,
+  evaluateEncounterWeaponDraw
+} from './encounterWeaponDraw.js'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { pickedCastChoiceEffect } from './encounterCastChoice.js'
 import {
@@ -91,6 +91,7 @@ import type {
 } from './encounterActionSources.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
+  encounterStowedItemInstanceId,
   evaluateEncounterCharacterActionWieldConflict,
   type EncounterWieldConflictAcceptance
 } from './encounterWieldConflict.js'
@@ -450,24 +451,21 @@ export async function prepareEncounterActionMechanics<
         : 'This attack does not stow a shield.'
     )
   const acceptedWieldConflict = heldWeaponStow ?? shieldStow
-  // A directly resolved attack draws its bound weapon into a free hand (D107); a stow already
-  // changes the equipment, so an attack that stows draws nothing.
-  const hands = encounterActorHeldItems(sourceFacts)
-  const characterWeapon = source.kind === 'CHARACTER_ACTION' ? source.candidate.equipment : null
-  const creatureWeaponId =
-    source.kind === 'CREATURE' ? source.capability.equipmentBinding?.loadoutEntryId : undefined
-  const creatureWeapon = hands.find(({ id }) => id === creatureWeaponId)
-  const boundWeapon = characterWeapon?.grip
-    ? {
-        id: characterWeapon.itemInstanceId,
-        twoHanded: characterWeapon.properties?.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED) ?? false,
-        drawn: characterWeapon.equipped
-      }
-    : creatureWeapon
-      ? { id: creatureWeapon.id, twoHanded: creatureWeapon.twoHanded, drawn: isHandSlot(creatureWeapon.slot) }
-      : null
+  // A directly resolved attack draws its bound weapon (D107) after any shield it stows, which
+  // frees the hand the weapon takes.
+  const stowedItemId = acceptedWieldConflict && encounterStowedItemInstanceId(acceptedWieldConflict)
+  const hands = encounterActorHeldItems(sourceFacts).filter(({ id }) => id !== stowedItemId)
+  const boundWeapon =
+    source.kind === 'CHARACTER_ACTION'
+      ? characterActionDrawWeapon(source.candidate.equipment)
+      : creatureActionDrawWeapon(
+          hands,
+          source.kind === 'CREATURE'
+            ? source.capability.equipmentBinding?.loadoutEntryId
+            : undefined
+        )
   const weaponDraw =
-    acceptance.kind === 'PROMPTED' && !acceptedWieldConflict
+    acceptance.kind === 'PROMPTED'
       ? evaluateEncounterWeaponDraw({ weapon: boundWeapon, hands, holds: acceptance.handHolds })
       : ({ kind: 'NONE' } as const)
   if (weaponDraw.kind === 'RELEASE_REQUIRED') throw new HandReleaseRequiredError()
