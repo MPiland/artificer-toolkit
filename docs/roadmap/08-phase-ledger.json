@@ -11079,7 +11079,7 @@
             },
             {
               "id": "SPELLS-31.T4e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11089,6 +11089,20 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2e"]
               },
               "text": "Join SPELLS-4.T2e: Sacred Weapon (regression test for its Holy Nimbus charge bug), Ki-Empowered Strikes. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "Merged m184 (891afa689)."
+            },
+            {
+              "id": "SPELLS-31.T4e2",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["SPELLS-31.T4e"]
+              },
+              "text": "new: review follow-ups from T4e and T4k1 (2026-10-19): type the attack-trait input as AttackKind instead of the `as AttackKind` cast in attackDamageDefenses.ts, and make the typecheck lane of scripts/withValidationLock.ps1 fail (with a node_modules preflight) instead of reporting a false green when every yarn command fails.",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
