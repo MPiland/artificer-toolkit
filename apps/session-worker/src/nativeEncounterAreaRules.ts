@@ -962,6 +962,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       areaSnapshot: null,
       caughtChecksum: encounterChosenActorsChecksum(caught.map(({ actor }) => actor.id)),
       removedActorIds: [],
+      unaffectedActorIds,
       placement: null,
       occurrenceVersion: window.occurrenceVersion,
       response: window.response,
@@ -1768,6 +1769,7 @@ export async function planNativeLiveEncounterAreaCommit(
     areaSnapshot,
     caughtChecksum: context.caughtChecksum,
     removedActorIds: context.removedActorIds,
+    unaffectedActorIds: context.unaffectedActorIds ?? [],
     placement: base.placement,
     occurrenceVersion: resumed ? resumed.expectedOccurrenceVersion + 1 : 0,
     response: input.response,
@@ -1896,6 +1898,7 @@ export async function completeAreaCommit(args: {
   areaSnapshot: ServerAggregateChoicePendingSnapshotDto | null
   caughtChecksum: string
   removedActorIds: readonly string[]
+  unaffectedActorIds: readonly string[]
   /** The zone an action leaves at the picked point, with the area it fills. */
   placement: AreaReach['placement']
   occurrenceVersion: number
@@ -1925,6 +1928,7 @@ export async function completeAreaCommit(args: {
     areaSnapshot,
     caughtChecksum,
     removedActorIds,
+    unaffectedActorIds,
     placement,
     occurrenceVersion,
     response,
@@ -2457,6 +2461,7 @@ export async function completeAreaCommit(args: {
     response,
     removal,
     area: areaSnapshot,
+    unaffectedActorIds: [...unaffectedActorIds],
     prepared: { actors },
     occurredAt,
     initialDefinitionId:
@@ -2517,6 +2522,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     targets: plan.targets,
     rollsPerTarget: plan.rollsPerTarget,
     area: plan.area,
+    unaffectedActorIds: plan.unaffectedActorIds,
     placedZones: plan.placedZones,
     zoneSourceGrant: plan.zoneSourceGrant,
     forcedMovements: plan.forcedMovements,

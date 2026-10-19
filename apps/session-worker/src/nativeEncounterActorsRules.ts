@@ -248,6 +248,7 @@ export async function planNativeLiveEncounterActorsAction(
     areaSnapshot: null,
     caughtChecksum: encounterChosenActorsChecksum(actorIds),
     removedActorIds: [],
+    unaffectedActorIds: [],
     placement: null,
     occurrenceVersion: window.occurrenceVersion,
     response: window.response,
