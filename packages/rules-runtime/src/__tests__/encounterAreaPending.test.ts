@@ -99,10 +99,13 @@ describe('a creature a forced-movement collision struck (D159)', () => {
   }
   const withStruck = (actorId: string) => {
     const before = context([{ actorId: FIRST }, { actorId: SECOND }])
-    return {
-      ...before,
-      targets: [...before.targets, { ...token('x', 0), actorId, collision: struckMarker }]
-    }
+    const targets: {
+      actorId: string
+      token: ReturnType<typeof token>
+      testedJson?: string
+      collision?: typeof struckMarker
+    }[] = [...before.targets, { actorId, token: token('x', 0), collision: struckMarker }]
+    return { ...before, targets }
   }
 
   it('gives each mover’s strike on a creature its own save occurrence', () => {
