@@ -106,6 +106,7 @@ import { creatureFormFilterRefusal } from '@artificer-toolkit/rules-runtime/enco
 import {
   encounterActiveEffectPlan,
   prepareNativeActionEffectsPlan,
+  prepareNativeIncomingDamageGrantTriggers,
   prepareNativeZoneSourceGrantEffect
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
@@ -2225,6 +2226,29 @@ export async function completeAreaCommit(args: {
       currentEffects: targetEffects,
       occurredAt
     }
+    const applications = [...complete.applications, ...effects.relationshipConditionApplications]
+    const damageEnded = targetEndedEffects({
+      holderActorId: actor.id,
+      held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
+        ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
+      ),
+      attacked: prepared.makesAttackRoll,
+      testEvidence: [complete.d20, complete.nestedD20],
+      turnActorId: prepared.state.currentActorId,
+      applications,
+      damagerActorId: caster.id,
+      dispositions,
+      grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+        encounter: state,
+        holder: prepared.target,
+        held: prepared.targetFacts.activeEffects,
+        occurrenceId,
+        commandId,
+        ordinal: index,
+        activeEffectsByActorId: input.activeEffectsByActorId
+      })
+    })
+    for (const ended of damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
     const stateEffect =
       effects.stateEffect && createNativeActiveEffect(effects.stateEffect, effectInput)
     const recurringEffect =
@@ -2244,9 +2268,17 @@ export async function completeAreaCommit(args: {
     const reaction = firstEntry ? reactionEffects?.get(actor.id) : undefined
     const reactionRecord =
       reaction && createNativeActiveEffect(reaction.plan, { ...effectInput, id: reaction.id })
-    const created = [stateEffect, recurringEffect, riderEffect, reactionRecord].flatMap((effect) =>
-      effect ? [effect] : []
+    // The target's own passive damage triggers make timed grants on it after its other effects.
+    const grantRecords = damageEnded.grants.map(({ id, effect }) =>
+      createNativeActiveEffect(effect, { ...effectInput, id })
     )
+    const created = [
+      stateEffect,
+      recurringEffect,
+      riderEffect,
+      reactionRecord,
+      ...grantRecords
+    ].flatMap((effect) => (effect ? [effect] : []))
     const effectTransitions = projectNativeActionEffectTransitions({
       state: stateEffect,
       recurring: recurringEffect,
@@ -2276,20 +2308,6 @@ export async function completeAreaCommit(args: {
       caster.kind === 'CHARACTER' && actor.id === caster.id && !advanced.has(actor.id)
     const carriesFailedCounterSpend =
       actor.id !== caster.id && failedReactorSlots.has(actor.id) && firstEntry
-    const applications = [...complete.applications, ...effects.relationshipConditionApplications]
-    const damageEnded = targetEndedEffects({
-      holderActorId: actor.id,
-      held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
-        ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
-      ),
-      attacked: prepared.makesAttackRoll,
-      testEvidence: [complete.d20, complete.nestedD20],
-      turnActorId: prepared.state.currentActorId,
-      applications,
-      damagerActorId: caster.id,
-      dispositions
-    })
-    for (const ended of damageEnded.endedEffects) damageEndedEffects.set(ended.id, ended)
     const enterForm =
       recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
@@ -2363,7 +2381,15 @@ export async function completeAreaCommit(args: {
           state: null,
           recurring: reactionRecord ?? null,
           targetActorId: actor.id
-        }).activeEffectTransitions
+        }).activeEffectTransitions,
+        grantEffectTransitions: grantRecords.flatMap(
+          (grant) =>
+            projectNativeActionEffectTransitions({
+              state: null,
+              recurring: grant,
+              targetActorId: actor.id
+            }).activeEffectTransitions
+        )
       })
     })
   }

@@ -2,12 +2,14 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
+import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   collectSpatialMeleeRetaliationCandidates,
   type SpatialTokenFootprint
 } from '@artificer-toolkit/shared/vtt'
 
+import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { NativeEncounterActionSource } from './encounterActionSources.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -200,11 +202,26 @@ export async function planEncounterMeleeRetaliation<
     occurredAt: input.occurredAt,
     userId: input.userId,
     commandId: { phase: 'MELEE_RETALIATION', ordinal: 0 },
-    damageEnds: input.damageEnds
+    damageEnds: { ...input.damageEnds, incomingDamageGrants: true }
   })
+  const settlement = settled.settlements[0] ?? null
   const evidence: MeleeRetaliationEvidenceDto = {
     selectionChecksum: selected.selectionChecksum,
-    executions
+    executions,
+    grantEffectTransitions: (settlement?.grants ?? []).flatMap(
+      (grant) =>
+        projectNativeActionEffectTransitions({
+          state: null,
+          recurring: grant,
+          targetActorId: attacker.actor.id
+        }).activeEffectTransitions
+    ),
+    releasedConditionIds: (settlement?.batch.applications ?? []).flatMap((application) =>
+      application.kind === 'CONDITION_REMOVE' &&
+      application.sourceOperationKey === ENDED_EFFECT_RELEASE_OPERATION_KEY
+        ? [application.conditionId]
+        : []
+    )
   }
   if (
     retained &&
@@ -214,7 +231,7 @@ export async function planEncounterMeleeRetaliation<
   return {
     evidence,
     /** Null when the zones left the attacker unchanged, so no batch is written. */
-    settlement: settled.settlements[0] ?? null,
+    settlement,
     projectedAttacker: settled.projectedTargets.get(attacker.actor.id)!
   }
 }

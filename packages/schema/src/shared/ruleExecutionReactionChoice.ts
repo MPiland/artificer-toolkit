@@ -458,6 +458,102 @@ export const encounterIncomingGateOfferDtoSchema: z.ZodMiniType<EncounterIncomin
     })
   )
 
+/** The save a ward's attacker failed: the ward, the ability and DC of the save, and the d20 it rolled. */
+export type EncounterFailedIncomingGateDto = {
+  effectId: string
+  holderActorId: string
+  checkDefinitionId: string
+  dc: number
+  d20: z.infer<typeof ruleCheckD20EvidenceDtoSchema>
+}
+
+export const encounterFailedIncomingGateDtoSchema: z.ZodMiniType<EncounterFailedIncomingGateDto> =
+  lazySchema(() =>
+    z.strictObject({
+      effectId: uuidSchema,
+      holderActorId: uuidSchema,
+      checkDefinitionId: uuidSchema,
+      dc: positiveIntegerSchema,
+      d20: ruleCheckD20EvidenceDtoSchema
+    })
+  )
+
+/**
+ * One creature the attacker could turn a lost attack or spell on instead (`ATTACK_RETARGET`). The use
+ * option identity is derived from the ward that stopped the action and the creature, never free-standing.
+ */
+export type EncounterAttackRetargetOptionDto = {
+  targetActorId: string
+  /** The creature's token on the action's Scene, when the action named one. */
+  targetTokenId: string | null
+  useOptionId: string
+}
+
+export const encounterAttackRetargetOptionDtoSchema: z.ZodMiniType<EncounterAttackRetargetOptionDto> =
+  lazySchema(() =>
+    z.strictObject({
+      targetActorId: uuidSchema,
+      targetTokenId: z.nullable(uuidSchema),
+      useOptionId: checksumSchema
+    })
+  )
+
+export function encounterAttackRetargetUseOptionId(input: {
+  gateEffectId: string
+  targetActorId: string
+}): string {
+  return checksumRuleDocument({ kind: 'ATTACK_RETARGET_USE', ...input })
+}
+
+/**
+ * The choice an attacker whose save against a ward failed is offered before the attack or spell is lost:
+ * to turn it on another creature, or to let it be lost. Nothing is held but the failed save and the
+ * creatures on offer; answering with a creature replays the action against it.
+ */
+export type EncounterAttackRetargetOfferDto = {
+  gate: EncounterFailedIncomingGateDto
+  options: EncounterAttackRetargetOptionDto[]
+}
+
+export const encounterAttackRetargetOfferDtoSchema: z.ZodMiniType<EncounterAttackRetargetOfferDto> =
+  lazySchema(() =>
+    z
+      .strictObject({
+        gate: encounterFailedIncomingGateDtoSchema,
+        options: z
+          .array(encounterAttackRetargetOptionDtoSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
+      .check(
+        z.superRefine((value, context) => {
+          const targets = value.options.map(({ targetActorId }) => targetActorId)
+          if (
+            new Set(targets).size !== targets.length ||
+            targets.includes(value.gate.holderActorId)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['options'],
+              message:
+                'A retarget offers each creature once, never the creature that warded it off.'
+            })
+          for (const [index, option] of value.options.entries())
+            if (
+              encounterAttackRetargetUseOptionId({
+                gateEffectId: value.gate.effectId,
+                targetActorId: option.targetActorId
+              }) !== option.useOptionId
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['options', index, 'useOptionId'],
+                message: 'Retarget use option identity is invalid.'
+              })
+        })
+      )
+  )
+
 /**
  * The root of an action a warded creature's gate stopped: its attacker failed the save, so the attack or
  * spell is lost. The action is still spent: the receipts name the slot, resource, item and action economy
@@ -474,13 +570,7 @@ const encounterGatedActionApplicationOutputImplSchema = lazySchema(() =>
       ...sourceSpendReceiptShape(),
       /** What the failed save cost the source. */
       lost: z.enum(['ATTACK', 'SPELL']),
-      gate: z.strictObject({
-        effectId: uuidSchema,
-        holderActorId: uuidSchema,
-        checkDefinitionId: uuidSchema,
-        dc: positiveIntegerSchema,
-        d20: ruleCheckD20EvidenceDtoSchema
-      })
+      gate: encounterFailedIncomingGateDtoSchema
     })
     .check(z.superRefine(validateSourceSpendReceipts))
 )
@@ -492,13 +582,7 @@ export type EncounterGatedActionApplicationOutputDto = SourceSpendReceipts & {
   sourceActorId: string
   sourceCharacterId: string | null
   lost: 'ATTACK' | 'SPELL'
-  gate: {
-    effectId: string
-    holderActorId: string
-    checkDefinitionId: string
-    dc: number
-    d20: z.infer<typeof ruleCheckD20EvidenceDtoSchema>
-  }
+  gate: EncounterFailedIncomingGateDto
 }
 
 /** Named so the application-output union prints this member by name (TS7056). */

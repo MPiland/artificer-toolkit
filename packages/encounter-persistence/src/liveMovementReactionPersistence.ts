@@ -412,5 +412,5 @@ export async function persistLiveMovementReaction(
     },
     { applyMechanics: callbacks.applyMechanics }
   )
-  return actors.map((actor) => (actor.id === source.id ? retaliated : actor))
+  return actors.map((actor) => (actor.id === source.id ? retaliated.actor : actor))
 }

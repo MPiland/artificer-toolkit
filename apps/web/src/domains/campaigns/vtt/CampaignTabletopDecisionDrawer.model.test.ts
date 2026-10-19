@@ -12,6 +12,10 @@ describe('decisionTitle', () => {
 })
 
 describe('rollPromptText', () => {
+  it('titles a pending retarget as choosing a new target', () => {
+    expect(decisionTitle('ATTACK_RETARGET_CHOICE')).toBe('Choose a new target')
+  })
+
   it('names a death save with the saves already held', () => {
     expect(rollPromptText('Aria', { kind: 'DEATH_SAVE', successes: 1, failures: 2 })).toBe(
       'Death save for Aria (1 success, 2 failures, no modifiers)'

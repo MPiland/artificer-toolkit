@@ -8331,7 +8331,7 @@
             },
             {
               "id": "SPELLS-4.T2k2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8340,7 +8340,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2k2"]
               },
-              "text": "new: Mirror Image ATTACK_DECOYS on the remaining attack paths: opportunity and reaction attacks and legendary-action attacks intercept through the same decoy planner, and an attacker with blindsight or truesight (or that cannot see) is exempt; room proof per path (2026-10-19 ruling on the T2k2 gaps; workbook slice-spells-4.md)."
+              "text": "new: Mirror Image ATTACK_DECOYS on the remaining attack paths: opportunity and reaction attacks and legendary-action attacks intercept through the same decoy planner, and an attacker with blindsight or truesight (or that cannot see) is exempt; room proof per path (2026-10-19 ruling on the T2k2 gaps; workbook slice-spells-4.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2k3",
@@ -8369,6 +8370,19 @@
               },
               "text": "new: Sanctuary part 2: the ATTACK_RETARGET pause offering the attacker a new target before a gated attack or spell is lost, answered through RESOLVE_RULE_OCCURRENCE with replay fences; the currentness fence re-validates the new target's range and line of sight at answer time (2026-10-19 split; workbook slice-spells-4.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2k3c",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 1,
+                "after": ["SPELLS-4.T2k3b"]
+              },
+              "text": "new (redaction): ATTACK_RETARGET offers list only creatures the attacker's side can perceive, so hidden or unseen creatures' ids never reach the offer (found in T2k3b review, 2026-10-19). Regression test that fails before the fix: a hidden creature is absent from the offer and a pick naming it is refused. Range and sight pre-filtering stays deferred."
             },
             {
               "status": "TODO",
@@ -11094,7 +11108,7 @@
             },
             {
               "id": "SPELLS-31.T4e2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 2,
@@ -11104,7 +11118,7 @@
                 "after": ["SPELLS-31.T4e"]
               },
               "text": "new: review follow-ups from T4e and T4k1 (2026-10-19): type the attack-trait input as AttackKind instead of the `as AttackKind` cast in attackDamageDefenses.ts, and make the typecheck lane of scripts/withValidationLock.ps1 fail (with a node_modules preflight) instead of reporting a false green when every yarn command fails.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m188 (3cc63684e)."
             },
             {
               "id": "SPELLS-31.T4f",
@@ -11843,7 +11857,7 @@
             },
             {
               "id": "SPELLS-33.T4c2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11853,7 +11867,7 @@
                 "after": ["SPELLS-33.T4c"]
               },
               "text": "new (bug): encounterActiveGrantCapabilitySuppressions keys suppressions by authored grantId, so resolveRuleCapabilityAvailability throws on overlapping contributions for a Character such as the D99 room fixture when its capability state is read off the holder path. Confirm the cause of the ~130 failures from T4c's committed-reason gate, key suppressions by grant instance with a regression test that fails before the fix, then restore the persistence gate (a commit that incapacitates a source must end every holder's source-bound grant, including when the plan sends none) and its test (2026-10-19 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m191 (0ce1d2f6b)."
             },
             {
               "id": "SPELLS-33.T4de",
@@ -12291,7 +12305,7 @@
             },
             {
               "id": "SPELLS-33.T6e3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12301,11 +12315,11 @@
                 "after": ["SPELLS-33.T6e3"]
               },
               "text": "new: wire the turn-zone, melee-retaliation, legendary and movement-reaction damage roots through T6e3's one damage-taken seam ({endedEffects, releases, grants}), so damage-triggered timed self grants are created, verified, receipted and reverted on every root; spatial movement contacts stay deferred with T6e4's gap (2026-10-19 split; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m189 (186fbc8ae)."
             },
             {
               "id": "SPELLS-33.T6e3c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12314,7 +12328,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T6e3b"]
               },
-              "text": "new: route area damage (nativeEncounterAreaRules) through the T6e3 damage-taken seam ({endedEffects, releases, grants}) so area spells set off damage-triggered timed self grants (a Fireball on a Flesh Golem gives Aversion of Fire), with verification, receipt, undo and a room journey (2026-10-19, found in T6e3b review; workbook slice-spells-33.md)."
+              "text": "new: route area damage (nativeEncounterAreaRules) through the T6e3 damage-taken seam ({endedEffects, releases, grants}) so area spells set off damage-triggered timed self grants (a Fireball on a Flesh Golem gives Aversion of Fire), with verification, receipt, undo and a room journey (2026-10-19, found in T6e3b review; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6e1",
@@ -12480,7 +12495,7 @@
             },
             {
               "id": "SPELLS-33.T6k2b4a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12490,11 +12505,11 @@
                 "after": ["SPELLS-33.T6k2b3"]
               },
               "text": "new: Whirlwind collision part 5a (D159): switch the Whirlwind to the authored collision block and delete CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION (enum and SRD data) with its authored-from-core-options parity proof, the two-mover landing-order test with actor-id tie-break, and a Whirlwind room journey for mover damage (2026-10-19 split of T6k2b4; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m190 (25c26f858)."
             },
             {
               "id": "SPELLS-33.T6k2b4b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12503,7 +12518,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T6k2b4a"]
               },
-              "text": "new: Whirlwind collision part 5b (D159): the struck creature's Dex save as a second AREA_PENDING hold after the movers land (collision-target entry in context.targets; player rolls their own, creatures server-rolled), damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the sealed-ray room journey moved from T6k2b3 (a RANDOM ray held across the struck save keeps its roll on replan; ruling 2026-10-19) replacing the cast-faked seam test, and the full Whirlwind room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split of T6k2b4; workbook slice-spells-33.md)."
+              "text": "new: Whirlwind collision part 5b (D159): the struck creature's Dex save as a second AREA_PENDING hold after the movers land (collision-target entry in context.targets; player rolls their own, creatures server-rolled), damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the sealed-ray room journey moved from T6k2b3 (a RANDOM ray held across the struck save keeps its roll on replan; ruling 2026-10-19) replacing the cast-faked seam test, and the full Whirlwind room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split of T6k2b4; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6k3",

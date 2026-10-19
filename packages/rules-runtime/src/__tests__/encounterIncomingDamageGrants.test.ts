@@ -48,11 +48,9 @@ const damage = (damageTypeId: string): CharacterRuleActionApplication => ({
 function triggersFor(label: string, occurrenceId = OCCURRENCE_ID) {
   const actor = srdCreatureActor({ id: HOLDER_ID, creature: srdByLabel(SRD.creatures, label) })
   return prepareNativeIncomingDamageGrantTriggers({
-    prepared: {
-      state: srdEncounterState({ actors: [actor], currentActorId: ATTACKER_ID }),
-      target: actor,
-      movementTargets: new Map([[actor.id, srdCreatureTarget(actor)]])
-    },
+    encounter: srdEncounterState({ actors: [actor], currentActorId: ATTACKER_ID }),
+    holder: actor,
+    held: srdCreatureTarget(actor).activeEffects,
     occurrenceId,
     commandId: COMMAND_ID,
     activeEffectsByActorId: new Map()

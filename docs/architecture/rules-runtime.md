@@ -459,7 +459,13 @@ turn). It is derived, not stored: `discoverEncounterFeatureActions` returns it a
 `{endedEffects, releases, grants}` for the damage dealt: ended effects release first, then grants are created, and a held grant from the same
 source feature (`authoredEffectId`) is ended in the same call, so a repeat hit replaces the expiry. The action root writes the grants through
 the settlement and the receipt's `grantEffectTransitions`; persistence checks their origin is the holder, and undo deletes them. Creature
-holders only; the area, zone, melee-retaliation, legendary and movement-reaction roots do not yet call this seam.
+holders only. The turn-zone, melee-retaliation, legendary and movement-reaction roots call the same seam (T6e3b): melee retaliation records
+the grants as `grantEffectTransitions` and the conditions the ended effects released as `releasedConditionIds` on its evidence (persistence
+refuses a settlement whose created grants differ; it returns the ended effects, which the action root keeps in `consumedGrants`, so undo deletes
+the new grants, then restores the ended and replaced effects and their released conditions), and
+the movement-reaction root records them as `grantEffectTransitions` beside `ended`. Each area target's outcome calls it and creates the grants beside its other effects (`grantEffectTransitions` on its batch; the area root
+keeps the ended effects in `consumedGrants`). Spatial movement contacts (opt-in via
+`damageEnds.incomingDamageGrants`, unset for contacts) do not yet call it; contacts wait with T6e4's gap.
 A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
 source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
 zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. A source
@@ -1071,6 +1077,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   d20 pause (`incomingGate` on the `ENCOUNTER_ACTION` context), anyone else is rolled server-side. A pass is remembered as
   `passedIncomingGate`, carried by every later pause so a replay skips the gate; a fail commits `ENCOUNTER_GATED_ACTION`, the
   source's spend with nothing of the action. Area effects are not gated. See the T2k3 handoff for the gaps.
+  Before a failed save loses the action (SPELLS-4.T2k3b) the attacker is offered another creature: `attackRetarget`
+  `{gate, options}` on the `ENCOUNTER_ACTION` context (`ATTACK_RETARGET_CHOICE` summary). `DECLINE` commits the same gated action;
+  `OPTION` replays the command retargeted to the chosen creature (`retargetEncounterAction`; the admission and the worker derive
+  the same command and fingerprint), so range, sight, visibility and any ward of the new target are evaluated afresh. The
+  currentness checksum is exempt for that one transition.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
@@ -1115,8 +1126,9 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   collision's mover damage (T6k2b3, D159) settles in the area commit: each mover that travelled 10 ft or more takes
   `floor(feet/10)` times the authored dice as an unsaved damage action of the pusher (`collisionDamageCapability`), one
   more ordinal entry after the caught creatures' (`kept`), skipped while a pick is still owed. A RANDOM ray is rolled
-  once and sealed in `context.forcedMovement.rays` when a pick is first held; a replan reuses it. The struck creature's
-  save, the Whirlwind switch and the closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION` kind's removal are T6k2b4.
+  once and sealed in `context.forcedMovement.rays` when a pick is first held; a replan reuses it. The Air Elemental's
+  Whirlwind authors this block (the closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION` kind is gone); the struck
+  creature's save is T6k2b4b.
   The authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
   creature save, a condition) rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
   echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; a
@@ -1580,7 +1592,7 @@ SPELLS-27.T4b wires every other damage root and adds the actions that end an eff
 
 **Sequential composition (SPELLS-4.T2t, D156).** The dnd5e compiler accepts one cast of two or more DIRECT `SEQUENTIAL` `ON_USE` entries that share target, test, duration and maintenance, holding at most one grant, at most one recurring entry and at most one immediate heal, as one active effect (`sequentialComposition`). The immediate heal, else the grant, compiles as the cast graph. A recurring entry accepts minute and hour durations, does not fire at cast (`recurrenceDeferred`) and builds its own graph; a `FIXED` recurring heal can add ability modifiers, settled at cast into the `dnd5e.recurring-heal-amount` fact, which `castFactKeys` copies from the cast evidence into the effect's adapter facts. A plan with `ownsTemporaryHitPoints` gives its effect the ownership contribution. The compiled active-effect plan carries all three fields as optional (`characterMechanics`), absent on every other plan. Heroism, Enhance Ability (one `CHOICE` option holding a grant beside temporary hit points) and Regenerate compile this way.
 SPELLS-27.T12 adds `{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds }` (Sleep, authored with the SRD Rouse basic action): `actionUsedOnHolderEndedEffects` ends, on the target of a basic action another creature uses, the effects whose trigger names that action's definition, and releases the conditions only they held in the target's own mechanics batch, beside the damage ends in the same receipt. Only the single-target action path (`nativeEncounterRules`) consumes it today; the area, legendary, movement-reaction and turn-resource paths do not.
-SPELLS-33.T4c adds `{ event: 'INCAPACITATED', of: 'SOURCE' }` (Knight Leadership): the effect ends on every holder when its Encounter source is incapacitated or defeated, which is the source's Concentration end reason, not the holder's `ON_INCAPACITATED` event. `grantsEndedBySourceState` selects the grants (`sourceBoundGrants` lists the candidates). `planNativeConcentration` plans them beside the holder-state ends in `endedGrants`, from each changed actor's reason, so they commit with the source's incapacitation under the same revert fence. `persistEncounterConcentrationChildren` re-derives the source's reason from committed state, refuses a sent grant it does not end, and, when a damaged source's grant end was sent, refuses a commit that omits another holder's grant of that source. No index answers "which grants did this actor apply", so the scan of holders runs only then; a fan-out that sends nothing is the planner's contract (`nativeEncounterConcentration` tests), not a persistence read on every damage commit. The trigger needs an Encounter origin with a source actor.
+SPELLS-33.T4c adds `{ event: 'INCAPACITATED', of: 'SOURCE' }` (Knight Leadership): the effect ends on every holder when its Encounter source is incapacitated or defeated, which is the source's Concentration end reason, not the holder's `ON_INCAPACITATED` event. `grantsEndedBySourceState` selects the grants (`sourceBoundGrants` lists the candidates). `planNativeConcentration` plans them beside the holder-state ends in `endedGrants`, from each changed actor's reason, so they commit with the source's incapacitation under the same revert fence. `persistEncounterConcentrationChildren` re-derives the source's reason from committed state, refuses a sent grant it does not end, and refuses a commit that omits a grant of a damaged source whose committed reason is INCAPACITATED or DEFEATED. No index answers "which grants did this actor apply", so the scan of holders (one list each) runs only on the commit that drops a creature, never on ordinary damage. The trigger needs an Encounter origin with a source actor.
 An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
 where movement targets and Cleaving facts are built. A fixed `SKILL_MODIFIER` grant (Pass without
 Trace's +10 Stealth) raises that skill's stat block total through `withCreatureActiveGrantSkillTotal`,
