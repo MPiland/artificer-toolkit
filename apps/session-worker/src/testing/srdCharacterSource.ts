@@ -20,6 +20,7 @@ import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { elf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
+import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 
 // The captured Character's starting-equipment choice; the Background below offers exactly it.
@@ -40,6 +41,18 @@ export type ClassFeature = NonNullable<typeof fighter.features>[number]
 
 // The Elf's 60 ft Darkvision Feature, the one way the captured Character gains a Sense.
 const darkvisionFeature = elf.features![1]!
+
+/** The SRD spells a subclass grants, which its Character's source must publish to evaluate them. */
+function subclassSpells(subclass: ClassAuthored | undefined): readonly SpellAuthored[] {
+  const ids = new Set(
+    (subclass?.features ?? []).flatMap((feature) =>
+      (feature.grants?.spells ?? []).flatMap((grant) =>
+        (grant.progression?.levels ?? []).flatMap((level) => level.spellIds ?? [])
+      )
+    )
+  )
+  return srdSpells.filter((spell) => ids.has(spell.id))
+}
 
 /**
  * The SRD roots the captured Character was built from, shaped like the Convex Character fixtures:
@@ -163,6 +176,10 @@ function buildRoots(
       subjectKind: 'EQUIPMENT' as const,
       document
     })),
+    ...subclassSpells(characterSubclass).map((document) => ({
+      subjectKind: 'SPELL' as const,
+      document
+    })),
     ...(spells ?? []).map((spell) => ({
       subjectKind: 'SPELL' as const,
       document: { ...spell, classIds: [...(spell.classIds ?? []), classRoot.id] }
@@ -243,7 +260,7 @@ export function buildSrdSourceKinds(
     'CLASS',
     'BACKGROUND',
     'EQUIPMENT',
-    ...(spells ? ['SPELL' as const] : []),
+    ...(spells || subclassSpells(characterSubclass).length > 0 ? ['SPELL' as const] : []),
     ...(creatures ? ['CREATURE' as const] : [])
   ] as const
   return kinds.map((kind) => {
