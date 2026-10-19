@@ -271,15 +271,16 @@ describe('Campaign shared child parent prerequisites', () => {
     const { acquiredEquipmentRulesSchema } =
       await import('@artificer-toolkit/schema/projections/acquiredEquipmentRules')
     const parse = vi.spyOn(acquiredEquipmentRulesSchema, 'parse')
-    const cold = fresh.readAcquiredEquipmentRules(item.retainedRulesJson, child, srdSystemRecord.id)
-    const warm = fresh.readAcquiredEquipmentRules(item.retainedRulesJson, child, srdSystemRecord.id)
+    const json = item.retainedRulesJson
+    const cold = fresh.readAcquiredEquipmentRules(json, child, srdSystemRecord.id)
+    const warm = fresh.readAcquiredEquipmentRules(json, child, srdSystemRecord.id)
     expect(parse).toHaveBeenCalledTimes(1)
     parse.mockRestore()
     expect(warm).toEqual(cold)
     expect(cold).toEqual(retained)
-    expect(() =>
-      fresh.readAcquiredEquipmentRules(item.retainedRulesJson, base, srdSystemRecord.id)
-    ).toThrow('Acquired Equipment scope mismatch.')
+    expect(() => fresh.readAcquiredEquipmentRules(json, base, srdSystemRecord.id)).toThrow(
+      'Acquired Equipment scope mismatch.'
+    )
   })
   it('parses published Equipment once per document and serves identical warm reads', async () => {
     const { t, campaign } = await setup()
