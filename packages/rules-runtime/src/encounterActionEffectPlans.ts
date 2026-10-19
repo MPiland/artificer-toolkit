@@ -502,6 +502,7 @@ export function prepareRecurringActiveEffect(
       holderEnd: grantContribution?.holderEnd ?? null,
       ...(grantContribution?.fromSourceOnly && { fromSourceOnly: true }),
       ...(grantContribution?.activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
+      ...(grantContribution?.uses !== undefined && { uses: grantContribution.uses }),
       // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
       // Concentration effect keeps its maintenance link while the Run lasts and is detached from it
       // at COMPLETE.
@@ -622,6 +623,7 @@ export function prepareRecurringActiveEffect(
     lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
       schemaVersion: 1,
       remainingTicks: initialRemaining,
+      ...(grantContribution?.uses !== undefined && { remainingUses: grantContribution.uses }),
       ...(concealment
         ? { concealedFromActorIds: normalizeObserverActorIds(concealment.observerActorIds) }
         : {})

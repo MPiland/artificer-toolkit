@@ -62,6 +62,11 @@ export type PathLifecycleAuthored = {
    */
   fromSourceOnly?: boolean
   /**
+   * The effect ends after this many uses; a modifier domain spends them (Mirror Image's
+   * duplicates). The runtime counts them down in `remainingUses`.
+   */
+  uses?: number
+  /**
    * The effect is dormant until its anchor actor's final counted turn and active only during that
    * turn: a timed effect made now that waits for that actor's next turn.
    */

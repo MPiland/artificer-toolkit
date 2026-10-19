@@ -31,6 +31,7 @@ import { sourceImmunityDtoSchema } from './sourceImmunity.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
+import { activeEffectUsesSchema } from '../shared/activeRuleEffectLifecycle.js'
 import {
   activationCodeSchema,
   pathCodeSchema,
@@ -144,6 +145,8 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     holderEnd: z.optional(z.strictObject({ activation: activationCodeSchema })),
     /** See `PathLifecycleAuthored.fromSourceOnly`. */
     fromSourceOnly: z.optional(z.boolean()),
+    /** See `PathLifecycleAuthored.uses`. */
+    uses: z.optional(activeEffectUsesSchema),
     /** See `PathLifecycleAuthored.activeOnlyOnFinalAnchorTurn`. */
     activeOnlyOnFinalAnchorTurn: z.optional(z.boolean()),
     /** The zone holds the condition (D146); see `PathLifecycleAuthored.heldBySource`. */

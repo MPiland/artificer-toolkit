@@ -2236,4 +2236,36 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
       })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
   })
+
+  it('gives Mirror Image three decoys that end the spell after three uses, which the caster can dismiss with an Action', () => {
+    const mirrorImage = spell('Mirror Image')
+    const plan = compiledCast(mirrorImage)?.activeEffectPlan
+    expect(plan).toMatchObject({
+      initialRemaining: 10,
+      modifierGrantContribution: { uses: 3, holderEnd: { activation: 'ACTION' } }
+    })
+    const [decoys, ...others] = plan?.modifierGrantContribution?.modifiers ?? []
+    expect(others).toEqual([])
+    expect(decoys).toMatchObject({
+      valueDomainCode: 'ATTACK_DECOYS',
+      modifierKind: 'ENABLE',
+      payload: {
+        armorClass: { amount: 10, abilities: ['DEXTERITY'] },
+        thresholds: [
+          { remaining: 3, minimumRoll: 6 },
+          { remaining: 2, minimumRoll: 8 },
+          { remaining: 1, minimumRoll: 11 }
+        ]
+      }
+    })
+    const effect = plannedTimedCondition({
+      encounterId: testUuid(0xd921),
+      sourceActorId: testUuid(0xd922),
+      holderActorId: testUuid(0xd922),
+      spell: mirrorImage,
+      lifetimeScope: 'ENCOUNTER'
+    })
+    expect(effect.definition.recurrence).toMatchObject({ uses: 3 })
+    expect(effect.lifecycle).toMatchObject({ remainingTicks: 10, remainingUses: 3 })
+  })
 })

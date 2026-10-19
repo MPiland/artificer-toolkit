@@ -16,6 +16,7 @@ export const VALUE_DOMAIN_CODE = {
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
+  ATTACK_DECOYS: 'ATTACK_DECOYS',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -114,6 +115,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ACTION_BONUS_ACTION_EXCLUSIVITY,
     label: 'Action or Bonus Action Exclusivity',
     description: 'The holder can take an action or a bonus action on its turn, not both.'
+  },
+
+  [VALUE_DOMAIN_CODE.ATTACK_DECOYS]: {
+    code: VALUE_DOMAIN_CODE.ATTACK_DECOYS,
+    label: 'Attack Decoys',
+    description:
+      'Decoys of the holder that a d20 roll can redirect an attack to; the effect spends one use per decoy destroyed.'
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -363,6 +371,9 @@ export type ValueDomainParamByCode = {
 
   // The holder can take an action or a bonus action on its turn, not both (Slowing Breath).
   ACTION_BONUS_ACTION_EXCLUSIVITY: EmptyObject
+
+  // Decoys an attack against the holder may target instead (Mirror Image).
+  ATTACK_DECOYS: EmptyObject
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }

@@ -249,6 +249,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   ACTION_BONUS_ACTION_EXCLUSIVITY: [MODIFIER_KIND.ENABLE],
 
+  ATTACK_DECOYS: [MODIFIER_KIND.ENABLE],
+
   SKILL_MODIFIER: [
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
@@ -487,46 +489,59 @@ export type ModifierDomainFor<
 /** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
 export type ModifierFractionAuthored = { numerator: number; denominator: number }
 
+/**
+ * The decoys an attack against the holder may target instead (Mirror Image): each decoy's armor
+ * class formula, and the d20 roll an attack needs to target one while that many remain.
+ */
+export type ModifierAttackDecoysAuthored = {
+  armorClass: { amount: number; abilities: AbilityCode[] }
+  thresholds: { id: string; remaining: number; minimumRoll: number }[]
+}
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
-  K extends 'MULTIPLY'
-    ? ModifierFractionAuthored
-    : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
-      ? V extends 'SPEED' | 'SENSE_RANGE'
-        ? ModifierLengthAuthored
-        : K extends 'SET_VALUE' | 'CAP_VALUE'
-          ? V extends 'DURATION'
-            ?
-                | { durationKind: Extract<DurationKind, 'INSTANTANEOUS'> }
-                | { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>; amount: number }
-            : V extends 'ARMOR_CLASS'
-              ? // An armor class formula: the amount plus each listed ability modifier.
-                { amount: number; abilities: AbilityCode[] }
-              : { amount: number }
-          : ModifierScalarValueAuthored
-      : K extends 'ABILITY_MODIFIER_BONUS'
-        ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
-        : K extends 'MODIFY_CHARGE_LIMIT'
-          ? ChargeLimitPayload
-          : K extends 'ADD_BONUS_DIE'
-            ? ModifierRolledDieAuthored
-            : K extends 'REPLACE_DAMAGE_TYPE'
-              ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-              : K extends 'REPLACE_RANGE_KIND'
-                ? { rangeKind: RangeKind }
-                : K extends 'REPLACE_DURATION_KIND'
-                  ? { durationKind: DurationKind }
-                  : K extends 'REPLACE_SHAPE_KIND'
-                    ? { shapeKind: ShapeKind }
-                    : K extends 'REPLACE_CHARGE_RESET_KIND'
-                      ? { resetKind: ChargeResetKind }
-                      : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
-                        ? undefined
-                        : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                          ? { abilities: AbilityCode[]; min?: number; max?: number }
-                          : // option-like operations must be domain-supported
-                            K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                            ? V extends keyof ValueDomainOptionPayloadByDomain
-                              ? ValueDomainOptionPayloadByDomain[V]
+  K extends 'ENABLE'
+    ? V extends 'ATTACK_DECOYS'
+      ? ModifierAttackDecoysAuthored
+      : undefined
+    : K extends 'MULTIPLY'
+      ? ModifierFractionAuthored
+      : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
+        ? V extends 'SPEED' | 'SENSE_RANGE'
+          ? ModifierLengthAuthored
+          : K extends 'SET_VALUE' | 'CAP_VALUE'
+            ? V extends 'DURATION'
+              ?
+                  | { durationKind: Extract<DurationKind, 'INSTANTANEOUS'> }
+                  | { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>; amount: number }
+              : V extends 'ARMOR_CLASS'
+                ? // An armor class formula: the amount plus each listed ability modifier.
+                  { amount: number; abilities: AbilityCode[] }
+                : { amount: number }
+            : ModifierScalarValueAuthored
+        : K extends 'ABILITY_MODIFIER_BONUS'
+          ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
+          : K extends 'MODIFY_CHARGE_LIMIT'
+            ? ChargeLimitPayload
+            : K extends 'ADD_BONUS_DIE'
+              ? ModifierRolledDieAuthored
+              : K extends 'REPLACE_DAMAGE_TYPE'
+                ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+                : K extends 'REPLACE_RANGE_KIND'
+                  ? { rangeKind: RangeKind }
+                  : K extends 'REPLACE_DURATION_KIND'
+                    ? { durationKind: DurationKind }
+                    : K extends 'REPLACE_SHAPE_KIND'
+                      ? { shapeKind: ShapeKind }
+                      : K extends 'REPLACE_CHARGE_RESET_KIND'
+                        ? { resetKind: ChargeResetKind }
+                        : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
+                          ? undefined
+                          : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                            ? { abilities: AbilityCode[]; min?: number; max?: number }
+                            : // option-like operations must be domain-supported
+                              K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                              ? V extends keyof ValueDomainOptionPayloadByDomain
+                                ? ValueDomainOptionPayloadByDomain[V]
+                                : never
                               : never
-                            : never

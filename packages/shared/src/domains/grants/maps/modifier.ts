@@ -28,6 +28,9 @@ type ModifierDomain = ModifierGrantUnion['domain']
 type ChargeLimitLevel = NonNullable<
   Extract<ModifierPayload, { levels: unknown[] }>['levels']
 >[number]
+type AttackDecoys = Extract<ModifierPayload, { thresholds: unknown[] }>
+type AttackDecoyArmorClass = NonNullable<AttackDecoys['armorClass']>
+type AttackDecoyThreshold = NonNullable<AttackDecoys['thresholds']>[number]
 
 const modifierGrantDomain = buildNodeMap<ModifierDomain>()
 
@@ -226,12 +229,49 @@ const MODIFIER_CHARGE_LIMIT_LEVEL_NODE_MAP = chargeLimitLevel.define(
   }
 )
 
+const attackDecoyArmorClass = buildNodeMap<AttackDecoyArmorClass>()
+
+const MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP = attackDecoyArmorClass.define(
+  'modifierAttackDecoyArmorClass',
+  ({ map, nodes }) => {
+    const { number, selectMulti } = nodes
+
+    map.set('amount', number(['amount'], 'Amount')).set(
+      'abilities',
+      selectMulti(['abilities'], 'Abilities', {
+        kind: 'INLINE_OPTIONS',
+        options: ABILITY_OPTIONS
+      })
+    )
+  }
+)
+
+const attackDecoyThreshold = buildNodeMap<AttackDecoyThreshold>()
+
+const MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP = attackDecoyThreshold.define(
+  'modifierAttackDecoyThreshold',
+  ({ map, nodes }) => {
+    const { text, number } = nodes
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set(
+        'remaining',
+        number(['remaining'], 'Decoys Remaining', { constraints: { minimum: 1, maximum: 20 } })
+      )
+      .set(
+        'minimumRoll',
+        number(['minimumRoll'], 'Minimum d20 Roll', { constraints: { minimum: 1, maximum: 21 } })
+      )
+  }
+)
+
 const modifierPayload = buildNodeMap<ModifierPayload>()
 
 const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
   'modifierGrantPayload',
   ({ map, nodes, cond, data, logic }) => {
-    const { text, number, selectSingle, selectMulti, groupArray } = nodes
+    const { text, number, selectSingle, selectMulti, groupArray, groupObject } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const local = cond.local()
     const { and, or, not } = logic
@@ -656,6 +696,30 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           ])
         })
       )
+      .set(
+        'armorClass',
+        groupObject(
+          ['armorClass'],
+          'Decoy Armor Class',
+          () => MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP,
+          {
+            presentation: 'inline',
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_DECOYS')
+          }
+        )
+      )
+      .set(
+        'thresholds',
+        groupArray(
+          ['thresholds'],
+          'Targeting Rolls',
+          () => MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP,
+          {
+            presentation: 'table',
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_DECOYS')
+          }
+        )
+      )
   }
 )
 
@@ -672,7 +736,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
   ({ map, nodes, cond, logic }) => {
     const { text, number, selectSingle, groupObject } = nodes
     const local = cond.local()
-    const { or } = logic
+    const { and, or } = logic
 
     map
       .set(
@@ -780,7 +844,11 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
             local.field(['modifierKind']).eq('ADD_OPTION'),
             local.field(['modifierKind']).eq('REMOVE_OPTION'),
-            local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
+            local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS'),
+            and([
+              local.field(['modifierKind']).eq('ENABLE'),
+              local.field(['valueDomainCode']).eq('ATTACK_DECOYS')
+            ])
           ])
         })
       )
