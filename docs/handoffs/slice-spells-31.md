@@ -275,7 +275,7 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
   - **Empty Body Astral Projection (8 ki):** stays description: ruled (a) under D156 (8ecea4c51), and a class-pool spell-grant cost is a deferred edge case in future-enhancements, not a task. A class spell grant cannot spend a class pool, because SOURCE_CHARGES is wired only for equipment (`characterGrantFold.ts`).
   - **Encounter compile:**
     - Empty Body and Gaze compile to MANUAL in play, as the closed rule did. `supported()` in `effectActionCompiler.ts` accepts one outcome entry per self action.
-    - Follow-up to register: encounter support for multi-outcome timed self actions.
+    - Follow-up, for the orchestrator to triage: encounter support for multi-outcome timed self actions.
   - **VTT_UI-3.5:** T3b delivers the Devil's Sight sense model. The VTT view proof stays with VTT_UI-3.5.
 - **T3c (class A, options), 2026-10-18:** one kind deleted.
   - **Divine Intervention:**
@@ -285,5 +285,16 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
   - **Volley and Whirlwind Attack:** stopped, per the brief. Per-creature weapon attacks do not compile from a class option. Feature and option action candidates carry `equipment: null` (`characterActionRuleFacts.ts`), and the attack mechanic takes weapon damage, proficiency and ammunition only from `candidate.equipment` (`characterActionMechanics.ts`). Ruled (22e835f41): both move to SPELLS-31.T5s, "feature weapon attack against each target with the wielded weapon, ammo per target". `CLASS_HUNTER_VOLLEY` and `CLASS_HUNTER_WHIRLWIND_ATTACK` stay until then.
   - **Defect found:** normalizing the full Cleric record through the class node map throws "Untrusted node runtime table: proficiency_grant_equipment".
     - Cause: the starting-equipment EQUIPMENT_PROFICIENCY eligibility (the warhammer option) reaches the facet map branch at `facet.ts:1968`, and `nodeRuntimeSources.ts` does not list that table.
-    - The parity file proves the Cleric with empty starting-equipment sets.
-    - Follow-up to register: add the table to the node-runtime source manifest, with a regression test that normalizes the full Cleric.
+    - Registered as SPELLS-31.T3d.
+- **T3d (SRD classes through the class node map), 2026-10-18:** an owned copy of any SRD class saves unchanged.
+  - **Regression test:** `srdClassNodeMap.test.ts` normalizes every SRD class record and expects no cleared paths and identical values. It was red for two classes before the fix:
+    - Cleric: the untrusted-table throw.
+    - Circle of the Land: its Circle Spells restrictions lost `specializationIds`.
+  - **Equipment proficiency tables:**
+    - `proficiency_grant_equipment` and `proficiency_grant_equipment_properties` are now listed in the node-runtime source manifest (`nodeRuntimeSources.ts`).
+    - `authoredSourceFacts.ts` projects them from SELECTED EQUIPMENT and EQUIPMENT_PROPERTY proficiency grants, alongside the skill and language tables.
+  - **CHARACTER-context eligibility:**
+    - The facet map's `category` and `properties` filters for EQUIPMENT_PROFICIENCY and EQUIPMENT_PROPERTY_PROFICIENCY only followed the context source's own proficiency grants. A CHARACTER context has no such grants, so the Cleric's "proficient with martial weapons" starting-equipment eligibility was cleared.
+    - A CHARACTER context now offers every equipment category and property, seeded the same way the `.all` branches seed them.
+  - **Circle of the Land:** the restriction context now authors SELECTED `subclassIds: [Circle of the Land]` instead of ALL with no subclass ids. Specialization options derive from the context's subclass ids, so the old record could not be authored. Spell access reads only `specializationIds` (`characterSpellRuleFacts.ts`), so play does not change.
+  - The parity file's emptied-starting-equipment Cleric workaround is removed.

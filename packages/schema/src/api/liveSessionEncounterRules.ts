@@ -123,7 +123,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
       response: resolveRuleOccurrenceInputDtoSchema
     }),
     z.strictObject({
-      kind: z.literal('DISARM'),
+      kind: z.literal('CONTEST'),
       command: z.discriminatedUnion('type', [
         resolveEncounterActionInputDtoSchema,
         resolveRuleOccurrenceInputDtoSchema
@@ -464,9 +464,9 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       result: z.nullable(encounterCommandResultDtoSchema)
     }),
     z.strictObject({
-      kind: z.literal('DISARM'),
+      kind: z.literal('CONTEST'),
       revisions: liveSessionRulesRevisionsSchema,
-      /** An admitted Disarm to plan; null when `result` replays a stored one. */
+      /** An admitted contest to plan; null when `result` replays a stored one. */
       ready: z.nullable(
         z.strictObject({
           /** The normalized contest root (an action or a contested escape) and its fingerprint. */
@@ -480,7 +480,7 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
           autoRollByActorId: encounterAutoRollByActorIdSchema,
           /** The app roll a `SYSTEM_ROLL` answer settles with; null for any other answer. */
           appRoll: z.nullable(encounterSettledAppRollDtoSchema),
-          /** The pending contest being answered and its version; null for a new Disarm. */
+          /** The pending contest being answered and its version; null for a new contest. */
           snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
           occurrenceVersion: z.nullable(z.number().check(z.int()).check(z.nonnegative()))
         })

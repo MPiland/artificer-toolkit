@@ -134,6 +134,74 @@ export type SceneGeometryPublicationCallbacks<TGeometry extends SpatialSceneGeom
   ): Promise<void>
 }
 
+type LiveEntity = ReturnType<typeof sceneStoredLiveEntitySchema.parse>
+
+/** An entity as the Scene has it now: its live override, else its definition row at `baseOrdinal`. */
+async function readCurrentEntity(
+  callbacks: Pick<
+    SceneGeometryPublicationCallbacks<never>,
+    'readLiveEntity' | 'readDefinitionEntity'
+  >,
+  header: SceneLiveStateHeader,
+  expectedSceneVersion: number,
+  collection: 'tokens' | 'barriers',
+  entityId: string,
+  baseOrdinal: number | null
+): Promise<{
+  current: LiveEntity['value'] | null
+  ordinal: number | null
+  doorState: LiveEntity['doorState']
+  oldExists: boolean
+}> {
+  const override = await callbacks.readLiveEntity(header.id, collection, entityId)
+  if (override && override.version > expectedSceneVersion)
+    throw new Error('Scene target changed before this command completed.')
+  if (override || baseOrdinal === null)
+    return {
+      current: override?.value ?? null,
+      ordinal: override?.ordinal ?? null,
+      doorState: override?.doorState ?? null,
+      oldExists: (override?.value ?? null) !== null
+    }
+  const baseRow = await callbacks.readDefinitionEntity(
+    header.definitionSaveId,
+    collection,
+    baseOrdinal
+  )
+  if (!baseRow) throw new Error('Scene geometry source is unavailable.')
+  const base = sceneStoredDefinitionEntitySchema.parse(baseRow)
+  if (
+    base.saveId !== header.definitionSaveId ||
+    base.value.collection !== collection ||
+    base.ordinal !== baseOrdinal ||
+    base.ordinal >= header.counts[collection] ||
+    base.checksum !== checksumCanonicalJson(base.value) ||
+    base.entityId !== base.value.entity.id ||
+    base.entityId.toLowerCase() !== entityId
+  )
+    throw new Error('Stored Scene geometry source is inconsistent.')
+  let current: LiveEntity['value']
+  if (base.value.collection === 'tokens') current = normalizeSceneGeometryEntity(base.value)
+  else if (base.value.collection === 'barriers') current = normalizeSceneGeometryEntity(base.value)
+  else throw new Error('Stored Scene geometry source is inconsistent.')
+  return {
+    current,
+    ordinal: base.ordinal,
+    doorState:
+      current.collection === 'barriers' && current.entity.kind === 'DOOR'
+        ? current.entity.initialState
+        : null,
+    oldExists: true
+  }
+}
+
+function liveEntityChange(row: Omit<LiveEntity, 'checksum'>): LiveEntity {
+  return sceneStoredLiveEntitySchema.parse({ ...row, checksum: checksumCanonicalJson(row) })
+}
+
+const samePoint = (left: { x: number; y: number }, right: { x: number; y: number }) =>
+  Math.abs(left.x - right.x) <= 1e-8 && Math.abs(left.y - right.y) <= 1e-8
+
 function assertMoveTokenControl(
   token: { controlledByUserIds: readonly string[]; locked: boolean } | null,
   userId: string,
@@ -177,19 +245,26 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
       })
     }
     if (rules) {
-      if (preparation?.outcome.kind === 'UNINTERRUPTED') {
+      if (save.input.type !== 'MOVE_SCENE_TOKEN' || !preparation)
+        throw new Error('Spatial preparation is unavailable.')
+      const expectedDelta = preparedMovementSceneDelta({
+        tokenId: save.input.tokenId,
+        path: save.input.path,
+        outcome: preparation.outcome,
+        sceneVersion: save.snapshotVersion,
+        draggedTokens: preparation.draggedTokens
+      })
+      if (preparation.outcome.kind === 'UNINTERRUPTED') {
         if (
           save.actorUserId !== userId ||
           prior.result.occurrence !== null ||
-          checksumCanonicalJson(prior.result.delta) !==
-            checksumCanonicalJson(geometryTarget(save.input).delta)
+          checksumCanonicalJson(prior.result.delta) !== checksumCanonicalJson(expectedDelta)
         )
           throw new Error('Uninterrupted movement replay is inconsistent.')
         return sceneGeometryCommandResultSchema.parse({ ...prior.result, replayed: true })
       }
-      if (preparation?.outcome.kind === 'PENDING') {
+      if (preparation.outcome.kind === 'PENDING') {
         const intent = preparation.outcome.movementIntent
-        const expectedDelta = intent ? { kind: 'TOKEN_MOVED' as const, ...intent } : null
         const replay = await rules.publishPreparedSpatialPending(input, null)
         if (
           prior.result.version !==
@@ -205,17 +280,7 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
           replayed: true
         })
       }
-      if (preparation?.outcome.kind !== 'TERMINAL')
-        throw new Error('Spatial preparation is unavailable.')
       const retained = preparation.outcome.result
-      const expectedDelta =
-        retained.sceneVersion === save.snapshotVersion
-          ? null
-          : {
-              kind: 'TOKEN_MOVED' as const,
-              tokenId: retained.tokenId,
-              position: retained.terminalPosition
-            }
       if (
         prior.result.version !==
           Math.max(
@@ -256,42 +321,18 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
     throw new Error('Scene geometry Character observations require a Session context.')
   }
   const target = geometryTarget(save.input)
-  const override = await callbacks.readLiveEntity(header.id, target.collection, target.entityId)
-  if (override && override.version > save.input.expectedSceneVersion)
-    throw new Error('Scene target changed before this command completed.')
-  let current = override?.value ?? null
-  let ordinal = override?.ordinal ?? null
-  let doorState = override?.doorState ?? null
-  let oldExists = current !== null
-  if (!override && input.baseOrdinal !== null) {
-    const baseRow = await callbacks.readDefinitionEntity(
-      header.definitionSaveId,
-      target.collection,
-      input.baseOrdinal
+  const read = (collection: 'tokens' | 'barriers', entityId: string, baseOrdinal: number | null) =>
+    readCurrentEntity(
+      callbacks,
+      header,
+      save.input.expectedSceneVersion,
+      collection,
+      entityId,
+      baseOrdinal
     )
-    if (!baseRow) throw new Error('Scene geometry source is unavailable.')
-    const base = sceneStoredDefinitionEntitySchema.parse(baseRow)
-    if (
-      base.saveId !== header.definitionSaveId ||
-      base.value.collection !== target.collection ||
-      base.ordinal !== input.baseOrdinal ||
-      base.ordinal >= header.counts[target.collection] ||
-      base.checksum !== checksumCanonicalJson(base.value) ||
-      base.entityId !== base.value.entity.id ||
-      base.entityId.toLowerCase() !== target.entityId
-    )
-      throw new Error('Stored Scene geometry source is inconsistent.')
-    if (base.value.collection === 'tokens') current = normalizeSceneGeometryEntity(base.value)
-    else if (base.value.collection === 'barriers')
-      current = normalizeSceneGeometryEntity(base.value)
-    else throw new Error('Stored Scene geometry source is inconsistent.')
-    ordinal = base.ordinal
-    oldExists = true
-    doorState =
-      current.collection === 'barriers' && current.entity.kind === 'DOOR'
-        ? current.entity.initialState
-        : null
-  }
+  const targetRead = await read(target.collection, target.entityId, input.baseOrdinal)
+  const { current, doorState, oldExists } = targetRead
+  let { ordinal } = targetRead
   // The room admits a player's door change; the lock rule is the same as the GM tabletop's.
   if (save.input.type === 'SET_SCENE_DOOR_STATE' && membership.role !== 'OWNER') {
     const failure = sceneDoorChangeFailure(false, doorState ?? undefined, save.input.state)
@@ -317,9 +358,41 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
           tokenId: save.input.tokenId,
           path: save.input.path,
           outcome: preparation?.outcome ?? null,
-          sceneVersion: header.version
+          sceneVersion: header.version,
+          draggedTokens: preparation?.draggedTokens
         })
       : target.delta
+  // Each dragged token stands where the room planned it and moves by the mover's displacement (D105).
+  const dragged: {
+    tokenId: string
+    ordinal: number
+    entity: Extract<SceneGeometryEntity, { collection: 'tokens' }>['entity']
+  }[] = []
+  if (preparation?.draggedTokens) {
+    const mover = current?.collection === 'tokens' ? current.entity : null
+    const moved = delta?.kind === 'BATCH' ? delta.deltas[0] : null
+    if (!mover || !moved) throw new Error('A drag requires its mover to move.')
+    for (const { tokenId, from, to } of preparation.draggedTokens) {
+      const entity = await read(
+        'tokens',
+        tokenId,
+        input.tokenOrdinals?.find((entry) => entry.tokenId === tokenId)?.baseOrdinal ?? null
+      )
+      const token = entity.current?.collection === 'tokens' ? entity.current.entity : null
+      if (
+        !token ||
+        token.locked ||
+        entity.ordinal === null ||
+        !samePoint(token.position, from) ||
+        !samePoint(
+          { x: to.x - from.x, y: to.y - from.y },
+          { x: moved.position.x - mover.position.x, y: moved.position.y - mover.position.y }
+        )
+      )
+        throw new Error('A dragged token changed before this move completed.')
+      dragged.push({ tokenId, ordinal: entity.ordinal, entity: { ...token, position: to } })
+    }
+  }
   const sceneChanged = delta !== null || save.fogSaves.length > 0
   let occurrence: SceneGeometryCommandResult['occurrence'] = null
   if (rules) {
@@ -384,7 +457,8 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
           ? { [current.entity.id]: doorState }
           : {}
     },
-    delta ?? target.delta
+    // A drag batch leads with the mover's own move.
+    delta?.kind === 'BATCH' ? delta.deltas[0]! : (delta ?? target.delta)
   )
   let value: SceneGeometryEntity | null = null
   if (target.collection === 'tokens') {
@@ -402,25 +476,28 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
   if (value && !oldExists) ordinal = state.nextOrdinals[target.collection]++
   if (!value) ordinal = null
   state.counts[target.collection] += (value ? 1 : 0) - (oldExists ? 1 : 0)
-  const change = sceneStoredLiveEntitySchema.parse({
+  const change = liveEntityChange({
     sceneId: header.id,
     collection: target.collection,
     entityId: target.entityId,
     value,
     doorState: resultingDoorState,
     ordinal,
-    version: state.version,
-    checksum: checksumCanonicalJson({
-      sceneId: header.id,
-      collection: target.collection,
-      entityId: target.entityId,
-      value,
-      doorState: resultingDoorState,
-      ordinal,
-      version: state.version
-    })
+    version: state.version
   })
   if (delta) await callbacks.writeLiveEntity(change)
+  for (const { tokenId, ordinal: draggedOrdinal, entity } of dragged)
+    await callbacks.writeLiveEntity(
+      liveEntityChange({
+        sceneId: header.id,
+        collection: 'tokens',
+        entityId: tokenId,
+        value: normalizeSceneGeometryEntity({ collection: 'tokens', entity }),
+        doorState: null,
+        ordinal: draggedOrdinal,
+        version: state.version
+      })
+    )
   const fogPatches = []
   for (const reference of save.fogSaves) {
     const patch = await callbacks.publishFog(reference, save, header, state)

@@ -23,7 +23,7 @@ import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encou
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { planNativeLiveEscapeContest } from './nativeDisarm.js'
+import { planNativeLiveEscapeContest } from './nativeContest.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,

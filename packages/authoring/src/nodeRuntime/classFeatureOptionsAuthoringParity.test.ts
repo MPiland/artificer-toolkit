@@ -53,16 +53,6 @@ function option(record: ClassAuthored, parent: string, label: string) {
   return found
 }
 
-/**
- * The Cleric without its starting equipment sets: the warhammer option's EQUIPMENT_PROFICIENCY
- * eligibility reads `proficiency_grant_equipment`, which the node runtime does not trust yet (a
- * separate defect), and the features this file proves do not depend on it.
- */
-const clericIntervention: ClassAuthored = (() => {
-  if (cleric.category !== 'BASE') throw new Error('The Cleric must be a base class.')
-  return { ...cleric, startingEquipment: { ...cleric.startingEquipment, sets: [] } }
-})()
-
 const fire = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FIRE')!.id
 
 /** Each SRD feature, and a homebrew variant authored from the same options. */
@@ -191,10 +181,10 @@ const CASES: ReadonlyArray<{
     }
   },
   {
-    record: clericIntervention,
+    record: cleric,
     label: 'Divine Intervention',
     variant: () => {
-      const record = structuredClone(clericIntervention)
+      const record = structuredClone(cleric)
       const authored = feature(record, 'Divine Intervention')
       const charges = 'charges' in authored ? authored.charges : undefined
       if (charges?.limitKind !== 'FIXED_AMOUNT' || !('amount' in charges))
