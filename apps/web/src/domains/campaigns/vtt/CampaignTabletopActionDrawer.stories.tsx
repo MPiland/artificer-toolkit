@@ -13,7 +13,9 @@ import {
   encounterActionChoiceDtoSchema,
   encounterActionChoicesDtoSchema,
   encounterOptionalActionChoicesDtoSchema,
+  type EncounterActionItemChoicesDto,
   type EncounterOptionalActionChoicesDto,
+  type GetEncounterActionItemChoicesInputDto,
   type GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { validated } from '../../../test/validatedFixture'
@@ -115,6 +117,11 @@ const loadOptionalChoices = fn(
   async (
     _request: GetEncounterOptionalActionChoicesInputDto
   ): Promise<EncounterOptionalActionChoicesDto> => optionalChoices
+)
+const loadItemChoices = fn(
+  async (_request: GetEncounterActionItemChoicesInputDto): Promise<EncounterActionItemChoicesDto> => ({
+    items: []
+  })
 )
 const pendingOptionalChoiceResponses: Array<(value: EncounterOptionalActionChoicesDto) => void> = []
 const loadSlowOptionalChoices = fn(
@@ -289,7 +296,8 @@ export const ResolveTargetedAction: Story = {
     onResolve: resolveActionCommand,
     optionalRules,
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -335,7 +343,8 @@ export const ResolveDisarm: Story = {
     onResolve: resolveActionCommand,
     optionalRules,
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -407,7 +416,8 @@ export const CreatureSource: Story = {
     onResolve: resolveActionCommand,
     optionalRules: [],
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -442,7 +452,8 @@ export const StaleOptionalScope: Story = {
     onResolve: resolveActionCommand,
     optionalRules,
     unavailableActions: [],
-    onLoadOptionalChoices: loadSlowOptionalChoices
+    onLoadOptionalChoices: loadSlowOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -486,7 +497,8 @@ export const ConfirmShieldStow: Story = {
     onResolve: resolveActionCommand,
     optionalRules: [],
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()
@@ -533,7 +545,8 @@ export const ChooseVersatileGrip: Story = {
     onResolve: resolveActionCommand,
     optionalRules: [],
     unavailableActions: [],
-    onLoadOptionalChoices: loadOptionalChoices
+    onLoadOptionalChoices: loadOptionalChoices,
+    onLoadItemChoices: loadItemChoices
   },
   play: async ({ canvasElement }) => {
     resolveAction.mockClear()

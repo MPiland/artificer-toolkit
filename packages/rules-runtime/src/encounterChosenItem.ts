@@ -69,6 +69,28 @@ function equippedItems(target: MovementTarget<CharacterMovementFacts>): Equipped
 }
 
 /**
+ * The target's equipped items a chosen-item action may be used on (what the caster picks from),
+ * each with whether the target can drop it: an item a hand holds is releasable, a worn one is not.
+ */
+export function listEncounterChosenItems(input: {
+  plan: ChosenItemPlan
+  target: MovementTarget<CharacterMovementFacts>
+}): { item: EquipmentInstanceMechanicSource; releasable: boolean }[] {
+  const { plan, target } = input
+  // A Creature's modifiers do not yet read the item an attack is made with.
+  if (plan.bindsGrant && target.actor.kind !== 'CHARACTER') return []
+  return equippedItems(target).flatMap((chosen) =>
+    (plan.category === null || chosen.category === plan.category) &&
+    plan.requiredProperties.every((property) => chosen.properties.includes(property)) &&
+    !plan.excludedProperties.some((property) => chosen.properties.includes(property)) &&
+    (plan.equipmentIds.length === 0 ||
+      plan.equipmentIds.some((equipmentId) => chosen.equipmentIds.includes(equipmentId)))
+      ? [{ item: chosen.item, releasable: chosen.held }]
+      : []
+  )
+}
+
+/**
  * The target's equipped item a chosen-item action is used on (Shillelagh's club, Heat Metal's
  * armor), checked against the plan's filters, and whether the target can drop it: an item a hand
  * holds is releasable, a worn one is not. Null for an action that chooses none.
@@ -84,22 +106,11 @@ export function readEncounterChosenItem(input: {
     return null
   }
   if (itemInstanceId === undefined) throw new Error('Choose the item this action is used on.')
-  // A Creature's modifiers do not yet read the item an attack is made with.
-  if (plan.bindsGrant && target.actor.kind !== 'CHARACTER')
-    throw new Error('Only a Character’s item can carry this effect.')
-  const chosen = equippedItems(target).find(
+  const chosen = listEncounterChosenItems({ plan, target }).find(
     ({ item }) => item.itemInstanceId === itemInstanceId
   )
-  if (
-    !chosen ||
-    (plan.category !== null && chosen.category !== plan.category) ||
-    plan.requiredProperties.some((property) => !chosen.properties.includes(property)) ||
-    plan.excludedProperties.some((property) => chosen.properties.includes(property)) ||
-    (plan.equipmentIds.length > 0 &&
-      !plan.equipmentIds.some((equipmentId) => chosen.equipmentIds.includes(equipmentId)))
-  )
-    throw new Error('The chosen item is not one this action can be used on.')
-  return { item: chosen.item, releasable: chosen.held }
+  if (!chosen) throw new Error('The chosen item is not one this action can be used on.')
+  return chosen
 }
 
 /** The item instances a hand of the creature holds now. */

@@ -17,10 +17,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
+  EncounterActionItemChoicesDto,
   EncounterEscapeChoiceDto,
   EncounterHeldGrantEndChoiceDto,
   EncounterOptionalActionChoicesDto,
   EncounterReleaseChoiceDto,
+  GetEncounterActionItemChoicesInputDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
@@ -143,7 +145,8 @@ export function CampaignTabletopActionDrawer({
   onEscape,
   onEndHeldGrant,
   onRelease,
-  onLoadOptionalChoices
+  onLoadOptionalChoices,
+  onLoadItemChoices
 }: {
   actions: EncounterActionChoiceDto[]
   /** The System's authored basic actions, which resolve like any action. */
@@ -199,6 +202,10 @@ export function CampaignTabletopActionDrawer({
   onLoadOptionalChoices: (
     request: GetEncounterOptionalActionChoicesInputDto
   ) => Promise<EncounterOptionalActionChoicesDto>
+  /** The items of the picked creature an action that `choosesItem` may be used on. */
+  onLoadItemChoices: (
+    request: GetEncounterActionItemChoicesInputDto
+  ) => Promise<EncounterActionItemChoicesDto>
 }) {
   // `undefined` is untouched (the open Attack action's last weapon and target apply); `null` is cleared.
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
@@ -215,6 +222,11 @@ export function CampaignTabletopActionDrawer({
   } | null>(null)
   const [optionalValues, setOptionalValues] = useState<Record<string, string>>({})
   const [optionalChoicesLoading, setOptionalChoicesLoading] = useState(false)
+  const [itemChoices, setItemChoices] = useState<{
+    requestIdentity: string
+    value: EncounterActionItemChoicesDto['items'] | string
+  } | null>(null)
+  const [pickedItemId, setPickedItemId] = useState<string | null>(null)
   const [optionalChoicesError, setOptionalChoicesError] = useState<{
     requestIdentity: string
     value: string
@@ -282,6 +294,23 @@ export function CampaignTabletopActionDrawer({
   const choiceOptions = zoneOptions ?? actionChoiceOptions
   const chosenOption = chosenZoneOption ?? chosenActionOption
   const castChoice = chosenOption ? { choiceOptionId: chosenOption.id } : {}
+  // An action used on an item (Shillelagh, Heat Metal) sends the item picked from its creature's.
+  const choosesItem = choiceTarget?.kind === 'ACTOR' && choiceTarget.choosesItem === true
+  const itemOwnerActorId = choosesItem ? targetActorId : null
+  const itemRequestIdentity = JSON.stringify([
+    encounter.id,
+    encounter.version,
+    currentActorId,
+    selectedAction?.id,
+    itemOwnerActorId
+  ])
+  const currentItemChoices =
+    itemChoices?.requestIdentity === itemRequestIdentity ? itemChoices.value : null
+  const itemOptions = Array.isArray(currentItemChoices) ? currentItemChoices : null
+  const itemChoicesError = typeof currentItemChoices === 'string' ? currentItemChoices : null
+  const chosenItemId =
+    itemOptions?.find((item) => item.id === pickedItemId)?.id ?? itemOptions?.[0]?.id ?? null
+  const itemChoice = chosenItemId ? { boundItemInstanceId: chosenItemId } : {}
   const aimedTarget = chosenZoneOption?.target ?? choiceTarget
   const areaTarget =
     aimedTarget?.kind === 'POINT' || aimedTarget?.kind === 'DIRECTED'
@@ -430,8 +459,8 @@ export function CampaignTabletopActionDrawer({
                 ...zoneChoices
               }
             : null
-          : targetActorId
-            ? { kind: 'ACTOR', actorId: targetActorId, ...castChoice }
+          : targetActorId && (!choosesItem || chosenItemId)
+            ? { kind: 'ACTOR', actorId: targetActorId, ...castChoice, ...itemChoice }
             : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
@@ -584,6 +613,45 @@ export function CampaignTabletopActionDrawer({
     targetActorId
   ])
 
+  useEffect(() => {
+    if (!opened || !currentActorId || !selectedActionId || !itemOwnerActorId) return
+    let current = true
+    const requestIdentity = itemRequestIdentity
+    void onLoadItemChoices({
+      encounterId: encounter.id,
+      expectedVersion: encounter.version,
+      actorId: currentActorId,
+      actionId: selectedActionId,
+      targetActorId: itemOwnerActorId
+    })
+      .then(({ items }) => {
+        if (current)
+          setItemChoices({
+            requestIdentity,
+            value: items.length ? items : 'The target has no item this action can be used on.'
+          })
+      })
+      .catch((nextError: unknown) => {
+        if (current)
+          setItemChoices({
+            requestIdentity,
+            value: nextError instanceof Error ? nextError.message : 'Items could not be loaded.'
+          })
+      })
+    return () => {
+      current = false
+    }
+  }, [
+    currentActorId,
+    encounter.id,
+    encounter.version,
+    itemOwnerActorId,
+    itemRequestIdentity,
+    onLoadItemChoices,
+    opened,
+    selectedActionId
+  ])
+
   // An origin belongs to the action, and the zone, it was picked for.
   const chosenZoneOptionId = chosenZoneOption?.id ?? null
   useEffect(() => {
@@ -597,6 +665,7 @@ export function CampaignTabletopActionDrawer({
     setPickedChoiceOptionId(null)
     setPickedFormId(null)
     setPickedBandSide(null)
+    setPickedItemId(null)
   }, [selectedActionId])
 
   useEffect(() => {
@@ -870,6 +939,17 @@ export function CampaignTabletopActionDrawer({
                   label='Option'
                   value={chosenOption?.id ?? null}
                   onChange={setPickedChoiceOptionId}
+                />
+              ) : null}
+              {itemOptions ? (
+                <Select
+                  allowDeselect={false}
+                  comboboxProps={{ withinPortal: false }}
+                  data={itemOptions.map((item) => ({ label: item.label, value: item.id }))}
+                  disabled={selectionControlsDisabled}
+                  label='Item'
+                  value={chosenItemId}
+                  onChange={setPickedItemId}
                 />
               ) : null}
               {sparesCreatures ? (
@@ -1193,6 +1273,11 @@ export function CampaignTabletopActionDrawer({
           {currentOptionalChoicesError ? (
             <Alert aria-live='assertive' color='red'>
               {currentOptionalChoicesError}
+            </Alert>
+          ) : null}
+          {itemChoicesError ? (
+            <Alert aria-live='assertive' color='red'>
+              {itemChoicesError}
             </Alert>
           ) : null}
         </Stack>

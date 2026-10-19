@@ -42,13 +42,17 @@ import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScen
 import {
   getCampaignEncounterActionChoices,
   getEncounterDecisionSettlement,
+  loadCampaignEncounterActionItemChoices,
   loadCampaignEncounterOptionalActionChoices
 } from '#app/data/campaigns/encounterActions'
 import { useCampaignPresentedScene } from '#app/data/campaigns/useCampaignPresentedScene'
 import { useVttMapDelivery } from '#app/data/media'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { errorMessage } from '#app/lib/errorMessage'
-import type { GetEncounterOptionalActionChoicesInputDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type {
+  GetEncounterActionItemChoicesInputDto,
+  GetEncounterOptionalActionChoicesInputDto
+} from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
   encounterPreparedPendingListDtoSchema,
   encounterSessionStateDtoSchema
@@ -329,6 +333,18 @@ export function CampaignVttStage({
         readEncounter: live.readEncounter,
         roomVersion,
         select: (result) => (result.kind === 'OPTIONAL_ACTION_CHOICES' ? result.result : undefined)
+      }),
+    [convex, live.readEncounter, roomVersion]
+  )
+  const loadActionItemChoices = useCallback(
+    ({ expectedVersion, ...roomInput }: GetEncounterActionItemChoicesInputDto) =>
+      readFromRoomOrFallback({
+        fallback: () =>
+          loadCampaignEncounterActionItemChoices(convex, { expectedVersion, ...roomInput }),
+        read: { kind: 'ACTION_ITEM_CHOICES', input: roomInput },
+        readEncounter: live.readEncounter,
+        roomVersion,
+        select: (result) => (result.kind === 'ACTION_ITEM_CHOICES' ? result.result : undefined)
       }),
     [convex, live.readEncounter, roomVersion]
   )
@@ -1526,6 +1542,7 @@ export function CampaignVttStage({
               onEndHeldGrant={(command) => encounterCommand.mutateAsync(command)}
               onRelease={(command) => encounterCommand.mutateAsync(command)}
               onLoadOptionalChoices={loadOptionalActionChoices}
+              onLoadItemChoices={loadActionItemChoices}
             />
           ) : null}
           {drawerDecision && activeEncounter ? (
