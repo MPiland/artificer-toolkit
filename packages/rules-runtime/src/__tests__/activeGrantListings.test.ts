@@ -366,7 +366,7 @@ describe('polarity of real SRD grants (D110)', () => {
   function srdPolarity(
     effect: EffectAuthored | undefined,
     lifecycle: PathLifecycleAuthored = {},
-    hitPath?: 'ON_HIT'
+    resultPath?: 'ON_HIT' | 'ON_SAVE_FAIL'
   ) {
     if (!effect) throw new Error('The SRD source has no effect.')
     const planned = plannedModifierGrant({
@@ -374,7 +374,7 @@ describe('polarity of real SRD grants (D110)', () => {
       sourceActorId: testUuid(0xd001),
       holderActorId: testUuid(0xd002),
       lifecycle,
-      hitPath,
+      resultPath,
       effect
     })
     return listActiveGrantListings([
@@ -419,9 +419,14 @@ describe('polarity of real SRD grants (D110)', () => {
 
   it('reads Vicious Mockery (disadvantage on attacks) as harmful', () => {
     expect(
-      srdPolarity(viciousMockery.effects?.[0], {
-        turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
-      })
+      srdPolarity(
+        viciousMockery.effects?.[0],
+        {
+          turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
+        },
+        // The grant is the failed save's; it holds only on that path.
+        'ON_SAVE_FAIL'
+      )
     ).toEqual(['HARMFUL'])
   })
 

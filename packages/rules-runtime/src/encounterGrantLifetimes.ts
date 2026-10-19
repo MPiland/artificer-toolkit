@@ -173,6 +173,41 @@ function grantAnchorActorId(
     : holderActorId
 }
 
+/** The actor an event comes from and the actor whose turn it is; null when there is none. */
+export type EffectEventScope = { actorId: string | null; turnActorId: string | null }
+
+/**
+ * Whose events an effect meets, and on whose turn, for its grants about attackers and its attack
+ * consume: only its Encounter source's when `fromSourceOnly`, and only during its tick anchor's turn
+ * while one tick remains when `activeOnlyOnFinalAnchorTurn`; a null field admits anyone. Null while
+ * the effect meets no event: dormant before that final turn, or source-only with no source here.
+ */
+export function effectEventScope(
+  effect: Pick<ActiveRuleEffectRecord, 'definition' | 'lifecycle'>,
+  holderActorId: string
+): EffectEventScope | null {
+  const { recurrence, origin } = effect.definition
+  const sourceActorId = origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null
+  if (recurrence.fromSourceOnly && sourceActorId === null) return null
+  const actorId = recurrence.fromSourceOnly ? sourceActorId : null
+  if (!recurrence.activeOnlyOnFinalAnchorTurn) return { actorId, turnActorId: null }
+  const { expiration } = recurrence
+  if (expiration.kind !== 'TICKS' || effect.lifecycle.remainingTicks !== 1) return null
+  return {
+    actorId,
+    turnActorId:
+      expiration.anchor === 'SOURCE' && sourceActorId !== null ? sourceActorId : holderActorId
+  }
+}
+
+/** Whether an event falls within an effect's scope (see `effectEventScope`). */
+export function isInEffectEventScope(scope: EffectEventScope, event: EffectEventScope): boolean {
+  return (
+    (scope.actorId === null || scope.actorId === event.actorId) &&
+    (scope.turnActorId === null || scope.turnActorId === event.turnActorId)
+  )
+}
+
 /**
  * Timed effects anchored to an actor that left the Run can no longer count down, so they end with
  * it. Holder-anchored effects, and those carried in from an earlier Run, keep their own lifetime.

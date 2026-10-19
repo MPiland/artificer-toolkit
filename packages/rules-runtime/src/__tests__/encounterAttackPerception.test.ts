@@ -54,6 +54,8 @@ const dodge = {
 const dodgeAgainst = {
   attackDomain: 'RANGED' as const,
   requiresHolderSeesAttacker: true,
+  exemptAttackerSenseDefinitionIds: [],
+  eventScope: { actorId: null, turnActorId: null },
   contributor: dodge
 }
 
@@ -92,6 +94,7 @@ describe('encounter attack perception: contributors', () => {
     attackerSeesTarget: 'SEES',
     targetSenseLabels: [],
     attackerSenseLabels: [],
+    attackerSenseDefinitionIds: [],
     ...value
   })
 
@@ -120,11 +123,35 @@ describe('encounter attack perception: contributors', () => {
     expect(encounterAttackPerceptionContributors(sight({}))).toEqual([])
   })
 
+  it('drops a contributor that exempts a Sense the attacker sees the target through (Blur)', () => {
+    const exempting = (attackerSenseDefinitionIds: string[]) =>
+      encounterAttackSightContributors({
+        perception: sight({ attackerSenseDefinitionIds }),
+        attacksAgainst: [
+          {
+            requiresHolderSeesAttacker: false,
+            exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID],
+            contributor: dodge
+          }
+        ]
+      }).map((contributor) => contributor.sourceId)
+    expect(exempting([])).toEqual([DODGE_SOURCE_ID])
+    expect(exempting(['00000000-0000-4000-8000-0000000000aa'])).toEqual([DODGE_SOURCE_ID])
+    expect(exempting([SRD_TRUESIGHT_SENSE_ID])).toEqual([])
+    expect(exempting(['00000000-0000-4000-8000-0000000000aa', SRD_BLINDSIGHT_SENSE_ID])).toEqual([])
+  })
+
   it('keeps Dodge only while the target can see the attacker, beside the sight contributors', () => {
     const merged = (value: Partial<EncounterAttackPerception>) =>
       encounterAttackSightContributors({
         perception: sight(value),
-        attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
+        attacksAgainst: [
+          {
+            requiresHolderSeesAttacker: true,
+            exemptAttackerSenseDefinitionIds: [],
+            contributor: dodge
+          }
+        ]
       }).map((contributor) => contributor.sourceId)
     expect(merged({})).toEqual([DODGE_SOURCE_ID])
     expect(merged({ targetSeesAttacker: 'UNSEEN' })).toEqual([
@@ -276,7 +303,8 @@ describe('encounter attack perception: resolver', () => {
       targetSeesAttacker: 'SEES',
       attackerSeesTarget: 'SEES',
       targetSenseLabels: [senseLabel(SRD_TRUESIGHT_SENSE_ID)],
-      attackerSenseLabels: []
+      attackerSenseLabels: [],
+      attackerSenseDefinitionIds: []
     })
   })
 
@@ -285,7 +313,8 @@ describe('encounter attack perception: resolver', () => {
       targetSeesAttacker: 'UNSEEN',
       attackerSeesTarget: 'SEES',
       targetSenseLabels: [],
-      attackerSenseLabels: []
+      attackerSenseLabels: [],
+      attackerSenseDefinitionIds: []
     })
   })
 })
@@ -349,6 +378,50 @@ async function blindsightPerceptions(input: {
   }
 }
 
+describe('encounter attack perception: the Senses the attacker sees through (Blur)', () => {
+  it('names an Invisible target seen by Truesight, in true and believed perception alike', async () => {
+    const prepared = await volleyAt({ attackerConditionIds: [], targetConditionIds: [INVISIBLE] })
+    const loaders = srdSenseLoaders(prepared.state.gameSystemId)
+    const attacker = {
+      ...prepared.sourceFacts,
+      perceptionSenses: [
+        {
+          senseDefinitionId: SRD_TRUESIGHT_SENSE_ID,
+          range: { id: 'sense-range', rangeKind: 'UNLIMITED' as const }
+        }
+      ]
+    }
+    const target = prepared.targetFacts
+    const actual = await resolveEncounterAttackPerception({
+      ...loaders,
+      attacker,
+      target,
+      placement: null
+    })
+    const believed = await resolveEncounterBelievedAttackPerception({
+      ...loaders,
+      attacker,
+      target
+    })
+    expect(actual).toMatchObject({
+      attackerSeesTarget: 'SEES',
+      attackerSenseDefinitionIds: [SRD_TRUESIGHT_SENSE_ID]
+    })
+    expect(believed.attackerSenseDefinitionIds).toEqual([SRD_TRUESIGHT_SENSE_ID])
+  })
+
+  it('names no Sense for an attacker that cannot see the target', async () => {
+    const prepared = await volleyAt({ attackerConditionIds: [], targetConditionIds: [INVISIBLE] })
+    const actual = await resolveEncounterAttackPerception({
+      ...srdSenseLoaders(prepared.state.gameSystemId),
+      attacker: prepared.sourceFacts,
+      target: prepared.targetFacts,
+      placement: null
+    })
+    expect(actual).toMatchObject({ attackerSeesTarget: 'UNSEEN', attackerSenseDefinitionIds: [] })
+  })
+})
+
 describe('encounter attack perception: believed perception (ATTACK-10.1)', () => {
   it('does not credit the target with the Senses the roller may not know of', async () => {
     const { actual, believed } = await blindsightPerceptions({ targetBlindsight: true })
@@ -358,7 +431,8 @@ describe('encounter attack perception: believed perception (ATTACK-10.1)', () =>
       targetSeesAttacker: 'UNSEEN',
       attackerSeesTarget: 'SEES',
       targetSenseLabels: [],
-      attackerSenseLabels: []
+      attackerSenseLabels: [],
+      attackerSenseDefinitionIds: []
     })
   })
 

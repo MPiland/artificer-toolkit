@@ -107,6 +107,10 @@ export interface CharacterRuleActionActiveEffectPlan {
     endOnConditionIds: readonly string[]
     /** The activation its holder pays to end the grant by choice, or null when only the GM can. */
     holderEnd: ActiveGrantHolderEnd | null
+    /** Only the effect's source meets its attacker grants and attack consume. */
+    fromSourceOnly?: true
+    /** The grant is active only during its tick anchor's turn while one tick remains. */
+    activeOnlyOnFinalAnchorTurn?: true
   }
   /**
    * A successful check makes the holder's location unknown to the observers that fail to notice it
@@ -514,6 +518,8 @@ export interface CharacterRuleActionSystemAdapter {
     testTemplate: CharacterRuleActionTestTemplate
     selectedPath: string
     facts: Readonly<Record<string, RuleValue>>
+    /** The outputs of the completed TEST, which an outcome that depends on its margin reads. */
+    testOutputs?: Readonly<Record<string, RuleValue>>
     /** The mode the TEST d20 was settled in, which may differ from the mode the rules derived. */
     testRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   }): CharacterRuleActionOutcomeTemplate | null

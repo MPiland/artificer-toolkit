@@ -6,6 +6,7 @@ import {
   createActorSensePinner,
   deriveActorSceneVision
 } from '@artificer-toolkit/rules-runtime/actorSenses'
+import { creatureEmittedLight } from '@artificer-toolkit/rules-runtime/creatureLight'
 import { withCharacterActiveGrants } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateInstalledCharacterPolicy } from '@artificer-toolkit/rules-runtime/platformCharacterPolicy'
@@ -210,7 +211,11 @@ export async function composeRoomSceneVision(input: {
   }
   for (const actor of creatureActors.values())
     actorVisions.push(
-      deriveActorSceneVision(actor.id, await actorSenses(snapshotStatBlock(actor)?.senses ?? []))
+      deriveActorSceneVision(
+        actor.id,
+        await actorSenses(snapshotStatBlock(actor)?.senses ?? []),
+        creatureEmittedLight(actor)
+      )
     )
   const composition = sceneSessionVisionCompositionSchema.parse({
     context: { actorVisions, encounterActorBindings: selectedBindings },

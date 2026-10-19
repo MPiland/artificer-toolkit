@@ -24,6 +24,7 @@ import type {
   ActorRelationshipAuthored,
   ClosedRuleAuthored,
   FacetAuthored,
+  FailureMarginRiderAuthored,
   PathLifecycleAuthored,
   RangeAuthored,
   ResultBlockAuthored,
@@ -64,6 +65,8 @@ export type CompiledEffect = {
   maintenanceDefinitionId?: string
   duration?: CompiledDuration
   lifecycle?: PathLifecycleAuthored
+  /** The margin rider of the failed direct saving throw this entry belongs to. */
+  failureMarginRider?: FailureMarginRiderAuthored
   restrictions?: FacetAuthored
   usage?: PathUsage
   /**
@@ -404,6 +407,9 @@ function compileResultBlock(
         outcome: compiledOutcome,
         ...(duration ? { duration } : {}),
         ...(resultBlock.lifecycle ? { lifecycle: resultBlock.lifecycle } : {}),
+        ...(resultBlock.failureMarginRider
+          ? { failureMarginRider: resultBlock.failureMarginRider }
+          : {}),
         ...(path.restrictions ? { restrictions: path.restrictions } : {}),
         ...(path.usage ? { usage: path.usage } : {}),
         ...(path.rangeOverride ? { rangeOverride: path.rangeOverride } : {}),

@@ -120673,6 +120673,7 @@ export declare const api: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
@@ -120967,6 +120968,7 @@ export declare const api: {
                   hidden: boolean;
                   id: string;
                   label: string;
+                  light?: { brightRadius: number; dimRadius: number };
                   locked: boolean;
                   position: { x: number; y: number };
                   rotationDegrees: number;
@@ -121304,6 +121306,7 @@ export declare const api: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
@@ -121600,6 +121603,7 @@ export declare const api: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;
@@ -121830,6 +121834,7 @@ export declare const api: {
               hidden: boolean;
               id: string;
               label: string;
+              light?: { brightRadius: number; dimRadius: number };
               locked: boolean;
               position: { x: number; y: number };
               rotationDegrees: number;
@@ -130238,6 +130243,7 @@ export declare const internal: {
                     hidden: boolean;
                     id: string;
                     label: string;
+                    light?: { brightRadius: number; dimRadius: number };
                     locked: boolean;
                     position: { x: number; y: number };
                     rotationDegrees: number;

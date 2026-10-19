@@ -168,6 +168,7 @@ export function turnEffectDamageEnded(input: {
     holderActorId: input.holderActorId,
     held: input.held.filter(({ id }) => !input.excluded.has(id)),
     attacked: false,
+    turnActorId: null,
     applications: input.applications,
     damagerActorId: origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null,
     dispositions: input.dispositions

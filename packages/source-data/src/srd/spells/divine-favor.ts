@@ -1,21 +1,29 @@
 import {
   ACTIVATION_CODE,
-  PATH_CODE,
-  PATH_GROUP_TYPE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_DIE_RECIPIENT,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
   RANGE_KIND,
+  ROLLED_DIE_SIGN,
   SPELL_ATTRIBUTE,
+  SPELL_COMPONENT,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TRIGGER,
-  type SpellAuthored,
-  SPELL_COMPONENT
+  VALUE_DOMAIN_CODE,
+  type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import { damageTypeId, spellChildId } from './shared.js'
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry)
@@ -72,8 +80,28 @@ export const divineFavor: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.DIVINE_FAVOR, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'DIVINE_FAVOR' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [ATTACK_DOMAIN_CODE.MELEE, ATTACK_DOMAIN_CODE.RANGED].map(
+                    (attackDomain, index) => ({
+                      id: spellChildId(SPELL_IDS.DIVINE_FAVOR, 0x215, index + 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+                      domain: { attackDomain },
+                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: {
+                        count: 1,
+                        faces: 4,
+                        sign: ROLLED_DIE_SIGN.ADD,
+                        recipient: DAMAGE_DIE_RECIPIENT.HOLDER_DEALS,
+                        damageTypeId: damageTypeId('RADIANT')
+                      },
+                      order: index + 1
+                    })
+                  )
+                }
               }
             ]
           }

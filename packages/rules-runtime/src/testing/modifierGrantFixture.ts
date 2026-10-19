@@ -125,8 +125,13 @@ export function plannedModifierGrant(input: {
   rounds?: number
   /** The holder's lifetime scope: a Character's grant outlasts the Encounter (`OWNER`). */
   lifetimeScope?: 'OWNER' | 'ENCOUNTER'
-  /** Set for a grant authored on a hit path (an attack's on-hit rider): the attack's resolved path. */
-  hitPath?: 'ON_HIT' | 'ON_CRIT'
+  /**
+   * Set for a grant authored on a result path (an attack's on-hit rider, a failed save's grant): the
+   * d20's resolved path.
+   */
+  resultPath?: 'ON_HIT' | 'ON_CRIT' | 'ON_SAVE_FAIL'
+  /** The slot level a spell's grant was cast at, for a grant that scales by it (Branding Smite). */
+  spellCastLevel?: number
 }) {
   const authored = input.effect ?? antitoxinVial.effects?.[0]
   if (!authored) throw new Error('The SRD Antitoxin has no effect.')
@@ -152,7 +157,10 @@ export function plannedModifierGrant(input: {
         : []
     )
   }
-  const action = characterActionDescriptor(compileEffect({ ...grantPath, id: ACTION_EFFECT_ID }))
+  const action = characterActionDescriptor(
+    compileEffect({ ...grantPath, id: ACTION_EFFECT_ID }),
+    input.spellCastLevel
+  )
   const published = grantPublishedIdentity()
   const [activeEffectPlan] =
     dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({ action, published }) ?? []
@@ -191,7 +199,7 @@ export function plannedModifierGrant(input: {
     activeEffectPlan: activeEffectPlan ?? null,
     published,
     execution,
-    d20: input.hitPath
+    d20: input.resultPath
       ? {
           requestId: testUuid(0xc312),
           rollMode: 'NORMAL',
@@ -203,7 +211,7 @@ export function plannedModifierGrant(input: {
           modifier: 0,
           total: 15,
           defenseOrDc: 10,
-          resultPath: input.hitPath
+          resultPath: input.resultPath
         }
       : null,
     applications: []

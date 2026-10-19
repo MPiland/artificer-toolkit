@@ -16,6 +16,7 @@ import { canonicalCharacterAbility } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eAcceptedModifierApplicability,
+  dnd5eAttackRequiresEffectSource,
   dnd5eModifierApplies,
   dnd5eSaveRequiresSourceSight,
   type Dnd5eModifierTarget
@@ -55,6 +56,7 @@ function dnd5eRollContributors(
       if (
         (influence !== 'ADVANTAGE' && influence !== 'DISADVANTAGE') ||
         dnd5eSaveRequiresSourceSight(modifier) ||
+        dnd5eAttackRequiresEffectSource(modifier) ||
         !dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
       )
         return []

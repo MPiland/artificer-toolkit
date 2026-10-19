@@ -214,6 +214,10 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       endOnTriggers: z._default(activeEffectEndTriggersSchema, []),
       endOnConditionIds: activeGrantEndConditionIdsSchema,
       holderEnd: z.nullable(activeGrantHolderEndSchema),
+      /** Only the effect's Encounter source meets its attacker grants and attack consume. */
+      fromSourceOnly: z.optional(z.literal(true)),
+      /** The effect is active only during its tick anchor's turn while one tick remains. */
+      activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),
