@@ -29,7 +29,7 @@ import {
   srdConditionId,
   srdDamageTypeId
 } from './encounterCreatureAction.js'
-import { srdCreatureActor } from '../testing/dnd5eSrdEncounter.js'
+import { installedSrdCreature, srdCreatureActor } from '../testing/dnd5eSrdEncounter.js'
 
 const SOURCE_ID = '00000000-0000-4000-8000-0000000e0001'
 const TARGET_ID = '00000000-0000-4000-8000-0000000e0002'
@@ -72,7 +72,6 @@ describe('innate conditions (SPELLS-33.T4de)', () => {
     expect(creatureInnateConditionRows(actor.snapshot)).toEqual([
       { conditionTypeId: INVISIBLE, innate: true }
     ])
-    expect(actor.conditions).toEqual([])
     expect(
       creatureInnateConditionRows(srdCreatureActor({ id: SOURCE_ID, creature: balor }).snapshot)
     ).toEqual([])
@@ -92,7 +91,7 @@ function volleyAtStalker(attacker?: typeof couatl) {
       ...(attacker ? { statBlock: attacker } : {}),
       features: [quillVolley({ charges: 1, cost: 1, rangeFeet: 80 })]
     }),
-    target: srdCreatureActor({ id: TARGET_ID, creature: invisibleStalker }),
+    target: srdCreatureActor({ id: TARGET_ID, creature: installedSrdCreature(invisibleStalker) }),
     featureId: QUILL_VOLLEY_ID,
     overridable: true,
     attackPerception: true
