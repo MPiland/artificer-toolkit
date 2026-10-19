@@ -60,3 +60,14 @@ describe('Character critical rules from authored grants (D158)', () => {
     expect(criticalRules(barbarian, 'Shortbow', 'RANGED').extraDice).toBe(0)
   })
 })
+
+describe('diagnostic', () => {
+  it('lists folded domains', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { STRENGTH: 16 },
+      classes: [{ label: 'Barbarian', level: 17 }]
+    })
+    const codes = [...new Set(character.output.grantFold.modifiers.map((m) => m.valueDomainCode))]
+    expect(codes.join(',')).toContain('CRITICAL')
+  })
+})
