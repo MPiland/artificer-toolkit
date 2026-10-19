@@ -121,7 +121,7 @@ export function withCreatureActiveGrantSaves(
   savingThrowDefinitions: readonly unknown[],
   holderActorId: string,
   effects: readonly ActiveRuleEffectRecord[],
-  featureModifiers: readonly CharacterGrantFoldModifier[]
+  featureModifiers: CharacterGrantFoldOutput['modifiers']
 ): unknown[] {
   const scoped = new Map<
     string,
@@ -136,12 +136,14 @@ export function withCreatureActiveGrantSaves(
     ...listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
       modifiers.map((modifier) => ({
         modifier,
+        restrictions: modifier.restrictions,
         contributor: (influence: EncounterRelationshipD20Contributor['influence']) =>
           activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)
       }))
     ),
     ...featureModifiers.map((modifier) => ({
       modifier,
+      restrictions: modifier.deferredRequirements,
       contributor: (influence: EncounterRelationshipD20Contributor['influence']) => ({
         sourceId: modifier.sourceId,
         grantId: modifier.grantId,
@@ -151,7 +153,7 @@ export function withCreatureActiveGrantSaves(
       })
     }))
   ]
-  for (const { modifier, contributor: contributorOf } of grants) {
+  for (const { modifier, restrictions, contributor: contributorOf } of grants) {
     const { domain } = modifier
     const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(domain.ability)]
     const { conditionTypeId } = domain
@@ -170,7 +172,7 @@ export function withCreatureActiveGrantSaves(
       scoped.set(key, entry)
     } else if (
       domain.ruleDefinitionId === undefined &&
-      !hasHolderStateRestriction(modifier.restrictions) &&
+      !hasHolderStateRestriction(restrictions) &&
       !dnd5eSaveRequiresSourceSight(modifier)
     ) {
       plain.set(abilityDefinitionId, [...(plain.get(abilityDefinitionId) ?? []), contributor])
