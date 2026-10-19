@@ -3220,7 +3220,8 @@ export declare const api: {
                 caption: string | null;
                 kind: "D20_MODE_ADJUSTED";
                 rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              };
+              }
+            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
           ruleset: { code: string; systemId: string; version: string };
           source: {
             kind:
@@ -7266,7 +7267,8 @@ export declare const api: {
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                };
+                }
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -7361,7 +7363,8 @@ export declare const api: {
                     caption: string | null;
                     kind: "D20_MODE_ADJUSTED";
                     rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                  };
+                  }
+                | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
               ruleset: { code: string; systemId: string; version: string };
               source: {
                 kind:
@@ -7461,7 +7464,8 @@ export declare const api: {
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                };
+                }
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -7549,7 +7553,8 @@ export declare const api: {
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                };
+                }
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -10401,7 +10406,8 @@ export declare const api: {
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                };
+                }
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -10504,7 +10510,8 @@ export declare const api: {
                 caption: string | null;
                 kind: "D20_MODE_ADJUSTED";
                 rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              };
+              }
+            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
           ruleset: { code: string; systemId: string; version: string };
           source: {
             kind:
@@ -10589,7 +10596,8 @@ export declare const api: {
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                };
+                }
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -117648,7 +117656,8 @@ export declare const api: {
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                };
+                }
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -117889,7 +117898,8 @@ export declare const api: {
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                };
+                }
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -120422,7 +120432,8 @@ export declare const api: {
               caption: string | null;
               kind: "D20_MODE_ADJUSTED";
               rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-            };
+            }
+          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
         ruleset: { code: string; systemId: string; version: string };
         source: {
           kind:
@@ -120530,7 +120541,8 @@ export declare const api: {
               caption: string | null;
               kind: "D20_MODE_ADJUSTED";
               rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-            };
+            }
+          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
         ruleset: { code: string; systemId: string; version: string };
         source: {
           kind:
