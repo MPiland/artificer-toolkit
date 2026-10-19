@@ -92,6 +92,7 @@ import {
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
   placedSpaceZone,
+  ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY,
   zoneTriggers,
   type PlacedSpaceZone
 } from '../../encounterZonePlacement.js'
@@ -2791,6 +2792,7 @@ function occupantBonusZonePlacementPlan(
     component.choosesUnaffected ||
     component.maxApplicationsPerTurn !== undefined ||
     component.requiresFullyWithin ||
+    component.requiredSight?.length ||
     component.movementCostMultiplier !== undefined ||
     component.blockingRules?.length ||
     component.automaticSaveSuccessImmunityDamageTypeId !== undefined ||
@@ -2867,6 +2869,7 @@ function zoneComponentPlan(
     unsupported('Only a zone’s own component lends an occupant save bonus.')
   const {
     requiresFullyWithin,
+    requiredSight,
     movementCostMultiplier,
     blockingRules,
     automaticSaveSuccessImmunityDamageTypeId: successImmunity
@@ -2893,6 +2896,7 @@ function zoneComponentPlan(
       ? { maxApplicationsPerTurn: component.maxApplicationsPerTurn }
       : {}),
     ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
+    ...(requiredSight?.length ? { requiredSight: [...new Set(requiredSight)].sort() } : {}),
     ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
     ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
   }
@@ -2900,6 +2904,8 @@ function zoneComponentPlan(
   const { invocation, entries } = behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
   const pinnedDc = pinnedSaveDc(savingThrow)
+  if (requiredSight?.length && invocation.triggerCode !== 'SAVING_THROW')
+    unsupported('A zone that needs sight of its source gates a saving throw.')
   if (invocation.triggerCode !== 'SAVING_THROW')
     return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
   if (
@@ -2919,6 +2925,8 @@ function zoneComponentPlan(
     unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
   const failEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_FAIL')
   const madeEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_SUCCESS')
+  if (requiredSight?.length && madeEntries.length)
+    unsupported('A zone that needs sight of its source has no outcome for a made save.')
   // D142: a failed save composes damage rows with at most one of each other outcome kind.
   const outcomeEntries = (effectKind: string, ruleKind?: string) =>
     failEntries.filter(
@@ -3041,7 +3049,7 @@ function zoneComponentPlan(
     unsupported('A placed zone grant must last until its end event.')
   const maintenance = maintenancePlan(action, primary)
   // A held condition ends with its zone through the zone's maintenance, which nothing else ends.
-  if (heldCondition && !maintenance)
+  if (heldCondition && !heldCondition.endsAtEndOfHolderTurn && !maintenance)
     unsupported('A zone-held condition needs a zone that Concentration maintains.')
   if (heldCondition?.escape && !zone.label)
     unsupported('A zone-held condition escape names its zone.')
@@ -3083,12 +3091,37 @@ function zoneHeldCondition(
 ): NonNullable<CharacterRuleActionZonePlacementPlan['heldCondition']> | null {
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'CONDITION')
     unsupported('A placed zone condition is a direct condition outcome.')
-  const { heldBySource, endOnEvents = [], escape, ...otherLifecycle } = entry.lifecycle ?? {}
-  const unread = Object.values(otherLifecycle).some((value) => value !== undefined)
+  const {
+    heldBySource,
+    endOnEvents = [],
+    escape,
+    turnAnchor,
+    ...otherLifecycle
+  } = entry.lifecycle ?? {}
+  const unread =
+    turnAnchor !== undefined || Object.values(otherLifecycle).some((value) => value !== undefined)
   if (!heldBySource) {
     if (endOnEvents.includes('ON_LEAVING_AREA') || escape)
       unsupported('A placed zone condition that its zone does not hold has no leave or escape.')
-    return null
+    if (!turnAnchor) return null
+    // The one timed form: until the end of the holder's turn, which the occupant's own turn
+    // boundary counts, so it neither outlasts the turn nor depends on the zone's lifetime.
+    if (
+      turnAnchor.actor !== 'TARGET' ||
+      turnAnchor.boundary !== 'END_OF_TURN' ||
+      !entry.duration ||
+      conditionDurationTurns(entry.duration) !== 1 ||
+      endOnEvents.length > 0 ||
+      Object.values(otherLifecycle).some((value) => value !== undefined)
+    )
+      unsupported(
+        'A placed zone condition that its zone does not hold lasts until the end of its holder turn.'
+      )
+    return {
+      conditionId: entry.outcome.conditionId,
+      endsAtEndOfHolderTurn: true as const,
+      ...(entry.outcome.recordsSource ? { recordsSource: true as const } : {})
+    }
   }
   if (unread || endOnEvents.some((event) => event !== 'ON_LEAVING_AREA'))
     unsupported(
@@ -9853,9 +9886,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const attemptAllowed = !gate || perception?.satisfied === (gate.allow === 'WHEN_MET')
     const successImmunity =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]
-    const succeedsUnrolled = defenses.some(
-      (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === successImmunity
-    )
+    // A zone that needs sight of its source is saved against unrolled by an occupant without it.
+    const succeedsUnrolled =
+      defenses.some(
+        (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === successImmunity
+      ) || targetDerivedFacts[ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY] === false
     const addedDice = derivedAddedDice(targetDerivedFacts.savingThrowAddedDice, abilityDefinitionId)
     const facts = {
       ...baseFacts,

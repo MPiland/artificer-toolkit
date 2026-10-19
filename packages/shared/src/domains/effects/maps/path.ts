@@ -32,6 +32,7 @@ import type {
 import {
   MANIFEST_BLOCKING_RULE_OPTIONS,
   MANIFEST_PROPERTY_OPTIONS,
+  MANIFEST_REQUIRED_SIGHT_OPTIONS,
   MANIFEST_SPELL_CAPABILITY_OPTIONS,
   MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS,
   SUMMON_DAMAGEABILITY_KIND,
@@ -1040,6 +1041,13 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
         })
       )
       .set('requiresFullyWithin', toggle(['requiresFullyWithin'], 'Requires Fully Within'))
+      .set(
+        'requiredSight',
+        selectMulti(['requiredSight'], 'Requires Sight', {
+          kind: 'INLINE_OPTIONS',
+          options: MANIFEST_REQUIRED_SIGHT_OPTIONS
+        })
+      )
       .set(
         'automaticSaveSuccessImmunityDamageTypeId',
         selectSingle(

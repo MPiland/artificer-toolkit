@@ -579,6 +579,13 @@ creature interacts with (Wind Wall). Its appear save may hold its failed conditi
 zone carries the `heldCondition`, the cast's own timed condition plan is dropped, and `prepareNativeActionEffectsPlan`
 plans the hold (`planSpatialHeldCondition`) under the zone's Concentration; a zone with components cannot, and an
 appear save that holds its condition may contribute nothing else.
+A component's `requiredSight` (`OCCUPANT_SEES_SOURCE`, `SOURCE_SEES_OCCUPANT`; SPELLS-33.T6e, Chain Devil Unnerving Mask)
+gates a save-bearing turn trigger on mutual sight: the Worker's turn preparation reads live perception through
+`loadSourceSight` and `prepareEncounterTurnZoneEffects` injects `zoneSightRequirementMet` into the contact's derived facts, and
+the compiled save evaluator treats a false value as an unrolled success. Convex persistence trusts the planned executions.
+A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
+`heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
+decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.
 The multiplier applies to every mover for the footprint share of the walk inside the zone: `preparedMovementCost`
 gives `measureScenePathMovementCost` a segment multiplier (`spatialSegmentMovementMultiplier`), so each stretch of
 a segment costs the highest of the terrain multiplier, the multipliers of the zones the footprint is inside, and

@@ -42,6 +42,11 @@ export const manifestBlockingRuleSchema = lazySchema(() =>
   ])
 )
 
+/** The sight a zone's occupant must have, between itself and the zone's source, to be put through the zone. */
+export const manifestRequiredSightSchema = lazySchema(() =>
+  z.enum(['OCCUPANT_SEES_SOURCE', 'SOURCE_SEES_OCCUPANT'])
+)
+
 export const creatureCategoryCodeSchema = lazySchema(() =>
   z.enum(['NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON'])
 )

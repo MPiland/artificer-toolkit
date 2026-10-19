@@ -31,6 +31,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterRunCharacterActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
+import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import {
   readNativeLivePerceptionScene,
@@ -118,9 +119,30 @@ export function createNativeLiveTurnStages(
             onSceneRead: inputs.onSceneRead
           })
       }),
-    zones: (stage) =>
-      prepareEncounterTurnZoneEffects<CharacterFacts>({
+    zones: (stage) => {
+      let sceneContext: Parameters<typeof readNativeLiveAttackPerception>[0]['sceneContext'] = null
+      return prepareEncounterTurnZoneEffects<CharacterFacts>({
         ...stage,
+        loadSourceSight: async ({ sourceActorId, occupantActorId }) => {
+          const [source, occupant] = await Promise.all([
+            loadTarget(sourceActorId),
+            loadTarget(occupantActorId)
+          ])
+          if (!source || !occupant) throw new Error('Turn zone sight actors are unavailable.')
+          const { actual } = await readNativeLiveAttackPerception({
+            state,
+            system,
+            attacker: source,
+            target: occupant,
+            roller: 'ATTACKER',
+            sceneContext,
+            capture
+          })
+          return {
+            occupantSeesSource: actual.targetSeesAttacker,
+            sourceSeesOccupant: actual.attackerSeesTarget
+          }
+        },
         loadScene: async () => {
           const actorId = stage.boundary.actorId
           if (actorId === null) return null
@@ -136,6 +158,11 @@ export function createNativeLiveTurnStages(
             sceneVersion: loaded.version,
             definitionSaveId: loaded.definitionSaveId
           })
+          sceneContext = {
+            sceneId: loaded.id,
+            sceneVersion: loaded.version,
+            grid: loaded.scene.grid
+          }
           // A zone acting at its source's turn catches every creature token in the Scene (D144).
           const bindings = await capture({ kind: 'ACTOR_TOKEN_BINDINGS' })
           if (
@@ -190,7 +217,8 @@ export function createNativeLiveTurnStages(
         createRuntime,
         definitions,
         random
-      }),
+      })
+    },
     legendary: (stage) =>
       prepareTurnLegendaryActions<CharacterFacts>({
         ...stage,

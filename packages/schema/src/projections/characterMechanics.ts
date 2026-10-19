@@ -20,7 +20,8 @@ import {
   compiledSpatialHeldConditionDtoSchema,
   spatialZoneLabelSchema,
   zoneBlockingRulesSchema,
-  zoneMovementCostMultiplierSchema
+  zoneMovementCostMultiplierSchema,
+  zoneRequiredSightSchema
 } from '../shared/spatial.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
@@ -387,6 +388,8 @@ const zoneComponentShape = lazySchemaParts(() => ({
   maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),
   /** Whether a turn boundary catches only a creature wholly inside the zone (not mere overlap). */
   requiresFullyWithin: z.optional(z.boolean()),
+  /** The sight an occupant needs between itself and the source to be put through the zone. */
+  requiredSight: z.optional(zoneRequiredSightSchema),
   movementCostMultiplier: z.optional(zoneMovementCostMultiplierSchema),
   blockingRules: z.optional(zoneBlockingRulesSchema),
   /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
