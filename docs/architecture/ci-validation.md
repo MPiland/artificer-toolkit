@@ -1,6 +1,6 @@
 # CI validation and affected-test selection
 
-**Status:** current (PLATFORM-23, 2026-10-16; auto-fix and approved merges PLATFORM-25, 2026-10-18; parallelism and shard balance PLATFORM-13.T4, 2026-10-18).
+**Status:** current (PLATFORM-23, 2026-10-16; auto-fix and approved merges PLATFORM-25, 2026-10-18; parallelism and shard balance PLATFORM-13.T4, 2026-10-18; ledger guard PLATFORM-13.T14, 2026-10-18).
 
 Slices validate on GitHub runners by pushing to `ci/<slice>` (AGENTS.md Validation). `.github/workflows/tests.yml` builds the packages once, typechecks everything, and runs only the Vitest files the slice can affect. `.github/workflows/live-backend.yml` is unchanged by this guide.
 
@@ -61,6 +61,7 @@ Settings from the PLATFORM-13.T4 trial ([record](../validation/platform-13-t4-ci
 
 - **Convex:** 2 Vitest file workers per shard (`convex_workers`, default `2`). 4 workers timed out `campaigns/developmentCustody.test.ts`, so that setting was rejected.
 - **Worker:** 4 file workers (`worker_workers`, default `4`), still `--no-isolate`. The local `test` script stays at one worker.
+- **Web:** the config's `maxWorkers: '50%'` (2 on CI), isolated. `web_workers` overrides it for a trial. 3 workers was no faster and `isolate:false` leaks mocks between files (PLATFORM-13.T15).
 - **Shards:** `apps/apis/vitest.config.ts` uses `DurationSequencer`, which overrides Vitest's path-hash shard. Each file, longest first, goes to the shard with the least recorded time (`scripts/convexShards.mjs`). Each shard then runs its files longest first. A file with no record counts as the median file. Every file lands on exactly one shard, and that holds for an affected-only selection too.
 - **Refresh:** a full run uploads each shard's JSON report as `convex-report-<n>`. When shard times drift apart, refresh the durations:
   ```bash
@@ -68,13 +69,15 @@ Settings from the PLATFORM-13.T4 trial ([record](../validation/platform-13-t4-ci
   node scripts/convexShards.mjs local-validation/convex-reports/*/vitest-convex.json
   ```
   This rewrites `apps/apis/tests/convexFileDurations.json`.
-- **Changing a setting:** dispatch `-f full=true -f convex_workers=N` (or `worker_workers=N`) on your own `ci/` branch. Keep a new setting only after three consecutive clean full runs. A timeout rejects the setting, and per-test timeouts are never raised to make one pass.
+- **Changing a setting:** dispatch `-f full=true -f convex_workers=N` (or `worker_workers=N`, `web_workers=N`) on your own `ci/` branch. Keep a new setting only after three consecutive clean full runs. A timeout rejects the setting, and per-test timeouts are never raised to make one pass.
 
 ## Lint
 
 The `lint` job runs `yarn lint` on every run, whatever the selection: oxlint with `--deny-warnings` (`.oxlintrc.jsonc`), then the repo check scripts it chains: `lint:schemas` (`scripts/lazySchemas.mjs`) and `lint:casts` (`scripts/doubleCasts.mjs`). The second fails on any `as unknown as` outside tests and generated modules, except the per-file counts in its `ALLOWED` list, which only shrink. Any finding fails the run.
 
 The job then runs oxfmt in check mode on the files the branch changed since its merge base with the phase branch (`scripts/formatChanged.mjs`, deleted files skipped, `.oxfmtrc.jsonc` ignore patterns applied). Only those files: the phase branch is not oxfmt-clean, and a repo-wide format would rewrite other slices' files. Before a push, `node scripts/formatChanged.mjs --base origin/codex/phase-08-2-convex-cutover` formats the same files locally.
+
+The job then fails a slice branch that changed `docs/roadmap/08-phase-ledger.json` since that merge base (`scripts/ledgerUntouched.mjs`, PLATFORM-13.T14), naming the commits. The ledger is the orchestrator's and is edited on the phase branch; a slice commit that rewrites it, whether as a stale copy or a reformat, would revert those edits at merge. Ledger edits that a merge of the phase branch brings in move the merge base, so they do not count. `ci/merge-*` batches skip the check. Restore the file from the merge base (`git checkout <merge-base> -- docs/roadmap/08-phase-ledger.json`) and commit.
 
 ## Auto-fix
 
@@ -83,6 +86,7 @@ When Lint is the only failing job of a `ci/<slice>` Tests run, the `auto-fix` jo
 - `ci/**` slice branches only: never the phase branch, main or a `ci/merge-*` batch;
 - every other job passed or was skipped (it waits for them, so a run with a real failure fails as before);
 - HEAD is not already a Tests auto-fix commit, so it never commits twice in a row;
+- the branch left the ledger alone: it runs `ledgerUntouched.mjs` first, since formatting a rewritten ledger would hide the rewrite;
 - a plain push, so a branch that moved meanwhile rejects it and the run fails;
 - write permission only on this job, and the token reaches only its push step, not the install or the fix commands. A fix that would change a file under `.github/workflows` is refused, since `GITHUB_TOKEN` cannot push workflow changes.
 

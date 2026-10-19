@@ -284,15 +284,17 @@ const refineSpatialExecutionEvidence = (
         trace.outputs.targetActorId === value.candidate.candidate.targetActorId &&
         (trace.outputs.authoredPath ?? null) === application.authoredPath &&
         (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
-        (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
-          ? trace.outputs.conditionId === application.conditionId
-          : application.kind === 'STABILIZE' || application.kind === 'DEPART'
-            ? true
-            : application.kind === 'SCALAR_REDUCTION'
-              ? trace.outputs.amount === application.reductionAmount
-              : trace.outputs.amount === application.requestedAmount &&
-                (application.kind !== 'DAMAGE' ||
-                  trace.outputs.damageTypeId === application.damageTypeId))
+        (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
+          ? false
+          : application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
+            ? trace.outputs.conditionId === application.conditionId
+            : application.kind === 'STABILIZE' || application.kind === 'DEPART'
+              ? true
+              : application.kind === 'SCALAR_REDUCTION'
+                ? trace.outputs.amount === application.reductionAmount
+                : trace.outputs.amount === application.requestedAmount &&
+                  (application.kind !== 'DAMAGE' ||
+                    trace.outputs.damageTypeId === application.damageTypeId))
     )
     if (
       !evidence.sourceEntryBindings?.some(

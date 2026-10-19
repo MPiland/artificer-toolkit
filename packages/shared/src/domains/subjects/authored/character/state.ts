@@ -150,6 +150,7 @@ export interface CharacterDeathSavesState {
 export interface CharacterHitpointsState {
   current: number
   temp: number
+  tempSourceEffectId?: string
   hitDice: CharacterHitDiceUsageState[]
   deathSaves: CharacterDeathSavesState
 }

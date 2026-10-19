@@ -197,9 +197,10 @@ export function prepareNativeActionEffectsPlan<
           application.kind === 'DAMAGE' ||
           application.kind === 'TEMPORARY_HIT_POINTS')
     )
-  // A grant, concealment, link or form applies no stored state, so its effect exists exactly when
-  // its plan does (a concealment plan yields none when its check beats no observer).
+  // A grant, concealment, link, form or deferred recurrence applies no stored state at cast, so its
+  // effect exists exactly when its plan does (a concealment plan yields none when its check beats no observer).
   const grant = Boolean(
+    plan?.recurrenceDeferred ||
     plan?.modifierGrantContribution ||
     plan?.concealmentContribution ||
     plan?.actorLinkContribution ||

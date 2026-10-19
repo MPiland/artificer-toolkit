@@ -687,6 +687,32 @@ describe('Character Sheet hit points at 0 (D63)', () => {
   })
 })
 
+describe('Character Sheet effect-owned temporary hit points (D156)', () => {
+  const EFFECT_ID = '00000000-0000-4000-8000-00000000f9a1'
+  const owned = character({
+    hitpoints: {
+      ...character().state.hitpoints,
+      current: 5,
+      temp: 6,
+      tempSourceEffectId: EFFECT_ID
+    }
+  })
+
+  it('keeps the source while damage leaves any temporary hit points, and drops it with the last', () => {
+    const damage = (amount: number) =>
+      apply(owned, { ...base, type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount }).state.hitpoints
+    expect(damage(2)).toMatchObject({ temp: 4, tempSourceEffectId: EFFECT_ID })
+    expect(damage(6).temp).toBe(0)
+    expect(damage(6).tempSourceEffectId).toBeUndefined()
+  })
+
+  it('clears the source on a manual temporary hit point edit', () => {
+    const edited = apply(owned, { ...base, type: 'SET_HIT_POINTS', temp: 6 }).state.hitpoints
+    expect(edited.temp).toBe(6)
+    expect(edited.tempSourceEffectId).toBeUndefined()
+  })
+})
+
 describe('Character Sheet dying and death (D96)', () => {
   const dnd = { ...character(), systemId: DND5E_SYSTEM_ID }
   const dying = { successes: 1, failures: 1, stable: false }

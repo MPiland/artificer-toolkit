@@ -165,6 +165,15 @@ export interface CharacterRuleActionActiveEffectPlan {
    * caster's save DC is unknown until then); null when the plan pins its DC itself or needs none.
    */
   castSaveDcFactKey?: null | string
+  /** Cast facts copied into `adapterFacts` when the effect is created (a recurring amount). */
+  castFactKeys?: readonly string[]
+  /**
+   * The recurring graph first runs at the holder's next authored turn boundary, not at cast; the
+   * effect is created even though no immediate outcome of the cast carries it (D156).
+   */
+  recurrenceDeferred?: boolean
+  /** The temporary hit points the cast and its recurrences give leave when the effect ends. */
+  ownsTemporaryHitPoints?: boolean
   /** Exact System-authored perception contributions carried into the frozen effect definition. */
   perceptionContributions: CombatPerceptionContributionsDto
   /** Exact System-authored maintenance policy, or no maintained state. */
@@ -296,8 +305,11 @@ interface CharacterHitPointOutcomeApplicationBase {
 }
 
 export type CharacterHitPointOutcomeApplication =
+  | (CharacterHitPointOutcomeApplicationBase & { kind: 'HEAL' })
   | (CharacterHitPointOutcomeApplicationBase & {
-      kind: 'HEAL' | 'TEMPORARY_HIT_POINTS'
+      kind: 'TEMPORARY_HIT_POINTS'
+      /** The active effect the temporary hit points belong to, absent when none (D156). */
+      sourceActiveEffectId?: string
     })
   | (CharacterHitPointOutcomeApplicationBase & {
       kind: 'DAMAGE'
@@ -328,6 +340,22 @@ export interface CharacterConditionRemoveOutcomeApplication {
   sourceActiveEffectId: string
   targetActorId: string
 }
+
+/** An ended effect's temporary hit points leave its holder while it is still their source (D156). */
+export interface CharacterTemporaryHitPointsReleaseApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'TEMPORARY_HIT_POINTS_RELEASE'
+  sourceActiveEffectId: string
+  targetActorId: string
+}
+
+/** The holder's state an ended effect releases: its sole-owned conditions and its temporary hit points. */
+export type CharacterEndedEffectReleaseApplication =
+  | CharacterConditionRemoveOutcomeApplication
+  | CharacterTemporaryHitPointsReleaseApplication
 
 /** A System-authorized stabilize: a dying Character becomes stable, anything else is unchanged. */
 export interface CharacterStabilizeOutcomeApplication {
@@ -390,6 +418,7 @@ export type CharacterRuleActionApplication =
   | CharacterHitPointOutcomeApplication
   | CharacterConditionApplyOutcomeApplication
   | CharacterConditionRemoveOutcomeApplication
+  | CharacterTemporaryHitPointsReleaseApplication
   | CharacterStabilizeOutcomeApplication
   | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication

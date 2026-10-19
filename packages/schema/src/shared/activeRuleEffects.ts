@@ -71,7 +71,7 @@ const activeEffectFactsSchema = lazySchema(() =>
 /**
  * Events whose consumer deletes the effect without releasing the condition it owns. A
  * condition-owning effect may not list one; a consumer leaves this set once it plans the release
- * (`endedEffectConditionReleases`).
+ * (`endedEffectReleases`).
  */
 const NON_RELEASING_EFFECT_EVENTS: ReadonlySet<string> = new Set([
   'ON_ABILITY_CHECK',
@@ -344,6 +344,14 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * Temporary hit points the effect gave its holder are the effect's own (D156): the holder's pool names
+ * the effect as its source, and the effect ending takes them with it while it still is.
+ */
+const activeRuleEffectTemporaryHitPointsContributionDtoSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('TEMPORARY_HIT_POINTS_OWNERSHIP') })
+)
+
+/**
  * The holder's location is unknown to the observers its lifecycle lists. The Stealth total is
  * frozen here; the observer set is the mutable part and lives in `concealedFromActorIds`.
  */
@@ -422,6 +430,7 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               activeRuleEffectConditionEscapeContributionDtoSchema,
               activeRuleEffectActorRelationshipContributionDtoSchema,
               activeRuleEffectModifierGrantContributionDtoSchema,
+              activeRuleEffectTemporaryHitPointsContributionDtoSchema,
               activeRuleEffectLocationConcealmentContributionDtoSchema,
               activeRuleEffectActorLinkContributionDtoSchema,
               activeRuleEffectCreatureFormContributionDtoSchema,

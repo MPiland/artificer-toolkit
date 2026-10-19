@@ -217,6 +217,8 @@ export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
 const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
+/** The amount a recurring heal with an ability bonus gives each turn, settled at cast (D156). */
+const DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY = 'dnd5e.recurring-heal-amount'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 /**
@@ -375,6 +377,10 @@ type SpecializedOutcome =
       recoveryTriggers: readonly ('SHORT_REST' | 'LONG_REST')[]
       terminalConsequence: 'TARGET_DIED'
     }
+  | ({ kind: 'HIT_POINT_MAXIMUM_REDUCTION' } & Pick<
+      HitPointMaximumReductionAuthored,
+      'amountSource' | 'recoveryTags'
+    >)
 type TestKind = 'ATTACK' | 'SAVE'
 type SpecializedPath =
   | 'ON_USE'
@@ -1004,6 +1010,241 @@ function supportedRecurringPlan(
   }
 }
 
+type CompiledOutcomeEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
+
+/**
+ * A cast of SEQUENTIAL entries held in one active effect (D156): at most one grant and at most one
+ * recurring heal, the effect-bearing entries, with at most one immediate heal beside them. They
+ * share the target, the duration and the maintenance, and no test decides them. Null for any other
+ * action.
+ */
+function sequentialComposition(action: Dnd5eCompiledEffectActionSource): null | {
+  grant: CompiledOutcomeEntry | null
+  recurring: CompiledOutcomeEntry | null
+  immediate: CompiledOutcomeEntry | null
+} {
+  const { invocation, entries } = action.compiledEffect
+  if (entries.length < 2 || invocation.kind !== 'ACTION' || invocation.triggerCode !== 'ACTIVATED')
+    return null
+  const composed = entries.filter(
+    (entry): entry is CompiledOutcomeEntry =>
+      'outcome' in entry &&
+      entry.resolutionKind === 'DIRECT' &&
+      entry.groupKind === 'SEQUENTIAL' &&
+      entry.pathCode === 'ON_USE' &&
+      !entry.rangeOverride &&
+      !entry.targetingOverride
+  )
+  const [first] = composed
+  const durationKey = (entry: CompiledOutcomeEntry) =>
+    entry.duration
+      ? JSON.stringify([
+          entry.duration.durationKind,
+          'amount' in entry.duration ? entry.duration.amount : null
+        ])
+      : null
+  if (
+    !first ||
+    composed.length !== entries.length ||
+    composed.some(
+      (entry) =>
+        durationKey(entry) !== durationKey(first) ||
+        entry.maintenanceDefinitionId !== first.maintenanceDefinitionId
+    )
+  )
+    return null
+  const grants = composed.filter(({ outcome }) => outcome.effectKind === 'APPLY_GRANT')
+  const heals = composed.filter(({ outcome }) => outcome.effectKind === 'HEAL')
+  const recurring = heals.filter(({ lifecycle }) => lifecycle?.recurringKind !== undefined)
+  const immediate = heals.filter(({ lifecycle }) => lifecycle === undefined)
+  if (
+    grants.length + recurring.length + immediate.length !== composed.length ||
+    grants.length > 1 ||
+    recurring.length > 1 ||
+    immediate.length > 1 ||
+    grants.length + recurring.length === 0
+  )
+    return null
+  return {
+    grant: grants[0] ?? null,
+    recurring: recurring[0] ?? null,
+    immediate: immediate[0] ?? null
+  }
+}
+
+/** The action narrowed to one of its entries, as a cast of that entry alone would author it. */
+function singleEntryAction(
+  action: Dnd5eCompiledEffectActionSource,
+  entry: CompiledOutcomeEntry
+): Dnd5eCompiledEffectActionSource {
+  return {
+    ...action,
+    compiledEffect: { ...action.compiledEffect, entries: [{ ...entry, groupKind: 'SINGLE' }] }
+  }
+}
+
+/**
+ * The one active effect a sequential composition holds (D156). A recurring heal is its graph: it
+ * fires at each authored turn boundary of the holder, never at cast, for a duration in turns (a
+ * minute or an hour counts too), and a fixed amount may add the caster's ability modifier, settled
+ * at cast. A grant rides on it, counted with it; without a recurring heal the grant is the effect.
+ * The effect owns the temporary hit points any of its heals give.
+ */
+function sequentialCompositionPlan(
+  action: Dnd5eCompiledEffectActionSource
+): CharacterRuleActionActiveEffectPlan | null {
+  const composition = sequentialComposition(action)
+  if (!composition) return null
+  const { grant, recurring, immediate } = composition
+  const grantPlan = grant
+    ? modifierGrantEntryPlan({ action, entry: grant, attack: false, untilEndEvent: false })
+    : null
+  if (grant && !grantPlan?.modifierGrantContribution)
+    unsupported('D&D composed grant must be a timed modifier grant.')
+  const temporary = [recurring, immediate].some(
+    (entry) => entry?.outcome.effectKind === 'HEAL' && entry.outcome.temporary === true
+  )
+  if (!recurring) {
+    if (!grantPlan) return null
+    return {
+      ...grantPlan,
+      ...(temporary && { ownsTemporaryHitPoints: true }),
+      frozenGraph: durationPublishedGraph({ action, plan: grantPlan })
+    }
+  }
+  const { outcome, lifecycle, duration } = recurring
+  const stage = lifecycle?.recurringKind
+  const turns = duration ? conditionDurationTurns(duration) : null
+  const { recurringKind: _recurringKind, ...otherLifecycle } = lifecycle ?? {}
+  if (
+    outcome.effectKind !== 'HEAL' ||
+    outcome.valueKind !== 'FIXED' ||
+    outcome.scalingKind !== 'NONE' ||
+    !Number.isSafeInteger(outcome.amount) ||
+    outcome.amount < 0 ||
+    (stage !== 'START_OF_TURN' && stage !== 'END_OF_TURN') ||
+    turns === null ||
+    Object.values(otherLifecycle).some((value) => value !== undefined) ||
+    !UUID.test(recurring.resultBlockId)
+  )
+    unsupported('D&D composed recurring heal must be a fixed timed heal at a turn boundary.')
+  validateHealBonuses(outcome.bonuses)
+  const bonuses = outcome.bonuses ?? []
+  if (bonuses.some((bonus) => bonus.bonusKind !== 'ABILITY_BONUS'))
+    unsupported('D&D composed recurring heal adds only an ability modifier.')
+  if (bonuses.length === 0 && outcome.amount === 0)
+    unsupported('D&D composed recurring heal must give hit points.')
+  const nodeId = activeEffectGraphNodeId(recurring.resultBlockId)
+  const definition: RuleGraphDefinition = {
+    schemaVersion: 1,
+    id: action.effectId,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+    nodes: [
+      {
+        id: nodeId,
+        operation: {
+          key: outcome.temporary
+            ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
+            : DND5E_HEAL_PROPOSAL_OPERATION_KEY,
+          contractVersion: 1
+        },
+        inputs: {
+          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+          targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
+          amount:
+            bonuses.length > 0
+              ? { kind: 'FACT', factKey: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY }
+              : { kind: 'LITERAL', value: outcome.amount }
+        }
+      }
+    ],
+    outputs: {
+      targetActorId: { kind: 'NODE_OUTPUT', nodeId, port: 'targetActorId' },
+      amount: { kind: 'NODE_OUTPUT', nodeId, port: 'amount' }
+    },
+    sourceEntryBindings: [{ sourceEntryId: recurring.resultBlockId, nodeId }]
+  }
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: recurring.resultBlockId,
+    frozenGraphNodeId: nodeId,
+    frozenGraph: serverPublishedRuleDefinitionDtoSchema.parse({
+      id: definition.id,
+      gameSystemId: definition.gameSystemId,
+      definitionFamilyKey: definition.definitionFamilyKey,
+      checksum: checksumRuleDocument(definition),
+      definition
+    }),
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: stage,
+    initialRemaining: turns,
+    ...(grantPlan?.modifierGrantContribution && {
+      modifierGrantContribution: {
+        ...grantPlan.modifierGrantContribution,
+        countedByTurnEffects: true
+      }
+    }),
+    adapterFacts: {},
+    ...(bonuses.length > 0 && { castFactKeys: [DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY] }),
+    recurrenceDeferred: true,
+    ...(temporary && { ownsTemporaryHitPoints: true }),
+    perceptionContributions: [],
+    maintenance: maintenancePlan(action, recurring),
+    marginRider: null
+  }
+}
+
+/**
+ * The cast graph of a sequential composition: its immediate heal, else its grant, as that entry
+ * alone compiles. A recurring heal names its outcome on the graph, so the cast heals only its own
+ * row; one with an ability bonus also has its amount settled at cast (see `bindFacts`).
+ */
+function compileSequentialComposition(
+  action: Dnd5eCompiledEffectActionSource,
+  composition: NonNullable<ReturnType<typeof sequentialComposition>>
+): ServerPublishedRuleDefinitionDto {
+  const { grant, recurring, immediate } = composition
+  // The composition's plan holds the duration and the maintenance; the immediate heal is instant.
+  const cast = immediate
+    ? (({ duration: _duration, maintenanceDefinitionId: _maintenance, ...instant }) => instant)(
+        immediate
+      )
+    : grant
+  if (!cast) unsupported('D&D sequential composition has no cast entry.')
+  const castAction = singleEntryAction(action, cast)
+  const { requiresConcentration: _concentration, ...instantEffect } = castAction.compiledEffect
+  const { invocation } = instantEffect
+  // The composition's grant is what lets the cast ask for a willing target (Enhance Ability); the
+  // instant entry is compiled alone only for its graph, so it keeps the grant's allowance.
+  const instantInvocation =
+    grant &&
+    invocation.kind === 'ACTION' &&
+    invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
+    invocation.targeting.dispositionKind === 'WILLING'
+      ? { ...invocation, targeting: { ...invocation.targeting, dispositionKind: 'ANY' as const } }
+      : invocation
+  const published = compileDnd5eEffectAction({
+    action: { ...castAction, compiledEffect: { ...instantEffect, invocation: instantInvocation } }
+  })
+  if (recurring?.outcome.effectKind !== 'HEAL') return published
+  const definition: RuleGraphDefinition = {
+    ...published.definition,
+    outputs: {
+      ...published.definition.outputs,
+      recurringHealOutcomeId: { kind: 'LITERAL', value: recurring.outcome.id },
+      ...((recurring.outcome.bonuses?.length ?? 0) > 0 && {
+        recurringHealAmount: { kind: 'FACT', factKey: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY }
+      })
+    }
+  }
+  return serverPublishedRuleDefinitionDtoSchema.parse({
+    ...published,
+    checksum: checksumRuleDocument(definition),
+    definition
+  })
+}
+
 function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   | (Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> & {
       frozenGraph: ServerPublishedRuleDefinitionDto
@@ -1478,6 +1719,16 @@ function specializedTestOutcome(entry: CompiledEffectGroup['entries'][number]): 
       valueDefinitionId: outcome.valueDefinitionId,
       recoveryTriggers: outcome.recoveryTriggers,
       terminalConsequence: outcome.terminalConsequence
+    }
+  }
+  if (outcome.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION') {
+    uuid(outcome.amountSource.damageOutcomeId, 'D&D hit point maximum reduction damage identity')
+    if (!hitPointMaximumReductionRecoveryTagsSchema.safeParse(outcome.recoveryTags).success)
+      unsupported('D&D hit point maximum reduction recovery is not supported.')
+    return {
+      kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+      amountSource: outcome.amountSource,
+      recoveryTags: outcome.recoveryTags
     }
   }
   if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {
@@ -4267,6 +4518,7 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
   inputs: {
     targetActorId: RULE_VALUE_KIND.TEXT,
     resultPath: RULE_VALUE_KIND.TEXT,
+    authorizedPath: RULE_VALUE_KIND.TEXT,
     sourceDamageNodeId: RULE_VALUE_KIND.TEXT,
     sourceDamageOperationKey: RULE_VALUE_KIND.TEXT,
     sourceDamageOutcomeId: RULE_VALUE_KIND.TEXT,
@@ -4287,6 +4539,7 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
   execute(inputs) {
     const targetActorId = inputs.targetActorId
     const resultPath = inputs.resultPath
+    const authorizedPath = inputs.authorizedPath
     const sourceDamageNodeId = inputs.sourceDamageNodeId
     const sourceDamageOperationKey = inputs.sourceDamageOperationKey
     const sourceDamageOutcomeId = inputs.sourceDamageOutcomeId
@@ -4296,6 +4549,8 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
       typeof targetActorId !== 'string' ||
       !UUID.test(targetActorId) ||
       typeof resultPath !== 'string' ||
+      typeof authorizedPath !== 'string' ||
+      !isSpecializedPath(authorizedPath) ||
       typeof sourceDamageNodeId !== 'string' ||
       sourceDamageNodeId.length === 0 ||
       typeof sourceDamageOperationKey !== 'string' ||
@@ -4317,8 +4572,41 @@ export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperati
       sourceDamageOutcomeId,
       recoveryTags,
       applicationCandidate: true,
-      authorized: resultPath === 'ON_SAVE_FAIL',
+      authorized: resultPath === authorizedPath,
       targetStateChecksum
+    }
+  }
+}
+
+/**
+ * Reduces the target's hit point maximum by the damage it took from one proposal of the same graph,
+ * when the result path is the authorized one: a nested save's failure, or the selected direct path.
+ */
+function hitPointMaximumReductionProposalNode(input: {
+  id: string
+  resultPath: RuleGraphDefinition['nodes'][number]['inputs'][string]
+  authorizedPath: SpecializedPath
+  sourceDamageNodeId: string
+  reduction: Pick<HitPointMaximumReductionAuthored, 'amountSource' | 'recoveryTags'>
+}): RuleGraphDefinition['nodes'][number] {
+  return {
+    id: input.id,
+    operation: {
+      key: DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
+      contractVersion: 1
+    },
+    inputs: {
+      targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+      resultPath: input.resultPath,
+      authorizedPath: { kind: 'LITERAL', value: input.authorizedPath },
+      sourceDamageNodeId: { kind: 'LITERAL', value: input.sourceDamageNodeId },
+      sourceDamageOperationKey: { kind: 'LITERAL', value: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY },
+      sourceDamageOutcomeId: {
+        kind: 'LITERAL',
+        value: input.reduction.amountSource.damageOutcomeId
+      },
+      recoveryTags: { kind: 'LITERAL', value: JSON.stringify(input.reduction.recoveryTags) },
+      targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
     }
   }
 }
@@ -4941,6 +5229,10 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     {
+      key: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
       key: DND5E_SPELL_CAST_LEVEL_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
@@ -5330,6 +5622,18 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
         )
       conditionCounts.set(entry.pathCode, count)
     }
+    // A reduction takes its amount from one damage outcome of its own result path.
+    if (
+      outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
+      action.compiledEffect.entries.filter(
+        (candidate) =>
+          candidate.pathCode === entry.pathCode &&
+          candidate.entryId === outcome.amountSource.damageOutcomeId &&
+          'outcome' in candidate &&
+          candidate.outcome.effectKind === 'DAMAGE'
+      ).length !== 1
+    )
+      unsupported('D&D hit point maximum reduction needs one damage outcome on its path.')
   }
   for (const pathCode of paths) {
     for (const entries of authoredOutcomeGroups(action, pathCode as SpecializedPath))
@@ -6004,44 +6308,13 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
         : []),
       ...(reduction
         ? [
-            {
+            hitPointMaximumReductionProposalNode({
               id: 'nested-save-hit-point-maximum-reduction',
-              operation: {
-                key: DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
-                contractVersion: 1
-              },
-              inputs: {
-                targetActorId: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_ACTOR_FACT_KEY
-                },
-                resultPath: {
-                  kind: 'NODE_OUTPUT' as const,
-                  nodeId: 'nested-save-test',
-                  port: 'resultPath'
-                },
-                sourceDamageNodeId: {
-                  kind: 'LITERAL' as const,
-                  value: 'proposal-on_hit'
-                },
-                sourceDamageOperationKey: {
-                  kind: 'LITERAL' as const,
-                  value: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-                },
-                sourceDamageOutcomeId: {
-                  kind: 'LITERAL' as const,
-                  value: reduction.amountSource.damageOutcomeId
-                },
-                recoveryTags: {
-                  kind: 'LITERAL' as const,
-                  value: JSON.stringify(reduction.recoveryTags)
-                },
-                targetStateChecksum: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-                }
-              }
-            }
+              resultPath: { kind: 'NODE_OUTPUT', nodeId: 'nested-save-test', port: 'resultPath' },
+              authorizedPath: 'ON_SAVE_FAIL',
+              sourceDamageNodeId: 'proposal-on_hit',
+              reduction
+            })
           ]
         : []),
       ...(forcedMovement
@@ -6557,11 +6830,40 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     )
   )
   if (groups.length === 0) return null
-  const definitions = groups.map((entries, groupIndex) => {
+  const definitions = groups.map((entries, groupIndex): RuleGraphDefinition => {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry)
     const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
+    if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION') {
+      const damageIndex = groups.findIndex(
+        ([candidate]) => candidate?.entryId === outcome.amountSource.damageOutcomeId
+      )
+      const damageEntry = groups[damageIndex]?.[0]
+      if (!damageEntry) unsupported('D&D hit point maximum reduction damage is not owed.')
+      uuid(entry.entryId, 'D&D hit point maximum reduction identity')
+      const proposalId = `${groupNodePrefix.nodePrefix ?? ''}proposal-${entry.pathCode.toLowerCase()}`
+      return {
+        schemaVersion: 1,
+        id: input.action.effectId,
+        gameSystemId: DND5E_SYSTEM_ID,
+        definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+        nodes: [
+          hitPointMaximumReductionProposalNode({
+            id: proposalId,
+            // The OUTCOME phase runs only on its selected path, so the reduction is authorized by construction.
+            resultPath: { kind: 'LITERAL', value: input.selectedPath },
+            authorizedPath: input.selectedPath,
+            sourceDamageNodeId: `outcome${damageIndex + 1}-proposal-${damageEntry.pathCode.toLowerCase()}`,
+            reduction: outcome
+          })
+        ],
+        outputs: {
+          targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' }
+        },
+        sourceEntryBindings: [{ sourceEntryId: entry.entryId, nodeId: proposalId }]
+      }
+    }
     return outcome.kind === 'DICE_DAMAGE' ||
       outcome.kind === 'DICE_HEAL' ||
       outcome.kind === 'DICE_SCALAR_REDUCTION'
@@ -6734,6 +7036,7 @@ function bindMovementInterruptionOutput(input: {
 /** Whether the active-effect plan the action ends up with is held under a maintained effect. */
 function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolean {
   const plan =
+    sequentialCompositionPlan(action) ??
     repeatingDirectFollowUpSavePlan(action) ??
     repeatingImmediateFollowUpSavePlan(action) ??
     timedImmediateConditionPlan(action) ??
@@ -6801,6 +7104,8 @@ function compileEffectActionGraph(
     )
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
+  const composition = sequentialComposition(action)
+  if (composition) return compileSequentialComposition(action, composition)
   if (isExactImmediateFollowUpSaveAction(action) || repeatingDirectFollowUpSavePlan(action)) {
     return compileDnd5eEffectActionTestTemplate({ action }).published
   }
@@ -6874,6 +7179,8 @@ function compileEffectActionGraph(
     unsupported('D&D direct dice scalar reduction requires an authored test phase.')
   if (outcome.kind === 'FORCED_MOVEMENT')
     unsupported('D&D forced movement requires an authored test phase.')
+  if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION')
+    unsupported('D&D hit point maximum reduction requires an authored test phase.')
   const operation =
     outcome.kind === 'HEAL'
       ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
@@ -7403,6 +7710,7 @@ function testApplications(
       if (
         application.kind === 'CONDITION_APPLY' ||
         application.kind === 'CONDITION_REMOVE' ||
+        application.kind === 'TEMPORARY_HIT_POINTS_RELEASE' ||
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
@@ -8118,6 +8426,7 @@ function interpretDirect(
       if (
         application.kind === 'CONDITION_APPLY' ||
         application.kind === 'CONDITION_REMOVE' ||
+        application.kind === 'TEMPORARY_HIT_POINTS_RELEASE' ||
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
@@ -8147,6 +8456,9 @@ function interpretDirect(
     const recoveryTags = reduction.outputs.recoveryTags
     const parsedRecoveryTags = parseRecoveryTags(recoveryTags)
     const resultPath = reduction.outputs.resultPath
+    // A nested save reads its own result path; a direct OUTCOME is published for its selected one.
+    const publishedResultPath = publishedNode?.inputs.resultPath
+    const publishedAuthorizedPath = publishedNode?.inputs.authorizedPath
     if (
       !publishedNode ||
       publishedNode.operation.key !== DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY ||
@@ -8177,10 +8489,13 @@ function interpretDirect(
       publishedNode.inputs.sourceDamageOutcomeId.value !== sourceDamageOutcomeId ||
       publishedNode.inputs.recoveryTags?.kind !== 'LITERAL' ||
       publishedNode.inputs.recoveryTags.value !== recoveryTags ||
-      publishedNode.inputs.resultPath?.kind !== 'NODE_OUTPUT' ||
-      publishedNode.inputs.resultPath.nodeId !== 'nested-save-test' ||
-      publishedNode.inputs.resultPath.port !== 'resultPath' ||
-      reduction.outputs.authorized !== (resultPath === 'ON_SAVE_FAIL')
+      !(publishedResultPath?.kind === 'NODE_OUTPUT'
+        ? publishedResultPath.nodeId === 'nested-save-test' &&
+          publishedResultPath.port === 'resultPath'
+        : publishedResultPath?.kind === 'LITERAL' && publishedResultPath.value === resultPath) ||
+      publishedAuthorizedPath?.kind !== 'LITERAL' ||
+      reduction.inputs.authorizedPath !== publishedAuthorizedPath.value ||
+      reduction.outputs.authorized !== (resultPath === publishedAuthorizedPath.value)
     ) {
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D hit point maximum reduction trace is invalid.'
@@ -8727,6 +9042,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const action = executableAction(authored)
     if (published.id !== action.effectId || published.checksum.length !== 64)
       throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
+    const composed = sequentialCompositionPlan(action)
+    if (composed) return [composed]
     const repeatPlan =
       repeatingDirectFollowUpSavePlan(action) ?? repeatingImmediateFollowUpSavePlan(action)
     const timedPlan = repeatPlan
@@ -8889,18 +9206,43 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           binding.kind === 'FACT' && binding.factKey === DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY
       )
     )
+    const resolvedHealOutcomes = Array.isArray(actionOutcomes)
+      ? actionOutcomes.filter(
+          (outcome): outcome is Record<string, unknown> & { expression: string } =>
+            !!outcome &&
+            typeof outcome === 'object' &&
+            !Array.isArray(outcome) &&
+            (outcome as Record<string, unknown>).kind === 'HEAL' &&
+            typeof (outcome as Record<string, unknown>).expression === 'string'
+        )
+      : []
+    // A composed recurring heal's amount is settled at cast from its resolved row (D156).
+    const recurringHealOutcome = published.definition.outputs.recurringHealOutcomeId
+    const recurringHealOutcomeId =
+      recurringHealOutcome?.kind === 'LITERAL' ? recurringHealOutcome.value : null
+    let recurringHealAmountFacts: Record<string, number> = {}
+    if (recurringHealOutcomeId !== null && published.definition.outputs.recurringHealAmount) {
+      const rows = resolvedHealOutcomes.filter(
+        ({ outcomeId }) => outcomeId === recurringHealOutcomeId
+      )
+      const match = rows.length === 1 ? /^(\d+)(?: ([+-]) (\d+))?$/.exec(rows[0]!.expression) : null
+      if (!match)
+        throw new Dnd5eEffectActionCompilerError(
+          'D&D recurring healing requires one exact resolved fixed amount.'
+        )
+      const bonus = Number(match[3] ?? 0)
+      recurringHealAmountFacts = {
+        [DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY]: Math.max(
+          0,
+          Number(match[1]) + (match[2] === '-' ? -bonus : bonus)
+        )
+      }
+    }
     let resolvedHealModifierFacts: Record<string, number> = {}
     if (requiresHealModifier) {
-      const healingOutcomes = Array.isArray(actionOutcomes)
-        ? actionOutcomes.filter(
-            (outcome): outcome is Record<string, unknown> =>
-              !!outcome &&
-              typeof outcome === 'object' &&
-              !Array.isArray(outcome) &&
-              (outcome as Record<string, unknown>).kind === 'HEAL' &&
-              typeof (outcome as Record<string, unknown>).expression === 'string'
-          )
-        : []
+      const healingOutcomes = resolvedHealOutcomes.filter(
+        ({ outcomeId }) => outcomeId !== recurringHealOutcomeId
+      )
       if (healingOutcomes.length !== 1)
         throw new Dnd5eEffectActionCompilerError(
           'D&D dice healing requires one exact resolved healing expression.'
@@ -8945,6 +9287,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : {}),
       ...resolvedHealModifierFacts,
+      ...recurringHealAmountFacts,
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),

@@ -21,6 +21,9 @@ import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounter
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
+import { encounterMovementDrag } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
+import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
@@ -322,6 +325,26 @@ export async function readNativeLiveMovementInputs(input: {
       throw new Error('Movement spatial effect cursor mismatch.')
     afterEffectId = page.continueAfter
   }
+  // A grappler's voluntary move drags the creatures its own holds bind (D105). A new move checks
+  // each dragged creature's whole translated path; every segment re-reads who is held.
+  const planned =
+    state.automationMode === 'MANUAL' || command.movementKind !== 'VOLUNTARY'
+      ? null
+      : encounterMovementDrag({
+          scene,
+          mover: { tokenId: token.id, actorId: actorIdByTokenId.get(token.id)! },
+          actorIdByTokenId,
+          activeEffectsByActorId,
+          sizeOf: (actorId) => {
+            const target = targets.get(actorId)
+            return target ? encounterActorEffectiveSize(target) : null
+          },
+          effects: toSpatialInstances(spatialEffects, actors),
+          path: save.movementResolution ? null : command.path
+        })
+  if (planned?.kind === 'REFUSED') rejectDomain('MOVEMENT_BLOCKED', 'Release the grapple first.')
+  const drag = planned?.tokens.length ? planned : null
+  const draggedTokenIds = new Set(drag?.tokens.map(({ tokenId }) => tokenId))
   const facts =
     state.automationMode === 'MANUAL'
       ? null
@@ -379,7 +402,8 @@ export async function readNativeLiveMovementInputs(input: {
           occurrenceId,
           path: command.path,
           actorIdByTokenId,
-          tokens: scene.tokens,
+          // A creature being dragged moves with its grappler, so it never reacts to that move.
+          tokens: scene.tokens.filter(({ id }) => !draggedTokenIds.has(id)),
           resolvePerception
         })
   return {
@@ -395,6 +419,7 @@ export async function readNativeLiveMovementInputs(input: {
     actorIdByTokenId,
     token,
     spatialEffects,
+    drag,
     facts,
     resolvePerception,
     reactions,

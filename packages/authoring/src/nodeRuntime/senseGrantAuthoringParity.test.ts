@@ -5,6 +5,7 @@ import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { seeInvisibility } from '@artificer-toolkit/source-data/srd/spells/see-invisibility.js'
+import { trueSeeing } from '@artificer-toolkit/source-data/srd/spells/true-seeing.js'
 import {
   SRD_SEE_INVISIBILITY_SENSE_ID,
   srdSystemRecord
@@ -48,6 +49,15 @@ describe('See Invisibility as a timed sense grant from core options (SPELLS-4.T2
       range: { id: sense.range.id, rangeKind: 'UNLIMITED' }
     })
     const authored = equipmentWith(effects)
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+  })
+})
+
+describe('True Seeing as a timed sense grant from core options (SPELLS-4.T2a5, D156)', () => {
+  it('keeps the SRD spell, an hour of truesight to 120 feet, exactly as authored', async () => {
+    const authored = equipmentWith(trueSeeing.effects)
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)

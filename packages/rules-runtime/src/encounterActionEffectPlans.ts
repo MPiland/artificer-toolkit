@@ -299,7 +299,11 @@ function bindTriggerDamageTypes(
 
 /** An action's lasting effect on one creature, from its plan alone; null when the plan yields none. */
 export function prepareRecurringActiveEffect(
-  input: Omit<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution' | 'applications'>
+  input: Omit<
+    Parameters<typeof prepareEncounterActionEffectPlans>[0],
+    'execution' | 'applications'
+  > &
+    Partial<Pick<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution'>>
 ): EffectPlan | null {
   const plan = input.activeEffectPlan
   if (!plan) return null
@@ -427,6 +431,15 @@ export function prepareRecurringActiveEffect(
     plan.castSaveDcFactKey && input.d20
       ? { key: plan.castSaveDcFactKey, dc: input.d20.defenseOrDc }
       : null
+  const castFacts = Object.fromEntries(
+    (plan.castFactKeys ?? []).map((key) => {
+      const value = input.execution?.evidence.facts[key]
+      if (value === undefined)
+        throw new EncounterActionEffectPlanError('The effect needs a fact its cast settles.')
+      return [key, value]
+    })
+  )
+  const ownsTemporaryHitPoints = plan.ownsTemporaryHitPoints === true
   const tickAnchor = plan.tickAnchor ?? 'HOLDER'
   // The grant tick planner counts a grant, unless it repeats a save, and any other effect counted on
   // its source's turns (Color Spray's blindness); the turn-effect kernel counts the rest.
@@ -451,7 +464,8 @@ export function prepareRecurringActiveEffect(
       grantContribution ||
       concealment ||
       linkContribution ||
-      formContribution
+      formContribution ||
+      ownsTemporaryHitPoints
         ? 2
         : 1,
     origin: {
@@ -465,9 +479,11 @@ export function prepareRecurringActiveEffect(
     compiledEntryId: plan.compiledEntryId,
     frozenGraphNodeId: plan.frozenGraphNodeId,
     frozenGraph: compileEffectGraph(frozenGraph, plan.capabilityContractVersion),
-    adapterFacts: castSaveDcFact
-      ? { ...plan.adapterFacts, [castSaveDcFact.key]: castSaveDcFact.dc }
-      : plan.adapterFacts,
+    adapterFacts: {
+      ...plan.adapterFacts,
+      ...castFacts,
+      ...(castSaveDcFact && { [castSaveDcFact.key]: castSaveDcFact.dc })
+    },
     perceptionContributions: plan.perceptionContributions,
     recurrence: {
       // An effect the grant tick planner counts stores no stage, so the turn-effect kernel never
@@ -506,9 +522,13 @@ export function prepareRecurringActiveEffect(
     grantContribution ||
     concealment ||
     linkContribution ||
-    formContribution
+    formContribution ||
+    ownsTemporaryHitPoints
       ? {
           stateContributions: [
+            ...(ownsTemporaryHitPoints
+              ? [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' as const }]
+              : []),
             ...(formContribution && input.form
               ? [
                   {
