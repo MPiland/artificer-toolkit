@@ -1515,6 +1515,7 @@ export function CampaignVttStage({
               heldGrantEnds={currentActionChoices?.heldGrantEnds ?? []}
               releases={currentActionChoices?.releases ?? []}
               openAttackAction={currentActionChoices?.openAttackAction ?? null}
+              defaultActionId={currentActionChoices?.defaultActionId ?? null}
               actionsLoading={actionChoicesLoading}
               actionChoicesError={actionChoicesError}
               connected={live.status === 'CONNECTED'}

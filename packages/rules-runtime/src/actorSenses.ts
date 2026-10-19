@@ -126,18 +126,20 @@ function primaryCapability(capabilities: readonly Capability[]): Capability {
 
 /**
  * One entry per Sense the actor holds, whether a Character's granted Senses or a Creature's
- * authored ones. An unlimited range stays unlimited, as in combat perception; a distance that is
- * not a positive length has no entry.
+ * authored ones, and the light it sheds, if any. An unlimited range stays unlimited, as in combat
+ * perception; a distance that is not a positive length has no entry.
  */
 export function deriveActorSceneVision(
   actorId: string,
   pinnedSenses: readonly (Pick<PinnedSenseDefinition, 'document'> & {
     label: string
     range: SenseRangeDto
-  })[]
+  })[],
+  light?: SceneActorVision['light']
 ): SceneActorVision {
   return {
     actorId,
+    ...(light && { light }),
     senses: pinnedSenses.flatMap(({ document, label, range }) => {
       const reach: SceneSenseLength =
         range.rangeKind === 'UNLIMITED'

@@ -1,5 +1,6 @@
 import type { CheckChoiceAuthored, HeldEscapeDcAuthored } from './check.js'
 import type { ActivationAuthored } from './effect.js'
+import type { FailureMarginRiderAuthored } from './followUpSave.js'
 import type {
   DurationAuthored,
   FacetAuthored,
@@ -58,6 +59,21 @@ export type PathLifecycleAuthored = {
   /** The holder may end the effect themselves, at the cost of this activation. */
   holderEnd?: { activation: ActivationCode }
   /**
+   * Only the effect's source meets it: its grants about attackers apply, and an attack consumes
+   * it, only when the source is the attacker.
+   */
+  fromSourceOnly?: boolean
+  /**
+   * The effect ends after this many uses; a modifier domain spends them (Mirror Image's
+   * duplicates). The runtime counts them down in `remainingUses`.
+   */
+  uses?: number
+  /**
+   * The effect is dormant until its anchor actor's final counted turn and active only during that
+   * turn: a timed effect made now that waits for that actor's next turn.
+   */
+  activeOnlyOnFinalAnchorTurn?: boolean
+  /**
    * A zone's failed-save condition is held by the zone (D142, D146): it ends when the zone ends,
    * on `ON_LEAVING_AREA` when the creature leaves the area, and on a successful `escape`.
    */
@@ -77,6 +93,8 @@ export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthor
   maintenanceDefinitionId?: string
   duration?: DurationAuthored
   lifecycle?: PathLifecycleAuthored
+  /** Only a direct saving throw's failed result block (ON_SAVE_FAIL) carries one. */
+  failureMarginRider?: FailureMarginRiderAuthored
   outcomes: TOutcome[]
 }
 

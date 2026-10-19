@@ -23,6 +23,7 @@ import { mindBlank } from '@artificer-toolkit/source-data/srd/spells/mind-blank.
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { damageTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
+import { trueStrike } from '@artificer-toolkit/source-data/srd/spells/true-strike.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -31,6 +32,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { seededSrdCreature } from './seededSrdCreature.js'
+import { endConcentrationAtSheet } from './placedZoneRoomReads.js'
 import {
   parseReceiptExecution,
   readActorHitPoints,
@@ -488,5 +490,101 @@ describe('room Heat Metal (SPELLS-4.T2e)', () => {
     await castHeatMetal(fixture)
     expect(await ogreItemState(fixture.room, fixture.itemEntryId)).toBe('MAIN_HAND')
     expect(await ogreGrants(fixture.room)).toHaveLength(1)
+  }, 120000)
+})
+
+describe('room True Strike (SPELLS-4.T2k1)', () => {
+  /**
+   * The Character (first in the order) with True Strike prepared and a Club equipped, then an ally
+   * Wolf and the Wolf the spell marks. Every die shows its minimum, so each attack misses.
+   */
+  async function trueStrikeRoom() {
+    const wolf = biteWolf('ATTACK')
+    const ally = srdCreatureActor({ id: FIRST_ALLY_ID, creature: wolf, disposition: 'FRIENDLY' })
+    const room = await actionRoom({
+      fallbackRoll: 0,
+      actors: [
+        {
+          ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+          snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+        },
+        ally,
+        srdCreatureActor({ id: WOLF_ID, creature: wolf })
+      ],
+      characterPlay: { equipped: true },
+      characterSpellcasting: { spells: [trueStrike], prepared: [trueStrike.id] },
+      characterAction: (action) => action.label.startsWith(trueStrike.label)
+    })
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    return { room, biteActionId: room.featureActionId(ally, creatureFeature(wolf, 'Bite').id) }
+  }
+  type TrueStrikeRoom = Awaited<ReturnType<typeof trueStrikeRoom>>
+
+  /** The mode an attack at the marked Wolf rolls in; the attack then settles. */
+  async function attackRollMode(
+    room: ActionRoom,
+    actionId: string,
+    actorId: string,
+    warnings: EncounterRuleWarningCodeDto[] = RANGE
+  ) {
+    const attack = await room.startAction(WOLF_ID, warnings, null, null, actionId, actorId)
+    expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the attack d20.')
+    const { rollMode } = decision.pending.request
+    await settlePendingAction(room)
+    return rollMode
+  }
+  async function clubActionId(room: ActionRoom) {
+    const club = (await room.actionChoices(CHARACTER_ACTOR_ID)).actions.find(({ label }) =>
+      label.includes('Club')
+    )
+    if (!club) throw new Error('The Character offers no Club attack.')
+    return club.id
+  }
+  const markedWolfEffects = async ({ room }: TrueStrikeRoom) =>
+    (await readRoomHistory(room.room.base.stub)).activeEffects.filter(
+      ({ targetActorId }) => targetActorId === WOLF_ID
+    )
+
+  it('gives only the caster’s first attack on its next turn advantage, which that attack uses up', async () => {
+    const fixture = await trueStrikeRoom()
+    const { room, biteActionId } = fixture
+    const clubId = await clubActionId(room)
+    // An attack on the turn of the cast is not the caster's next turn.
+    expect(
+      await attackRollMode(room, clubId, CHARACTER_ACTOR_ID, [
+        ...RANGE,
+        'ACTION_ECONOMY_UNAVAILABLE'
+      ])
+    ).toBe('NORMAL')
+    expect(await markedWolfEffects(fixture)).toHaveLength(1)
+    // Another creature's attack neither gets the advantage nor uses the mark up.
+    await room.advanceTurn()
+    expect(await attackRollMode(room, biteActionId, FIRST_ALLY_ID)).toBe('NORMAL')
+    expect(await markedWolfEffects(fixture)).toHaveLength(1)
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect(await attackRollMode(room, clubId, CHARACTER_ACTOR_ID)).toBe('ADVANTAGE')
+    expect(await markedWolfEffects(fixture)).toEqual([])
+  }, 120000)
+
+  it('ends unused at the end of the caster’s next turn', async () => {
+    const fixture = await trueStrikeRoom()
+    await fixture.room.advanceTurn()
+    await fixture.room.advanceTurn()
+    await fixture.room.advanceTurn()
+    expect(await markedWolfEffects(fixture)).toHaveLength(1)
+    await fixture.room.advanceTurn()
+    expect(await markedWolfEffects(fixture)).toEqual([])
+  }, 120000)
+
+  it('ends when the caster’s Concentration ends', async () => {
+    const fixture = await trueStrikeRoom()
+    expect(await markedWolfEffects(fixture)).toHaveLength(1)
+    const ended = await endConcentrationAtSheet(fixture.room, CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await markedWolfEffects(fixture)).toEqual([])
   }, 120000)
 })

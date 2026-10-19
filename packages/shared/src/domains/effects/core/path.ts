@@ -314,6 +314,7 @@ export const PATH_LIFECYCLE_RECURRING_KIND_OPTIONS = valuesOf(
 
 export const PATH_LIFECYCLE_CONSUME_EVENT = {
   ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
+  ON_HIT: 'ON_HIT',
   ON_ATTACKED: 'ON_ATTACKED',
   ON_ABILITY_CHECK: 'ON_ABILITY_CHECK',
   ON_CAST_SPELL: 'ON_CAST_SPELL'
@@ -331,6 +332,11 @@ export const PATH_LIFECYCLE_CONSUME_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_CONSUME_EVENT.ON_ATTACK_ROLL,
     label: 'On Attack Roll',
     description: 'Consumed by first attack roll.'
+  },
+  [PATH_LIFECYCLE_CONSUME_EVENT.ON_HIT]: {
+    code: PATH_LIFECYCLE_CONSUME_EVENT.ON_HIT,
+    label: 'On Hit',
+    description: 'Consumed by the first attack that hits, after it adds to that attack.'
   },
   [PATH_LIFECYCLE_CONSUME_EVENT.ON_ATTACKED]: {
     code: PATH_LIFECYCLE_CONSUME_EVENT.ON_ATTACKED,

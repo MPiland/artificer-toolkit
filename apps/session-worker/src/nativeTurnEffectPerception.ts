@@ -12,7 +12,7 @@ import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/sh
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { resolveEncounterTurnEffectPerception } from '@artificer-toolkit/rules-runtime/encounterTurnEffectPerception'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import type { CampaignSceneState } from '@artificer-toolkit/shared/vtt'
+import { withSceneTokenLights, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
 
 type SceneFence = { sceneId: string; sceneVersion: number; definitionSaveId: string }
 
@@ -162,7 +162,7 @@ export async function readNativeLivePerceptionScene(input: {
   if (response.kind !== 'SCENE_PERCEPTION')
     throw new Error('Turn effect perception capture kind mismatch.')
   if (!response.context) return null
-  const { header, observerTokenId, subjectTokenId } = response.context
+  const { header, observerTokenId, subjectTokenId, tokenLights } = response.context
   if (header.campaignId !== input.campaignId) throw new Error('Turn effect Scene is stale.')
   const scene: Pick<
     CampaignSceneState,
@@ -248,7 +248,7 @@ export async function readNativeLivePerceptionScene(input: {
     id: header.id,
     version: header.version,
     definitionSaveId: header.definitionSaveId,
-    scene,
+    scene: withSceneTokenLights(scene, tokenLights),
     observerTokenId,
     subjectTokenId
   }

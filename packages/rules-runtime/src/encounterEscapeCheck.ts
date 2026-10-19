@@ -18,6 +18,7 @@ import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import {
   actorContestFacts,
+  checkAbilityCode,
   encounterBasicActionCheckLabel
 } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
@@ -217,9 +218,13 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
       rollMode: facts.rollMode,
       contributors: facts.contributors,
       contributorChecksum: checksumRuleDocument(facts.contributors),
-      modifier: facts.modifier
+      modifier: facts.modifier,
+      ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice })
     },
-    consumedGrants: effectsEndedBy(holder.activeEffects, 'ON_ABILITY_CHECK')
+    consumedGrants: effectsEndedBy(holder.activeEffects, {
+      event: 'ON_ABILITY_CHECK',
+      abilityCode: checkAbilityCode(input.system, checkKind, input.checkDefinitionId)
+    })
   })
 }
 

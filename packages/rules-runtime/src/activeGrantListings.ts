@@ -25,6 +25,7 @@ const OPTION_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPola
   DAMAGE_IMMUNITY: 'BENEFICIAL',
   CONDITION_IMMUNITY: 'BENEFICIAL',
   MOVEMENT_MODE: 'BENEFICIAL',
+  MOVEMENT_PASSAGE: 'BENEFICIAL',
   DAMAGE_VULNERABILITY: 'HARMFUL',
   CONDITION: 'HARMFUL'
 }
@@ -34,7 +35,8 @@ const ENABLE_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPola
   OPPORTUNITY_ATTACK_IMMUNITY: 'BENEFICIAL',
   ATTACK_TRAIT: 'BENEFICIAL',
   SPELLCASTING_LOCK: 'HARMFUL',
-  ACTION_BONUS_ACTION_EXCLUSIVITY: 'HARMFUL'
+  ACTION_BONUS_ACTION_EXCLUSIVITY: 'HARMFUL',
+  ATTACK_DECOYS: 'BENEFICIAL'
 }
 
 /**
@@ -80,6 +82,9 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
       return sign === 0 ? 'NEUTRAL' : sign > 0 ? 'BENEFICIAL' : 'HARMFUL'
     }
     case 'ADD_BONUS_DIE':
+      return payload !== undefined && 'sign' in payload && payload.sign === 'SUBTRACT'
+        ? 'HARMFUL'
+        : 'BENEFICIAL'
     case 'OPTIONAL_ABILITY_MODIFIER_BONUS':
       return 'BENEFICIAL'
     case 'ENABLE':
@@ -111,8 +116,7 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
  * - A bonus or penalty follows its sign; a negative amount or multiplier flips it, zero is neutral.
  * - An ability modifier bonus helps; a negative multiplier harms and a zero one is neutral. An
  *   optional ability modifier bonus always helps.
- * - A bonus die helps: its payload names only the dice and cannot express a subtracted one (Bane is
- *   a closed rule, not a grant).
+ * - A rolled die helps when it adds (Bless) and harms when it subtracts (Bane).
  * - Enabling something is read by the domains in `ENABLE_DOMAIN_POLARITY` (opportunity attack
  *   immunity helps, the spellcasting lock harms); any other enabled domain is neutral.
  * - Setting a value is read by domain and value (D110): speed above zero helps (Fly); speed or

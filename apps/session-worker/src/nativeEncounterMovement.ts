@@ -77,11 +77,12 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   discoverEncounterMovementPassage,
-  MovementEndpointOccupiedError,
+  MovementBlockedError,
   prepareEncounterMovementPassageBoundary
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassageBoundary'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
+import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import type { MovementConcentrationSettlement } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -179,7 +180,7 @@ export async function prepareNativeLiveMovement(
       sceneId: scene.id,
       sceneVersion: scene.version,
       sceneGrid: scene.grid,
-      scene,
+      scene: captured.perceptionScene,
       loadSystem: async () => system,
       loadDefinition,
       loadSpatialEffects: async () => spatialEffects
@@ -232,7 +233,7 @@ export async function prepareNativeLiveMovement(
                 attacker: sourceFacts,
                 target: targetFacts,
                 placement: {
-                  scene,
+                  scene: captured.perceptionScene,
                   sceneGrid: scene.grid,
                   attackerToken,
                   targetToken: { ...movingToken, position: contact },
@@ -418,11 +419,15 @@ export async function prepareNativeLiveMovement(
             sceneTokens: step.sceneTokens.filter(
               ({ id }) => !captured.drag?.tokens.some(({ tokenId }) => tokenId === id)
             ),
-            actors: captured.actors
+            actors: captured.actors,
+            passage: encounterMovementPassageFacts(
+              step.targets,
+              step.actorIdByTokenId.get(step.root.tokenId)
+            )
           })
         } catch (error) {
           // The message names no creature, so a fogged hostile at the endpoint stays hidden.
-          if (error instanceof MovementEndpointOccupiedError) rejectDomain('MOVEMENT_BLOCKED')
+          if (error instanceof MovementBlockedError) rejectDomain('MOVEMENT_BLOCKED')
           throw error
         }
       },
@@ -510,30 +515,36 @@ export async function prepareNativeLiveMovement(
           }))
         }
       },
-      preparePassage: (args) =>
-        prepareEncounterMovementPassageBoundary(
-          {
-            ...args,
-            state,
-            userId,
-            occurrenceId: step.occurrenceId,
-            sceneVersion: step.sceneVersion,
-            origin: step.currentPosition
-          },
-          (choice) =>
-            availableEncounterMovementPassageChoice(
-              {
-                loadSystem: async () => system,
-                prepareEconomy: (economy) =>
-                  prepareEncounterActionEconomy({
-                    ...economy,
-                    loadTarget: async () => economy.target,
-                    definitions
-                  })
-              },
-              choice
-            )
-        ),
+      preparePassage: async (args) => {
+        try {
+          return await prepareEncounterMovementPassageBoundary(
+            {
+              ...args,
+              state,
+              userId,
+              occurrenceId: step.occurrenceId,
+              sceneVersion: step.sceneVersion,
+              origin: step.currentPosition
+            },
+            (choice) =>
+              availableEncounterMovementPassageChoice(
+                {
+                  loadSystem: async () => system,
+                  prepareEconomy: (economy) =>
+                    prepareEncounterActionEconomy({
+                      ...economy,
+                      loadTarget: async () => economy.target,
+                      definitions
+                    })
+                },
+                choice
+              )
+          )
+        } catch (error) {
+          if (error instanceof MovementBlockedError) rejectDomain('MOVEMENT_BLOCKED')
+          throw error
+        }
+      },
       currentReactionGroup: async ({ next, root, position, targets }) => {
         const perception = await perceptionFor(targets)
         try {

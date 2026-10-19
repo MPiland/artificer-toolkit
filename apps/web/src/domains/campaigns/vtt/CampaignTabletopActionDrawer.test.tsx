@@ -107,6 +107,7 @@ function drawerElement(
     heldGrantEnds = [],
     releases = [],
     openAttackAction = null,
+    defaultActionId = null,
     encounter = tabletopGmEncounter,
     onEscape = vi.fn(),
     onEndHeldGrant = vi.fn(),
@@ -129,6 +130,7 @@ function drawerElement(
     heldGrantEnds?: EncounterActionChoicesDto['heldGrantEnds']
     releases?: EncounterActionChoicesDto['releases']
     openAttackAction?: EncounterActionChoicesDto['openAttackAction']
+    defaultActionId?: EncounterActionChoicesDto['defaultActionId']
     encounter?: EncounterGmProjectionDto
     onEscape?: (command: EscapeRelationshipInputDto) => Promise<unknown>
     onEndHeldGrant?: (command: EndHeldGrantInputDto) => Promise<unknown>
@@ -155,6 +157,7 @@ function drawerElement(
       heldGrantEnds={heldGrantEnds}
       releases={releases}
       openAttackAction={openAttackAction}
+      defaultActionId={defaultActionId}
       actionsLoading={false}
       actorIdByTokenId={actorIdByTokenId}
       connected
@@ -867,7 +870,11 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
   it('preselects the last weapon and target of the open Attack action without submitting', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
-    renderDrawer(onResolve, { choices: [slotted(2)], openAttackAction: openAction(1) })
+    renderDrawer(onResolve, {
+      choices: [slotted(2)],
+      openAttackAction: openAction(1),
+      defaultActionId: actions[0]!.id
+    })
 
     expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue(
       'Quarterstaff · Equipment'
@@ -896,6 +903,7 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
       drawerElement(onResolve, {
         choices: [slotted(2)],
         openAttackAction: openAction(1),
+        defaultActionId: actions[0]!.id,
         encounter: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 }
       })
     )
@@ -919,7 +927,8 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
 
     const missing = renderDrawer(vi.fn(), {
       choices: [slotted(2)],
-      openAttackAction: { ...stale, lastActionId: 'gone:attack', lastTargetIds: ['gone-target'] }
+      openAttackAction: { ...stale, lastActionId: 'gone:attack', lastTargetIds: ['gone-target'] },
+      defaultActionId: 'gone:attack'
     })
     expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue('')
     expect(screen.getByRole('combobox', { name: 'Target' })).toHaveValue('')
@@ -935,6 +944,17 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
 
     renderDrawer(vi.fn(), { choices: [actions[0]!], openAttackAction: stale })
     expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue('')
+  })
+
+  it('starts on the held weapon the server picks before any Attack action is open (D107)', async () => {
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { choices: actions, defaultActionId: actions[0]!.id })
+
+    expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue(
+      'Quarterstaff · Equipment'
+    )
+    expect(screen.getByRole('combobox', { name: 'Target' })).toHaveValue('')
+    expect(onResolve).not.toHaveBeenCalled()
   })
 
   it('still warns about an attack outside the action and offers "Do it anyway"', async () => {

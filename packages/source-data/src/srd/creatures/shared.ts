@@ -15,6 +15,8 @@ import {
   FOLLOW_UP_SAVE_TIMING,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
@@ -25,8 +27,10 @@ import {
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
+  DURATION_KIND,
   type ActorRelationshipAuthored,
   type ActorRelationshipModuleAuthored,
   type CreatureAuthored,
@@ -34,6 +38,7 @@ import {
   type EffectAuthored,
   type FeatureAuthored,
   type FollowUpSaveAuthored,
+  type MovementPassageOption,
   type SizeCode
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
@@ -218,6 +223,28 @@ export function actionId(creatureIndex: number, localIndex: number) {
   return localId(2, creatureIndex, localIndex)
 }
 
+/** A feature's grant of where the Creature may move: through creatures, objects, or both. */
+export function movementPassageGrants(
+  id: string,
+  passage: MovementPassageOption
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: [
+      {
+        id,
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        valueDomainCode: VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE,
+        domain: {},
+        modifierKind: MODIFIER_KIND.ADD_OPTION,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        payload: passage,
+        order: 0
+      }
+    ]
+  }
+}
+
 /** A breath weapon's cone: a Self area that starts at the creature and catches everyone in it. */
 export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
   return {
@@ -234,6 +261,54 @@ export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
   }
 }
 
+/**
+ * A passive Effect by which the creature sheds light around itself: bright light, then dim light
+ * for the additional distance. It is the same MANIFEST light a torch carries; the Effect's range,
+ * path and outcome ids follow the Effect's own local index.
+ */
+export function shedLightEffect(
+  creatureIndex: number,
+  localIndex: number,
+  brightFeet: number,
+  dimAdditionalFeet: number
+): EffectAuthored {
+  const pathId = actionId(creatureIndex, localIndex + 200)
+  return {
+    id: actionId(creatureIndex, localIndex),
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: actionId(creatureIndex, localIndex + 100), rangeKind: RANGE_KIND.SELF }
+    },
+    paths: [
+      {
+        id: pathId,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: `${pathId}__result`,
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: actionId(creatureIndex, localIndex + 300),
+              effectKind: EFFECT_KIND.MANIFEST,
+              manifestKind: 'OBJECT',
+              attachmentKind: 'SOURCE',
+              light: {
+                bright: { amount: brightFeet, unit: MEASUREMENT_UNIT_CODE.FEET },
+                dimAdditional: { amount: dimAdditionalFeet, unit: MEASUREMENT_UNIT_CODE.FEET }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
 /** A breath weapon's line: a Self area that starts at the creature and catches everyone in it. */
 export function selfLine(rangeId: string, shapeId: string, lengthFeet: number, widthFeet: number) {
   return {
@@ -353,6 +428,128 @@ export function grappledOutcome(
     }))
   }
 }
+/**
+ * A successful save's 24 hours of immunity to this source's use of the action ("the creature is
+ * immune to the cloaker's moan for the next 24 hours"): one SOURCE_IMMUNITY on the success path,
+ * keyed by the action and its source (D156). It takes the IDs `actionId(creatureIndex, localIndex +
+ * 0..2)`.
+ */
+export function saveImmunityPath(
+  creatureIndex: number,
+  localIndex: number
+): EffectAuthored['paths'][number] {
+  const id = (offset: number) => actionId(creatureIndex, localIndex + offset)
+  return {
+    id: id(0),
+    order: 2,
+    pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+    groupType: PATH_GROUP_TYPE.SINGLE,
+    originKind: 'SOURCE',
+    selectionKind: 'FIXED',
+    resultBlock: {
+      id: `${id(0)}__result`,
+      resultKind: 'SINGLE',
+      duration: { id: id(1), durationKind: DURATION_KIND.HOUR, amount: 24 },
+      outcomes: [{ id: id(2), effectKind: EFFECT_KIND.SOURCE_IMMUNITY }]
+    }
+  }
+}
+
+/**
+ * A minute of fear with a repeated save (Frightful Presence, Horror Nimbus): each creature it
+ * reaches makes a Wisdom save or is frightened of the source for 1 minute, repeating the save at
+ * the end of each of its turns, and one that succeeds is immune to this source's use of it for 24
+ * hours. It reaches the creatures the source chooses within `chosenWithinFeet`, or everyone in a
+ * sphere of `radiusFeet` around it. "Aware of it", "that can see the light" and "or the effect ends
+ * for it" stay in the description. It takes the IDs `actionId(creatureIndex, localIndex + 0..12)`.
+ */
+export function minuteFearSaveEffect(
+  creatureIndex: number,
+  input: {
+    localIndex: number
+    dc: number
+    reach: { chosenWithinFeet: number } | { radiusFeet: number }
+    repeatRollInfluence?: FollowUpSaveAuthored['repeatRollInfluence']
+  }
+): EffectAuthored {
+  const id = (offset: number) => actionId(creatureIndex, input.localIndex + offset)
+  const savingThrow = (offset: number) => ({
+    id: id(offset),
+    dcMethod: 'FIXED_DC' as const,
+    abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
+    baseDc: input.dc
+  })
+  return {
+    id: id(0),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.SAVING_THROW,
+      savingThrow: savingThrow(1),
+      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+      ...('chosenWithinFeet' in input.reach
+        ? {
+            range: {
+              id: id(2),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: input.reach.chosenWithinFeet,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          }
+        : {
+            range: { id: id(2), rangeKind: RANGE_KIND.SELF },
+            shape: {
+              id: id(11),
+              shapeKind: SHAPE_KIND.SPHERE,
+              radius: { amount: input.reach.radiusFeet, unit: MEASUREMENT_UNIT_CODE.FEET }
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          })
+    },
+    paths: [
+      {
+        id: id(3),
+        order: 1,
+        pathCode: PATH_CODE.ON_SAVE_FAIL,
+        groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: id(12),
+          resultKind: 'SEQUENCE',
+          duration: { id: id(4), durationKind: DURATION_KIND.MINUTE, amount: 1 },
+          outcomes: [
+            {
+              id: id(5),
+              effectKind: EFFECT_KIND.CONDITION,
+              conditionId: vocabularyId(SRD_CONDITION_TYPES, 'FRIGHTENED'),
+              recordsSource: true
+            },
+            {
+              id: id(6),
+              effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+              timing: FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
+              savingThrow: savingThrow(7),
+              attempts: { kind: 'ONCE', repeatOnFailure: true },
+              ...(input.repeatRollInfluence && { repeatRollInfluence: input.repeatRollInfluence }),
+              onSuccess: { kind: 'END' },
+              onFailure: { kind: 'CONTINUE' }
+            }
+          ]
+        }
+      },
+      saveImmunityPath(creatureIndex, input.localIndex + 8)
+    ]
+  }
+}
+
 /**
  * The printed creature Sneak Attack ("once per turn ... when it hits a target with a weapon
  * attack"): a once-per-turn `ON_HIT` rider of the weapon's damage type, gated as the Rogue's is

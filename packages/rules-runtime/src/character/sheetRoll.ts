@@ -1,11 +1,17 @@
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ExecuteRollInputDto, RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
+
+import { effectsEndedBy } from '../encounterGrantLifetimes.js'
+import { activeAbilityCheckDice } from './activeEffectGrantTotals.js'
 
 type ResolvedRoll = {
   expression: string
   rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   source: RollSourceDto
+  /** The ability an ability or skill check is made with: the dice its carried effects add key on it. */
+  abilityCode?: string
 }
 
 const ABILITY_LABELS = {
@@ -67,6 +73,7 @@ function structuredRolls(sheet: CharacterSheetResponseDto): ResolvedRoll[] {
     ...sheet.overview.abilities.map((ability) => ({
       expression: withModifier('1d20', ability.modifier),
       rollMode: ability.rollMode,
+      abilityCode: ability.ability,
       source: { kind: 'ABILITY_CHECK' as const, label: `${ABILITY_LABELS[ability.ability]} check` }
     })),
     ...sheet.overview.savingThrows.map((save) => ({
@@ -77,6 +84,7 @@ function structuredRolls(sheet: CharacterSheetResponseDto): ResolvedRoll[] {
     ...sheet.overview.skills.map((skill) => ({
       expression: withModifier('1d20', skill.total),
       rollMode: skill.rollMode,
+      abilityCode: skill.ability,
       source: { kind: 'SKILL_CHECK' as const, label: `${skill.label} check` }
     })),
     {
@@ -160,4 +168,23 @@ export function resolveCharacterSheetRoll(
         })
   if (!resolved) throw new RangeError('This roll is not available on the current character sheet.')
   return resolved
+}
+
+/**
+ * The dice the Character's carried effects add to a resolved ability or skill check (Guidance), and
+ * the effects the check spends: those whose die applied to its ability (D156). Any other roll adds
+ * none.
+ */
+export function carriedCheckDice(
+  resolved: ResolvedRoll,
+  activeEffects: readonly ActiveRuleEffectRecord[]
+) {
+  if (resolved.abilityCode === undefined) return { addedDice: [], spent: [] }
+  return {
+    addedDice: activeAbilityCheckDice(activeEffects, resolved.abilityCode),
+    spent: effectsEndedBy(activeEffects, {
+      event: 'ON_ABILITY_CHECK',
+      abilityCode: resolved.abilityCode
+    })
+  }
 }

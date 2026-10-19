@@ -11,7 +11,9 @@ import {
   extendSceneMovementPath,
   isSceneMovementPathValid,
   resolveSceneIlluminationAt,
+  sceneTokenLights,
   SceneBarrierIndex,
+  sceneTokenMovementIndex,
   visibilityPolygon,
   visibilityPolygonForLight,
   visibilityPolygonForToken,
@@ -444,6 +446,8 @@ export async function createVttSceneRenderer(
   let renderedGrid: CampaignSceneStateDto['grid'] | null = null
   let renderedLightingBarriers: CampaignSceneStateDto['barriers'] | null = null
   let renderedLights: CampaignSceneStateDto['lights'] | null = null
+  /** The token lights last drawn, by value: a token move that keeps them never redraws lighting. */
+  let renderedTokenLightsKey = ''
   let renderedAmbient: CampaignSceneStateDto['ambientIllumination'] | null = null
   let renderedLightingMap: CampaignSceneStateDto['map'] | null = null
   let darknessClassMap: Container | null = null
@@ -1012,12 +1016,15 @@ export async function createVttSceneRenderer(
    * magical darkness forces black. The result is one black texture whose alpha is the class.
    */
   function drawLighting(scene: CampaignSceneStateDto): void {
+    const tokenLights = sceneTokenLights(scene)
+    const tokenLightsKey = JSON.stringify(tokenLights)
     if (
       renderedAmbient === scene.ambientIllumination &&
       renderedLightingMap === scene.map &&
       renderedLightingBarriers === scene.barriers &&
       renderedLightingDoorStates === scene.doorStates &&
       renderedLights === scene.lights &&
+      renderedTokenLightsKey === tokenLightsKey &&
       renderedDarknessZones === scene.darknessZones
     ) {
       return
@@ -1027,6 +1034,7 @@ export async function createVttSceneRenderer(
     renderedLightingBarriers = scene.barriers
     renderedLightingDoorStates = scene.doorStates
     renderedLights = scene.lights
+    renderedTokenLightsKey = tokenLightsKey
     renderedDarknessZones = scene.darknessZones
     const barrierIndex = new SceneBarrierIndex(scene.barriers)
     lightingBarrierIndex = barrierIndex
@@ -1061,7 +1069,7 @@ export async function createVttSceneRenderer(
         )
       }
     }
-    for (const light of scene.lights) {
+    for (const light of [...scene.lights, ...tokenLights]) {
       const polygon = visibilityPolygonForLight(
         light,
         scene.barriers,
@@ -1627,12 +1635,18 @@ export async function createVttSceneRenderer(
     return Boolean(current && !token.locked && canControlSceneToken(token, current))
   }
 
-  function movementIndexFor(scene: CampaignSceneStateDto): SceneBarrierIndex {
+  function movementIndexFor(
+    scene: CampaignSceneStateDto,
+    token: CampaignSceneStateDto['tokens'][number]
+  ): SceneBarrierIndex {
     if (movementBarrierSource !== scene.barriers) {
       movementBarrierSource = scene.barriers
       movementBarrierIndex = new SceneBarrierIndex(scene.barriers)
     }
-    return movementBarrierIndex ?? new SceneBarrierIndex(scene.barriers)
+    return sceneTokenMovementIndex(
+      token,
+      movementBarrierIndex ?? new SceneBarrierIndex(scene.barriers)
+    )
   }
 
   function drawTokens(
@@ -1988,7 +2002,7 @@ export async function createVttSceneRenderer(
       const token = next.scene.tokens.find((candidate) => candidate.id === drag?.tokenId)
       if (
         !token ||
-        !isSceneMovementPathValid(next.scene, drag.path, movementIndexFor(next.scene))
+        !isSceneMovementPathValid(next.scene, drag.path, movementIndexFor(next.scene, token))
       ) {
         cancelActiveInteraction()
       }
@@ -2230,7 +2244,7 @@ export async function createVttSceneRenderer(
         token,
         drag.last,
         { x: point.x - drag.offset.x, y: point.y - drag.offset.y },
-        movementIndexFor(current.scene)
+        movementIndexFor(current.scene, token)
       )
       drag.visual.position.set(position.x, position.y)
       if (positionKey(position) !== positionKey(drag.last)) {
@@ -2238,7 +2252,7 @@ export async function createVttSceneRenderer(
           current.scene,
           drag.path,
           position,
-          movementIndexFor(current.scene)
+          movementIndexFor(current.scene, token)
         )
         drag.last = position
         callbacks.onTokenPreview(drag.tokenId, position)

@@ -179,10 +179,23 @@ export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
       hidden: z.boolean(),
       id: sceneEntityIdSchema,
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      light: z.optional(
+        z
+          .strictObject({
+            brightRadius: z.number().check(z.nonnegative()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX)),
+            dimRadius: z.number().check(z.positive()).check(z.lte(SCENE_LENGTH_AMOUNT_MAX))
+          })
+          .check(
+            z.refine((light) => light.dimRadius >= light.brightRadius, {
+              message: 'Token dim light must reach at least as far as its bright light.'
+            })
+          )
+      ),
       locked: z.boolean(),
       position: scenePointDtoSchema,
       rotationDegrees: degreesSchema,
       senses: z.array(sceneTokenSenseDtoSchema).check(z.maxLength(100)),
+      passesBlockingBarriers: z.optional(z.literal(true)),
       vision: z.nullable(sceneTokenVisionDtoSchema),
       width: positiveDistanceSchema
     })
@@ -199,12 +212,16 @@ export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
     )
 )
 
-// Senses are composed at runtime and never stored; every storage write parses through this variant.
+// Senses and light are composed at runtime and never stored; every storage write parses through this variant.
 export const sceneStoredTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
   sceneTokenDtoSchema.check(
     z.refine((token) => token.senses.length === 0, {
       message: 'Stored Scene tokens never carry senses.',
       path: ['senses']
+    }),
+    z.refine((token) => token.light === undefined, {
+      message: 'Stored Scene tokens never carry light.',
+      path: ['light']
     })
   )
 )

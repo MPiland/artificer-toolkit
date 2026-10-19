@@ -7,6 +7,7 @@ import {
   type EncounterFailedCounterDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
+import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { maintainedEffectTransitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -41,7 +42,7 @@ export function actionEconomyReceipt(consumption: EncounterActionEconomyConsumpt
 export function buildEncounterActionStoredExecution(input: {
   prepared: Pick<
     NativeEncounterActionMechanicsInput['prepared'],
-    'state' | 'source' | 'actor' | 'target'
+    'state' | 'source' | 'actor' | 'target' | 'binding'
   >
   execution: Extract<Awaited<ReturnType<typeof advanceNativeActionGraphs>>, { kind: 'COMPLETE' }>
   occurrenceId: string
@@ -81,6 +82,9 @@ export function buildEncounterActionStoredExecution(input: {
   const { mechanics, resourceReceipt, featureResourceReceipt } = settled
   const { stateEffectTransitions, activeEffectTransitions } = effects
   const actionEconomyTransition = actionEconomyReceipt(input.actionEconomy)
+  const boundDice = prepared.binding.sourceDerivedFacts.damageAddedDice
+  const damageAddedDice = boundDice === undefined ? [] : damageAddedDiceDtoSchema.parse(boundDice)
+  const addedDice = damageAddedDice.length ? { damageAddedDice } : {}
   const characterEffectReceipt = (
     transition: (typeof activeEffectTransitions)[number],
     maintainedEffectStateId: string | null
@@ -164,6 +168,7 @@ export function buildEncounterActionStoredExecution(input: {
             targetTransition: mechanics.targetTransition,
             applications: mechanics.receiptApplications,
             sourceApplications: settled.sourceApplications,
+            ...addedDice,
             ...(input.meleeRetaliation ? { meleeRetaliation: input.meleeRetaliation } : {})
           }
         : {
@@ -203,6 +208,7 @@ export function buildEncounterActionStoredExecution(input: {
             targetTransition: mechanics.targetTransition,
             applications: mechanics.receiptApplications,
             sourceApplications: settled.sourceApplications,
+            ...addedDice,
             ...(input.meleeRetaliation ? { meleeRetaliation: input.meleeRetaliation } : {})
           }
   })

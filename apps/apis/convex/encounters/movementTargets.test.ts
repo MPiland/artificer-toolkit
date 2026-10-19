@@ -172,7 +172,8 @@ describe('native movement target facts', () => {
             checkTotals: {},
             saveProficiencyBonuses: {},
             resourceAbilityScores: {},
-            initiativeAbilityDefinitionId: abilityId
+            initiativeAbilityDefinitionId: abilityId,
+            modifiers: []
           }
         }
       })
@@ -358,6 +359,7 @@ describe('native movement target facts', () => {
     expect(effectiveAbility.modifier.effective).toBe(priorAbility.modifier.effective - 1)
     expect(after.targetDerivedFacts).toEqual({
       ...after.effectiveRulePolicyOutput,
+      savingThrowAddedDice: {},
       targetProtection: {
         status: 'NORMALIZED',
         defenses: after.effectiveRulePolicyOutput!.defenses,

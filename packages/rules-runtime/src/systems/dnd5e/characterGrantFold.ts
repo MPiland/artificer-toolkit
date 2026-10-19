@@ -80,8 +80,13 @@ function drawnSourceState(
     : sourceState
 }
 
+/**
+ * Folds a holder's grant sources. Creatures fold their feature grants through the same option as
+ * Characters, so `holderKind` only answers `HOLDER_KIND` restrictions.
+ */
 export function evaluateDnd5e2014CharacterGrantFold(
-  input: CharacterGrantFoldInput
+  input: CharacterGrantFoldInput,
+  holderKind: 'CHARACTER' | 'CREATURE' = 'CHARACTER'
 ): CharacterGrantFoldOutput {
   const parsedInput = characterGrantFoldInputSchema.parse(input)
   const acc: CharacterGrantFoldOutput = {
@@ -222,7 +227,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
             ? sourceState?.equipped === true
             : sourceState?.attuned === true
       case 'HOLDER_KIND':
-        return condition.requiredIds.includes('CHARACTER')
+        return condition.requiredIds.includes(holderKind)
       case 'SIZE':
         return (
           condition.mode === 'ALL' ||

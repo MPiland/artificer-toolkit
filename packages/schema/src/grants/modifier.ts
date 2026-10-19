@@ -9,6 +9,8 @@ import {
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { rolledDieShape } from '../shared/d20AddedDice.js'
+import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
 import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
@@ -33,18 +35,29 @@ const attackDomainParamDtoSchema = lazySchema(() =>
   })
 )
 
+/** One attack domain's damage, or every damage when absent (attacks and spells alike). */
+const optionalAttackDomainParamDtoSchema = lazySchema(() =>
+  z.object({
+    attackDomain: z.optional(attackDomainCodeSchema)
+  })
+)
+
 /** An attack roll advantage or disadvantage that names an ability covers only attacks made with it. */
 const attackRollRollModeParamDtoSchema = lazySchema(() =>
   z.object({
     attackDomain: attackDomainCodeSchema,
-    ability: z.optional(abilityCodeSchema)
+    ability: z.optional(abilityCodeSchema),
+    /** Only attacks against the source of the effect holding the grant (Bestow Curse). */
+    againstEffectSource: z.optional(z.boolean())
   })
 )
 
 const attacksAgainstParamDtoSchema = lazySchema(() =>
   z.object({
     attackDomain: attackDomainCodeSchema,
-    requiresHolderSeesAttacker: z.boolean()
+    requiresHolderSeesAttacker: z.boolean(),
+    /** System Senses that free an attacker perceiving the holder through one of them (Blur). */
+    exemptAttackerSenseDefinitionIds: z.optional(z.array(postgresUuidSchema))
   })
 )
 
@@ -61,7 +74,8 @@ const abilityParamDtoSchema = lazySchema(() =>
   })
 )
 
-const abilityCheckParamDtoSchema = lazySchema(() =>
+/** One ability's tests, or every ability's when absent (a rolled die on every save covers death saves). */
+const optionalAbilityParamDtoSchema = lazySchema(() =>
   z.object({
     ability: z.optional(abilityCodeSchema)
   })
@@ -232,10 +246,55 @@ const armorClassFormulaPayloadDtoSchema = lazySchema(() =>
   })
 )
 
-const dicePayloadDtoSchema = lazySchema(() => z.strictObject({ dice: authoredIdentifierSchema }))
+const attackDecoyThresholdDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: authoredIdentifierSchema,
+    /** The decoys left for which this row applies. */
+    remaining: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+    /** The d20 roll an attack needs to target a decoy while that many remain. */
+    minimumRoll: z.number().check(z.int()).check(z.gte(1)).check(z.lte(21))
+  })
+)
+
+/** Decoys an attack against the holder may target instead: their armor class and roll thresholds. */
+const attackDecoysPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    armorClass: armorClassFormulaPayloadDtoSchema,
+    thresholds: authoredNestedCollectionSchema(attackDecoyThresholdDtoSchema)
+  })
+)
+
+/** Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). */
+export const rolledDiePayloadDtoSchema = lazySchema(() => z.strictObject(rolledDieShape()))
 
 const damageTypePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ damageTypeId: authoredIdentifierSchema })
+)
+
+const damageDieShape = () => ({
+  ...rolledDieShape(),
+  recipient: z.enum(['HOLDER_DEALS', 'SOURCE_DEALS_TO_HOLDER']),
+  countPerCastLevelAbove: z.optional(
+    z.strictObject({
+      level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(9)),
+      count: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ROLLED_DIE_COUNT))
+    })
+  )
+})
+
+/**
+ * Dice a damage roll adds or subtracts (D156): an added die names its damage type or takes the
+ * attack's; a subtracted die always lowers the attack's own damage.
+ */
+export const damageDiePayloadDtoSchema = lazySchema(() =>
+  z.union([
+    z.strictObject({
+      ...damageDieShape(),
+      sign: z.literal('ADD'),
+      damageTypeId: authoredIdentifierSchema
+    }),
+    z.strictObject({ ...damageDieShape(), damageTypeSource: z.literal('ATTACK') })
+  ])
 )
 
 /** An immunity can be limited to damage from actions owned by the named authored content. */
@@ -261,6 +320,20 @@ const attributePayloadDtoSchema = lazySchema(() =>
 
 const movementModePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ movementModeId: authoredIdentifierSchema })
+)
+
+/**
+ * Where the holder's voluntary movement may pass: through hostile creatures (any, or only those
+ * larger than itself), ending inside them, through blocking barriers, and what each foot inside a
+ * passed creature or object costs. Several grants combine as a union; the highest multiplier wins.
+ */
+const movementPassagePayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    creatures: z.enum(['NONE', 'ANY', 'LARGER_THAN_SELF']),
+    mayEndInCreature: z.boolean(),
+    blockingBarriers: z.boolean(),
+    costMultiplier: z.union([z.literal(1), z.literal(2)])
+  })
 )
 
 const rangeKindPayloadDtoSchema = lazySchema(() => z.strictObject({ rangeKind: rangeKindSchema }))
@@ -329,14 +402,17 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     authoredFractionSchema,
     amountPayloadDtoSchema,
     armorClassFormulaPayloadDtoSchema,
+    attackDecoysPayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
-    dicePayloadDtoSchema,
+    rolledDiePayloadDtoSchema,
+    damageDiePayloadDtoSchema,
     damageResistancePayloadDtoSchema,
     damageImmunityPayloadDtoSchema,
     conditionTypePayloadDtoSchema,
     attributePayloadDtoSchema,
     movementModePayloadDtoSchema,
+    movementPassagePayloadDtoSchema,
     rangeKindPayloadDtoSchema,
     durationSetValuePayloadDtoSchema,
     durationKindPayloadDtoSchema,
@@ -468,8 +544,14 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant('INITIATIVE', 'ADVANTAGE', emptyDomainDtoSchema),
     buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema),
-    buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', abilityCheckParamDtoSchema),
-    buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', abilityCheckParamDtoSchema),
+    buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', optionalAbilityParamDtoSchema),
+    buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', optionalAbilityParamDtoSchema),
+    buildModifierGrantVariant(
+      'ABILITY_CHECK',
+      'ADD_BONUS_DIE',
+      optionalAbilityParamDtoSchema,
+      rolledDiePayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'SAVE_DC',
       'BONUS',
@@ -498,6 +580,12 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'ADVANTAGE', savingThrowParamDtoSchema),
     buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'DISADVANTAGE', savingThrowParamDtoSchema),
     buildModifierGrantVariant(
+      'SAVING_THROW_MODIFIER',
+      'ADD_BONUS_DIE',
+      optionalAbilityParamDtoSchema,
+      rolledDiePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
       'ATTACK_ROLL',
       'BONUS',
       attackDomainParamDtoSchema,
@@ -523,6 +611,12 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackRollRollModeParamDtoSchema),
     buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackRollRollModeParamDtoSchema),
+    buildModifierGrantVariant(
+      'ATTACK_ROLL',
+      'ADD_BONUS_DIE',
+      attackRollRollModeParamDtoSchema,
+      rolledDiePayloadDtoSchema
+    ),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACK_TRAIT', 'ENABLE', attackTraitParamDtoSchema),
@@ -535,6 +629,12 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant(
+      'ATTACK_DECOYS',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      attackDecoysPayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'SKILL_MODIFIER',
       'BONUS',
@@ -606,8 +706,8 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant(
       'DAMAGE',
       'ADD_BONUS_DIE',
-      attackDomainParamDtoSchema,
-      dicePayloadDtoSchema
+      optionalAttackDomainParamDtoSchema,
+      damageDiePayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'DAMAGE',
@@ -671,6 +771,12 @@ const buildModifierGrantVariants = () =>
       'REMOVE_OPTION',
       emptyDomainDtoSchema,
       movementModePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'MOVEMENT_PASSAGE',
+      'ADD_OPTION',
+      emptyDomainDtoSchema,
+      movementPassagePayloadDtoSchema
     ),
     buildModifierGrantVariant('SENSE_RANGE', 'BONUS', senseParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant(
@@ -922,7 +1028,6 @@ function unsupportedModifierMessage(value: {
     return `${label} modifiers are not supported yet; use a bonus or penalty.`
   if (
     UNSUPPORTED_MODIFIERS.has(label) ||
-    value.modifierKind === 'ADD_BONUS_DIE' ||
     value.modifierKind === 'REPLACE_DAMAGE_TYPE' ||
     value.valueDomainCode === 'MOVEMENT_MODE' ||
     value.valueDomainCode === 'ATTRIBUTE' ||

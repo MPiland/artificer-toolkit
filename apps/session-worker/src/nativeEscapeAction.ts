@@ -130,7 +130,8 @@ export async function planNativeLiveEscape(
   const continuation = await startEncounterBasicActionCheck({
     runtime: executionOptions.runtime,
     gameSystemId: state.gameSystemId,
-    occurrenceId
+    occurrenceId,
+    addedDice: context.d20.addedDice
   })
   let check: LiveSessionEncounterEscapeCommitInput['check']
   // The holder's controller rolls unless their preference rolls for them (ADR 0034 decision 3).
@@ -150,6 +151,7 @@ export async function planNativeLiveEscape(
       continuation,
       answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
       rollD20: () => executionOptions.random(20) + 1,
+      random: executionOptions.random,
       expectedOccurrenceId: occurrenceId
     })
     const removedConditionIds = encounterEscapeEndedConditionIds(heldEffects, effect.id)

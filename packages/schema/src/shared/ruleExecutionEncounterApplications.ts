@@ -27,6 +27,11 @@ import {
 } from '@artificer-toolkit/shared/rules/contributors'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
+import {
+  d20AddedDiceTotal,
+  d20RolledAddedDiceDtoSchema,
+  type D20RolledAddedDieDto
+} from './d20AddedDice.js'
 
 import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
@@ -69,6 +74,7 @@ import {
   meleeRetaliationEvidenceDtoSchema,
   validateMeleeRetaliation
 } from './ruleExecutionEffectEvidence.js'
+import { damageAddedDiceDtoSchema } from './d20AddedDice.js'
 
 /** What losing a Concentration slot removes: the maintained state, its dependents and Character owner versions. */
 const concentrationCleanupDtoSchema = lazySchema(() =>
@@ -144,7 +150,9 @@ const ruleCheckRollFields = () => ({
   modifier: integerSchema,
   total: integerSchema,
   contributors: canonicalConcentrationContributorsDtoSchema,
-  contributorChecksum: checksumSchema
+  contributorChecksum: checksumSchema,
+  /** The added dice (D156) with their rolled faces; `total` includes their signed sum. */
+  addedDice: z.optional(d20RolledAddedDiceDtoSchema)
 })
 
 const checkRollMatchesRollMode = (
@@ -154,6 +162,7 @@ const checkRollMatchesRollMode = (
     selectedNatural: number
     modifier: number
     total: number
+    addedDice?: D20RolledAddedDieDto[]
   },
   context: { addIssue: (issue: { code: 'custom'; path: string[]; message: string }) => void }
 ) => {
@@ -165,7 +174,7 @@ const checkRollMatchesRollMode = (
         : value.rollMode === 'DISADVANTAGE'
           ? Math.min(...value.rawFaces)
           : value.rawFaces[0]) ||
-    value.total !== value.selectedNatural + value.modifier
+    value.total !== value.selectedNatural + value.modifier + d20AddedDiceTotal(value.addedDice)
   )
     context.addIssue({
       code: 'custom',
@@ -511,6 +520,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
       /** The source's own conditions released by effects its action ended; empty when none. */
       sourceApplications: sourceApplicationsDtoSchema,
+      /** The dice active grants added to, or took from, its damage, in node-prefix order (D156). */
+      damageAddedDice: z.optional(damageAddedDiceDtoSchema),
       /** The zones its target holds that this melee hit set off against the attacker (D153). */
       meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema)
     })

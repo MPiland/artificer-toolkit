@@ -6,13 +6,16 @@ import {
   createActorSensePinner,
   deriveActorSceneVision
 } from '@artificer-toolkit/rules-runtime/actorSenses'
+import { creatureEmittedLight } from '@artificer-toolkit/rules-runtime/creatureLight'
 import { withCharacterActiveGrants } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { encounterActorMovementPassage } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateInstalledCharacterPolicy } from '@artificer-toolkit/rules-runtime/platformCharacterPolicy'
 import {
   sceneSessionVisionCompositionSchema,
   type SceneSessionVisionComposition
 } from '@artificer-toolkit/schema/api/sceneSessionVision'
+import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -23,6 +26,16 @@ import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 import { readRoomSceneHeader } from './roomSceneRead.js'
+
+/** The same resolved passage the server moves the actor with decides whether it passes barriers. */
+function barrierPassage(
+  actor: EncounterRunActorState,
+  characterPolicy: CharacterRulePolicyOutput | null
+): { passesBlockingBarriers?: true } {
+  return encounterActorMovementPassage(actor, characterPolicy).throughBarriers
+    ? { passesBlockingBarriers: true }
+    : {}
+}
 
 /**
  * Resolves current Character and Creature vision for the raw Scene without persisting presentation
@@ -74,7 +87,7 @@ export async function composeRoomSceneVision(input: {
     string,
     SceneSessionVisionComposition['context']['encounterActorBindings'][number]
   >()
-  const characterIdByActorId = new Map<string, string>()
+  const characterActors = new Map<string, { characterId: string; actor: EncounterRunActorState }>()
   const creatureActors = new Map<string, EncounterRunActorState>()
   if (selectedTokens.size) {
     const held = authorization.play.encounter
@@ -122,7 +135,7 @@ export async function composeRoomSceneVision(input: {
         )
           throw new Error('Scene vision Character identity is inconsistent.')
         if (!selectedTokens.has(tokenBinding.tokenId)) continue
-        characterIdByActorId.set(actor.id, character.id)
+        characterActors.set(actor.id, { characterId: character.id, actor })
         bindings.set(tokenBinding.tokenId, {
           encounterId: run.id,
           actorId: actor.id,
@@ -148,7 +161,9 @@ export async function composeRoomSceneVision(input: {
       label,
       range: pin.range
     }))
-  for (const characterId of new Set(characterIdByActorId.values())) {
+  for (const characterId of new Set(
+    [...characterActors.values()].map((bound) => bound.characterId)
+  )) {
     const revisions = observed.filter(
       (revision) => revision.scope === 'CHARACTER' && revision.id === characterId
     )
@@ -186,13 +201,13 @@ export async function composeRoomSceneVision(input: {
       facts.ruleEvaluation.facts,
       await listActiveRuleEffects(ctx, { kind: 'CHARACTER', characterId }, { ownerVerified: true })
     )
-    const characterSenses =
+    const policy =
       grantFacts === facts.ruleEvaluation.facts
-        ? output.senses
+        ? output
         : evaluateInstalledCharacterPolicy({
             gameSystemId: campaign.gameSystemId,
             facts: grantFacts
-          }).senses
+          })
     const system = facts.prepared.context.registry.system
     if (
       snapshot.characterId !== characterId ||
@@ -202,16 +217,24 @@ export async function composeRoomSceneVision(input: {
       facts.campaignContext.campaignId !== campaignId
     )
       throw new Error('Character vision source identity does not match.')
-    const senses = await actorSenses(characterSenses)
-    for (const [actorId, boundCharacterId] of characterIdByActorId)
-      if (boundCharacterId === characterId)
-        actorVisions.push(deriveActorSceneVision(actorId, senses))
+    const senses = await actorSenses(policy.senses)
+    for (const bound of characterActors.values())
+      if (bound.characterId === characterId)
+        actorVisions.push({
+          ...deriveActorSceneVision(bound.actor.id, senses),
+          ...barrierPassage(bound.actor, policy)
+        })
     characterRevisions.push({ characterId, revision: revisions[0]!.revision })
   }
   for (const actor of creatureActors.values())
-    actorVisions.push(
-      deriveActorSceneVision(actor.id, await actorSenses(snapshotStatBlock(actor)?.senses ?? []))
-    )
+    actorVisions.push({
+      ...deriveActorSceneVision(
+        actor.id,
+        await actorSenses(snapshotStatBlock(actor)?.senses ?? []),
+        creatureEmittedLight(actor)
+      ),
+      ...barrierPassage(actor, null)
+    })
   const composition = sceneSessionVisionCompositionSchema.parse({
     context: { actorVisions, encounterActorBindings: selectedBindings },
     characterRevisions

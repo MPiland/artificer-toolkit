@@ -1,3 +1,4 @@
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
   CharacterGrantFoldModifier,
@@ -107,6 +108,12 @@ export interface CharacterRuleActionActiveEffectPlan {
     endOnConditionIds: readonly string[]
     /** The activation its holder pays to end the grant by choice, or null when only the GM can. */
     holderEnd: ActiveGrantHolderEnd | null
+    /** Only the effect's source meets its attacker grants and attack consume. */
+    fromSourceOnly?: true
+    /** The grant is active only during its tick anchor's turn while one tick remains. */
+    activeOnlyOnFinalAnchorTurn?: true
+    /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
+    uses?: number
   }
   /**
    * The item the action is used on, chosen at use from what its target holds or wears; null for
@@ -519,6 +526,8 @@ export interface CharacterRuleActionSystemAdapter {
     testTemplate: CharacterRuleActionTestTemplate
     selectedPath: string
     facts: Readonly<Record<string, RuleValue>>
+    /** The outputs of the completed TEST, which an outcome that depends on its margin reads. */
+    testOutputs?: Readonly<Record<string, RuleValue>>
     /** The mode the TEST d20 was settled in, which may differ from the mode the rules derived. */
     testRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   }): CharacterRuleActionOutcomeTemplate | null
@@ -657,6 +666,8 @@ export interface CharacterRuleActionSystemAdapter {
       contributorChecksum: string
       modifier: number
       defenseOrDc: number
+      /** The dice the test rolls beside its d20 and adds after the kept die (D156). */
+      addedDice: readonly D20AddedDieDto[]
     }
   }
   /**

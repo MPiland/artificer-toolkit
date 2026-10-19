@@ -29,13 +29,15 @@ export type D20ModeAdjustmentDto = Extract<RollRuleCheckDto, { kind: 'D20_MODE_A
 
 export function formatRollEvidence(evidence: RollEvidenceDto, adjustment?: D20ModeAdjustmentDto) {
   const termModifierTotal = evidence.terms.reduce((total, term) => total + (term.modifier ?? 0), 0)
+  // A d20 mode adjustment names the d20's rolls, the first term; added dice (D156) follow it.
   const dice = evidence.terms
-    .map((term) => {
+    .map((term, termIndex) => {
+      const termAdjustment = termIndex === 0 ? adjustment : undefined
       const rolls = term.rolls
         .map((roll, index) => {
           const sequence = term.rollSequences?.[index]
           const value = sequence && sequence.length > 1 ? sequence.join(' → ') : String(roll)
-          if (adjustment?.cancelledRollIndexes.includes(index)) return `${value} cancelled`
+          if (termAdjustment?.cancelledRollIndexes.includes(index)) return `${value} cancelled`
           const kept = term.keptRollIndexes
             ? term.keptRollIndexes.includes(index)
             : term.keptRollIndex == null || index === term.keptRollIndex
@@ -45,17 +47,18 @@ export function formatRollEvidence(evidence: RollEvidenceDto, adjustment?: D20Mo
               : kept
                 ? 'kept'
                 : 'dropped'
-          const added = adjustment?.addedRollIndexes.includes(index) ? 'added' : ''
+          const added = termAdjustment?.addedRollIndexes.includes(index) ? 'added' : ''
           const labels = [added, status].filter(Boolean).join(', ')
           return labels ? `${value} ${labels}` : value
         })
         .join(', ')
       const modifier = term.modifier ?? 0
-      return `d${term.die} [${rolls}]${
+      const text = `d${term.die} [${rolls}]${
         modifier === 0 ? '' : ` ${modifier > 0 ? '+' : '-'} ${Math.abs(modifier)}`
       }`
+      return termIndex === 0 ? text : `${term.subtracted ? ' - ' : ' + '}${text}`
     })
-    .join(' + ')
+    .join('')
   const globalModifier = evidence.modifier - termModifierTotal
   const modifier =
     globalModifier === 0 ? '' : ` ${globalModifier > 0 ? '+' : '-'} ${Math.abs(globalModifier)}`

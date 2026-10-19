@@ -34,14 +34,24 @@ const damageCheckDocument = ruleGraphDefinitionDtoSchema.parse({
       }
     },
     {
+      id: 'd20-added-dice',
+      operation: { key: 'evidence.added-dice-total', contractVersion: 1 },
+      inputs: {
+        min: { kind: 'FACT', factKey: 'dnd5e.added-dice-min' },
+        max: { kind: 'FACT', factKey: 'dnd5e.added-dice-max' },
+        enabled: { kind: 'FACT', factKey: 'dnd5e.added-dice-enabled' }
+      }
+    },
+    {
       id: 'save',
-      operation: { key: 'dnd5e.save-test-resolution', contractVersion: 2 },
+      operation: { key: 'dnd5e.save-test-resolution', contractVersion: 3 },
       inputs: {
         targetActorId: {
           kind: 'FACT',
           factKey: 'dnd5e.concentration-target-actor-id'
         },
         naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+        addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' },
         modifier: {
           kind: 'FACT',
           factKey: 'dnd5e.concentration-save-modifier'

@@ -87,7 +87,8 @@ export function sourceSightSaveAuthoredEffect(): EffectAuthored {
                       grants: {
                         ...outcome.grants,
                         modifiers: outcome.grants.modifiers?.flatMap((modifier) =>
-                          modifier.valueDomainCode === 'SAVING_THROW_MODIFIER'
+                          modifier.valueDomainCode === 'SAVING_THROW_MODIFIER' &&
+                          modifier.modifierKind === 'ADVANTAGE'
                             ? [
                                 {
                                   ...modifier,
@@ -124,8 +125,13 @@ export function plannedModifierGrant(input: {
   rounds?: number
   /** The holder's lifetime scope: a Character's grant outlasts the Encounter (`OWNER`). */
   lifetimeScope?: 'OWNER' | 'ENCOUNTER'
-  /** Set for a grant authored on a hit or save path: the attack's or save's resolved path. */
+  /**
+   * Set for a grant authored on a result path (an attack's on-hit rider, a failed save's grant): the
+   * d20's resolved path.
+   */
   resultPath?: 'ON_HIT' | 'ON_CRIT' | 'ON_SAVE_FAIL'
+  /** The slot level a spell's grant was cast at, for a grant that scales by it (Branding Smite). */
+  spellCastLevel?: number
 }) {
   const authored = input.effect ?? antitoxinVial.effects?.[0]
   if (!authored) throw new Error('The SRD Antitoxin has no effect.')
@@ -151,7 +157,10 @@ export function plannedModifierGrant(input: {
         : []
     )
   }
-  const action = characterActionDescriptor(compileEffect({ ...grantPath, id: ACTION_EFFECT_ID }))
+  const action = characterActionDescriptor(
+    compileEffect({ ...grantPath, id: ACTION_EFFECT_ID }),
+    input.spellCastLevel
+  )
   const published = grantPublishedIdentity()
   const [activeEffectPlan] =
     dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({ action, published }) ?? []

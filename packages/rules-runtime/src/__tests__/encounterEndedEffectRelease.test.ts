@@ -14,6 +14,7 @@ import {
   targetEndedEffects,
   withOwnedTemporaryHitPoints
 } from '../encounterEndedEffectRelease.js'
+import { effectEventScope, isInEffectEventScope } from '../encounterGrantLifetimes.js'
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
@@ -310,6 +311,7 @@ describe('what an action ends on its target', () => {
       holderActorId: HOLDER_ID,
       held,
       attacked: false,
+      turnActorId: null,
       applications,
       damagerActorId,
       dispositions
@@ -381,6 +383,7 @@ describe('what an action ends on its target', () => {
         holderActorId: HOLDER_ID,
         held,
         attacked,
+        turnActorId: null,
         applications,
         damagerActorId: STRANGER_ID,
         dispositions
@@ -412,6 +415,82 @@ describe('what an action ends on its target', () => {
         endedEffects: [],
         releases: []
       })
+    })
+  })
+
+  describe('an attack consume scoped to the effect’s source and its final turn (SPELLS-4.T2k1)', () => {
+    const SOURCE_ID = '00000000-0000-4000-8000-00000000f304'
+    // A True Strike-style mark: met only by its source, and only on the source's final counted turn.
+    const scoped = (remainingTicks: number, sourceActorId: string | null = SOURCE_ID) => {
+      const base = activeEffect({
+        id: FIRST_ID,
+        owner,
+        createdOrdinal: 1,
+        consumeOnFirstEvents: ['ON_ATTACKED'],
+        sourceActorId,
+        stateContributions: [
+          { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+        ]
+      })
+      return {
+        ...base,
+        definition: {
+          ...base.definition,
+          recurrence: {
+            ...base.definition.recurrence,
+            recurrenceStage: 'END_OF_TURN' as const,
+            fromSourceOnly: true as const,
+            activeOnlyOnFinalAnchorTurn: true as const,
+            expiration: {
+              kind: 'TICKS' as const,
+              initialRemaining: 2,
+              decrementStage: 'END_OF_TURN' as const,
+              anchor: 'SOURCE' as const
+            }
+          }
+        },
+        lifecycle: { schemaVersion: 1 as const, remainingTicks }
+      }
+    }
+    const attackBy = (
+      held: ReturnType<typeof scoped>,
+      damagerActorId: string,
+      turnActorId: string | null
+    ) =>
+      targetEndedEffects({
+        holderActorId: HOLDER_ID,
+        held: [held],
+        attacked: true,
+        turnActorId,
+        applications: [],
+        damagerActorId,
+        dispositions
+      }).endedEffects
+
+    it('admits only the source, and only on its final counted turn', () => {
+      expect(effectEventScope(scoped(2), HOLDER_ID)).toBeNull()
+      expect(effectEventScope(scoped(1), HOLDER_ID)).toEqual({
+        actorId: SOURCE_ID,
+        turnActorId: SOURCE_ID
+      })
+      expect(effectEventScope(scoped(1, null), HOLDER_ID)).toBeNull()
+      expect(
+        isInEffectEventScope(
+          { actorId: null, turnActorId: null },
+          { actorId: STRANGER_ID, turnActorId: null }
+        )
+      ).toBe(true)
+    })
+
+    it('is used up by the source’s attack on its final turn', () => {
+      const held = scoped(1)
+      expect(attackBy(held, SOURCE_ID, SOURCE_ID)).toEqual([held])
+    })
+
+    it('is not used up by another attacker, by the source on another turn, or before its final turn', () => {
+      expect(attackBy(scoped(1), STRANGER_ID, SOURCE_ID)).toEqual([])
+      expect(attackBy(scoped(1), SOURCE_ID, STRANGER_ID)).toEqual([])
+      expect(attackBy(scoped(2), SOURCE_ID, SOURCE_ID)).toEqual([])
     })
   })
 })

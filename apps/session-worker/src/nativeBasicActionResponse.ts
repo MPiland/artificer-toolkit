@@ -115,6 +115,7 @@ export async function planNativeLiveBasicActionResponse(
         continuation,
         answer,
         rollD20: () => executionOptions.random(20) + 1,
+        random: executionOptions.random,
         expectedOccurrenceId: snapshot.occurrenceId
       }),
       appRollId: ready.appRoll?.rollId ?? null,
@@ -164,6 +165,7 @@ export async function planNativeLiveBasicActionResponse(
     continuation,
     answer,
     rollD20: () => executionOptions.random(20) + 1,
+    random: executionOptions.random,
     expectedOccurrenceId: snapshot.occurrenceId
   })
   const occurredAt = new Date().toISOString()

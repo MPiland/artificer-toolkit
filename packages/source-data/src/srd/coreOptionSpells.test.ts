@@ -5,10 +5,12 @@ import { srdSpells } from './spells/index.js'
 const plainText = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ')
 
 /**
- * D156 T2a3: spells whose closed rule converted to existing core options. What the product
+ * D156 T2a3 and T2k1: spells whose closed rule converted to core options. What the product
  * resolves is authored; the clauses it does not are the GM's ruling, quoted from the description.
  */
 describe.each([
+  { label: 'Blur', ruleKind: 'BLUR', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Enthrall', ruleKind: 'ENTHRALL', effectKinds: ['APPLY_GRANT'] },
   { label: 'Guiding Bolt', ruleKind: 'GUIDING_BOLT', effectKinds: ['DAMAGE', 'APPLY_GRANT'] },
   { label: 'Light', ruleKind: 'LIGHT', effectKinds: ['MANIFEST', 'MANUAL_ADJUDICATION'] },
   { label: 'Mage Armor', ruleKind: 'MAGE_ARMOR', effectKinds: ['APPLY_GRANT'] },
@@ -28,8 +30,9 @@ describe.each([
     label: 'Heat Metal',
     ruleKind: 'HEAT_METAL',
     effectKinds: ['DAMAGE', 'RELEASE_CHOSEN_ITEM', 'APPLY_GRANT', 'DAMAGE', 'APPLY_GRANT']
-  }
-])('SRD $label (D156 T2a3)', ({ label, ruleKind, effectKinds }) => {
+  },
+  { label: 'True Strike', ruleKind: 'TRUE_STRIKE', effectKinds: ['APPLY_GRANT'] }
+])('SRD $label (D156 T2a3, T2k1)', ({ label, ruleKind, effectKinds }) => {
   const spell = srdSpells.find((entry) => entry.label === label)
   if (!spell) throw new Error(`SRD spell "${label}" is missing.`)
   const outcomes = (spell.effects ?? [])

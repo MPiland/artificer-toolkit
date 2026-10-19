@@ -1,3 +1,4 @@
+import { resolveHandOccupancy } from '@artificer-toolkit/shared/core'
 import {
   encounterActionEconomyWarnings,
   encounterActionSuppressedWarning
@@ -9,6 +10,11 @@ import { castChoiceOptions } from '@artificer-toolkit/rules-runtime/encounterCas
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { characterFormCreatureView } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  encounterDefaultAttackActionId,
+  type DefaultAttackChoice
+} from '@artificer-toolkit/rules-runtime/encounterDefaultAttack'
+import { encounterActorHeldItems } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
@@ -146,6 +152,11 @@ export async function readEncounterActionChoices(
   }
   const openAttackAction = encounterAttackActionState(actor)
   let actions: EncounterActionChoiceDto[] = []
+  // The held item and activation of each item action, from which the default attack is picked (D107).
+  const itemBindings = new Map<
+    string,
+    Pick<DefaultAttackChoice, 'itemId' | 'activationCode' | 'triggerCode'>
+  >()
   let unavailableActions: EncounterActionChoicesDto['unavailableActions'] = []
   // A Character in a creature form offers the form stat block's actions, not its Sheet's (SPELLS-28.T4d).
   const creature =
@@ -231,6 +242,12 @@ export async function readEncounterActionChoices(
           candidate?.mechanicFacts.invocation.activation ?? null,
           candidate?.mechanicFacts.invocation.triggerCode
         )
+        if (candidate?.equipment)
+          itemBindings.set(action.id, {
+            itemId: candidate.equipment.itemInstanceId,
+            activationCode: candidate.mechanicFacts.invocation.activation?.code ?? null,
+            triggerCode: candidate.mechanicFacts.invocation.triggerCode
+          })
         // A cast or an item attack names the activation its Effect authors, whatever it is: an
         // off-hand attack is told apart from the Action attack by it.
         const itemOrCastActivation =
@@ -308,7 +325,14 @@ export async function readEncounterActionChoices(
             action.mechanicFacts.invocation.activation,
             action.mechanicFacts.invocation.triggerCode
           )
+          if (action.equipmentBinding)
+            itemBindings.set(action.actionId, {
+              itemId: action.equipmentBinding.loadoutEntryId,
+              activationCode: action.mechanicFacts.invocation.activation?.code ?? null,
+              triggerCode: action.mechanicFacts.invocation.triggerCode
+            })
           const targetPolicy = buildCompiledActionTargetPolicy(action)
+          const castChoice = castChoiceOptions(action.compiledEffect)
           return {
             id: action.actionId,
             label: action.label,
@@ -322,7 +346,12 @@ export async function readEncounterActionChoices(
               : null,
             wieldConflict: null,
             attackSlot: economy.attackSlot,
-            target: encounterActionChoiceTarget(targetPolicy),
+            target: encounterActionChoiceTarget(
+              targetPolicy,
+              null,
+              null,
+              castChoice && { options: castChoice }
+            ),
             warnings: economy.warnings
           }
         })
@@ -460,20 +489,44 @@ export async function readEncounterActionChoices(
   const releases: EncounterActionChoicesDto['releases'] = (
     await readHeldRelationships(tx, { state, membership, sourceActorIds: new Set([actor.id]) })
   ).map(({ heldActorId, activeEffectId, label }) => ({ heldActorId, activeEffectId, label }))
+  const attackActionThisTurn =
+    openAttackAction && openAttackAction.turnSequence === state.turnSequence
+      ? openAttackAction
+      : null
+  const lastAttack = attackActionThisTurn?.attacks.at(-1)
   return encounterActionChoicesDtoSchema.parse({
     encounterId: state.id,
     encounterVersion: state.version,
     actorId: actor.id,
     openAttackAction:
-      openAttackAction && openAttackAction.turnSequence === state.turnSequence
+      attackActionThisTurn && lastAttack
         ? {
-            made: openAttackAction.attacks.length,
-            total: openAttackAction.total,
-            lastActionId: openAttackAction.attacks.at(-1)!.actionId,
-            lastTargetIds: openAttackAction.attacks.at(-1)!.targetIds
+            made: attackActionThisTurn.attacks.length,
+            total: attackActionThisTurn.total,
+            lastActionId: lastAttack.actionId,
+            lastTargetIds: lastAttack.targetIds
           }
         : null,
     actions,
+    defaultActionId: encounterDefaultAttackActionId({
+      choices: actions.map((action) => ({
+        id: action.id,
+        available: action.warnings.length === 0,
+        continuesAttack: action.attackSlot !== null,
+        ...(itemBindings.get(action.id) ?? {
+          itemId: null,
+          activationCode: null,
+          triggerCode: null
+        })
+      })),
+      hands: resolveHandOccupancy(
+        encounterActorHeldItems({
+          actor: creature ?? actor,
+          characterFacts: actorTarget?.characterFacts ?? null
+        })
+      ),
+      lastAttackActionId: lastAttack?.actionId ?? null
+    }),
     unavailableActions,
     basicActionChoices,
     escapes,

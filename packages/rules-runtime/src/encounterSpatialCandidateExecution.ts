@@ -3,10 +3,12 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
+import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
+import { resolveEncounterAddedDice } from './encounterD20AddedDice.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import {
   resolveEncounterD20Answer,
@@ -53,7 +55,11 @@ export type SpatialMovementTarget = {
 }
 
 /** The resolved d20 of a candidate whose damage dice are being answered. */
-export type SpatialD20Roll = { rollMode: EncounterD20RollMode; rawFaces: number[] }
+export type SpatialD20Roll = {
+  rollMode: EncounterD20RollMode
+  rawFaces: number[]
+  addedDice: D20RolledAddedDieDto[]
+}
 
 export function toSpatialMovementTarget<TCharacterFacts extends ProjectableCharacterFacts>(
   target: MovementTarget<TCharacterFacts>
@@ -270,17 +276,22 @@ export async function settleAutomaticSpatialEvidence(input: {
     !d20 &&
     input.autoRoll[input.candidate.targetActorId] === true
   ) {
-    const requestId = result.continuation.request.requestId
+    const answer = { kind: 'AUTO_ROLL' as const, requestId: result.continuation.request.requestId }
     const { faces, rollMode } = resolveEncounterD20Answer({
       derivedRollMode: result.evidencePolicy.rollMode,
-      answer: { kind: 'AUTO_ROLL', requestId },
+      answer,
       rollD20: () => random(20) + 1
     })
-    d20 = { rollMode, rawFaces: faces }
+    const addedDice = resolveEncounterAddedDice({
+      dice: result.evidencePolicy.addedDice ?? [],
+      answer,
+      random
+    })
+    d20 = { rollMode, rawFaces: faces, addedDice }
     result = await resumeTargetBoundActiveRuleEffectWithPause({
       ...effectInput,
       continuation: result.continuation,
-      resolution: { requestId, rawFaces: faces, rollMode },
+      resolution: { requestId: answer.requestId, rawFaces: faces, rollMode, addedDice },
       expectedEvidencePolicy: result.evidencePolicy
     })
   }

@@ -76,6 +76,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'SOURCE_SAVE_DC' }
     case 'spellCast':
       return { castLevel: 1 }
+    case 'featureWeaponAttack':
+      return {}
     case 'chargeBonus':
       return createChargeBonus(order)
     case 'chargeLevelScaling':
@@ -350,6 +352,10 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return createGrantLevel(order)
     case 'featGrantProgression':
       return createGrantProgression()
+    case 'modifierAttackDecoyArmorClass':
+      return { amount: 10, abilities: [] }
+    case 'modifierAttackDecoyThreshold':
+      return { id: crypto.randomUUID(), remaining: 1, minimumRoll: 11 }
     case 'modifierChargeLimitLevel':
       return {
         id: crypto.randomUUID(),
@@ -685,6 +691,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { amount: 1 }
     case 'targeting':
       return createTargeting('SELF') as AuthoringGroupValues
+    case 'damageDieCastLevelScaling':
+      return { level: 1, count: 1 }
     case 'damageLevelScalingEntry':
       return {
         id: crypto.randomUUID(),
