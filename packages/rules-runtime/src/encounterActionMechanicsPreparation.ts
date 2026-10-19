@@ -145,8 +145,16 @@ export async function prepareEncounterActionSource<
    * differently compile MANUAL), so the top-level option serves and no pick is asked for.
    */
   readsSharedTest?: boolean
+  /**
+   * A flow that cannot prompt (a reaction, an opportunity attack, a Legendary Action) names no
+   * pick; the first authored option is the no-prompt default. A pick it does name is still refused
+   * when unknown.
+   */
+  firstOptionByDefault?: boolean
 }) {
   const { state, actor, actionId, sourceFacts } = input
+  const fallsBackToFirst =
+    input.readsSharedTest || (input.firstOptionByDefault && input.choiceOptionId === undefined)
   const characterAction = sourceFacts.characterReactionSource
   const spellCast = sourceFacts.characterSpellCast
   const candidate = [
@@ -179,7 +187,7 @@ export async function prepareEncounterActionSource<
   if (
     entry &&
     (compilation?.choice
-      ? !picked && !input.readsSharedTest
+      ? !picked && !fallsBackToFirst
       : input.choiceOptionId !== undefined && !compilation?.zonePlacement)
   )
     throw new CastChoiceUnavailableError()
@@ -229,7 +237,7 @@ export async function prepareEncounterActionSource<
           pickedCastChoiceEffect(
             loaded.capability.compiledEffect,
             input.choiceOptionId,
-            input.readsSharedTest
+            fallsBackToFirst
           )
         )
   const adapter = characterRuleActionSystemAdapterRegistry.get(state.gameSystemId)
@@ -355,7 +363,10 @@ export async function prepareEncounterActionMechanics<
     sourceFacts,
     loadSource: input.loadSource,
     choiceOptionId: input.choiceOptionId,
-    readsSharedTest: input.readsSharedTest
+    readsSharedTest: input.readsSharedTest,
+    // Only RESOLVE_ACTION prompts (it reports overridable warnings); every other flow runs the
+    // first authored option of a pick it cannot ask for.
+    firstOptionByDefault: !input.overridable
   })
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =

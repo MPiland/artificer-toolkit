@@ -437,6 +437,9 @@ No LIGHT_EMISSION kind: the MANIFEST OBJECT `light` (SOURCE attachment) that equ
 
 T1 classification and proposed split recorded; waiting on the orchestrator's ruling.
 
+**T3a6 (done on `ci/spells-33-t3a6`):** the two rows above are now CHOICE paths (Damage / Grapple); creature discovery and the drawer compile and offer the options through `compileCastChoicePlans`; both kinds are deleted. No-prompt flows take the first authored option.
+Deferred edge cases for the orchestrator to move at merge: "Grapple on an opportunity attack" (added to future-enhancements) and "Legendary cast pick (Vampire legendary Unarmed Strike grapple)": a Legendary use of a CHOICE action runs its first authored option because the `LEGENDARY_OPTION` command carries no pick; pinned in `creatureCastChoiceDiscovery.test.ts`.
+
 ### T7b: Deferred edge case
 
 Mummy and Mummy Lord Dreadful Glare grant SOURCE_IMMUNITY per source, so a target that saves against one mummy is still affected by other mummies. The SRD text makes the target immune to the glare of all mummies and mummy lords. Move to future-enhancements (Deferred edge cases) at merge.
