@@ -1,5 +1,7 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
+import { SRD_BREATHING_CAPABILITY_DEFINITION_ID } from '../ruleState.js'
 import * as S from './shared.js'
 export const darkmantle: CreatureAuthored = {
   id: S.CREATURE_IDS.DARKMANTLE,
@@ -122,27 +124,51 @@ export const darkmantle: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(6527, 5),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('BLINDED')
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(6527, 6),
-              order: 3,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(6527, 6) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(6527, 6),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DARKMANTLE_ATTACH
+                    effectKind: S.EFFECT_KIND.ACTOR_RELATIONSHIP,
+                    heldAtOnce: 1,
+                    modules: [
+                      {
+                        id: S.actionId(6527, 105),
+                        order: 1,
+                        kind: 'SOURCE_ACTION_TARGET_RESTRICTION',
+                        actionEffectIds: [S.actionId(6527, 1)]
+                      },
+                      {
+                        id: S.actionId(6527, 106),
+                        order: 2,
+                        kind: 'SOURCE_ATTACK_ROLL_INFLUENCE',
+                        actionEffectIds: [S.actionId(6527, 1)],
+                        influence: 'ADVANTAGE'
+                      },
+                      { id: S.actionId(6527, 107), order: 3, kind: 'SOURCE_FOLLOWS_TARGET' },
+                      {
+                        id: S.actionId(6527, 108),
+                        order: 4,
+                        kind: 'SOURCE_RELEASE_MOVEMENT_COST',
+                        amount: 5,
+                        unit: S.MEASUREMENT_UNIT_CODE.FEET
+                      },
+                      {
+                        id: S.actionId(6527, 109),
+                        order: 5,
+                        kind: 'ESCAPE_CHECK',
+                        activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                        checks: {
+                          skillIds: [],
+                          abilityDefinitionIds: [SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH]
+                        },
+                        dc: { kind: 'FIXED', value: 13 },
+                        actorKinds: ['TARGET', 'CREATURE_WITHIN_REACH']
+                      },
+                      {
+                        id: S.actionId(6527, 110),
+                        order: 6,
+                        kind: 'CONDITIONAL_TARGET_STATE',
+                        whenResolvedAttackD20Mode: 'ADVANTAGE',
+                        conditionIds: [conditionTypeId('BLINDED')],
+                        capabilityDefinitionIds: [SRD_BREATHING_CAPABILITY_DEFINITION_ID]
+                      }
+                    ]
                   }
                 ]
               }

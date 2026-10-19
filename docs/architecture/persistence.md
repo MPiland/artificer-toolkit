@@ -764,6 +764,9 @@ Characters and drafts (an Active Character that can no longer be prepared become
 Vehicle cargo to party custody. Deleting an authored root runs the same per-Campaign finalization. Acquired
 Equipment keeps working through server-owned `retainedRulesJson` (raw ancestry and Spell documents with identity
 and checksum pins) on held items, so source loss never removes held items; new copies need current access.
+Parsed retained rules and parsed published Equipment are memoized per module (`createContentMemo`, shared
+`contentMemo`) keyed by their exact stored JSON, so only immutable content is memoized; every authorization,
+catalogue-binding and scope check still runs on each read, and correctness never depends on a hit.
 
 ### Party inventory and currency
 

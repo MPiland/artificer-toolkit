@@ -198,10 +198,12 @@ export async function requireAreaActionPendingRoot(
       sealedTarget.context.contest !== undefined
     )
       throw new Error('Live Session pending area action root mismatch.')
-  // A creature the GM removed is still reached by the command; it is simply no longer tested.
+  // A creature the GM removed, or one immune to this source's use of the action (D156), is still
+  // caught by the area; it is simply not tested.
   const sealed = [
     ...targets.map((sealedTarget) => sealedTarget.actorId),
-    ...context.removedActorIds
+    ...context.removedActorIds,
+    ...(context.immuneActorIds ?? [])
   ]
   // A creature named for several rays is sealed once for each.
   if (
