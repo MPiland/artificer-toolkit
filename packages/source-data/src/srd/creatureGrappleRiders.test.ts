@@ -232,14 +232,14 @@ describe('SRD Creature grapple riders (D105)', () => {
         authored: { dc: 13, conditions: [] }
       },
       {
-        name: 'Vampire Spawn: Claws',
-        printed: { dc: 13, conditions: [], sizeLimit: undefined },
-        authored: { dc: 13, conditions: ['GRAPPLED'], sizeLimit: undefined }
-      },
-      {
         name: 'Vampire: Unarmed Strike (Vampire Form Only)',
         printed: { dc: 18, conditions: [], sizeLimit: undefined },
         authored: { dc: 18, conditions: ['GRAPPLED'], sizeLimit: undefined }
+      },
+      {
+        name: 'Vampire Spawn: Claws',
+        printed: { dc: 13, conditions: [], sizeLimit: undefined },
+        authored: { dc: 13, conditions: ['GRAPPLED'], sizeLimit: undefined }
       }
     ])
   })

@@ -24,11 +24,11 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** The Vampire Spawn claws a Wolf; its d20 shows 20 (a hit), then its 2d4 show 3 and 3. */
+/** The Vampire Spawn claws a Wolf; its d20 shows 15 (a hit, not a critical), then its 2d4 show 3 and 3. */
 function clawsRoom() {
   return actionRoom({
     autoRoll: 'BOTH',
-    rolls: [20, 3, 3].map(draw),
+    rolls: [15, 3, 3].map(draw),
     actors: [
       srdCreatureActor({ id: SPAWN_ID, creature: spawn }),
       srdCreatureActor({ id: TARGET_ID, creature: plainWolf })
