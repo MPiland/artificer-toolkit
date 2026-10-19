@@ -1,4 +1,5 @@
 import {
+  creatureFeature,
   creatureRuleFacts,
   srdCondition,
   srdCreatureActor
@@ -85,6 +86,7 @@ function rescueRoom(options: {
   return actionRoom({
     autoRoll: 'BOTH',
     rolls: (options.faces ?? []).map(draw),
+    ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
     actors: options.grapplerActs ? [grappler, rescuer, held] : [rescuer, held, grappler],
     positions: {
       [RESCUER_ID]: options.rescuerAt ?? NEAR,
