@@ -132,7 +132,7 @@ function hideRoom(
 type Fixture = Awaited<ReturnType<typeof hideRoom>>
 
 /** Answers the pending d20 with `face`, as the roller's dice; the mode the room asked it in. */
-async function answerD20(fixture: Fixture, face: number) {
+async function answerD20(fixture: Fixture, face: number, addedFaces?: number[]) {
   const decision = await fixture.room.pendingDecision()
   if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a d20 request.')
   const { request } = decision.pending
@@ -140,6 +140,7 @@ async function answerD20(fixture: Fixture, face: number) {
     kind: 'ENTER_DICE',
     requestId: request.requestId,
     rawFaces: request.rollMode === 'NORMAL' ? [face] : [face, face],
+    ...(addedFaces && { addedFaces }),
     rollMode: request.rollMode
   })
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
@@ -147,7 +148,13 @@ async function answerD20(fixture: Fixture, face: number) {
 }
 
 /** The hider hides, rolling `face` (Stealth +5 adds to it); `onScene` hides it on the Scene. */
-async function hide(fixture: Fixture, face: number, onScene = false, sceneMoves = 0) {
+async function hide(
+  fixture: Fixture,
+  face: number,
+  onScene = false,
+  sceneMoves = 0,
+  addedFaces?: number[]
+) {
   const { answer } = await fixture.room.startAction(
     HIDER_ID,
     [],
@@ -162,17 +169,19 @@ async function hide(fixture: Fixture, face: number, onScene = false, sceneMoves 
     HIDER_ID
   )
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-  await answerD20(fixture, face)
+  await answerD20(fixture, face, addedFaces)
 }
 
 /** The Run's stored concealments, with the observers each hides its holder from. */
 async function concealments(fixture: Fixture) {
   const { activeEffects } = await readRoomHistory(fixture.room.room.base.stub)
-  return activeEffects.map((effect) => ({
-    holder: effect.targetActorId,
-    observers: effect.lifecycle.concealedFromActorIds,
-    concealmentTotal: Number(/"concealmentTotal":(\d+)/.exec(effect.definitionJson)?.[1])
-  }))
+  return activeEffects
+    .filter((effect) => effect.lifecycle.concealedFromActorIds)
+    .map((effect) => ({
+      holder: effect.targetActorId,
+      observers: effect.lifecycle.concealedFromActorIds,
+      concealmentTotal: Number(/"concealmentTotal":(\d+)/.exec(effect.definitionJson)?.[1])
+    }))
 }
 
 /** The CONCEALMENT_CHECK outputs the Run's receipts hold. */
@@ -752,7 +761,6 @@ describe('a held d20 floor on a Hide check, in the room', () => {
 
   it('settles a check that carries an added die, and counts the die in the roll record', async () => {
     const fixture = await hideRoom({
-      rolls: [2],
       seed: seedModifierGrant({
         sourceActorId: HIDER_ID,
         holderActorId: HIDER_ID,
@@ -762,7 +770,7 @@ describe('a held d20 floor on a Hide check, in the room', () => {
       })
     })
     // d20 10 + Stealth 5 + a d4 of 3 = 18: above passive 10 and 15, below passive 20.
-    await hide(fixture, 10)
+    await hide(fixture, 10, false, 0, [3])
     expect(await concealments(fixture)).toEqual([
       { holder: HIDER_ID, observers: [SHARP_ID, KEEN_ID].sort(), concealmentTotal: 18 }
     ])
