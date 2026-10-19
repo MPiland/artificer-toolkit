@@ -13,7 +13,7 @@ import { withCharacterActiveGrants } from '../encounterActiveGrants.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
 import { encounterSpellSchoolImmunity } from '../encounterSpellSchoolImmunity.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
-import { srdCreatureActor } from '../testing/dnd5eSrdEncounter.js'
+import { installedSrdCreature, srdCreatureActor } from '../testing/dnd5eSrdEncounter.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 import { plannedGrantEffect } from './antitoxinEffectFixture.js'
 
@@ -50,15 +50,15 @@ const creatureTarget = (
 
 describe('SPELL_SCHOOL_IMMUNITY (SPELLS-33.T6m1)', () => {
   it.each([
-    ['Gynosphinx', gynosphinx],
-    ['Androsphinx', androsphinx]
+    ['Gynosphinx', installedSrdCreature(gynosphinx)],
+    ['Androsphinx', installedSrdCreature(androsphinx)]
   ])('holds immunity to divination spells through the %s Inscrutable feature', (_name, sphinx) => {
     expect(creatureTarget(sphinx).spellSchoolImmunityIds).toEqual([divinationId])
   })
 
   it('holds the Mind Blank divination clause on a Creature and on a Character, only while the effect is held', () => {
     const effect = mindBlankEffect()
-    const sphinxless = { ...gynosphinx, features: [] }
+    const sphinxless = { ...installedSrdCreature(gynosphinx), features: [] }
     expect(creatureTarget(sphinxless, [effect]).spellSchoolImmunityIds).toEqual([divinationId])
     expect(creatureTarget(sphinxless).spellSchoolImmunityIds).toEqual([])
 
@@ -94,7 +94,7 @@ describe('SPELL_SCHOOL_IMMUNITY (SPELLS-33.T6m1)', () => {
         magicSchoolIdBySpellId: new Map([[spellId, schoolId(schoolCode)]])
       }
     })
-    const holder = creatureTarget(gynosphinx)
+    const holder = creatureTarget(installedSrdCreature(gynosphinx))
     expect(
       encounterSpellSchoolImmunity({
         source: source({ kind: 'SPELL', id: 'detect-thoughts' }),
@@ -121,8 +121,8 @@ describe('SPELL_SCHOOL_IMMUNITY (SPELLS-33.T6m1)', () => {
 
 describe('CHECKS_AGAINST_HOLDER (SPELLS-33.T6m1)', () => {
   it.each([
-    ['Gynosphinx', gynosphinx],
-    ['Androsphinx', androsphinx]
+    ['Gynosphinx', installedSrdCreature(gynosphinx)],
+    ['Androsphinx', installedSrdCreature(androsphinx)]
   ])(
     'folds the %s Inscrutable Insight disadvantage into its feature modifiers',
     (_name, sphinx) => {
