@@ -126,6 +126,7 @@ type AuthoringDefaultKind =
   | 'startingEquipmentCurrency'
   | 'startingEquipmentGroup'
   | 'spellCast'
+  | 'featureWeaponAttack'
   | 'startingEquipmentItem'
   | 'startingEquipmentOption'
   | 'startingEquipmentSet'
@@ -281,6 +282,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   startingEquipmentCurrency: ['startingEquipmentCurrency'],
   startingEquipmentGroup: ['startingEquipmentGroup'],
   spellCast: ['spellCast'],
+  featureWeaponAttack: ['featureWeaponAttack'],
   startingEquipmentItem: ['startingEquipmentItem'],
   startingEquipmentOption: ['startingEquipmentOption'],
   startingEquipmentSet: ['startingEquipmentSet'],

@@ -11431,7 +11431,7 @@
             },
             {
               "id": "SPELLS-31.T5s",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11441,7 +11441,7 @@
                 "after": ["SPELLS-31.T3c"]
               },
               "text": "Class B: a feature weapon attack against each chosen target with the wielded weapon (weapon damage, proficiency, magic bonus; ammunition per target arrives with ATTACK-19.T4, D4), then convert Volley and Whirlwind Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T3c ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m155 (d4484703a)."
             },
             {
               "id": "SPELLS-31.T5t",
@@ -11654,7 +11654,7 @@
             },
             {
               "id": "SPELLS-33.T3a3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11664,7 +11664,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-31.T5l"]
               },
               "text": "Lift the compiler refusal of AREA_CONTENTS saves with excluded creature types generically, then convert Cloaker Moan as a 60-foot self-centered sphere excluding aberrations; its after-save immunity stays in T7a (1 kind). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md). Excluded types are sealed in the T5l pending-area list, renamed unaffectedActorIds (D156 T3a3 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m156 (f12f07685)."
             },
             {
               "id": "SPELLS-33.T3a4",
@@ -12259,7 +12259,7 @@
             },
             {
               "id": "SPELLS-33.T7b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12268,7 +12268,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T7a"]
               },
-              "text": "Generic option: failureMarginRider on direct-save timed conditions (compiler and planner, red-first test), then convert MUMMY_DREADFUL_GLARE and MUMMY_LORD_DREADFUL_GLARE with their SOURCE_IMMUNITY (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (2026-10-18 ruling on the T7a split; workbook slice-spells-33.md)."
+              "text": "Generic option: failureMarginRider on direct-save timed conditions (compiler and planner, red-first test), then convert MUMMY_DREADFUL_GLARE and MUMMY_LORD_DREADFUL_GLARE with their SOURCE_IMMUNITY (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (2026-10-18 ruling on the T7a split; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             }
           ]
         }

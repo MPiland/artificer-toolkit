@@ -9,7 +9,9 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
+  EQUIPMENT_PROPERTY_CODE,
   RANGE_KIND,
+  SHAPE_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
@@ -241,22 +243,30 @@ export const hunterConclave: ClassAuthored = {
           description:
             "You can use your action to make a ranged attack against any number of creatures within 10 feet of a point you can see within your weapon's range. You must have ammunition for each target, as normal, and you make a separate attack roll for each target.",
           order: 0,
+          // An attack with each wielded ammunition weapon, within that weapon's range (D156).
+          // Ammunition is not spent yet (ATTACK-19.4).
           effects: [
-            closedRuleEffect({
+            {
               id: classRowId(RA, 20, 6),
+              order: 0,
               invocation: {
                 kind: 'ACTION',
                 triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
                 activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
                 range: { id: classRowId(RA, 21, 6), rangeKind: RANGE_KIND.SPECIAL },
+                shape: {
+                  id: classRowId(RA, 22, 6),
+                  shapeKind: SHAPE_KIND.SPHERE,
+                  radius: { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
                 targeting: {
                   selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
                   dispositionKind: 'ANY'
                 }
               },
-              pathCode: PATH_CODE.ON_ATTACK,
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_VOLLEY
-            })
+              weaponAttack: { requiredPropertyCodes: [EQUIPMENT_PROPERTY_CODE.AMMUNITION] },
+              paths: []
+            }
           ]
         },
         {
@@ -265,9 +275,11 @@ export const hunterConclave: ClassAuthored = {
           description:
             'You can use your action to make a melee attack against any number of creatures within 5 feet of you, with a separate attack roll for each target.',
           order: 1,
+          // An attack with each wielded melee weapon, no farther than 5 feet (D156).
           effects: [
-            closedRuleEffect({
+            {
               id: classRowId(RA, 20, 7),
+              order: 0,
               invocation: {
                 kind: 'ACTION',
                 triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -279,13 +291,13 @@ export const hunterConclave: ClassAuthored = {
                   unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+                  selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
                   dispositionKind: 'ANY'
                 }
               },
-              pathCode: PATH_CODE.ON_ATTACK,
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_WHIRLWIND_ATTACK
-            })
+              weaponAttack: {},
+              paths: []
+            }
           ]
         }
       ]
