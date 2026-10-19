@@ -53,18 +53,7 @@ export const knight: CreatureAuthored = {
       id: S.featureId(178, 1),
       label: 'Brave',
       description: 'Brave. The knight has advantage on saving throws against being frightened.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(178, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(178, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KNIGHT_BRAVE
-        })
-      ],
+      grants: S.advantageGrants(178, 1, { savesAgainst: ['FRIGHTENED'] }),
       order: 1
     },
     {

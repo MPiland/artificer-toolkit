@@ -447,6 +447,18 @@ Done on `ci/spells-33-t6k1` (ruling: union combination, highest multiplier, comb
 - A Tiny creature or one two sizes apart crossing a hostile creature is not yet allowed (Q4 gap 1 ruling); no size-difference relation exists.
 - The tabletop drag-route label prices zones from `movementCostZones` and does not show the passage multiplier inside a passed creature; the room charges it.
 
+## T3a2: passive saving-throw and skill grants
+
+Done on `ci/spells-33-t3a2` (closes SPELLS-33.1).
+
+- A Creature's feature `SAVING_THROW_MODIFIER` ADVANTAGE grants (scoped to a condition) reach its save rows through the same feature-grant fold as passage (`ruleFacts.modifiers`); `withCreatureActiveGrantSaves` reads them beside active-effect grants, so a save against the condition rolls with advantage, as a Character's does.
+- Dark Devotion (Cultist, Cult Fanatic), Death Dog Two-Headed and Knight Brave are grants built by `advantageGrants` in `creatures/shared.ts`; their kinds `CREATURE_DARK_DEVOTION`, `CREATURE_DEATH_DOG_TWO_HEADED` and `CREATURE_KNIGHT_BRAVE` are deleted (D156). The Knight had no grants before: its closed rule never applied.
+- Authoring parity: `creatureFeatureSaveGrants.test.ts` builds a homebrew Creature from the Cultist's own grants and shows the same save rows.
+
+### Deferred edge cases
+
+- Death Dog's Perception advantage is folded as a `SKILL_MODIFIER` grant, but no Creature check path reads roll modes yet (contests read `checkTotals` only), so it has no effect until one does.
+
 ## Status
 
 T1 classification and proposed split recorded; waiting on the orchestrator's ruling.
