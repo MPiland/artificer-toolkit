@@ -88,6 +88,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 ### Deferred edge cases (watch for in real use)
 
 - **Added damage dice on other attack paths (D156, SPELLS-4.T2d):** ON_HIT bonus dice (Divine Favor, Hex, Hunter's Mark, Enlarge) are consumed and added only on the single-target attack path. Early-return branches add no dice, and Reduce's d4 penalty floors damage at 0 rather than 1. Multi-target attack actions with an active rider are uncommon, and the GM adds the die by hand.
+- **Enthrall's "other than you" exclusion (SPELLS-4.T2k1):** Enthrall's Perception disadvantage also applies when the target tries to perceive the caster. The spell excludes the caster, but players rarely make that check against the enchanter mid-speech.
 - **Per-source immunity after a save (SPELLS-33.T7b):** the immunity granted by a successful save against Dreadful Glare is not tracked per source Mummy, as the stat block words it (see the limitation recorded on the T7b branch). Two Mummies glaring at the same target in one fight is rare.
 
 - **Timed self actions with several outcomes (D156, SPELLS-31.T3b):** the Encounter compiler accepts one outcome per self action, so Empty Body (invisible plus resistance) and Gaze of Two Minds stay MANUAL in play, as their closed rules did. Only an 18th-level monk and one warlock invocation have them, and the GM applies them in a moment.
