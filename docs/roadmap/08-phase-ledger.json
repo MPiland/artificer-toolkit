@@ -770,7 +770,8 @@
                 "size": 2,
                 "after": []
               },
-              "text": "Product read-path CPU: a bounded LRU memo at module scope (64 entries or fewer, deep-frozen results) that skips repeat parsing and checksum verification of immutable content. Retained-rules JSON is keyed by its exact string (readAcquiredEquipmentRules). The published Equipment document is keyed by immutable version identity or by the document string (readPartyEquipmentSource). Every authorization and catalogue-binding read still runs on every call. Measured repetition is across queries, not within a transaction: 3 distinct documents across about 1,000 parses per developmentCustody driver, so a per-transaction cache would have saved only 3-18%. Proof: the cold and warm paths give identical output, a parse-count test passes, the developmentCustody assertions are unchanged, and the guide names the memo invariant. Then retry Convex at 3 workers per shard against the T4 gate. Re-ruled 2026-10-18."
+              "text": "Product read-path CPU: a bounded LRU memo at module scope (64 entries or fewer, deep-frozen results) that skips repeat parsing and checksum verification of immutable content. Retained-rules JSON is keyed by its exact string (readAcquiredEquipmentRules). The published Equipment document is keyed by immutable version identity or by the document string (readPartyEquipmentSource). Every authorization and catalogue-binding read still runs on every call. Measured repetition is across queries, not within a transaction: 3 distinct documents across about 1,000 parses per developmentCustody driver, so a per-transaction cache would have saved only 3-18%. Proof: the cold and warm paths give identical output, a parse-count test passes, the developmentCustody assertions are unchanged, and the guide names the memo invariant. Then retry Convex at 3 workers per shard against the T4 gate. Re-ruled 2026-10-18.",
+              "note": "Convex 3-worker trial clean 3 of 3 (39184861302, 39185817174, 39186776489) but not faster (slowest shard 8.6-8.7 min vs 7.6-10.4; run 10.7-12.5 vs 10.5-12.2 min); config stays at 2."
             },
             {
               "id": "PLATFORM-13.T5",
@@ -12217,7 +12218,7 @@
             },
             {
               "id": "SPELLS-33.T7a",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12226,7 +12227,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T5l"]
               },
-              "text": "Data-only: creature after-save immunities (the dragons’ Frightful Presence, the Tarrasque and the rest of the T5l survey) authored with SOURCE_IMMUNITY. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T5l ruling; workbook slice-spells-33.md)."
+              "text": "Data-only: creature after-save immunities (the dragons’ Frightful Presence, the Tarrasque and the rest of the T5l survey) authored with SOURCE_IMMUNITY. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T5l ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             }
           ]
         }
