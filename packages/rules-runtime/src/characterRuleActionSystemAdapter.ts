@@ -619,6 +619,11 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /**
+     * The attack was rolled against one of the target's decoys (`ATTACK_DECOYS`): its OUTCOME never
+     * runs, because nothing reaches the target itself.
+     */
+    absorbedByDecoy?: boolean
     /** Exact locked Scene facts for a positional action, or null when none apply. */
     sceneContext?: {
       sceneId: string

@@ -195,6 +195,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The attacker's grants this attack roll used up; its commit deletes them, its undo restores them. */
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
+  /** The target's attack decoys this attack roll destroyed without ending their effect, as they were before the use is spent. */
+  spentUseGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
   /** The once-per-turn uses this attack spent from the attacker's turn record; its undo gives them back. */
   turnUses: z.infer<typeof encounterTurnUseKeysSchema>
   /** The forced movements this action's outcomes settle on the Scene in its commit (D139). */
@@ -244,6 +246,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      spentUseGrants: z.array(activeRuleEffectRecordSchema).check(z.maxLength(1)),
       turnUses: encounterTurnUseKeysSchema,
       forcedMovements: liveSessionForcedMovementsSchema
     })

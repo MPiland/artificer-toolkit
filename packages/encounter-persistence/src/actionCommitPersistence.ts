@@ -31,7 +31,7 @@ import {
   recordActionRoot,
   type ApplyEncounterForcedMovements
 } from './actionCommitRecords.js'
-import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js'
+import { endEffects, receiptConsumedGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { persistEncounterMeleeRetaliation } from './meleeRetaliationPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
@@ -395,6 +395,7 @@ export async function persistEncounterActionCommit(
   })
   // The one-roll grants the rolls used up (Vicious Mockery's disadvantage, Help) end with the roll.
   const endedMaintainedStates = await endEffects(ctx, input.consumedGrants)
+  await spendEffectUses(ctx, input.spentUseGrants)
   // The zones the melee hit set off burn the attacker after the hit lands (D153).
   if (batch.meleeRetaliation) {
     const retaliated = await persistEncounterMeleeRetaliation(
@@ -536,7 +537,7 @@ export async function persistEncounterActionCommit(
       label: input.label,
       ruleOverrides: input.ruleOverrides,
       consumedGrants: receiptConsumedGrants({
-        consumedGrants: input.consumedGrants,
+        consumedGrants: [...input.consumedGrants, ...input.spentUseGrants],
         endedGrants: [...input.endedGrants, ...mechanics.endedGrants]
       }),
       endedMaintainedStates,
