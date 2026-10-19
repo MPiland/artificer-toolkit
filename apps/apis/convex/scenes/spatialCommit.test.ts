@@ -59,8 +59,8 @@ async function current(value: Seeded) {
 }
 
 /** The seeded Assisted move, committed through the real room (no plan step exists to inspect). */
-async function commit(path?: Parameters<typeof seedSpatialTerminalFixture>[0]) {
-  const value = await seedSpatialTerminalFixture(path)
+async function commit(...args: Parameters<typeof seedSpatialTerminalFixture>) {
+  const value = await seedSpatialTerminalFixture(...args)
   await attachFixtureRoom(value.base.t, value.base.campaign.id)
   const before = await current(value)
   const { result } = await executeSceneInRoom(value.base.owner.caller, value.input)
@@ -110,11 +110,15 @@ it('commits a terminal movement once with its Scene move, Run state and timeline
 })
 
 it('commits a stationary terminal without moving the token or advancing the Scene', async () => {
-  const { before, result, after } = await commit([
-    { x: 0, y: 0 },
-    { x: 10, y: 0 },
-    { x: 0, y: 0 }
-  ])
+  // The actor survives the hazard, so the move is not stopped where it drops to 0 (D156).
+  const { before, result, after } = await commit(
+    [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 0, y: 0 }
+    ],
+    2
+  )
 
   expect(result).toMatchObject({ replayed: false, version: 0, delta: null })
   expect(after.runVersion).toBe(before.runVersion + 1)

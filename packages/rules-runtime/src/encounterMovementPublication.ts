@@ -10,6 +10,7 @@ import {
 import { EncounterValidationError } from './encounterErrors.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import { sliceMovementPath } from './encounterMovementPath.js'
+import { spatialExecutionStopsMovement } from './encounterSpatialCandidateExecution.js'
 
 type Point = { x: number; y: number }
 type MovementOutcome = SceneSpatialPreparation['outcome']
@@ -54,7 +55,7 @@ export function preparedMovementSegment(input: {
         .map((entry) => entry.option.candidate.pathDistance),
       ...(outcome.result.status === 'BATCH_COMPLETE'
         ? outcome.result.executions
-            .filter((entry) => entry.execution.movementInterruption?.kind === 'STOP')
+            .filter((entry) => spatialExecutionStopsMovement(entry, outcome.result.movementKind))
             .map((entry) => entry.candidate.candidate.pathDistance)
         : [])
     ]

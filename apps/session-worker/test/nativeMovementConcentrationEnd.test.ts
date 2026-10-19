@@ -74,8 +74,16 @@ describe('movement-path Concentration ends (D95)', () => {
   })
 
   it('rolls no check for a later contact once the first contact ended Concentration', async () => {
+    // A holder dropped to 0 stops moving (D156), so the first contact incapacitates it instead:
+    // Incapacitated still lets it walk on into the second hazard.
+    const incapacitated = SRD_CONDITION_TYPES.find((type) => type.code === 'INCAPACITATED')
+    if (!incapacitated) throw new Error('The SRD INCAPACITATED condition is missing.')
     const room = await holderRoom({
-      spatialEffects: [hazard, { center: { x: 500, y: 150 }, radius: 20, variant: 1 }]
+      characterPlay: { currentHitPoints: 20 },
+      spatialEffects: [
+        { ...hazard, condition: { conditionId: incapacitated.id } },
+        { center: { x: 500, y: 150 }, radius: 20, variant: 1 }
+      ]
     })
 
     await room.move([MOVER_START, { x: 650, y: 150 }])
@@ -83,7 +91,7 @@ describe('movement-path Concentration ends (D95)', () => {
     expect(await receiptsOf(room, 'CONCENTRATION_CHECK')).toHaveLength(0)
     expect(await receiptsOf(room, 'CONCENTRATION_END')).toHaveLength(1)
     expect(room.diceDrawn()).toBe(0)
-    // Both hazards damaged the holder; only the first contact carries the end.
+    // Both hazards acted on the holder; only the first contact carries the end.
     const [move] = await receiptsOf(room, 'MOVE_SCENE_TOKEN')
     const { executions } = move!.result as { executions: object[] }
     expect(executions).toHaveLength(2)

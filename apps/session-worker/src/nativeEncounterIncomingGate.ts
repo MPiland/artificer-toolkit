@@ -59,23 +59,40 @@ export async function advanceNativeIncomingGate(input: {
   occurrenceId: string
   holderActorId: string
   holderEffects: readonly ActiveRuleEffectRecord[]
+  holderGrantFold: Parameters<typeof heldIncomingGate>[0]['grantFold']
   attacker: MovementTarget
-  /** The caster's spell save DC as it stands now; null when the caster has none. */
-  casterSaveDc: (casterActorId: string) => Promise<number | null>
+  /** The attacker's Creature type; null for a Character. */
+  attackerCreatureTypeId: string | null
+  /** The ward owner's facts as they stand now; null when the owner is no longer in the encounter. */
+  owner: (
+    ownerActorId: string
+  ) => Promise<Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'effectiveScalarValues'> | null>
   autoRoll: boolean
   /** The ward whose save an earlier request of this action already passed. */
   passedEffectId: string | undefined
   answer: NativeIncomingGateAnswer | null
 }) {
-  const held = heldIncomingGate(input.holderEffects)
-  if (!held || held.effect.id === input.passedEffectId) {
+  const held = heldIncomingGate({
+    holderActorId: input.holderActorId,
+    effects: input.holderEffects,
+    grantFold: input.holderGrantFold,
+    attackerCreatureTypeId: input.attackerCreatureTypeId,
+    attacker: {
+      actorId: input.attacker.actor.id,
+      characterId: input.attacker.actor.kind === 'CHARACTER' ? input.attacker.actor.sourceId : null
+    }
+  })
+  if (!held || held.wardId === input.passedEffectId) {
     if (input.answer) throw new Error('The incoming gate is no longer owed.')
-    return { kind: 'NONE' as const }
+    // A ward an earlier request of this action passed still owes its success immunity at the commit.
+    return { kind: 'NONE' as const, passed: held }
   }
+  const owner = await input.owner(held.ownerActorId)
+  if (!owner) throw new Error('The owner of the incoming gate is no longer in the encounter.')
   const offer = incomingGateOffer({
     held,
     holderActorId: input.holderActorId,
-    casterSaveDc: await input.casterSaveDc(held.casterActorId),
+    owner,
     attacker: input.attacker
   })
   if (input.answer && checksumRuleDocument(input.answer.offer) !== checksumRuleDocument(offer))
@@ -109,7 +126,7 @@ export async function advanceNativeIncomingGate(input: {
     expectedOccurrenceId: input.occurrenceId
   })
   return evaluated.reachesDc
-    ? { kind: 'PASSED' as const, effectId: offer.effectId }
+    ? { kind: 'PASSED' as const, effectId: offer.effectId, passed: held }
     : {
         kind: 'FAILED' as const,
         gate: {

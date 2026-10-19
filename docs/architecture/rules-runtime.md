@@ -576,6 +576,11 @@ learns which fields offer the choice from `halfSpeedFields` on the Encounter ses
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
 preview offers "Move carefully" and "Move normally" before sending. A zone's authored `movementCostMultiplier`
 (D154: more than 1, up to 100) and `blockingRules` (including the new `BLOCKS_SIGHT`) compile onto the placement.
+A zone's own component may author `perDistanceMoved` (D156, SPELLS-4.T1h): placement resolves it to the
+placement's `distanceStep` in Scene distance units, and `collectSpatialMovementCandidates` raises one `ENTER` candidate
+per whole step the footprint travels inside, measured by the Scene grid and carrying its `step` ordinal, so the loop runs
+the frozen entry once per step. A finished spatial execution that drops a voluntary mover to 0 Hit Points stops the move
+at its contact (`spatialExecutionStopsMovement`).
 The multiplier slows only a mover the zone catches (SPELLS-20 T4d, refining D154's "every mover"): `zoneMovementSegmentMultiplier` (shared/vtt) skips a mover that `spatialEffectAffects` spares (designated unaffected, or a defeated Creature's suppressed passive zone) and the token a `TOKEN` zone is anchored to, so Spirit Guardians never slows its caster while a wall the caster placed does. The room's movement charge (`encounterMovementPublication`) and the tabletop's drag-route label (`formatSceneRoute`) both price a walk through it, the label from `movementCostZones` on the Encounter session state (`readSessionMovementCostZones`: visible zones, token zones only when the viewer's projection lists the source, designations filtered to listed actors). A zone whose only component prices movement (Entangle's difficult terrain, D156) compiles from its appear save (`zonePlacementPlan`).
 A zone may author more than one component (D154 amendment): the first covers the zone's shape, and each later one
 authors `region: { kind: 'SIDE_BAND', distance }` and compiles to `zonePlacement.regionComponents` (at most one
@@ -1070,7 +1075,10 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   decoy d20 from the minted occurrence id; at or above the minimum for the decoys left the attack is prepared again against
   the decoy's armor class and the binding carries `absorbedByDecoy`, which makes the TEST `TEST_ONLY` and skips reactions and on-hit holds. A hit
   or critical spends a use (`spentUseGrants`, a lifecycle CAS at commit) or, on the last, ends the effect (`consumedGrants`); the root
-  receipt keeps both so an undo restores them. Single-target attack actions only; see the T2k2 handoff for the gaps.
+  receipt keeps both so an undo restores them. Every attack path goes through `prepareAttackBehindDecoys` (SPELLS-4.T2k2b): the action,
+  an opportunity attack (salted `${occurrenceId}:${reactorActorId}`, settled through `spentUseGrants` on the REACTION arm) and a Legendary
+  attack (salted `${occurrenceId}:legendary:${ordinal}`, `decoyEffectId` in its evidence). An attacker that cannot see the target or has a
+  sense in the payload's `exemptAttackerSenseDefinitionIds` (blindsight, truesight) never meets a decoy.
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
@@ -1082,6 +1090,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `OPTION` replays the command retargeted to the chosen creature (`retargetEncounterAction`; the admission and the worker derive
   the same command and fingerprint), so range, sight, visibility and any ward of the new target are evaluated afresh. The
   currentness checksum is exempt for that one transition.
+  Holder-owned wards (SPELLS-31.T4k2b, D156): the gate also reads the holder's own feature grants from its grant fold
+  (`heldIncomingGate`; Active Effect wards first, lowest id, then fold grants), where the ward id is the grant id and the
+  holder owns the DC. `savingThrow` may be `DERIVED_DC` (`incomingGateSaveDc`: `baseDc` + the owner's ability modifier,
+  proficiency bonus and static bonuses, as they stand now). An optional `attackerCreatureTypeIds` limits the ward to attackers
+  of those Creature types (a Character has none, so it is never covered). Nature's Sanctuary is authored this way. The
+  payload's `successImmunity {duration}` is authored and node-mapped but **not yet enforced**: runtime immunity needs the
+  Character-target receipt to carry a SOURCE_IMMUNITY effect (T4k2c), so until then a passing attacker saves again on each attack.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
@@ -1782,6 +1797,22 @@ origin is `ESCAPE` (`activeEffectId`, `initiatorCheckDefinitionId`, `actionLabel
 the activation; an escaper win ends the held effect through `endEncounterEscapedEffect` and records
 `RELATIONSHIP_ENDED` (`endedEffectId`, `removedConditionIds`); a loss or tie keeps the hold. No hostile engagement
 applies. Undo refuses a contested escape like other contests.
+
+**Freeing another creature from a hold (ATTACK-7.9).** An `ESCAPE_CHECK` whose `actorKinds` include
+`CREATURE_WITHIN_REACH` lets a creature other than the held one attempt the escape. `ESCAPE` gains an optional
+`heldActorId` (the schema refuses `heldActorId === actorId`; absent, the actor escapes for itself), the escape
+choice DTO carries `heldActorId: string | null`, and the pending context and `ESCAPE_CHECK` output carry it when
+a rescuer rolls. `findEncounterRescues` lists the holds the actor may break: a `FIXED`-DC module allowing
+`CREATURE_WITHIN_REACH` on another creature that stands within the reach the hold sealed
+(`encounterActorsWithinReach`, the same footprint measure as `encounterEndedRelationships`, on the Run's bound
+Scene), excluding a hold the actor itself applied (letting go is a release) and a pair the Scene does not place.
+The planner resolves `activeEffectId` against the held creature's effects and refuses an effect not on
+`heldActorId`. The rescuer rolls its own check (`findEncounterHolderEscape(effect, 'CREATURE_WITHIN_REACH')`
+re-derives it at commit), spends its own activation, and a success ends the effect on the held creature through
+the one escape end path. A zone's `CONDITION_ESCAPE` is held-creature-only. A rescuer that is itself held may
+still free another creature. Undo follows the escape rule: a failure returns the activation, a success is refused.
+**Unsupported:** a `CONTEST` DC with `CREATURE_WITHIN_REACH` is not offered to a rescuer (the contest path is the
+held creature against its holder); `encounterRescues.test.ts` proves the omission.
 
 **Contest outcomes (D105, ATTACK-7.6).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is a
 condition or a forced movement (`isContestOutcomeAction`; Shove) compiles to `TEST_OUTCOME`: the test is the

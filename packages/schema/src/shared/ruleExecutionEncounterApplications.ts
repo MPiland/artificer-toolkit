@@ -1615,6 +1615,8 @@ export const escapeCheckApplicationOutputDtoSchema = lazySchema(() =>
       occurrenceId: uuidSchema,
       commandId: uuidSchema,
       actorId: uuidSchema,
+      /** The held creature a rescuer freed or tried to free; absent when `actorId` escaped for itself. */
+      heldActorId: z.optional(uuidSchema),
       activeEffectId: uuidSchema,
       check: z.strictObject({ checkDefinitionId: uuidSchema, dc: positiveIntegerSchema }),
       d20: ruleCheckD20EvidenceDtoSchema,

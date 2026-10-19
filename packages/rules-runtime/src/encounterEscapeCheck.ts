@@ -17,6 +17,14 @@ import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import {
+  encounterRelationships,
+  type EncounterRelationshipActiveEffectsByActorId
+} from './encounterRelationshipActionFacts.js'
+import {
+  encounterActorsWithinReach,
+  type EncounterReachScene
+} from './encounterRelationshipEnds.js'
+import {
   actorContestFacts,
   checkAbilityCode,
   encounterBasicActionCheckLabel
@@ -49,12 +57,40 @@ export type EncounterHolderEscape = {
   zoneLabel: string | null
 }
 
+/** Who an escape module lets attempt it: the held creature, or another creature within reach of it. */
+type EscapeActorKind = EscapeModule['actorKinds'][number]
+
+function fixedEscapeFromModules(
+  modules: readonly Extract<
+    EffectDefinition['stateContributions'][number],
+    { kind: 'ACTOR_RELATIONSHIP' }
+  >['modules'][number][],
+  actorKind: EscapeActorKind
+): EncounterHolderEscape | null {
+  for (const module of modules)
+    if (
+      module.kind === 'ESCAPE_CHECK' &&
+      module.dc.kind === 'FIXED' &&
+      module.actorKinds.includes(actorKind)
+    )
+      return {
+        escapeSourceId: module.id,
+        activation: module.activation,
+        checks: module.checks,
+        dc: module.dc.value,
+        zoneLabel: null
+      }
+  return null
+}
+
 /**
- * The fixed-DC escape the held creature itself may attempt from an effect, or null: a CONTEST DC
- * and a `CREATURE_WITHIN_REACH` rescuer are attempted elsewhere.
+ * The fixed-DC escape an effect offers `actorKind`, or null: the held creature itself (`TARGET`,
+ * the default) may also break a zone's hold, which a rescuer may not. A CONTEST DC is attempted
+ * elsewhere, and only by the held creature.
  */
 export function findEncounterHolderEscape(
-  effect: Pick<ActiveRuleEffectRecord, 'definition'>
+  effect: Pick<ActiveRuleEffectRecord, 'definition'>,
+  actorKind: EscapeActorKind = 'TARGET'
 ): EncounterHolderEscape | null {
   if (effect.definition.schemaVersion !== 2) return null
   const { stateContributions } = effect.definition
@@ -64,7 +100,7 @@ export function findEncounterHolderEscape(
       : []
   )[0]
   for (const contribution of stateContributions) {
-    if (contribution.kind === 'CONDITION_ESCAPE' && heldBySpatialEffectId)
+    if (contribution.kind === 'CONDITION_ESCAPE' && heldBySpatialEffectId && actorKind === 'TARGET')
       return {
         escapeSourceId: heldBySpatialEffectId,
         activation: contribution.activation,
@@ -73,22 +109,39 @@ export function findEncounterHolderEscape(
         zoneLabel: contribution.label
       }
     if (contribution.kind !== 'ACTOR_RELATIONSHIP') continue
-    for (const module of contribution.modules) {
-      if (
-        module.kind === 'ESCAPE_CHECK' &&
-        module.dc.kind === 'FIXED' &&
-        module.actorKinds.includes('TARGET')
-      )
-        return {
-          escapeSourceId: module.id,
-          activation: module.activation,
-          checks: module.checks,
-          dc: module.dc.value,
-          zoneLabel: null
-        }
-    }
+    const escape = fixedEscapeFromModules(contribution.modules, actorKind)
+    if (escape) return escape
   }
   return null
+}
+
+/**
+ * The holds `actorId` may break for another creature (ATTACK-7.9): a fixed-DC escape whose module
+ * allows `CREATURE_WITHIN_REACH`, on a creature that stands within the reach the hold sealed, and
+ * not a hold `actorId` applied itself (letting go of your own hold is a release). A pair the Scene
+ * does not place is not offered. A CONTEST DC is not offered to a rescuer.
+ */
+export function findEncounterRescues(input: {
+  actorId: string
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId
+  scene: EncounterReachScene | null
+}) {
+  return encounterRelationships(input.activeEffectsByActorId).flatMap(
+    ({ sourceActorId, actorId: heldActorId, effect, contribution }) => {
+      const escape = fixedEscapeFromModules(contribution.modules, 'CREATURE_WITHIN_REACH')
+      return escape &&
+        heldActorId !== input.actorId &&
+        sourceActorId !== input.actorId &&
+        encounterActorsWithinReach(
+          input.scene,
+          input.actorId,
+          heldActorId,
+          contribution.sealedReachFeet
+        )
+        ? [{ heldActorId, sourceActorId, effect, ...escape }]
+        : []
+    }
+  )
 }
 
 /**
@@ -164,8 +217,10 @@ export function encounterActorsAfterEscape(input: {
 }
 
 /**
- * Freezes a held creature's Escape check from its own facts: the fixed DC, the chosen allowed
- * check's modifier and contributors (conditions included). A custom actor has no check facts.
+ * Freezes an Escape check from the roller's own facts: the fixed DC, the chosen allowed check's
+ * modifier and contributors (conditions included). `holder` is the roller; with `rescued` it is a
+ * rescuer within reach (ATTACK-7.9) and `rescued.effect` is the effect the held creature carries.
+ * A custom actor has no check facts.
  */
 export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMovementFacts>(input: {
   gameSystemId: string
@@ -173,15 +228,19 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
   commandFingerprint: string
   system: SystemAuthoredDto
   holder: MovementTarget<TCharacterFacts>
+  rescued?: { actorId: string; effect: ActiveRuleEffectRecord }
   activeEffectId: string
   checkDefinitionId: string
 }): EncounterEscapeCheckPendingContextDto {
-  const { holder } = input
+  const { holder, rescued } = input
   if (holder.actor.kind === 'CUSTOM')
     throw new EncounterValidationError('A custom actor has no check to make.')
-  const effect = holder.activeEffects.find((entry) => entry.id === input.activeEffectId)
-  if (!effect) throw new EncounterValidationError('The creature does not hold that effect.')
-  const escape = findEncounterHolderEscape(effect)
+  const effect = rescued
+    ? rescued.effect
+    : holder.activeEffects.find((entry) => entry.id === input.activeEffectId)
+  if (!effect || effect.id !== input.activeEffectId)
+    throw new EncounterValidationError('The creature does not hold that effect.')
+  const escape = findEncounterHolderEscape(effect, rescued ? 'CREATURE_WITHIN_REACH' : 'TARGET')
   if (!escape)
     throw new EncounterValidationError('This effect has no fixed-DC escape for the creature.')
   const checkKind = escape.checks.skillIds.includes(input.checkDefinitionId)
@@ -207,6 +266,7 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
     commandFingerprint: input.commandFingerprint,
     actionLabel: ESCAPE_ACTION_LABEL,
     actorId: holder.actor.id,
+    ...(rescued && { heldActorId: rescued.actorId }),
     activeEffectId: effect.id,
     escapeSourceId: escape.escapeSourceId,
     check: {
@@ -249,6 +309,7 @@ export function completeEncounterEscapeCheckResult(input: {
     occurrenceId: continuation.occurrenceId,
     commandId: context.commandId,
     actorId: context.actorId,
+    ...(context.heldActorId && { heldActorId: context.heldActorId }),
     activeEffectId: context.activeEffectId,
     check: { checkDefinitionId: context.check.checkDefinitionId, dc: context.check.dc },
     d20: evaluated.d20,

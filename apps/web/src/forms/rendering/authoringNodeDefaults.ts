@@ -362,6 +362,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         level: order,
         amount: 1
       }
+    case 'incomingGateSuccessImmunity':
+      return { duration: { durationKind: 'INSTANTANEOUS' } }
     case 'modifierGrant':
       return createModifierGrant(order)
     case 'modifierGrantDomain':

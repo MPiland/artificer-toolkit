@@ -56,8 +56,10 @@ function effect(overrides: Partial<SpatialEffectInstance> = {}): SpatialEffectIn
 function collect(
   input: Omit<
     Parameters<typeof collectSpatialMovementCandidates>[0],
-    'actorIdByTokenId' | 'effects' | 'tokens' | 'movingTokenId' | 'turnSequence'
+    'actorIdByTokenId' | 'effects' | 'grid' | 'tokens' | 'movingTokenId' | 'turnSequence'
   > & {
+    readonly grid?: SceneGrid
+    readonly movingTokenId?: string
     readonly turnSequence?: number
     readonly effects?: readonly SpatialEffectInstance[]
     readonly tokens?: readonly SpatialSceneToken[]
@@ -71,6 +73,7 @@ function collect(
     effects: input.effects ?? [effect()],
     movingTokenId: ids.targetToken,
     tokens: input.tokens ?? [token(ids.targetToken, input.path[0]!.x, input.path[0]!.y)],
+    grid: { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' },
     ...input,
     turnSequence: input.turnSequence ?? 1
   })
@@ -166,6 +169,7 @@ describe('spatial movement candidates', () => {
       const sweep = (unaffectedActorIds: readonly string[]) =>
         collectSpatialMovementCandidates({
           turnSequence: 1,
+          grid: { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' },
           actorIdByTokenId: new Map([
             [ids.sourceToken, ids.sourceActor],
             [ids.targetToken, ids.targetActor]
@@ -384,6 +388,7 @@ describe('spatial movement candidates', () => {
     })
     const candidates = collectSpatialMovementCandidates({
       turnSequence: 1,
+      grid: { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' },
       actorIdByTokenId: new Map([
         [ids.sourceToken, ids.sourceActor],
         [ids.targetToken, ids.targetActor]
@@ -417,6 +422,7 @@ describe('spatial movement candidates', () => {
     })
     const candidates = collectSpatialMovementCandidates({
       turnSequence: 1,
+      grid: { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' },
       actorIdByTokenId: new Map([
         [ids.sourceToken, ids.sourceActor],
         [ids.targetToken, ids.targetActor]
@@ -1476,6 +1482,7 @@ describe('spatial melee retaliation candidates (D153)', () => {
     expect(
       collectSpatialMovementCandidates({
         actorIdByTokenId,
+        grid: { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' },
         effects: [sourceZone()],
         movementKind: 'VOLUNTARY',
         path: [
@@ -1497,5 +1504,148 @@ describe('spatial melee retaliation candidates (D153)', () => {
         turnSequence: 1
       })
     ).toEqual([])
+  })
+})
+
+describe('spatial candidates per distance moved (SPELLS-4.T1h, D156)', () => {
+  const field = effect({
+    distanceStep: 5,
+    geometry: {
+      frame: 'SCENE_ABSOLUTE',
+      shape: {
+        kind: 'POLYGON',
+        points: [
+          { x: 0, y: -30 },
+          { x: 30, y: -30 },
+          { x: 30, y: 30 },
+          { x: 0, y: 30 }
+        ]
+      }
+    },
+    triggerModes: ['ENTER', 'CROSS']
+  })
+  const walk = (to: number, from = 10) => [
+    { x: from, y: 0 },
+    { x: to, y: 0 }
+  ]
+  const steps = (candidates: ReturnType<typeof collect>) =>
+    candidates.map((candidate) => ({ step: candidate.step, x: candidate.contact.x }))
+
+  it('raises one ENTER candidate per whole step the footprint travels inside, where it completes', () => {
+    // The 2-wide footprint first overlaps at x = -1, so the walk to 11 travels 12 inside.
+    const entering = collect({ effects: [field], movementKind: 'VOLUNTARY', path: walk(11, -10) })
+
+    expect(entering.map((candidate) => candidate.trigger)).toEqual(['ENTER', 'ENTER'])
+    expect(steps(entering)).toEqual([
+      { step: 1, x: expect.closeTo(4) },
+      { step: 2, x: expect.closeTo(9) }
+    ])
+  })
+
+  it('counts a move that starts inside, and forced movement alike', () => {
+    for (const movementKind of ['VOLUNTARY', 'FORCED'] as const)
+      expect(steps(collect({ effects: [field], movementKind, path: walk(25) }))).toEqual([
+        { step: 1, x: expect.closeTo(15) },
+        { step: 2, x: expect.closeTo(20) },
+        { step: 3, x: expect.closeTo(25) }
+      ])
+  })
+
+  it('floors a partial step, completing one short of it by at most a tenth of a step', () => {
+    const near = collect({ effects: [field], movementKind: 'VOLUNTARY', path: walk(24.6) })
+    const short = collect({ effects: [field], movementKind: 'VOLUNTARY', path: walk(24.4) })
+
+    expect(steps(near)).toEqual([
+      { step: 1, x: expect.closeTo(15) },
+      { step: 2, x: expect.closeTo(20) },
+      { step: 3, x: expect.closeTo(24.6) }
+    ])
+    expect(short.map((candidate) => candidate.step)).toEqual([1, 2])
+  })
+
+  it('measures steps by the Scene grid, as movement cost does', () => {
+    const equalDiagonals: SceneGrid = {
+      kind: 'SQUARE',
+      cellSize: 1,
+      diagonalPolicy: 'EQUAL',
+      distancePerCell: 1,
+      origin: { x: 0, y: 0 },
+      unit: 'FEET'
+    }
+    const diagonal = collect({
+      effects: [field],
+      grid: equalDiagonals,
+      movementKind: 'VOLUNTARY',
+      path: [
+        { x: 10, y: 0 },
+        { x: 25, y: 15 }
+      ]
+    })
+
+    // 15 diagonal squares cost 15 under equal diagonals, though they span 21.2 in the plane.
+    expect(diagonal.map((candidate) => candidate.step)).toEqual([1, 2, 3])
+  })
+
+  it('raises nothing for a teleport, or for a component that does not act on entering', () => {
+    const exitOnly = { ...field, triggerModes: ['EXIT'] as const }
+
+    expect(collect({ effects: [field], movementKind: 'TELEPORT', path: walk(25) })).toEqual([])
+    expect(collect({ effects: [exitOnly], movementKind: 'VOLUNTARY', path: walk(25) })).toEqual([])
+  })
+
+  it('keeps each step apart from the once-per-movement contact of another zone', () => {
+    const once = effect({ effectId: ids.effectTwo, triggerModes: ['ENTER', 'CROSS'] })
+    const candidates = collect({
+      effects: [field, once],
+      movementKind: 'VOLUNTARY',
+      path: walk(15, -10)
+    })
+
+    expect(
+      candidates.map((candidate) => [candidate.effectId, candidate.trigger, candidate.step])
+    ).toEqual([
+      [ids.effectTwo, 'CROSS', undefined],
+      [ids.effect, 'ENTER', 1],
+      [ids.effect, 'ENTER', 2],
+      [ids.effect, 'ENTER', 3]
+    ])
+  })
+
+  it('counts the distance a moving source zone sweeps over a still creature', () => {
+    const aura = effect({
+      anchorKind: 'TOKEN',
+      distanceStep: 5,
+      geometry: {
+        frame: 'TOKEN_LOCAL',
+        shape: {
+          kind: 'POLYGON',
+          points: [
+            { x: -10, y: -10 },
+            { x: 10, y: -10 },
+            { x: 10, y: 10 },
+            { x: -10, y: 10 }
+          ]
+        }
+      },
+      sourceTokenId: ids.sourceToken,
+      triggerModes: ['ENTER']
+    })
+    const swept = collect({
+      effects: [aura],
+      movingTokenId: ids.sourceToken,
+      movementKind: 'VOLUNTARY',
+      path: walk(19, 0),
+      tokens: [token(ids.sourceToken, 0, 0), token(ids.targetToken, 20, 0)]
+    })
+
+    // The target's footprint is inside once the source is within 11 of it: 10 of the 19 moved.
+    expect(swept).toMatchObject([
+      { sourceMoved: true, step: 1, targetActorId: ids.targetActor },
+      { sourceMoved: true, step: 2, targetActorId: ids.targetActor }
+    ])
+    expect(swept.map((candidate) => candidate.contact.x)).toEqual([
+      expect.closeTo(14),
+      expect.closeTo(19)
+    ])
   })
 })

@@ -14,7 +14,7 @@ import {
   storedRuleExecutionResultDtoSchema
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { MovementReactionTimelineDto } from '@artificer-toolkit/schema/shared/reaction'
-import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
+import type { SceneGrid, SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import {
   collectSpatialMovementCandidates,
   effectiveSpatialGeometry,
@@ -41,6 +41,7 @@ import {
   spatialCandidateEvidence,
   spatialExecutionInput,
   spatialExecutionOutcome,
+  spatialExecutionStopsMovement,
   toSpatialInstances,
   type SpatialD20Roll,
   type SpatialMovementTarget,
@@ -197,6 +198,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   sceneVersion: number
   actorIdByTokenId: ReadonlyMap<string, string>
   sceneTokens: readonly SpatialSceneToken[]
+  /** The Scene's grid, which measures distance moved inside a zone acting per distance moved. */
+  sceneGrid: SceneGrid
   spatialScope: {
     snapshot(): Promise<EncounterSpatialRuleEffectRecord[]>
     lockById(input: { id: string }): Promise<EncounterSpatialRuleEffectRecord | null>
@@ -275,8 +278,9 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     throw new EncounterConflictError('The applied spatial prefix is not a spatial result.')
   const appliedExecutions = appliedPrefix?.executions ?? []
   const appliedStopDistance =
-    appliedExecutions.find((execution) => execution.execution.movementInterruption?.kind === 'STOP')
-      ?.candidate.candidate.pathDistance ?? null
+    appliedExecutions.find((execution) =>
+      spatialExecutionStopsMovement(execution, root.movementKind)
+    )?.candidate.candidate.pathDistance ?? null
   if (
     appliedPrefix &&
     (appliedPrefix.occurrenceId !== input.occurrenceId ||
@@ -328,6 +332,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       effects: toSpatialInstances(effects, input.encounter.actors),
       movementKind: root.movementKind,
       path: root.originalPath,
+      grid: input.sceneGrid,
       tokens: input.sceneTokens,
       movingTokenId: root.tokenId,
       carefully: input.carefully,
@@ -351,6 +356,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       ),
       movementKind: root.movementKind,
       path: root.originalPath,
+      grid: input.sceneGrid,
       tokens: input.sceneTokens,
       movingTokenId: root.tokenId,
       turnSequence: input.encounter.turnSequence
@@ -630,7 +636,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       if (checksumRuleDocument(rebuilt) !== checksumRuleDocument(stored))
         throw new EncounterConflictError('The completed spatial execution cannot be reconstructed.')
       stageExecution({ execution: rebuilt, states, applications, executions })
-      if (rebuilt.execution.movementInterruption?.kind === 'STOP') {
+      if (spatialExecutionStopsMovement(rebuilt, root.movementKind)) {
         stopAtDistance ??= candidate.pathDistance
       }
       continue
@@ -763,7 +769,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       result
     })
     stageExecution({ execution: completed, states, applications, executions })
-    if (completed.execution.movementInterruption?.kind === 'STOP') {
+    if (spatialExecutionStopsMovement(completed, root.movementKind)) {
       stopAtDistance ??= candidate.pathDistance
     }
     if (
@@ -1189,6 +1195,7 @@ function verifyPendingCandidateSelection(input: {
       candidate.effectId !== pending.candidate.effectId ||
       candidate.targetActorId !== pending.candidate.targetActorId ||
       candidate.trigger !== pending.candidate.trigger ||
+      candidate.step !== pending.candidate.step ||
       candidate.pathDistance !== pending.candidate.pathDistance ||
       candidate.sourceMoved !== pending.candidate.sourceMoved ||
       checksumRuleDocument(candidate.contact) !== checksumRuleDocument(pending.candidate.contact) ||

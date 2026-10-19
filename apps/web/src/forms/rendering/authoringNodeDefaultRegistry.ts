@@ -83,6 +83,7 @@ type AuthoringDefaultKind =
   | 'manifestProximityRule'
   | 'measurement'
   | 'measurementScalingBreakpoint'
+  | 'incomingGateSuccessImmunity'
   | 'modifierAttackDecoyArmorClass'
   | 'modifierAttackDecoyThreshold'
   | 'modifierChargeLimitLevel'
@@ -238,6 +239,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestProximityRule: ['manifestProximityRule'],
   measurement: ['measurement', 'shapeMeasurement'],
   measurementScalingBreakpoint: ['rangeScalingBreakpoint', 'shapeMeasurementScalingBreakpoint'],
+  incomingGateSuccessImmunity: ['incomingGateSuccessImmunity'],
   modifierAttackDecoyArmorClass: ['modifierAttackDecoyArmorClass'],
   modifierAttackDecoyThreshold: ['modifierAttackDecoyThreshold'],
   modifierChargeLimitLevel: ['modifierChargeLimitLevel'],

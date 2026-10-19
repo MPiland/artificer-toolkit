@@ -37,12 +37,14 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
-  attackDecoyFor,
-  decoyIsLast,
-  decoyStruck
+  decoyStrikeEffects,
+  type EncounterAttackDecoy,
+  prepareAttackBehindDecoys
 } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { sourceImmunityEffect } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { incomingGateImmunityPlan } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   actionEndedEffects,
@@ -636,7 +638,7 @@ export async function planNativeLiveEncounterAction(
   // The attack is prepared again against a target's facts once a reaction has changed them.
   const prepareAttackAs = (
     targets: typeof movementTargets,
-    attackDecoy: { armorClass: number } | null
+    attackDecoy: EncounterAttackDecoy | null
   ) =>
     prepareEncounterActionMechanics({
       attackDecoy,
@@ -689,20 +691,15 @@ export async function planNativeLiveEncounterAction(
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
-  const prepareAttack = (targets: typeof movementTargets) => prepareAttackAs(targets, null)
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
   const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
-  const unshielded = await prepareAttack(movementTargets)
   // An attack that a decoy of the target intercepts is rolled against the decoy's armor class.
-  const attackDecoy = unshielded.makesAttackRoll
-    ? attackDecoyFor({
-        occurrenceId,
-        effects: activeEffectsByActorId.get(unshielded.target.id) ?? [],
-        scalarValues: unshielded.targetFacts.effectiveScalarValues,
-        abilities: system.abilities
-      })
-    : null
-  const prepared = attackDecoy ? await prepareAttackAs(movementTargets, attackDecoy) : unshielded
+  const prepared = await prepareAttackBehindDecoys({
+    occurrenceId,
+    effects: activeEffectsByActorId.get(targetActorId) ?? [],
+    abilities: system.abilities,
+    prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy)
+  })
   // A spell that takes a list of creatures is not aimed at one.
   if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS')
     throw new LiveSessionDomainRejectionError(422, {
@@ -1037,15 +1034,13 @@ export async function planNativeLiveEncounterAction(
           occurrenceId,
           holderActorId: prepared.target.id,
           holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? [],
+          holderGrantFold:
+            movementTargets.get(prepared.target.id)?.effectiveRulePolicyOutput?.grantFold ?? null,
           attacker: actorTarget,
-          casterSaveDc: async (casterActorId) => {
-            const caster = actors.find((actor) => actor.id === casterActorId)
-            if (!caster) return null
-            const casterTarget = movementTargets.get(caster.id) ?? (await loadTarget(caster))
-            return (
-              casterTarget.effectiveRulePolicyOutput?.derivedStats.spellcasting?.saveDc.effective ??
-              null
-            )
+          attackerCreatureTypeId: snapshotCreatureTypeId(prepared.actor),
+          owner: async (ownerActorId) => {
+            const owner = actors.find((actor) => actor.id === ownerActorId)
+            return owner ? (movementTargets.get(owner.id) ?? (await loadTarget(owner))) : null
           },
           autoRoll: requireAutoRoll(prepared.actor.id),
           passedEffectId:
@@ -1054,7 +1049,7 @@ export async function planNativeLiveEncounterAction(
               : undefined,
           answer: gateAnswer
         })
-      : { kind: 'NONE' as const }
+      : { kind: 'NONE' as const, passed: null }
   /** The ward whose save the attacker has passed, carried by every later pause of this action. */
   const passedIncomingGate =
     gate.kind === 'PASSED'
@@ -1095,8 +1090,13 @@ export async function planNativeLiveEncounterAction(
     const bindings = command.sceneContext ? await capture({ kind: 'ACTOR_TOKEN_BINDINGS' }) : null
     if (bindings && bindings.kind !== 'ACTOR_TOKEN_BINDINGS')
       throw new Error('Retarget bindings are unavailable.')
+    // Only creatures the attacker's own list shows are offered: a hidden creature's id never leaves.
+    const seen = await capture({ kind: 'SEEN_ACTORS' })
+    if (seen.kind !== 'SEEN_ACTORS') throw new Error('Retarget sight is unavailable.')
+    const seenIds = new Set(seen.actorIds)
     const candidates = actors.flatMap((actor): EncounterAttackRetargetCandidate[] => {
       if (actor.id === prepared.actor.id || actor.id === prepared.target.id) return []
+      if (!seenIds.has(actor.id)) return []
       if (!bindings) return [{ actorId: actor.id, tokenId: null }]
       const binding = bindings.bindings.find((entry) => entry.actorId === actor.id)
       return binding ? [{ actorId: actor.id, tokenId: binding.tokenId }] : []
@@ -1220,7 +1220,9 @@ export async function planNativeLiveEncounterAction(
           commandId: command.commandId,
           occurredAt,
           activeEffectsByActorId,
-          prepareAttack,
+          // The answered attack keeps the decoy it was rolled against.
+          prepareAttack: (reactedTargets: typeof movementTargets) =>
+            prepareAttackAs(reactedTargets, prepared.attackDecoy),
           loadTarget
         })
       : null
@@ -1495,8 +1497,7 @@ export async function planNativeLiveEncounterAction(
     resultPath: execution.d20?.resultPath
   })
   // A hit on a decoy destroys it: the last one ends the effect, any other spends a use of it.
-  const decoyStrike = attackDecoy && decoyStruck(execution.d20?.resultPath) ? attackDecoy : null
-  const spentUseGrants = decoyStrike && !decoyIsLast(decoyStrike) ? [decoyStrike.effect] : []
+  const decoyStrike = decoyStrikeEffects(prepared.attackDecoy, execution.d20?.resultPath)
   // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
   // that end on damage; the conditions only they held are released in the target's own batch.
   const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
@@ -1529,6 +1530,34 @@ export async function planNativeLiveEncounterAction(
         basicActionDefinitionId: encounterBasicActionDefinitionId(command.actionId)
       })
     : null
+  // A creature that passed a ward carrying a success immunity (Nature's Sanctuary) leaves that immunity on
+  // the ward's holder with this action, so it is not asked for the save again.
+  const passedWard = gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null
+  const gateImmunity = passedWard?.payload.successImmunity
+    ? incomingGateImmunityPlan({
+        wardId: passedWard.wardId,
+        duration: passedWard.payload.successImmunity.duration
+      })
+    : null
+  if (passedWard?.payload.successImmunity && !gateImmunity)
+    throw new Error('The ward success immunity has no countable duration.')
+  const gateImmunityGrant = gateImmunity
+    ? {
+        id: crypto.randomUUID(),
+        plan: sourceImmunityEffect({
+          ...gateImmunity,
+          origin: {
+            encounterId: state.id,
+            occurrenceId,
+            commandId: command.commandId,
+            sourceActorId: prepared.actor.id
+          },
+          sourceCharacterId: prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null,
+          sourceLabel: `Ward of ${prepared.target.label}`,
+          lifetimeScope: settledPrepared.target.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER'
+        })
+      }
+    : null
   const planned = planNativeEncounterActionMechanics(
     {
       prepared: settledPrepared,
@@ -1549,7 +1578,9 @@ export async function planNativeLiveEncounterAction(
           preparedEffects.recurringEffect !== null ||
           preparedEffects.riderEffect !== null ||
           reactionUse !== null ||
-          targetFailedCounterSpend)
+          targetFailedCounterSpend ||
+          damageEnded.grants.length > 0 ||
+          gateImmunityGrant !== null)
     },
     initial.expectedUserId
   )
@@ -1601,7 +1632,10 @@ export async function planNativeLiveEncounterAction(
       )
         ? reactionUse.applied.reactionEffect
         : null,
-    damageGrants: damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
+    damageGrants: [
+      ...damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
+      ...(gateImmunityGrant ? [gateImmunityGrant] : [])
+    ],
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     attackAction,
@@ -1769,7 +1803,7 @@ export async function planNativeLiveEncounterAction(
     cleaving,
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
-    spentUseGrants,
+    spentUseGrants: decoyStrike.spentUseGrants,
     failedSpends,
     forcedMovements,
     revisions,
@@ -1777,7 +1811,7 @@ export async function planNativeLiveEncounterAction(
     consumedGrants: [
       ...consumedGrants,
       ...hitEnded.consumedGrants,
-      ...(decoyStrike && decoyIsLast(decoyStrike) ? [decoyStrike.effect] : []),
+      ...decoyStrike.endedGrants,
       ...damageEnded.endedEffects,
       ...(actionEnded?.endedEffects ?? [])
     ]

@@ -22,6 +22,7 @@ import {
   SHAPE_KIND_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '#core'
+import { DURATION_NODE_MAP } from '../../shared/maps/duration.js'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
 import { SAVING_THROW_NODE_MAP } from '../../shared/maps/savingThrow.js'
 import { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
@@ -331,6 +332,22 @@ const DAMAGE_DIE_CAST_LEVEL_SCALING_NODE_MAP = damageDieCastLevelScaling.define(
           constraints: { minimum: 1, maximum: MAX_ROLLED_DIE_COUNT }
         })
       )
+  }
+)
+
+const incomingGateSuccessImmunity =
+  buildNodeMap<NonNullable<AllUnionFields<ModifierPayload>['successImmunity']>>()
+
+const INCOMING_GATE_SUCCESS_IMMUNITY_NODE_MAP = incomingGateSuccessImmunity.define(
+  'incomingGateSuccessImmunity',
+  ({ map, nodes }) => {
+    map.set(
+      'duration',
+      nodes.groupObject(['duration'], 'Duration', () => DURATION_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true
+      })
+    )
   }
 )
 
@@ -917,12 +934,53 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'exemptAttackerSenseDefinitionIds',
+        selectMulti(
+          ['exemptAttackerSenseDefinitionIds'],
+          'Attackers Seeing Through These Senses Are Unaffected',
+          {
+            kind: 'DATA',
+            relationship: table('senses', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_DECOYS'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
         'savingThrow',
         groupObject(['savingThrow'], 'Attacker Saving Throw', () => SAVING_THROW_NODE_MAP, {
           presentation: 'inline',
           requiredIf: true,
           showIf: parent.field(['valueDomainCode']).eq('INCOMING_ATTACK_GATE')
         })
+      )
+      .set(
+        'attackerCreatureTypeIds',
+        selectMulti(
+          ['attackerCreatureTypeIds'],
+          'Attacker Creature Types',
+          {
+            kind: 'DATA',
+            relationship: table('creature_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { showIf: parent.field(['valueDomainCode']).eq('INCOMING_ATTACK_GATE') }
+        )
+      )
+      .set(
+        'successImmunity',
+        groupObject(
+          ['successImmunity'],
+          'Success Immunity',
+          () => INCOMING_GATE_SUCCESS_IMMUNITY_NODE_MAP,
+          {
+            presentation: 'inline',
+            showIf: parent.field(['valueDomainCode']).eq('INCOMING_ATTACK_GATE')
+          }
+        )
       )
   }
 )

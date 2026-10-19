@@ -84,6 +84,14 @@ async function plannedMovementThroughZone() {
       autoRoll: AUTO_ROLL,
       sceneId: SCENE_ID,
       sceneVersion: 1,
+      sceneGrid: {
+        kind: 'SQUARE',
+        cellSize: 100,
+        diagonalPolicy: 'EQUAL',
+        distancePerCell: 5,
+        origin: { x: 0, y: 0 },
+        unit: 'FEET'
+      },
       actorIdByTokenId,
       sceneTokens: tokens.map((token) =>
         token.id === GOBLIN_TOKEN_ID ? { ...token, position: START_POINT } : token

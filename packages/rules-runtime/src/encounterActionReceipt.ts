@@ -77,7 +77,7 @@ export function buildEncounterActionStoredExecution(input: {
   >['activeEffectTransitions']
   /** The zones the melee hit set off against the attacker (D153); its commit applies them after the hit. */
   meleeRetaliation?: MeleeRetaliationEvidenceDto | null
-  /** The timed grants the creature target's own passive damage triggers made from this hit. */
+  /** The timed effects the target's own rules made from this action: damage-trigger grants, a passed ward's immunity. */
   grantEffectTransitions?: ReturnType<
     typeof projectNativeActionEffectTransitions
   >['activeEffectTransitions']
@@ -163,6 +163,9 @@ export function buildEncounterActionStoredExecution(input: {
               characterEffectReceipt(transition, input.maintainedState?.id ?? null)
             ),
             reactionEffectTransitions: (input.reactionEffectTransitions ?? []).map((transition) =>
+              characterEffectReceipt(transition, null)
+            ),
+            grantEffectTransitions: (input.grantEffectTransitions ?? []).map((transition) =>
               characterEffectReceipt(transition, null)
             ),
             stateEffectTransitions,

@@ -1,3 +1,4 @@
+import { decoyStrikeEffects } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { activeRuleEffectRecordSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
@@ -43,7 +44,7 @@ import {
   targetEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import { deleteGrants } from './consumedGrantPersistence.js'
+import { deleteGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActor, writeRunActor } from './documents.js'
 import {
@@ -175,7 +176,7 @@ export async function persistEncounterTurnResources(
       throw new Error('Live Session Legendary Action owner is stale.')
     seenOwners.add(ownerId)
     if (evidence.resolution.kind === 'DECLINED') continue
-    const { selectedOptionId, targetActorId, application, attackRoll, castsSpell } =
+    const { selectedOptionId, targetActorId, application, attackRoll, castsSpell, decoyEffectId } =
       evidence.resolution
     const option = evidence.choice.options.find((entry) => entry.optionId === selectedOptionId)
     const target = await readActor(targetActorId)
@@ -249,6 +250,21 @@ export async function persistEncounterTurnResources(
     )
       throw new Error('Live Session Legendary Action source release is stale.')
     await deleteGrants(ctx, consumedGrants)
+    // A hit on the target's decoy destroys it: the last ends the effect, any other spends a use.
+    const decoy =
+      decoyEffectId === undefined
+        ? undefined
+        : (await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))).find(
+            ({ id }) => id === decoyEffectId
+          )
+    if (decoyEffectId !== undefined && !decoy)
+      throw new Error('Live Session Legendary Action decoy is unavailable.')
+    const decoyStrike = decoyStrikeEffects(
+      decoy && { effect: decoy, remaining: decoy.lifecycle.remainingUses ?? 0 },
+      application.d20?.resultPath
+    )
+    await spendEffectUses(ctx, decoyStrike.spentUseGrants)
+    await deleteGrants(ctx, decoyStrike.endedGrants)
     // Damage the action dealt ends the target's effects that end on damage, with the conditions
     // only they held, which the planned target batch already released.
     const targetHeld = (
