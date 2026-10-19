@@ -310,7 +310,8 @@ export async function readNativeLivePointPerception(
     targetSeesAttacker: sight,
     attackerSeesTarget: 'SEES' as const,
     targetSenseLabels: [],
-    attackerSenseLabels: []
+    attackerSenseLabels: [],
+    attackerSenseDefinitionIds: []
   })
   return { actual: perceptionOf(actual), believed: perceptionOf(believed) }
 }

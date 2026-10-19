@@ -1296,6 +1296,7 @@ export async function planNativeLiveEncounterAction(
     holderActorId: prepared.target.id,
     held: targetHeld,
     attacked: prepared.makesAttackRoll,
+    turnActorId: prepared.state.currentActorId,
     applications,
     damagerActorId: prepared.actor.id,
     dispositions

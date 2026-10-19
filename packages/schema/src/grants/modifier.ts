@@ -53,7 +53,9 @@ const attackRollRollModeParamDtoSchema = lazySchema(() =>
 const attacksAgainstParamDtoSchema = lazySchema(() =>
   z.object({
     attackDomain: attackDomainCodeSchema,
-    requiresHolderSeesAttacker: z.boolean()
+    requiresHolderSeesAttacker: z.boolean(),
+    /** System Senses that free an attacker perceiving the holder through one of them (Blur). */
+    exemptAttackerSenseDefinitionIds: z.optional(z.array(postgresUuidSchema))
   })
 )
 

@@ -29,6 +29,7 @@ import {
   record
 } from './character/activeEffectGrantTotals.js'
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
+import { effectEventScope, type EffectEventScope } from './encounterGrantLifetimes.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
 import {
@@ -319,6 +320,10 @@ export type EncounterAttackAgainstContributor = {
   attackDomain: AttackDomainCode
   /** Holds only while the holder can see the attacker (D100). */
   requiresHolderSeesAttacker: boolean
+  /** System Senses through which an attacker that sees the holder is unaffected. */
+  exemptAttackerSenseDefinitionIds: readonly string[]
+  /** The attackers, and the turn, the grant's effect admits. */
+  eventScope: EffectEventScope
   contributor: EncounterRelationshipD20Contributor
 }
 
@@ -328,21 +333,27 @@ export type EncounterAttackAgainstContributor = {
  */
 export function encounterAttackAgainstContributors(
   holderActorId: string,
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>[],
   holderState: EncounterHolderState
 ): EncounterAttackAgainstContributor[] {
-  return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
-    modifiers.flatMap((modifier) => {
-      const { attackDomain, requiresHolderSeesAttacker } = modifier.domain
+  return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) => {
+    const effect = effects.find(({ id }) => id === effectId)
+    const eventScope = effect ? effectEventScope(effect, holderActorId) : null
+    return modifiers.flatMap((modifier) => {
+      const { attackDomain, requiresHolderSeesAttacker, exemptAttackerSenseDefinitionIds } =
+        modifier.domain
       return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
         modifier.valueDomainCode === 'ATTACKS_AGAINST' &&
         attackDomain !== undefined &&
         modifier.scope === 'GLOBAL' &&
+        eventScope !== null &&
         holderStateRestrictionsHold(modifier.restrictions, holderState)
         ? [
             {
               attackDomain,
               requiresHolderSeesAttacker: requiresHolderSeesAttacker === true,
+              exemptAttackerSenseDefinitionIds: exemptAttackerSenseDefinitionIds ?? [],
+              eventScope,
               contributor: activeGrantContributor(
                 effectId,
                 holderActorId,
@@ -353,7 +364,7 @@ export function encounterAttackAgainstContributors(
           ]
         : []
     })
-  )
+  })
 }
 
 /**
