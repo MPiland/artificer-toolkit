@@ -118,7 +118,8 @@ export async function removeAccountPrivateCharacters(ctx: MutationCtx, userId: s
         await effects.deleteCas({
           id: effect.id,
           owner: effect.owner,
-          expectedVersion: effect.version
+          expectedVersion: effect.version,
+          removal: 'REMOVED'
         })
       }
     } else {

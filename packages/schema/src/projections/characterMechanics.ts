@@ -47,6 +47,7 @@ import {
 } from '../shared/ruleExecutionCore.js'
 import {
   activeEffectConsumeEventsSchema,
+  activeEffectOnEndSchema,
   activeEffectEndEventsSchema,
   activeEffectEndTriggersSchema,
   activeGrantConsumeEventsSchema,
@@ -236,7 +237,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             holderEnd: z.nullable(activeGrantHolderEndSchema),
             fromSourceOnly: z.optional(z.literal(true)),
             activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
-            uses: z.optional(activeEffectUsesSchema)
+            uses: z.optional(activeEffectUsesSchema),
+            onEnd: z.optional(activeEffectOnEndSchema)
           })
           .check(
             z.refine(

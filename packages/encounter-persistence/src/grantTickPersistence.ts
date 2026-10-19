@@ -59,7 +59,12 @@ export async function persistEncounterGrantTicks(
   })) {
     const { effect, owner } = tick
     if (tick.kind === 'EXPIRE') {
-      await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+      await store.deleteCas({
+        id: effect.id,
+        owner,
+        expectedVersion: effect.version,
+        removal: 'ENDED'
+      })
       expired.push(effect)
     } else
       await store.updateLifecycleCas({
@@ -121,7 +126,13 @@ export async function persistCarriedEffectResumes(
       const resume = plans.get(effect.id)
       if (!resume) resumed.push(effect)
       else if (resume.kind === 'EXPIRE') {
-        await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+        await store.deleteCas({
+          id: effect.id,
+          owner,
+          expectedVersion: effect.version,
+          // It lapsed on the Campaign clock before this Run: nothing is left to count down.
+          removal: 'REMOVED'
+        })
         expired.push(effect)
       } else
         resumed.push(
@@ -184,7 +195,12 @@ export async function persistEncounterIdleTurnCheck(
     effects: await store.list(owner)
   })
   for (const effect of ended)
-    await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+    await store.deleteCas({
+      id: effect.id,
+      owner,
+      expectedVersion: effect.version,
+      removal: 'ENDED'
+    })
   const marked = encounterRunActorStateSchema.parse({
     ...actor,
     resources: withEncounterActorIdleTurnMark(actor, nextMark)

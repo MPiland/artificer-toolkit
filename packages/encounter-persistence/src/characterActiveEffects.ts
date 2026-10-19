@@ -31,5 +31,10 @@ export async function endCharacterActiveEffect(
   }
   if (effect.maintainedEffectStateId !== null)
     throw new CharacterSheetCommandError('End the Concentration that holds this effect instead.')
-  await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+  await store.deleteCas({
+    id: effect.id,
+    owner,
+    expectedVersion: effect.version,
+    removal: 'ENDED'
+  })
 }

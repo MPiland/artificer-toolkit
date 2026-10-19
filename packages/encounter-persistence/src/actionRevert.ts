@@ -394,7 +394,12 @@ export async function revertLastEncounterAction(
     for (const transition of action.activeEffectTransitions) {
       const effect = await store.findById(owner, transition.activeEffectId)
       if (!effect || !holdsActorForm(effect.definition)) continue
-      await store.deleteCas({ id: effect.id, owner, expectedVersion: transition.afterVersion })
+      await store.deleteCas({
+        id: effect.id,
+        owner,
+        expectedVersion: transition.afterVersion,
+        removal: 'REMOVED'
+      })
       endedFormEffectIds.add(effect.id)
     }
   }
@@ -450,7 +455,8 @@ export async function revertLastEncounterAction(
     await store.deleteCas({
       id: grant.activeEffectId,
       owner: { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: grant.targetActorId },
-      expectedVersion: grant.afterVersion
+      expectedVersion: grant.afterVersion,
+      removal: 'REMOVED'
     })
 
   // Characters: only when their Sheet is exactly the version this action (and its maintenance) left.
@@ -635,13 +641,15 @@ export async function revertLastEncounterAction(
         owner: characterOwnerId
           ? { kind: 'CHARACTER', characterId: characterOwnerId }
           : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: target.id },
-        expectedVersion: effect.afterVersion
+        expectedVersion: effect.afterVersion,
+        removal: 'REMOVED'
       })
     for (const effect of action.stateEffectTransitions)
       await store.deleteCas({
         id: effect.activeEffectId,
         owner: effect.owner,
-        expectedVersion: effect.afterVersion
+        expectedVersion: effect.afterVersion,
+        removal: 'REMOVED'
       })
     const created = action.maintenanceTransition?.createdState
     if (created) createdStates.set(created.id, created)
@@ -657,7 +665,8 @@ export async function revertLastEncounterAction(
       owner: areaRoot.sourceCharacterId
         ? { kind: 'CHARACTER', characterId: areaRoot.sourceCharacterId }
         : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: areaRoot.sourceActorId },
-      expectedVersion: sourceGrant.afterVersion
+      expectedVersion: sourceGrant.afterVersion,
+      removal: 'REMOVED'
     })
   // Every record an area action placed (a zone's own and its bands) leaves the Scene with it,
   // before the state they depend on goes.
@@ -669,7 +678,8 @@ export async function revertLastEncounterAction(
       id: created.id,
       encounterId: state.id,
       ownerActorId: created.sourceActorId,
-      expectedVersion: created.version
+      expectedVersion: created.version,
+      removal: 'REMOVED'
     })
 
   // The source's one spend: its Character resource, item or stow, spell slot, feature charge and allowances.
@@ -1061,7 +1071,12 @@ async function revertConcealmentCheck(
       const effect = await store.findById(owner, created.activeEffectId)
       if (!effect || effect.version !== created.afterVersion)
         unavailable('The concealment changed after this action; adjust manually.')
-      await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+      await store.deleteCas({
+        id: effect.id,
+        owner,
+        expectedVersion: effect.version,
+        removal: 'REMOVED'
+      })
     }
     return
   }

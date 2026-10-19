@@ -50,7 +50,8 @@ const SET_VALUE_DOMAIN_POLARITY: Readonly<
   Partial<Record<ValueDomainCode, { zero?: GrantPolarity; positive?: GrantPolarity }>>
 > = {
   SPEED: { zero: 'HARMFUL', positive: 'BENEFICIAL' },
-  ACTION_COUNT: { positive: 'BENEFICIAL' },
+  ACTION_COUNT: { zero: 'HARMFUL', positive: 'BENEFICIAL' },
+  BONUS_ACTION_COUNT: { zero: 'HARMFUL' },
   WEAPON_DAMAGE_DIE: { positive: 'BENEFICIAL' },
   REACTION_COUNT: { zero: 'HARMFUL' }
 }
@@ -102,6 +103,13 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
         (amount === 0 ? byValue?.zero : amount > 0 ? byValue?.positive : undefined) ?? 'NEUTRAL'
       )
     }
+    case 'MULTIPLY': {
+      if (payload === undefined || !('numerator' in payload)) return 'NEUTRAL'
+      if (domain !== 'SPEED') return 'NEUTRAL'
+      // A speed multiplied below one (Slow, a lethargy's zero) harms; above one (Haste) helps.
+      const ratio = payload.numerator / payload.denominator
+      return ratio < 1 ? 'HARMFUL' : ratio > 1 ? 'BENEFICIAL' : 'NEUTRAL'
+    }
     case 'CAP_VALUE':
       return 'HARMFUL'
     case 'ADD_OPTION':
@@ -127,6 +135,7 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
  * - Setting a value is read by domain and value (D110): speed above zero helps (Fly); speed or
  *   reactions set to zero harms (Shocking Grasp); the Action count set above zero helps (Action
  *   Surge); every other set value is neutral.
+ * - Multiplying speed harms below one (Slow, a lethargy's zero) and helps above one (Haste).
  * - Adding an option follows `OPTION_DOMAIN_POLARITY`; removing one inverts it.
  * - Senses help.
  */

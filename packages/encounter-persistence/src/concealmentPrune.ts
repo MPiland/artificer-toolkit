@@ -51,7 +51,13 @@ async function changeObservers(
       expectedVersion: effect.version,
       lifecycle: concealmentLifecycleFor(effect, after)
     })
-  else await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+  else
+    await store.deleteCas({
+      id: effect.id,
+      owner,
+      expectedVersion: effect.version,
+      removal: 'ENDED'
+    })
   return {
     activeEffectId: effect.id,
     holderActorId: holder.id,

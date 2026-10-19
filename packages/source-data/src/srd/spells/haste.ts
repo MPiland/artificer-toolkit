@@ -1,5 +1,10 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -13,10 +18,19 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
+  VALUE_DOMAIN_CODE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+
+const grant = {
+  grantKind: GRANT_KIND.MODIFIER_GRANT,
+  domain: {},
+  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+  selectionKind: AUTHORING_SELECTION_KIND.GRANTED
+} as const
+
 export const haste: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.HASTE,
@@ -62,17 +76,81 @@ export const haste: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.HASTE, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.HASTE, 0x213, 1),
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            // The wave of lethargy: whenever the spell ends, the target can't move or take actions
+            // until after its next turn.
+            lifecycle: {
+              onEnd: {
+                turns: 1,
+                modifiers: [
+                  {
+                    ...grant,
+                    id: spellChildId(SPELL_IDS.HASTE, 0x215, 1),
+                    valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+                    modifierKind: MODIFIER_KIND.MULTIPLY,
+                    payload: { numerator: 0, denominator: 1 },
+                    order: 1
+                  },
+                  ...[
+                    VALUE_DOMAIN_CODE.ACTION_COUNT,
+                    VALUE_DOMAIN_CODE.BONUS_ACTION_COUNT,
+                    VALUE_DOMAIN_CODE.REACTION_COUNT
+                  ].map((valueDomainCode, index) => ({
+                    ...grant,
+                    id: spellChildId(SPELL_IDS.HASTE, 0x215, index + 2),
+                    valueDomainCode,
+                    modifierKind: MODIFIER_KIND.SET_VALUE,
+                    payload: { amount: 0 },
+                    order: index + 2
+                  }))
+                ]
+              }
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.HASTE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'HASTE' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      ...grant,
+                      id: spellChildId(SPELL_IDS.HASTE, 0x214, 1),
+                      valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+                      modifierKind: MODIFIER_KIND.MULTIPLY,
+                      payload: { numerator: 2, denominator: 1 },
+                      order: 1
+                    },
+                    {
+                      ...grant,
+                      id: spellChildId(SPELL_IDS.HASTE, 0x214, 2),
+                      valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                      modifierKind: MODIFIER_KIND.BONUS,
+                      payload: { valueKind: 'FIXED', amount: 2 },
+                      order: 2
+                    },
+                    {
+                      ...grant,
+                      id: spellChildId(SPELL_IDS.HASTE, 0x214, 3),
+                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                      domain: { ability: ABILITY_CODE.DEXTERITY },
+                      modifierKind: MODIFIER_KIND.ADVANTAGE,
+                      order: 3
+                    }
+                  ]
+                }
+              },
+              {
+                id: spellChildId(SPELL_IDS.HASTE, 0x216, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Use the Additional Action',
+                reasonCode: 'PLAYER_DECLARATION' as const,
+                instructions:
+                  'The target gains an additional action on each of its turns. That action can be used only to take the Attack (one weapon attack only), Dash, Disengage, Hide, or Use an Object action.'
               }
             ]
           }

@@ -613,7 +613,8 @@ describe('native Character rest preview and completion', () => {
       createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).deleteCas({
         id: lateEffectId,
         owner: { kind: 'CHARACTER', characterId: character.id },
-        expectedVersion: lateEffect.version
+        expectedVersion: lateEffect.version,
+        removal: 'ENDED'
       })
     )
     const completed = await owner.caller.mutation(execute, command)

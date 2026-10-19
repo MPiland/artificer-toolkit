@@ -128,8 +128,19 @@ export async function cleanupRemovedActorEffects(
       `${right.owner.kind}:${rightOwner}:${right.createdOrdinal.toString().padStart(10, '0')}:${right.id}`
     )
   })
+  const departing = (await readRunActors(ctx, input.state)).find(({ id }) => id === input.actorId)
+  const heldByDeparting = (owner: StoredEffect['owner']) =>
+    owner.kind === 'CHARACTER'
+      ? departing?.kind === 'CHARACTER' && owner.characterId === departing.sourceId
+      : owner.targetActorId === input.actorId
   for (const effect of orderedEffects)
-    await effects.deleteCas({ id: effect.id, owner: effect.owner, expectedVersion: effect.version })
+    // What the departing actor held leaves with it; what it kept alive on others ends.
+    await effects.deleteCas({
+      id: effect.id,
+      owner: effect.owner,
+      expectedVersion: effect.version,
+      removal: heldByDeparting(effect.owner) ? 'REMOVED' : 'ENDED'
+    })
 
   const terminatedStates: MaintenanceCleanupResult['terminatedStates'] = []
   for (const state of [...states.values()].sort((left, right) =>
@@ -153,7 +164,8 @@ export async function cleanupRemovedActorEffects(
       id: state.id,
       encounterId: input.state.id,
       ownerActorId: state.ownerActorId,
-      expectedVersion: state.version
+      expectedVersion: state.version,
+      removal: 'ENDED'
     })
     terminatedStates.push({
       id: state.id,

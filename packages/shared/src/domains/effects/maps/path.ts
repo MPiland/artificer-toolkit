@@ -217,6 +217,7 @@ const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
 const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleEscape = buildNodeMap<NonNullable<PathLifecycleAuthored['escape']>>()
+const pathLifecycleOnEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['onEnd']>>()
 const pathLifecycleEndTrigger =
   buildNodeMap<NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
@@ -417,6 +418,27 @@ const PATH_LIFECYCLE_ESCAPE_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored[
       )
   })
 
+const PATH_LIFECYCLE_ON_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['onEnd']>> =
+  pathLifecycleOnEnd.define('pathLifecycleOnEnd', ({ map, nodes }) => {
+    const { number, groupArray } = nodes
+
+    map
+      .set(
+        'turns',
+        number(['turns'], 'Holder Turns', {
+          requiredIf: true,
+          constraints: { minimum: 1, maximum: 255 }
+        })
+      )
+      .set(
+        'modifiers',
+        groupArray(['modifiers'], 'Modifier Grants', () => MODIFIER_GRANT_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+  })
+
 const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
 > = pathLifecycleEndTrigger.define(
@@ -580,6 +602,12 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
       .set(
         'escape',
         groupObject(['escape'], 'Escape', () => PATH_LIFECYCLE_ESCAPE_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+      .set(
+        'onEnd',
+        groupObject(['onEnd'], 'When It Ends', () => PATH_LIFECYCLE_ON_END_NODE_MAP, {
           presentation: 'inline'
         })
       )

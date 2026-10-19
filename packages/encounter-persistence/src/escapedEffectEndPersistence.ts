@@ -40,7 +40,12 @@ export async function endEncounterEscapedEffect(
       beforeStreamVersion: row.play.streamVersion
     })
   }
-  await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+  await store.deleteCas({
+    id: effect.id,
+    owner,
+    expectedVersion: effect.version,
+    removal: 'ENDED'
+  })
   const actors = await reconcileNativeMaintenanceOwners(ctx, {
     encounterId: input.encounterId,
     maintenance: { removed: [effect], characterVersions },
