@@ -11170,7 +11170,7 @@
                 "size": 2,
                 "after": ["SPELLS-31.T1", "SPELLS-31.T5l"]
               },
-              "text": "Join SPELLS-4.T2k on ATTACKS_AGAINST: Elusive as a new ADVANTAGE_NEGATED effect (attack rolls against the holder cannot have advantage; disadvantage still applies; gated by the existing CAN_ACT restriction facet), and Escape the Horde as an optional attackOccasion: 'OPPORTUNITY' qualifier fed from the opportunity-attack flow's attack facts. Each conversion has an authoring-parity proof and deletes its kind (D156; split from T4k2 and ruled 2026-10-19).",
+              "text": "Join SPELLS-4.T2k on ATTACKS_AGAINST: Elusive as a new NEGATE_ADVANTAGE kind (attack rolls against the holder cannot have advantage; disadvantage still applies; gated by the existing CAN_ACT restriction facet), and Escape the Horde as an optional attackOccasion: 'OPPORTUNITY' qualifier fed from the opportunity-attack flow's attack facts. Each conversion has an authoring-parity proof and deletes its kind (D156; split from T4k2 and ruled 2026-10-19).",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
