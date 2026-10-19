@@ -12495,7 +12495,7 @@
             },
             {
               "id": "SPELLS-33.T6k2b4a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12505,11 +12505,11 @@
                 "after": ["SPELLS-33.T6k2b3"]
               },
               "text": "new: Whirlwind collision part 5a (D159): switch the Whirlwind to the authored collision block and delete CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION (enum and SRD data) with its authored-from-core-options parity proof, the two-mover landing-order test with actor-id tie-break, and a Whirlwind room journey for mover damage (2026-10-19 split of T6k2b4; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m190 (25c26f858)."
             },
             {
               "id": "SPELLS-33.T6k2b4b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12518,7 +12518,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T6k2b4a"]
               },
-              "text": "new: Whirlwind collision part 5b (D159): the struck creature's Dex save as a second AREA_PENDING hold after the movers land (collision-target entry in context.targets; player rolls their own, creatures server-rolled), damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the sealed-ray room journey moved from T6k2b3 (a RANDOM ray held across the struck save keeps its roll on replan; ruling 2026-10-19) replacing the cast-faked seam test, and the full Whirlwind room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split of T6k2b4; workbook slice-spells-33.md)."
+              "text": "new: Whirlwind collision part 5b (D159): the struck creature's Dex save as a second AREA_PENDING hold after the movers land (collision-target entry in context.targets; player rolls their own, creatures server-rolled), damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the sealed-ray room journey moved from T6k2b3 (a RANDOM ray held across the struck save keeps its roll on replan; ruling 2026-10-19) replacing the cast-faked seam test, and the full Whirlwind room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split of T6k2b4; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6k3",
