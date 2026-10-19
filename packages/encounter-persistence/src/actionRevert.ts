@@ -510,7 +510,7 @@ export async function revertLastEncounterAction(
       updateActor(target.id, { absence: null })
     }
     // A reaction the target used spent its slot and allowance and created its effect with this outcome.
-    const reaction = action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reaction : null
+    const reaction = action.reaction
     if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
       if (target.kind !== 'CHARACTER' || target.sourceId === null)
         throw new Error('Stored Character action target is invalid.')

@@ -366,6 +366,74 @@ export function innateConditionGrants(
   }
 }
 
+/**
+ * Parry: a reaction to a melee attack by an attacker the Creature sees that adds `armorClassBonus` to
+ * its AC against that one attack (used up by it). Its ids run from `base` in the Creature's reactions.
+ */
+export function parryReaction(
+  creatureIndex: number,
+  base: number,
+  armorClassBonus: number
+): EffectAuthored {
+  const pathId = reactionId(creatureIndex, base + 2)
+  return {
+    id: reactionId(creatureIndex, base),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+      reactionTrigger: { kind: 'ATTACKED_SELF', attackRange: 'MELEE', requiresSight: true },
+      range: { id: reactionId(creatureIndex, base + 1), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+    },
+    paths: [
+      {
+        id: pathId,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: `${pathId}__result`,
+          resultKind: 'SINGLE',
+          duration: {
+            id: reactionId(creatureIndex, base + 3),
+            durationKind: DURATION_KIND.ROUND,
+            amount: 1
+          },
+          lifecycle: {
+            turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+            consumeOnFirstEvents: ['ON_ATTACKED']
+          },
+          outcomes: [
+            {
+              id: pathId,
+              effectKind: EFFECT_KIND.APPLY_GRANT,
+              grants: {
+                modifiers: [
+                  {
+                    id: reactionId(creatureIndex, base + 4),
+                    grantKind: GRANT_KIND.MODIFIER_GRANT,
+                    valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                    domain: {},
+                    modifierKind: MODIFIER_KIND.BONUS,
+                    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    payload: { valueKind: 'FIXED', amount: armorClassBonus },
+                    order: 1
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
 /** A breath weapon's cone: a Self area that starts at the creature and catches everyone in it. */
 export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
   return {

@@ -88,6 +88,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 ### Deferred edge cases (watch for in real use)
 
 - **Parry and Heated Body (SPELLS-33.T4k, T4k2):** Parry is offered without checking that the creature wields a melee weapon (a disarmed parrier still parries), and Heated Body triggers on melee hits only, not on a creature touching or grappling the Remorhaz. Both are rare; the GM can decline the reaction or apply the damage by hand.
+- **A Creature reaction that spends a feature resource (SPELLS-33.T4k1):** creature reactions are offered on a hit, but one whose use spends a charge or other feature resource is skipped, because the reaction receipt carries no feature-resource spend. No SRD creature reaction needs one yet; add the spend to the receipt when one is authored.
 
 - **Movement-contact damage (SPELLS-33.T6e4, T6e3b):** damage a creature takes from a zone it moves or is moved into (`encounterSpatialMovementPreparation`, `encounterMovementActionResponse`) does not end its "until it takes damage" effects or create damage-triggered grants; the turn-zone and melee-retaliation roots do. An until-damaged holder being moved into a damaging zone is rare, and the GM can end the effect by hand.
 

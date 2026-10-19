@@ -69,22 +69,19 @@ const OPTIONAL_ON_HIT_KIND_OPTIONS: { code: OptionalOnHitAuthored['kind']; label
 
 const optionalOnHit = buildNodeMap<OptionalOnHitAuthored>()
 
-const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define(
-  'optionalOnHit',
-  ({ map, nodes }) => {
-    const { selectSingle } = nodes
+const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define('optionalOnHit', ({ map, nodes }) => {
+  const { selectSingle } = nodes
 
-    map.set(
-      'kind',
-      selectSingle(
-        ['kind'],
-        'Cost',
-        { kind: 'INLINE_OPTIONS', options: OPTIONAL_ON_HIT_KIND_OPTIONS },
-        { order: 1, requiredIf: true }
-      )
+  map.set(
+    'kind',
+    selectSingle(
+      ['kind'],
+      'Cost',
+      { kind: 'INLINE_OPTIONS', options: OPTIONAL_ON_HIT_KIND_OPTIONS },
+      { order: 1, requiredIf: true }
     )
-  }
-)
+  )
+})
 
 const REACTION_TRIGGER_KIND_OPTIONS: {
   code: ReactionTriggerBindingAuthored['kind']

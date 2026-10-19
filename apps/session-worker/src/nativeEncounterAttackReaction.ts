@@ -208,6 +208,7 @@ export async function applyNativeReactionEffect(input: {
     execution,
     effects,
     reactionEffect: { id: pending.id, plan: effects.recurringEffect },
+    pendingEffect: pending,
     adjustedBinding: adjustedAttack.binding
   }
 }

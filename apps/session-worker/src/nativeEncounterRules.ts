@@ -124,6 +124,7 @@ import {
   withEncounterAppRoll,
   type EncounterEvidenceAnswer
 } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import {
   replayNativeActionLegendaryResistance,
@@ -1430,7 +1431,16 @@ export async function planNativeLiveEncounterAction(
     mechanics,
     effects: preparedEffects,
     recurringEffectId,
-    reactionEffect: reactionUse?.applied.reactionEffect ?? null,
+    // A reaction effect the answered attack uses up (`ON_ATTACKED`: a bonus against that one attack)
+    // applied to its roll alone, so it is never kept.
+    reactionEffect:
+      reactionUse &&
+      !(
+        prepared.makesAttackRoll &&
+        effectsEndedBy([reactionUse.applied.pendingEffect], 'ON_ATTACKED').length
+      )
+        ? reactionUse.applied.reactionEffect
+        : null,
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     attackAction,

@@ -39,14 +39,16 @@ export function discoverTargetedSelfReactionActions(
   reactor: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>,
   castOwnerId: string
 ): readonly Pick<CharacterActionCandidate, 'actionId' | 'effectId'>[] {
-  return characterReactionCandidates(reactor).flatMap(({ actionId, effectId, mechanicFacts: { invocation } }) => {
-    const trigger = invocation.reactionTrigger
-    return invocation.activation?.code === 'REACTION' &&
-      trigger?.kind === 'TARGETED_SELF' &&
-      (!trigger.sourceEffectIds?.length || trigger.sourceEffectIds.includes(castOwnerId))
-      ? [{ actionId, effectId }]
-      : []
-  })
+  return characterReactionCandidates(reactor).flatMap(
+    ({ actionId, effectId, mechanicFacts: { invocation } }) => {
+      const trigger = invocation.reactionTrigger
+      return invocation.activation?.code === 'REACTION' &&
+        trigger?.kind === 'TARGETED_SELF' &&
+        (!trigger.sourceEffectIds?.length || trigger.sourceEffectIds.includes(castOwnerId))
+        ? [{ actionId, effectId }]
+        : []
+    }
+  )
 }
 
 /**

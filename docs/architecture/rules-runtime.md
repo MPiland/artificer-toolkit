@@ -687,7 +687,7 @@ meet Legendary Resistance on the same TEST: that choice exists only for `ON_SAVE
 either an attack path or a save path, and `continueNativeActionAfterTest` rejects an audit carrying both.
 A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REACTION_COUNT SET_VALUE 0`
 grant (D99) all drop the offer through the same discovery as an action. Every eligible reaction is offered
-as a menu (a Character has one reaction a round, so one choice), only Character reactors, and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
+as a menu (a reactor has one reaction a round, so one choice), and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
 every action path (single-target and area) through `refuseActionOutsideItsWindow`, the one admission point it
 shares with `LEGENDARY_WINDOW_ONLY`. Resume admission accepts any option the offer carries
 (`offeredDecisionOptionIds`) and refuses one it does not as stale. Settlement answers the reaction whose use
@@ -697,6 +697,25 @@ button for each; every pin names the same reactor. The reaction's effect id is d
 (`encounterReactionEffectId`, rules-runtime), so replaying the answer mints the same id. A reaction that needs rolls or does not
 create exactly one effect on its reactor is refused as `REACTION_UNSUPPORTED`.
 Decision: D26 is extended to hold the Scene for a pending reaction decision.
+
+#### Creature reactors and `ATTACKED_SELF` qualifiers (current, SPELLS-33.T4k1)
+
+A Creature reactor is discovered the same way (`encounterReactorCandidates`): its reactions are the
+`REACTION`-activated actions its own turn reads through `discoverEncounterFeatureActions`, and its controller
+(the GM unless a player controls it) answers the choice. Its pin and candidate carry no Character
+(`characterId`/`characterStreamVersion` both null), and the receipt is the `ENCOUNTER_ACTOR_MECHANICS_BATCH`
+`reaction` (`encounterActorReactionReceiptDtoSchema`: the reactor's allowance and effects, no slot); commit
+checks the reactor is the batch target, and undo restores the allowance as for a Character. A Creature reaction
+that spends a feature resource is not offered yet.
+
+`ATTACKED_SELF` takes two optional qualifiers: `attackRange: 'MELEE'` admits only a hit whose trigger is an
+installed melee attack trigger (`isInstalledMeleeAttackTrigger`), and `requiresSight` only a hit whose attacker
+the reactor sees, read from the attack's perception (`attackSight.actual.targetSeesAttacker`). Parry is authored
+with both (`parryReaction` in the SRD creature data) and grants an `ARMOR_CLASS` bonus whose lifecycle is
+consumed `ON_ATTACKED`. Such an effect counts against the answered attack's TEST and is never kept when that
+action makes an attack roll (`effectsEndedBy(..., 'ON_ATTACKED')`), so the receipt's `activeEffectTransitions`
+is empty and the next attack sees the original Armor Class. Shield, whose effect lasts the round, is kept as
+before.
 
 #### `SPELL_CAST` (current, REACTION-4.T3b-2; D126)
 
