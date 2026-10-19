@@ -88,6 +88,9 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 ### Deferred edge cases (watch for in real use)
 
 - **Added damage dice on other attack paths (D156, SPELLS-4.T2d):** ON_HIT bonus dice (Divine Favor, Hex, Hunter's Mark, Enlarge) are consumed and added only on the single-target attack path. Early-return branches add no dice, and Reduce's d4 penalty floors damage at 0 rather than 1. Multi-target attack actions with an active rider are uncommon, and the GM adds the die by hand.
+- **Passage edge cases (SPELLS-33.T6k1):** a creature that ends its turn inside an object (Incorporeal Movement) takes no 1d10 force damage, so the GM applies it. The Tiny creature and two-sizes-apart crossings wait on Q26. The drag-route label doesn't show the passage multiplier.
+- **Legendary cast pick (SPELLS-33.T3a6):** a Legendary use of a damage-or-grapple action, such as the Vampire's legendary Unarmed Strike, always runs its first authored option, because the `LEGENDARY_OPTION` command carries no pick. The default is pinned in `creatureCastChoiceDiscovery.test.ts`. The GM can grapple by hand afterwards.
+- **Enthrall's "other than you" exclusion (SPELLS-4.T2k1):** Enthrall's Perception disadvantage also applies when the target tries to perceive the caster. The spell excludes the caster, but players rarely make that check against the enchanter mid-speech.
 - **Per-source immunity after a save (SPELLS-33.T7b):** the immunity granted by a successful save against Dreadful Glare is not tracked per source Mummy, as the stat block words it (see the limitation recorded on the T7b branch). Two Mummies glaring at the same target in one fight is rare.
 
 - **Timed self actions with several outcomes (D156, SPELLS-31.T3b):** the Encounter compiler accepts one outcome per self action, so Empty Body (invisible plus resistance) and Gaze of Two Minds stay MANUAL in play, as their closed rules did. Only an 18th-level monk and one warlock invocation have them, and the GM applies them in a moment.
@@ -290,6 +293,10 @@ The Fear Aura stays an exact CLOSED_RULE. Converting it to a passive zone (SPELL
 ### Margin-of-failure riders on direct saves (D149)
 
 The failure-margin rider is wired only on follow-up saves. Direct-save actions that author one (Medusa, Mummy and Ghost gazes, Homunculus) fail closed at compile until the direct save path learns the same margin node.
+
+### Grapple on an opportunity attack (SPELLS-33 T3a6)
+
+An opportunity attack cannot prompt for a cast choice, so a damage-or-grapple attack (Vampire Spawn Claws, Vampire Unarmed Strike) takes its first authored option, damage. Letting the attacker pick grapple would need a pick on the reaction prompt.
 
 ### Release a grapple to draw (D152)
 

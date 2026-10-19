@@ -275,7 +275,8 @@ export function creatureActor(input: {
             checkTotals: {},
             saveProficiencyBonuses: {},
             resourceAbilityScores: wolf.abilityScores,
-            initiativeAbilityDefinitionId: srdAbilityId('DEXTERITY')
+            initiativeAbilityDefinitionId: srdAbilityId('DEXTERITY'),
+            modifiers: []
           }
     }
   })

@@ -142,7 +142,8 @@ export async function planNativeLiveConcealmentCheckAction(
   const continuation = await startEncounterBasicActionCheck({
     runtime: input.runtime,
     gameSystemId: state.gameSystemId,
-    occurrenceId
+    occurrenceId,
+    addedDice: context.d20.addedDice
   })
   const { autoRoll } = input
   const check: LiveSessionEncounterBasicActionCommitInput['check'] = autoRoll
@@ -157,6 +158,7 @@ export async function planNativeLiveConcealmentCheckAction(
             continuation,
             answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
             rollD20: () => autoRoll(20) + 1,
+            random: autoRoll,
             expectedOccurrenceId: occurrenceId
           }),
           appRollId: null,

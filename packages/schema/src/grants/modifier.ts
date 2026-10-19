@@ -303,6 +303,20 @@ const movementModePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ movementModeId: authoredIdentifierSchema })
 )
 
+/**
+ * Where the holder's voluntary movement may pass: through hostile creatures (any, or only those
+ * larger than itself), ending inside them, through blocking barriers, and what each foot inside a
+ * passed creature or object costs. Several grants combine as a union; the highest multiplier wins.
+ */
+const movementPassagePayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    creatures: z.enum(['NONE', 'ANY', 'LARGER_THAN_SELF']),
+    mayEndInCreature: z.boolean(),
+    blockingBarriers: z.boolean(),
+    costMultiplier: z.union([z.literal(1), z.literal(2)])
+  })
+)
+
 const rangeKindPayloadDtoSchema = lazySchema(() => z.strictObject({ rangeKind: rangeKindSchema }))
 
 const durationSetValuePayloadDtoSchema = lazySchema(() =>
@@ -378,6 +392,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     conditionTypePayloadDtoSchema,
     attributePayloadDtoSchema,
     movementModePayloadDtoSchema,
+    movementPassagePayloadDtoSchema,
     rangeKindPayloadDtoSchema,
     durationSetValuePayloadDtoSchema,
     durationKindPayloadDtoSchema,
@@ -511,6 +526,12 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema),
     buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', optionalAbilityParamDtoSchema),
     buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', optionalAbilityParamDtoSchema),
+    buildModifierGrantVariant(
+      'ABILITY_CHECK',
+      'ADD_BONUS_DIE',
+      optionalAbilityParamDtoSchema,
+      rolledDiePayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'SAVE_DC',
       'BONUS',
@@ -723,6 +744,12 @@ const buildModifierGrantVariants = () =>
       'REMOVE_OPTION',
       emptyDomainDtoSchema,
       movementModePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'MOVEMENT_PASSAGE',
+      'ADD_OPTION',
+      emptyDomainDtoSchema,
+      movementPassagePayloadDtoSchema
     ),
     buildModifierGrantVariant('SENSE_RANGE', 'BONUS', senseParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant(

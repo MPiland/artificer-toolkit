@@ -324,6 +324,7 @@ export async function readEncounterActionChoices(
               triggerCode: action.mechanicFacts.invocation.triggerCode
             })
           const targetPolicy = buildCompiledActionTargetPolicy(action)
+          const castChoice = castChoiceOptions(action.compiledEffect)
           return {
             id: action.actionId,
             label: action.label,
@@ -337,7 +338,12 @@ export async function readEncounterActionChoices(
               : null,
             wieldConflict: null,
             attackSlot: economy.attackSlot,
-            target: encounterActionChoiceTarget(targetPolicy),
+            target: encounterActionChoiceTarget(
+              targetPolicy,
+              null,
+              null,
+              castChoice && { options: castChoice }
+            ),
             warnings: economy.warnings
           }
         })

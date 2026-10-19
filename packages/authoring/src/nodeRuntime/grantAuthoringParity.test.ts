@@ -10,6 +10,7 @@ import { brandingSmite } from '@artificer-toolkit/source-data/srd/spells/brandin
 import { divineFavor } from '@artificer-toolkit/source-data/srd/spells/divine-favor.js'
 import { enlargeReduce } from '@artificer-toolkit/source-data/srd/spells/enlarge-reduce.js'
 import { foresight } from '@artificer-toolkit/source-data/srd/spells/foresight.js'
+import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
 import { slow } from '@artificer-toolkit/source-data/srd/spells/slow.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -24,6 +25,7 @@ describe('a spell authored from core Modifier Grants through the effect node map
     ['Bane', bane],
     ['Bless', bless],
     ['Foresight', foresight],
+    ['Guidance', guidance],
     ['Slow', slow],
     // SPELLS-4.T2d: rolled damage dice, a mark, a hit-consumed die and a cast choice.
     ['Divine Favor', divineFavor],

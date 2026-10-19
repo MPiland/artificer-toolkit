@@ -1,0 +1,124 @@
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { sizeRank, type MovementPassageOption } from '@artificer-toolkit/shared/core'
+
+import { encounterActorEffectiveSize } from './encounterActionEffects.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eAcceptedModifierApplicability,
+  dnd5eModifierApplies
+} from './systems/dnd5e/modifierApplicability.js'
+
+type PassageRelation = MovementPassageOption['creatures']
+
+/**
+ * What an actor's `MOVEMENT_PASSAGE` grants let it move through, combined as one union: the widest
+ * creature relation, ending inside only where a grant allows it, barriers when any grant passes
+ * them, and the highest cost multiplier (D154 then takes the highest of it, terrain and zones).
+ */
+export type EncounterMovementPassage = {
+  readonly throughCreatures: PassageRelation
+  readonly endInCreatures: PassageRelation
+  readonly throughBarriers: boolean
+  readonly costMultiplier: number
+}
+
+const RELATION_RANK: Readonly<Record<PassageRelation, number>> = {
+  NONE: 0,
+  LARGER_THAN_SELF: 1,
+  ANY: 2
+}
+
+const wider = (left: PassageRelation, right: PassageRelation): PassageRelation =>
+  RELATION_RANK[right] > RELATION_RANK[left] ? right : left
+
+const NO_PASSAGE: EncounterMovementPassage = {
+  throughCreatures: 'NONE',
+  endInCreatures: 'NONE',
+  throughBarriers: false,
+  costMultiplier: 1
+}
+
+/** The passage an actor's accepted grant-fold modifiers give it. */
+export function movementPassageOfModifiers(
+  modifiers: readonly CharacterGrantFoldOutput['modifiers'][number][]
+): EncounterMovementPassage {
+  let passage = NO_PASSAGE
+  for (const modifier of modifiers) {
+    const { payload } = modifier
+    if (
+      modifier.valueDomainCode !== 'MOVEMENT_PASSAGE' ||
+      modifier.modifierKind !== 'ADD_OPTION' ||
+      payload === undefined ||
+      !('creatures' in payload) ||
+      !dnd5eModifierApplies(
+        dnd5eAcceptedModifierApplicability(modifier),
+        DND5E_CHARACTER_WIDE_TARGET
+      )
+    )
+      continue
+    passage = {
+      throughCreatures: wider(passage.throughCreatures, payload.creatures),
+      endInCreatures: payload.mayEndInCreature
+        ? wider(passage.endInCreatures, payload.creatures)
+        : passage.endInCreatures,
+      throughBarriers: passage.throughBarriers || payload.blockingBarriers,
+      costMultiplier: Math.max(passage.costMultiplier, payload.costMultiplier)
+    }
+  }
+  return passage
+}
+
+/**
+ * The passage an Encounter actor has now. A Character moves with its policy's grants unless it wears
+ * a creature form, which, like its actions (SPELLS-28.T4d), comes from the form's stat block; a
+ * Creature moves with its folded feature grants.
+ */
+export function encounterActorMovementPassage(
+  actor: EncounterRunActorState,
+  characterPolicy: CharacterRulePolicyOutput | null
+): EncounterMovementPassage {
+  if (actor.kind === 'CHARACTER' && actor.form === null)
+    return movementPassageOfModifiers(characterPolicy?.grantFold.modifiers ?? [])
+  const snapshot = actor.kind === 'CHARACTER' ? actor.form?.snapshot : actor.snapshot
+  const ruleFacts =
+    snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)
+      ? encounterCreatureRuleFactsSnapshotSchema.safeParse(snapshot.ruleFacts)
+      : null
+  return ruleFacts?.success ? movementPassageOfModifiers(ruleFacts.data.modifiers) : NO_PASSAGE
+}
+
+/** Whether a passage relation lets a mover of one size into a creature of another. */
+export function movementPassageAdmits(
+  relation: PassageRelation,
+  moverSize: string | null,
+  blockerSize: string | null
+): boolean {
+  if (relation === 'ANY') return true
+  if (relation === 'NONE') return false
+  const mover = sizeRank(moverSize)
+  const blocker = sizeRank(blockerSize)
+  return mover !== null && blocker !== null && blocker > mover
+}
+
+/**
+ * The mover's passage and every actor's size from the movement targets the move settles with;
+ * a mover without a target (Manual automation) passes nothing.
+ */
+export function encounterMovementPassageFacts(
+  targets: ReadonlyMap<string, Parameters<typeof encounterActorEffectiveSize>[0]>,
+  moverActorId: string | undefined
+): { mover: EncounterMovementPassage; sizeOf: (actorId: string) => string | null } {
+  const mover = moverActorId === undefined ? undefined : targets.get(moverActorId)
+  return {
+    mover: mover
+      ? encounterActorMovementPassage(mover.actor, mover.effectiveRulePolicyOutput)
+      : NO_PASSAGE,
+    sizeOf: (actorId) => {
+      const target = targets.get(actorId)
+      return target ? encounterActorEffectiveSize(target) : null
+    }
+  }
+}

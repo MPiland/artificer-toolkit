@@ -212,7 +212,8 @@ async function setupPassageScene(
     input.path ?? [
       { x: 150, y: 50 },
       { x: 650, y: 50 }
-    ]
+    ],
+    true
   )
   return scene
 }

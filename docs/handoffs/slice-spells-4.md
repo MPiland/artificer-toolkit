@@ -36,6 +36,20 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Proofs: `encounterAddedDiceAttacks.test.ts` (Bless turns a miss into a hit; Bless and Bane together), `encounterActionSaves.test.ts` (Bless saves, Bane fails, advantage keeps one d20 before Bless), `encounterAddedDiceRollRecord.test.ts`, `encounterActiveGrants.test.ts` (keyed facts), `characterDeathSaves.test.ts` (added totals and naturals), `nativeRoomAddedDice.test.ts` (room journey: an entered Bless d4 saves; an app-rolled Bane d4 fails, held and carded as a subtracted term), web `dice.utils.test.ts` and `CampaignTabletopDecisionDrawer.model.test.ts`.
 - Not here: checks, contests, `ON_SAVING_THROW` and the Sheet (T2c2); `MINIMUM_ROLL` (T2c3).
 
+### T2c2 (ability-check dice and Guidance, D156; D156 ruling "T2c2a")
+
+- Scope (orchestrator ruling): ability checks, Guidance and the Sheet. Saves and Resistance moved to **SPELLS-4.T2c2b** (consumption narrowed by ability through one shared seam across every save commit site); `RESISTANCE` stays in `CLOSED_RULE_KIND` until then.
+- Contract: `ABILITY_CHECK` accepts `ADD_BONUS_DIE` (`{count, faces, sign}`, optional `ability`). Guidance is an `APPLY_GRANT` of one d4 on ability checks with `consumeOnFirstEvents: ['ON_ABILITY_CHECK']`; `GUIDANCE` leaves `CLOSED_RULE_KIND`. `grantAuthoringParity` proves it.
+- Consumption narrowing: `effectsEndedBy` takes a `ScopedAbilityCheck` (`{event: 'ON_ABILITY_CHECK', abilityCode}`) and spends only the effects whose ability-check grant applied to that check; a bare `ON_ABILITY_CHECK` never spends a die-bearing effect (a contest rolls no dice yet). Effects with no ability-check grant (Help) are spent whenever they list the event. Regression: `grantLifetimes.test.ts` "effectsEndedBy for an ability check".
+- Encounter: First Aid, Hide/Search and Escape checks (basic-action, concealment, escape) add the die through the D20 added-dice graph (`dnd5eAddedDiceNode` in the basic-check definition) and spend only the dice that applied. The die auto-spends on the first qualifying check.
+- Sheet: an ability or skill roll adds the Character's carried die (`carriedCheckDice`, `createRollRecord` `addedDice`) after advantage keeps one d20, and spends the effect in the same mutation. Proof: `rollsCarriedCheckDice.test.ts` (a carried Guidance effect). Sheet-cast effect creation is Q27 and unchanged.
+- Deferred edge cases (rare, recoverable):
+  - The roller cannot choose to save the die for a later check; it is spent on the first qualifying check.
+  - Contests (passage/contest checks) compute the die (`ContestFacts.addedDice`) but their graphs do not roll it yet; they do not spend a held die.
+  - The attack-roll `ON_ATTACK_ROLL` spend is not narrowed by attack domain or ability.
+  - The Encounter cast-reaction check carries no dice.
+  - A Sheet-consumed die whose Concentration belongs to another caster leaves that caster's Concentration standing.
+
 ### T2a5 (closed rules with existing options, D156 T2 class A)
 
 - True Seeing grants the willing creature it touches truesight, the SRD sense Creatures already use, to 120 feet for 1 hour (`SRD_TRUESIGHT_SENSE_ID`; precise, sees through magical darkness and perceives invisible creatures). Secret doors hidden by magic and seeing into the Ethereal Plane stay description-only. SPELLS-31.T5m (Witch Sight) can reuse the same grant shape. `TRUE_SEEING` leaves `CLOSED_RULE_KIND`.

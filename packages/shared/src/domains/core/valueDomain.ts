@@ -35,6 +35,7 @@ export const VALUE_DOMAIN_CODE = {
   SKILL_MODIFIER: 'SKILL_MODIFIER',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
   MOVEMENT_MODE: 'MOVEMENT_MODE',
+  MOVEMENT_PASSAGE: 'MOVEMENT_PASSAGE',
   SENSE_RANGE: 'SENSE_RANGE',
   SPELL_SLOT_COUNT: 'SPELL_SLOT_COUNT',
   SPELL_SLOT_LEVEL_MAX: 'SPELL_SLOT_LEVEL_MAX',
@@ -164,6 +165,12 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.MOVEMENT_MODE,
     label: 'Movement Mode',
     description: 'A type of movement.'
+  },
+
+  [VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE]: {
+    code: VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE,
+    label: 'Movement Passage',
+    description: 'Moving through hostile creatures and objects.'
   },
 
   [VALUE_DOMAIN_CODE.SENSE_RANGE]: {
@@ -417,6 +424,9 @@ export type ValueDomainParamByCode = {
   // Set-like: movement modes (fly, swim...). Treat as per-mode set, no param needed.
   MOVEMENT_MODE: EmptyObject
 
+  // Passage through creatures and objects: one domain, the payload says what may be passed.
+  MOVEMENT_PASSAGE: EmptyObject
+
   // Sense range is per UUID-backed sense definition.
   SENSE_RANGE: { senseDefinitionId: string }
 
@@ -486,6 +496,17 @@ export type ValueDomainParam<V extends ValueDomainCode> = V extends keyof ValueD
  * - Keep modifier kinds the same.
  */
 
+/**
+ * What a holder's voluntary movement may pass: hostile creatures (any, or only larger ones), ending
+ * inside them, blocking barriers, and the cost multiplier for each foot inside what it passes.
+ */
+export type MovementPassageOption = {
+  creatures: 'NONE' | 'ANY' | 'LARGER_THAN_SELF'
+  mayEndInCreature: boolean
+  blockingBarriers: boolean
+  costMultiplier: 1 | 2
+}
+
 export type ValueDomainOptionPayloadByDomain = {
   /** A reaction's resistance may name the damage type that triggered it instead of a fixed one. */
   DAMAGE_RESISTANCE: { damageTypeId: string } | { damageTypeSource: 'TRIGGER' }
@@ -505,6 +526,8 @@ export type ValueDomainOptionPayloadByDomain = {
 
   // Movement mode is a registry
   MOVEMENT_MODE: { movementModeId: string }
+
+  MOVEMENT_PASSAGE: MovementPassageOption
 
   // Replace option for charge reset should use the actual enum/kind, not a random id
   CHARGE_RESET: { resetKind: ChargeResetKind }

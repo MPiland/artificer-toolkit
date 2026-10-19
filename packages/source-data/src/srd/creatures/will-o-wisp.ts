@@ -123,47 +123,12 @@ export const willOWisp: CreatureAuthored = {
       label: 'Incorporeal Movement',
       description:
         "Incorporeal Movement. The will-o'-wisp can move through other creatures and objects as if they were difficult terrain. It takes 5 (1d10) force damage if it ends its turn inside an object.",
-      effects: [
-        {
-          id: S.actionId(294, 209),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(294, 210), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          paths: [
-            {
-              id: S.actionId(294, 211),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(294, 212),
-                resultKind: 'SEQUENCE',
-                outcomes: [
-                  {
-                    id: S.actionId(294, 213),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('FORCE'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d10'
-                  },
-                  {
-                    id: S.actionId(294, 214),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_INCORPOREAL_MOVEMENT
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
+      grants: S.movementPassageGrants(S.actionId(294, 209), {
+        creatures: 'ANY',
+        mayEndInCreature: false,
+        blockingBarriers: true,
+        costMultiplier: 2
+      }),
       order: 3
     },
     {

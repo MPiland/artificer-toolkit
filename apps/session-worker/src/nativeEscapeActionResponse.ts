@@ -88,6 +88,7 @@ export async function planNativeLiveEscapeResponse(
     continuation,
     answer,
     rollD20: () => executionOptions.random(20) + 1,
+    random: executionOptions.random,
     expectedOccurrenceId: snapshot.occurrenceId
   })
   const { result } = completeEncounterEscapeCheckResult({

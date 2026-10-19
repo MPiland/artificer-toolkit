@@ -434,6 +434,16 @@ describe('VTT scene replay and projection', () => {
     expect(overridden?.senses).toHaveLength(1)
   })
 
+  it('marks a bound token that passes blocking barriers and leaves other tokens unmarked (SPELLS-33.T6k1)', () => {
+    const state = materializeCampaignScene(definition(), ids.scene)
+    const bindings = [{ actorId: ids.user, tokenId: ids.token }]
+    const resolve = (vision: { passesBlockingBarriers?: true }) =>
+      resolveSceneActorVision(state, bindings, [{ actorId: ids.user, senses: [], ...vision }])
+        .tokens[0]
+    expect(resolve({ passesBlockingBarriers: true })?.passesBlockingBarriers).toBe(true)
+    expect(resolve({})).not.toHaveProperty('passesBlockingBarriers')
+  })
+
   it('presents the light the bound actor sheds on its token, in Scene units', () => {
     const state = materializeCampaignScene(definition(), ids.scene)
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'METERS' }
