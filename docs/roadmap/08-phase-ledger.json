@@ -747,7 +747,7 @@
             },
             {
               "id": "PLATFORM-13.T16",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 2,
@@ -757,7 +757,7 @@
                 "after": []
               },
               "text": "Flake: nativeRoomAdmission.test.ts \"renews the authorization lease with one read per half-lease while a member is connected, and not before\" saw 4 authorization reads, expected 3 (line 407), on merge batch ci/merge-m139 c227b16a6 (Tests 39172295228), whose diff does not touch the Worker. Find the timing source (clock vs alarm vs resume ordering), make the test deterministic on the fake clock without weakening the read-count assertion, with a repeat-run proof. Found 2026-10-18.",
-              "activeWorkbook": "docs/handoffs/slice-spells-20.md"
+              "note": "Merged m148 (9fe916fa9)."
             },
             {
               "id": "PLATFORM-13.T17",
@@ -6411,7 +6411,7 @@
             },
             {
               "id": "ATTACK-7.T7b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.5"],
               "wsjf": {
                 "bv": 3,
@@ -6420,7 +6420,8 @@
                 "size": 1,
                 "after": ["ATTACK-7.T7"]
               },
-              "text": "The web route preview prices a grapple drag at single cost because the session projection carries no actor size. Carry each actor's size on the projection so the preview shows the D105 ×2 drag cost (×4 in difficult terrain, no ×2 when the held creature is two or more sizes smaller), from the same pure rule the room uses, with a preview test. Found in T7, 2026-10-18."
+              "text": "The web route preview prices a grapple drag at single cost because the session projection carries no actor size. Carry each actor's size on the projection so the preview shows the D105 ×2 drag cost (×4 in difficult terrain, no ×2 when the held creature is two or more sizes smaller), from the same pure rule the room uses, with a preview test. Found in T7, 2026-10-18.",
+              "activeWorkbook": "docs/handoffs/slice-attack-7.md"
             },
             {
               "id": "ATTACK-7.T8",
@@ -8081,7 +8082,7 @@
               "note": "Merged m135 (6b9eaeefc)."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2a4",
               "wsjf": {
@@ -8092,8 +8093,7 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2a3"]
               },
               "text": "Convert closed rules (D156 T2 split; T2a4 ruling): SEE_INVISIBILITY (new SRD sense perceiving invisible creatures), PLANT_GROWTH (terrain-only zones place without an appear save; Instantaneous zones persist until the GM removes them), SEQUESTER (after T2a3's SEQUENCE capability lands). Parity proof per spell, plus a room test where it shows in combat; each kind deleted. PRODUCE_FLAME moved to T2v, REGENERATE to T2t.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": "Increment landed (See Invisibility, perception senses fix, Plant Growth lastingZoneEntry): ci/spells-4-t2a4 52c0ea36d; batch ci/merge-m128 4ae37ea04 green (Tests 39154431682, Live 39154431693); phase merge 0c9cd2299. Sequester and Plant Growth exclusions remain, after T2a3."
+              "note": "Merged m150 (a0c128739)."
             },
             {
               "status": "DONE",
@@ -11308,7 +11308,7 @@
             },
             {
               "id": "SPELLS-31.T5l",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11318,7 +11318,7 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2a3"]
               },
               "text": "New option (ruling at start): per-target immunity after a save or use; Intimidating Presence, Chains of Carceri. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m149 (097b1e01c)."
             },
             {
               "id": "SPELLS-31.T5m",
@@ -11617,9 +11617,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1"]
+                "after": ["SPELLS-33.T1", "SPELLS-33.T6k1"]
               },
-              "text": "Fold creature feature passive saving throw and skill modifier grants into creature rule facts through the option Characters use, then convert Dark Devotion (cultist, cult fanatic), Death Dog Two-Headed and Knight Brave (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
+              "text": "Fold creature feature passive saving throw and skill modifier grants into creature rule facts through the option Characters use (reusing the creature feature-grant fold SPELLS-33.T6k1 adds), then convert Dark Devotion (cultist, cult fanatic), Death Dog Two-Headed and Knight Brave (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-33.T3a ruling; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T3a3",
@@ -12160,7 +12160,7 @@
             },
             {
               "id": "SPELLS-33.T6k1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12169,7 +12169,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: passage through hostile footprints and objects (also SPELLS-32 Halfling Nimbleness) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: passage through hostile footprints and objects (also SPELLS-32 Halfling Nimbleness) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6k2",

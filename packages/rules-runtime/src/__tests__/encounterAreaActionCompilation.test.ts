@@ -637,7 +637,7 @@ describe('chosen-creature spells in the SRD corpus (SPELLS-26.1)', () => {
 describe('a timed save condition with no authored way to end early (SPELLS-19.T3)', () => {
   // These spells print a repeat save or an early end that is not authored on their effect; compiling
   // them would run the condition to its full duration and drop that rule.
-  it.each(['Hold Monster', 'Dominate Beast', 'Dominate Person', 'Dominate Monster'])(
+  it.each(['Dominate Beast', 'Dominate Person', 'Dominate Monster'])(
     'refuses %s rather than run its condition without the rider the spell prints',
     (label) => {
       expect(() => compile({}, spellEffect(label), 9, 20)).toThrow(
@@ -645,6 +645,10 @@ describe('a timed save condition with no authored way to end early (SPELLS-19.T3
       )
     }
   )
+
+  it('compiles Hold Monster once its printed repeat save is authored (SPELLS-31.T5l)', () => {
+    expect(compile({}, spellEffect('Hold Monster'), 9, 20).plan?.kind).toBe('TEST_OUTCOME')
+  })
 })
 
 describe('hit-point pool area compilation from the SRD (SPELLS-27.T8)', () => {

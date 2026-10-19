@@ -522,6 +522,8 @@ export type EncounterAreaActionPendingContextDto = {
   caughtChecksum: string
   /** Creatures the GM took out of the area while the saves were pending. */
   removedActorIds: string[]
+  /** Creatures the area caught that were immune to this source's use of the action, so took no save (D156). */
+  immuneActorIds?: string[]
   /** The counters reactors attempted and failed against this cast, which the area's commit spends (D127). */
   failedCounters?: EncounterFailedCounterDto[]
   /**
@@ -614,6 +616,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       ),
       caughtChecksum: checksumSchema,
       removedActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      immuneActorIds: z.optional(z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))),
       failedCounters: z.optional(
         z.array(encounterFailedCounterDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       ),
@@ -686,6 +689,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             seenOccurrences.has(target.snapshot.occurrenceId) ||
             (seen.has(target.actorId) && !casterRolls) ||
             value.removedActorIds.includes(target.actorId) ||
+            value.immuneActorIds?.includes(target.actorId) ||
             inner.commandFingerprint !== value.commandFingerprint ||
             inner.initiatorUserId !== value.initiatorUserId ||
             (inner.rollerActorId !== target.actorId && !casterRolls)

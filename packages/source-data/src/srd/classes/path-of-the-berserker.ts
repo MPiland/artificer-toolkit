@@ -3,6 +3,7 @@ import {
   ACTIVATION_CODE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   PATH_CODE,
@@ -14,6 +15,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { conditionTypeId } from '../equipment/shared.js'
 import { closedRuleEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
@@ -134,11 +136,20 @@ export const pathOfTheBerserker: ClassAuthored = {
               resultBlock: {
                 id: `${classRowId(B, 27, 3)}__result`,
                 resultKind: 'SINGLE',
+                // "Frightened of you until the end of your next turn." Extending it with an action and
+                // ending it beyond 60 feet or out of sight are future enhancements (D156).
+                duration: {
+                  id: classRowId(B, 0x90, 1),
+                  durationKind: DURATION_KIND.ROUND,
+                  amount: 1
+                },
+                lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } },
                 outcomes: [
                   {
                     id: classRowId(B, 29, 5),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_INTIMIDATING_PRESENCE
+                    effectKind: EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('FRIGHTENED'),
+                    recordsSource: true
                   }
                 ]
               }
@@ -153,13 +164,13 @@ export const pathOfTheBerserker: ClassAuthored = {
               resultBlock: {
                 id: `${classRowId(B, 28, 3)}__result`,
                 resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(B, 29, 6),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_INTIMIDATING_PRESENCE
-                  }
-                ]
+                // "You can't use this feature on that creature again for 24 hours."
+                duration: {
+                  id: classRowId(B, 0x90, 2),
+                  durationKind: DURATION_KIND.HOUR,
+                  amount: 24
+                },
+                outcomes: [{ id: classRowId(B, 29, 6), effectKind: EFFECT_KIND.SOURCE_IMMUNITY }]
               }
             }
           ]
