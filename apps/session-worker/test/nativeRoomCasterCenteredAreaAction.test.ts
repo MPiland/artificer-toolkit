@@ -1,4 +1,5 @@
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -238,24 +239,10 @@ describe('room radius centered on the caster that leaves a condition (SPELLS-19.
 
 describe('room radius centered on the caster that excludes a creature type (SPELLS-33.T3a3)', () => {
   const cloaker = srdCreatureRecords.find((record) => record.label === 'Cloaker')
-  const moanId = cloaker?.features.find((feature) => feature.label === 'Moan')?.id
-  if (!cloaker || !moanId) throw new Error('The SRD Cloaker must author its Moan.')
-  // The Moan's after-save immunity is still a closed rule until SPELLS-33.T7a, so this caster
-  // moans without its success path.
-  const moaningCloaker = {
-    ...cloaker,
-    features: cloaker.features.map((feature) =>
-      feature.id === moanId
-        ? {
-            ...feature,
-            effects: feature.effects?.map((effect) => ({
-              ...effect,
-              paths: effect.paths.filter(({ pathCode }) => pathCode !== 'ON_SAVE_SUCCESS')
-            }))
-          }
-        : feature
-    )
-  }
+  const moan = cloaker?.features.find((feature) => feature.label === 'Moan')
+  const moanId = moan?.id
+  const moanEffectId = moan?.effects?.[0]?.id
+  if (!cloaker || !moanId || !moanEffectId) throw new Error('The SRD Cloaker must author its Moan.')
 
   /**
    * The Cloaker moans with two Wolves and a second Cloaker beside it, all within its 60 ft, and a
@@ -265,7 +252,7 @@ describe('room radius centered on the caster that excludes a creature type (SPEL
   const moanRoom = () =>
     actionRoom({
       actors: [
-        srdCreatureActor({ id: CASTER_ID, creature: moaningCloaker }),
+        srdCreatureActor({ id: CASTER_ID, creature: cloaker }),
         srdCreatureActor({ id: FIRST_ID, creature: plainWolf }),
         srdCreatureActor({ id: SECOND_ID, creature: plainWolf }),
         srdCreatureActor({ id: THIRD_ID, creature: cloaker }),
@@ -275,7 +262,7 @@ describe('room radius centered on the caster that excludes a creature type (SPEL
       ownerFeatureId: moanId
     })
 
-  it('saves only the Wolves inside, frightens the one that fails, and tells the GM the aberration was unaffected', async () => {
+  it('saves only the Wolves inside, frightens the one that fails, makes the one that succeeds immune, and tells the GM the aberration was unaffected', async () => {
     const room = await moanRoom()
     const stub = room.room.base.stub
     const started = await room.startCasterCenteredAreaAction()
@@ -303,7 +290,26 @@ describe('room radius centered on the caster that excludes a creature type (SPEL
 
     expect(await readPendingActionDecision(stub)).toBeNull()
     const committed = await readRoomHistory(stub)
-    expect(committed.activeEffects.map((effect) => effect.targetActorId)).toEqual([FIRST_ID])
+    // The Wolf that fails is frightened; the one that succeeds is immune to this Cloaker's Moan.
+    expect(
+      committed.activeEffects
+        .map((effect) => {
+          const definition = activeRuleEffectDefinitionDtoSchema.parse(
+            JSON.parse(effect.definitionJson)
+          )
+          const immune =
+            definition.schemaVersion === 2 &&
+            definition.stateContributions.some(
+              (contribution) =>
+                contribution.kind === 'SOURCE_IMMUNITY' && contribution.immuneToId === moanEffectId
+            )
+          return { targetActorId: effect.targetActorId, immune }
+        })
+        .sort((left, right) => left.targetActorId.localeCompare(right.targetActorId))
+    ).toEqual([
+      { targetActorId: FIRST_ID, immune: false },
+      { targetActorId: SECOND_ID, immune: true }
+    ])
     const { roots, children } = areaReceipts(committed)
     expect(roots[0]?.outputs).toMatchObject({ sourceActorId: CASTER_ID, removedActorIds: [] })
     expect(children).toHaveLength(2)

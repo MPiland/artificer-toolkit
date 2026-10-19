@@ -940,7 +940,10 @@ unaffected". A zone refuses the restriction, since its entry saves do not filter
 (excluding aberrations) authors it.
 A save condition with no authored end compiles when it lasts at most one round, since no repeat save or end
 event can fall inside that round. SRD Intimidating Presence (save immunity) and Chains of Carceri (lockout
-and creature types) author it. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
+and creature types) author it, as do the SRD Cloaker's Moan, the Nalfeshnee's Horror Nimbus, and the Frightful
+Presence of the Tarrasque and the 20 adult and ancient dragons (SPELLS-33.T7a). The creature fears share
+`minuteFearSaveEffect` in the source data: Frightened for a minute with a repeat save at the end of each of the
+target's turns. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
 spell access (SPELLS-31.T5t).
 
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the

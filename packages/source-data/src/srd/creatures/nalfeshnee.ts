@@ -1,6 +1,4 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const nalfeshnee: CreatureAuthored = {
   id: S.CREATURE_IDS.NALFESHNEE,
@@ -222,76 +220,7 @@ export const nalfeshnee: CreatureAuthored = {
       description:
         "Horror Nimbus (Recharge 5-6). The nalfeshnee magically emits scintillating, multicolored light. Each creature within 15 feet of the nalfeshnee that can see the light must succeed on a DC 15 Wisdom saving throw or be frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the nalfeshnee's Horror Nimbus for the next 24 hours.",
       effects: [
-        {
-          id: S.actionId(203, 12),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(203, 13),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(203, 14),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(203, 14) + '__result',
-                resultKind: 'SINGLE' as const,
-                duration: {
-                  id: S.actionId(203, 18),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
-                outcomes: [
-                  {
-                    id: S.actionId(203, 14),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED'),
-                    recordsSource: true
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        S.closedRuleEffect({
-          id: S.actionId(203, 504),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            savingThrow: {
-              id: S.actionId(203, 604),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              baseDc: 15
-            },
-            range: {
-              id: S.actionId(203, 605),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 15,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_NALFESHNEE_HORROR_NIMBUS_RECHARGE_5_6
-        })
+        S.minuteFearSaveEffect(203, { localIndex: 2000, dc: 15, reach: { radiusFeet: 15 } })
       ],
       order: 6
     },

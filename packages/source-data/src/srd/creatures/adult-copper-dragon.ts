@@ -1,6 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const adultCopperDragon: CreatureAuthored = {
   id: S.CREATURE_IDS.ADULT_COPPER_DRAGON,
@@ -301,99 +300,11 @@ export const adultCopperDragon: CreatureAuthored = {
       description:
         "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 16 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
       effects: [
-        {
-          id: S.actionId(7, 25),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(7, 601),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              baseDc: 16
-            },
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(7, 26),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(7, 27),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(7, 27) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                duration: {
-                  id: S.actionId(7, 602),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
-                outcomes: [
-                  {
-                    id: S.actionId(7, 603),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED'),
-                    recordsSource: true
-                  },
-                  {
-                    id: S.actionId(7, 604),
-                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
-                    timing: 'TARGET_TURN_END',
-                    savingThrow: {
-                      id: S.actionId(7, 605),
-                      dcMethod: 'FIXED_DC',
-                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-                      baseDc: 16
-                    },
-                    attempts: { kind: 'ONCE', repeatOnFailure: true },
-                    onSuccess: { kind: 'END' },
-                    onFailure: { kind: 'CONTINUE' }
-                  },
-                  {
-                    id: S.actionId(7, 27),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_FRIGHTFUL_PRESENCE
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(7, 606),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${S.actionId(7, 606)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.actionId(7, 607),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_FRIGHTFUL_PRESENCE
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        S.minuteFearSaveEffect(7, {
+          localIndex: 2000,
+          dc: 16,
+          reach: { chosenWithinFeet: 120 }
+        })
       ],
       order: 6
     },
