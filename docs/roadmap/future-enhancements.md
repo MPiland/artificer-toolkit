@@ -93,6 +93,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 - **Choosing when to spend a rolled die (D156, SPELLS-4.T2c):** Guidance and Resistance are used up on the holder's first matching test. The player can't save them for a later roll or decide after seeing the d20. Most Guidance casts happen right before the check they're cast for.
 - **Rolled dice on initiative (D156, SPELLS-4.T2c):** Guidance doesn't apply to initiative, which is a Dexterity check. Using it there is a table trick.
+- **Critical range on damage that is not an attack (D158, SPELLS-31.T5d):** a critical threshold and Brutal Critical's extra dice apply to attack rolls only. A save-based or automatic hit has no d20 to lower, which matches the SRD text.
 - **Added damage dice outside the single-target attack (D156, SPELLS-4.T2d):** Branding Smite ends on the first hit of a single-target attack; area and multi-target attack outcomes don't consume it, and outcome branches that return early add no damage dice. Smites and marks are nearly always used on one weapon attack.
 - **Reduce's damage floor (D156, SPELLS-4.T2d):** a reduced creature's damage floors at 0 (the System floor), where the SRD says 1. It only matters when a 1-damage hit rolls high on the d4.
 - **Bestow Curse's wasted action (D156, SPELLS-4.T2d):** the start-of-turn save that loses the turn's action is a GM ruling. It needs a held effect's turn-start save that repeats every turn and loses that turn's action on a failure. The other curse options resolve on their own.
