@@ -34,6 +34,15 @@ function heldMirrorImage(remaining: number, idSeed = 0xd100): ActiveRuleEffectRe
   return {
     ...planned,
     id: testUuid(idSeed),
+    owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: HOLDER_ID },
+    sourceEncounterId: ENCOUNTER_ID,
+    maintainedEffectStateId: null,
+    createdOrdinal: 1,
+    version: 1,
+    definitionChecksum: 'a'.repeat(64),
+    lifecycleChecksum: 'b'.repeat(64),
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
     lifecycle: { ...planned.lifecycle, remainingUses: remaining }
   }
 }

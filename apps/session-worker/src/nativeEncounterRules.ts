@@ -583,9 +583,9 @@ export async function planNativeLiveEncounterAction(
     loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId })
   }
   // The attack is prepared again against a target's facts once a reaction has changed them.
-  const prepareAttack = (
+  const prepareAttackAs = (
     targets: typeof movementTargets,
-    attackDecoy: { armorClass: number } | null = null
+    attackDecoy: { armorClass: number } | null
   ) =>
     prepareEncounterActionMechanics({
       attackDecoy,
@@ -637,6 +637,7 @@ export async function planNativeLiveEncounterAction(
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
+  const prepareAttack = (targets: typeof movementTargets) => prepareAttackAs(targets, null)
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
   const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
   const unshielded = await prepareAttack(movementTargets)
@@ -649,7 +650,7 @@ export async function planNativeLiveEncounterAction(
         abilities: system.abilities
       })
     : null
-  const prepared = attackDecoy ? await prepareAttack(movementTargets, attackDecoy) : unshielded
+  const prepared = attackDecoy ? await prepareAttackAs(movementTargets, attackDecoy) : unshielded
   // A spell that takes a list of creatures is not aimed at one.
   if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS')
     throw new LiveSessionDomainRejectionError(422, {
@@ -1035,7 +1036,7 @@ export async function planNativeLiveEncounterAction(
           commandId: command.commandId,
           occurredAt,
           activeEffectsByActorId,
-          prepareAttack: (targets) => prepareAttack(targets, attackDecoy),
+          prepareAttack,
           loadTarget
         })
       : null
