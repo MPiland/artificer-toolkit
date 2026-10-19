@@ -120242,6 +120242,7 @@ export declare const api: {
                     id: string;
                     label: string;
                     locked: boolean;
+                    passesBlockingBarriers?: true;
                     position: { x: number; y: number };
                     rotationDegrees: number;
                     senses: Array<{
@@ -120536,6 +120537,7 @@ export declare const api: {
                   id: string;
                   label: string;
                   locked: boolean;
+                  passesBlockingBarriers?: true;
                   position: { x: number; y: number };
                   rotationDegrees: number;
                   senses: Array<{
@@ -120873,6 +120875,7 @@ export declare const api: {
                     id: string;
                     label: string;
                     locked: boolean;
+                    passesBlockingBarriers?: true;
                     position: { x: number; y: number };
                     rotationDegrees: number;
                     senses: Array<{
@@ -121169,6 +121172,7 @@ export declare const api: {
                     id: string;
                     label: string;
                     locked: boolean;
+                    passesBlockingBarriers?: true;
                     position: { x: number; y: number };
                     rotationDegrees: number;
                     senses: Array<{
@@ -121399,6 +121403,7 @@ export declare const api: {
               id: string;
               label: string;
               locked: boolean;
+              passesBlockingBarriers?: true;
               position: { x: number; y: number };
               rotationDegrees: number;
               senses: Array<{
@@ -129807,6 +129812,7 @@ export declare const internal: {
                     id: string;
                     label: string;
                     locked: boolean;
+                    passesBlockingBarriers?: true;
                     position: { x: number; y: number };
                     rotationDegrees: number;
                     senses: Array<{
