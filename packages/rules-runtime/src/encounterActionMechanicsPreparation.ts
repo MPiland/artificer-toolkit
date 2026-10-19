@@ -651,10 +651,7 @@ export async function prepareEncounterActionMechanics<
           dealerActorId: actor.id,
           dealerEffects: sourceFacts.activeEffects,
           targetEffects: targetFacts.activeEffects,
-          attackDomain:
-            attackKind === null
-              ? null
-              : dnd5eAttackModifierDomain(attackKind)
+          attackDomain: attackKind === null ? null : dnd5eAttackModifierDomain(attackKind)
         }),
         // The critical range and extra critical dice the attacker's grants give this attack.
         ...(attackKind === null
