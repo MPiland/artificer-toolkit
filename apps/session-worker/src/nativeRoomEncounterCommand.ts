@@ -49,7 +49,7 @@ export function encounterCommandRefusal(error: unknown): {
 } {
   console.error('T4C2-CAUSE', error instanceof Error ? error.stack : String(error)) // TEMP
   if (error instanceof RetryableCommandError)
-    return { code: 'UNAVAILABLE', message: `T4C2 ${(error as Error).stack ?? String(error)}`.slice(0, 1500) } // TEMP
+    return { code: 'UNAVAILABLE', message: `T4C2 ${(error as Error).stack ?? String(error)}`.slice(0, 900) } // TEMP
   if (!(error instanceof LiveSessionRouteError))
     console.error('Live Session Encounter command failed in the room.', error)
   const status = error instanceof LiveSessionRouteError ? error.status : 0
@@ -62,6 +62,6 @@ export function encounterCommandRefusal(error: unknown): {
   if (status === 503) return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   return {
     code: 'STALE_STATE', // TEMP
-    message: `T4C2 ${(error as Error).stack ?? String(error)}`.slice(0, 1500) // TEMP
+    message: `T4C2 ${(error as Error).stack ?? String(error)}`.slice(0, 900) // TEMP
   }
 }
