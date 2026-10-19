@@ -660,7 +660,11 @@ const characterSpellAccessCandidateSchema = lazySchema(() =>
     attributes: z.array(characterSpellGrantAttributeSchema).check(z.maxLength(16)),
     castAtLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(9))),
     castingAbility: z.nullable(abilityCodeSchema),
-    charge: characterSpellChargeDescriptorSchema
+    charge: characterSpellChargeDescriptorSchema,
+    /** The creature types the grant narrows its casts to (D156); empty for none. */
+    allowedCreatureTypeIds: z._default(z.array(boundedIdentitySchema).check(z.maxLength(100)), []),
+    /** Whether each creature a cast targets is locked out of this grant until the caster's long rest. */
+    perTargetLockout: z._default(booleanSchema, false)
   })
 )
 

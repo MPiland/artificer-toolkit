@@ -27,6 +27,7 @@ import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from './check.js'
 import { concealFromObserversDtoSchema } from './concealFromObservers.js'
 import { detectConcealedDtoSchema } from './detectConcealed.js'
 import { cancelTriggeringEventDtoSchema } from './cancelTriggeringEvent.js'
+import { sourceImmunityDtoSchema } from './sourceImmunity.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
@@ -86,7 +87,8 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
             detectConcealedDtoSchema,
-            cancelTriggeringEventDtoSchema
+            cancelTriggeringEventDtoSchema,
+            sourceImmunityDtoSchema
           ]
         : [
             closedRuleDtoSchema,
@@ -113,7 +115,8 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
             detectConcealedDtoSchema,
-            cancelTriggeringEventDtoSchema
+            cancelTriggeringEventDtoSchema,
+            sourceImmunityDtoSchema
           ]
     )
   )

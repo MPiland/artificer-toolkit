@@ -128,13 +128,9 @@ export const giantFrog: CreatureAuthored = {
                     localIndex: 1,
                     escapeDc: 11,
                     heldAtOnce: 1,
-                    untilEnds: ['RESTRAINED']
-                  }),
-                  {
-                    id: S.actionId(124, 4),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.GIANT_FROG_BITE
-                  }
+                    untilEnds: ['RESTRAINED'],
+                    restrictedActionEffectIds: [S.actionId(124, 1)]
+                  })
                 ]
               }
             }

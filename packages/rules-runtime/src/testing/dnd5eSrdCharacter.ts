@@ -69,7 +69,7 @@ function registryWith(
   }).registry
 }
 
-const srdRegistry = registryWith([], [])
+export const srdRegistry = registryWith([], [])
 
 /** The SRD vocabulary slice that saving-throw projection reads. */
 export const vocabulary = {

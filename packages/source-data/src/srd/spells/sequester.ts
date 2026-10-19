@@ -3,6 +3,7 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
   SUBJECT,
@@ -13,7 +14,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const sequester: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SEQUESTER,
@@ -44,7 +45,7 @@ export const sequester: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       paths: [
@@ -58,11 +59,18 @@ export const sequester: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.SEQUESTER, 0x212, 1) + '__result',
             resultKind: 'SEQUENCE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.SEQUESTER, 0x213, 1),
+              durationKind: DURATION_KIND.UNTIL_DISPELLED
+            },
+            lifecycle: {
+              endOnTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SEQUESTER, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SEQUESTER' as const
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('INVISIBLE')
               },
               {
                 id: spellChildId(SPELL_IDS.SEQUESTER, 0x212, 1),

@@ -315,6 +315,7 @@ export function buildMovementTarget<
       input.includeReactionSources && form === null
         ? buildCharacterSpellCastActions({
             spellCastCandidates: characterFacts.ruleEvaluation.facts.spellCastCandidates,
+            spellAccessCandidates: characterFacts.ruleEvaluation.facts.spellAccessCandidates,
             castableCandidateIds: listCastableSpellCandidateIds({
               character: characterFacts.character,
               ruleEvaluation: {
