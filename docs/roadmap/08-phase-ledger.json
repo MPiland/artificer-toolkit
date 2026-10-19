@@ -11827,7 +11827,7 @@
             },
             {
               "id": "SPELLS-33.T4de",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11837,7 +11837,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2d", "SPELLS-4.T2e"]
               },
               "text": "Invisible Stalker Invisibility, Magic Weapons (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Re-scored 1->3 (2026-10-19 ruling): Magic Weapons wires the creature ATTACK_TRAIT reader through the shared modifier path; Invisibility adds an innate-condition CONDITION option read through one effective-conditions accessor.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m182 (4376f9d46)."
             },
             {
               "id": "SPELLS-33.T4gh",
