@@ -218,9 +218,11 @@ describe('SRD Creature grapple riders (D105)', () => {
       }))
     )
 
-    expect(riders).toHaveLength(28)
+    expect(riders).toHaveLength(30)
     // The SRD prints the Darkmantle's detach DC in a paragraph of its own, so its Crush paragraph
     // reads no rider; it attaches to a creature of any size, with a DC 13 Strength check to detach.
+    // The Vampire Spawn's Claws and the Vampire's Unarmed Strike print "can grapple the target"
+    // without the word "grappled", so their printed rider names no condition; they author GRAPPLED.
     expect(
       riders.filter(({ printed, authored }) => JSON.stringify(printed) !== JSON.stringify(authored))
     ).toEqual([
@@ -228,6 +230,16 @@ describe('SRD Creature grapple riders (D105)', () => {
         name: 'Darkmantle: Crush',
         printed: undefined,
         authored: { dc: 13, conditions: [] }
+      },
+      {
+        name: 'Vampire: Unarmed Strike (Vampire Form Only)',
+        printed: { dc: 18, conditions: [], sizeLimit: undefined },
+        authored: { dc: 18, conditions: ['GRAPPLED'], sizeLimit: undefined }
+      },
+      {
+        name: 'Vampire Spawn: Claws',
+        printed: { dc: 13, conditions: [], sizeLimit: undefined },
+        authored: { dc: 13, conditions: ['GRAPPLED'], sizeLimit: undefined }
       }
     ])
   })
@@ -247,7 +259,7 @@ describe('SRD Creature grapple riders (D105)', () => {
     )
 
     // Every Actor Relationship above but the Cloaker's Bite, which attaches without grappling.
-    expect(grapples).toHaveLength(26)
+    expect(grapples).toHaveLength(28)
     expect(undragged).toEqual([])
   })
 
