@@ -719,7 +719,7 @@
             },
             {
               "id": "PLATFORM-13.T14",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
                 "bv": 2,
@@ -728,11 +728,12 @@
                 "size": 1,
                 "after": []
               },
-              "text": "Lint changed-files format check flagged docs/roadmap/08-phase-ledger.json on ci/platform-13-t4, whose own diff touched only tests.yml, and the tests auto-fix reformatted the whole ledger (fa3f5f0bb). Find why formatChanged.mjs or the Lint job sees an unchanged file (merge-base vs tip, or a slice commit that rewrote it), fix the cause, with a regression test. Found 2026-10-18."
+              "text": "Lint changed-files format check flagged docs/roadmap/08-phase-ledger.json on ci/platform-13-t4, whose own diff touched only tests.yml, and the tests auto-fix reformatted the whole ledger (fa3f5f0bb). Find why formatChanged.mjs or the Lint job sees an unchanged file (merge-base vs tip, or a slice commit that rewrote it), fix the cause, with a regression test. Found 2026-10-18.",
+              "note": "Merged by hand f78c5d437 (workflow change). Cause: slice commit 22b554967 really rewrote the ledger and the auto-fix hid it; ledgerUntouched.mjs now fails such a slice and gates the auto-fix."
             },
             {
               "id": "PLATFORM-13.T15",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
                 "bv": 2,
@@ -741,7 +742,8 @@
                 "size": 2,
                 "after": ["PLATFORM-13.T4"]
               },
-              "text": "CI wall under 10 min with no added jobs, first lever: web unit maxWorkers 50% to 3, still isolated. Gate: three clean full dispatches, no timeout raised. isolate:false was rejected 2026-10-18 (42 files leak mock and module state; the hygiene migration is in future-enhancements). Hosting test shards inside typecheck jobs was rejected because it couples type-error cancellation to test failures. The Convex lever is T17."
+              "text": "CI wall under 10 min with no added jobs, first lever: web unit maxWorkers 50% to 3, still isolated. Gate: three clean full dispatches, no timeout raised. isolate:false was rejected 2026-10-18 (42 files leak mock and module state; the hygiene migration is in future-enhancements). Hosting test shards inside typecheck jobs was rejected because it couples type-error cancellation to test failures. The Convex lever is T17.",
+              "note": "Merged by hand 57b80707f (workflow change). isolate:false rejected (42 files leak); maxWorkers 3 clean 3 of 3 but not faster (426-574 s vs 340-553 s), so the config stays at 50%; a web_workers dispatch input remains for trials."
             },
             {
               "id": "PLATFORM-13.T16",
@@ -759,7 +761,7 @@
             },
             {
               "id": "PLATFORM-13.T17",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-13.3"],
               "wsjf": {
                 "bv": 3,
