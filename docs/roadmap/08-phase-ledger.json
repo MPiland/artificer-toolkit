@@ -11199,8 +11199,21 @@
                 "size": 3,
                 "after": ["SPELLS-31.T4k2a", "SPELLS-4.T2k3b"]
               },
-              "text": "Join SPELLS-4.T2k on INCOMING_ATTACK_GATE. Gate runtime: accept a holder-owned passive grant with the holder as the DC owner, and dcMethod DERIVED_DC for that holder. Nature's Sanctuary: optional attackerCreatureTypeIds; on a failed save the attacker picks another target through T2k3b's ATTACK_RETARGET or the attack misses; optional successImmunity {duration} reusing T5l SOURCE_IMMUNITY (24 h). Tranquility: the existing long-rest event also works as an invocation trigger (one event, no second rest hook); when it fires, the old effect's ON_LONG_REST end runs before the new invocation; Sanctuary-style endOnTriggers. Each conversion has an authoring-parity proof and deletes its kind (D156; split from T4k2 and ruled 2026-10-19).",
+              "text": "Join SPELLS-4.T2k on INCOMING_ATTACK_GATE. Gate runtime: accept a holder-owned passive grant with the holder as the DC owner, and dcMethod DERIVED_DC for that holder. Nature's Sanctuary: optional attackerCreatureTypeIds; on a failed save the attacker picks another target through T2k3b's ATTACK_RETARGET or the attack misses; optional successImmunity {duration} reusing T5l SOURCE_IMMUNITY (24 h). Tranquility: the existing long-rest event also works as an invocation trigger (one event, no second rest hook); when it fires, the old effect's ON_LONG_REST end runs before the new invocation; Sanctuary-style endOnTriggers. Each conversion has an authoring-parity proof and deletes its kind (D156; split from T4k2 and ruled 2026-10-19). Rulings 2026-10-19: Tranquility adds LONG_REST_FINISHED to TRIGGER, fired only from the COMPLETE_REST site after the ON_LONG_REST ends (ordering test); runtime successImmunity split to T4k2c (field accepted, inert until then).",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T4k2c",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T4k2b"]
+              },
+              "text": "new (split from T4k2b, 2026-10-19): Nature's Sanctuary successImmunity at runtime. Extend the Character-target action receipt (CHARACTER_MECHANICS_BATCH) with grantEffectTransitions, classifyCreatedEffects and its checksums, and revert, so a successful save persists a 24h SOURCE_IMMUNITY Active Rule Effect (T5l) with a frozen graph; the attacker then stops re-saving."
             },
             {
               "id": "SPELLS-31.T4l1",
@@ -12512,7 +12525,7 @@
             },
             {
               "id": "SPELLS-33.T6k2b4b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12522,7 +12535,7 @@
                 "after": ["SPELLS-33.T6k2b4a"]
               },
               "text": "new: Whirlwind collision part 5b (D159): the struck creature's Dex save as a second AREA_PENDING hold after the movers land (collision-target entry in context.targets; player rolls their own, creatures server-rolled), damage and PRONE, GM target-removal and caught-checksum fences, replay/revert, the sealed-ray room journey moved from T6k2b3 (a RANDOM ray held across the struck save keeps its roll on replan; ruling 2026-10-19) replacing the cast-faked seam test, and the full Whirlwind room journey; Legendary Resistance only if the generic save path does not already give it (2026-10-19 split of T6k2b4; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m195 (77e5e098e)."
             },
             {
               "id": "SPELLS-33.T6k3",
