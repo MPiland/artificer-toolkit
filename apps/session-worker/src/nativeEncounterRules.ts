@@ -41,7 +41,9 @@ import {
   prepareAttackBehindDecoys
 } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { sourceImmunityEffect } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { incomingGateImmunityPlan } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   actionEndedEffects,
@@ -1045,7 +1047,7 @@ export async function planNativeLiveEncounterAction(
               : undefined,
           answer: gateAnswer
         })
-      : { kind: 'NONE' as const }
+      : { kind: 'NONE' as const, passed: null }
   /** The ward whose save the attacker has passed, carried by every later pause of this action. */
   const passedIncomingGate =
     gate.kind === 'PASSED'
@@ -1526,6 +1528,34 @@ export async function planNativeLiveEncounterAction(
         basicActionDefinitionId: encounterBasicActionDefinitionId(command.actionId)
       })
     : null
+  // A creature that passed a ward carrying a success immunity (Nature's Sanctuary) leaves that immunity on
+  // the ward's holder with this action, so it is not asked for the save again.
+  const passedWard = gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null
+  const gateImmunity = passedWard?.payload.successImmunity
+    ? incomingGateImmunityPlan({
+        wardId: passedWard.wardId,
+        duration: passedWard.payload.successImmunity.duration
+      })
+    : null
+  if (passedWard?.payload.successImmunity && !gateImmunity)
+    throw new Error('The ward success immunity has no countable duration.')
+  const gateImmunityGrant = gateImmunity
+    ? {
+        id: crypto.randomUUID(),
+        plan: sourceImmunityEffect({
+          ...gateImmunity,
+          origin: {
+            encounterId: state.id,
+            occurrenceId,
+            commandId: command.commandId,
+            sourceActorId: prepared.actor.id
+          },
+          sourceCharacterId: prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null,
+          sourceLabel: `Ward of ${prepared.target.label}`,
+          lifetimeScope: settledPrepared.target.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER'
+        })
+      }
+    : null
   const planned = planNativeEncounterActionMechanics(
     {
       prepared: settledPrepared,
@@ -1546,7 +1576,9 @@ export async function planNativeLiveEncounterAction(
           preparedEffects.recurringEffect !== null ||
           preparedEffects.riderEffect !== null ||
           reactionUse !== null ||
-          targetFailedCounterSpend)
+          targetFailedCounterSpend ||
+          damageEnded.grants.length > 0 ||
+          gateImmunityGrant !== null)
     },
     initial.expectedUserId
   )
@@ -1598,7 +1630,10 @@ export async function planNativeLiveEncounterAction(
       )
         ? reactionUse.applied.reactionEffect
         : null,
-    damageGrants: damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
+    damageGrants: [
+      ...damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
+      ...(gateImmunityGrant ? [gateImmunityGrant] : [])
+    ],
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     attackAction,

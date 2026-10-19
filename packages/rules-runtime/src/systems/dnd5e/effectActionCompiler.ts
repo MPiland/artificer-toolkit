@@ -1188,7 +1188,7 @@ function sequentialCompositionPlan(
     return {
       ...grantPlan,
       ...(temporary && { ownsTemporaryHitPoints: true }),
-      frozenGraph: durationPublishedGraph({ action, plan: grantPlan })
+      frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan: grantPlan })
     }
   }
   const { outcome, lifecycle, duration } = recurring
@@ -2339,7 +2339,10 @@ function sourceImmunityPlan(
       appliesTo: 'EVERY_TARGET',
       immuneToId: lockout.grantId,
       initialRemaining: null,
-      frozenGraph: durationPublishedGraph({ action, plan: { ...plan, marginRider: null } })
+      frozenGraph: durationPublishedGraph({
+        effectId: action.effectId,
+        plan: { ...plan, marginRider: null }
+      })
     }
   }
   if (!entry) return null
@@ -2363,7 +2366,34 @@ function sourceImmunityPlan(
     appliesTo: 'SAVE_SUCCESS',
     immuneToId: action.effectId,
     initialRemaining,
-    frozenGraph: durationPublishedGraph({ action, plan: { ...plan, marginRider: null } })
+    frozenGraph: durationPublishedGraph({
+      effectId: action.effectId,
+      plan: { ...plan, marginRider: null }
+    })
+  }
+}
+
+/**
+ * The immunity a creature that passes a holder's ward leaves on that holder (Nature's Sanctuary, "immune
+ * to this effect for 24 hours"), keyed by the ward's grant. Null when the duration cannot be counted.
+ */
+export function incomingGateImmunityPlan(input: { wardId: string; duration: CompiledDuration }) {
+  const initialRemaining = conditionDurationTurns(input.duration)
+  if (initialRemaining === null || !UUID.test(input.wardId)) return null
+  const plan = { compiledEntryId: input.wardId, frozenGraphNodeId: 'source-immunity' }
+  return {
+    authoredEffectId: input.wardId,
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    immunity: {
+      ...plan,
+      appliesTo: 'SAVE_SUCCESS' as const,
+      immuneToId: input.wardId,
+      initialRemaining,
+      frozenGraph: durationPublishedGraph({
+        effectId: input.wardId,
+        plan: { ...plan, marginRider: null }
+      })
+    }
   }
 }
 
@@ -2872,7 +2902,7 @@ function concealmentPlan(
  * tick it through the turn-effect kernel; a grant is counted by the grant tick planner instead.
  */
 function durationPublishedGraph(input: {
-  action: Dnd5eCompiledEffectActionSource
+  effectId: string
   plan: Pick<
     CharacterRuleActionActiveEffectPlan,
     | 'compiledEntryId'
@@ -2892,7 +2922,7 @@ function durationPublishedGraph(input: {
   } = input.plan
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
-    id: input.action.effectId,
+    id: input.effectId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [input.plan.frozenGraphNodeId, input.plan.marginRider?.frozenGraphNodeId].flatMap(
@@ -3150,7 +3180,7 @@ function lastingZoneEntry(
     marginRider: null
   }
   return {
-    entry: { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) },
+    entry: { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) },
     grant: null,
     maintenance: maintenancePlan(action, entry)
   }
@@ -3450,7 +3480,7 @@ function sourceGrantPlan(
 ): CharacterRuleActionActiveEffectPlan {
   const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
   if (!plan) unsupported('A zone’s placer holds a timed modifier grant.')
-  return { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) }
+  return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
 }
 
 /**
@@ -9818,7 +9848,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
     if (!plan?.modifierGrantContribution)
       unsupported('D&D passive damage trigger must give a timed modifier grant.')
-    return { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) }
+    return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
   },
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
@@ -9868,7 +9898,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const frozenGraph = repeatPlan
       ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
       : timedPlan
-        ? durationPublishedGraph({ action, plan: timedPlan })
+        ? durationPublishedGraph({ effectId: action.effectId, plan: timedPlan })
         : relationship
           ? relationship.frozenGraph
           : published

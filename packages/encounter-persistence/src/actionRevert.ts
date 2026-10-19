@@ -628,7 +628,7 @@ export async function revertLastEncounterAction(
       ...action.activeEffectTransitions,
       ...(reaction?.activeEffectTransitions ?? []),
       ...(action.kind === 'CHARACTER_MECHANICS_BATCH' ? action.reactionEffectTransitions : []),
-      ...(action.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? action.grantEffectTransitions : [])
+      ...action.grantEffectTransitions
     ].filter(({ activeEffectId }) => !endedFormEffectIds.has(activeEffectId)))
       await store.deleteCas({
         id: effect.activeEffectId,

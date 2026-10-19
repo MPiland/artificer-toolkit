@@ -120,6 +120,11 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         z.array(characterActiveEffectCreateReceiptDtoSchema).check(z.maxLength(1)),
         []
       ),
+      /** Timed effects the target's own rules created on it from this action (a successful attacker's immunity to its ward); undo deletes them. */
+      grantEffectTransitions: z._default(
+        z.array(characterActiveEffectCreateReceiptDtoSchema).check(z.maxLength(4)),
+        []
+      ),
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
       d20: z.nullable(serverRuleExecutionD20EvidenceDtoSchema),
       nestedD20: z._default(z.nullable(serverRuleExecutionNestedD20EvidenceDtoSchema), null),
@@ -498,7 +503,9 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             message: 'Item consumption must match the source Character.'
           })
         const hasActiveEffectCreation =
-          value.activeEffectTransitions.length > 0 || value.reactionEffectTransitions.length > 0
+          value.activeEffectTransitions.length > 0 ||
+          value.reactionEffectTransitions.length > 0 ||
+          value.grantEffectTransitions.length > 0
         const reaction = value.reaction
         const release = value.targetItemUseStateTransition
         if (
