@@ -120,7 +120,7 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
         }
       | {
           kind?: typeof EFFECT_INVOCATION_KIND.ACTION
-          triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK'>
+          triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK' | 'INCOMING_DAMAGE'>
           activation: ActivationAuthored
           resourceUse?: ResourceUseAuthored
           range: RangeAuthored
