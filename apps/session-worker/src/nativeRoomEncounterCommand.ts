@@ -47,6 +47,7 @@ export function encounterCommandRefusal(error: unknown): {
   code: LiveSessionCommandRejectionCodeDto
   message: string
 } {
+  console.error('T4C2-CAUSE', error instanceof Error ? error.stack : String(error)) // TEMP
   if (error instanceof RetryableCommandError)
     return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   if (!(error instanceof LiveSessionRouteError))
