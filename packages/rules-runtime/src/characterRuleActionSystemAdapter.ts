@@ -107,6 +107,10 @@ export interface CharacterRuleActionActiveEffectPlan {
     endOnConditionIds: readonly string[]
     /** The activation its holder pays to end the grant by choice, or null when only the GM can. */
     holderEnd: ActiveGrantHolderEnd | null
+    /** Only the effect's source meets its attacker grants and attack consume. */
+    fromSourceOnly?: true
+    /** The grant is active only during its tick anchor's turn while one tick remains. */
+    activeOnlyOnFinalAnchorTurn?: true
   }
   /**
    * A successful check makes the holder's location unknown to the observers that fail to notice it

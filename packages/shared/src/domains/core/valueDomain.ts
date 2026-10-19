@@ -350,12 +350,22 @@ export type ValueDomainParamByCode = {
    * ────────────────────────────────────────────── */
 
   // Attack bonus is usually different for melee/ranged/spell/unarmed. Only advantage and
-  // disadvantage may name the `ability` the attack is made with (Weakening Breath's Strength).
-  ATTACK_ROLL: { attackDomain: AttackDomainCode; ability?: AbilityCode }
+  // disadvantage may name the `ability` the attack is made with (Weakening Breath's Strength), or
+  // hold only for attacks against the effect's source (`againstEffectSource`, Bestow Curse).
+  ATTACK_ROLL: {
+    attackDomain: AttackDomainCode
+    ability?: AbilityCode
+    againstEffectSource?: boolean
+  }
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
-  // holder can see (D100).
-  ATTACKS_AGAINST: { attackDomain: AttackDomainCode; requiresHolderSeesAttacker: boolean }
+  // holder can see (D100), and `exemptAttackerSenseDefinitionIds` excludes attackers that see the
+  // holder through one of those System Senses (Blur's Blindsight and Truesight).
+  ATTACKS_AGAINST: {
+    attackDomain: AttackDomainCode
+    requiresHolderSeesAttacker: boolean
+    exemptAttackerSenseDefinitionIds?: string[]
+  }
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject

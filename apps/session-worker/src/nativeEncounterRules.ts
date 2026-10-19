@@ -41,6 +41,7 @@ import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
   actsAgainstEnemy,
+  attackHitEndedEffects,
   targetEndedEffects,
   withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -1276,6 +1277,16 @@ export async function planNativeLiveEncounterAction(
       })
     : execution.applications
   const applications = [...castApplications, ...preparedEffects.relationshipConditionApplications]
+  // A hit uses up the attacker's grants consumed on hitting, after they added to its damage.
+  const hitEnded = attackHitEndedEffects({
+    holderActorId: prepared.actor.id,
+    held: (activeEffectsByActorId.get(prepared.actor.id) ?? []).filter(
+      ({ id }) =>
+        !consumedGrants.some((ended) => ended.id === id) &&
+        !maintenance?.removed.some((removed) => removed.id === id)
+    ),
+    resultPath: execution.d20?.resultPath
+  })
   // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
   // that end on damage; the conditions only they held are released in the target's own batch.
   const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
@@ -1285,6 +1296,7 @@ export async function planNativeLiveEncounterAction(
     holderActorId: prepared.target.id,
     held: targetHeld,
     attacked: prepared.makesAttackRoll,
+    turnActorId: prepared.state.currentActorId,
     applications,
     damagerActorId: prepared.actor.id,
     dispositions
@@ -1308,7 +1320,7 @@ export async function planNativeLiveEncounterAction(
       commandId: command.commandId,
       occurredAt,
       applications,
-      sourceReleases,
+      sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
       targetReleases: reactionEnded?.sourceReleases,
       damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
       forceTargetVersionAdvance:
@@ -1532,6 +1544,7 @@ export async function planNativeLiveEncounterAction(
     // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.
     consumedGrants: [
       ...consumedGrants,
+      ...hitEnded.consumedGrants,
       ...damageEnded.endedEffects,
       ...(actionEnded?.endedEffects ?? [])
     ]

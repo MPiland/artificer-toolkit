@@ -128,6 +128,11 @@ import {
   derivedAddedDice,
   requireDnd5eAddedDiceTotal
 } from './d20AddedDiceGraph.js'
+import {
+  damageAddedDiceDtoSchema,
+  damageAddedDieNodePrefix,
+  type DamageAddedDieDto
+} from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { dnd5eConcentrationCapabilityContribution } from './concentrationPolicy.js'
 import { dnd5eEncounterLifecycleCapabilityContribution } from './encounterLifecyclePolicy.js'
 import { dnd5eInitiativeCapabilityContribution } from './initiativeFactAdapter.js'
@@ -169,6 +174,7 @@ const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
 const DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.scalar-reduction-proposal'
 export const DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY = 'dnd5e.forced-movement-proposal'
 const DND5E_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.damage-total'
+const DND5E_DAMAGE_REDUCTION_OPERATION_KEY = 'dnd5e.damage-reduction'
 const DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.save-damage-total'
 const DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY = 'dnd5e.damage-multiplier'
 const DND5E_HEAL_TOTAL_OPERATION_KEY = 'dnd5e.heal-total'
@@ -244,6 +250,8 @@ const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
 const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
 /** The once-per-turn uses already spent this turn (a JSON array of usage keys); absent when no record was read. */
 const DND5E_ATTACK_TURN_USES_FACT_KEY = 'dnd5e.attack-turn-uses'
+/** The dice active grants add to, or take from, this source's damage to this target (D156). */
+const DND5E_DAMAGE_ADDED_DICE_FACT_KEY = 'dnd5e.damage-added-dice'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -424,6 +432,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   targetCreatureTypeId?: string
   attackEnemyProximity?: Dnd5eEnemyProximity
   attackTurnUses?: readonly string[]
+  damageAddedDice?: readonly DamageAddedDieDto[]
   /** By how much the completed saving throw fell short of its DC. */
   saveFailedBy?: number
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
@@ -476,6 +485,7 @@ function dndScalingFactsFromRuleValues(
         : undefined,
     attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
     attackTurnUses: parseTurnUses(facts[DND5E_ATTACK_TURN_USES_FACT_KEY]),
+    damageAddedDice: parseDamageAddedDice(facts[DND5E_DAMAGE_ADDED_DICE_FACT_KEY]),
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
         const expression = facts[key]
@@ -517,6 +527,21 @@ function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity 
   if (nearestFeet !== null && !(typeof nearestFeet === 'number' && nearestFeet >= 0))
     unsupported('D&D enemy proximity is malformed.')
   return { nearestFeet }
+}
+
+function parseDamageAddedDice(
+  value: RuleValue | undefined
+): readonly DamageAddedDieDto[] | undefined {
+  if (value === undefined) return undefined
+  let parsed: unknown
+  try {
+    parsed = typeof value === 'string' ? JSON.parse(value) : undefined
+  } catch {
+    parsed = undefined
+  }
+  const dice = damageAddedDiceDtoSchema.safeParse(parsed)
+  if (!dice.success) unsupported('D&D added damage dice are malformed.')
+  return dice.data
 }
 
 function parseTurnUses(value: RuleValue | undefined): readonly string[] | undefined {
@@ -683,8 +708,9 @@ function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind 
 /**
  * Outcomes a test action leaves to its active-effect plan rather than its TEST/OUTCOME graphs: an
  * actor relationship, a grant an attack's hit applies (Shocking Grasp's "can't take reactions"),
- * and a grant a failed save applies beside the timed conditions the same effect owns (Hypnotic
- * Pattern's speed of 0). Any other failed-save grant stays an ordinary test outcome. A source
+ * a grant a failed save applies beside the timed conditions the same effect owns (Hypnotic
+ * Pattern's speed of 0), and a timed grant that is a failed save's only outcome (Enthrall's
+ * disadvantage on Perception). Any other failed-save grant stays an ordinary test outcome. A source
  * immunity is always the plan's (see `sourceImmunityPlan`).
  */
 function isActiveEffectPlanOutcome(
@@ -699,7 +725,7 @@ function isActiveEffectPlanOutcome(
       (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT')) ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       entry.pathCode === 'ON_SAVE_FAIL' &&
-      timedConditionPlan(action) !== null) ||
+      (timedConditionPlan(action) !== null || saveFailureGrantPlan(action) !== null)) ||
     (entry.outcome.effectKind === 'MANIFEST' &&
       entry.outcome.manifestKind === 'CREATURE' &&
       entry.pathCode === 'ON_SAVE_FAIL')
@@ -1121,7 +1147,7 @@ function sequentialCompositionPlan(
   if (!composition) return null
   const { grant, recurring, immediate } = composition
   const grantPlan = grant
-    ? modifierGrantEntryPlan({ action, entry: grant, attack: false, untilEndEvent: false })
+    ? modifierGrantEntryPlan({ action, entry: grant, resultGated: false, untilEndEvent: false })
     : null
   if (grant && !grantPlan?.modifierGrantContribution)
     unsupported('D&D composed grant must be a timed modifier grant.')
@@ -2102,7 +2128,7 @@ function timedConditionPlan(
     ? modifierGrantEntryPlan({
         action,
         entry: { ...grantEntry, lifecycle: undefined },
-        attack: false,
+        resultGated: false,
         untilEndEvent: false
       })?.modifierGrantContribution
     : null
@@ -2296,8 +2322,27 @@ function modifierGrantPlan(
     entries.some((entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP')
   )
     unsupported('D&D attacks apply one active effect on a hit.')
+  if (testPhaseKindOrNull(action) === 'SAVE') return saveFailureGrantPlan(action)
   const entry = attack ? hitGrants[0] : entries[0]
-  return entry ? modifierGrantEntryPlan({ action, entry, attack, untilEndEvent: false }) : null
+  return entry
+    ? modifierGrantEntryPlan({ action, entry, resultGated: attack, untilEndEvent: false })
+    : null
+}
+
+/**
+ * A save whose only outcome is a timed grant on its failure (Enthrall's disadvantage on
+ * Perception): each creature that fails holds the grant as an Encounter active effect.
+ */
+function saveFailureGrantPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const [entry, ...rest] = action.compiledEffect.entries
+  return testPhaseKindOrNull(action) === 'SAVE' &&
+    entry !== undefined &&
+    rest.length === 0 &&
+    entry.pathCode === 'ON_SAVE_FAIL'
+    ? modifierGrantEntryPlan({ action, entry, resultGated: true, untilEndEvent: false })
+    : null
 }
 
 type SlotLevelAmount = {
@@ -2315,9 +2360,28 @@ function isSlotLevelAmount(payload: unknown): payload is SlotLevelAmount {
   )
 }
 
-/** A granted amount that scales by slot level (Aid, Absorb Elements) is the fixed amount a cast level gives. */
+/**
+ * A granted amount that scales by slot level (Aid, Absorb Elements) is the fixed amount a cast level
+ * gives; a rolled damage die that adds dice per level above its own (Branding Smite) is the fixed
+ * count a cast level gives.
+ */
 function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLevel: number): M {
   const { payload } = modifier
+  if (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'countPerCastLevelAbove' in payload &&
+    'count' in payload
+  ) {
+    const { countPerCastLevelAbove, ...die } = payload as {
+      count: number
+      countPerCastLevelAbove?: { level: number; count: number }
+    }
+    if (!countPerCastLevelAbove) return { ...modifier, payload: die }
+    const extra =
+      countPerCastLevelAbove.count * Math.max(0, castLevel - countPerCastLevelAbove.level)
+    return { ...modifier, payload: { ...die, count: die.count + extra } }
+  }
   if (!isSlotLevelAmount(payload)) return modifier
   return {
     ...modifier,
@@ -2337,10 +2401,11 @@ function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLev
 function modifierGrantEntryPlan(input: {
   action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
-  attack: boolean
+  /** The grant applies only on its authored result path: an attack's hit or a save's failure. */
+  resultGated: boolean
   untilEndEvent: boolean
 }): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { action, entry, attack, untilEndEvent } = input
+  const { action, entry, resultGated, untilEndEvent } = input
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const { spellCastLevel } = action
@@ -2355,6 +2420,8 @@ function modifierGrantEntryPlan(input: {
     endOnEvents = [],
     endOnConditionIds = [],
     holderEnd = null,
+    fromSourceOnly = false,
+    activeOnlyOnFinalAnchorTurn = false,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
@@ -2378,10 +2445,17 @@ function modifierGrantEntryPlan(input: {
   if (
     modifiers.length + senses.length === 0 ||
     grantedSenses.length !== senses.length ||
-    modifiers.some(({ payload }) => isSlotLevelAmount(payload)) ||
+    modifiers.some(
+      ({ payload }) =>
+        isSlotLevelAmount(payload) ||
+        (typeof payload === 'object' && payload !== null && 'countPerCastLevelAbove' in payload)
+    ) ||
     grants.proficiencies?.length ||
     (untilEndEvent
-      ? entry.duration !== undefined || endEvents.length === 0 || turnAnchor !== undefined
+      ? entry.duration !== undefined ||
+        endEvents.length === 0 ||
+        turnAnchor !== undefined ||
+        activeOnlyOnFinalAnchorTurn
       : initialRemaining === null) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
@@ -2405,9 +2479,11 @@ function modifierGrantEntryPlan(input: {
       consumeOnFirstEvents: grantConsumeEvents,
       endOnEvents: grantEndEvents,
       endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
-      holderEnd
+      holderEnd,
+      ...(fromSourceOnly && { fromSourceOnly: true }),
+      ...(activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true })
     },
-    adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
+    adapterFacts: resultGated ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
     marginRider: null
@@ -3027,7 +3103,7 @@ function zoneComponentPlan(
     ? modifierGrantEntryPlan({
         action,
         entry: grant,
-        attack: false,
+        resultGated: false,
         untilEndEvent: true
       })
     : null
@@ -3111,7 +3187,7 @@ function sourceGrantPlan(
   action: Dnd5eCompiledEffectActionSource,
   entry: CompiledEffectGroup['entries'][number]
 ): CharacterRuleActionActiveEffectPlan {
-  const plan = modifierGrantEntryPlan({ action, entry, attack: false, untilEndEvent: false })
+  const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
   if (!plan) unsupported('A zone’s placer holds a timed modifier grant.')
   return { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) }
 }
@@ -3233,7 +3309,12 @@ function repeatingDirectFollowUpSavePlan(
   const pinnedDc = pinnedSaveDc(save.savingThrow)
   const grantPlan =
     lead.effectKind === 'APPLY_GRANT'
-      ? modifierGrantEntryPlan({ action, entry: leadEntry, attack: false, untilEndEvent: false })
+      ? modifierGrantEntryPlan({
+          action,
+          entry: leadEntry,
+          resultGated: false,
+          untilEndEvent: false
+        })
       : null
   const grantContribution = grantPlan?.modifierGrantContribution
   const contribution =
@@ -4856,7 +4937,36 @@ export const dnd5eDamageTotalOperation: PureRuleOperationContract = {
     ) {
       throw new Error('D&D damage total requires safe integer operands.')
     }
-    return { value: Math.max(0, subtotal + modifier) }
+    return { value: flooredDamage(subtotal + modifier) }
+  }
+}
+/** Damage is never negative: a total or a reduction below zero deals none. */
+function flooredDamage(amount: number) {
+  return Math.max(0, amount)
+}
+/** Takes rolled dice off an amount of damage (Reduce's 1d4 less), floored like every damage total. */
+export const dnd5eDamageReductionOperation: PureRuleOperationContract = {
+  key: DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PURE',
+  inputs: {
+    amount: RULE_VALUE_KIND.NUMBER,
+    reduction: RULE_VALUE_KIND.NUMBER
+  },
+  outputs: { value: RULE_VALUE_KIND.NUMBER },
+  execute(inputs) {
+    const amount = inputs.amount
+    const reduction = inputs.reduction
+    if (
+      typeof amount !== 'number' ||
+      !Number.isSafeInteger(amount) ||
+      amount < 0 ||
+      typeof reduction !== 'number' ||
+      !Number.isSafeInteger(reduction) ||
+      reduction < 0
+    )
+      throw new Error('D&D damage reduction requires nonnegative safe integer operands.')
+    return { value: flooredDamage(amount - reduction) }
   }
 }
 /** Selects the one authored full-or-floor-half damage value after a nested save. */
@@ -5301,6 +5411,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_TURN_USES_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_DAMAGE_ADDED_DICE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY, valueKind: RULE_VALUE_KIND.BOOLEAN },
     ...dnd5eAddedDiceFactContracts,
     {
@@ -5341,6 +5452,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_TOTAL_OPERATION_KEY,
+    DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
     DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
     DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
     DND5E_HEAL_TOTAL_OPERATION_KEY,
@@ -6798,6 +6910,139 @@ function pathOwed(
   })
 }
 
+/** One added die's own damage (D156): its dice, the multiplier of the damage it joins, its proposal. */
+function addedDamageDieGraphDefinition(input: {
+  action: Dnd5eCompiledEffectActionSource
+  term: BoundedDiceTerm
+  prefix: string
+  damageTypeId: string
+  multiplier: number
+}): RuleGraphDefinition {
+  const { nodes: rolledNodes, subtotal } = rolledDiceNodes(input.term, input.prefix)
+  const multipliedNodeId = `${input.prefix}damage-multiplied`
+  const proposalId = `${input.prefix}proposal`
+  return {
+    schemaVersion: 1,
+    id: input.action.effectId,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+    nodes: [
+      ...rolledNodes,
+      ...(input.multiplier === 1
+        ? []
+        : [
+            {
+              id: multipliedNodeId,
+              operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
+              inputs: {
+                amount: subtotal,
+                multiplier: { kind: 'LITERAL' as const, value: input.multiplier }
+              }
+            }
+          ]),
+      {
+        id: proposalId,
+        operation: { key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
+        inputs: {
+          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+          targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
+          amount:
+            input.multiplier === 1
+              ? subtotal
+              : { kind: 'NODE_OUTPUT', nodeId: multipliedNodeId, port: 'value' },
+          damageTypeId: { kind: 'LITERAL', value: input.damageTypeId }
+        }
+      }
+    ],
+    outputs: {
+      targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' },
+      amount: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'amount' },
+      damageTypeId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'damageTypeId' }
+    }
+  }
+}
+
+/**
+ * The selected result with the dice active grants add to or take from its first damage (D156).
+ * Each added die deals its own damage of its type (the joined damage's when it names none), rolled
+ * twice on a critical hit and multiplied like the joined damage. Each subtracted die is rolled the
+ * same way and taken off the joined damage, floored at 0. A miss, or a result with no damage, takes
+ * none of them.
+ */
+function withDamageAddedDice(input: {
+  action: Dnd5eCompiledEffectActionSource
+  selectedPath: SpecializedPath
+  groups: ReturnType<typeof selectedOutcomeGroups>
+  definitions: readonly RuleGraphDefinition[]
+  dice: readonly DamageAddedDieDto[]
+}): readonly RuleGraphDefinition[] {
+  const primaryIndex = input.groups.findIndex(
+    ([entry]) => entry !== undefined && 'outcome' in entry && entry.outcome.effectKind === 'DAMAGE'
+  )
+  const primaryEntry = input.groups[primaryIndex]?.[0]
+  const primary = input.definitions[primaryIndex]
+  if (
+    input.dice.length === 0 ||
+    input.selectedPath === 'ON_MISS' ||
+    !primary ||
+    !primaryEntry ||
+    !('outcome' in primaryEntry) ||
+    primaryEntry.outcome.effectKind !== 'DAMAGE'
+  )
+    return input.definitions
+  const joined = primaryEntry.outcome
+  const critical = isCriticalHitDamage(input.selectedPath, primaryEntry)
+  const term = (die: DamageAddedDieDto) =>
+    boundedDiceTerm(`${die.count}d${die.faces}`, critical).term
+  const added = input.dice.flatMap((die, index) =>
+    die.sign === 'ADD'
+      ? [
+          addedDamageDieGraphDefinition({
+            action: input.action,
+            term: term(die),
+            prefix: damageAddedDieNodePrefix(index),
+            damageTypeId: die.damageTypeId ?? damageTypeIdentity(joined.damageTypeId),
+            multiplier: damageMultiplier(joined)
+          })
+        ]
+      : []
+  )
+  const proposalIndex = primary.nodes.findIndex(
+    (node) => node.operation.key === DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
+  )
+  const proposal = primary.nodes[proposalIndex]
+  const joinedAmount = proposal?.inputs.amount
+  if (!proposal || !joinedAmount) unsupported('D&D added damage dice need the damage they join.')
+  let amount = joinedAmount
+  const reductionNodes = input.dice.flatMap((die, index) => {
+    if (die.sign !== 'SUBTRACT') return []
+    const prefix = damageAddedDieNodePrefix(index)
+    const { nodes, subtotal } = rolledDiceNodes(term(die), prefix)
+    const reduced = {
+      id: `${prefix}damage-reduced`,
+      operation: { key: DND5E_DAMAGE_REDUCTION_OPERATION_KEY, contractVersion: 1 },
+      inputs: { amount, reduction: subtotal }
+    }
+    amount = { kind: 'NODE_OUTPUT', nodeId: reduced.id, port: 'value' }
+    return [...nodes, reduced]
+  })
+  const reducedPrimary: RuleGraphDefinition = {
+    ...primary,
+    nodes: [
+      ...primary.nodes.slice(0, proposalIndex),
+      ...reductionNodes,
+      { ...proposal, inputs: { ...proposal.inputs, amount } },
+      ...primary.nodes.slice(proposalIndex + 1)
+    ]
+  }
+  return [
+    ...input.definitions.slice(0, primaryIndex),
+    reducedPrimary,
+    ...input.definitions.slice(primaryIndex + 1),
+    ...added
+  ]
+}
+
 /**
  * The conditions a failed direct save also applies because it failed by the rider's margin ("fails
  * by 5 or more, also paralyzed"): each one follows the failure's own outcomes as a result group of
@@ -7011,7 +7256,13 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   })
   const definition = mergedOutcomeGraphDefinition({
     action: input.action,
-    definitions
+    definitions: withDamageAddedDice({
+      action: input.action,
+      selectedPath: input.selectedPath,
+      groups,
+      definitions,
+      dice: input.facts.damageAddedDice ?? []
+    })
   })
   const published = serverPublishedRuleDefinitionDtoSchema.parse({
     id: definition.id,
@@ -8154,6 +8405,14 @@ function interpretDirectProposal(
       }
     ]
   }
+  // Damage the floor took to nothing (a subtracted die, a negative modifier) deals none.
+  if (
+    trace.operation.key === DND5E_DAMAGE_PROPOSAL_OPERATION_KEY &&
+    outputs.amount === 0 &&
+    trace.outputs.amount === 0 &&
+    trace.outputs.targetActorId === input.targetActorId
+  )
+    return []
   if (!positive(outputs.amount) || !hitPointStateIsValid(input))
     throw new Dnd5eEffectActionCompilerError(
       'The committed D&D rule action did not produce one exact hit-point proposal.'
@@ -9040,9 +9299,13 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
       }
     })
   }
-  // A TEST whose every outcome its active-effect plan carries (a creature form after a failed save)
-  // selects no OUTCOME graph: the plan runs from the TEST's result path.
-  if (outcomes.length === 0 && creatureFormPlan(action) === null)
+  // A TEST whose every outcome its active-effect plan carries (a creature form or a timed grant
+  // after a failed save) selects no OUTCOME graph: the plan runs from the TEST's result path.
+  if (
+    outcomes.length === 0 &&
+    creatureFormPlan(action) === null &&
+    saveFailureGrantPlan(action) === null
+  )
     unsupported('D&D test action has no specialized outcome path.')
   return outcomes
 }
@@ -9402,6 +9665,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }
     }
     const { spellCastLevel, classLevels, selectedOptionalRiderIds } = actionMechanic
+    const damageAddedDice =
+      sourceDerivedFacts.damageAddedDice === undefined
+        ? []
+        : damageAddedDiceDtoSchema.parse(sourceDerivedFacts.damageAddedDice)
     const baseFacts = {
       ...dnd5eAddedDiceFacts([]),
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
@@ -9446,7 +9713,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
                 Object.entries(classLevels).sort(([left], [right]) => left.localeCompare(right))
               )
             )
-          })
+          }),
+      ...(damageAddedDice.length === 0
+        ? {}
+        : { [DND5E_DAMAGE_ADDED_DICE_FACT_KEY]: JSON.stringify(damageAddedDice) })
     }
     const action = actionMechanic as {
       attackBonus?: unknown

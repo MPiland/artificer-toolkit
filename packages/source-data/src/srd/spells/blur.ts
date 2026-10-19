@@ -1,5 +1,11 @@
 import {
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -14,7 +20,24 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+// Attacks against the caster have disadvantage, except from an attacker that sees it by
+// Blindsight (doesn't rely on sight) or Truesight (sees through illusions).
+const blurModifiers = Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, index) => ({
+  id: spellChildId(SPELL_IDS.BLUR, 0x214, index + 1),
+  order: index + 1,
+  grantKind: GRANT_KIND.MODIFIER_GRANT,
+  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+  selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+  valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+  domain: {
+    attackDomain,
+    requiresHolderSeesAttacker: false,
+    exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID]
+  },
+  modifierKind: MODIFIER_KIND.DISADVANTAGE
+}))
 export const blur: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.BLUR,
@@ -65,8 +88,8 @@ export const blur: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BLUR, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'BLUR' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: { modifiers: blurModifiers }
               }
             ]
           }
