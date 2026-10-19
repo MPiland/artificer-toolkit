@@ -1,3 +1,7 @@
+import {
+  FORCED_MOVEMENT_DIRECTION,
+  type ForcedMovementDirection
+} from '@artificer-toolkit/shared/core'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
@@ -459,14 +463,12 @@ export interface CharacterRuleActionSpatialDirective {
   targetStateChecksum: string
 }
 
-const FORCED_MOVEMENT_DIRECTIONS = ['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY'] as const
-
-export type CharacterRuleActionForcedMovementDirection = (typeof FORCED_MOVEMENT_DIRECTIONS)[number]
+export type CharacterRuleActionForcedMovementDirection = ForcedMovementDirection
 
 export function isCharacterRuleActionForcedMovementDirection(
   value: unknown
 ): value is CharacterRuleActionForcedMovementDirection {
-  return FORCED_MOVEMENT_DIRECTIONS.some((direction) => direction === value)
+  return Object.values(FORCED_MOVEMENT_DIRECTION).some((direction) => direction === value)
 }
 
 /**

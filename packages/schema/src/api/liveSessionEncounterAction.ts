@@ -1,4 +1,6 @@
+import type { ForcedMovementDirection } from '@artificer-toolkit/shared/core'
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
+import { forcedMovementDirectionSchema } from '../shared/enums.js'
 import {
   activeRuleEffectDefinitionDtoSchema,
   activeRuleEffectLifecycleDtoSchema,
@@ -125,12 +127,14 @@ const liveSessionFailedCountersSchema = lazySchema(() =>
  */
 export type LiveSessionForcedMovement = {
   targetActorId: string
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'ASIDE' | 'ANY'
+  direction: ForcedMovementDirection
   feet: number
   upTo: boolean
   /** The reach of the action an ASIDE move stays within; null for every other direction. */
   sourceReachFeet: number | null
   position: SpatialPointDto | null
+  /** The line a `RANDOM` move follows, rolled once when the action was planned; null for every other direction. */
+  ray: SpatialPointDto | null
 }
 
 export const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMovement[]> =
@@ -139,11 +143,12 @@ export const liveSessionForcedMovementsSchema: z.ZodMiniType<LiveSessionForcedMo
       .array(
         z.strictObject({
           targetActorId: postgresUuidSchema,
-          direction: z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'ASIDE', 'ANY']),
+          direction: forcedMovementDirectionSchema,
           feet: z.number().check(z.positive()),
           upTo: z.boolean(),
           sourceReachFeet: z.nullable(z.number().check(z.nonnegative())),
-          position: z.nullable(spatialPointDtoSchema)
+          position: z.nullable(spatialPointDtoSchema),
+          ray: z.nullable(spatialPointDtoSchema)
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS))

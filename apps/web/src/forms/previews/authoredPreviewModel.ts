@@ -501,7 +501,9 @@ function createSpellOutcomeFact(
               ? 'Move aside'
               : record.direction === 'ANY'
                 ? 'Move'
-                : undefined
+                : record.direction === 'RANDOM'
+                  ? 'Move randomly'
+                  : undefined
       const unit = formatEnumLabel(readString(record.unit))?.toLowerCase()
       if (amount === undefined || !direction || !unit) return undefined
       const upTo = record.distanceMode === 'UP_TO' ? 'up to ' : ''
