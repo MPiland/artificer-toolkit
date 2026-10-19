@@ -144,7 +144,8 @@ async function seedMovingSpatialEffect(
         sourceTokenId: value.moverTokenId,
         geometry: {
           frame: 'TOKEN_LOCAL',
-          shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 }
+          // Wide enough to reach a target standing one cell off the mover's path.
+          shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 55 }
         },
         triggerModes: ['CROSS'],
         movementKinds: ['VOLUNTARY'],

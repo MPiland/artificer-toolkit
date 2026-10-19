@@ -57,17 +57,12 @@ export const airElemental: CreatureAuthored = {
       label: 'Air Form',
       description:
         "Air Form. The elemental can enter a hostile creature's space and stop there. It can move through a space as narrow as 1 inch wide without squeezing.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(13, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(13, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AIR_FORM
-        })
-      ],
+      grants: S.movementPassageGrants(S.actionId(13, 101), {
+        creatures: 'ANY',
+        mayEndInCreature: true,
+        blockingBarriers: false,
+        costMultiplier: 1
+      }),
       order: 1
     },
     {

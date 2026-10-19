@@ -13,6 +13,7 @@ import {
   resolveSceneIlluminationAt,
   sceneTokenLights,
   SceneBarrierIndex,
+  sceneTokenMovementIndex,
   visibilityPolygon,
   visibilityPolygonForLight,
   visibilityPolygonForToken,
@@ -1634,12 +1635,18 @@ export async function createVttSceneRenderer(
     return Boolean(current && !token.locked && canControlSceneToken(token, current))
   }
 
-  function movementIndexFor(scene: CampaignSceneStateDto): SceneBarrierIndex {
+  function movementIndexFor(
+    scene: CampaignSceneStateDto,
+    token: CampaignSceneStateDto['tokens'][number]
+  ): SceneBarrierIndex {
     if (movementBarrierSource !== scene.barriers) {
       movementBarrierSource = scene.barriers
       movementBarrierIndex = new SceneBarrierIndex(scene.barriers)
     }
-    return movementBarrierIndex ?? new SceneBarrierIndex(scene.barriers)
+    return sceneTokenMovementIndex(
+      token,
+      movementBarrierIndex ?? new SceneBarrierIndex(scene.barriers)
+    )
   }
 
   function drawTokens(
@@ -1995,7 +2002,7 @@ export async function createVttSceneRenderer(
       const token = next.scene.tokens.find((candidate) => candidate.id === drag?.tokenId)
       if (
         !token ||
-        !isSceneMovementPathValid(next.scene, drag.path, movementIndexFor(next.scene))
+        !isSceneMovementPathValid(next.scene, drag.path, movementIndexFor(next.scene, token))
       ) {
         cancelActiveInteraction()
       }
@@ -2237,7 +2244,7 @@ export async function createVttSceneRenderer(
         token,
         drag.last,
         { x: point.x - drag.offset.x, y: point.y - drag.offset.y },
-        movementIndexFor(current.scene)
+        movementIndexFor(current.scene, token)
       )
       drag.visual.position.set(position.x, position.y)
       if (positionKey(position) !== positionKey(drag.last)) {
@@ -2245,7 +2252,7 @@ export async function createVttSceneRenderer(
           current.scene,
           drag.path,
           position,
-          movementIndexFor(current.scene)
+          movementIndexFor(current.scene, token)
         )
         drag.last = position
         callbacks.onTokenPreview(drag.tokenId, position)

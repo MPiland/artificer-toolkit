@@ -60,18 +60,12 @@ export const wraith: CreatureAuthored = {
       label: 'Incorporeal Movement',
       description:
         'Incorporeal Movement. The wraith can move through other creatures and objects as if they were difficult terrain.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(298, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(298, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WRAITH_INCORPOREAL_MOVEMENT
-        })
-      ],
+      grants: S.movementPassageGrants(S.actionId(298, 200), {
+        creatures: 'ANY',
+        mayEndInCreature: false,
+        blockingBarriers: true,
+        costMultiplier: 2
+      }),
       order: 1
     },
     {

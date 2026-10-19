@@ -272,6 +272,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
           },
           "gameSystemId": "<uuid:20>",
           "initiativeAbilityDefinitionId": "<uuid:23>",
+          "modifiers": [],
           "resourceAbilityScores": {
             "CHARISMA": 6,
             "CONSTITUTION": 12,

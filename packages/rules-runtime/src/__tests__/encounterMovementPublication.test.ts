@@ -269,6 +269,49 @@ describe('prepared movement publication', () => {
     expect(cost([passive], undefined, caster(true))).toBe(20)
   })
 
+  it('charges a mover its passage multiplier inside the creatures it passes (SPELLS-33.T6k1)', () => {
+    const grid = {
+      kind: 'SQUARE' as const,
+      origin: { x: 0, y: 0 },
+      cellSize: 100,
+      distancePerCell: 5,
+      diagonalPolicy: 'EQUAL' as const,
+      unit: 'FEET' as const
+    }
+    const blockerTokenId = '00000000-0000-4000-8000-000000000003'
+    const walk = {
+      grid,
+      scene: { barriers: [] },
+      path: [
+        { x: 0, y: 0 },
+        { x: 400, y: 0 }
+      ],
+      startDistance: 0,
+      outcome: null
+    }
+    const tokens = [
+      { id: tokenId, position: { x: 0, y: 0 }, width: 100, height: 100 },
+      { id: blockerTokenId, position: { x: 200, y: 0 }, width: 100, height: 100 }
+    ]
+    const cost = (costMultiplier: number, creatureTokenIds: readonly string[] = [blockerTokenId]) =>
+      preparedMovementCost({
+        ...walk,
+        mover: {
+          tokenId,
+          actorId,
+          tokens,
+          effects: [],
+          carefully: false,
+          passage: { costMultiplier, creatureTokenIds }
+        }
+      })
+    expect(preparedMovementCost(walk)).toBe(20)
+    // The footprints overlap while the mover's centre is between x=100 and x=300: half the walk.
+    expect(cost(2)).toBeCloseTo(30)
+    expect(cost(1)).toBe(20)
+    expect(cost(2, [])).toBe(20)
+  })
+
   it('walks the whole remaining path when no rules interrupt it', () => {
     expect(preparedMovementSegment({ path, startDistance: 0, outcome: null })).toEqual({
       path,

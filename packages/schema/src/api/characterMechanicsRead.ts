@@ -50,6 +50,7 @@ export const sceneActorVisionResultSchema: z.ZodMiniType<SceneActorVision> = laz
         })
       )
       .check(z.maxLength(100)),
+    passesBlockingBarriers: z.optional(z.literal(true)),
     light: z.optional(sceneActorLightSchema)
   })
 )

@@ -350,7 +350,7 @@ const senseResultSchema = lazySchema(() =>
   })
 )
 
-const modifierResultSchema = lazySchema(() =>
+export const characterGrantFoldModifierSchema = lazySchema(() =>
   z.strictObject({
     domainKey: identitySchema,
     grantId: identitySchema,
@@ -384,7 +384,7 @@ export const characterGrantFoldOutputSchema = lazySchema(() =>
     .strictObject({
       proficiencies: z.array(proficiencyResultSchema).check(z.maxLength(10_000)),
       senses: z.array(senseResultSchema).check(z.maxLength(10_000)),
-      modifiers: z.array(modifierResultSchema).check(z.maxLength(10_000)),
+      modifiers: z.array(characterGrantFoldModifierSchema).check(z.maxLength(10_000)),
       unlockedFeatIds: z.array(identitySchema).check(z.maxLength(10_000)),
       unlockedSpellIds: z.array(identitySchema).check(z.maxLength(10_000)),
       activeSourceIds: z.array(identitySchema).check(z.maxLength(10_000)),

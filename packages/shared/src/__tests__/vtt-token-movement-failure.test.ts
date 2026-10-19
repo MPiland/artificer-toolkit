@@ -174,4 +174,15 @@ describe('sceneTokenMovementFailure', () => {
       )
     ).toBeNull()
   })
+
+  it('lets a token whose passage passes blocking barriers cross walls and locked doors (SPELLS-33.T6k1)', () => {
+    const passing = (state: MovementState): MovementState => ({
+      ...state,
+      tokens: state.tokens.map((token) => ({ ...token, passesBlockingBarriers: true }))
+    })
+    expect(failure(passing(scene({ barriers: [wall(true)] })), acrossLine)).toBeNull()
+    expect(failure(passing(scene({ barriers: [door('LOCKED')] })), acrossLine)).toBeNull()
+    // Passage never lifts the map bounds.
+    expect(failure(passing(scene()), [origin, { x: 100.5, y: 10 }])).toBe(OUT_OF_BOUNDS)
+  })
 })
