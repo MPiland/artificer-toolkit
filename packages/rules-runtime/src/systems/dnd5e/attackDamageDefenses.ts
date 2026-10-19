@@ -1,8 +1,9 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import type { AttackKind } from '@artificer-toolkit/schema/shared/enums'
 import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 
-import { isDnd5eSpellAttackKind } from './attackKind.js'
+import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
 import {
   dnd5eAcceptedModifierApplicability,
   dnd5eCharacterActionTarget,
@@ -106,7 +107,7 @@ export function dnd5eCharacterAttackTraits(input: {
     CharacterActionCandidate,
     'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts' | 'activationSourceKind'
   >
-  attackKind: string | null
+  attackKind: AttackKind | null
   policy: Pick<CharacterRulePolicyOutput, 'itemMechanics' | 'grantFold'>
 }): Dnd5eAttackTraits {
   const equipment = input.candidate.equipment
@@ -116,8 +117,15 @@ export function dnd5eCharacterAttackTraits(input: {
       : input.policy.itemMechanics.find(
           (entry) => entry.itemInstanceId === equipment.itemInstanceId
         )
+  const attackDomain =
+    input.attackKind === null ? null : dnd5eAttackModifierDomain(input.attackKind)
   const granted = dnd5eGrantedAttackTraits(
-    dnd5eAttackTraitGrants(input.policy.grantFold.modifiers, dnd5eAcceptedModifierApplicability),
+    dnd5eAttackTraitGrants(
+      input.policy.grantFold.modifiers.filter(
+        ({ domain }) => domain.attackDomain === undefined || domain.attackDomain === attackDomain
+      ),
+      dnd5eAcceptedModifierApplicability
+    ),
     dnd5eCharacterActionTarget(input.candidate)
   )
   return {

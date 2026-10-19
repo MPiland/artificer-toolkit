@@ -1,4 +1,5 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
@@ -13,6 +14,7 @@ import {
   effectsEndedBy,
   isInEffectEventScope
 } from './encounterGrantLifetimes.js'
+import type { prepareRecurringActiveEffect } from './encounterActionEffectPlans.js'
 import { dnd5eAbilityCode } from './systems/dnd5e/identity.js'
 
 /**
@@ -108,11 +110,66 @@ export function savingThrowSpentEffects(
 }
 
 /**
+ * A timed grant a damaged creature's passive feature gives itself: the effect it would hold, made
+ * ahead of the damage, and the damage types that set it off.
+ */
+export interface IncomingDamageGrantTrigger {
+  /** The id the effect takes if the damage sets it off. */
+  id: string
+  /** The passive feature's Effect; a grant it gave before is refreshed, never stacked. */
+  authoredEffectId: string
+  damageTypeIds: readonly string[]
+  effect: NonNullable<ReturnType<typeof prepareRecurringActiveEffect>>
+}
+
+/**
+ * The held effects a refreshed damage-trigger grant replaces: those the same passive feature gave
+ * before, keyed by `authoredEffectId`. A root that persists the grants from its receipt, where the
+ * triggers are no longer at hand, ends exactly what `targetEndedEffects` ended.
+ */
+export function effectsReplacedByGrants(
+  held: readonly ActiveRuleEffectRecord[],
+  grants: readonly Pick<ActiveRuleEffectRecord['definition'], 'authoredEffectId'>[]
+) {
+  return held.filter(({ definition }) =>
+    grants.some(({ authoredEffectId }) => authoredEffectId === definition.authoredEffectId)
+  )
+}
+
+/**
+ * The records the grants `targetEndedEffects` returned become on their holder, after the effects it
+ * keeps. Every root builds them here so planning and persisting create the same records.
+ */
+export function incomingDamageGrantRecords(input: {
+  grants: ReturnType<typeof targetEndedEffects>['grants']
+  owner: ActiveRuleEffectRecord['owner']
+  /** The effects the holder carries once the ended ones are gone, plus any this root already made. */
+  current: readonly ActiveRuleEffectRecord[]
+  occurredAt: string
+}) {
+  const records: ActiveRuleEffectRecord[] = []
+  for (const { id, effect } of input.grants)
+    records.push(
+      prepareActiveRuleEffectRecord({
+        id,
+        owner: input.owner,
+        definition: effect.definition,
+        lifecycle: effect.lifecycle,
+        currentEffects: [...input.current, ...records],
+        occurredAt: input.occurredAt
+      })
+    )
+  return records
+}
+
+/**
  * What an action ends on its target: the effects used up by an attack roll against the holder
  * (`ON_ATTACKED`, after their modifiers applied to that roll), those whose `DAMAGE_TAKEN` end
  * trigger the outcome meets (damage that survives the holder's defenses, of a type the trigger
  * names, by someone the trigger allows), and the conditions only they held. The holder's own
- * mechanics batch applies the releases in the same transaction as the effects' deletion.
+ * mechanics batch applies the releases in the same transaction as the effects' deletion. Damage of a
+ * type a passive grantTriggers entry names then gives its grant, replacing the one the same feature
+ * gave before; it joins after the ended effects are released, so a grant from this hit stays.
  */
 export function targetEndedEffects(input: {
   holderActorId: string
@@ -129,6 +186,8 @@ export function targetEndedEffects(input: {
   damagerActorId: string | null
   /** Every Encounter actor's disposition, to tell the effect source's side from the rest. */
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+  /** The grants the holder's passive features give when it takes damage; none when omitted. */
+  grantTriggers?: readonly IncomingDamageGrantTrigger[]
 }) {
   const dealt = input.applications.filter(
     (application) =>
@@ -163,8 +222,16 @@ export function targetEndedEffects(input: {
       ? []
       : savingThrowSpentEffects(input.held, dnd5eAbilityCode(abilityDefinitionId))
   })
+  const grants = (input.grantTriggers ?? []).filter((trigger) =>
+    dealt.some(
+      (application) =>
+        application.kind === 'DAMAGE' && trigger.damageTypeIds.includes(application.damageTypeId)
+    )
+  )
+  const replaced = effectsReplacedByGrants(input.held, grants)
   const endedEffects = input.held.filter((effect) => {
     const { definition } = effect
+    if (replaced.includes(effect)) return true
     if (attackConsumed.includes(effect) || saveConsumed.includes(effect)) return true
     if (!dealt.length || definition.schemaVersion !== 2) return false
     const sourceActorId =
@@ -187,7 +254,8 @@ export function targetEndedEffects(input: {
       holderActorId: input.holderActorId,
       held: input.held,
       ended: endedEffects
-    })
+    }),
+    grants: grants.map(({ id, effect }) => ({ id, effect }))
   }
 }
 

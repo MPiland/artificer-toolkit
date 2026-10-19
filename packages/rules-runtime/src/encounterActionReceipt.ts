@@ -4,7 +4,8 @@ import {
   encounterFailedCounterReceiptDtoSchema,
   type EncounterCastReactionPinDto,
   type EncounterCounterCheckEvidenceDto,
-  type EncounterFailedCounterDto
+  type EncounterFailedCounterDto,
+  type EncounterGatedActionApplicationOutputDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
@@ -57,7 +58,7 @@ export function buildEncounterActionStoredExecution(input: {
   area?: { parentOccurrenceId: string }
   /** The target's decided Legendary Resistance and the charge it cost, when its failed save offered one. */
   resistance?: ReturnType<typeof encounterTargetLegendaryResistance> | null
-  /** The target Character's decided reaction to the hit and what using it spent and created. */
+  /** The target's decided reaction to the hit and what using it spent and created. */
   reaction?: {
     audit: ReturnType<typeof encounterReactionAudit>
     spent: {
@@ -76,6 +77,10 @@ export function buildEncounterActionStoredExecution(input: {
   >['activeEffectTransitions']
   /** The zones the melee hit set off against the attacker (D153); its commit applies them after the hit. */
   meleeRetaliation?: MeleeRetaliationEvidenceDto | null
+  /** The timed grants the creature target's own passive damage triggers made from this hit. */
+  grantEffectTransitions?: ReturnType<
+    typeof projectNativeActionEffectTransitions
+  >['activeEffectTransitions']
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -97,6 +102,25 @@ export function buildEncounterActionStoredExecution(input: {
       maintainedEffectStateId
     }
   }
+  const reactionReceipt = <Receipt>(
+    effectReceipt: (transition: (typeof activeEffectTransitions)[number]) => Receipt
+  ) =>
+    input.reaction
+      ? {
+          selection: input.reaction.audit.selection,
+          reaction: input.reaction.audit.reaction,
+          choiceExecution: input.reaction.audit.choiceExecution,
+          originalExecutionChecksum: input.reaction.audit.originalExecutionChecksum,
+          adjustment: input.reaction.audit.adjustment,
+          spellCastConsumption: characterSpellConsumptionReceipt(
+            input.reaction.spent?.spellConsumption
+          ),
+          actionEconomyTransition: actionEconomyReceipt(input.reaction.spent?.economy ?? null),
+          activeEffectTransitions: (input.reaction.spent?.activeEffectTransitions ?? []).map(
+            effectReceipt
+          )
+        }
+      : null
   const parentOccurrenceId = input.area ? { parentOccurrenceId: input.area.parentOccurrenceId } : {}
   const sourceCharacterStreamVersion =
     settled.sourceCharacterStreamVersion ??
@@ -141,24 +165,7 @@ export function buildEncounterActionStoredExecution(input: {
               characterEffectReceipt(transition, null)
             ),
             stateEffectTransitions,
-            reaction: input.reaction
-              ? {
-                  selection: input.reaction.audit.selection,
-                  reaction: input.reaction.audit.reaction,
-                  choiceExecution: input.reaction.audit.choiceExecution,
-                  originalExecutionChecksum: input.reaction.audit.originalExecutionChecksum,
-                  adjustment: input.reaction.audit.adjustment,
-                  spellCastConsumption: characterSpellConsumptionReceipt(
-                    input.reaction.spent?.spellConsumption
-                  ),
-                  actionEconomyTransition: actionEconomyReceipt(
-                    input.reaction.spent?.economy ?? null
-                  ),
-                  activeEffectTransitions: (
-                    input.reaction.spent?.activeEffectTransitions ?? []
-                  ).map((transition) => characterEffectReceipt(transition, null))
-                }
-              : null,
+            reaction: reactionReceipt((transition) => characterEffectReceipt(transition, null)),
             targetFailedCounterSpend: input.targetFailedCounterSpend ?? false,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }
@@ -193,12 +200,14 @@ export function buildEncounterActionStoredExecution(input: {
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: input.resistance?.charge ?? null,
             legendaryResistance: input.resistance?.legendaryResistance ?? null,
+            reaction: reactionReceipt((transition) => transition),
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions,
+            grantEffectTransitions: input.grantEffectTransitions ?? [],
             stateEffectTransitions,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }
@@ -350,6 +359,57 @@ export function buildEncounterCounteredCastStoredExecution(input: {
         characterStreamVersion: counter.characterStreamVersion,
         actionEconomyTransition: actionEconomyReceipt(counter.economy)
       }
+    }
+  })
+}
+
+/**
+ * Builds the stored root of an action a warded creature's gate stopped. The source still spends its slot,
+ * resource, item and action; nothing the attack or spell would have done is applied. The gate records the
+ * failed save.
+ */
+export function buildEncounterGatedActionStoredExecution(input: {
+  occurrenceId: string
+  occurrenceVersion: number
+  actorId: string
+  sourceCharacterId: string | null
+  spend: Pick<
+    ReturnType<typeof planNativeEncounterAreaSourceSpend>,
+    | 'sourceCharacterStreamVersion'
+    | 'resourceReceipt'
+    | 'featureResourceReceipt'
+    | 'sourceItemUseStateTransition'
+    | 'itemConsumptionReceipt'
+    | 'spellConsumptionReceipt'
+    | 'sourceApplications'
+  >
+  actionEconomy: EncounterActionEconomyConsumption | null
+  /** What the failed save cost the source. */
+  lost: 'ATTACK' | 'SPELL'
+  gate: EncounterGatedActionApplicationOutputDto['gate']
+}) {
+  const { spend } = input
+  return storedRuleExecutionResultDtoSchema.parse({
+    status: 'AGGREGATE_CHOICE_COMPLETE',
+    schemaVersion: 1,
+    occurrenceId: input.occurrenceId,
+    occurrenceVersion: input.occurrenceVersion,
+    applicationOutputs: {
+      kind: 'ENCOUNTER_GATED_ACTION',
+      schemaVersion: 1,
+      occurrenceId: input.occurrenceId,
+      sourceActorId: input.actorId,
+      sourceCharacterId: input.sourceCharacterId,
+      sourceCharacterStreamVersion: spend.sourceCharacterStreamVersion,
+      resourceConsumption: spend.resourceReceipt,
+      featureResourceConsumption: spend.featureResourceReceipt,
+      sourceItemUseStateTransition: spend.sourceItemUseStateTransition,
+      sourceItemConsumption: spend.itemConsumptionReceipt,
+      spellCastConsumption: spend.spellConsumptionReceipt,
+      sourceApplications: spend.sourceApplications,
+      actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
+      lost: input.lost,
+      gate: input.gate
     }
   })
 }

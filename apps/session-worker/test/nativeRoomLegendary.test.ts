@@ -6,6 +6,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import { placedFireShieldZone } from '@artificer-toolkit/rules-runtime/testing/fireShieldZoneFixture'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID } from '@artificer-toolkit/schema/shared/encounterLifecycle'
@@ -114,8 +115,8 @@ const tail: typeof sourceTail = {
 const bludgeoning = SRD_DAMAGE_TYPES.find((entry) => entry.label === 'Bludgeoning')
 if (!bludgeoning) throw new Error('SRD damage type "Bludgeoning" is missing.')
 
-/** The Tail as a melee attack (+10) at any range that deals 10 bludgeoning damage on a hit. */
-const attackTail: typeof sourceTail = {
+/** The Tail as a melee attack (+10) at any range that deals 10 damage of `damageTypeId` on a hit. */
+const tailAttackOf = (damageTypeId: string): typeof sourceTail => ({
   ...sourceTail,
   rollDefinitions: [
     {
@@ -153,7 +154,7 @@ const attackTail: typeof sourceTail = {
               {
                 id: `${effect.id}-hit`,
                 effectKind: 'DAMAGE' as const,
-                damageTypeId: bludgeoning.id,
+                damageTypeId,
                 valueKind: 'FIXED' as const,
                 scalingKind: 'NONE' as const,
                 amount: 10
@@ -164,7 +165,8 @@ const attackTail: typeof sourceTail = {
       ]
     }
   })
-}
+})
+const attackTail = tailAttackOf(bludgeoning.id)
 const legendary: typeof sourceLegendary = {
   ...sourceLegendary,
   options: sourceLegendary.options?.filter((option) => option.actionReference)
@@ -672,6 +674,69 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
   })
 })
 
+describe('a Legendary Action that gives its target a passive timed grant (SPELLS-33.T6e3b)', () => {
+  const aversionOfFire = creatureFeature(
+    srdByLabel(SRD.creatures, 'Flesh Golem'),
+    'Aversion of Fire'
+  )
+  /** The attack Tail dealing fire instead of bludgeoning. */
+  const fireAttackDragon: CreatureAuthored = {
+    ...attackDragon,
+    id: testUuid(0x73c),
+    features: attackDragon.features?.map((feature) =>
+      feature.id === attackTail.id ? tailAttackOf(fire.id) : feature
+    )
+  }
+  const aversionWolf: CreatureAuthored = {
+    ...plainWolf,
+    id: testUuid(0x73d),
+    features: [...(plainWolf.features ?? []), aversionOfFire]
+  }
+
+  async function strikeWolf(attacker: CreatureAuthored, target: CreatureAuthored) {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: target }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attacker })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      rolls: [18]
+    })
+    const commandId = crypto.randomUUID()
+    const { runs } = await readRoomHistory(room.base.stub)
+    await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: runs[0]!.version
+      }
+    })
+    const option = (await readLegendaryChoice(room.base.stub))?.options[0]
+    if (!option) throw new Error('Expected a Legendary option.')
+    const { answer } = await respond(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    return (await readRoomHistory(room.base.stub)).activeEffects
+  }
+
+  it('gives the struck holder its grant from the fire the strike dealt', async () => {
+    const effects = await strikeWolf(fireAttackDragon, aversionWolf)
+    expect(effects).toHaveLength(1)
+    expect(effects[0]).toMatchObject({ targetActorId: WOLF_ID })
+  })
+
+  it('gives nothing for damage of another type', async () => {
+    expect(await strikeWolf(attackDragon, aversionWolf)).toEqual([])
+  })
+})
+
 describe('a Legendary Action d20 posts exactly one roll card (ENCOUNTER-7.1)', () => {
   /** The Wolf ends its turn and the attacking dragon strikes it; the d20 card kinds that result. */
   async function strike(options: { autoRoll?: 'GAME_MASTER'; rolls: number[] }) {
@@ -890,6 +955,70 @@ describe('a Legendary Action d20 posts exactly one roll card (ENCOUNTER-7.1)', (
       { audience: 'TABLE', kind: 'ATTACK' },
       { audience: 'TABLE', kind: 'RECHARGE' }
     ])
+  })
+})
+
+describe('a Fire Shield’s burn gives a dragon with Aversion of Fire its grant (SPELLS-33.T6e3b)', () => {
+  it('creates the grant in the commit of the Legendary Action whose melee hit set the shield off', async () => {
+    const aversionDragon: CreatureAuthored = {
+      ...attackDragon,
+      id: testUuid(0x73e),
+      features: [
+        ...(attackDragon.features ?? []),
+        creatureFeature(srdByLabel(SRD.creatures, 'Flesh Golem'), 'Aversion of Fire')
+      ]
+    }
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: aversionDragon })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      fallbackRoll: 18,
+      seed: async ({ spatial, encounterId, tokenIdOf }) => {
+        const { id, maintainedEffectStateId, definition, lifecycle, placement, spatialState } =
+          placedFireShieldZone({
+            seed: 0x741,
+            sourceActorId: WOLF_ID,
+            sourceTokenId: tokenIdOf(WOLF_ID),
+            encounterId
+          })
+        await spatial.create({
+          id,
+          maintainedEffectStateId,
+          definition,
+          lifecycle,
+          placement,
+          spatialState
+        })
+      }
+    })
+    const commandId = crypto.randomUUID()
+    const { runs } = await readRoomHistory(room.base.stub)
+    await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: runs[0]!.version
+      }
+    })
+    const option = (await readLegendaryChoice(room.base.stub))?.options[0]
+    if (!option) throw new Error('Expected a Legendary option.')
+    const { answer } = await respond(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const { activeEffects } = await readRoomHistory(room.base.stub)
+    expect(
+      activeEffects.filter(({ targetActorId }) => targetActorId === FIRST_DRAGON_ID)
+    ).toHaveLength(1)
   })
 })
 

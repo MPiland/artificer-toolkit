@@ -28,6 +28,7 @@ import {
 } from './liveSessionEncounterRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { ruleExecutionChecksumSchema } from '../shared/ruleExecutionPrimitives.js'
 import { characterResourceUsageOwnerSchema } from '../projections/characterSheetState.js'
 import { encounterTurnUseKeysSchema } from '../projections/encounterRunPersistence.js'
 import {
@@ -299,30 +300,56 @@ export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   | 'forcedMovements'
 >
 
+/** What a terminal commit of an action that did nothing carries: its source's one spend and the grants it used up. */
+const lostActionCommitFields = () => ({
+  occurredAt: z.iso.datetime(),
+  initialDefinitionId: postgresUuidSchema,
+  execution: storedRuleExecutionResultDtoSchema,
+  rules: encounterActorRuleOutputSchema,
+  resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
+  itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+  spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+  label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+  ruleOverrides: encounterRuleWarningsDtoSchema,
+  consumedGrants: z
+    .array(activeRuleEffectRecordSchema)
+    .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+})
+
+const lostActionCommitBase = () =>
+  z.omit(liveSessionEncounterActionPendingInputSchema, {
+    snapshot: true,
+    maintenanceOwners: true
+  })
+
 export const liveSessionEncounterCounteredCastCommitInputSchema: z.ZodMiniType<LiveSessionEncounterCounteredCastCommitInput> =
   lazySchema(() =>
-    z.extend(
-      z.omit(liveSessionEncounterActionPendingInputSchema, {
-        snapshot: true,
-        maintenanceOwners: true
-      }),
-      {
-        occurredAt: z.iso.datetime(),
-        initialDefinitionId: postgresUuidSchema,
-        execution: storedRuleExecutionResultDtoSchema,
-        rules: encounterActorRuleOutputSchema,
-        resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
-        itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
-        spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-        reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
-        failedCounters: liveSessionFailedCountersSchema,
-        label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-        ruleOverrides: encounterRuleWarningsDtoSchema,
-        consumedGrants: z
-          .array(activeRuleEffectRecordSchema)
-          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
-      }
-    )
+    z.extend(lostActionCommitBase(), {
+      ...lostActionCommitFields(),
+      reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
+      failedCounters: liveSessionFailedCountersSchema
+    })
+  )
+
+/**
+ * The terminal outcome of an attack or harmful spell a warded creature's gate stopped: the source's one
+ * spend, recorded on one root. Nothing of the action applies, so it creates no effect, damage or
+ * Concentration. Taking the action still uses up the source's grants that end on an attack or a cast.
+ */
+export type LiveSessionEncounterGatedActionCommitInput = Omit<
+  LiveSessionEncounterCounteredCastCommitInput,
+  'reactionSpellConsumption' | 'failedCounters'
+> & {
+  /** The facts the gated action was prepared against; its receipt names them, as no graph ran. */
+  currentnessChecksum: string
+}
+
+export const liveSessionEncounterGatedActionCommitInputSchema: z.ZodMiniType<LiveSessionEncounterGatedActionCommitInput> =
+  lazySchema(() =>
+    z.extend(lostActionCommitBase(), {
+      ...lostActionCommitFields(),
+      currentnessChecksum: ruleExecutionChecksumSchema
+    })
   )
 
 /** The Scene spatial effect an action places, as the planner built it; persistence stores it as is. */

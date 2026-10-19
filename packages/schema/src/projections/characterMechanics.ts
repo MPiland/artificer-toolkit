@@ -731,10 +731,11 @@ const compiledActionEntryPointSchema = lazySchema(() =>
   ])
 )
 
-export const compiledActionEntryPointsSchema = lazySchema(() =>
-  z.array(compiledActionEntryPointSchema).check(z.maxLength(1_000))
-)
 export type CompiledActionEntryPoint = z.infer<typeof compiledActionEntryPointSchema>
+
+// Explicitly typed so the projections embedding it stay within the declaration size limit (TS7056).
+export const compiledActionEntryPointsSchema: z.ZodMiniType<CompiledActionEntryPoint[]> =
+  lazySchema(() => z.array(compiledActionEntryPointSchema).check(z.maxLength(1_000)))
 
 const characterMechanicsContentRefSchema = lazySchema(() =>
   z.strictObject({

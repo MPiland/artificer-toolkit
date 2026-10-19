@@ -289,7 +289,13 @@ function withOpenedPick(
   next: ServerRuleExecutionPendingSnapshotDto
 ) {
   const pick = areaActionPendingContext(next)?.forcedMovement?.pick
-  return pick ? holdEncounterAreaForcedMovement(area, pick) : area
+  return pick
+    ? holdEncounterAreaForcedMovement(
+        area,
+        pick,
+        areaActionPendingContext(next)?.forcedMovement?.rays
+      )
+    : area
 }
 
 /**

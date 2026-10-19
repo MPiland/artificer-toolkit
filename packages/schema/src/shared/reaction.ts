@@ -117,7 +117,13 @@ export const sourceEffectIdsFilterDtoSchema = lazySchema(() =>
 export const reactionTriggerBindingDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     reactionMovementTriggerBindingDtoSchema,
-    z.strictObject({ kind: z.literal('ATTACKED_SELF') }),
+    z.strictObject({
+      kind: z.literal('ATTACKED_SELF'),
+      /** Answers only a melee attack. */
+      attackRange: z.optional(z.literal('MELEE')),
+      /** Answers only an attacker the reactor sees. */
+      requiresSight: z.optional(z.boolean())
+    }),
     z.strictObject({
       kind: z.literal('SPELL_CAST'),
       higherLevelCheck: z.optional(

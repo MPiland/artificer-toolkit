@@ -50,8 +50,7 @@ const COVERED_END_EVENTS: Record<string, EndEventCover> = {
   'spells/Produce Flame': GM_ADJUDICATED,
   'spells/Project Image': GM_ADJUDICATED,
   'spells/Suggestion': GM_ADJUDICATED,
-  'classes/Oath of Devotion > Channel Divinity: Turn the Unholy': GM_ADJUDICATED,
-  'spells/Sanctuary': { mechanism: 'REGISTERED_FOLLOW_UP', task: 'T7 Sanctuary' }
+  'classes/Oath of Devotion > Channel Divinity: Turn the Unholy': GM_ADJUDICATED
 }
 
 const END_WORD = /\b(?:ends|wakes|disappears)\b|\bend\b(?! of)|\buntil\b(?! the (?:end|start))/i

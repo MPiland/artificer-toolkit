@@ -2367,6 +2367,13 @@ function sourceImmunityPlan(
   }
 }
 
+/** The end triggers a timed modifier grant carries: its source's incapacitation, or its holder attacking or casting at an enemy (Sanctuary). */
+const GRANT_END_TRIGGER_EVENTS: ReadonlySet<string> = new Set([
+  'INCAPACITATED',
+  'ATTACK_ROLL',
+  'SPELL_CAST'
+])
+
 /** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
 function canonicalEndTriggers(
   triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
@@ -2677,7 +2684,7 @@ function modifierGrantEntryPlan(input: {
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
-    endOnTriggers.some(({ event }) => event !== 'INCAPACITATED') ||
+    endOnTriggers.some(({ event }) => !GRANT_END_TRIGGER_EVENTS.has(event)) ||
     !UUID.test(entry.entryId)
   )
     return null
@@ -9796,6 +9803,22 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (influence === undefined && (allow === 'WHEN_MET' || allow === 'WHEN_UNMET'))
       return { kind: 'ATTEMPT_GATE', allow, requirement: pinned }
     throw new Dnd5eEffectActionCompilerError('D&D recurring perception is not fully pinned.')
+  },
+  passiveDamageGrantPlan: ({ action }) => {
+    const { invocation, entries } = action.compiledEffect
+    const [entry] = entries
+    if (
+      invocation.kind !== 'PASSIVE' ||
+      invocation.triggerCode !== 'INCOMING_DAMAGE' ||
+      entries.length !== 1 ||
+      !entry ||
+      entry.pathCode !== 'PASSIVE'
+    )
+      unsupported('D&D passive damage trigger must author one passive result.')
+    const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
+    if (!plan?.modifierGrantContribution)
+      unsupported('D&D passive damage trigger must give a timed modifier grant.')
+    return { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) }
   },
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)

@@ -22,6 +22,7 @@ export const VALUE_DOMAIN_CODE = {
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
   ATTACK_DECOYS: 'ATTACK_DECOYS',
+  INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -156,6 +157,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Attack Decoys',
     description:
       'Decoys of the holder that a d20 roll can redirect an attack to; the effect spends one use per decoy destroyed.'
+  },
+
+  [VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE]: {
+    code: VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE,
+    label: 'Incoming Attack Gate',
+    description:
+      'A creature that targets the holder with a single-target attack or harmful spell must first pass a saving throw.'
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -423,8 +431,9 @@ export type ValueDomainParamByCode = {
   CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
   CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
 
-  // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks").
-  ATTACK_TRAIT: { trait: DamageDefenseBypassCode }
+  // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks"), for one
+  // attack domain when named (Ki-Empowered Strikes: unarmed strikes).
+  ATTACK_TRAIT: { trait: DamageDefenseBypassCode; attackDomain?: AttackDomainCode }
 
   // The weapon's damage die is replaced by one with this many faces (Shillelagh's d8).
   WEAPON_DAMAGE_DIE: EmptyObject
@@ -440,6 +449,9 @@ export type ValueDomainParamByCode = {
 
   // Decoys an attack against the holder may target instead (Mirror Image).
   ATTACK_DECOYS: EmptyObject
+
+  // A save an attacker must pass before targeting the holder.
+  INCOMING_ATTACK_GATE: EmptyObject
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }

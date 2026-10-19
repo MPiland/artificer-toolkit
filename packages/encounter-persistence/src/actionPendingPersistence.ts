@@ -187,6 +187,10 @@ export async function persistEncounterActionPending(
         snapshot.applicationContext.rollerActorId !== target.actorId &&
         // A creature offered the chance to counter the cast is the roller of that decision.
         snapshot.applicationContext.castReaction === undefined) ||
+      // The save a ward owes is asked of the one who attacks it.
+      (snapshot.applicationContext.incomingGate !== undefined &&
+        (snapshot.applicationContext.incomingGate.holderActorId !== target.actorId ||
+          snapshot.applicationContext.rollerActorId !== admission.input.actorId)) ||
       snapshot.applicationContext.commandFingerprint !== fingerprint ||
       checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
       snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
@@ -272,8 +276,10 @@ export async function persistEncounterActionPending(
   if (resume) await ctx.db.patch(id, changedFields(resume.occurrence, value))
   const occurrence = await ctx.db.get(id)
   if (!occurrence) throw new Error('The pending action was not stored.')
-  // A counter's check pause rolls the reactor's own d20, which the cast's policy does not hold.
-  const d20Policy = evidence?.d20Policy ?? evidence?.castReaction?.check?.d20
+  // A counter's check pause rolls the reactor's own d20, and a ward's the attacker's save: neither is the
+  // action's own policy.
+  const d20Policy =
+    evidence?.d20Policy ?? evidence?.castReaction?.check?.d20 ?? evidence?.incomingGate?.d20
   if (resume && input.response)
     await insertActionEvidenceReceipt(ctx, {
       occurrence,

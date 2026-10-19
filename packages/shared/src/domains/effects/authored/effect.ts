@@ -46,8 +46,16 @@ export type ReactionMovementTriggerBindingAuthored = {
   movementInterruption?: null | { kind: 'STOP'; whenResultPath: PathCode }
 }
 
-/** The reactor is the target of an attack that hit; the reaction pauses the attack's outcome. */
-export type ReactionAttackedSelfTriggerBindingAuthored = { kind: 'ATTACKED_SELF' }
+/**
+ * The reactor is the target of an attack that hit; the reaction pauses the attack's outcome. With
+ * `attackRange: 'MELEE'` it answers only a melee attack, and with `requiresSight` only an attacker the
+ * reactor sees (Parry).
+ */
+export type ReactionAttackedSelfTriggerBindingAuthored = {
+  kind: 'ATTACKED_SELF'
+  attackRange?: 'MELEE'
+  requiresSight?: boolean
+}
 
 /**
  * A cast of a spell level above the reaction's own cast level takes effect unless the reactor's
@@ -120,7 +128,7 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
         }
       | {
           kind?: typeof EFFECT_INVOCATION_KIND.ACTION
-          triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK'>
+          triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK' | 'INCOMING_DAMAGE'>
           activation: ActivationAuthored
           resourceUse?: ResourceUseAuthored
           range: RangeAuthored
@@ -152,11 +160,23 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
     }
   | {
       kind: typeof EFFECT_INVOCATION_KIND.PASSIVE
-      triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK'>
+      triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK' | 'INCOMING_DAMAGE'>
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
       optionalOnHit?: OptionalOnHitAuthored
+    }
+  /**
+   * The holder takes damage of one of the named damage types; the passive's PASSIVE path then
+   * answers on the holder (a timed grant on itself), once per damaging event.
+   */
+  | {
+      kind: typeof EFFECT_INVOCATION_KIND.PASSIVE
+      triggerCode: Extract<TTrigger, 'INCOMING_DAMAGE'>
+      damageTypeIds: string[]
+      range: RangeAuthored
+      shape?: ShapeAuthored
+      targeting?: TargetingAuthored
     }
 
 export type EffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
