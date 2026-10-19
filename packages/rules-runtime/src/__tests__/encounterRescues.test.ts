@@ -2,6 +2,7 @@ import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { describe, expect, it } from 'vitest'
 
+import { actorRelationshipModuleDtoSchema } from '@artificer-toolkit/schema/effects/actorRelationship'
 import { findEncounterRescues } from '../encounterEscapeCheck.js'
 import { escapeGrappleEffectDefinition } from '../testing/escapeGrappleEffectFixture.js'
 
@@ -9,6 +10,11 @@ import { escapeGrappleEffectDefinition } from '../testing/escapeGrappleEffectFix
  * ATTACK-7.9: which holds a creature within reach may break for the held creature. Nothing names a
  * creature; the authored escape module carries the permission.
  */
+
+type EscapeModule = Extract<
+  ReturnType<typeof actorRelationshipModuleDtoSchema.parse>,
+  { kind: 'ESCAPE_CHECK' }
+>
 
 const FEET_GRID: SceneGrid = {
   kind: 'SQUARE',
@@ -111,17 +117,16 @@ describe('the holds a creature within reach may break for another creature', () 
 })
 
 /** Every authored escape that lets a creature within reach attempt it, in the SRD baseline. */
-function authoredRescueModules(value: unknown): Record<string, unknown>[] {
+function authoredRescueModules(value: unknown): EscapeModule[] {
   if (Array.isArray(value)) return value.flatMap(authoredRescueModules)
   if (typeof value !== 'object' || value === null) return []
-  const record = value as Record<string, unknown>
-  const own =
-    record.kind === 'ESCAPE_CHECK' &&
-    Array.isArray(record.actorKinds) &&
-    record.actorKinds.includes('CREATURE_WITHIN_REACH')
-      ? [record]
-      : []
-  return [...own, ...Object.values(record).flatMap(authoredRescueModules)]
+  const nested = Object.values(value).flatMap(authoredRescueModules)
+  const parsed = actorRelationshipModuleDtoSchema.safeParse(value)
+  return parsed.success &&
+    parsed.data.kind === 'ESCAPE_CHECK' &&
+    parsed.data.actorKinds.includes('CREATURE_WITHIN_REACH')
+    ? [parsed.data, ...nested]
+    : nested
 }
 
 describe('parity: authored escapes that allow a creature within reach (ATTACK-7.9)', () => {
@@ -129,21 +134,17 @@ describe('parity: authored escapes that allow a creature within reach (ATTACK-7.
 
   it('authors at least one, each with a fixed DC', () => {
     expect(modules.length).toBeGreaterThan(0)
-    for (const module of modules) expect(module.dc).toMatchObject({ kind: 'FIXED' })
+    for (const module of modules) expect(module.dc.kind).toBe('FIXED')
   })
 
   it('offers each as the rescue the module itself describes', () => {
     for (const module of modules) {
-      const fixed = module.dc as { value: number }
+      if (module.dc.kind !== 'FIXED') throw new Error('A rescue escape must have a fixed DC.')
       const [offered] = rescues({
-        hold: hold({
-          dc: fixed.value,
-          activation: module.activation as never,
-          checks: module.checks as never
-        })
+        hold: hold({ dc: module.dc.value, activation: module.activation, checks: module.checks })
       })
       expect(offered).toMatchObject({
-        dc: fixed.value,
+        dc: module.dc.value,
         activation: module.activation,
         checks: module.checks
       })
