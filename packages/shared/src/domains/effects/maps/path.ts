@@ -7,6 +7,7 @@ import type {
   FailureMarginRiderAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
+  ForcedMovementCollisionAuthored,
   FollowUpSaveRepeatAttemptGateAuthored,
   FollowUpSaveRepeatPerceptionAuthored,
   FollowUpSaveRepeatRollInfluenceAuthored,
@@ -33,6 +34,7 @@ import type {
 import {
   MANIFEST_BLOCKING_RULE_OPTIONS,
   MANIFEST_PROPERTY_OPTIONS,
+  MANIFEST_REQUIRED_SIGHT_OPTIONS,
   MANIFEST_SPELL_CAPABILITY_OPTIONS,
   MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS,
   SUMMON_DAMAGEABILITY_KIND,
@@ -224,6 +226,7 @@ const outcome = buildNodeMap<OutcomeNode>()
 const nonManifestOutcome = buildNodeMap<NonManifestOutcomeNode>()
 const outcomeBreakpoint = buildNodeMap<OutcomeBreakpointNode>()
 const outcomeBreakpointValue = buildNodeMap<OutcomeBreakpointValueNode>()
+const forcedMovementCollision = buildNodeMap<ForcedMovementCollisionAuthored>()
 const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
@@ -299,6 +302,51 @@ const OUTCOME_BREAKPOINT_NODE_MAP: NodeMap<OutcomeBreakpointNode> = outcomeBreak
     )
   }
 )
+
+const FORCED_MOVEMENT_COLLISION_NODE_MAP: NodeMap<ForcedMovementCollisionAuthored> =
+  forcedMovementCollision.define('forcedMovementCollision', ({ map, nodes, data }) => {
+    const { text, selectSingle, groupObject } = nodes
+    const { table } = data
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('diceConfig', text(['diceConfig'], 'Damage Dice Per 10 Feet', { requiredIf: true }))
+      .set(
+        'damageTypeId',
+        selectSingle(
+          ['damageTypeId'],
+          'Damage Type',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'savingThrow',
+        groupObject(['savingThrow'], 'Struck Creature Save', () => SAVING_THROW_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+      .set(
+        'conditionId',
+        selectSingle(
+          ['conditionId'],
+          'Condition On Failure',
+          {
+            kind: 'DATA',
+            relationship: table('condition_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { requiredIf: true }
+        )
+      )
+  })
 
 const PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['turnAnchor']>
@@ -380,6 +428,7 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
     const isDamageTaken = event.eq('DAMAGE_TAKEN')
     const isAgainstEnemy = logic.or([event.eq('ATTACK_ROLL'), event.eq('SPELL_CAST')])
     const isActionUsed = event.eq('ACTION_USED_ON_HOLDER')
+    const isIncapacitated = event.eq('INCAPACITATED')
 
     map
       .set(
@@ -396,7 +445,8 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
               {
                 code: 'ACTION_USED_ON_HOLDER',
                 label: 'Another creature uses an action on the holder'
-              }
+              },
+              { code: 'INCAPACITATED', label: 'The effect source is incapacitated or defeated' }
             ]
           },
           { requiredIf: true }
@@ -436,6 +486,15 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
           'Against',
           { kind: 'INLINE_OPTIONS', options: [{ code: 'ENEMY', label: 'An enemy of the holder' }] },
           { requiredIf: isAgainstEnemy, showIf: isAgainstEnemy }
+        )
+      )
+      .set(
+        'of',
+        selectSingle(
+          ['of'],
+          'Whose Incapacitation',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'SOURCE', label: 'The effect source' }] },
+          { requiredIf: isIncapacitated, showIf: isIncapacitated }
         )
       )
       .set(
@@ -1053,6 +1112,13 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
         })
       )
       .set('requiresFullyWithin', toggle(['requiresFullyWithin'], 'Requires Fully Within'))
+      .set(
+        'requiredSight',
+        selectMulti(['requiredSight'], 'Requires Sight', {
+          kind: 'INLINE_OPTIONS',
+          options: MANIFEST_REQUIRED_SIGHT_OPTIONS
+        })
+      )
       .set(
         'automaticSaveSuccessImmunityDamageTypeId',
         selectSingle(
@@ -2133,6 +2199,13 @@ function registerOutcomeFields(
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
         }
       )
+    )
+    .set(
+      'collision',
+      groupObject(['collision'], 'Collision', () => FORCED_MOVEMENT_COLLISION_NODE_MAP, {
+        presentation: 'inline',
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
+      })
     )
     .set(
       'targetKind',

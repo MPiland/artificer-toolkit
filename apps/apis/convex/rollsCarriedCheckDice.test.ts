@@ -2,13 +2,14 @@
 import { describe, expect, it } from 'vitest'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { setupCharacterRun } from '../tests/fixtures/encounterCharacter'
 import { api } from './_generated/api'
 import { createConvexEncounterStore } from './lib/convexEncounterStore'
 
-type CarriedSpell = typeof guidance | typeof resistance
+type CarriedSpell = typeof guidance | typeof resistance | typeof glibness
 
 /** The spell's one effect, its die limited to `ability` when given. */
 function carriedEffect(spell: CarriedSpell, ability?: 'DEXTERITY') {
@@ -51,18 +52,20 @@ async function characterCarrying(spell: CarriedSpell, ability?: 'DEXTERITY') {
             .collect()
         ).length
     )
-  const strengthCheck = async () => {
+  const abilityCheck = async (ability: 'STRENGTH' | 'CHARISMA') => {
     const sheet = (await player.caller.query(api.characters.sheet.get, { id: character.id }))!
-    const modifier = sheet.overview.abilities.find(
-      ({ ability }) => ability === 'STRENGTH'
-    )!.modifier
+    const modifier = sheet.overview.abilities.find((row) => row.ability === ability)!.modifier
     return player.caller.mutation(api.rolls.execute, {
       characterId: character.id,
       expression:
         modifier === 0 ? '1d20' : `1d20 ${modifier > 0 ? '+' : '-'} ${Math.abs(modifier)}`,
-      source: { kind: 'ABILITY_CHECK', label: 'Strength check' }
+      source: {
+        kind: 'ABILITY_CHECK',
+        label: `${ability === 'STRENGTH' ? 'Strength' : 'Charisma'} check`
+      }
     })
   }
+  const strengthCheck = () => abilityCheck('STRENGTH')
   const initiative = async () => {
     const sheet = (await player.caller.query(api.characters.sheet.get, { id: character.id }))!
     const modifier = sheet.overview.initiative
@@ -83,7 +86,7 @@ async function characterCarrying(spell: CarriedSpell, ability?: 'DEXTERITY') {
       source: { kind: 'SAVING_THROW', label: `${save.label} saving throw` }
     })
   }
-  return { effectCount, strengthCheck, initiative, savingThrow }
+  return { effectCount, abilityCheck, strengthCheck, initiative, savingThrow }
 }
 
 const d4Terms = (record: { evidence: { terms: readonly { die: number }[] } }) =>
@@ -143,5 +146,39 @@ describe('a carried saving-throw die on a Sheet roll', () => {
     const { effectCount, strengthCheck } = await characterCarrying(resistance)
     expect(d4Terms(await strengthCheck())).toEqual([])
     expect(await effectCount()).toBe(1)
+  })
+})
+
+/** SPELLS-4.T2c3: a floor the Character carries (Glibness) lifts its d20 on the checks it names, and is not spent. */
+describe('a carried d20 floor on a Sheet roll', () => {
+  const d20Of = (
+    record: Awaited<ReturnType<Awaited<ReturnType<typeof characterCarrying>>['strengthCheck']>>
+  ) => record.evidence.terms.find(({ die }) => die === 20)!
+
+  it('counts a Charisma check’s d20 as at least the floor and records the floor', async () => {
+    const { abilityCheck, effectCount } = await characterCarrying(glibness)
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const record = await abilityCheck('CHARISMA')
+      const d20 = d20Of(record)
+      expect(d20.subtotal).toBe(Math.max(d20.rolls[0]!, 15))
+      expect(record.evidence.total).toBe(
+        record.evidence.terms.reduce(
+          (total, term) => total + term.subtotal,
+          record.evidence.modifier
+        )
+      )
+      expect(record.ruleCheck).toEqual(
+        d20.rolls[0]! < 15 ? { kind: 'D20_MINIMUM_ROLL', amount: 15, label: 'Glibness' } : undefined
+      )
+    }
+    expect(await effectCount()).toBe(1)
+  })
+
+  it('leaves a check of another ability, and a saving throw, as rolled', async () => {
+    const { abilityCheck, savingThrow } = await characterCarrying(glibness)
+    for (const record of [await abilityCheck('STRENGTH'), await savingThrow('STRENGTH')]) {
+      expect(d20Of(record).subtotal).toBe(d20Of(record).rolls[0])
+      expect(record.ruleCheck).toBeUndefined()
+    }
   })
 })

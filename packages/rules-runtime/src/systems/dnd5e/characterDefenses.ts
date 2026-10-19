@@ -19,9 +19,10 @@ function defenseSourceEffectIds(value: string[] | undefined): string[] | undefin
 export function evaluateDnd5eCharacterDefenses(
   input: CharacterRulePolicyInput,
   grantFold: CharacterGrantFoldOutput
-): Pick<CharacterRulePolicyOutput, 'defenses' | 'conditionImmunityIds'> {
+): Pick<CharacterRulePolicyOutput, 'defenses' | 'conditionImmunityIds' | 'spellSchoolImmunityIds'> {
   const defenses = new Map<string, CharacterRulePolicyOutput['defenses'][number]>()
   const conditionImmunityIds = new Set<string>()
+  const spellSchoolImmunityIds = new Set<string>()
   for (const modifier of grantFold.modifiers) {
     if (
       (modifier.modifierKind !== 'ADD_OPTION' && modifier.modifierKind !== 'REMOVE_OPTION') ||
@@ -39,6 +40,14 @@ export function evaluateDnd5eCharacterDefenses(
       if (conditionId.trim() === '') continue
       if (adding) conditionImmunityIds.add(conditionId)
       else conditionImmunityIds.delete(conditionId)
+      continue
+    }
+    if (modifier.valueDomainCode === 'SPELL_SCHOOL_IMMUNITY') {
+      if (payload === undefined || !('magicSchoolId' in payload)) continue
+      const schoolId = payload.magicSchoolId
+      if (schoolId.trim() === '') continue
+      if (adding) spellSchoolImmunityIds.add(schoolId)
+      else spellSchoolImmunityIds.delete(schoolId)
       continue
     }
     const kind =
@@ -72,5 +81,9 @@ export function evaluateDnd5eCharacterDefenses(
       source: addition.source
     })
   }
-  return { defenses: [...defenses.values()], conditionImmunityIds: [...conditionImmunityIds] }
+  return {
+    defenses: [...defenses.values()],
+    conditionImmunityIds: [...conditionImmunityIds],
+    spellSchoolImmunityIds: [...spellSchoolImmunityIds]
+  }
 }

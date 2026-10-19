@@ -126,6 +126,8 @@ export async function planEncounterMeleeRetaliation<
   userId: string
   runtime: RulesRuntimeService
   random: (maxExclusive: number) => number
+  /** What the zones' damage ends on the attacker: the actor whose turn it is and every actor's side. */
+  damageEnds: NonNullable<Parameters<typeof planNativeSpatialMovementPrefix>[0]['damageEnds']>
   retained?: MeleeRetaliationEvidenceDto
 }) {
   const { selected, attacker, retained } = input
@@ -197,7 +199,8 @@ export async function planEncounterMeleeRetaliation<
     sourceCommandId: input.sourceCommandId,
     occurredAt: input.occurredAt,
     userId: input.userId,
-    commandId: { phase: 'MELEE_RETALIATION', ordinal: 0 }
+    commandId: { phase: 'MELEE_RETALIATION', ordinal: 0 },
+    damageEnds: input.damageEnds
   })
   const evidence: MeleeRetaliationEvidenceDto = {
     selectionChecksum: selected.selectionChecksum,

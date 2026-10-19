@@ -24,6 +24,8 @@ const OPTION_DOMAIN_POLARITY: Readonly<Partial<Record<ValueDomainCode, GrantPola
   DAMAGE_RESISTANCE: 'BENEFICIAL',
   DAMAGE_IMMUNITY: 'BENEFICIAL',
   CONDITION_IMMUNITY: 'BENEFICIAL',
+  SPELL_SCHOOL_IMMUNITY: 'BENEFICIAL',
+  CHECKS_AGAINST_HOLDER: 'BENEFICIAL',
   MOVEMENT_MODE: 'BENEFICIAL',
   MOVEMENT_PASSAGE: 'BENEFICIAL',
   DAMAGE_VULNERABILITY: 'HARMFUL',
@@ -86,6 +88,7 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
         ? 'HARMFUL'
         : 'BENEFICIAL'
     case 'OPTIONAL_ABILITY_MODIFIER_BONUS':
+    case 'MINIMUM_ROLL':
       return 'BENEFICIAL'
     case 'ENABLE':
       return ENABLE_DOMAIN_POLARITY[domain] ?? 'NEUTRAL'

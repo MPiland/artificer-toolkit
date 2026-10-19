@@ -8,6 +8,7 @@ import type {
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import type { ForcedMovementDirection } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { vi } from 'vitest'
@@ -325,7 +326,7 @@ export function frightenOnFailedSave(base: CreatureAuthored): CreatureAuthored {
  */
 export function forceOnFailedSave(
   base: CreatureAuthored,
-  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'ASIDE' | 'ANY',
+  direction: ForcedMovementDirection,
   feet: number,
   distanceMode: 'EXACT' | 'UP_TO' = 'EXACT'
 ): CreatureAuthored {

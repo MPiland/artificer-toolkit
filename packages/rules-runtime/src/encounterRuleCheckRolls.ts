@@ -1,5 +1,9 @@
 import { v5 as uuidv5 } from 'uuid'
-import { rollRecordDtoSchema, type RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import {
+  rollRecordDtoSchema,
+  type RollRecordDto,
+  type RollRuleCheckDto
+} from '@artificer-toolkit/schema/api/rolls'
 import type {
   basicActionCheckApplicationOutputDtoSchema,
   concentrationCheckApplicationOutputDtoSchema
@@ -9,6 +13,7 @@ import {
   d20AddedDiceTotal,
   type D20RolledAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 const ruleCheckRollNamespace = '6b1f0c7e-3d2a-4f5b-9c8e-1a2b3c4d5e6f'
@@ -49,6 +54,35 @@ export function withAddedDiceTerms(
       subtotal: evaluated.evidence.subtotal + added,
       total: evaluated.evidence.total + added
     }
+  }
+}
+
+/**
+ * A d20 check's evaluation with the floor its roller's effects put on the kept d20 (Glibness's 15):
+ * the d20 term's subtotal is the floor and the totals count it, while its rolls keep the face
+ * rolled. `ruleCheck` is set only when the floor raised the roll, so the card can say why.
+ */
+export function withMinimumRoll(
+  evaluated: ReturnType<typeof evaluateRollExpression>,
+  minimumRoll: D20MinimumRollDto | undefined
+): {
+  evaluated: ReturnType<typeof evaluateRollExpression>
+  ruleCheck?: Extract<RollRuleCheckDto, { kind: 'D20_MINIMUM_ROLL' }>
+} {
+  const [d20Term, ...rest] = evaluated.evidence.terms
+  const raised = minimumRoll === undefined ? 0 : minimumRoll.amount - (d20Term?.subtotal ?? 0)
+  if (!minimumRoll || !d20Term || raised <= 0) return { evaluated }
+  return {
+    evaluated: {
+      ...evaluated,
+      evidence: {
+        ...evaluated.evidence,
+        terms: [{ ...d20Term, subtotal: minimumRoll.amount }, ...rest],
+        subtotal: evaluated.evidence.subtotal + raised,
+        total: evaluated.evidence.total + raised
+      }
+    },
+    ruleCheck: { kind: 'D20_MINIMUM_ROLL', amount: minimumRoll.amount, label: minimumRoll.label }
   }
 }
 
@@ -306,16 +340,23 @@ export function basicActionCheckRollRecord(input: {
   const faces = [...d20.rawFaces]
   const modifier =
     d20.modifier === 0 ? '' : d20.modifier > 0 ? `+${d20.modifier}` : `${d20.modifier}`
-  const evaluated = evaluateRollExpression(
-    parseRollExpression(`1d20${modifier}`),
-    { nextInt: () => faces.shift()! - 1 },
-    d20.rollMode
+  const { evaluated, ruleCheck } = withMinimumRoll(
+    withAddedDiceTerms(
+      evaluateRollExpression(
+        parseRollExpression(`1d20${modifier}`),
+        { nextInt: () => faces.shift()! - 1 },
+        d20.rollMode
+      ),
+      d20.addedDice
+    ),
+    d20.minimumRoll
   )
   if (evaluated.evidence.total !== d20.total)
     throw new Error('The basic action roll record does not match its check.')
   return rollRecordDtoSchema.parse({
     id: input.rollId ?? ruleCheckRollId(input.occurrenceId, 0),
     ...evaluated,
+    ...(ruleCheck && { ruleCheck }),
     characterId: null,
     characterLabel: input.rollerLabel,
     source: {

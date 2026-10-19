@@ -11,6 +11,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
+import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { applyNativeReactionEffect } from './nativeEncounterAttackReaction.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
@@ -101,6 +102,15 @@ export async function planNativeLiveEncounterActorsAction(
   })
   for (const actor of chosen)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
+  for (const actor of chosen)
+    if (
+      encounterSpellSchoolImmunity({
+        source: sourced.source,
+        sourceFacts: casterFacts,
+        target: movementTargets.get(actor.id)!
+      })
+    )
+      throw refusal(`${actor.label} is immune to spells of this school`)
   const prepared = []
   for (const actor of chosen)
     prepared.push({
@@ -238,6 +248,7 @@ export async function planNativeLiveEncounterActorsAction(
     areaSnapshot: null,
     caughtChecksum: encounterChosenActorsChecksum(actorIds),
     removedActorIds: [],
+    unaffectedActorIds: [],
     placement: null,
     occurrenceVersion: window.occurrenceVersion,
     response: window.response,

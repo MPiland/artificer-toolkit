@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { spatialPointDtoSchema } from '../shared/spatialFacts.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import {
   MAX_TURN_TELEPORT_ALLOWANCES,
@@ -287,6 +288,16 @@ const encounterStoredRunCommandResultSchema = lazySchema(() =>
   })
 )
 
+/** What ended a forced movement short of, or at, its distance: nothing, an object or wall, or a creature. */
+export const encounterForcedMovementLandingSchema = lazySchema(() =>
+  z.strictObject({
+    targetActorId: postgresUuidSchema,
+    feet: z.number().check(z.nonnegative()),
+    stoppedBy: z.union([z.literal('NONE'), z.literal('OBJECT'), postgresUuidSchema]),
+    ray: z.nullable(spatialPointDtoSchema)
+  })
+)
+
 export const encounterStoredRunCommandSchema = lazySchema(() =>
   z.discriminatedUnion('commandType', [
     z.extend(encounterStoredRunCommandBaseSchema, {
@@ -379,6 +390,14 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
             z.strictObject({ sceneId: postgresUuidSchema, sceneCommandId: postgresUuidSchema })
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      ),
+      /**
+       * Where each creature the action moved ended up: the feet it travelled, what stopped it short
+       * of its distance, and the random direction rolled for it.
+       */
+      forcedMovementLandings: z._default(
+        z.array(encounterForcedMovementLandingSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         []
       ),
       /** The once-per-turn uses this action spent from the actor's turn record; its undo gives them back. */

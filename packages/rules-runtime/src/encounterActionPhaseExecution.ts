@@ -43,6 +43,8 @@ export function resolveEncounterActionPhaseExecution(input: {
   testRollMode: EncounterD20RollMode
   /** A server-owned interstitial policy may select a legal replacement path without rewriting TEST evidence. */
   effectivePath?: string
+  /** The attack struck a decoy of its target: no OUTCOME runs, whatever path the TEST selected. */
+  absorbedByDecoy?: boolean
 }): EncounterActionPhaseResolution {
   if (input.plan.kind === 'SINGLE_GRAPH') return { kind: 'SINGLE_GRAPH' }
   if (input.execution.status === 'PAUSED') return { kind: 'PAUSED', phase: input.phase }
@@ -51,6 +53,7 @@ export function resolveEncounterActionPhaseExecution(input: {
   const selectedPath = input.effectivePath ?? input.execution.outputs.resultPath
   if (typeof selectedPath !== 'string')
     throw new Error('A completed TEST must select exactly one outcome path.')
+  if (input.absorbedByDecoy) return { kind: 'TEST_ONLY', selectedPath }
   if (!input.adapter.specializeOutcomeTemplate)
     throw new Error('The System cannot specialize the selected outcome path.')
 

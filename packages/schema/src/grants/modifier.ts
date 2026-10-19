@@ -236,6 +236,11 @@ const modifyChargeLimitPayloadDtoSchema = lazySchema(() =>
 
 const amountPayloadDtoSchema = lazySchema(() => z.strictObject({ amount: z.number() }))
 
+/** The d20 face a test treats a lower roll as (Glibness's 15): above 1, within a d20. */
+const minimumRollPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ amount: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)) })
+)
+
 /** A weapon damage die by its faces: a d4 through a d12. */
 const weaponDamageDiePayloadDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -262,7 +267,7 @@ const attackDecoyThresholdDtoSchema = lazySchema(() =>
 )
 
 /** Decoys an attack against the holder may target instead: their armor class and roll thresholds. */
-const attackDecoysPayloadDtoSchema = lazySchema(() =>
+export const attackDecoysPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
     armorClass: armorClassFormulaPayloadDtoSchema,
     thresholds: authoredNestedCollectionSchema(attackDecoyThresholdDtoSchema)
@@ -317,6 +322,14 @@ const damageResistancePayloadDtoSchema = lazySchema(() =>
 
 const conditionTypePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ conditionTypeId: authoredIdentifierSchema })
+)
+
+const magicSchoolPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ magicSchoolId: authoredIdentifierSchema })
+)
+
+const skillPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ skillId: authoredIdentifierSchema })
 )
 
 const attributePayloadDtoSchema = lazySchema(() =>
@@ -415,6 +428,8 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     damageResistancePayloadDtoSchema,
     damageImmunityPayloadDtoSchema,
     conditionTypePayloadDtoSchema,
+    magicSchoolPayloadDtoSchema,
+    skillPayloadDtoSchema,
     attributePayloadDtoSchema,
     movementModePayloadDtoSchema,
     movementPassagePayloadDtoSchema,
@@ -551,6 +566,12 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema),
     buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', optionalAbilityParamDtoSchema),
     buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', optionalAbilityParamDtoSchema),
+    buildModifierGrantVariant(
+      'ABILITY_CHECK',
+      'MINIMUM_ROLL',
+      optionalAbilityParamDtoSchema,
+      minimumRollPayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'ABILITY_CHECK',
       'ADD_BONUS_DIE',
@@ -951,6 +972,30 @@ const buildModifierGrantVariants = () =>
       'REMOVE_OPTION',
       emptyDomainDtoSchema,
       conditionTypePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'SPELL_SCHOOL_IMMUNITY',
+      'ADD_OPTION',
+      emptyDomainDtoSchema,
+      magicSchoolPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'SPELL_SCHOOL_IMMUNITY',
+      'REMOVE_OPTION',
+      emptyDomainDtoSchema,
+      magicSchoolPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'CHECKS_AGAINST_HOLDER',
+      'ADD_OPTION',
+      emptyDomainDtoSchema,
+      skillPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'CHECKS_AGAINST_HOLDER',
+      'REMOVE_OPTION',
+      emptyDomainDtoSchema,
+      skillPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'ATTRIBUTE',
