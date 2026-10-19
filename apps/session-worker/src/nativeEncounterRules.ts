@@ -1181,7 +1181,9 @@ export async function planNativeLiveEncounterAction(
     execution,
     occurrenceId,
     commandId: command.commandId,
-    activeEffectsByActorId
+    activeEffectsByActorId,
+    chosenItemInstanceId:
+      command.target.kind === 'ACTOR' ? command.target.boundItemInstanceId : undefined
   })
   const reactionUse =
     reaction?.audit.selection === 'USE' && reaction.applied
@@ -1311,6 +1313,7 @@ export async function planNativeLiveEncounterAction(
       sourceReleases,
       targetReleases: reactionEnded?.sourceReleases,
       damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
+      releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||

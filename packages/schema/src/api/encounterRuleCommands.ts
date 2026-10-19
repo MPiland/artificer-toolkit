@@ -134,7 +134,12 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       kind: z.literal('ACTOR'),
       actorId: uuidSchema,
       /** The option the caster picks at cast, for an action that offers several (D148). */
-      choiceOptionId: z.optional(postgresUuidSchema)
+      choiceOptionId: z.optional(postgresUuidSchema),
+      /**
+       * The target's equipped item the action is used on, for an action that chooses one
+       * (Shillelagh's club, Heat Metal's armor): Disarm's item choice.
+       */
+      boundItemInstanceId: z.optional(postgresUuidSchema)
     }),
     z.strictObject({
       kind: z.literal('ACTORS'),

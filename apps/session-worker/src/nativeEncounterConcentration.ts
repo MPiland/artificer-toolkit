@@ -34,6 +34,7 @@ import {
   grantsEndedByHolderState,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { encounterHeldItemInstanceIds } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -318,7 +319,11 @@ export async function planNativeLiveConcentration(input: {
           cleanup: await loseConcentration(maintained)
         })
       endedGrants.push(
-        ...grantsEndedByHolderState(stateBound, { reason, conditionIds: target.state.conditions })
+        ...grantsEndedByHolderState(stateBound, {
+          reason,
+          conditionIds: target.state.conditions,
+          heldItemInstanceIds: encounterHeldItemInstanceIds(target)
+        })
       )
     }
   }

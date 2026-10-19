@@ -418,7 +418,8 @@ export const PATH_LIFECYCLE_END_EVENT = {
   ON_INCAPACITATED: 'ON_INCAPACITATED',
   ON_IDLE_TURN: 'ON_IDLE_TURN',
   ON_LEAVING_AREA: 'ON_LEAVING_AREA',
-  ON_LONG_REST: 'ON_LONG_REST'
+  ON_LONG_REST: 'ON_LONG_REST',
+  ON_CHOSEN_ITEM_RELEASED: 'ON_CHOSEN_ITEM_RELEASED'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -464,6 +465,11 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_END_EVENT.ON_LONG_REST,
     label: 'On Long Rest',
     description: 'Ends when the holder finishes a long rest.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_CHOSEN_ITEM_RELEASED]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_CHOSEN_ITEM_RELEASED,
+    label: 'On Chosen Item Released',
+    description: 'Ends when the path’s chosen item leaves the holder’s hands or equipment.'
   }
 } as const
 

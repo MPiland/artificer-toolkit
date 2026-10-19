@@ -269,6 +269,27 @@ export function resolveDnd5eActionMechanic(
       .filter((contribution) => contribution.state === 'APPLIED')
       .reduce((sum, contribution) => sum + contribution.value, 0)
   const numericKinds = ['BONUS', 'PENALTY', ...ABILITY_MODIFIER_KINDS]
+  /**
+   * An attack adds one ability modifier of its own: the attacking item's and any bound to it
+   * (Shillelagh's spellcasting ability "instead of Strength") are alternatives, so only the one the
+   * attack uses counts. A Character-wide ability bonus from another source adds on top.
+   */
+  const abilityTotal = (valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE'): number => {
+    const contributions = applicable(valueDomainCode, ABILITY_MODIFIER_KINDS).filter(
+      (contribution) => contribution.state === 'APPLIED'
+    )
+    const own = contributions.filter((contribution) => contribution.scope === 'SOURCE')
+    const used =
+      own.find((contribution) => contribution.ability === target.attackAbility) ??
+      own.reduce<ModifierContribution | null>(
+        (best, contribution) => (best === null || contribution.value > best.value ? contribution : best),
+        null
+      )
+    return (
+      appliedTotal(contributions.filter((contribution) => contribution.scope !== 'SOURCE')) +
+      (used?.value ?? 0)
+    )
+  }
   const resolveAttackBonus = (): number | null => {
     if (attackKind === null) return null
     if (isDnd5eSpellAttackKind(attackKind)) {
@@ -319,7 +340,7 @@ export function resolveDnd5eActionMechanic(
                 0
               )
     return (
-      appliedTotal(abilities) +
+      abilityTotal('ATTACK_ROLL') +
       Math.floor(input.proficiencyBonus * proficiency) +
       appliedTotal(applicable('ATTACK_ROLL', ['BONUS', 'PENALTY'])) +
       (adjustment?.attackBonus ?? 0)
@@ -337,8 +358,29 @@ export function resolveDnd5eActionMechanic(
   const attackDamageBonus =
     attackKind === null
       ? 0
-      : appliedTotal(applicable('DAMAGE', numericKinds)) + (adjustment?.damageBonus ?? 0)
+      : abilityTotal('DAMAGE') +
+        appliedTotal(applicable('DAMAGE', ['BONUS', 'PENALTY'])) +
+        (adjustment?.damageBonus ?? 0)
   const firstDamageOutcome = outcomes.find((outcome) => outcome.kind === 'DAMAGE')
+  /** A weapon attack's damage die can be replaced (Shillelagh's d8); the largest one applies. */
+  const weaponDieFaces =
+    attackKind === null || isDnd5eSpellAttackKind(attackKind)
+      ? null
+      : input.modifierGroups
+          .filter((group) => group.domainKey === 'WEAPON_DAMAGE_DIE:SET_VALUE')
+          .flatMap((group) => group.contributions)
+          .filter(
+            (contribution) =>
+              contribution.state === 'APPLIED' && dnd5eModifierApplies(contribution, target)
+          )
+          .reduce<number | null>(
+            (largest, contribution) => Math.max(largest ?? 0, contribution.value),
+            null
+          )
+  const withWeaponDie = (value: number | string | null): number | string | null =>
+    weaponDieFaces === null || typeof value !== 'string'
+      ? value
+      : value.replace(/^(\d+)d\d+$/, `$1d${weaponDieFaces}`)
   const resolveSave = (): ResolvedMechanic['save'] => {
     const savingThrow = invocation.savingThrow
     if (savingThrow === null) return null
@@ -368,7 +410,8 @@ export function resolveDnd5eActionMechanic(
       outcome.scalingKind === 'NONE'
         ? null
         : targetLevel(input, outcome.scalingSource, outcome.classId, context.spellCastLevel)
-    const value = resolveOutcomeValue(outcome, level)
+    const resolvedValue = resolveOutcomeValue(outcome, level)
+    const value = outcome === firstDamageOutcome ? withWeaponDie(resolvedValue) : resolvedValue
     if (value === null)
       return {
         kind: 'EFFECT',

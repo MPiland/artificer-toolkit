@@ -662,9 +662,10 @@ function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind 
 /**
  * Outcomes a test action leaves to its active-effect plan rather than its TEST/OUTCOME graphs: an
  * actor relationship, a grant an attack's hit applies (Shocking Grasp's "can't take reactions"),
- * and a grant a failed save applies beside the timed conditions the same effect owns (Hypnotic
- * Pattern's speed of 0). Any other failed-save grant stays an ordinary test outcome. A source
- * immunity is always the plan's (see `sourceImmunityPlan`).
+ * a grant a failed save applies beside the timed conditions the same effect owns (Hypnotic
+ * Pattern's speed of 0), and a save's grant the plan holds alone (see `saveGrantPlan`). Any other
+ * save grant stays an ordinary test outcome. A source immunity and a chosen item's release are
+ * always the plan's (see `sourceImmunityPlan` and `chosenItemPlan`).
  */
 function isActiveEffectPlanOutcome(
   entry: CompiledEffectGroup['entries'][number],
@@ -674,8 +675,10 @@ function isActiveEffectPlanOutcome(
   return (
     entry.outcome.effectKind === 'ACTOR_RELATIONSHIP' ||
     entry.outcome.effectKind === 'SOURCE_IMMUNITY' ||
+    entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT')) ||
+    (entry.outcome.effectKind === 'APPLY_GRANT' && saveGrantPlan(action) !== null) ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       entry.pathCode === 'ON_SAVE_FAIL' &&
       timedConditionPlan(action) !== null) ||
@@ -2251,13 +2254,138 @@ function modifierGrantPlan(
   )
     unsupported('D&D attacks apply one active effect on a hit.')
   const entry = attack ? hitGrants[0] : entries[0]
-  return entry ? modifierGrantEntryPlan({ action, entry, attack, untilEndEvent: false }) : null
+  const plan =
+    testPhaseKindOrNull(action) === 'SAVE'
+      ? saveGrantPlan(action)
+      : entry
+        ? modifierGrantEntryPlan({ action, entry, attack, untilEndEvent: false })
+        : null
+  return plan && { ...plan, chosenItem: chosenItemPlan(action) }
+}
+
+/**
+ * A save action's timed grant the plan holds alone, applied only on its authored save result
+ * (Vicious Mockery's disadvantage on a failed save). A grant authored alike on both results applies
+ * whatever the save (Heat Metal's disadvantage, owed unless the item is dropped). A grant beside
+ * timed conditions or a repeated save is planned with them instead.
+ */
+function saveGrantPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  if (
+    testPhaseKindOrNull(action) !== 'SAVE' ||
+    timedConditionPlan(action) !== null ||
+    repeatingDirectFollowUpSavePlan(action) !== null
+  )
+    return null
+  const [entry, other, ...rest] = action.compiledEffect.entries.filter(
+    (candidate) => 'outcome' in candidate && candidate.outcome.effectKind === 'APPLY_GRANT'
+  )
+  if (
+    !entry ||
+    rest.length > 0 ||
+    (other && (other.pathCode === entry.pathCode || authoredAlike(entry) !== authoredAlike(other)))
+  )
+    return null
+  const plan = modifierGrantEntryPlan({ action, entry, attack: false, untilEndEvent: false })
+  return (
+    plan && { ...plan, adapterFacts: other ? {} : { 'dnd5e.grant-authored-path': entry.pathCode } }
+  )
+}
+
+/**
+ * A grant entry as authored, without its identities or its release flag, so two paths' grants
+ * compare alike.
+ */
+function authoredAlike(entry: CompiledEffectGroup['entries'][number]): string {
+  const withoutIdentities = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(withoutIdentities)
+      : typeof value === 'object' && value !== null
+        ? Object.fromEntries(
+            Object.entries(value).flatMap(([key, field]) =>
+              key === 'id' || key === 'unlessChosenItemReleased'
+                ? []
+                : [[key, withoutIdentities(field)]]
+            )
+          )
+        : value
+  return JSON.stringify(
+    withoutIdentities({
+      outcome: 'outcome' in entry ? entry.outcome : null,
+      duration: entry.duration,
+      lifecycle: entry.lifecycle,
+      maintenanceDefinitionId: entry.maintenanceDefinitionId
+    })
+  )
+}
+
+/**
+ * The item a grant plan's action is used on, from its authored paths (see the plan's
+ * `chosenItem`); null when it names none. The paths name one item, a bound grant's modifiers are
+ * all scoped to their source (the item), and a release is one save result's, the result a grant
+ * withheld on release is authored on.
+ */
+function chosenItemPlan(
+  action: Dnd5eCompiledEffectActionSource
+): NonNullable<CharacterRuleActionActiveEffectPlan['chosenItem']> | null {
+  const { entries } = action.compiledEffect
+  const items = new Set(
+    entries.flatMap(({ chosenItem }) => (chosenItem ? [JSON.stringify(chosenItem)] : []))
+  )
+  const grants = entries.flatMap((entry) =>
+    'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT'
+      ? [{ pathCode: entry.pathCode, outcome: entry.outcome }]
+      : []
+  )
+  const [releasedOn, ...otherReleasePaths] = new Set(
+    entries.flatMap((entry) =>
+      'outcome' in entry && entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM'
+        ? [entry.pathCode]
+        : []
+    )
+  )
+  const bound = grants.filter(({ outcome }) => outcome.bindsChosenItem)
+  const withheld = grants.filter(({ outcome }) => outcome.unlessChosenItemReleased)
+  const item = entries.find(({ chosenItem }) => chosenItem)?.chosenItem
+  if (!item) {
+    if (bound.length + withheld.length > 0 || releasedOn !== undefined)
+      unsupported('D&D action uses a chosen item it does not name.')
+    return null
+  }
+  if (items.size !== 1) unsupported('D&D action paths must name one chosen item.')
+  if (
+    otherReleasePaths.length > 0 ||
+    (releasedOn !== undefined && releasedOn !== 'ON_SAVE_FAIL' && releasedOn !== 'ON_SAVE_SUCCESS')
+  )
+    unsupported('D&D chosen item is released on one save result.')
+  if (withheld.some(({ pathCode }) => pathCode !== releasedOn))
+    unsupported('D&D grant withheld on release must be authored on the release result.')
+  if (
+    bound.some(
+      ({ outcome }) =>
+        outcome.grants.senses?.length ||
+        (outcome.grants.modifiers ?? []).some(({ scope }) => scope !== 'SOURCE')
+    )
+  )
+    unsupported('D&D grant bound to a chosen item grants only modifiers scoped to it.')
+  return {
+    category: item.category ?? null,
+    requiredProperties: [...new Set(item.requiredProperties ?? [])].sort(),
+    excludedProperties: [...new Set(item.excludedProperties ?? [])].sort(),
+    equipmentIds: [...new Set(item.equipmentIds ?? [])].sort(),
+    bindsGrant: bound.length > 0,
+    releasedOn: releasedOn ?? null,
+    grantUnlessReleased: withheld.length > 0
+  }
 }
 
 type SlotLevelAmount = {
   valueKind: 'SPELL_SLOT_LEVEL'
   multiplier?: number
   subtractLevels?: number
+  levelsPerStep?: number
+  maximum?: number
 }
 
 function isSlotLevelAmount(payload: unknown): payload is SlotLevelAmount {
@@ -2277,7 +2405,13 @@ function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLev
     ...modifier,
     payload: {
       valueKind: 'FIXED',
-      amount: (payload.multiplier ?? 1) * Math.max(0, castLevel - (payload.subtractLevels ?? 0))
+      amount: Math.min(
+        payload.maximum ?? Infinity,
+        (payload.multiplier ?? 1) *
+          Math.floor(
+            Math.max(0, castLevel - (payload.subtractLevels ?? 0)) / (payload.levelsPerStep ?? 1)
+          )
+      )
     }
   }
 }
@@ -9064,6 +9198,19 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       relationship ??
       supportedRecurringPlan(action) ??
       concealmentPlan(action)
+    // A chosen item rides a grant plan; with any other plan its binding or release would vanish.
+    if (
+      !plan?.chosenItem &&
+      action.compiledEffect.entries.some(
+        (entry) =>
+          entry.chosenItem ||
+          ('outcome' in entry &&
+            (entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ||
+              (entry.outcome.effectKind === 'APPLY_GRANT' &&
+                (entry.outcome.bindsChosenItem || entry.outcome.unlessChosenItemReleased))))
+      )
+    )
+      unsupported('D&D chosen item needs a timed grant it rides.')
     const sourceImmunity = sourceImmunityPlan(action)
     // The immunity rides the plan the action makes; with no such plan it would silently vanish. A
     // save's immunity under a Concentration would end with it, so it is refused; a lockout is

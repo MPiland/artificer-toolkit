@@ -55,6 +55,8 @@ export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
 /** The facts of one folded modifier that decide where it applies. */
 type Dnd5eModifierApplicability = {
   readonly sourceId: string
+  /** The item a SOURCE modifier is bound to; it applies while that item is evaluated instead. */
+  readonly boundSourceId?: string
   readonly scope: 'GLOBAL' | 'SOURCE'
   readonly deferredRequirements: CharacterGrantFoldRestriction
   readonly scopeSpellIds: string[]
@@ -138,14 +140,15 @@ export function dnd5eSaveRequiresSourceSight(
 /**
  * The single D&D modifier scope rule: a GLOBAL modifier applies Character-wide and a SOURCE
  * modifier only while its own source is evaluated (an attack with that item, that item's armor
- * class). Item and spell facets then narrow either kind to the attacking item and the spell.
+ * class), or the item it is bound to (Magic Weapon's weapon). Item and spell facets then narrow either kind to the attacking item and the spell.
  */
 export function dnd5eModifierApplies(
   modifier: Dnd5eModifierApplicability,
   target: Dnd5eModifierTarget
 ): boolean {
   return (
-    (modifier.scope === 'GLOBAL' || target.sourceIds.includes(modifier.sourceId)) &&
+    (modifier.scope === 'GLOBAL' ||
+      target.sourceIds.includes(modifier.boundSourceId ?? modifier.sourceId)) &&
     dnd5eItemRequirementsMet(modifier.deferredRequirements, target) &&
     (modifier.scopeSpellIds.length === 0 ||
       (target.spellId !== null && modifier.scopeSpellIds.includes(target.spellId)))
@@ -157,6 +160,7 @@ export function dnd5eAcceptedModifierApplicability(
 ): Dnd5eModifierApplicability {
   return {
     sourceId: modifier.sourceId,
+    ...(modifier.boundSourceId !== undefined && { boundSourceId: modifier.boundSourceId }),
     scope: modifier.scope,
     deferredRequirements: modifier.deferredRequirements,
     scopeSpellIds: modifier.scopeSpellIds ?? []

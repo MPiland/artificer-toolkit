@@ -190,6 +190,11 @@ export const characterGrantFoldSourceSchema = lazySchema(() =>
   z.strictObject({
     sourceId: identitySchema,
     mechanicSource: characterMechanicSourceSchema,
+    /**
+     * The item a source's SOURCE-scoped modifiers are bound to (Shillelagh's staff): they apply
+     * while that item is evaluated instead of the source itself. Absent for every unbound source.
+     */
+    boundSourceId: z.optional(identitySchema),
     sourceState: z.nullable(
       z.strictObject({ carried: z.boolean(), equipped: z.boolean(), attuned: z.boolean() })
     ),
@@ -357,6 +362,8 @@ const modifierResultSchema = lazySchema(() =>
     ...foldModifierShape(),
     /** The granting source; a SOURCE-scoped modifier applies only while it is evaluated. */
     sourceId: identitySchema,
+    /** The item a SOURCE-scoped modifier is bound to, evaluated in place of its source. */
+    boundSourceId: z.optional(identitySchema),
     source: characterMechanicSourceSchema,
     scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
     scopeResourceIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
@@ -427,3 +434,6 @@ export type CharacterGrantFoldRestriction = z.infer<typeof characterGrantFoldRes
 export type CharacterGrantFoldSource = z.infer<typeof characterGrantFoldSourceSchema>
 export type CharacterGrantFoldModifier = z.infer<typeof modifierOperationSchema>
 export type CharacterGrantFoldSense = z.infer<typeof senseOperationSchema>
+export type EquipmentInstanceMechanicSource = z.infer<
+  typeof equipmentInstanceMechanicSourceSchema
+>

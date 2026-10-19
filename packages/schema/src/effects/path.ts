@@ -28,11 +28,14 @@ import { concealFromObserversDtoSchema } from './concealFromObservers.js'
 import { detectConcealedDtoSchema } from './detectConcealed.js'
 import { cancelTriggeringEventDtoSchema } from './cancelTriggeringEvent.js'
 import { sourceImmunityDtoSchema } from './sourceImmunity.js'
+import { releaseChosenItemDtoSchema } from './releaseChosenItem.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
 import {
   activationCodeSchema,
+  equipmentCategoryCodeSchema,
+  equipmentPropertyCodeSchema,
   pathCodeSchema,
   pathGroupTypeSchema,
   pathLifecycleConsumeEventSchema,
@@ -88,7 +91,8 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             concealFromObserversDtoSchema,
             detectConcealedDtoSchema,
             cancelTriggeringEventDtoSchema,
-            sourceImmunityDtoSchema
+            sourceImmunityDtoSchema,
+            releaseChosenItemDtoSchema
           ]
         : [
             closedRuleDtoSchema,
@@ -116,7 +120,8 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             concealFromObserversDtoSchema,
             detectConcealedDtoSchema,
             cancelTriggeringEventDtoSchema,
-            sourceImmunityDtoSchema
+            sourceImmunityDtoSchema,
+            releaseChosenItemDtoSchema
           ]
     )
   )
@@ -152,6 +157,16 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
         dc: heldEscapeDcDtoSchema
       })
     )
+  })
+)
+
+/** See `PathChosenItemAuthored`. */
+export const pathChosenItemDtoSchema = lazySchema(() =>
+  z.strictObject({
+    category: z.optional(equipmentCategoryCodeSchema),
+    requiredProperties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
+    excludedProperties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
+    equipmentIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema))
   })
 )
 
@@ -233,7 +248,8 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
       restrictions: z.optional(facetDtoSchema),
       usage: z.optional(pathUsageSchema),
       rangeOverride: z.optional(rangeDtoSchema),
-      targetingOverride: z.optional(targetingDtoSchema)
+      targetingOverride: z.optional(targetingDtoSchema),
+      chosenItem: z.optional(pathChosenItemDtoSchema)
     }),
     z.union([
       z.object({

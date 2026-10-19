@@ -363,7 +363,8 @@ export const pathLifecycleEndEventSchema = lazySchema(() =>
     'ON_INCAPACITATED',
     'ON_IDLE_TURN',
     'ON_LEAVING_AREA',
-    'ON_LONG_REST'
+    'ON_LONG_REST',
+    'ON_CHOSEN_ITEM_RELEASED'
   ])
 )
 /** Whose damage ends an effect: anyone's, or only that of the effect source and its allies. */
@@ -381,7 +382,12 @@ export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
 )
 /** The end events a timed grant can carry (it is never ended by an attack roll or a cast). */
 export const pathLifecycleGrantEndEventSchema = lazySchema(() =>
-  z.enum(['ON_HIT_POINTS_REGAINED', 'ON_INCAPACITATED', 'ON_IDLE_TURN'] satisfies z.infer<
+  z.enum([
+    'ON_HIT_POINTS_REGAINED',
+    'ON_INCAPACITATED',
+    'ON_IDLE_TURN',
+    'ON_CHOSEN_ITEM_RELEASED'
+  ] satisfies z.infer<
     typeof pathLifecycleEndEventSchema
   >[])
 )

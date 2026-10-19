@@ -80,11 +80,12 @@ function activeGrantContributor(
 function encounterActiveGrantFoldSources(
   effects: readonly ActiveRuleEffectRecord[]
 ): CharacterGrantFoldSource[] {
-  return listActiveEffectGrants(effects).map(({ effectId, modifiers, senses }) => {
+  return listActiveEffectGrants(effects).map(({ effectId, modifiers, senses, boundItem }) => {
     const mechanicSource = { kind: 'ACTIVE_EFFECT', activeEffectId: effectId } as const
     return {
       sourceId: createCharacterMechanicSourceKey(mechanicSource),
       mechanicSource,
+      ...(boundItem && { boundSourceId: createCharacterMechanicSourceKey(boundItem) }),
       sourceState: null,
       restrictions: normalizeCharacterGrantRestrictions(undefined),
       proficiencies: [],

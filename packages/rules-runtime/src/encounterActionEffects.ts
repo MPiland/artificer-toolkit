@@ -8,6 +8,7 @@ import { prepareEncounterActionMechanics } from './encounterActionMechanicsPrepa
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
 import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
+import { readEncounterChosenItem } from './encounterChosenItem.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
@@ -132,6 +133,8 @@ export function prepareNativeActionEffectsPlan<
   form?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['form']
   /** What triggered a reaction, which its effect may bind. */
   trigger?: { damageTypeIds: readonly string[] }
+  /** The target's item the caster chose, for an action used on an item (Shillelagh, Heat Metal). */
+  chosenItemInstanceId?: string
   /**
    * The zone the action places when it holds the condition the action's failed save applies
    * (D146): the hold is the creature's effect, under the Concentration the zone depends on.
@@ -149,6 +152,17 @@ export function prepareNativeActionEffectsPlan<
   const target = prepared.movementTargets.get(prepared.target.id)
   if (!target || checksumCanonicalJson(target.actor) !== checksumCanonicalJson(prepared.target))
     throw new Error('Encounter action effect target is stale.')
+  const chosen = readEncounterChosenItem({
+    plan: plan?.chosenItem,
+    target,
+    itemInstanceId: input.chosenItemInstanceId
+  })
+  // The outcome drops the item only when a hand holds it; a worn one stays (the ruling on Heat Metal).
+  const released = Boolean(
+    chosen?.releasable &&
+    plan?.chosenItem?.releasedOn != null &&
+    plan.chosenItem.releasedOn === execution.d20?.resultPath
+  )
   const effects = prepareEncounterActionEffectPlans({
     encounterId: prepared.state.id,
     occurrenceId: input.occurrenceId,
@@ -167,6 +181,7 @@ export function prepareNativeActionEffectsPlan<
     concealment: input.concealment,
     link: input.link,
     form: input.form,
+    ...(chosen ? { chosenItem: { item: chosen.item, released } } : {}),
     published: execution.published,
     execution: execution.execution,
     d20: execution.d20,
@@ -247,6 +262,8 @@ export function prepareNativeActionEffectsPlan<
     recurringEffect:
       recurringEffect ?? (hold ? { definition: hold.definition, lifecycle: hold.lifecycle } : null),
     riderEffect,
+    /** The target's item the outcome drops; absent when it drops none. */
+    releasedItemInstanceId: released ? chosen?.item.itemInstanceId : undefined,
     // A source immunity outlasts the Concentration its action's effect depends on.
     riderMaintained: !immune,
     maintenance: recurringEffect

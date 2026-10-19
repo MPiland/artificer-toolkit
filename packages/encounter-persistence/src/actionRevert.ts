@@ -38,6 +38,7 @@ import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encoun
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import { revertEncounterActorItemRelease } from '@artificer-toolkit/rules-runtime/encounterActorOptionalContestContext'
 import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
 import { updateSpellSlotUsage } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -93,7 +94,8 @@ type CharacterInverse = {
   /** Conditions the action released from the Character, given back by the undo. */
   restoredConditionIds: Set<string>
   resource: ActionBatch['resourceConsumption']
-  stow: ActionBatch['sourceItemUseStateTransition']
+  /** The one item this action unequipped from the Character: a stow it accepted, or a drop. */
+  unequipped: ActionBatch['sourceItemUseStateTransition']
   item: ActionBatch['sourceItemConsumption']
   /** Slot spends in the order they committed; one batch can carry several (the cast, then its counter). */
   spells: NonNullable<ActionBatch['spellCastConsumption']>[]
@@ -450,7 +452,7 @@ export async function revertLastEncounterAction(
           removedConditionIds: new Set(),
           restoredConditionIds: new Set(),
           resource: null,
-          stow: null,
+          unequipped: null,
           item: null,
           spells: [],
           expectedStreamVersion: streamVersion
@@ -542,10 +544,23 @@ export async function revertLastEncounterAction(
             : [])
         ])
         if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
+        if (action.targetItemUseStateTransition)
+          inverse.unequipped = action.targetItemUseStateTransition
       }
     } else {
       if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
       restoreHitPoints(target.id, action.targetTransition)
+      // An item the target dropped goes back in the hand it left.
+      const release = action.targetItemUseStateTransition
+      if (release) {
+        const held = revertEncounterActorItemRelease({
+          actor: actorsById.get(target.id)!,
+          transition: release
+        })
+        if (!held)
+          unavailable(`${target.label}'s equipment changed after this action; adjust manually.`)
+        updateActor(target.id, { snapshot: held.snapshot })
+      }
       const conditions = readEncounterActorConditionState(target.conditions ?? [])
       updateActor(target.id, {
         conditions: conditions.values.filter(
@@ -655,7 +670,7 @@ export async function revertLastEncounterAction(
       throw new Error('Stored source Character version is missing.')
     const inverse = characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion)
     inverse.resource = spend.resourceConsumption
-    inverse.stow = spend.sourceItemUseStateTransition
+    if (spend.sourceItemUseStateTransition) inverse.unequipped = spend.sourceItemUseStateTransition
     inverse.item = spend.sourceItemConsumption
     if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
   }
@@ -923,7 +938,7 @@ async function revertCheckAction(
         removedConditionIds: new Set(),
         restoredConditionIds: new Set(),
         resource: null,
-        stow: null,
+        unequipped: null,
         item: null,
         spells: [],
         expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
@@ -1157,11 +1172,12 @@ async function restoreCharacter(
       spell.slotKey,
       () => spell.beforeUsed
     ).state
-  if (inverse.stow) {
+  const unequipped = inverse.unequipped
+  if (unequipped) {
     const equipped = state.equipment.equipped
-    const itemId = inverse.stow.itemInstanceId
+    const itemId = unequipped.itemInstanceId
     // The receipt holds the equipment checksum, not the slot or the position: the one entry that
-    // reproduces the checksum is the exact one that was stowed.
+    // reproduces the checksum is the exact one that was unequipped.
     const restored = Array.from({ length: equipped.length + 1 }, (_, index) => index)
       .flatMap((index) =>
         EQUIPPED_SLOT_CODES.map((slot) => ({
@@ -1169,7 +1185,7 @@ async function restoreCharacter(
           equipped: [...equipped.slice(0, index), { itemId, slot }, ...equipped.slice(index)]
         }))
       )
-      .find((equipment) => checksumRuleDocument(equipment) === inverse.stow!.beforeStateChecksum)
+      .find((equipment) => checksumRuleDocument(equipment) === unequipped.beforeStateChecksum)
     if (!restored)
       unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
     state = { ...state, equipment: restored }

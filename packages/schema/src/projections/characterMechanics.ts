@@ -9,7 +9,11 @@ import { modifierOperationSchema, senseOperationSchema } from '../api/characterG
 import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
-import { abilityCodeSchema } from '../shared/enums.js'
+import {
+  abilityCodeSchema,
+  equipmentCategoryCodeSchema,
+  equipmentPropertyCodeSchema
+} from '../shared/enums.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
   SPATIAL_TURN_TRIGGERS,
@@ -299,6 +303,26 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
               excludedSpeedIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(16))
             })
           )
+        })
+      ),
+      null
+    ),
+    /**
+     * The item the action is used on, chosen at use from what its target holds or wears (Heat
+     * Metal's metal object); null for none. The chosen item must meet every filter. With `bindsGrant`
+     * the grant's modifiers apply only to that item. On `releasedOn` the target drops the item when
+     * it can (held, not worn), and a grant with `grantUnlessReleased` is then not applied.
+     */
+    chosenItem: z._default(
+      z.nullable(
+        z.strictObject({
+          category: z.nullable(equipmentCategoryCodeSchema),
+          requiredProperties: z.array(equipmentPropertyCodeSchema).check(z.maxLength(16)),
+          excludedProperties: z.array(equipmentPropertyCodeSchema).check(z.maxLength(16)),
+          equipmentIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(32)),
+          bindsGrant: z.boolean(),
+          releasedOn: z.nullable(z.enum(['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS'])),
+          grantUnlessReleased: z.boolean()
         })
       ),
       null

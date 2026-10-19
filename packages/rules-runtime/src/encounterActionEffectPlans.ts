@@ -14,7 +14,10 @@ import {
   installedGameSystemRuleOperations,
   requireInstalledGameSystemRuleCapability
 } from './platformRulesRuntime.js'
-import type { CharacterGrantFoldModifier } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type {
+  CharacterGrantFoldModifier,
+  EquipmentInstanceMechanicSource
+} from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
   CharacterRuleActionApplication,
   CharacterRuleActionActiveEffectPlan
@@ -111,6 +114,11 @@ export function prepareEncounterActionEffectPlans(input: {
   link?: { memberActorIds: readonly string[] }
   /** The Creature the caster chose for a form-giving action (D130); omitted for every other action. */
   form?: { creatureId: string }
+  /**
+   * The target's item the action was used on and whether the target dropped it; omitted for every
+   * action that chooses none.
+   */
+  chosenItem?: { item: EquipmentInstanceMechanicSource; released: boolean }
   published: ServerPublishedRuleDefinitionDto
   execution: ServerCompletedRuleExecutionDto
   d20: ServerRuleExecutionD20EvidenceDto | null
@@ -218,15 +226,16 @@ export function relationshipConditionApplications(input: {
 }
 
 /**
- * A hit outcome applies on any hit, a critical-hit outcome only on a critical hit, a failed-save
- * outcome only on a failed save, and a contest-win relationship (Grapple) only on the win.
+ * A hit outcome applies on any hit, a critical-hit outcome only on a critical hit, a save outcome
+ * only on its save result, and a contest-win relationship (Grapple) only on the win.
  */
 function reachesAuthoredPath(
   authoredPath: unknown,
   resultPath: string | undefined,
   outcome: 'grant' | 'relationship'
 ): boolean {
-  if (outcome === 'grant' && authoredPath === 'ON_SAVE_FAIL') return resultPath === 'ON_SAVE_FAIL'
+  if (outcome === 'grant' && (authoredPath === 'ON_SAVE_FAIL' || authoredPath === 'ON_SAVE_SUCCESS'))
+    return resultPath === authoredPath
   if (outcome === 'relationship' && authoredPath === 'ON_CHECK_SUCCESS')
     return resultPath === 'ON_CHECK_SUCCESS'
   if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
@@ -323,6 +332,13 @@ export function prepareRecurringActiveEffect(
   const sealedReachFeet = relationshipContribution ? input.sealedReachFeet : 0
   if (sealedReachFeet === undefined)
     throw new EncounterActionEffectPlanError('A relationship plan requires the reach it seals.')
+  const chosenItem = plan.chosenItem ?? null
+  if (chosenItem && !input.chosenItem)
+    throw new EncounterActionEffectPlanError('A chosen-item plan requires the item it was used on.')
+  // A grant owed only while the target keeps the item (Heat Metal's disadvantage) is not made once
+  // it drops it.
+  if (chosenItem?.grantUnlessReleased && input.chosenItem?.released) return null
+  const boundItem = chosenItem?.bindsGrant ? input.chosenItem?.item : undefined
   const grantContribution = plan.modifierGrantContribution ?? null
   if (plan.concealmentContribution && input.concealment === undefined)
     throw new EncounterActionEffectPlanError('A concealment plan requires its settled check.')
@@ -567,7 +583,8 @@ export function prepareRecurringActiveEffect(
                     ),
                     senses: grantContribution.senses,
                     sourceLabel: grantLabel,
-                    sourceHidden: input.sourceHidden
+                    sourceHidden: input.sourceHidden,
+                    ...(boundItem && { boundItem })
                   }
                 ]
               : []),

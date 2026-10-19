@@ -5,7 +5,8 @@ import type {
   DurationKind,
   RangeKind,
   ShapeKind,
-  CoreMeta
+  CoreMeta,
+  DamageDefenseBypassCode
 } from '#core'
 import { type EmptyObject, valuesOf } from '#utils'
 
@@ -13,6 +14,8 @@ export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
   ATTACK_ROLL: 'ATTACK_ROLL',
   ATTACKS_AGAINST: 'ATTACKS_AGAINST',
+  ATTACK_TRAIT: 'ATTACK_TRAIT',
+  WEAPON_DAMAGE_DIE: 'WEAPON_DAMAGE_DIE',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
@@ -95,6 +98,19 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
     label: 'Attacks Against',
     description: 'Advantage or disadvantage on attack rolls made against the holder.'
+  },
+
+  [VALUE_DOMAIN_CODE.ATTACK_TRAIT]: {
+    code: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+    label: 'Attack Trait',
+    description:
+      'A trait the attack has, such as magical, that overcomes defenses against attacks without it.'
+  },
+
+  [VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE]: {
+    code: VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE,
+    label: 'Weapon Damage Die',
+    description: "The die a weapon's damage is rolled with, by its number of faces."
   },
 
   [VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY]: {
@@ -349,6 +365,12 @@ export type ValueDomainParamByCode = {
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
   // holder can see (D100).
   ATTACKS_AGAINST: { attackDomain: AttackDomainCode; requiresHolderSeesAttacker: boolean }
+
+  // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks").
+  ATTACK_TRAIT: { trait: DamageDefenseBypassCode }
+
+  // The weapon's damage die is replaced by one with this many faces (Shillelagh's d8).
+  WEAPON_DAMAGE_DIE: EmptyObject
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject

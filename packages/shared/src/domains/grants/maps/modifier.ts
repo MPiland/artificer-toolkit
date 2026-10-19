@@ -6,6 +6,7 @@ import {
   CHARGE_LIMIT_OPTIONS,
   CHARGE_RESET_OPTIONS,
   CHARGE_SCALING_OPTIONS,
+  DAMAGE_DEFENSE_BYPASS_OPTIONS,
   DURATION_OPTIONS,
   LENGTH_UNIT_OPTIONS,
   MODIFIER_KIND_OPTIONS,
@@ -116,6 +117,18 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
               parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
               parent.field(['valueDomainCode']).eq('DAMAGE')
             ])
+          }
+        )
+      )
+      .set(
+        'trait',
+        selectSingle(
+          ['trait'],
+          'Trait',
+          { kind: 'INLINE_OPTIONS', options: DAMAGE_DEFENSE_BYPASS_OPTIONS },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
+            requiredIf: true
           }
         )
       )
@@ -321,6 +334,19 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'subtractLevels',
         number(['subtractLevels'], 'Subtract Levels', {
           constraints: { minimum: 0 },
+          showIf: local.field(['valueKind']).eq('SPELL_SLOT_LEVEL')
+        })
+      )
+      .set(
+        'levelsPerStep',
+        number(['levelsPerStep'], 'Levels Per Step', {
+          constraints: { minimum: 1 },
+          showIf: local.field(['valueKind']).eq('SPELL_SLOT_LEVEL')
+        })
+      )
+      .set(
+        'maximum',
+        number(['maximum'], 'Maximum', {
           showIf: local.field(['valueKind']).eq('SPELL_SLOT_LEVEL')
         })
       )
@@ -710,6 +736,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
           showIf: or([
             local.field(['valueDomainCode']).eq('ATTACK_ROLL'),
             local.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+            local.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
             local.field(['valueDomainCode']).eq('ABILITY_CHECK'),
             local.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
             local.field(['valueDomainCode']).eq('SKILL_MODIFIER'),

@@ -857,7 +857,7 @@ describe('D&D 5e saving throws and defenses', () => {
         candidate: itemAction(character, label, { attackKind: 'MELEE', grip: 'ONE_HANDED' })
           .candidate,
         attackKind: 'MELEE',
-        itemMechanics: character.output.itemMechanics
+        policy: character.output
       })
     expect(traits('Longsword +1').magical).toBe(true)
     expect(traits('Longsword').magical).toBe(false)

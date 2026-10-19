@@ -345,6 +345,7 @@ const actionModifierGroupSchema = lazySchema(() =>
       .array(
         z.strictObject({
           sourceId: identitySchema,
+          boundSourceId: z.optional(identitySchema),
           value: finiteNumberSchema,
           ability: z.nullable(identitySchema),
           state: z.enum(['APPLIED', 'SUPPRESSED']),
