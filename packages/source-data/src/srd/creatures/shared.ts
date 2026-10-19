@@ -8,6 +8,7 @@ import {
   type AbilityCode,
   PATH_CODE,
   PATH_GROUP_TYPE,
+  PATH_USAGE,
   CREATURE_CATEGORY_CODE,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
@@ -30,6 +31,7 @@ import {
   type ActorRelationshipModuleAuthored,
   type CreatureAuthored,
   type CreatureSenseAuthored,
+  type EffectAuthored,
   type FeatureAuthored,
   type FollowUpSaveAuthored,
   type SizeCode
@@ -290,8 +292,8 @@ export type GrappleRider = {
 
 /**
  * A Grappled outcome (D105): the target escapes with its Action by an Athletics or Acrobatics
- * check against the printed escape DC. It takes the IDs `grappleId(creatureIndex, localIndex)`
- * through `localIndex + 3 + untilEnds.length`.
+ * check against the printed escape DC, and the grappler drags it when it moves. It takes the IDs
+ * `grappleId(creatureIndex, localIndex)` through `localIndex + 4 + untilEnds.length`.
  */
 export function grappledOutcome(
   creatureIndex: number,
@@ -320,7 +322,8 @@ export function grappledOutcome(
       },
       dc: { kind: 'FIXED', value: rider.escapeDc },
       actorKinds: ['TARGET']
-    }
+    },
+    { id: id(4 + (rider.untilEnds?.length ?? 0)), order: 0, kind: 'TARGET_DRAGGED' }
   ]
   return {
     id: id(0),
@@ -336,6 +339,98 @@ export function grappledOutcome(
       conditionId
     }))
   }
+}
+/**
+ * The printed creature Sneak Attack ("once per turn ... when it hits a target with a weapon
+ * attack"): a once-per-turn `ON_HIT` rider of the weapon's damage type, gated as the Rogue's is
+ * (advantage, or an able enemy of the target within 5 feet and no disadvantage) but without its
+ * finesse check. One passive Effect per weapon trigger; the two share the Feature's one use. Each
+ * takes the IDs `actionId(creatureIndex, localIndex + 0..11)`, the ranged one from `+ 16`.
+ */
+export function sneakAttackEffects(
+  creatureIndex: number,
+  localIndex: number,
+  diceConfig: string
+): EffectAuthored[] {
+  return [TRIGGER.MELEE_WEAPON_ATTACK, TRIGGER.RANGED_WEAPON_ATTACK].map((triggerCode, variant) => {
+    const id = (offset: number) => actionId(creatureIndex, localIndex + variant * 16 + offset)
+    const roll = (rollMode: 'ADVANTAGE' | 'NOT_DISADVANTAGE') => ({
+      kind: 'PREDICATE' as const,
+      constraint: 'INCLUDE' as const,
+      predicateCode: 'ATTACK_ROLL_MODE' as const,
+      rollMode
+    })
+    const gates = [
+      [roll('ADVANTAGE')],
+      [
+        {
+          kind: 'PREDICATE' as const,
+          constraint: 'INCLUDE' as const,
+          predicateCode: 'ENEMY_NEAR_TARGET' as const,
+          feet: 5
+        },
+        roll('NOT_DISADVANTAGE')
+      ]
+    ]
+    return {
+      id: id(0),
+      order: variant + 1,
+      invocation: {
+        kind: 'PASSIVE' as const,
+        triggerCode,
+        range: { id: id(1), rangeKind: RANGE_KIND.SPECIAL },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
+      },
+      paths: [
+        {
+          id: id(2),
+          order: 1,
+          pathCode: PATH_CODE.ON_HIT,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          usage: PATH_USAGE.ONCE_PER_TURN,
+          restrictions: {
+            id: id(4),
+            groups: gates.map((conditions, index) => ({
+              id: id(5 + index),
+              order: index,
+              contexts: [
+                {
+                  id: id(7 + index),
+                  order: 0,
+                  subject: 'EQUIPMENT' as const,
+                  authoringModeKind: 'ALL' as const,
+                  conditions: conditions.map((condition, order) => ({
+                    ...condition,
+                    id: id(9 + index + order),
+                    order
+                  }))
+                }
+              ]
+            }))
+          },
+          resultBlock: {
+            id: `${id(2)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: id(3),
+                effectKind: EFFECT_KIND.DAMAGE,
+                usesTriggeringWeaponDamageType: true,
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.NONE,
+                diceConfig
+              }
+            ]
+          }
+        }
+      ]
+    }
+  })
 }
 
 export function skillId(code: string) {

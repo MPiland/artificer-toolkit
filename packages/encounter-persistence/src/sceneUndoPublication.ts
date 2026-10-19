@@ -19,7 +19,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   parseGeometryCommand,
   parseGeometrySave,
-  readMovementResolution
+  readMovementResolution,
+  readSpatialPreparation
 } from './sceneGeometryDocuments.js'
 import { parseSceneFogSave, parseSceneFogLayer } from './sceneFogDocuments.js'
 import { advanceLiveState, parseSceneLiveEntity } from './sceneLiveState.js'
@@ -90,9 +91,16 @@ export async function publishSceneUndo(
   if (!targetRow || targetRow.encoding !== 'GEOMETRY')
     throw new Error('The latest token move is unavailable.')
   const target = parseGeometryCommand(targetRow, header.version)
-  if (target.input.type !== 'MOVE_SCENE_TOKEN' || target.result.delta?.kind !== 'TOKEN_MOVED')
+  const moved = target.result.delta
+  const deltas = moved?.kind === 'BATCH' ? moved.deltas : moved ? [moved] : []
+  const movedTokens = deltas.flatMap((delta) => (delta.kind === 'TOKEN_MOVED' ? [delta] : []))
+  if (
+    target.input.type !== 'MOVE_SCENE_TOKEN' ||
+    !movedTokens.length ||
+    movedTokens.length !== deltas.length ||
+    movedTokens[0]!.tokenId !== target.input.tokenId
+  )
     throw new Error('The latest token move is invalid.')
-  const tokenId = target.input.tokenId
   const alreadyUndone = await callbacks.readUndoForMove(header.id, target.commandId)
   if (alreadyUndone) throw new Error('The latest token move was already undone.')
 
@@ -111,11 +119,33 @@ export async function publishSceneUndo(
   )
     throw new Error('Stored Scene geometry fog history is inconsistent.')
 
-  const tokenRow = await callbacks.readLiveToken(header.id, tokenId)
-  if (!tokenRow) throw new Error('The latest token move can no longer be safely undone.')
-  const token = parseSceneLiveEntity(tokenRow, header.version)
-  if (token.version !== target.result.version || token.value?.collection !== 'tokens')
-    throw new Error('The latest token move can no longer be safely undone.')
+  // The mover returns to where the move began; each token it dragged to where it stood (D105).
+  const dragged = readSpatialPreparation(parent)?.draggedTokens ?? []
+  if (
+    dragged.length !== movedTokens.length - 1 ||
+    dragged.some(
+      ({ tokenId, to }, index) =>
+        movedTokens[index + 1]!.tokenId !== tokenId ||
+        checksumCanonicalJson(to) !== checksumCanonicalJson(movedTokens[index + 1]!.position)
+    )
+  )
+    throw new Error('Stored Scene drag is inconsistent.')
+  const restores = [
+    {
+      tokenId: target.input.tokenId,
+      position: readMovementResolution(parent)?.root.currentPosition ?? target.input.path[0]!
+    },
+    ...dragged.map(({ tokenId, from }) => ({ tokenId, position: from }))
+  ]
+  const tokens = []
+  for (const { tokenId, position } of restores) {
+    const tokenRow = await callbacks.readLiveToken(header.id, tokenId)
+    if (!tokenRow) throw new Error('The latest token move can no longer be safely undone.')
+    const token = parseSceneLiveEntity(tokenRow, header.version)
+    if (token.version !== target.result.version || token.value?.collection !== 'tokens')
+      throw new Error('The latest token move can no longer be safely undone.')
+    tokens.push({ token, value: token.value, position })
+  }
 
   const state = advanceLiveState(header, live)
   const restoredFogOwners: (string | null)[] = []
@@ -168,33 +198,34 @@ export async function publishSceneUndo(
     }
     restoredFogOwners.push(patch.ownerUserId)
   }
-  const position = readMovementResolution(parent)?.root.currentPosition ?? target.input.path[0]!
-  const value = { ...token.value, entity: { ...token.value.entity, position } }
-  const restoredToken = {
-    sceneId: header.id,
-    collection: token.collection,
-    entityId: token.entityId,
-    value,
-    doorState: token.doorState,
-    ordinal: token.ordinal,
-    version: state.version
+  for (const { token, value, position } of tokens) {
+    const restoredToken = {
+      sceneId: header.id,
+      collection: token.collection,
+      entityId: token.entityId,
+      value: { ...value, entity: { ...value.entity, position } },
+      doorState: token.doorState,
+      ordinal: token.ordinal,
+      version: state.version
+    }
+    await callbacks.writeLiveToken({
+      ...restoredToken,
+      checksum: checksumCanonicalJson(restoredToken)
+    })
   }
-  await callbacks.writeLiveToken({
-    ...restoredToken,
-    checksum: checksumCanonicalJson(restoredToken)
-  })
+  const undone = restores.map(({ tokenId, position }) => ({
+    kind: 'TOKEN_MOVE_UNDONE' as const,
+    tokenId,
+    position,
+    undoneCommandId: target.commandId
+  }))
   const result = sceneUndoCommandResultSchema.parse({
     sceneId: header.id,
     commandId: input.input.commandId,
     version: state.version,
     replayed: false,
     occurrence: null,
-    delta: {
-      kind: 'TOKEN_MOVE_UNDONE',
-      tokenId: target.input.tokenId,
-      position,
-      undoneCommandId: target.commandId
-    },
+    delta: undone.length === 1 ? undone[0] : { kind: 'BATCH', deltas: undone },
     restoredFogOwners
   })
   await callbacks.writeLiveState(state)

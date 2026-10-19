@@ -226,7 +226,10 @@ export const movementReactionActionExecutionDtoSchema = lazySchema(() =>
               })
             if (
               transition.before.currentHitPoints !== transition.after.currentHitPoints ||
-              transition.before.temporaryHitPoints !== transition.after.temporaryHitPoints ||
+              // Only an ended effect's own temporary hit points leave with it (D156).
+              (transition.before.temporaryHitPoints !== transition.after.temporaryHitPoints &&
+                (transition.after.temporaryHitPoints !== 0 ||
+                  transition.before.temporaryHitPointsSourceEffectId === undefined)) ||
               transition.after.conditionIds.some(
                 (conditionId) => !transition.before.conditionIds.includes(conditionId)
               )

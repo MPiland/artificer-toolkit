@@ -10,6 +10,9 @@ import { MAX_SPATIAL_CANDIDATES, spatialPointDtoSchema } from '../shared/spatial
 import { spatialMovementPendingRootDtoSchema } from '../shared/ruleExecutionSpatial.js'
 import { projectionChecksumSchema } from './identity.js'
 
+/** A Scene delta batch holds the mover's move and one move for each token it drags. */
+const MAX_DRAGGED_TOKENS = 101
+
 const nonnegativeIntegerSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 
 export const sceneSpatialPreparationSchema = lazySchema(() =>
@@ -18,6 +21,22 @@ export const sceneSpatialPreparationSchema = lazySchema(() =>
     expectedEncounterVersion: nonnegativeIntegerSchema,
     occurrenceId: postgresUuidSchema,
     occurredAt: z.iso.datetime(),
+    /**
+     * The tokens a grappler's move drags along its published displacement (D105), each from where
+     * it stood to where it lands; absent when the move drags nothing.
+     */
+    draggedTokens: z.optional(
+      z
+        .array(
+          z.strictObject({
+            tokenId: postgresUuidSchema,
+            from: spatialPointDtoSchema,
+            to: spatialPointDtoSchema
+          })
+        )
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_DRAGGED_TOKENS))
+    ),
     outcome: z.discriminatedUnion('kind', [
       z.strictObject({
         kind: z.literal('UNINTERRUPTED'),

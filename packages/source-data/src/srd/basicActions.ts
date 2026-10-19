@@ -463,6 +463,11 @@ function grappleEffect(actionId: string) {
                   checks: ATHLETICS_OR_ACROBATICS,
                   dc: { kind: 'CONTEST' as const, checks: ATHLETICS },
                   actorKinds: ['TARGET' as const]
+                },
+                {
+                  id: basicActionChildId(actionId, 0x216, 3),
+                  order: 3,
+                  kind: 'TARGET_DRAGGED' as const
                 }
               ],
               conditions: [

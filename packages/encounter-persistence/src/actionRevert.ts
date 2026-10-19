@@ -14,7 +14,11 @@ import {
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
-import { ENDED_EFFECT_CONDITION_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import {
+  withActorTemporaryHitPoints,
+  withCharacterTemporaryHitPoints
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
@@ -26,7 +30,10 @@ import {
   withEncounterRuleUsageUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import {
+  readEncounterActorConditionState,
+  targetTemporaryHitPoints
+} from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encounterConcealment'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
@@ -98,7 +105,7 @@ function endedConditionReleases(applications: ActionBatch['applications']) {
   return applications.flatMap((application) =>
     application.kind === 'CONDITION_REMOVE' &&
     application.applied &&
-    application.sourceOperationKey === ENDED_EFFECT_CONDITION_OPERATION_KEY
+    application.sourceOperationKey === ENDED_EFFECT_RELEASE_OPERATION_KEY
       ? [application.conditionId]
       : []
   )
@@ -313,7 +320,7 @@ export async function revertLastEncounterAction(
         (application) =>
           application.kind === 'CONDITION_REMOVE' &&
           application.applied &&
-          application.sourceOperationKey !== ENDED_EFFECT_CONDITION_OPERATION_KEY
+          application.sourceOperationKey !== ENDED_EFFECT_RELEASE_OPERATION_KEY
       )
     )
       unsupported.add('a removed condition')
@@ -400,12 +407,18 @@ export async function revertLastEncounterAction(
       actor.maxHitPoints !== transition.after.maximumHitPoints
     )
       unavailable(`${actor.label}'s hit points changed after this action; adjust manually.`)
-    updateActor(actorId, {
-      currentHitPoints: transition.before.currentHitPoints,
-      tempHitPoints: transition.before.temporaryHitPoints,
-      maxHitPoints: transition.before.maximumHitPoints,
-      defeated: nextEncounterActorDefeated(actor, transition.before.currentHitPoints)
-    })
+    const next = encounterRunActorStateSchema.parse(
+      withActorTemporaryHitPoints(
+        {
+          ...actor,
+          currentHitPoints: transition.before.currentHitPoints,
+          maxHitPoints: transition.before.maximumHitPoints,
+          defeated: nextEncounterActorDefeated(actor, transition.before.currentHitPoints)
+        },
+        targetTemporaryHitPoints(transition.before)
+      )
+    )
+    actorsById.set(actorId, next)
   }
 
   // Cleaving children are undone first, in reverse order of application.
@@ -1117,12 +1130,14 @@ async function restoreCharacter(
   if (inverse.hitPoints)
     state = {
       ...state,
-      hitpoints: {
-        ...state.hitpoints,
-        current: inverse.hitPoints.currentHitPoints,
-        temp: inverse.hitPoints.temporaryHitPoints,
-        deathSaves: inverse.hitPoints.deathSaves ?? state.hitpoints.deathSaves
-      },
+      hitpoints: withCharacterTemporaryHitPoints(
+        {
+          ...state.hitpoints,
+          current: inverse.hitPoints.currentHitPoints,
+          deathSaves: inverse.hitPoints.deathSaves ?? state.hitpoints.deathSaves
+        },
+        targetTemporaryHitPoints(inverse.hitPoints)
+      ),
       conditions: (state.conditions ?? []).filter(
         (condition) => !inverse.removedConditionIds.has(condition.conditionTypeId)
       )
