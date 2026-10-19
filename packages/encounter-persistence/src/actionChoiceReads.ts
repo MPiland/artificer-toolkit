@@ -16,6 +16,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterDefaultAttack'
 import { encounterActorHeldItems } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { readEncounterBoundSceneTokens } from './actionSceneInputs.js'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
@@ -23,7 +24,8 @@ import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import {
   findEncounterHolderContestEscape,
-  findEncounterHolderEscape
+  findEncounterHolderEscape,
+  findEncounterRescues
 } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
@@ -426,31 +428,40 @@ export async function readEncounterActionChoices(
     const escape = contested
       ? { activation: contested.activation, checks: contested.checks, dc: null, zoneLabel: null }
       : findEncounterHolderEscape(effect)
-    return escape ? [{ effect, ...escape }] : []
+    return escape ? [{ effect, heldActorId: null, ...escape }] : []
   })
+  const runActors = await readRunActors(tx, state)
+  // The holds on creatures within reach that the actor may break for them (ATTACK-7.9).
+  const rescues = actor.kind === 'CUSTOM' ? [] : await readEncounterRescues(tx, state, actor, runActors)
   const escapes: EncounterActionChoicesDto['escapes'] = []
-  if (heldEscapes.length > 0) {
-    const [system, runActors] = await Promise.all([
-      tx.ports.requireSystem(state.gameSystemId),
-      readRunActors(tx, state)
-    ])
-    for (const { effect, activation, checks, dc, zoneLabel } of heldEscapes) {
+  if (heldEscapes.length > 0 || rescues.length > 0) {
+    const system = await tx.ports.requireSystem(state.gameSystemId)
+    for (const { effect, heldActorId, activation, checks, dc, zoneLabel } of [
+      ...heldEscapes,
+      ...rescues
+    ]) {
       const { origin } = effect.definition
       const grappler =
         origin.kind === 'ENCOUNTER'
           ? runActors.find((candidate) => candidate.id === origin.sourceActorId)
           : undefined
+      const held = heldActorId ? runActors.find((candidate) => candidate.id === heldActorId) : null
       const economy = await readEconomy({
         code: activation.code,
         amount: 'amount' in activation ? activation.amount : null
       })
       escapes.push({
+        heldActorId,
         activeEffectId: effect.id,
-        label: zoneLabel
-          ? `Escape ${zoneLabel}`
-          : grappler && (membership.role === 'OWNER' || grappler.public)
-            ? `Escape from ${grappler.label}`
-            : 'Escape a grapple',
+        label: held
+          ? membership.role === 'OWNER' || held.public
+            ? `Free ${held.label}`
+            : 'Free a creature'
+          : zoneLabel
+            ? `Escape ${zoneLabel}`
+            : grappler && (membership.role === 'OWNER' || grappler.public)
+              ? `Escape from ${grappler.label}`
+              : 'Escape a grapple',
         dc,
         actionCost: activation.code,
         checks: [...checks.skillIds, ...checks.abilityDefinitionIds].map((id) => ({
@@ -541,6 +552,31 @@ export async function readEncounterActionChoices(
         definitionId: definition.definitionId,
         label: definition.label
       }))
+  })
+}
+
+/**
+ * The holds the Run's acting actor may break for a creature within reach of it (ATTACK-7.9),
+ * measured on the Scene the Run is bound to; none when the Run has no Scene.
+ */
+async function readEncounterRescues(
+  tx: EncounterTurnReadTransaction,
+  state: ReturnType<typeof readRunState>,
+  actor: { id: string },
+  runActors: Awaited<ReturnType<typeof readRunActors>>
+) {
+  const activeEffectsByActorId = new Map(
+    await Promise.all(
+      runActors.map(
+        async (held) =>
+          [held.id, await listActiveRuleEffects(tx, turnEffectOwner(held, state.id))] as const
+      )
+    )
+  )
+  return findEncounterRescues({
+    actorId: actor.id,
+    activeEffectsByActorId,
+    scene: await readEncounterBoundSceneTokens(tx, state, tx.ports.sceneReaders)
   })
 }
 

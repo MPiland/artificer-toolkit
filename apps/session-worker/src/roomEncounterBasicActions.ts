@@ -30,7 +30,9 @@ import {
 } from './roomEncounterTurns.js'
 import { persistRoomEncounterContest } from './roomEncounterContest.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
-import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
+import { readEncounterBoundSceneTokens } from '@artificer-toolkit/encounter-persistence/actionSceneInputs'
+import { roomSceneTokenReaders } from './roomActionSceneInputs.js'
+import { readRoomScene, readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -128,7 +130,15 @@ export async function executeRoomEncounterEscape(
   input: RoomBasicActionInput & { command: EscapeRelationshipInputDto }
 ) {
   const { ctx, transaction, scope, observed } = input
-  const plan = await planNativeLiveEscape(scope, input.command, basicActionExecution(input))
+  const plan = await planNativeLiveEscape(scope, input.command, {
+    ...basicActionExecution(input),
+    // A rescuer's reach to the held creature reads the Run's bound Scene, as a relationship end does.
+    readReachScene: (state) =>
+      readEncounterBoundSceneTokens(ctx, state, {
+        readScene: async (sceneId) => readRoomScene(transaction, sceneId),
+        ...roomSceneTokenReaders(transaction)
+      })
+  })
   if (plan.kind === 'REPLAY') return plan.result
   if (plan.kind === 'CONTEST') return persistRoomEncounterContest({ ...input, plan: plan.contest })
   const revisions = await readBasicActionRevisions(input)

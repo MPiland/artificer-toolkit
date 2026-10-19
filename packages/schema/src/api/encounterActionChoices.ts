@@ -291,10 +291,13 @@ export const MAX_ESCAPE_CHECK_CHOICES = 64
 /**
  * A relationship effect the actor holds and can try to escape (D105): the grapple's offer. The
  * client submits `activeEffectId` and one of the allowed `checks`. `dc` is the fixed DC, or null
- * when the holder contests the escape with its own check (D152).
+ * when the holder contests the escape with its own check (D152). `heldActorId` is the held creature
+ * a rescuer within reach frees (ATTACK-7.9), null when the actor escapes for itself; the client
+ * submits it with `activeEffectId`.
  */
 export const encounterEscapeChoiceDtoSchema = lazySchema(() =>
   z.strictObject({
+    heldActorId: z.nullable(postgresUuidSchema),
     activeEffectId: postgresUuidSchema,
     /** "Escape from <grappler>", or "Escape a grapple" when the grappler is hidden from the requester. */
     label: labelSchema,
