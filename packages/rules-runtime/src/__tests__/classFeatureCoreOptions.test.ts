@@ -161,10 +161,7 @@ describe('Oath of Devotion Channel Divinity (SPELLS-31.T4e)', () => {
         })
       ]
     })
-  const channelDivinity = srdByLabel(
-    srdByLabel(SRD.classes, 'Oath of Devotion').features ?? [],
-    'Channel Divinity'
-  )
+  const channelDivinity = srdByLabel(SRD.classes, 'Oath of Devotion').resources
 
   it.each(['Channel Divinity: Sacred Weapon', 'Channel Divinity: Turn the Unholy'])(
     '%s spends the Channel Divinity charge, not Holy Nimbus',
@@ -174,7 +171,7 @@ describe('Oath of Devotion Channel Divinity (SPELLS-31.T4e)', () => {
       )
       expect(candidates).toHaveLength(1)
       expect(candidates[0]!.resourceUse).toEqual(
-        expect.objectContaining({ chargeId: channelDivinity.charges?.id, cost: 1 })
+        expect.objectContaining({ chargeId: channelDivinity?.charges.id, cost: 1 })
       )
     }
   )

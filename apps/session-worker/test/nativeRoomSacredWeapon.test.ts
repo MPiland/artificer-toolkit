@@ -62,12 +62,10 @@ async function paladinRoom(currentHitPoints?: number) {
       srdCreatureActor({ id: GARGOYLE_ID, creature: seededSrdCreature('Gargoyle') }),
       wolfActor
     ],
-    characterClassFeatures: [
-      featureOf('Channel Divinity'),
-      featureOf('Channel Divinity: Sacred Weapon')
-    ],
+    characterClassFeatures: [featureOf('Channel Divinity: Sacred Weapon')],
     characterPlay: {
-      characterClass: paladin,
+      // The Oath's Channel Divinity resource, on the class the Character levels in.
+      characterClass: { ...paladin, resources: oathOfDevotion.resources },
       classLevel: 3,
       equipped: true,
       ...(currentHitPoints !== undefined ? { currentHitPoints } : {})
@@ -145,6 +143,10 @@ describe('room Sacred Weapon (SPELLS-31.T4e)', () => {
     const { room } = await paladinRoom()
     await imbueClub(room)
     expect(await characterEffects(room)).toHaveLength(1)
+    // Sacred Weapon took the Paladin's action, so the Club waits for the next round.
+    await room.advanceTurn()
+    await room.advanceTurn()
+    await room.advanceTurn()
     const imbued = await clubAttackOnGargoyle(room)
 
     // Charisma 8 is a -1 modifier, so the bonus is its minimum of +1.

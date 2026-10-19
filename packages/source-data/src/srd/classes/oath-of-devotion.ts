@@ -60,6 +60,21 @@ export const oathOfDevotion: ClassAuthored = {
     "The Oath of Devotion binds a paladin to the loftiest ideals of justice, virtue, and order. Sometimes called cavaliers, white knights, or holy warriors, these paladins meet the ideal of the knight in shining armor, acting with honor in pursuit of justice and the greater good. They hold themselves to the highest standards of conduct, and some, for better or worse, hold the rest of the world to the same standards. Many who swear this oath are devoted to gods of law and good and use their gods' tenets as the measure of their devotion. They hold angels—the perfect servants of good—as their ideals, and incorporate images of angelic wings into their helmets or coats of arms.",
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
+  // A subclass resource, so every option that spends it finds the one pool (a Feature's own charge
+  // is found only by that Feature's actions).
+  resources: {
+    order: 0,
+    id: classRowId(P, 23, 1),
+    label: 'Channel Divinity',
+    availableAtLevel: 3,
+    charges: {
+      id: channelDivinityChargeId,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: SCALING.NONE,
+      resetKind: 'SHORT_REST',
+      amount: 1
+    }
+  },
   features: [
     {
       id: classRowId(P, 11, 1),
@@ -96,15 +111,7 @@ export const oathOfDevotion: ClassAuthored = {
       description:
         'When you take this oath at 3rd level, you gain the following two Channel Divinity options. You can use only one Channel Divinity option per short or long rest.',
       availableAtLevel: 3,
-      order: 6,
-      attributes: ['LIMITED_USE'],
-      charges: {
-        id: channelDivinityChargeId,
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: SCALING.NONE,
-        resetKind: 'SHORT_REST',
-        amount: 1
-      }
+      order: 6
     },
     {
       id: classRowId(P, 11, 2),
