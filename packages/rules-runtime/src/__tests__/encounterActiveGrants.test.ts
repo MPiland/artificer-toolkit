@@ -62,6 +62,7 @@ import {
   speedFractionEffect,
   viciousMockeryEffect
 } from './antitoxinEffectFixture.js'
+import { withGrantModifiers } from '../testing/modifierGrantFixture.js'
 import { evaluateSrdCharacter, vocabulary } from '../testing/dnd5eSrdCharacter.js'
 import { FRIGHTENED_CONDITION_ID, POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 
@@ -748,33 +749,16 @@ describe('Character holder of an active grant', () => {
 describe('a held d20 floor on ability checks', () => {
   const { CHARISMA, WISDOM: WISDOM_CODE } = { CHARISMA: 'CHARISMA', WISDOM: 'WISDOM' }
   /** Glibness's real effect, its floor raised to `amount` when given. */
-  const glibnessHeld = (id: string, amount = 15) => {
-    const [effect] = glibness.effects ?? []
-    const [path] = effect?.paths ?? []
-    const [outcome] = path?.resultBlock?.outcomes ?? []
-    const [modifier] = outcome?.grants?.modifiers ?? []
-    if (!effect || !path?.resultBlock || !outcome?.grants || !modifier)
-      throw new Error('Glibness carries its floor grant.')
-    return plannedGrantEffect({
+  const glibnessHeld = (id: string, amount = 15) =>
+    plannedGrantEffect({
       id,
       holderActorId: HOLDER_ID,
-      effect: {
-        ...effect,
-        paths: [
-          {
-            ...path,
-            resultBlock: {
-              ...path.resultBlock,
-              outcomes: [
-                { ...outcome, grants: { modifiers: [{ ...modifier, payload: { amount } }] } }
-              ]
-            }
-          }
-        ]
-      },
+      effect: withGrantModifiers(glibness.effects?.[0], (modifier) => ({
+        ...modifier,
+        payload: { amount }
+      })),
       sourceLabel: glibness.label
     })
-  }
 
   it('floors only the checks of the ability the grant names', () => {
     const held = [glibnessHeld(EFFECT_ID)]

@@ -3,6 +3,7 @@ import {
   currentSrdDefinition,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { withGrantModifiers } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -714,27 +715,10 @@ describe('hiding again, in the room', () => {
 
 describe('a held d20 floor on a Hide check, in the room', () => {
   /** Glibness's real effect with its Charisma narrowing lifted, so the floor reaches a Stealth check. */
-  const floorEffect = (() => {
-    const [effect] = glibness.effects ?? []
-    const [path] = effect?.paths ?? []
-    const [outcome] = path?.resultBlock?.outcomes ?? []
-    const [modifier] = outcome?.grants?.modifiers ?? []
-    if (!effect || !path?.resultBlock || !outcome?.grants || !modifier)
-      throw new Error('Glibness carries its floor grant.')
-    const { domain: _charisma, ...anyCheck } = modifier
-    return {
-      ...effect,
-      paths: [
-        {
-          ...path,
-          resultBlock: {
-            ...path.resultBlock,
-            outcomes: [{ ...outcome, grants: { modifiers: [anyCheck] } }]
-          }
-        }
-      ]
-    }
-  })()
+  const floorEffect = withGrantModifiers(glibness.effects?.[0], (modifier) => ({
+    ...modifier,
+    domain: {}
+  }))
   const floorSeed = seedModifierGrant({
     sourceActorId: HIDER_ID,
     holderActorId: HIDER_ID,
