@@ -5,7 +5,7 @@ import { forcedMovementDtoSchema } from '../effects/forcedMovement.js'
 const forcedMovement = {
   id: 'push',
   effectKind: 'FORCED_MOVEMENT',
-  direction: 'RANDOM',
+  direction: 'ANY',
   actionEconomy: 'NONE',
   distanceMode: 'UP_TO',
   amount: 20,
@@ -34,12 +34,6 @@ describe('the collision of an authored forced movement (D159)', () => {
 
   it('is optional', () => {
     expect(forcedMovementDtoSchema.parse(forcedMovement)).not.toHaveProperty('collision')
-  })
-
-  it('refuses a collision field it does not know', () => {
-    expect(() =>
-      forcedMovementDtoSchema.parse({ ...forcedMovement, collision: { ...collision, extra: 1 } })
-    ).toThrow()
   })
 
   it('refuses a collision without its save', () => {

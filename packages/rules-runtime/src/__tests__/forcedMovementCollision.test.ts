@@ -43,24 +43,34 @@ function breatherWith(withCollision: ForcedMovementCollisionAuthored | undefined
     )
   )
   if (!feature) throw new Error('The wyrmling has no Repulsion Breath.')
-  const effects = feature.effects?.map((effect) => ({
-    ...effect,
-    paths: effect.paths.map((path) =>
-      'resultBlock' in path
-        ? {
-            ...path,
-            resultBlock: {
-              ...path.resultBlock,
-              outcomes: path.resultBlock.outcomes.map((outcome) =>
-                outcome.effectKind === EFFECT_KIND.FORCED_MOVEMENT
-                  ? { ...outcome, collision: withCollision }
-                  : outcome
-              )
-            }
-          }
-        : path
+  const effects = feature.effects
+    ?.filter(({ paths }) =>
+      paths.some(
+        (path) =>
+          'resultBlock' in path &&
+          path.resultBlock.outcomes.some(
+            ({ effectKind }) => effectKind === EFFECT_KIND.FORCED_MOVEMENT
+          )
+      )
     )
-  }))
+    .map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) =>
+        'resultBlock' in path
+          ? {
+              ...path,
+              resultBlock: {
+                ...path.resultBlock,
+                outcomes: path.resultBlock.outcomes.map((outcome) =>
+                  outcome.effectKind === EFFECT_KIND.FORCED_MOVEMENT
+                    ? { ...outcome, collision: withCollision }
+                    : outcome
+                )
+              }
+            }
+          : path
+      )
+    }))
   return {
     featureId: feature.id,
     actor: creatureActor({
