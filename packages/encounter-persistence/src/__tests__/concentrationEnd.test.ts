@@ -418,7 +418,7 @@ describe('persistEncounterConcentrationChildren ends a source grants on every ho
     const source = creatureActor(knightInput)
     const allies = ALLY_IDS.map((id) => creatureActor({ id, kind: 'CUSTOM', snapshot: {} }))
     const { memory, ctx, postRulesChatMessage } = await holderFixture(source, 'PUBLIC')
-    const grants = []
+    const grants: Awaited<ReturnType<typeof storeGrant>>[] = []
     for (const ally of allies)
       grants.push(
         await createActiveRuleEffectStore(ctx).create({

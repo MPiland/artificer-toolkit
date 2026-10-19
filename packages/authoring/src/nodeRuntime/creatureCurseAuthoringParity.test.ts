@@ -45,7 +45,8 @@ describe('a creature’s curse touch through the creature node map (SPELLS-33 T4
   it('keeps the curse with another duration the same way', async () => {
     const authored = structuredClone(lamia)
     const block = curseBlock(authored)
-    if (!block.duration) throw new Error('The curse must author a duration.')
+    if (!block.duration || !('amount' in block.duration))
+      throw new Error('The curse must author a timed duration.')
     block.duration.amount = 8
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
@@ -76,7 +77,8 @@ describe('a creature’s ally die that ends with its source through the creature
   it('keeps the die with another duration the same way', async () => {
     const authored = structuredClone(knight)
     const block = leadershipBlock(authored)
-    if (!block.duration) throw new Error('Leadership must author a duration.')
+    if (!block.duration || !('amount' in block.duration))
+      throw new Error('Leadership must author a timed duration.')
     block.duration.amount = 10
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
