@@ -9935,6 +9935,24 @@
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
+              "id": "SPELLS-4.T2d2",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-4.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-4.T2d",
+                  "SPELLS-4.T2l"
+                ]
+              },
+              "text": "Generic option: move a held effect to a new target as a granted action (Hunter’s Mark re-mark after its target drops to 0 HP), with a parity proof and a room journey. Split from SPELLS-4.T2d (2026-10-18 ruling)."
+            },
+            {
               "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-4.1"
