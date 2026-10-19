@@ -5,7 +5,8 @@ export const FORCED_MOVEMENT_DIRECTION = {
   AWAY_FROM_SOURCE: 'AWAY_FROM_SOURCE',
   TOWARD_SOURCE: 'TOWARD_SOURCE',
   ASIDE: 'ASIDE',
-  ANY: 'ANY'
+  ANY: 'ANY',
+  RANDOM: 'RANDOM'
 } as const
 
 export type ForcedMovementDirection = keyof typeof FORCED_MOVEMENT_DIRECTION
@@ -35,6 +36,11 @@ export const FORCED_MOVEMENT_DIRECTION_REGISTRY: Record<
     code: FORCED_MOVEMENT_DIRECTION.ANY,
     label: 'Any Direction',
     description: 'Move to any free space within the distance.'
+  },
+  [FORCED_MOVEMENT_DIRECTION.RANDOM]: {
+    code: FORCED_MOVEMENT_DIRECTION.RANDOM,
+    label: 'Random Direction',
+    description: 'Move in a direction the app rolls at random.'
   }
 } as const
 

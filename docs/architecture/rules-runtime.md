@@ -1057,6 +1057,17 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (the same `landForcedMovements` simulation `applyRoomForcedMovements` commits with) and offers the next one's legal
   squares; each answer lands it (`landEncounterAreaForcedMovement`) and the planner re-plans the commit, which runs after
   the last answer. Exact away/toward and a movement with one legal square never pause.
+  `RANDOM` (SPELLS-33.T6k2a, D159; the Air Elemental's Whirlwind) is rolled once per plan: `interpretForcedMovements` draws
+  one of the eight `SQUARE_GRID_COMPASS_RAYS` and the room walks it with `traceSquareGridForcedMovementRay`, the same trace
+  away/toward use. It never owes a pick (`upTo` is forced off), so no held area outlives its roll, and it stops short only
+  when blocked. The trace returns what ended each walk (`DISTANCE`, `OBJECT`, or the creature in the way), from which
+  `landForcedMovements` builds the per-mover landing report: feet travelled, `stoppedBy` (`NONE`, `OBJECT` or the struck
+  creature's actor ID) and the rolled ray. A mover stops in the last free square before a creature; movers land farthest
+  first, each against the Scene after the earlier landings. The report rides the commit (`forcedMovementLandings`) and
+  is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
+  passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
+  collision itself is not resolved yet: the Whirlwind keeps its closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION`
+  kind until T6k2b.
   It fails closed on a non-square grid and on a path through a spatial effect (`collectSpatialMovementCandidates` non-empty). Undo is the
   action's (see persistence, Scene command evidence). Not yet: fog derivation, concealment pruning and grapple breaking on a forced move;
   legendary and reaction actions still refuse spatial directives; an area pick after a GM removal, on an area with no

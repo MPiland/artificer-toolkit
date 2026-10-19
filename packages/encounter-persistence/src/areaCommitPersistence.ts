@@ -906,14 +906,14 @@ export async function persistEncounterAreaCommit(
     }
   })
   // Each creature the area pushes or pulls moves on the Scene in this commit (D139).
-  const forcedMovements = input.forcedMovements.length
+  const settledMovements = input.forcedMovements.length
     ? await callbacks.applyForcedMovements({
         state,
         sourceActorId: command.actorId,
         commandId: command.commandId,
         movements: input.forcedMovements
       })
-    : []
+    : { moves: [], landings: [] }
   await recordActionRoot(ctx, {
     run,
     state,
@@ -937,7 +937,8 @@ export async function persistEncounterAreaCommit(
       failedCounters: failedReceipts,
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
-      forcedMovements,
+      forcedMovements: settledMovements.moves,
+      forcedMovementLandings: settledMovements.landings,
       turnUses: null,
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),
       issuerLines: children.flatMap(({ actor, batch }) => {

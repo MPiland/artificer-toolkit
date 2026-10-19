@@ -12200,7 +12200,20 @@
                 "size": 5,
                 "after": ["SPELLS-33.T6e"]
               },
-              "text": "Flesh Golem Aversion of Fire and Water Elemental Freeze (2 kinds): a passive damage-type trigger that creates a timed self grant on every damage root (attack, save area, turn-zone, retaliation, aura), each root gaining an effect-creation slot with receipt, persistence and revert. Needs a design send-off before code. Authoring-parity proofs; deletes its kinds (2026-10-19 ruling on the T6e split; workbook slice-spells-33.md)."
+              "text": "Flesh Golem Aversion of Fire (disadvantage on attacks and checks) and Water Elemental Freeze (-20 ft speed), part a: a passive damage-type trigger whose outcome is a generic timed self grant, returned by the one damage-taken seam alongside ended effects ({endedEffects, releases, grants}; releases first, then grants), refreshed by source feature rather than stacked, wired end to end on the action damage root with receipt, persistence verify, revert and a room journey. Authoring-parity proofs for both grant kinds; deletes its kinds (2026-10-19 ruling; T6e3b wires the other roots; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6e3b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T6e3"]
+              },
+              "text": "new: wire the turn-zone, melee-retaliation, legendary and movement-reaction damage roots through T6e3's one damage-taken seam ({endedEffects, releases, grants}), so damage-triggered timed self grants are created, verified, receipted and reverted on every root; spatial movement contacts stay deferred with T6e4's gap (2026-10-19 split; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6e1",
@@ -12310,7 +12323,7 @@
             },
             {
               "id": "SPELLS-33.T6k2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12320,11 +12333,11 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6k1"]
               },
               "text": "new: Air Elemental Whirlwind part 1 (D159): a server-rolled RANDOM forced-movement direction drawn once at plan time, the landing report (feet travelled, stopped by nothing, an object or a creature), stopping before a creature, and the Whirlwind path accepted by the area compiler. The collision kind stays until T6k2b (workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m173 (40572c847)."
             },
             {
               "id": "SPELLS-33.T6k2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12333,7 +12346,8 @@
                 "size": 5,
                 "after": ["SPELLS-33.T6k2"]
               },
-              "text": "new: Whirlwind collision part 2 (D159): a `collision` block with per-mover damage of floor(feet/10) dice, the struck creature's save pause on the AREA_PENDING pattern with damage and PRONE, per-entry area plans, the authoring-parity proof, and deleting CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION (workbook slice-spells-33.md)."
+              "text": "new: Whirlwind collision part 2 (D159): a `collision` block with per-mover damage of floor(feet/10) dice, the struck creature's save pause on the AREA_PENDING pattern with damage and PRONE, per-entry area plans, the authoring-parity proof, and deleting CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION (workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6k3",

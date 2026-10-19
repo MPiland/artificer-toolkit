@@ -87,6 +87,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Movement-contact damage (SPELLS-33.T6e4, T6e3b):** damage a creature takes from a zone it moves or is moved into (`encounterSpatialMovementPreparation`, `encounterMovementActionResponse`) does not end its "until it takes damage" effects or create damage-triggered grants; the turn-zone and melee-retaliation roots do. An until-damaged holder being moved into a damaging zone is rare, and the GM can end the effect by hand.
+
 - **Bound-item spells (D156, SPELLS-4.T2e):** Shillelagh recast on a new club does not end the first; a Magic Weapon handed to another creature keeps its bonus with the creature it was cast on; a fire-immune creature still gets Heat Metal's disadvantage; unattended objects can't be chosen; Shillelagh on an off-hand club is not modeled apart from the main hand; a Sheet-side unequip ends a bound grant only at the next Encounter action; a Creature can't bind a grant to an item. Each is rare, and the GM can end or adjust the effect by hand.
 - **Magic Weapon's Concentration (SPELLS-4.T2e):** the SRD data for Magic Weapon carries no Concentration attribute, so casting it does not start or break Concentration. Fixing the source data is a corpus change outside T2e; the GM tracks it by hand until then.
 - **Creature bound-item casts (SPELLS-4.T2e):** a Creature acting with a bound-grant action is offered no items (Creatures have no chosen-item loadout yet), and its missing-item refusal reads UNAVAILABLE because its plan is known only after its roll. Creature casters of these spells are rare in the SRD; the GM applies the effect by hand.
