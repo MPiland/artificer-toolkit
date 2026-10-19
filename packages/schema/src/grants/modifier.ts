@@ -18,6 +18,7 @@ import {
   damageDefenseBypassCodeSchema,
   durationKindSchema,
   attackDomainCodeSchema,
+  attackOccasionCodeSchema,
   abilityCodeSchema,
   abilityModifierReferenceSchema,
   modifierKindSchema,
@@ -58,7 +59,9 @@ const attacksAgainstParamDtoSchema = lazySchema(() =>
     attackDomain: attackDomainCodeSchema,
     requiresHolderSeesAttacker: z.boolean(),
     /** System Senses that free an attacker perceiving the holder through one of them (Blur). */
-    exemptAttackerSenseDefinitionIds: z.optional(z.array(postgresUuidSchema))
+    exemptAttackerSenseDefinitionIds: z.optional(z.array(postgresUuidSchema)),
+    /** Only attacks made on this occasion (Escape the Horde: opportunity attacks). */
+    attackOccasion: z.optional(attackOccasionCodeSchema)
   })
 )
 
@@ -666,6 +669,7 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
+    buildModifierGrantVariant('ATTACKS_AGAINST', 'NEGATE_ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACK_TRAIT', 'ENABLE', attackTraitParamDtoSchema),
     buildModifierGrantVariant(
       'WEAPON_DAMAGE_DIE',

@@ -1,6 +1,7 @@
 import { heldConditionIds } from './encounterInnateConditions.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { AttackOccasionCode } from '@artificer-toolkit/shared/core'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type {
@@ -27,6 +28,7 @@ import { CastChoiceUnavailableError, StaleCharacterActionError } from './encount
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { pickedCastChoiceEffect } from './encounterCastChoice.js'
 import {
+  attackAgainstHolds,
   encounterAttackSightContributors,
   type EncounterAttackPerception,
   type EncounterPerceptionRoller
@@ -284,6 +286,8 @@ export async function prepareEncounterActionMechanics<
    * makes no attack roll.
    */
   attackDecoy?: EncounterAttackDecoy | null
+  /** The occasion the attack is made on (an opportunity attack), which a target's grants can limit themselves to. */
+  attackOccasion?: AttackOccasionCode | null
   /**
    * Whether each side of an attack sees the other (SRD unseen attacker/target), or whether a saver
    * sees the effect's source (`roller` TARGET, D100). Called only for an attack roll or a save with
@@ -503,9 +507,10 @@ export async function prepareEncounterActionMechanics<
             silvered: creatureGranted.has('SILVERED'),
             adamantine: creatureGranted.has('ADAMANTINE')
           }
-  // A target's active ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it
-  // their advantage or disadvantage, those that require the holder to see the attacker only when it
-  // can and only from the attackers and on the turn their effect admits, and so does a target
+  // A target's ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it their
+  // advantage or disadvantage, or take every advantage away (Elusive), those that require the holder
+  // to see the attacker only when it can, those limited to an occasion only on it, and only from the
+  // attackers and on the turn their effect admits, and so does a target
   // beyond a ranged attack's normal range (D62). The attacker's and the target's condition
   // mechanics add their own contributors (D94), and so does sight: an unseen attacker has
   // advantage, an unseen target disadvantage.
@@ -513,6 +518,7 @@ export async function prepareEncounterActionMechanics<
   const attacksAgainst = targetFacts.attackAgainstContributors.filter(
     (entry) =>
       entry.attackDomain === attackDomain &&
+      (entry.attackOccasion === undefined || entry.attackOccasion === input.attackOccasion) &&
       isInEffectEventScope(entry.eventScope, {
         actorId: actor.id,
         turnActorId: state.currentActorId
@@ -570,6 +576,13 @@ export async function prepareEncounterActionMechanics<
     attackerLabel: actor.label,
     targetLabel: target.label
   }
+  // A held grant that negates advantage (Elusive) takes it from the attack whatever its source,
+  // the attacker's own grants and flanking included, so the compiler drops it from the final roll.
+  const attackAdvantageNegated =
+    attackKind !== null &&
+    attacksAgainst.some(
+      (entry) => entry.contributor === null && attackAgainstHolds(entry, perception?.actual ?? null)
+    )
   const conditionAttack = {
     melee: attackKind === 'MELEE' || attackKind === 'UNARMED' || attackKind === 'MELEE_SPELL',
     sceneContext: input.sceneContext ?? null
@@ -588,7 +601,7 @@ export async function prepareEncounterActionMechanics<
     }),
     attackSight && attackKind !== null
       ? attackSight.trueSight
-      : attacksAgainst.map(({ contributor }) => contributor),
+      : attacksAgainst.flatMap(({ contributor }) => (contributor ? [contributor] : [])),
     longRange ? [longRange] : [],
     attackDomain === null
       ? []
@@ -642,6 +655,7 @@ export async function prepareEncounterActionMechanics<
           : sourceFacts.targetDerivedFacts),
         ...(enemyProximity ? { attackEnemyProximity: enemyProximity } : {}),
         ...(turnUses ? { attackTurnUses: turnUses } : {}),
+        ...(attackAdvantageNegated ? { attackAdvantageNegated } : {}),
         attackAddedDice: encounterAttackAddedDice(
           sourceFacts.activeEffects,
           source.kind === 'CHARACTER_ACTION'

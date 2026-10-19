@@ -396,7 +396,9 @@ only the GM and the caster's controllers read it. The commit's
 `LiveSessionForcedMovement` carries `collision` (the authored collision, or null; T6k2b1; its mover damage is settled in T6k2b3 as commit entries after the caught creatures'), `upTo`, `sourceReachFeet` (set only for `ASIDE`), the picked `position` and, for
 `RANDOM`, the unit compass `ray` the server rolled at plan time (null otherwise). Each committed `RESOLVE_ACTION`
 command records `forcedMovementLandings`, one per moved creature, farthest first: `{targetActorId, feet, stoppedBy,
-ray}` with `stoppedBy` `NONE`, `OBJECT` or the struck creature's actor ID (`encounterForcedMovementLandingSchema`).
+ray}` with `stoppedBy` `NONE`, `OBJECT` or the struck creature's actor ID (`encounterForcedMovementLandingSchema`). A strike on a creature (T6k2b4b) appends an area target with an optional
+`collision` marker to the pending area (`ruleExecutionPendingSnapshots`); those targets carry the struck creature's save
+and are excluded from `caughtChecksum`.
 
 Half-speed fields (SPELLS-17): the voluntary `MOVE_SCENE_TOKEN` command carries an optional `carefully` flag
 (forced and teleport movement ignore it). The held `ENCOUNTER_SESSION` frame and `encounters/activeReads:active`

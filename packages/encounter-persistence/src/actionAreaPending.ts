@@ -25,6 +25,7 @@ import {
   holdEncounterAreaForcedMovement,
   landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
+  holdEncounterAreaCollisionSaves,
   markEncounterAreaSaveTested,
   removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
@@ -95,7 +96,8 @@ function areaTargets(context: EncounterAreaActionPendingContextDto) {
       snapshot: target.snapshot,
       context: inner,
       testedJson: target.testedJson,
-      legendaryResistance: target.legendaryResistance
+      legendaryResistance: target.legendaryResistance,
+      collision: target.collision
     }
   })
 }
@@ -201,8 +203,9 @@ export async function requireAreaActionPendingRoot(
       throw new Error('Live Session pending area action root mismatch.')
   // A creature the GM removed, or one the action has no effect on (immune to this source's use of
   // it, D156, or of a creature type it excludes), is still caught by the area; it is simply not tested.
+  // A creature a forced mover struck (D159) was not caught, so it is not among them.
   const sealed = [
-    ...targets.map((sealedTarget) => sealedTarget.actorId),
+    ...targets.filter(({ collision }) => !collision).map((sealedTarget) => sealedTarget.actorId),
     ...context.removedActorIds,
     ...(context.unaffectedActorIds ?? [])
   ]
@@ -281,21 +284,23 @@ export async function requireAreaActionPendingRoot(
 }
 
 /**
- * The area holding the push pick `next` opens, if any (D157): the answer that settles an area may
- * open its first pick, and each landing the next one.
+ * The area holding what `next` opens once the saves settle, if anything: the push pick (D157) that
+ * the answer settling an area may open first and each landing the next one, or, once every mover
+ * landed, the saves of the creatures they struck (D159).
  */
-function withOpenedPick(
+function withOpenedHold(
   area: ServerAggregateChoicePendingSnapshotDto,
   next: ServerRuleExecutionPendingSnapshotDto
 ) {
-  const pick = areaActionPendingContext(next)?.forcedMovement?.pick
-  return pick
-    ? holdEncounterAreaForcedMovement(
-        area,
-        pick,
-        areaActionPendingContext(next)?.forcedMovement?.rays
-      )
-    : area
+  const opened = areaActionPendingContext(next)
+  const struck = opened?.targets.filter(({ collision }) => collision) ?? []
+  if (
+    struck.length > 0 &&
+    !areaActionPendingContext(area)?.targets.some(({ collision }) => collision)
+  )
+    return holdEncounterAreaCollisionSaves(area, struck, opened?.forcedMovement?.rays)
+  const pick = opened?.forcedMovement?.pick
+  return pick ? holdEncounterAreaForcedMovement(area, pick, opened.forcedMovement?.rays) : area
 }
 
 /**
@@ -317,7 +322,7 @@ export function requireAreaActionAnswer(input: {
     input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
     checksumCanonicalJson(input.next) !==
       checksumCanonicalJson(
-        withOpenedPick(
+        withOpenedHold(
           markEncounterAreaSaveTested(
             input.stored,
             input.requestId,
@@ -340,15 +345,21 @@ export function requireAreaActionLegendaryResistance(input: {
   next: ServerRuleExecutionPendingSnapshotDto
   actorId: string
 }) {
-  const decided = areaActionPendingContext(input.next)?.targets.find(
-    (target) => target.actorId === input.actorId
-  )?.legendaryResistance
+  // The entry decided is the first of the creature's offers the stored area still waits on.
+  const decided = areaActionPendingContext(input.next)?.targets[
+    areaActionPendingContext(input.stored)?.targets.findIndex(
+      (target) =>
+        target.actorId === input.actorId &&
+        target.legendaryResistance &&
+        !target.legendaryResistance.decision
+    ) ?? -1
+  ]?.legendaryResistance
   if (
     decided?.decision === undefined ||
     input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
     checksumCanonicalJson(input.next) !==
       checksumCanonicalJson(
-        withOpenedPick(
+        withOpenedHold(
           markEncounterAreaLegendaryResistanceDecided(input.stored, input.actorId, decided),
           input.next
         )
@@ -371,7 +382,7 @@ export function requireAreaActionForcedMovement(input: {
     input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
     checksumCanonicalJson(input.next) !==
       checksumCanonicalJson(
-        withOpenedPick(
+        withOpenedHold(
           landEncounterAreaForcedMovement(input.stored, input.requestId, input.position),
           input.next
         )
@@ -439,7 +450,9 @@ export function projectNativeAreaActionPending(
     viewer.isOwner || viewer.controlledActorIds.has(casterId)
       ? pending.context.targets.flatMap((target) => {
           const actor = viewer.actors.find((candidate) => candidate.id === target.actorId)
-          return actor && (viewer.isOwner || target.perceivedByCaster) ? [actor.label] : []
+          return actor && !target.collision && (viewer.isOwner || target.perceivedByCaster)
+            ? [actor.label]
+            : []
         })
       : []
   const legendaryResistance = pending.targets.flatMap((target) =>
