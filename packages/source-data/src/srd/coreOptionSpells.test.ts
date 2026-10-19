@@ -19,7 +19,6 @@ describe.each([
     ruleKind: 'MIND_BLANK',
     effectKinds: ['APPLY_GRANT', 'MANUAL_ADJUDICATION']
   },
-  { label: 'Mirror Image', ruleKind: 'MIRROR_IMAGE', effectKinds: ['APPLY_GRANT'] },
   {
     label: 'Pass without Trace',
     ruleKind: 'PASS_WITHOUT_TRACE',

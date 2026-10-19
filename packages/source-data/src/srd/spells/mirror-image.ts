@@ -1,11 +1,5 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
-  AUTHORING_SELECTION_KIND,
-  GRANT_KIND,
-  MODIFIER_KIND,
-  MODIFIER_SCOPE_KIND,
-  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -66,41 +60,11 @@ export const mirrorImage: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
-            // Three duplicates: each destroyed one spends a use, and the spell ends with the last.
-            // The caster can dismiss them with an Action.
-            lifecycle: {
-              uses: 3,
-              holderEnd: { activation: ACTIVATION_CODE.ACTION }
-            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MIRROR_IMAGE, 0x212, 1),
-                effectKind: EFFECT_KIND.APPLY_GRANT,
-                grants: {
-                  modifiers: [
-                    {
-                      id: spellChildId(SPELL_IDS.MIRROR_IMAGE, 0x214, 1),
-                      grantKind: GRANT_KIND.MODIFIER_GRANT,
-                      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_DECOYS,
-                      domain: {},
-                      modifierKind: MODIFIER_KIND.ENABLE,
-                      payload: {
-                        armorClass: { amount: 10, abilities: [ABILITY_CODE.DEXTERITY] },
-                        thresholds: [
-                          { remaining: 3, minimumRoll: 6 },
-                          { remaining: 2, minimumRoll: 8 },
-                          { remaining: 1, minimumRoll: 11 }
-                        ].map((threshold, index) => ({
-                          id: spellChildId(SPELL_IDS.MIRROR_IMAGE, 0x215, index + 1),
-                          ...threshold
-                        }))
-                      },
-                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
-                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                      order: 1
-                    }
-                  ]
-                }
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'MIRROR_IMAGE' as const
               }
             ]
           }
