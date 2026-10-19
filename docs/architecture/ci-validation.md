@@ -59,7 +59,7 @@ The `build` job runs the selector after the build and exposes, per suite, `run-<
 
 Settings from the PLATFORM-13.T4 trial ([record](../validation/platform-13-t4-ci-parallelism-2026-10-18.md)). The job count stays the same, because the account runs at most 20 jobs at once.
 
-- **Convex:** 2 Vitest file workers per shard (`convex_workers`, default `2`). 4 workers timed out `campaigns/developmentCustody.test.ts`, so that setting was rejected.
+- **Convex:** 2 Vitest file workers per shard (`convex_workers`, default `2`). 4 workers timed out `campaigns/developmentCustody.test.ts`, so that setting was rejected. 3 workers ran clean after the PLATFORM-13.T17 parse memo but gave no wall-time gain, so it was not kept.
 - **Worker:** 4 file workers (`worker_workers`, default `4`), still `--no-isolate`. The local `test` script stays at one worker.
 - **Web:** the config's `maxWorkers: '50%'` (2 on CI), isolated. `web_workers` overrides it for a trial. 3 workers was no faster and `isolate:false` leaks mocks between files (PLATFORM-13.T15).
 - **Shards:** `apps/apis/vitest.config.ts` uses `DurationSequencer`, which overrides Vitest's path-hash shard. Each file, longest first, goes to the shard with the least recorded time (`scripts/convexShards.mjs`). Each shard then runs its files longest first. A file with no record counts as the median file. Every file lands on exactly one shard, and that holds for an affected-only selection too.

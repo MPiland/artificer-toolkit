@@ -34,6 +34,11 @@ import {
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
+import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import {
+  d20AddedDiceTotal,
+  type D20RolledAddedDieDto
+} from '@artificer-toolkit/schema/shared/d20AddedDice'
 
 /**
  * Thrown when a sealed target-bound active effect cannot be evaluated against
@@ -375,8 +380,12 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
   }
 }
 
-/** The d20 faces a roller produced and the mode they were rolled with. */
-type D20Roll = { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
+/** The d20 faces a roller produced, the mode they were rolled with, and the added dice (D156). */
+type D20Roll = {
+  rawFaces: number[]
+  rollMode: EncounterD20RollMode
+  addedDice: D20RolledAddedDieDto[]
+}
 
 /**
  * Whether the pause asks for one die of the frozen graph's own damage: an integer range from 1,
@@ -462,10 +471,12 @@ function d20EvidenceForCompletion(input: {
       'The active-effect completion does not bind its exact d20 evidence request.'
     )
   }
-  const { rawFaces, rollMode } = roll
+  const { rawFaces, rollMode, addedDice } = roll
   if (
     rawFaces.length !== (rollMode === 'NORMAL' ? 1 : 2) ||
-    rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20)
+    rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20) ||
+    checksumRuleDocument(addedDice.map(({ count, faces, sign }) => ({ count, faces, sign }))) !==
+      checksumRuleDocument(policy.addedDice ?? [])
   )
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect d20 raw faces are invalid.'
@@ -473,7 +484,7 @@ function d20EvidenceForCompletion(input: {
   const selectedNatural = selectEncounterActionD20Natural(rollMode, rawFaces)
   if (
     selectedNatural !== entry.evidence.value ||
-    execution.outputs.total !== selectedNatural + policy.modifier
+    execution.outputs.total !== selectedNatural + policy.modifier + d20AddedDiceTotal(addedDice)
   ) {
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect d20 evidence does not match the completed rule trace.'
@@ -490,7 +501,8 @@ function d20EvidenceForCompletion(input: {
     modifier: policy.modifier,
     total: execution.outputs.total,
     defenseOrDc: policy.dc,
-    resultPath: execution.outputs.resultPath
+    resultPath: execution.outputs.resultPath,
+    ...(addedDice.length > 0 ? { addedDice: [...addedDice] } : {})
   }
 }
 
@@ -620,7 +632,11 @@ export function reconstructTargetBoundActiveRuleEffectCompletion(input: {
     graph: prepared.definition.frozenGraph,
     ...(input.d20Evidence
       ? {
-          roll: { rawFaces: input.d20Evidence.rawFaces, rollMode: input.d20Evidence.rollMode }
+          roll: {
+            rawFaces: input.d20Evidence.rawFaces,
+            rollMode: input.d20Evidence.rollMode,
+            addedDice: input.d20Evidence.addedDice ?? []
+          }
         }
       : {})
   })
@@ -660,7 +676,7 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
      * d20 policy.
      */
     resolution:
-      | { requestId: string; rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
+      | ({ requestId: string } & D20Roll)
       | { requestId: string; value: number; d20: D20Roll | null }
     expectedEvidencePolicy?: ServerRuleExecutionD20PolicyDto | null
   }
@@ -689,7 +705,11 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     )
   const roll = die
     ? resolution.d20
-    : { rawFaces: [...resolution.rawFaces], rollMode: resolution.rollMode }
+    : {
+        rawFaces: [...resolution.rawFaces],
+        rollMode: resolution.rollMode,
+        addedDice: resolution.addedDice
+      }
   if (
     (roll &&
       (roll.rawFaces.length !== (roll.rollMode === 'NORMAL' ? 1 : 2) ||
@@ -699,15 +719,28 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     throw new CharacterActiveRuleEffectExecutionError(
       `The active-effect ${die ? 'die' : 'd20'} resolution is invalid.`
     )
-  const resumed = await input.runtime.resumeWithGraph({
-    continuation: input.continuation,
-    response: serverRuleEvidenceResponseDtoSchema.parse({
-      requestId: resolution.requestId,
-      value: die
-        ? resolution.value
-        : selectEncounterActionD20Natural(roll!.rollMode, roll!.rawFaces)
-    })
-  })
+  const resumeWithGraph = input.runtime.resumeWithGraph.bind(input.runtime)
+  let graph: CompiledRuleGraph | null = null
+  const resumeStep = async (step: unknown) => {
+    const next = await resumeWithGraph(step)
+    graph = next.graph
+    return next.result
+  }
+  const result = die
+    ? await resumeStep({
+        continuation: input.continuation,
+        response: serverRuleEvidenceResponseDtoSchema.parse({
+          requestId: resolution.requestId,
+          value: resolution.value
+        })
+      })
+    : await resumeEncounterD20({
+        continuation: input.continuation,
+        natural: selectEncounterActionD20Natural(roll!.rollMode, roll!.rawFaces),
+        addedDice: roll!.addedDice,
+        resume: resumeStep
+      })
+  const resumed = { result, graph: graph! }
   if (resumed.result.status !== 'COMPLETE') {
     requirePolicyContinuationMatch({
       policy: prepared.evidencePolicy,
@@ -736,12 +769,12 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
   /** Null when the effect rolls its damage with no save. */
   policy: ServerRuleExecutionD20PolicyDto | null
   /** The resolved d20 when the pending request is the damage die of a save; null otherwise. */
-  diceStage: { rollMode: EncounterD20RollMode; rawFaces: readonly number[] } | null
+  diceStage: D20Roll | null
   answer: EncounterEvidenceAnswer
   random: (maxExclusive: number) => number
 }): Promise<{
   result: TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
-  d20: { rollMode: EncounterD20RollMode; rawFaces: number[] } | null
+  d20: D20Roll | null
 }> {
   const { effectInput, continuation, policy, diceStage, answer } = input
   const { request } = continuation
@@ -755,7 +788,11 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
       answer,
       random: input.random
     })
-    const d20 = diceStage && { rollMode: diceStage.rollMode, rawFaces: [...diceStage.rawFaces] }
+    const d20 = diceStage && {
+      rollMode: diceStage.rollMode,
+      rawFaces: [...diceStage.rawFaces],
+      addedDice: diceStage.addedDice
+    }
     return {
       d20,
       result: await resumeTargetBoundActiveRuleEffectWithPause({
@@ -779,12 +816,21 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
     answer,
     rollD20: () => input.random(20) + 1
   })
+  const d20 = {
+    rollMode,
+    rawFaces: faces,
+    addedDice: resolveEncounterAddedDice({
+      dice: policy.addedDice ?? [],
+      answer,
+      random: input.random
+    })
+  }
   return {
-    d20: { rollMode, rawFaces: faces },
+    d20,
     result: await resumeTargetBoundActiveRuleEffectWithPause({
       ...effectInput,
       continuation,
-      resolution: { requestId: answer.requestId, rawFaces: faces, rollMode },
+      resolution: { requestId: answer.requestId, ...d20 },
       expectedEvidencePolicy: policy
     })
   }

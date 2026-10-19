@@ -153,7 +153,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         | 'actors'
         | 'movementTargets'
         | 'pending'
-        | 'rawDie'
+        | 'resolution'
         | 'autoRoll'
       >
     ) => ReturnType<typeof prepareEncounterTurnDeathSave<TCharacterFacts>>
@@ -331,7 +331,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     pending.applicationContext.kind === 'ENCOUNTER_TURN_DEATH_SAVE'
       ? {
           pending: { ...pending, applicationContext: { ...pending.applicationContext, root } },
-          ...(input.rawDie === undefined ? {} : { rawDie: input.rawDie })
+          ...(input.resolution === undefined ? {} : { resolution: input.resolution })
         }
       : {})
   })

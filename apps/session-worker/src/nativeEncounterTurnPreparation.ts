@@ -81,7 +81,6 @@ export function createNativeLiveTurnStages(
     }
     return rules
   }
-  const rollD20 = () => random(20) + 1
   const stages: Parameters<typeof prepareEncounterTurn<CharacterFacts>>[1] = {
     effects: (stage) =>
       prepareEncounterTurnEffects<CharacterFacts>({
@@ -108,7 +107,7 @@ export function createNativeLiveTurnStages(
         },
         loadTarget,
         createRuntime,
-        rollD20,
+        random,
         resolvePerception: (perception) =>
           resolveNativeLiveTurnEffectPerception({
             ...perception,
@@ -289,7 +288,7 @@ export function createNativeLiveTurnStages(
         ...stage,
         loadTarget,
         createRuntime,
-        rollD20
+        random
       }),
     initiative: (stage) => {
       async function loadCharacter(actor: EncounterRunCharacterActorState) {
