@@ -1083,8 +1083,9 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   collision's mover damage (T6k2b3, D159) settles in the area commit: each mover that travelled 10 ft or more takes
   `floor(feet/10)` times the authored dice as an unsaved damage action of the pusher (`collisionDamageCapability`), one
   more ordinal entry after the caught creatures' (`kept`), skipped while a pick is still owed. A RANDOM ray is rolled
-  once and sealed in `context.forcedMovement.rays` when a pick is first held; a replan reuses it. The struck creature's
-  save, the Whirlwind switch and the closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION` kind's removal are T6k2b4.
+  once and sealed in `context.forcedMovement.rays` when a pick is first held; a replan reuses it. The Air Elemental's
+  Whirlwind authors this block (the closed `CREATURE_AIR_ELEMENTAL_WHIRLWIND_COLLISION` kind is gone); the struck
+  creature's save is T6k2b4b.
   The authored `collision` block on `FORCED_MOVEMENT` (dice per 10 ft, a fixed-DC struck
   creature save, a condition) rides the proposal as canonical JSON in a `collision` TEXT port (empty for none), is
   echoed by `interpretSpatial` and reaches `LiveSessionForcedMovement.collision`; a

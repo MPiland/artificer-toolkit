@@ -1,6 +1,6 @@
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { ForcedMovementCollisionAuthored } from '@artificer-toolkit/shared/authored'
-import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import { SQUARE_GRID_COMPASS_RAYS, type ScenePoint } from '@artificer-toolkit/shared/vtt'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_DAMAGE_TYPES,
@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { interpretForcedMovements } from '../src/nativeEncounterActionInputs.js'
+import { randomRay } from '../src/nativeEncounterActionInputs.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, directedAreaWolf, forceOnFailedSave } from './actionRoomFixture.js'
@@ -63,6 +63,7 @@ async function lineRoom(input: {
   feet: number
   distanceMode?: 'EXACT' | 'UP_TO'
   reachFeet: number
+  widthFeet?: number
   others: readonly { id: string; at: ScenePoint }[]
   rolls: number[]
 }) {
@@ -70,7 +71,7 @@ async function lineRoom(input: {
     directedAreaWolf({
       shapeKind: 'LINE',
       length: { amount: input.reachFeet, unit: 'FEET' },
-      width: { amount: 5, unit: 'FEET' }
+      width: { amount: input.widthFeet ?? 5, unit: 'FEET' }
     }),
     input.direction,
     input.feet,
@@ -104,53 +105,28 @@ const childTargets = async (room: Room) =>
     ({ outputs }) => outputs.targetActorId
   )
 
-describe('a random push’s sealed ray (SPELLS-33.T6k2b3)', () => {
-  type Interpreted = Parameters<typeof interpretForcedMovements>
-  const randomPush = {
-    kind: 'FORCED_MOVEMENT',
-    targetActorId: NEAR_ID,
-    sourceNodeId: 'node',
-    sourceOperationKey: 'operation',
-    direction: 'RANDOM',
-    feet: 10,
-    upTo: false,
-    collision: null,
-    targetStateChecksum: 'checksum'
-  } as const
-  const prepared = {
-    adapter: { interpretSpatial: () => [randomPush] },
-    targetPolicy: {} as Interpreted[0]['targetPolicy']
-  }
-  const interpret = (input: Partial<Interpreted[1]>) =>
-    interpretForcedMovements(prepared, {
-      execution: {} as Interpreted[1]['execution'],
-      published: {} as Interpreted[1]['published'],
-      occurrenceId: testUuid(0xb50),
-      targetActorId: NEAR_ID,
-      ...input
-    })
-
+describe('a random push’s ray (SPELLS-33.T6k2b3)', () => {
   it('rolls the ray once when none is sealed', () => {
-    const random = vi.fn(() => EAST)
-    expect(interpret({ random })).toEqual([expect.objectContaining({ ray: expect.anything() })])
-    expect(random).toHaveBeenCalledTimes(1)
+    const roll = vi.fn(() => EAST)
+    expect(randomRay(NEAR_ID, undefined, roll)).toEqual(SQUARE_GRID_COMPASS_RAYS[EAST])
+    expect(roll).toHaveBeenCalledExactlyOnceWith(SQUARE_GRID_COMPASS_RAYS.length)
   })
 
   it('keeps the ray sealed for its target when the area plans again, never rolling a second', () => {
-    const sealed = interpret({ random: () => EAST })[0]!.ray!
-    const random = vi.fn(() => WEST)
-    expect(
-      interpret({ random, sealedRays: [{ targetActorId: NEAR_ID, ray: sealed }] })[0]!.ray
-    ).toEqual(sealed)
-    expect(random).not.toHaveBeenCalled()
+    const sealed = SQUARE_GRID_COMPASS_RAYS[EAST]!
+    const roll = vi.fn(() => WEST)
+    expect(randomRay(NEAR_ID, [{ targetActorId: NEAR_ID, ray: sealed }], roll)).toEqual(sealed)
+    expect(roll).not.toHaveBeenCalled()
   })
 
   it('rolls for a target that has no sealed ray', () => {
-    const random = vi.fn(() => WEST)
-    interpret({ random, sealedRays: [{ targetActorId: FAR_ID, ray: SOURCE_AT }] })
-    expect(random).toHaveBeenCalledTimes(1)
+    const roll = vi.fn(() => WEST)
+    const sealed = [{ targetActorId: FAR_ID, ray: SQUARE_GRID_COMPASS_RAYS[EAST]! }]
+    expect(randomRay(NEAR_ID, sealed, roll)).toEqual(SQUARE_GRID_COMPASS_RAYS[WEST])
+    expect(roll).toHaveBeenCalledTimes(1)
   })
 })
+
 describe('a forced movement’s collision damage to its mover (SPELLS-33.T6k2b3, D159)', () => {
   it('damages the mover for every full 10 feet it travelled, as one more entry after the caught creature’s, and gives it back on undo', async () => {
     // The mover's wolf has 11 hit points; 2d6 draws 3 and 4.
@@ -209,4 +185,26 @@ describe('a forced movement’s collision damage to its mover (SPELLS-33.T6k2b3,
     expect(await hitPointsOf(room, FAR_ID)).toBe(9)
     expect(await hitPointsOf(room, NEAR_ID)).toBe(7)
   })
+
+  it.each([
+    ['the lower ID first', NEAR_ID, FAR_ID],
+    ['the lower ID last', FAR_ID, NEAR_ID]
+  ])(
+    'lands movers that are equally far from the source by actor ID, %s',
+    async (_label, onAxis, off) => {
+      const room = await lineRoom({
+        direction: 'AWAY_FROM_SOURCE',
+        feet: 20,
+        reachFeet: 5,
+        widthFeet: 40,
+        others: [
+          { id: onAxis, at: NEAR_AT },
+          { id: off, at: { x: 250, y: 250 } }
+        ],
+        rolls: [0, 0, 1, 1]
+      })
+
+      expect((await childTargets(room)).slice(2)).toEqual([NEAR_ID, FAR_ID])
+    }
+  )
 })
