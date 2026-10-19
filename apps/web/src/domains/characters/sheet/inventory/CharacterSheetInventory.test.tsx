@@ -312,8 +312,8 @@ describe('Character Sheet inventory', () => {
     expect(longswordItem.properties?.map((property) => property.label)).toEqual([
       'Martial',
       'Melee',
-      'Metal',
-      'Versatile'
+      'Versatile',
+      'Metal'
     ])
     expect(screen.queryByText(/properties:/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/martial|melee|metal|versatile/i)).not.toBeInTheDocument()

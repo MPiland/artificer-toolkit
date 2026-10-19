@@ -404,6 +404,8 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
               .check(z.minLength(1))
               .check(z.maxLength(500)),
             damageTypeId: identitySchema,
+            /** The faces of the die a grant set for the weapon's damage (Shillelagh's d8), when one did. */
+            weaponDieFaces: z.optional(integerSchema.check(z.positive())),
             scaling: z.array(actionOutcomeScalingSchema).check(z.maxLength(100))
           }),
           z.strictObject({

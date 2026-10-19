@@ -30,7 +30,6 @@ import {
 } from '../character/characterSpellCastActions.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
-import { CharacterRuleActionUnsupportedCompilationError } from '../characterRuleActionSystemAdapter.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../encounterAreaAction.js'
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
@@ -463,30 +462,6 @@ function compiledCastEntry(authored: SpellAuthored, castLevel = authored.level) 
     : null
 }
 
-/** The compiled plans the Encounter would run for the spell's cast, or null when it stays manual. */
-const zzProbe = (authored: SpellAuthored) => {
-  const cast = candidate(authored, authored.level)
-  const documents = new Map([...authoredById, [authored.id, authored]])
-  const built = build([cast], {
-    policyOutput: policyFor([cast], documents),
-    spellDocumentsById: documents
-  })
-  return compileCharacterActionEntryPoints({
-    gameSystemId: SRD_SYSTEM_ID,
-    candidates: built.candidates,
-    descriptors: discoverCharacterActionCapabilities({
-      gameSystemId: SRD_SYSTEM_ID,
-      candidates: built.candidates,
-      conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
-      abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
-      entryPoints: built.entryPoints
-    })
-  }).map((entry) =>
-    'compilation' in entry
-      ? { ...entry.compilation, plan: undefined, executionPlan: undefined }
-      : entry
-  )
-}
 const compiledCast = (authored: SpellAuthored, castLevel = authored.level) =>
   compiledCastEntry(authored, castLevel)?.compilation ?? null
 
@@ -2313,21 +2288,34 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
   const shillelaghFromCoreOptions = (chosenItem: object, modifiers: unknown[]) =>
     touchSpellFromCoreOptions(SHILLELAGH, 0x3700, 'ANY', [
       {
-        ...sequentialPath(0x3710, 1, { durationKind: 'MINUTE', amount: 1 }, [
-          {
-            id: testUuid(0x3713),
-            effectKind: 'APPLY_GRANT',
-            bindsChosenItem: true,
-            grants: {
-              modifiers: modifiers.map((modifier, index) => ({
-                id: testUuid(0x3720 + index),
-                order: index + 1,
-                ...(modifier as object)
-              }))
+        id: testUuid(0x3710),
+        order: 1,
+        pathCode: 'ON_USE',
+        groupType: 'SINGLE',
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        chosenItem,
+        resultBlock: {
+          id: testUuid(0x3711),
+          resultKind: 'SINGLE',
+          duration: { id: testUuid(0x3712), durationKind: 'MINUTE', amount: 1 },
+          // The grant ends when the target lets go of the item it is bound to.
+          lifecycle: { endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'] },
+          outcomes: [
+            {
+              id: testUuid(0x3713),
+              effectKind: 'APPLY_GRANT',
+              bindsChosenItem: true,
+              grants: {
+                modifiers: modifiers.map((modifier, index) => ({
+                  id: testUuid(0x3720 + index),
+                  order: index + 1,
+                  ...(modifier as object)
+                }))
+              }
             }
-          }
-        ]),
-        chosenItem
+          ]
+        }
       }
     ])
   const SHILLELAGH_MODIFIERS = [
@@ -2350,18 +2338,6 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
     )
     const plan = compiledCast(core)?.activeEffectPlan
     const srd = compiledCast(SHILLELAGH)?.activeEffectPlan
-    const zzMessages: string[] = []
-    Object.defineProperty(CharacterRuleActionUnsupportedCompilationError.prototype, 'name', {
-      configurable: true,
-      get: () => 'Unsupported',
-      set(this: Error) {
-        zzMessages.push(this.message)
-      }
-    })
-    console.log(
-      'PROBE',
-      JSON.stringify([zzMessages, compiledCast(core) === null, zzProbe(core)]).slice(0, 3000)
-    )
     expect(comparablePlan(plan)).toBeTruthy()
     expect(comparablePlan(plan)).toEqual(comparablePlan(srd))
     expect(plan?.chosenItem).toEqual(srd?.chosenItem)

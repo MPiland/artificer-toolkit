@@ -99,22 +99,43 @@ export function listEncounterChosenItems(input: {
  * armor), checked against the plan's filters, and whether the target can drop it: an item a hand
  * holds is releasable, a worn one is not. Null for an action that chooses none.
  */
-export function readEncounterChosenItem(input: {
+export function readEncounterChosenItem(input: ChosenItemRead) {
+  const read = resolveEncounterChosenItem(input)
+  if ('refusal' in read) throw new Error(read.refusal)
+  return read.chosen
+}
+
+/**
+ * Why the action's item choice cannot stand (none chosen, one the action does not take), checked
+ * before the action rolls; null when it can.
+ */
+export function encounterChosenItemRefusal(input: ChosenItemRead): string | null {
+  const read = resolveEncounterChosenItem(input)
+  return 'refusal' in read ? read.refusal : null
+}
+
+type ChosenItemRead = {
   plan: ChosenItemPlan | null | undefined
   target: ChosenItemHolder
   itemInstanceId: string | undefined
-}): { item: EquipmentInstanceMechanicSource; releasable: boolean } | null {
-  const { plan, target, itemInstanceId } = input
-  if (!plan) {
-    if (itemInstanceId !== undefined) throw new Error('This action is not used on an item.')
-    return null
-  }
-  if (itemInstanceId === undefined) throw new Error('Choose the item this action is used on.')
+}
+
+function resolveEncounterChosenItem({
+  plan,
+  target,
+  itemInstanceId
+}: ChosenItemRead):
+  | { chosen: { item: EquipmentInstanceMechanicSource; releasable: boolean } | null }
+  | { refusal: string } {
+  if (!plan)
+    return itemInstanceId === undefined
+      ? { chosen: null }
+      : { refusal: 'This action is not used on an item.' }
+  if (itemInstanceId === undefined) return { refusal: 'Choose the item this action is used on.' }
   const chosen = listEncounterChosenItems({ plan, target }).find(
     ({ item }) => item.itemInstanceId === itemInstanceId
   )
-  if (!chosen) throw new Error('The chosen item is not one this action can be used on.')
-  return chosen
+  return chosen ? { chosen } : { refusal: 'The chosen item is not one this action can be used on.' }
 }
 
 /**

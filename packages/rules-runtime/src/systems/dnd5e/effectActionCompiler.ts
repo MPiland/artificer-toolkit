@@ -228,6 +228,8 @@ export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 export const DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY = 'dnd5e.selected-optional-riders'
 /** The actor's level in each class (a JSON object by class id), which selects CLASS_LEVEL rows. */
 const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
+/** The die faces a grant set for the weapon's damage; its authored dice roll that die instead. */
+const DND5E_WEAPON_DAMAGE_DIE_FACT_KEY = 'dnd5e.weapon-damage-die'
 /** The attacked creature's type, which a path restriction reads when its outcome specializes. */
 const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
 /** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
@@ -416,6 +418,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   attackTurnUses?: readonly string[]
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
+  weaponDamageDieFaces?: number
 }>
 
 type Dnd5eEffectActionTemplate = Readonly<{
@@ -463,7 +466,8 @@ function dndScalingFactsFromRuleValues(
     ),
     resolvedDamageOutcomeExpressions: parseResolvedOutcomeExpressions(
       facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
-    )
+    ),
+    weaponDamageDieFaces: positiveInteger(facts[DND5E_WEAPON_DAMAGE_DIE_FACT_KEY])
   }
 }
 
@@ -5980,9 +5984,12 @@ function exactDiceConfiguration(
     const authoredTerm = parseBoundedDiceConfiguration(dice).terms[0]!
     return authoredTerm.count === resolvedTerm.count && authoredTerm.die === resolvedTerm.die
   }
+  // A weapon die a grant set (Shillelagh's d8) replaces the authored die of the weapon's own damage.
+  const weaponDie = optionalRider ? undefined : facts.weaponDamageDieFaces
   if (
     !matchesAuthoredDice(authored) &&
-    !(halfHitPointsDice && matchesAuthoredDice(halfHitPointsDice))
+    !(halfHitPointsDice && matchesAuthoredDice(halfHitPointsDice)) &&
+    !(weaponDie && matchesAuthoredDice(authored.replace(/^(\d+)d\d+/, `$1d${weaponDie}`)))
   )
     unsupported('D&D resolved damage expression does not match the authored dice.')
   return resolved
@@ -9296,6 +9303,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   }) => {
     const resolvedDamageExpressionFacts: Record<string, string> = {}
     const resolvedDamageOutcomeExpressions: Record<string, string> = {}
+    const weaponDamageDieFacts: Record<string, number> = {}
     const resolvedDamagePathCounts = new Map<SpecializedPath, number>()
     const sourceFacts = sourceDerivedFacts as Record<string, unknown>
     const actionOutcomes = (actionMechanic as { outcomes?: unknown }).outcomes
@@ -9318,6 +9326,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
                 sourceHitPoints: sourceHitPoints ?? null
               })
         if (expression === null) continue
+        if (typeof row.weaponDieFaces === 'number')
+          weaponDamageDieFacts[DND5E_WEAPON_DAMAGE_DIE_FACT_KEY] = row.weaponDieFaces
         if (typeof row.outcomeId === 'string' && row.outcomeId.length > 0) {
           if (resolvedDamageOutcomeExpressions[row.outcomeId] !== undefined)
             throw new Dnd5eEffectActionCompilerError(
@@ -9428,6 +9438,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       ...resolvedDamageExpressionFacts,
+      ...weaponDamageDieFacts,
       ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0
         ? {
             [DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]: JSON.stringify(

@@ -475,6 +475,7 @@ export function resolveDnd5eActionMechanic(
           ),
           diceExpression: expression,
           damageTypeId: outcome.damageTypeId,
+          ...(weaponDieFaces !== null && value !== resolvedValue ? { weaponDieFaces } : {}),
           scaling
         }
       : {
