@@ -1,19 +1,27 @@
 import {
   ACTIVATION_CODE,
-  PATH_CODE,
-  PATH_GROUP_TYPE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_DIE_RECIPIENT,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
   RANGE_KIND,
+  ROLLED_DIE_SIGN,
   SPELL_ATTRIBUTE,
+  SPELL_COMPONENT,
   SUBJECT,
-  TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
   TRIGGER,
-  type SpellAuthored,
-  SPELL_COMPONENT
+  VALUE_DOMAIN_CODE,
+  type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
@@ -70,8 +78,28 @@ export const huntersMark: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.HUNTERS_MARK, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'HUNTERS_MARK' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [ATTACK_DOMAIN_CODE.MELEE, ATTACK_DOMAIN_CODE.RANGED].map(
+                    (attackDomain, index) => ({
+                      id: spellChildId(SPELL_IDS.HUNTERS_MARK, 0x215, index + 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+                      domain: { attackDomain },
+                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: {
+                        count: 1,
+                        faces: 6,
+                        sign: ROLLED_DIE_SIGN.ADD,
+                        recipient: DAMAGE_DIE_RECIPIENT.SOURCE_DEALS_TO_HOLDER,
+                        damageTypeSource: 'ATTACK' as const
+                      },
+                      order: index + 1
+                    })
+                  )
+                }
               }
             ]
           }

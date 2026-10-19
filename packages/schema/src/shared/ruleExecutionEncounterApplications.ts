@@ -74,6 +74,7 @@ import {
   meleeRetaliationEvidenceDtoSchema,
   validateMeleeRetaliation
 } from './ruleExecutionEffectEvidence.js'
+import { damageAddedDiceDtoSchema } from './d20AddedDice.js'
 
 /** What losing a Concentration slot removes: the maintained state, its dependents and Character owner versions. */
 const concentrationCleanupDtoSchema = lazySchema(() =>
@@ -494,6 +495,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
       /** The source's own conditions released by effects its action ended; empty when none. */
       sourceApplications: sourceApplicationsDtoSchema,
+      /** The dice active grants added to, or took from, its damage, in node-prefix order (D156). */
+      damageAddedDice: z.optional(damageAddedDiceDtoSchema),
       /** The zones its target holds that this melee hit set off against the attacker (D153). */
       meleeRetaliation: z.optional(meleeRetaliationEvidenceDtoSchema)
     })

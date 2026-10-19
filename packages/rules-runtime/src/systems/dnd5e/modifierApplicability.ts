@@ -136,6 +136,16 @@ export function dnd5eSaveRequiresSourceSight(
 }
 
 /**
+ * Whether an attack roll grant holds only against the source of the effect holding it (Bestow
+ * Curse). The holder's policy leaves it out; the attack reads it once its target is known.
+ */
+export function dnd5eAttackRequiresEffectSource(
+  modifier: Pick<CharacterGrantFoldModifier, 'valueDomainCode' | 'domain'>
+): boolean {
+  return modifier.valueDomainCode === 'ATTACK_ROLL' && modifier.domain.againstEffectSource === true
+}
+
+/**
  * The single D&D modifier scope rule: a GLOBAL modifier applies Character-wide and a SOURCE
  * modifier only while its own source is evaluated (an attack with that item, that item's armor
  * class). Item and spell facets then narrow either kind to the attacking item and the spell.
