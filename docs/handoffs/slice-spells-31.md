@@ -80,7 +80,7 @@ Totals: **C 28, A 13, B 123** (B: 58 join a SPELLS-4.T2 group, 65 need a class-o
 | ROGUE_ELUSIVE                                | rogue.ts:923                                      | no attack roll has advantage vs you unless incapacitated                                                 | none; ATTACKS_AGAINST takes ADV/DIS only                                                          | B     | T4k2a: ATTACKS_AGAINST NEGATE_ADVANTAGE per attack domain, under CAN_ACT                                                              |
 | HUNTER_ESCAPE_THE_HORDE                      | hunter.ts:182                                     | opportunity attacks vs you have disadvantage                                                             | none; no attack-kind field                                                                        | B     | T4k2a: ATTACKS_AGAINST DISADVANTAGE with attackOccasion OPPORTUNITY                                                                   |
 | CIRCLE_OF_THE_LAND_NATURES_SANCTUARY         | circle-of-the-land.ts:359, :378                   | beast or plant attacking you: Wis save or pick another target; success immune 24 h                       | none                                                                                              | B     | T4k2b: INCOMING_ATTACK_GATE holder-owned fold grant, attackerCreatureTypeIds; success immunity runtime = T4k2c                        |
-| WAY_OF_THE_OPEN_HAND_TRANQUILITY             | way-of-the-open-hand.ts:181                       | Sanctuary on you from long rest to long rest                                                             | derived save DC                                                                                   | B     | T4k2 (after T2k)                                                                                                                      |
+| WAY_OF_THE_OPEN_HAND_TRANQUILITY             | way-of-the-open-hand.ts:181                       | Sanctuary on you from long rest to long rest                                                             | derived save DC                                                                                   | B     | T4k2d: see Tranquility resume                                                                                                         |
 | ROGUE_CUNNING_ACTION                         | rogue.ts:668                                      | bonus action Dash, Disengage or Hide                                                                     | none                                                                                              | B     | T4l1 (after T2l)                                                                                                                      |
 | THIEF_FAST_HANDS                             | thief.ts:50                                       | Cunning Action also Sleight of Hand, thieves' tools, Use an Object                                       | none                                                                                              | B     | T4l1 (after T2l)                                                                                                                      |
 | RANGER_VANISH                                | ranger.ts:946, :947                               | Hide as a bonus action; can't be tracked                                                                 | none                                                                                              | B     | T4l1 (after T2l; tracking stays description)                                                                                          |
@@ -332,3 +332,22 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
     - `hunterWieldedWeaponAttacks.test.ts`: candidates, damage, the +1 bow, property and activation filtering, the availability matrix, wield conflicts, the Encounter compile, and the reach range cap.
     - `feature-weapon-attack-contracts.test.ts` and `creature-attack-rolls.test.ts`: the schema refusals.
     - The parity file: the SRD options and homebrew variants.
+
+- **T4k2b (2026-10-19):** Nature's Sanctuary is a holder-owned INCOMING_ATTACK_GATE fold grant with `attackerCreatureTypeIds`; a failed save goes through T2k3b ATTACK_RETARGET. `successImmunity` is authored and node-mapped but inert until T4k2c. Proofs: `encounterIncomingAttackGate.test.ts`, the parity file, `nativeRoomNaturesSanctuary.test.ts`.
+
+### Tranquility resume (T4k2d, ruled 2026-10-19)
+
+The LONG_REST_FINISHED trigger ruling is withdrawn; do not add it. `CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY` (`way-of-the-open-hand.ts`, feature `classRowId(M,11,3)`) is still a closed rule.
+
+Findings that ruled out a rest-time invocation:
+
+1. Active effects are created only by the encounter planner (`prepareRecurringActiveEffect`), which stamps an ENCOUNTER origin and needs an encounter, occurrence and source actor. COMPLETE_REST in `sheetCommands.ts` has none, so a Sheet-side Character-origin planner would be new.
+2. The `activeRuleEffects.ts` superrefine rejects `endOnTriggers` on a CHARACTER origin.
+3. `heldIncomingGate` throws for an effect ward without an ENCOUNTER origin and `sourceActorId`; only the feature-fold (holder-owned) ward avoids that.
+
+Design B (ruled): no rest hook, no planner, no schema relaxation.
+
+- Tranquility is a holder-owned INCOMING_ATTACK_GATE feature grant (the Nature's Sanctuary shape), DERIVED_DC Wisdom: 8 + Wisdom modifier + proficiency bonus, owner = holder.
+- It is active only while a LONG_REST-reset feature charge (FIXED 1) is unspent, so a long rest restores it and the ward lasts from one long rest to the next.
+- It ends early when the holder makes an attack roll or casts a spell against an enemy (Sanctuary's end triggers): that act spends the charge.
+- Needed as generic core options with an authoring-parity proof, if absent: (a) a modifier grant gated on an unspent resource; (b) spending a resource on a hostile act. No Tranquility branch in code. Then delete the kind and add a room test (the ward stops an attacker; the holder's attack ends it; a long rest restores it).
