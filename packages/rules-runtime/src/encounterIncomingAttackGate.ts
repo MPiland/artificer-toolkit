@@ -1,3 +1,4 @@
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { incomingAttackGatePayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterIncomingGateOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
@@ -5,59 +6,121 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
 import { dnd5eConcentrationHolderSaves } from './systems/dnd5e/concentrationPolicy.js'
 import { derivedAddedDice } from './systems/dnd5e/d20AddedDiceGraph.js'
 
-/** The ward a holder carries (`INCOMING_ATTACK_GATE`): its effect, the caster whose DC it uses and its save. */
+type IncomingGatePayload = ReturnType<typeof incomingAttackGatePayloadDtoSchema.parse>
+
+/** The ward a holder carries (`INCOMING_ATTACK_GATE`): its identity, the creature whose DC it uses and its save. */
 export type HeldIncomingGate = {
-  effect: ActiveRuleEffectRecord
-  /** The creature whose spell save DC the ward's save uses. */
-  casterActorId: string
-  payload: ReturnType<typeof incomingAttackGatePayloadDtoSchema.parse>
+  /** The ward's effect id, or the id of the holder's own feature grant that carries it. */
+  wardId: string
+  /** The creature whose save DC the ward's save uses: the caster of a spell ward, the holder of a feature's. */
+  ownerActorId: string
+  payload: IncomingGatePayload
+}
+
+/** Whether an attacker of this Creature type owes the ward its save. */
+function wardCoversAttacker(payload: IncomingGatePayload, attackerCreatureTypeId: string | null) {
+  const { attackerCreatureTypeIds } = payload
+  return (
+    attackerCreatureTypeIds === undefined ||
+    (attackerCreatureTypeId !== null && attackerCreatureTypeIds.includes(attackerCreatureTypeId))
+  )
 }
 
 /**
- * The holder's ward and the payload its first `INCOMING_ATTACK_GATE` grant carries. A holder that carries
- * several wards answers to the one with the lowest id, so every replay picks the same.
+ * The holder's ward that covers the attacker, and the payload its first `INCOMING_ATTACK_GATE` grant
+ * carries. Wards from the holder's Active Effects come first, in id order, then the holder's own feature
+ * grants (Nature's Sanctuary), so every replay picks the same.
  */
-export function heldIncomingGate(
+export function heldIncomingGate(input: {
+  holderActorId: string
   effects: readonly ActiveRuleEffectRecord[]
-): HeldIncomingGate | null {
-  for (const effect of [...effects].sort((left, right) => left.id.localeCompare(right.id))) {
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers' | 'modifierGroups'> | null
+  /** The attacker's Creature type; null for a Character, whose type is not in its facts. */
+  attackerCreatureTypeId: string | null
+}): HeldIncomingGate | null {
+  const { attackerCreatureTypeId } = input
+  for (const effect of [...input.effects].sort((left, right) => left.id.localeCompare(right.id))) {
     const { origin } = effect.definition
     for (const { modifiers } of listActiveEffectGrants([effect])) {
       for (const modifier of modifiers) {
         if (modifier.valueDomainCode !== 'INCOMING_ATTACK_GATE') continue
         if (origin.kind !== 'ENCOUNTER' || origin.sourceActorId === null)
           throw new EncounterValidationError('An incoming attack gate needs its caster.')
-        return {
-          effect,
-          casterActorId: origin.sourceActorId,
-          payload: incomingAttackGatePayloadDtoSchema.parse(modifier.payload)
-        }
+        const payload = incomingAttackGatePayloadDtoSchema.parse(modifier.payload)
+        if (wardCoversAttacker(payload, attackerCreatureTypeId))
+          return { wardId: effect.id, ownerActorId: origin.sourceActorId, payload }
       }
+    }
+  }
+  // The Character fold also carries its Active Effects' grants; those were read from the effects above.
+  for (const { contributions } of input.grantFold?.modifierGroups ?? []) {
+    for (const { acceptedModifierIndex, grantId } of contributions) {
+      const modifier = input.grantFold!.modifiers[acceptedModifierIndex]!
+      if (
+        modifier.valueDomainCode !== 'INCOMING_ATTACK_GATE' ||
+        modifier.source.kind === 'ACTIVE_EFFECT'
+      )
+        continue
+      const payload = incomingAttackGatePayloadDtoSchema.parse(modifier.payload)
+      if (wardCoversAttacker(payload, attackerCreatureTypeId))
+        return { wardId: grantId, ownerActorId: input.holderActorId, payload }
     }
   }
   return null
 }
 
 /**
+ * The save DC of a ward's owner as it stands now: their spell save DC, or the ward's own `8 + bonuses`
+ * from their ability modifiers and proficiency bonus. Null when the owner lacks what the DC reads.
+ */
+export function incomingGateSaveDc(
+  savingThrow: IncomingGatePayload['savingThrow'],
+  owner: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'effectiveScalarValues'>
+): number | null {
+  const derived = owner.effectiveRulePolicyOutput?.derivedStats
+  if (savingThrow.dcMethod === 'SOURCE_SAVE_DC')
+    return derived?.spellcasting?.saveDc.effective ?? null
+  let dc = savingThrow.baseDc
+  for (const bonus of savingThrow.bonuses ?? []) {
+    if (bonus.bonusKind === 'STATIC_BONUS') {
+      dc += bonus.amount
+      continue
+    }
+    const score =
+      bonus.bonusKind === 'ABILITY_MODIFIER'
+        ? owner.effectiveScalarValues[bonus.abilityDefinitionId]
+        : undefined
+    const value =
+      bonus.bonusKind === 'PROFICIENCY_BONUS'
+        ? derived?.proficiencyBonus.effective
+        : score === undefined
+          ? undefined
+          : abilityModifier(score)
+    if (value === undefined) return null
+    dc += value
+  }
+  return dc
+}
+
+/**
  * The save the attacker owes the ward, frozen: the ability and DC the ward names, and the attacker's d20
- * for it (modifier, contributors, roll mode and added dice, conditions included). The DC is the caster's
- * spell save DC as it stands now.
+ * for it (modifier, contributors, roll mode and added dice, conditions included). The DC is the ward
+ * owner's, as it stands now.
  */
 export function incomingGateOffer(input: {
   held: HeldIncomingGate
   holderActorId: string
-  /** The caster's spell save DC; null when the caster has none. */
-  casterSaveDc: number | null
+  owner: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'effectiveScalarValues'>
   attacker: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'targetDerivedFacts'>
 }): EncounterIncomingGateOfferDto {
   const { savingThrow } = input.held.payload
-  if (savingThrow.dcMethod !== 'SOURCE_SAVE_DC')
-    throw new EncounterValidationError('An incoming attack gate uses the caster’s save DC.')
-  if (input.casterSaveDc === null)
-    throw new EncounterValidationError('The caster of the incoming attack gate has no save DC.')
+  const dc = incomingGateSaveDc(savingThrow, input.owner)
+  if (dc === null)
+    throw new EncounterValidationError('The owner of the incoming attack gate has no save DC.')
   const rows = (dnd5eConcentrationHolderSaves(input.attacker).savingThrowDefinitions ?? []).filter(
     (row) =>
       row.abilityDefinitionId === savingThrow.abilityDefinitionId &&
@@ -72,10 +135,10 @@ export function incomingGateOffer(input: {
     savingThrow.abilityDefinitionId
   )
   return {
-    effectId: input.held.effect.id,
+    effectId: input.held.wardId,
     holderActorId: input.holderActorId,
     checkDefinitionId: savingThrow.abilityDefinitionId,
-    dc: input.casterSaveDc,
+    dc,
     d20: {
       rollMode: row.rollMode,
       contributors: [...row.contributors],

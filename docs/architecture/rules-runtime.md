@@ -1082,6 +1082,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `OPTION` replays the command retargeted to the chosen creature (`retargetEncounterAction`; the admission and the worker derive
   the same command and fingerprint), so range, sight, visibility and any ward of the new target are evaluated afresh. The
   currentness checksum is exempt for that one transition.
+  Holder-owned wards (SPELLS-31.T4k2b, D156): the gate also reads the holder's own feature grants from its grant fold
+  (`heldIncomingGate`; Active Effect wards first, lowest id, then fold grants), where the ward id is the grant id and the
+  holder owns the DC. `savingThrow` may be `DERIVED_DC` (`incomingGateSaveDc`: `baseDc` + the owner's ability modifier,
+  proficiency bonus and static bonuses, as they stand now). An optional `attackerCreatureTypeIds` limits the ward to attackers
+  of those Creature types (a Character has none, so it is never covered). Nature's Sanctuary is authored this way. The
+  payload's `successImmunity {duration}` is authored and node-mapped but **not yet enforced**: runtime immunity needs the
+  Character-target receipt to carry a SOURCE_IMMUNITY effect (T4k2c), so until then a passing attacker saves again on each attack.
 - **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
   `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
   `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).

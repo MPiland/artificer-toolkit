@@ -5,6 +5,7 @@ import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
+import { circleOfTheLand } from '@artificer-toolkit/source-data/srd/classes/circle-of-the-land.js'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
 import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
@@ -23,7 +24,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * SPELLS-31.T3a-T3c and T5s (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets,
  * Divine Sense, Signature Spells, Empty Body, Devil's Sight, Gaze of Two Minds, Divine Intervention,
  * Volley, Whirlwind Attack (T3), Sacred Weapon and Ki-Empowered Strikes (T4e), Elusive and Escape
- * the Horde (T4k2a) resolve from the
+ * the Horde (T4k2a) and Nature's Sanctuary (T4k2b) resolve from the
  * same core options a Builder author has on a class feature or option, so each must pass the class
  * node map exactly as authored, as must a homebrew variant built from those options.
  */
@@ -290,6 +291,31 @@ const CASES: ReadonlyArray<{
         throw new Error('Escape the Horde must qualify attacks against the holder by occasion.')
       // A homebrew variant that holds only against melee opportunity attacks.
       escape.grants = { modifiers: grants.slice(0, 1) }
+      return record
+    }
+  },
+  {
+    record: circleOfTheLand,
+    label: "Nature's Sanctuary",
+    variant: () => {
+      const record = structuredClone(circleOfTheLand)
+      const [ward] = feature(record, "Nature's Sanctuary").grants?.modifiers ?? []
+      if (
+        ward?.valueDomainCode !== 'INCOMING_ATTACK_GATE' ||
+        !ward.payload ||
+        !('attackerCreatureTypeIds' in ward.payload) ||
+        !ward.payload.successImmunity
+      )
+        throw new Error(
+          'Nature’s Sanctuary must author a creature-type ward with a success immunity.'
+        )
+      // A homebrew variant that warns off beasts only and remembers a pass for an hour.
+      ward.payload.attackerCreatureTypeIds = ward.payload.attackerCreatureTypeIds?.slice(0, 1)
+      ward.payload.successImmunity.duration = {
+        id: ward.payload.successImmunity.duration.id,
+        durationKind: 'HOUR',
+        amount: 1
+      }
       return record
     }
   }

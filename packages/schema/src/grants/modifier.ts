@@ -8,6 +8,7 @@ import {
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
+import { durationDtoSchema } from '../shared/duration.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { rolledDieShape } from '../shared/d20AddedDice.js'
@@ -278,9 +279,19 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
   })
 )
 
-/** The save an attacker makes against the holder's source before a single-target attack or harmful spell lands. */
+/**
+ * The save an attacker makes against the holder's source before a single-target attack or harmful spell lands.
+ * `attackerCreatureTypeIds` narrows the ward to attackers of those Creature types; `successImmunity` frees an
+ * attacker who passes from the ward for that long.
+ */
 export const incomingAttackGatePayloadDtoSchema = lazySchema(() =>
-  z.strictObject({ savingThrow: savingThrowDtoSchema })
+  z.strictObject({
+    savingThrow: savingThrowDtoSchema,
+    attackerCreatureTypeIds: z.optional(
+      authoredReferenceCollectionSchema(authoredIdentifierSchema)
+    ),
+    successImmunity: z.optional(z.strictObject({ duration: durationDtoSchema }))
+  })
 )
 
 /** Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). */

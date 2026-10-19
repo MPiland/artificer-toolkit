@@ -1035,15 +1035,13 @@ export async function planNativeLiveEncounterAction(
           occurrenceId,
           holderActorId: prepared.target.id,
           holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? [],
+          holderGrantFold:
+            movementTargets.get(prepared.target.id)?.effectiveRulePolicyOutput?.grantFold ?? null,
           attacker: actorTarget,
-          casterSaveDc: async (casterActorId) => {
-            const caster = actors.find((actor) => actor.id === casterActorId)
-            if (!caster) return null
-            const casterTarget = movementTargets.get(caster.id) ?? (await loadTarget(caster))
-            return (
-              casterTarget.effectiveRulePolicyOutput?.derivedStats.spellcasting?.saveDc.effective ??
-              null
-            )
+          attackerCreatureTypeId: snapshotCreatureTypeId(prepared.actor),
+          owner: async (ownerActorId) => {
+            const owner = actors.find((actor) => actor.id === ownerActorId)
+            return owner ? (movementTargets.get(owner.id) ?? (await loadTarget(owner))) : null
           },
           autoRoll: requireAutoRoll(prepared.actor.id),
           passedEffectId:
