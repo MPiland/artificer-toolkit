@@ -374,12 +374,6 @@ export type ValueDomainParamByCode = {
   }
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
-<<<<<<< HEAD
-  // holder can see (D100).
-  ATTACKS_AGAINST: { attackDomain: AttackDomainCode; requiresHolderSeesAttacker: boolean }
-  CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
-  CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
-=======
   // holder can see (D100), and `exemptAttackerSenseDefinitionIds` excludes attackers that see the
   // holder through one of those System Senses (Blur's Blindsight and Truesight).
   ATTACKS_AGAINST: {
@@ -387,7 +381,8 @@ export type ValueDomainParamByCode = {
     requiresHolderSeesAttacker: boolean
     exemptAttackerSenseDefinitionIds?: string[]
   }
->>>>>>> origin/codex/phase-08-2-convex-cutover
+  CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
+  CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
