@@ -72,22 +72,46 @@ export function movementPassageOfModifiers(
 }
 
 /**
- * The passage an Encounter actor has now. A Character moves with its policy's grants unless it wears
- * a creature form, which, like its actions (SPELLS-28.T4d), comes from the form's stat block; a
- * Creature moves with its folded feature grants.
+ * The accepted grant-fold modifiers an Encounter actor has now. A Character has its policy's grants
+ * unless it wears a creature form, which, like its actions (SPELLS-28.T4d), comes from the form's
+ * stat block; a Creature has its folded feature grants.
  */
-export function encounterActorMovementPassage(
+function encounterActorGrantModifiers(
   actor: EncounterRunActorState,
   characterPolicy: CharacterRulePolicyOutput | null
-): EncounterMovementPassage {
+): readonly CharacterGrantFoldOutput['modifiers'][number][] {
   if (actor.kind === 'CHARACTER' && actor.form === null)
-    return movementPassageOfModifiers(characterPolicy?.grantFold.modifiers ?? [])
+    return characterPolicy?.grantFold.modifiers ?? []
   const snapshot = actor.kind === 'CHARACTER' ? actor.form?.snapshot : actor.snapshot
   const ruleFacts =
     snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)
       ? encounterCreatureRuleFactsSnapshotSchema.safeParse(snapshot.ruleFacts)
       : null
-  return ruleFacts?.success ? movementPassageOfModifiers(ruleFacts.data.modifiers) : NO_PASSAGE
+  return ruleFacts?.success ? ruleFacts.data.modifiers : []
+}
+
+/** The passage an Encounter actor has now. */
+export function encounterActorMovementPassage(
+  actor: EncounterRunActorState,
+  characterPolicy: CharacterRulePolicyOutput | null
+): EncounterMovementPassage {
+  return movementPassageOfModifiers(encounterActorGrantModifiers(actor, characterPolicy))
+}
+
+/** Whether an actor's own grants (Flyby) make its movement provoke no opportunity attacks. */
+export function encounterActorMovementProvokesNoOpportunityAttacks(
+  actor: EncounterRunActorState,
+  characterPolicy: CharacterRulePolicyOutput | null
+): boolean {
+  return encounterActorGrantModifiers(actor, characterPolicy).some(
+    (modifier) =>
+      modifier.valueDomainCode === 'OPPORTUNITY_ATTACK_IMMUNITY' &&
+      modifier.modifierKind === 'ENABLE' &&
+      dnd5eModifierApplies(
+        dnd5eAcceptedModifierApplicability(modifier),
+        DND5E_CHARACTER_WIDE_TARGET
+      )
+  )
 }
 
 /** Whether a passage relation lets a mover of one size into a creature of another. */
