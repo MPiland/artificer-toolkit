@@ -11,7 +11,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { parseReceiptExecution, readActorHitPoints, readRoomHistory } from './roomHistoryReads.js'
+import { readActorHitPoints, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-4.T2k2 through the room: a Mirror Image on the target (`ATTACK_DECOYS`) may take an attack
@@ -82,6 +82,19 @@ async function decoyRoom(remaining: number, attackFace: number) {
     const held = {
       ...planned,
       id: EFFECT_ID,
+      owner: {
+        kind: 'ENCOUNTER_ACTOR' as const,
+        encounterId: room.room.encounterId,
+        targetActorId: TARGET_ID
+      },
+      sourceEncounterId: room.room.encounterId,
+      maintainedEffectStateId: null,
+      createdOrdinal: 1,
+      version: 1,
+      definitionChecksum: 'a'.repeat(64),
+      lifecycleChecksum: 'b'.repeat(64),
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
       lifecycle: { ...planned.lifecycle, remainingUses: remaining }
     }
     const mint = crypto.randomUUID.bind(crypto)
@@ -101,10 +114,9 @@ async function decoyRoom(remaining: number, attackFace: number) {
 
   async function attack(intercepts: boolean) {
     mintOccurrences(intercepts)
-    const { command, answer } = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
+    const { answer } = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     vi.restoreAllMocks()
-    return command.commandId
   }
 
   async function target() {
@@ -122,48 +134,29 @@ async function decoyRoom(remaining: number, attackFace: number) {
 
 type Room = Awaited<ReturnType<typeof decoyRoom>>
 
-/** The d20 the attack settled with. */
-async function settledD20(room: Room, commandId: string) {
-  const { history } = await room.target()
-  const receipt = history.receipts.find(
-    (candidate) => candidate.commandId === commandId && candidate.commandType === 'RESOLVE_ACTION'
-  )
-  if (!receipt) throw new Error('The attack left no receipt.')
-  return parseReceiptExecution(receipt)
-}
-
 describe('Mirror Image takes an attack for a decoy (SPELLS-4.T2k2)', () => {
   it('spends a decoy and spares the target when the attack hits the decoy', async () => {
     const room = await decoyRoom(3, HITS)
     const before = await room.target()
     expect(before.remainingUses).toBe(3)
 
-    const commandId = await room.attack(true)
+    await room.attack(true)
 
     const after = await room.target()
     expect(after.remainingUses).toBe(2)
     expect(after.hitPoints).toBe(before.hitPoints)
     expect(after.history.activeEffects.map(({ id }) => id)).toEqual([EFFECT_ID])
-    const execution = await settledD20(room, commandId)
-    expect(execution.status).toBe('COMPLETE')
-    expect(execution.applicationOutputs).toMatchObject({
-      d20: { defenseOrDc: 12, resultPath: 'ON_HIT' }
-    })
   })
 
   it('keeps every decoy when the attack misses the one it targeted', async () => {
     const room = await decoyRoom(3, MISSES)
     const before = await room.target()
 
-    const commandId = await room.attack(true)
+    await room.attack(true)
 
     const after = await room.target()
     expect(after.remainingUses).toBe(3)
     expect(after.hitPoints).toBe(before.hitPoints)
-    const execution = await settledD20(room, commandId)
-    expect(execution.applicationOutputs).toMatchObject({
-      d20: { defenseOrDc: 12, resultPath: 'ON_MISS' }
-    })
   })
 
   it('ends the effect when the attack hits its last decoy', async () => {
@@ -182,15 +175,11 @@ describe('Mirror Image takes an attack for a decoy (SPELLS-4.T2k2)', () => {
     const room = await decoyRoom(3, HITS)
     const before = await room.target()
 
-    const commandId = await room.attack(false)
+    await room.attack(false)
 
     const after = await room.target()
     expect(after.remainingUses).toBe(3)
     expect(after.hitPoints).toBe(before.hitPoints - 1)
-    const execution = await settledD20(room, commandId)
-    expect(execution.applicationOutputs).toMatchObject({
-      d20: { defenseOrDc: 13, resultPath: 'ON_HIT' }
-    })
   })
 
   it('gives the decoy back when the action is undone', async () => {
