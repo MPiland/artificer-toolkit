@@ -11786,7 +11786,7 @@
             },
             {
               "id": "SPELLS-33.T4de",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -11795,7 +11795,8 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2d", "SPELLS-4.T2e"]
               },
-              "text": "Invisible Stalker Invisibility, Magic Weapons (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Invisible Stalker Invisibility, Magic Weapons (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4gh",
@@ -12378,7 +12379,7 @@
             },
             {
               "id": "SPELLS-33.T6m1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12388,7 +12389,7 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "new: checks against the holder (auto-fail, divination immunity, quarry tracking) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m175 (08a377f64)."
             },
             {
               "id": "SPELLS-33.T6m2",
