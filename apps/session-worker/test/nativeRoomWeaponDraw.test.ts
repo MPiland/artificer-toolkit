@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { escapeGrappleEffectDefinition } from '@artificer-toolkit/rules-runtime/testing/escapeGrappleEffectFixture'
 import { runInDurableObject } from 'cloudflare:test'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -26,7 +26,6 @@ const GRAPPLED = srdCondition('Grappled')
 
 afterEach(() => {
   closeTrackedSockets()
-  vi.restoreAllMocks()
 })
 
 /**
@@ -52,6 +51,7 @@ async function drawRoom({ holding = false, naturalAttack = false } = {}) {
         conditionIds: holding ? [GRAPPLED] : []
       })
     ],
+    positions: { [HELD_ID]: { x: 200, y: 150 } },
     ownerFeatureId: naturalAttack
       ? creatureFeature(carriedWolf, 'Bite').id
       : creatureFeature(ogre, 'Greatclub').id,
@@ -104,14 +104,28 @@ async function drawRoom({ holding = false, naturalAttack = false } = {}) {
       commandId: crypto.randomUUID(),
       expectedVersion: await room.version()
     })
-  return { room, clubState, revert }
+  /** The attack's d20 entered for the pending request: the attack resolves and commits. */
+  const attackTarget = async () => {
+    const { answer } = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the attack roll.')
+    return room.resolve(decision, {
+      kind: 'ENTER_DICE',
+      requestId: decision.pending.request.requestId,
+      // A natural 1 misses, so the attack commits with no damage roll to answer.
+      rawFaces: [1],
+      rollMode: decision.pending.request.rollMode
+    })
+  }
+  return { room, clubState, revert, attackTarget }
 }
 
 describe('an attack draws its carried weapon into a free hand (D107, ATTACK-19.2), in the room', () => {
   it('draws a Creature loadout weapon for free and undo puts it back in the carried state', async () => {
-    const { room, clubState, revert } = await drawRoom()
+    const { clubState, revert, attackTarget } = await drawRoom()
     expect(await clubState()).toBe('CARRIED')
-    const { answer } = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
+    const answer = await attackTarget()
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await clubState()).toBe('MAIN_HAND')
 
@@ -121,27 +135,25 @@ describe('an attack draws its carried weapon into a free hand (D107, ATTACK-19.2
   })
 
   it('draws nothing for a natural attack, leaving a carried item carried', async () => {
-    const { room, clubState } = await drawRoom({ naturalAttack: true })
-    const { answer } = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
+    const { clubState, attackTarget } = await drawRoom({ naturalAttack: true })
+    const answer = await attackTarget()
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await clubState()).toBe('CARRIED')
   })
 
   it('holds, releases, attacks and draws: a held creature fills a hand the weapon needs', async () => {
-    const { room, clubState } = await drawRoom({ holding: true })
+    const { room, clubState, attackTarget } = await drawRoom({ holding: true })
     const choices = await room.actionChoices(OGRE_ID)
     const attack = choices.actions.find(({ label }) => label.includes('Greatclub'))
-    expect(attack, JSON.stringify(choices.actions.map(({ label }) => label))).toBeDefined()
     expect(attack?.handRelease).toEqual({
       holds: [{ activeEffectId: EFFECT_ID, heldActorId: HELD_ID }]
     })
 
-    const refused = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const blocked = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
-    expect(blocked.answer.type, JSON.stringify(blocked.answer)).toBe('COMMAND_REJECTED')
-    expect(
-      refused.mock.calls.flatMap(([, error]) => (error instanceof Error ? [error.message] : []))
-    ).toContain('Release a held creature first: your hands are full.')
+    expect(blocked.answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      message: 'Release a held creature first: your hands are full.'
+    })
     expect(await clubState()).toBe('CARRIED')
 
     const released = await room.send({
@@ -155,7 +167,7 @@ describe('an attack draws its carried weapon into a free hand (D107, ATTACK-19.2
     })
     expect(released.type, JSON.stringify(released)).toBe('COMMAND_COMMITTED')
 
-    const { answer } = await room.startAction(TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
+    const answer = await attackTarget()
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await clubState()).toBe('MAIN_HAND')
   })
