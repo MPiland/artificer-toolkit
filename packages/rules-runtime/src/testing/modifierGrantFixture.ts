@@ -29,12 +29,12 @@ export function grantPublishedIdentity() {
 }
 
 /**
- * `effect` with each of its granted modifiers rewritten by `edit` (a copy; the authored effect is
+ * `effect` with each of its granted modifiers' `domain` or `payload` replaced (a copy; the authored effect is
  * untouched), for a test that varies a real spell's grant, such as a floor's amount or ability.
  */
 export function withGrantModifiers(
   effect: EffectAuthored | undefined,
-  edit: (modifier: ModifierGrantAuthored) => ModifierGrantAuthored
+  changes: Partial<Pick<ModifierGrantAuthored, 'domain' | 'payload'>>
 ): EffectAuthored {
   if (!effect) throw new Error('The effect to vary is missing.')
   const copy = structuredClone(effect)
@@ -42,7 +42,7 @@ export function withGrantModifiers(
     if (path.selectionKind === 'FIXED')
       for (const outcome of path.resultBlock.outcomes)
         if (outcome.effectKind === 'APPLY_GRANT' && outcome.grants.modifiers)
-          outcome.grants.modifiers = outcome.grants.modifiers.map(edit)
+          for (const modifier of outcome.grants.modifiers) Object.assign(modifier, changes)
   return copy
 }
 

@@ -715,10 +715,7 @@ describe('hiding again, in the room', () => {
 
 describe('a held d20 floor on a Hide check, in the room', () => {
   /** Glibness's real effect with its Charisma narrowing lifted, so the floor reaches a Stealth check. */
-  const floorEffect = withGrantModifiers(glibness.effects?.[0], (modifier) => ({
-    ...modifier,
-    domain: {}
-  }))
+  const floorEffect = withGrantModifiers(glibness.effects?.[0], { domain: {} })
   const floorSeed = seedModifierGrant({
     sourceActorId: HIDER_ID,
     holderActorId: HIDER_ID,

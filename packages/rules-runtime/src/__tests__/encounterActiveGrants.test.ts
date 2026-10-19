@@ -753,10 +753,7 @@ describe('a held d20 floor on ability checks', () => {
     plannedGrantEffect({
       id,
       holderActorId: HOLDER_ID,
-      effect: withGrantModifiers(glibness.effects?.[0], (modifier) => ({
-        ...modifier,
-        payload: { amount }
-      })),
+      effect: withGrantModifiers(glibness.effects?.[0], { payload: { amount } }),
       sourceLabel: glibness.label
     })
 
