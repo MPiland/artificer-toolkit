@@ -9797,6 +9797,22 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       return { kind: 'ATTEMPT_GATE', allow, requirement: pinned }
     throw new Dnd5eEffectActionCompilerError('D&D recurring perception is not fully pinned.')
   },
+  passiveDamageGrantPlan: ({ action }) => {
+    const { invocation, entries } = action.compiledEffect
+    const [entry] = entries
+    if (
+      invocation.kind !== 'PASSIVE' ||
+      invocation.triggerCode !== 'INCOMING_DAMAGE' ||
+      entries.length !== 1 ||
+      !entry ||
+      entry.pathCode !== 'PASSIVE'
+    )
+      unsupported('D&D passive damage trigger must author one passive result.')
+    const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
+    if (!plan?.modifierGrantContribution)
+      unsupported('D&D passive damage trigger must give a timed modifier grant.')
+    return { ...plan, frozenGraph: durationPublishedGraph({ action, plan }) }
+  },
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
     if (published.id !== action.effectId || published.checksum.length !== 64)

@@ -69,22 +69,19 @@ const OPTIONAL_ON_HIT_KIND_OPTIONS: { code: OptionalOnHitAuthored['kind']; label
 
 const optionalOnHit = buildNodeMap<OptionalOnHitAuthored>()
 
-const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define(
-  'optionalOnHit',
-  ({ map, nodes }) => {
-    const { selectSingle } = nodes
+const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define('optionalOnHit', ({ map, nodes }) => {
+  const { selectSingle } = nodes
 
-    map.set(
-      'kind',
-      selectSingle(
-        ['kind'],
-        'Cost',
-        { kind: 'INLINE_OPTIONS', options: OPTIONAL_ON_HIT_KIND_OPTIONS },
-        { order: 1, requiredIf: true }
-      )
+  map.set(
+    'kind',
+    selectSingle(
+      ['kind'],
+      'Cost',
+      { kind: 'INLINE_OPTIONS', options: OPTIONAL_ON_HIT_KIND_OPTIONS },
+      { order: 1, requiredIf: true }
     )
-  }
-)
+  )
+})
 
 const REACTION_TRIGGER_KIND_OPTIONS: {
   code: ReactionTriggerBindingAuthored['kind']
@@ -230,8 +227,9 @@ export type InvocationNodeMap = NodeMap<EffectInvocationAuthored>
 
 export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
   'invocation',
-  ({ map, nodes, cond, logic }) => {
-    const { selectSingle, groupObject } = nodes
+  ({ map, nodes, cond, logic, data }) => {
+    const { selectSingle, selectMulti, groupObject } = nodes
+    const { table } = data
     const { and } = logic
     const local = cond.local()
 
@@ -307,6 +305,23 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
           order: 6,
           showIf: local.field(['kind']).eq('ACTION')
         })
+      )
+      .set(
+        'damageTypeIds',
+        selectMulti(
+          ['damageTypeIds'],
+          'Damage types',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            order: 7,
+            requiredIf: local.field(['triggerCode']).eq('INCOMING_DAMAGE'),
+            showIf: local.field(['triggerCode']).eq('INCOMING_DAMAGE'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
       )
       .set(
         'optionalOnHit',

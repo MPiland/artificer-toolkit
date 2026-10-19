@@ -452,6 +452,14 @@ rebinding its token, deletes them first. While the source is defeated its passiv
 `suppressed`: `toSpatialInstances(effects, actors)` derives the flag from the Run's defeated actors for every
 candidate seam (turn contacts, movement and forced movement), so a revived source has them again without a new
 placement. The SRD Balor's Fire Aura (T6c) is the first SRD passive zone.
+A Creature's passive damage trigger (SPELLS-33 T6e3a) is a PASSIVE feature Effect with `triggerCode: INCOMING_DAMAGE` and a non-empty
+`damageTypeIds`, whose single FIXED outcome is a timed self `APPLY_GRANT` (roll-mode or speed modifiers, `turnAnchor` the holder's end of
+turn). It is derived, not stored: `discoverEncounterFeatureActions` returns it as `passiveDamageGrants` (compiled by the System adapter's
+`passiveDamageGrantPlan`), `prepareNativeIncomingDamageGrantTriggers` makes the effect each would create, and `targetEndedEffects` returns
+`{endedEffects, releases, grants}` for the damage dealt: ended effects release first, then grants are created, and a held grant from the same
+source feature (`authoredEffectId`) is ended in the same call, so a repeat hit replaces the expiry. The action root writes the grants through
+the settlement and the receipt's `grantEffectTransitions`; persistence checks their origin is the holder, and undo deletes them. Creature
+holders only; the area, zone, melee-retaliation, legendary and movement-reaction roots do not yet call this seam.
 A zone component may lend its occupants `occupantSaveBonus` (D155, SPELLS-20 T5a) instead of a behavior: every saving throw, the
 source and its allies, a fixed amount or a source ability modifier with a minimum. It compiles only on an untriggered SOURCE
 zone with no other component rule, whose entry is a lasting one-node graph; a radius may scale by class level. A source

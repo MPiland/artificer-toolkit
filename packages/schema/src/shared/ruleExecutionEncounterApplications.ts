@@ -510,6 +510,11 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         []
       ),
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
+      /** Timed grants the target's own passive damage triggers created on it from this hit; undo deletes them. */
+      grantEffectTransitions: z._default(
+        z.array(encounterActorActiveEffectCreateReceiptDtoSchema).check(z.maxLength(4)),
+        []
+      ),
       stateEffectTransitions: z._default(
         z.array(stateEffectCreateReceiptDtoSchema).check(z.maxLength(1)),
         []
