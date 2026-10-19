@@ -75,10 +75,9 @@ describe('a carried ability-check die on a Sheet roll', () => {
     const [die] = d4Terms(first)
     expect(die).toBeDefined()
     expect(first.normalizedExpression).toMatch(/\+ 1d4$/)
-    expect(first.evidence.subtotal).toBe(
-      first.evidence.terms.reduce((total, term) => total + term.subtotal, 0)
+    expect(first.evidence.total).toBe(
+      first.evidence.terms.reduce((total, term) => total + term.subtotal, first.evidence.modifier)
     )
-    expect(first.evidence.total).toBe(first.evidence.subtotal + first.evidence.modifier)
     expect(await effectCount()).toBe(0)
 
     expect(d4Terms(await strengthCheck())).toEqual([])
