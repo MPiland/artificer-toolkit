@@ -11,6 +11,7 @@ import {
   decideEncounterConcealmentCheck,
   heldConcealments
 } from '@artificer-toolkit/rules-runtime/encounterConcealmentCheck'
+import { settledCheckD20MatchesFrozen } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { basicActionCheckRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -73,10 +74,7 @@ export async function settleEncounterConcealmentCheck(
     output.actorId !== context.actorId ||
     checksumCanonicalJson(output.definition) !== checksumCanonicalJson(context.definition) ||
     output.check.checkDefinitionId !== context.check.checkDefinitionId ||
-    output.d20.modifier !== context.d20.modifier ||
-    output.d20.derivedRollMode !== context.d20.rollMode ||
-    output.d20.contributorChecksum !== context.d20.contributorChecksum ||
-    output.d20.total !== output.d20.selectedNatural + context.d20.modifier
+    !settledCheckD20MatchesFrozen(output.d20, context.d20)
   )
     throw new Error('Live Session concealment check scope mismatch.')
   const store = createActiveRuleEffectStore(ctx)

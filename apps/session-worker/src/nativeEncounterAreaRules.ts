@@ -397,7 +397,11 @@ export async function prepareAreaScene(
           aimSeen: (await Promise.all(aimedPoints.map(seen))).every(Boolean)
         })
       : target.kind === 'CASTER_CENTERED'
-        ? evaluateEncounterCasterCenteredAreaTarget({ targetPolicy, grid })
+        ? evaluateEncounterCasterCenteredAreaTarget({
+            targetPolicy,
+            grid,
+            sourceToken: scene.sourceToken
+          })
         : target.kind === 'DIRECTED'
           ? evaluateEncounterDirectedAreaTarget({
               targetPolicy,

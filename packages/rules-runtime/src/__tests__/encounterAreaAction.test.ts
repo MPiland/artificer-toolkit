@@ -489,6 +489,7 @@ describe('directed area', () => {
 
 // SPELLS-22, D114: a Self sphere, cylinder or circle is centered on the caster and takes no aim.
 describe('caster-centered area', () => {
+  const CASTER_TOKEN = { position: { x: 150, y: 150 }, width: 100, height: 100 }
   const SELF: CompiledActionTargetPolicy['range'] = { id: 'range', rangeKind: 'SELF' }
   const centered = (shape: CompiledActionTargetPolicy['shape']) => policy({ range: SELF, shape })
 
@@ -514,9 +515,26 @@ describe('caster-centered area', () => {
     expect(
       evaluateEncounterCasterCenteredAreaTarget({
         targetPolicy: centered(SHAPES.SPHERE),
-        grid: FEET_GRID
+        grid: FEET_GRID,
+        sourceToken: CASTER_TOKEN
       })
     ).toEqual({ shape: { kind: 'RADIUS', radius: 400 }, warnings: [] })
+  })
+
+  it('takes the caster’s own space for a Self area that names no shape (SPELLS-33.T6k2b)', () => {
+    const ownSpace = centered(null)
+    expect(encounterActionTargetKind(ownSpace)).toBe('CASTER_CENTERED')
+    expect(encounterActionChoiceTarget(ownSpace)).toEqual({
+      kind: 'CASTER_CENTERED',
+      area: { kind: 'OWN_SPACE' }
+    })
+    expect(
+      evaluateEncounterCasterCenteredAreaTarget({
+        targetPolicy: ownSpace,
+        grid: FEET_GRID,
+        sourceToken: { position: { x: 150, y: 150 }, width: 200, height: 200 }
+      })
+    ).toEqual({ shape: { kind: 'CUBE', edgeLength: 200 }, warnings: [] })
   })
 
   it('refuses with the reason: a size or policy it cannot draw', () => {
@@ -526,6 +544,7 @@ describe('caster-centered area', () => {
       evaluateEncounterCasterCenteredAreaTarget({
         targetPolicy: centered(SHAPES.SPHERE),
         grid: FEET_GRID,
+        sourceToken: CASTER_TOKEN,
         ...input
       })
     expect(refusal({ targetPolicy: policy({ shape: SHAPES.SPHERE }) })).toEqual({

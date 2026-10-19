@@ -21,6 +21,7 @@ import {
   encounterAttackAddedDice,
   withSourceSightSave
 } from './encounterActiveGrants.js'
+import { withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
 import { CastChoiceUnavailableError, StaleCharacterActionError } from './encounterErrors.js'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
@@ -277,6 +278,12 @@ export async function prepareEncounterActionMechanics<
   movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   /** The locked Scene positions of a RESOLVE_ACTION, for range-derived roll modes. */
   sceneContext?: EncounterActionSceneContext | null
+  /**
+   * The attack targets one of the target's decoys (`attackDecoyFor`): it is rolled against the
+   * decoy's armor class and none of its OUTCOME reaches the target. Ignored for an action that
+   * makes no attack roll.
+   */
+  attackDecoy?: { armorClass: number } | null
   /**
    * Whether each side of an attack sees the other (SRD unseen attacker/target), or whether a saver
    * sees the effect's source (`roller` TARGET, D100). Called only for an attack roll or a save with
@@ -601,6 +608,7 @@ export async function prepareEncounterActionMechanics<
           attack: conditionAttack
         })
   )
+  const attackDecoy = attackKind === null ? null : (input.attackDecoy ?? null)
   return {
     state,
     actor,
@@ -698,14 +706,16 @@ export async function prepareEncounterActionMechanics<
         maximum: sourceFacts.effectiveMaximumHitPoints
       },
       targetActorId: target.id,
-      targetDerivedFacts:
-        attackSight && attackKind === null && dndSource?.savingThrowAbilityDefinitionId
+      targetDerivedFacts: attackDecoy
+        ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
+        : attackSight && attackKind === null && dndSource?.savingThrowAbilityDefinitionId
           ? withSourceSightSave(
               targetFacts.targetDerivedFacts,
               dndSource.savingThrowAbilityDefinitionId,
               attackSight.trueSight
             )
           : targetFacts.targetDerivedFacts,
+      ...(attackDecoy ? { absorbedByDecoy: true } : {}),
       targetConditionIds: heldConditionIds(targetFacts),
       conditionOutcomeRules: {
         hitIsCritical:

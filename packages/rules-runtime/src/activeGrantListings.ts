@@ -88,6 +88,7 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
         ? 'HARMFUL'
         : 'BENEFICIAL'
     case 'OPTIONAL_ABILITY_MODIFIER_BONUS':
+    case 'MINIMUM_ROLL':
       return 'BENEFICIAL'
     case 'ENABLE':
       return ENABLE_DOMAIN_POLARITY[domain] ?? 'NEUTRAL'

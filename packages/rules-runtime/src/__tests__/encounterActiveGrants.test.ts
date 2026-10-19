@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { bestowCurse } from '@artificer-toolkit/source-data/srd/spells/bestow-curse.js'
 import {
   SRD_ABILITIES,
@@ -17,6 +18,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
+  activeAbilityCheckMinimumRoll,
   activeAttackRollDice,
   activeSavingThrowDice,
   effectiveHitPointMaximum
@@ -60,6 +62,7 @@ import {
   speedFractionEffect,
   viciousMockeryEffect
 } from './antitoxinEffectFixture.js'
+import { withGrantModifiers } from '../testing/modifierGrantFixture.js'
 import { evaluateSrdCharacter, vocabulary } from '../testing/dnd5eSrdCharacter.js'
 import { FRIGHTENED_CONDITION_ID, POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 
@@ -740,5 +743,53 @@ describe('Character holder of an active grant', () => {
   it('returns the same facts when the holder carries no grant', () => {
     expect(withCharacterActiveGrants(fighter.facts, [])).toBe(fighter.facts)
     expect(constitutionSaves(fighter.facts).some((save) => 'conditionTypeId' in save)).toBe(false)
+  })
+})
+
+describe('a held d20 floor on ability checks', () => {
+  const { CHARISMA, WISDOM: WISDOM_CODE } = { CHARISMA: 'CHARISMA', WISDOM: 'WISDOM' }
+  /** Glibness's real effect, its floor raised to `amount` when given. */
+  const glibnessHeld = (id: string, amount = 15) =>
+    plannedGrantEffect({
+      id,
+      holderActorId: HOLDER_ID,
+      effect: withGrantModifiers(glibness.effects?.[0], { payload: { amount } }),
+      sourceLabel: glibness.label
+    })
+
+  it('floors only the checks of the ability the grant names', () => {
+    const held = [glibnessHeld(EFFECT_ID)]
+    expect(activeAbilityCheckMinimumRoll(held, CHARISMA)).toEqual({
+      amount: 15,
+      label: 'Glibness',
+      sourceEffectId: EFFECT_ID
+    })
+    expect(activeAbilityCheckMinimumRoll(held, WISDOM_CODE)).toBeNull()
+    expect(activeAbilityCheckMinimumRoll(held, null)).toBeNull()
+  })
+
+  it('is null when nothing floors the roll, and ignores a rolled-die grant', () => {
+    expect(activeAbilityCheckMinimumRoll([], CHARISMA)).toBeNull()
+    expect(
+      activeAbilityCheckMinimumRoll(
+        [blessEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })],
+        CHARISMA
+      )
+    ).toBeNull()
+  })
+
+  it('reduces several floors to the highest', () => {
+    const held = [glibnessHeld(EFFECT_ID), glibnessHeld(OTHER_EFFECT_ID, 17)]
+    expect(activeAbilityCheckMinimumRoll(held, CHARISMA)).toMatchObject({
+      amount: 17,
+      sourceEffectId: OTHER_EFFECT_ID
+    })
+  })
+
+  it('breaks a tie by the lowest effect id', () => {
+    const lowest = glibnessHeld(THIRD_EFFECT_ID)
+    const tied = glibnessHeld(EFFECT_ID)
+    expect(activeAbilityCheckMinimumRoll([lowest, tied], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
+    expect(activeAbilityCheckMinimumRoll([tied, lowest], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
   })
 })

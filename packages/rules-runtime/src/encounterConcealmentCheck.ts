@@ -135,7 +135,8 @@ export function prepareEncounterConcealmentCheck<
       contributors: facts.contributors,
       contributorChecksum: checksumRuleDocument(facts.contributors),
       modifier: facts.modifier,
-      ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice })
+      ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice }),
+      ...(facts.minimumRoll && { minimumRoll: facts.minimumRoll })
     },
     resolution,
     consumedGrants: effectsEndedBy(roller.activeEffects, {
