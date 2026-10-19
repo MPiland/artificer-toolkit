@@ -1467,7 +1467,7 @@ such effect anchored to the boundary actor, whoever holds it, and an expired one
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
 restores (`effectsEndedBy` in `encounterGrantLifetimes`, `consumedGrantPersistence` in encounter-persistence). Help is the
-grant that carries both events. **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
+grant that carries both events. **Ability checks (SPELLS-4.T2c2, D156):** `ABILITY_CHECK` takes `ADD_BONUS_DIE` (Guidance). A check passes `effectsEndedBy` a `ScopedAbilityCheck` (`{event: 'ON_ABILITY_CHECK', abilityCode}`), which spends only the effects whose ability-check grant applied to that ability; a bare `ON_ABILITY_CHECK` spends none that hold such a die. The Sheet adds and spends a carried die in `evaluateCharacterRoll` (`carriedCheckDice`). **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
 roll made against its holder, hit or miss (Guiding Bolt's mark). The roll reads the grant's modifiers first; the target's
 `targetEndedEffects` (`attacked`, the action's `makesAttackRoll`) then ends it with the target's damage-ended effects, once
 each, on the same receipt (`consumedGrants`, so GM undo restores it). Every attack root passes it: the action, an area or

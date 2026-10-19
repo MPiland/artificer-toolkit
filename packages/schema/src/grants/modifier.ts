@@ -454,6 +454,12 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', optionalAbilityParamDtoSchema),
     buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', optionalAbilityParamDtoSchema),
     buildModifierGrantVariant(
+      'ABILITY_CHECK',
+      'ADD_BONUS_DIE',
+      optionalAbilityParamDtoSchema,
+      rolledDiePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
       'SAVE_DC',
       'BONUS',
       emptyDomainDtoSchema,

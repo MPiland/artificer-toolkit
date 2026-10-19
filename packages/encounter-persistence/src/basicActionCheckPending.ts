@@ -122,7 +122,8 @@ export function projectNativeBasicActionCheckPending(
       derivedRollModeReasons: reasons({
         rollMode: context.d20.rollMode,
         contributors: context.d20.contributors
-      })
+      }),
+      ...(context.d20.addedDice ? { addedDice: context.d20.addedDice } : {})
     },
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
   })

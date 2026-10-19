@@ -6,6 +6,7 @@ import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/ca
 import { bane } from '@artificer-toolkit/source-data/srd/spells/bane.js'
 import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { foresight } from '@artificer-toolkit/source-data/srd/spells/foresight.js'
+import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { slow } from '@artificer-toolkit/source-data/srd/spells/slow.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -19,6 +20,7 @@ describe('a spell authored from core Modifier Grants through the effect node map
     ['Bane', bane],
     ['Bless', bless],
     ['Foresight', foresight],
+    ['Guidance', guidance],
     ['Slow', slow]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.
