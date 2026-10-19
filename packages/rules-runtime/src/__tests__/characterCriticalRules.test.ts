@@ -13,7 +13,10 @@ function criticalRules(
   attackKind: AttackKind
 ) {
   const character = evaluateSrdCharacter({ ...input, items: [{ label: item, equipped: true }] })
-  const { candidate } = itemAction(character, item, { attackKind })
+  const { candidate } = itemAction(character, item, {
+    attackKind,
+    ...(item === 'Longsword' ? { grip: 'ONE_HANDED' as const } : {})
+  })
   return dnd5eAttackCriticalRules(
     character.output,
     attackKind,
