@@ -462,6 +462,6 @@ Mummy and Mummy Lord Dreadful Glare grant SOURCE_IMMUNITY per source, so a targe
 
 ### T6e: Deferred edge cases
 
-- Zone, melee-retaliation and occupant-aura damage do not end the target's effects that end on damage (`targetEndedEffects`), and do not create triggered grants. Each of those three roots computes the target transition in its planner and checks it, with the receipt, by checksum in persistence; the releases change both, so wiring them needs plan, evidence and persistence changes per root, not a call to the shared seam. Move to future-enhancements (Deferred edge cases) at merge.
+- Zone and melee-retaliation damage ended no until-damaged effect (T6e4 wired both: see `spatialDamageEnds`). Occupant save auras deal no damage, so they are not a damage root. Spatial movement contacts (`planNativeSpatialMovementPrefix` without `damageEnds`) still end nothing; they are the one root left.
 - T6e1 (Balor Death Throes): a death-throes defeat does not retrigger `ON_HP_ZERO`.
 - T6e3 (Flesh Golem Aversion of Fire, Water Elemental Freeze) is the passive damage-type trigger that creates a timed self grant on every damage root; it needs effect-creation slots, receipts, persistence and revert per root.

@@ -432,7 +432,11 @@ export async function prepareEncounterTurnZoneEffects<
     occurredAt,
     userId: input.userId,
     commandId: { phase: 'TURN_ZONE_EFFECT', ordinal: boundary.ordinal },
-    settleUnchanged: true
+    settleUnchanged: true,
+    damageEnds: {
+      turnActorId: state.currentActorId,
+      dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
+    }
   })
   const spendLostActions = (targetActorId: string, settledActor: EncounterRunActorState) =>
     executions.reduce(

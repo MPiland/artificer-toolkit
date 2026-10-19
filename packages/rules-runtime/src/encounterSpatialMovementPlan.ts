@@ -11,6 +11,9 @@ import {
   type ProjectableCharacterFacts
 } from './encounterActionProjection.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
+import { spatialDamageEnds, targetStateAfterEndedEffects } from './encounterSpatialDamageEnds.js'
 
 type MovementSpatialExecution =
   FrozenMovementReactionRemainder['completedSpatialExecutions'][number]
@@ -42,6 +45,8 @@ export function orderSpatialSettlementActors<
 type Settlement = {
   batch: EncounterMechanicsBatchInput
   plan: EncounterMechanicsBatchPlan
+  /** The target's effects its zones' damage ended, whose releases the batch applies last. */
+  endedEffects: ActiveRuleEffectRecord[]
 }
 
 /** Plans a verified completed spatial prefix without publishing target or effect state. */
@@ -66,6 +71,14 @@ export function planNativeSpatialMovementPrefix<
   }
   /** A turn boundary settles its creature even when the contacts left it unchanged. */
   settleUnchanged?: boolean
+  /**
+   * Set when the zones' damage ends the target's effects that end on damage (a turn zone, a melee
+   * retaliation): the batch then releases what those effects held after the zones' applications.
+   */
+  damageEnds?: {
+    turnActorId: string | null
+    dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+  }
 }): {
   projectedTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   settlements: Settlement[]
@@ -109,9 +122,20 @@ export function planNativeSpatialMovementPrefix<
     const target = input.targets.get(targetActorId)
     const executions = executionsByTarget.get(targetActorId)
     if (!target || !executions) throw new Error('Spatial execution target is unavailable.')
-    const applications = executions.flatMap((execution) =>
-      execution.applications.map((application) => ({ ...application, targetActorId }))
-    )
+    const ends = input.damageEnds
+      ? spatialDamageEnds({
+          holderActorId: targetActorId,
+          held: target.activeEffects,
+          executions,
+          ...input.damageEnds
+        })
+      : null
+    const applications = [
+      ...executions.flatMap((execution) =>
+        execution.applications.map((application) => ({ ...application, targetActorId }))
+      ),
+      ...(ends?.releases ?? [])
+    ]
     const batch: EncounterMechanicsBatchInput = {
       encounterId: input.encounterId,
       targetActorId,
@@ -144,13 +168,25 @@ export function planNativeSpatialMovementPrefix<
       ...(target.characterFacts ? { characterFacts: target.characterFacts } : {})
     })
     const last = executions.at(-1)
-    if (!last || !sameState(last.targetTransition.after, plan.targetTransition.after))
+    if (
+      !last ||
+      !sameState(
+        targetStateAfterEndedEffects(last.targetTransition.after, ends?.releases ?? []),
+        plan.targetTransition.after
+      )
+    )
       throw new Error('Spatial target plan does not match evaluated outcomes.')
+    const endedEffects = ends?.endedEffects ?? []
     if (input.projectTargets !== false)
       projectedTargets.set(
         targetActorId,
         projectEncounterActionTarget({
-          target,
+          target: {
+            ...target,
+            activeEffects: target.activeEffects.filter(
+              ({ id }) => !endedEffects.some((ended) => ended.id === id)
+            )
+          },
           actor: plan.updatedActor,
           plan,
           campaignId: input.campaignId,
@@ -158,7 +194,7 @@ export function planNativeSpatialMovementPrefix<
           occurredAt: input.occurredAt
         })
       )
-    settlements.push({ batch, plan })
+    settlements.push({ batch, plan, endedEffects })
   }
   return { projectedTargets, settlements }
 }

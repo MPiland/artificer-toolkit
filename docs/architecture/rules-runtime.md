@@ -587,6 +587,11 @@ A component's `requiredSight` (`OCCUPANT_SEES_SOURCE`, `SOURCE_SEES_OCCUPANT`; S
 gates a save-bearing turn trigger on mutual sight: the Worker's turn preparation reads live perception through
 `loadSourceSight` and `prepareEncounterTurnZoneEffects` injects `zoneSightRequirementMet` into the contact's derived facts, and
 the compiled save evaluator treats a false value as an unrolled success. Convex persistence trusts the planned executions.
+Damage a turn zone or a melee retaliation deals ends the target's effects that end on damage (SPELLS-33.T6e4): the planner
+passes `damageEnds` to `planNativeSpatialMovementPrefix`, and both it and persistence call `spatialDamageEnds` over the same
+held effects. The releases (`CONDITION_REMOVE`, `TEMPORARY_HIT_POINTS_RELEASE`) append to the target's one mechanics batch after
+the zones' applications, persistence checks them against `targetStateAfterEndedEffects` and deletes the ended effects with
+`deleteGrants`. Occupant save auras lend bonuses and deal no damage; spatial movement contacts do not pass `damageEnds` yet.
 A zone condition the zone does not hold may author `turnAnchor { TARGET, END_OF_TURN }` with a one-turn duration: it compiles to
 `heldCondition.endsAtEndOfHolderTurn`, and `planSpatialHeldCondition` plans a one-tick effect the holder's own turn-end
 decrement ends, independent of the zone's lifetime. `recordsSource` names the zone's source on the condition.
