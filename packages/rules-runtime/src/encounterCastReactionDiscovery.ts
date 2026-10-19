@@ -1,6 +1,7 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
+import { characterReactionCandidates } from './encounterAttackReactionDiscovery.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { dnd5eAttackKind, isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 
@@ -16,12 +17,7 @@ type CastReactionAction = Pick<CharacterActionCandidate, 'actionId' | 'effectId'
 export function discoverCastReactionActions(
   reactor: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>
 ): readonly CastReactionAction[] {
-  // In the Character's own listing order, so a spell's casts run from its lowest level up.
-  const candidates: readonly CharacterActionCandidate[] = [
-    ...(reactor.characterReactionSource?.mechanics.rulePolicyInput.actionCandidates ?? []),
-    ...(reactor.characterSpellCast?.candidates ?? [])
-  ].sort((left, right) => left.sequence - right.sequence)
-  return candidates.flatMap<CastReactionAction>(
+  return characterReactionCandidates(reactor).flatMap<CastReactionAction>(
     ({ actionId, effectId, mechanicFacts: { invocation, outcomes } }) =>
       invocation.activation?.code === 'REACTION' &&
       invocation.reactionTrigger?.kind === 'SPELL_CAST' &&
@@ -43,11 +39,7 @@ export function discoverTargetedSelfReactionActions(
   reactor: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>,
   castOwnerId: string
 ): readonly Pick<CharacterActionCandidate, 'actionId' | 'effectId'>[] {
-  const candidates: readonly CharacterActionCandidate[] = [
-    ...(reactor.characterReactionSource?.mechanics.rulePolicyInput.actionCandidates ?? []),
-    ...(reactor.characterSpellCast?.candidates ?? [])
-  ].sort((left, right) => left.sequence - right.sequence)
-  return candidates.flatMap(({ actionId, effectId, mechanicFacts: { invocation } }) => {
+  return characterReactionCandidates(reactor).flatMap(({ actionId, effectId, mechanicFacts: { invocation } }) => {
     const trigger = invocation.reactionTrigger
     return invocation.activation?.code === 'REACTION' &&
       trigger?.kind === 'TARGETED_SELF' &&

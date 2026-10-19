@@ -19,6 +19,7 @@ import {
 } from './ruleExecutionEvidence.js'
 import {
   characterActiveEffectCreateReceiptDtoSchema,
+  encounterActorActiveEffectCreateReceiptDtoSchema,
   sourceApplicationsChangeState,
   sourceApplicationsDtoSchema
 } from './ruleExecutionMechanics.js'
@@ -41,8 +42,9 @@ const actionIdentitySchema = lazySchema(() =>
 
 const reactionPinShape = () => ({
   reactorActorId: uuidSchema,
-  characterId: uuidSchema,
-  characterStreamVersion: aggregateVersionSchema,
+  /** The reacting Character; null for a creature, whose reaction is its own authored action. */
+  characterId: z.nullable(uuidSchema),
+  characterStreamVersion: z.nullable(aggregateVersionSchema),
   actionId: actionIdentitySchema,
   effectId: uuidSchema,
   allowanceDefinitionId: uuidSchema,
@@ -108,12 +110,21 @@ export function encounterReactionUseOptionId(selectionChecksum: string): string 
   return checksumRuleDocument({ kind: 'USE', selectionChecksum })
 }
 
-/** The pin's selection checksum and use option identity are derived, never free-standing. */
+/**
+ * The pin's selection checksum and use option identity are derived, never free-standing, and it names
+ * a Character's version exactly when it names a Character.
+ */
 export function validateEncounterReactionPin(
   pin: EncounterReactionPinDto | EncounterCastReactionPinDto,
   context: z.core.$RefinementCtx,
   path: readonly (string | number)[]
 ) {
+  if ((pin.characterId === null) !== (pin.characterStreamVersion === null))
+    context.addIssue({
+      code: 'custom',
+      path: [...path, 'characterStreamVersion'],
+      message: 'Reaction Character version must match its Character.'
+    })
   if (checksumRuleDocument(encounterReactionSelectionIdentity(pin)) !== pin.selectionChecksum)
     context.addIssue({
       code: 'custom',
@@ -479,37 +490,69 @@ export type EncounterActionReactionReceiptDto = {
   activeEffectTransitions: z.infer<typeof characterActiveEffectCreateReceiptDtoSchema>[]
 }
 
+/** A creature's reaction receipt: the same, with the effect it created on the creature itself. */
+export type EncounterActorReactionReceiptDto = Omit<
+  EncounterActionReactionReceiptDto,
+  'activeEffectTransitions'
+> & {
+  activeEffectTransitions: z.infer<typeof encounterActorActiveEffectCreateReceiptDtoSchema>[]
+}
+
+function reactionReceiptSchema<EffectReceipt extends z.ZodMiniType>(effectReceipt: EffectReceipt) {
+  return z
+    .strictObject({
+      selection: z.enum(['DECLINE', 'USE']),
+      reaction: encounterReactionPinDtoSchema,
+      choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+      originalExecutionChecksum: checksumSchema,
+      adjustment: z.nullable(encounterReactionAdjustmentDtoSchema),
+      spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
+      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      /** The reactor's own effect the reaction created; it is what changed the defense. */
+      activeEffectTransitions: z.array(effectReceipt).check(z.maxLength(1))
+    })
+    .check(
+      z.superRefine((value, context) => {
+        validateEncounterReactionPin(value.reaction, context, ['reaction'])
+        const used = value.selection === 'USE'
+        if (
+          used !== (value.adjustment !== null) ||
+          used !== (value.actionEconomyTransition !== null) ||
+          (!used &&
+            (value.spellCastConsumption !== null || value.activeEffectTransitions.length > 0))
+        )
+          context.addIssue({
+            code: 'custom',
+            message: 'Reaction receipt does not match its selection.'
+          })
+      })
+    )
+}
+
 // Named so the receipt unions that embed it stay under the compiler's declaration size limit (TS7056).
 export const encounterActionReactionReceiptDtoSchema: z.ZodMiniType<EncounterActionReactionReceiptDto> =
   lazySchema(() =>
-    z
-      .strictObject({
-        selection: z.enum(['DECLINE', 'USE']),
-        reaction: encounterReactionPinDtoSchema,
-        choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-        originalExecutionChecksum: checksumSchema,
-        adjustment: z.nullable(encounterReactionAdjustmentDtoSchema),
-        spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
-        actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
-        /** The reactor's own effect the reaction created; it is what changed the defense. */
-        activeEffectTransitions: z
-          .array(characterActiveEffectCreateReceiptDtoSchema)
-          .check(z.maxLength(1))
+    reactionReceiptSchema(characterActiveEffectCreateReceiptDtoSchema).check(
+      z.superRefine((value, context) => {
+        if (value.reaction.characterId === null)
+          context.addIssue({
+            code: 'custom',
+            message: 'A Character reaction receipt names its Character.'
+          })
       })
-      .check(
-        z.superRefine((value, context) => {
-          validateEncounterReactionPin(value.reaction, context, ['reaction'])
-          const used = value.selection === 'USE'
-          if (
-            used !== (value.adjustment !== null) ||
-            used !== (value.actionEconomyTransition !== null) ||
-            (!used &&
-              (value.spellCastConsumption !== null || value.activeEffectTransitions.length > 0))
-          )
-            context.addIssue({
-              code: 'custom',
-              message: 'Reaction receipt does not match its selection.'
-            })
-        })
-      )
+    )
+  )
+
+/** A creature's reaction carries no Character identity and spends no spell slot. */
+export const encounterActorReactionReceiptDtoSchema: z.ZodMiniType<EncounterActorReactionReceiptDto> =
+  lazySchema(() =>
+    reactionReceiptSchema(encounterActorActiveEffectCreateReceiptDtoSchema).check(
+      z.superRefine((value, context) => {
+        if (value.reaction.characterId !== null || value.spellCastConsumption !== null)
+          context.addIssue({
+            code: 'custom',
+            message: 'A creature reaction receipt names no Character spend.'
+          })
+      })
+    )
   )

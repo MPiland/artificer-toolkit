@@ -55,6 +55,8 @@ import {
   serverRuleExecutionNestedD20EvidenceDtoSchema
 } from './ruleExecutionEvidence.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
+// A cycle: the reaction receipt reuses this module's spend receipts; both sides are lazy schemas.
+import { encounterActorReactionReceiptDtoSchema } from './ruleExecutionReactionChoice.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
   ruleExecutionCapabilityKeySchema as capabilityKeySchema,
@@ -502,6 +504,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         ),
         null
       ),
+      /** The target creature's reaction decision on this attack (Parry); its spend belongs to the target. */
+      reaction: z._default(z.nullable(encounterActorReactionReceiptDtoSchema), null),
       d20: z.nullable(serverRuleExecutionD20EvidenceDtoSchema),
       nestedD20: z._default(z.nullable(serverRuleExecutionNestedD20EvidenceDtoSchema), null),
       /** The action's recurring effect and, beside it, a failure-margin rider's effect. */
@@ -898,6 +902,12 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             code: 'custom',
             path: ['targetFeatureResourceConsumption'],
             message: 'Target Encounter feature resource receipt is invalid.'
+          })
+        if (value.reaction && value.reaction.reaction.reactorActorId !== value.targetActorId)
+          context.addIssue({
+            code: 'custom',
+            path: ['reaction'],
+            message: 'A reaction belongs to the attacked creature.'
           })
         const legendaryResistance = value.legendaryResistance
         if (legendaryResistance) {

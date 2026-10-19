@@ -46,8 +46,16 @@ export type ReactionMovementTriggerBindingAuthored = {
   movementInterruption?: null | { kind: 'STOP'; whenResultPath: PathCode }
 }
 
-/** The reactor is the target of an attack that hit; the reaction pauses the attack's outcome. */
-export type ReactionAttackedSelfTriggerBindingAuthored = { kind: 'ATTACKED_SELF' }
+/**
+ * The reactor is the target of an attack that hit; the reaction pauses the attack's outcome. With
+ * `attackRange: 'MELEE'` it answers only a melee attack, and with `requiresSight` only an attacker the
+ * reactor sees (Parry).
+ */
+export type ReactionAttackedSelfTriggerBindingAuthored = {
+  kind: 'ATTACKED_SELF'
+  attackRange?: 'MELEE'
+  requiresSight?: boolean
+}
 
 /**
  * A cast of a spell level above the reaction's own cast level takes effect unless the reactor's

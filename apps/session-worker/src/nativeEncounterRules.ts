@@ -1036,6 +1036,7 @@ export async function planNativeLiveEncounterAction(
   const failedCounters = cast.failedCounters
   const discoverReaction = discoverNativeAttackReaction({
     state,
+    system,
     attack: prepared,
     reactionSpentActorIds: failedCounters.map(({ reaction }) => reaction.reactorActorId),
     prepareReaction: (actionId) =>

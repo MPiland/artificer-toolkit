@@ -130,13 +130,14 @@ const reactionTrigger = buildNodeMap<ReactionTriggerBindingAuthored>()
 const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
   'reactionTrigger',
   ({ map, nodes, cond, data }) => {
-    const { selectSingle, selectMulti, text, groupObject } = nodes
+    const { selectSingle, selectMulti, text, groupObject, toggle } = nodes
     const { table } = data
     const local = cond.local()
     const isMovement = local.field(['kind']).eq('MOVEMENT')
     const isDamageTaken = local.field(['kind']).eq('DAMAGE_TAKEN')
     const isSpellCast = local.field(['kind']).eq('SPELL_CAST')
     const isTargetedSelf = local.field(['kind']).eq('TARGETED_SELF')
+    const isAttackedSelf = local.field(['kind']).eq('ATTACKED_SELF')
 
     map
       .set(
@@ -220,6 +221,23 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
           () => HIGHER_LEVEL_CHECK_NODE_MAP,
           { presentation: 'inline', order: 6, showIf: isSpellCast }
         )
+      )
+      .set(
+        'attackRange',
+        selectSingle(
+          ['attackRange'],
+          'Only against',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'MELEE', label: 'A melee attack' }] },
+          { order: 8, showIf: isAttackedSelf, hiddenBehavior: 'CLEAR' }
+        )
+      )
+      .set(
+        'requiresSight',
+        toggle(['requiresSight'], 'Only against an attacker you see', {
+          order: 9,
+          showIf: isAttackedSelf,
+          hiddenBehavior: 'CLEAR'
+        })
       )
   }
 )

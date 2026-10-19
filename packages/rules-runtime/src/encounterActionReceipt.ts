@@ -57,7 +57,7 @@ export function buildEncounterActionStoredExecution(input: {
   area?: { parentOccurrenceId: string }
   /** The target's decided Legendary Resistance and the charge it cost, when its failed save offered one. */
   resistance?: ReturnType<typeof encounterTargetLegendaryResistance> | null
-  /** The target Character's decided reaction to the hit and what using it spent and created. */
+  /** The target's decided reaction to the hit and what using it spent and created. */
   reaction?: {
     audit: ReturnType<typeof encounterReactionAudit>
     spent: {
@@ -97,6 +97,25 @@ export function buildEncounterActionStoredExecution(input: {
       maintainedEffectStateId
     }
   }
+  const reactionReceipt = <Receipt>(
+    effectReceipt: (transition: (typeof activeEffectTransitions)[number]) => Receipt
+  ) =>
+    input.reaction
+      ? {
+          selection: input.reaction.audit.selection,
+          reaction: input.reaction.audit.reaction,
+          choiceExecution: input.reaction.audit.choiceExecution,
+          originalExecutionChecksum: input.reaction.audit.originalExecutionChecksum,
+          adjustment: input.reaction.audit.adjustment,
+          spellCastConsumption: characterSpellConsumptionReceipt(
+            input.reaction.spent?.spellConsumption
+          ),
+          actionEconomyTransition: actionEconomyReceipt(input.reaction.spent?.economy ?? null),
+          activeEffectTransitions: (input.reaction.spent?.activeEffectTransitions ?? []).map(
+            effectReceipt
+          )
+        }
+      : null
   const parentOccurrenceId = input.area ? { parentOccurrenceId: input.area.parentOccurrenceId } : {}
   const sourceCharacterStreamVersion =
     settled.sourceCharacterStreamVersion ??
@@ -141,24 +160,7 @@ export function buildEncounterActionStoredExecution(input: {
               characterEffectReceipt(transition, null)
             ),
             stateEffectTransitions,
-            reaction: input.reaction
-              ? {
-                  selection: input.reaction.audit.selection,
-                  reaction: input.reaction.audit.reaction,
-                  choiceExecution: input.reaction.audit.choiceExecution,
-                  originalExecutionChecksum: input.reaction.audit.originalExecutionChecksum,
-                  adjustment: input.reaction.audit.adjustment,
-                  spellCastConsumption: characterSpellConsumptionReceipt(
-                    input.reaction.spent?.spellConsumption
-                  ),
-                  actionEconomyTransition: actionEconomyReceipt(
-                    input.reaction.spent?.economy ?? null
-                  ),
-                  activeEffectTransitions: (
-                    input.reaction.spent?.activeEffectTransitions ?? []
-                  ).map((transition) => characterEffectReceipt(transition, null))
-                }
-              : null,
+            reaction: reactionReceipt((transition) => characterEffectReceipt(transition, null)),
             targetFailedCounterSpend: input.targetFailedCounterSpend ?? false,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }
@@ -193,6 +195,7 @@ export function buildEncounterActionStoredExecution(input: {
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: input.resistance?.charge ?? null,
             legendaryResistance: input.resistance?.legendaryResistance ?? null,
+            reaction: reactionReceipt((transition) => transition),
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
