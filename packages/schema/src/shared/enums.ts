@@ -353,7 +353,14 @@ export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
 )
 export const pathLifecycleConsumeEventSchema = lazySchema(() =>
-  z.enum(['ON_ATTACK_ROLL', 'ON_HIT', 'ON_ATTACKED', 'ON_ABILITY_CHECK', 'ON_CAST_SPELL'])
+  z.enum([
+    'ON_ATTACK_ROLL',
+    'ON_HIT',
+    'ON_ATTACKED',
+    'ON_ABILITY_CHECK',
+    'ON_SAVING_THROW',
+    'ON_CAST_SPELL'
+  ])
 )
 export const pathLifecycleEndEventSchema = lazySchema(() =>
   z.enum([
@@ -377,9 +384,13 @@ export const pathLifecycleEndTriggerAgainstSchema = lazySchema(() => z.enum(['EN
  * used up.
  */
 export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
-  z.enum(['ON_ATTACK_ROLL', 'ON_HIT', 'ON_ATTACKED', 'ON_ABILITY_CHECK'] satisfies z.infer<
-    typeof pathLifecycleConsumeEventSchema
-  >[])
+  z.enum([
+    'ON_ATTACK_ROLL',
+    'ON_HIT',
+    'ON_ATTACKED',
+    'ON_ABILITY_CHECK',
+    'ON_SAVING_THROW'
+  ] satisfies z.infer<typeof pathLifecycleConsumeEventSchema>[])
 )
 /** The end events a timed grant can carry (it is never ended by an attack roll or a cast). */
 export const pathLifecycleGrantEndEventSchema = lazySchema(() =>

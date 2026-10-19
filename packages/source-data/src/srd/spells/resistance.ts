@@ -1,5 +1,11 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  ROLLED_DIE_SIGN,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -65,11 +71,26 @@ export const resistance: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            lifecycle: { consumeOnFirstEvents: ['ON_SAVING_THROW'] },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.RESISTANCE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'RESISTANCE' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.RESISTANCE, 0x215, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { count: 1, faces: 4, sign: ROLLED_DIE_SIGN.ADD },
+                      order: 1
+                    }
+                  ]
+                }
               }
             ]
           }

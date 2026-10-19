@@ -129,3 +129,10 @@ export function selectEncounterActionD20Natural(
       ? Math.min(...faces)
       : faces[0]!
 }
+
+/** A saving throw's policy and evidence carry the ability it is made with; no other test does. */
+export function savingThrowAbility(policy: { savingThrowAbilityDefinitionId?: string }) {
+  return policy.savingThrowAbilityDefinitionId
+    ? { savingThrowAbilityDefinitionId: policy.savingThrowAbilityDefinitionId }
+    : {}
+}

@@ -38,7 +38,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ### T2c2 (ability-check dice and Guidance, D156; D156 ruling "T2c2a")
 
-- Scope (orchestrator ruling): ability checks, Guidance and the Sheet. Saves and Resistance moved to **SPELLS-4.T2c2b** (consumption narrowed by ability through one shared seam across every save commit site); `RESISTANCE` stays in `CLOSED_RULE_KIND` until then.
+- Scope (orchestrator ruling): ability checks, Guidance and the Sheet. Saves and Resistance moved to **SPELLS-4.T2c2b** (consumption narrowed by ability through one shared seam across every save commit site); `RESISTANCE` stays in `CLOSED_RULE_KIND` until then (removed in T2c2b).
 - Contract: `ABILITY_CHECK` accepts `ADD_BONUS_DIE` (`{count, faces, sign}`, optional `ability`). Guidance is an `APPLY_GRANT` of one d4 on ability checks with `consumeOnFirstEvents: ['ON_ABILITY_CHECK']`; `GUIDANCE` leaves `CLOSED_RULE_KIND`. `grantAuthoringParity` proves it.
 - Consumption narrowing: `effectsEndedBy` takes a `ScopedAbilityCheck` (`{event: 'ON_ABILITY_CHECK', abilityCode}`) and spends only the effects whose ability-check grant applied to that check; a bare `ON_ABILITY_CHECK` never spends a die-bearing effect (a contest rolls no dice yet). Effects with no ability-check grant (Help) are spent whenever they list the event. Regression: `grantLifetimes.test.ts` "effectsEndedBy for an ability check".
 - Encounter: First Aid, Hide/Search and Escape checks (basic-action, concealment, escape) add the die through the D20 added-dice graph (`dnd5eAddedDiceNode` in the basic-check definition) and spend only the dice that applied. The die auto-spends on the first qualifying check.
@@ -49,6 +49,16 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
   - The attack-roll `ON_ATTACK_ROLL` spend is not narrowed by attack domain or ability.
   - The Encounter cast-reaction check carries no dice.
   - A Sheet-consumed die whose Concentration belongs to another caster leaves that caster's Concentration standing.
+
+### T2c2b (saving-throw dice and Resistance, D156)
+
+- Contract: `SAVING_THROW_MODIFIER` takes `ADD_BONUS_DIE`. Resistance is an `APPLY_GRANT` of one d4 on saving throws (no ability filter) with `consumeOnFirstEvents: ['ON_SAVING_THROW']`; `RESISTANCE` leaves `CLOSED_RULE_KIND`. `grantAuthoringParity` proves it.
+- One seam: `effectsEndedBy` takes a `ScopedD20Test` for checks and saves; `savingThrowSpentEffects` is the single spend rule. `d20` evidence of a save carries the optional `savingThrowAbilityDefinitionId` (schema refinement: only on `ON_SAVE_SUCCESS`/`ON_SAVE_FAIL`, since the evidence has no kind discriminant), and `targetEndedEffects` takes `testEvidence` (the action's `d20` and `nestedD20`) to spend the die with the target's other ended effects, on the same receipt. Callers: native action, area, movement reaction, Legendary window, turn effects, recurring saves.
+- Concentration: the Constitution check spends the die (planner pushes it into `endedGrants`; a later check of the same batch sees no die); `persistEncounterConcentrationChildren` re-derives the spent set from the settled outputs and refuses a plan that omits or adds one (`answeredCheck` covers the response commit).
+- Death save: the turn-start save (`ability` null) spends an unfiltered die; `persistEncounterTurnDeathSave` checks the held dice match the plan's and deletes the spent effects; the projected target drops them.
+- Sheet: a saving throw adds and spends the carried die (`carriedTestDice`, generalized from `carriedCheckDice`). Proof: `rollsCarriedCheckDice.test.ts`.
+- Proofs: `grantLifetimes.test.ts` (scoped saves, `targetEndedEffects`), `attack-d20-belief-contracts.test.ts` (schema), `nativeRoomAddedDice.test.ts` (Encounter journey), `rollsCarriedCheckDice.test.ts` (Sheet), `grantAuthoringParity.test.ts`.
+- Deferred edge cases (rare, recoverable): the attack-roll spend is not narrowed by attack domain; contests roll no dice, so they spend none; the cast-reaction check carries no dice.
 
 ### T2a5 (closed rules with existing options, D156 T2 class A)
 
