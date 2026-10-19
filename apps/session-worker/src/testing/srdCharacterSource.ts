@@ -47,7 +47,9 @@ function subclassSpells(subclass: ClassAuthored | undefined): readonly SpellAuth
   const ids = new Set(
     (subclass?.features ?? []).flatMap((feature) =>
       (feature.grants?.spells ?? []).flatMap((grant) =>
-        (grant.progression?.levels ?? []).flatMap((level) => level.spellIds ?? [])
+        ('progression' in grant ? grant.progression.levels : []).flatMap((level) =>
+          'spellIds' in level ? level.spellIds : []
+        )
       )
     )
   )
