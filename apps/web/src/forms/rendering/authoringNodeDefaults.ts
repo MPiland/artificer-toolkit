@@ -352,6 +352,10 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return createGrantLevel(order)
     case 'featGrantProgression':
       return createGrantProgression()
+    case 'modifierAttackDecoyArmorClass':
+      return { amount: 10, abilities: [] }
+    case 'modifierAttackDecoyThreshold':
+      return { id: crypto.randomUUID(), remaining: 1, minimumRoll: 11 }
     case 'modifierChargeLimitLevel':
       return {
         id: crypto.randomUUID(),

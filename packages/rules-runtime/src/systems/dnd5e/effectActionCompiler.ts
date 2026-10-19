@@ -2432,6 +2432,7 @@ function modifierGrantEntryPlan(input: {
     holderEnd = null,
     fromSourceOnly = false,
     activeOnlyOnFinalAnchorTurn = false,
+    uses,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
@@ -2491,7 +2492,8 @@ function modifierGrantEntryPlan(input: {
       endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
       holderEnd,
       ...(fromSourceOnly && { fromSourceOnly: true }),
-      ...(activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true })
+      ...(activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
+      ...(uses !== undefined && { uses })
     },
     adapterFacts: resultGated ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],

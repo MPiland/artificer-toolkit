@@ -227,6 +227,24 @@ const armorClassFormulaPayloadDtoSchema = lazySchema(() =>
   })
 )
 
+const attackDecoyThresholdDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: authoredIdentifierSchema,
+    /** The decoys left for which this row applies. */
+    remaining: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+    /** The d20 roll an attack needs to target a decoy while that many remain. */
+    minimumRoll: z.number().check(z.int()).check(z.gte(1)).check(z.lte(21))
+  })
+)
+
+/** Decoys an attack against the holder may target instead: their armor class and roll thresholds. */
+const attackDecoysPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    armorClass: armorClassFormulaPayloadDtoSchema,
+    thresholds: authoredNestedCollectionSchema(attackDecoyThresholdDtoSchema)
+  })
+)
+
 /** Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). */
 export const rolledDiePayloadDtoSchema = lazySchema(() => z.strictObject(rolledDieShape()))
 
@@ -364,6 +382,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     authoredFractionSchema,
     amountPayloadDtoSchema,
     armorClassFormulaPayloadDtoSchema,
+    attackDecoysPayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
     rolledDiePayloadDtoSchema,
@@ -595,6 +614,12 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant(
+      'ATTACK_DECOYS',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      attackDecoysPayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'SKILL_MODIFIER',
       'BONUS',

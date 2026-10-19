@@ -111,6 +111,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     fromSourceOnly?: true
     /** The grant is active only during its tick anchor's turn while one tick remains. */
     activeOnlyOnFinalAnchorTurn?: true
+    /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
+    uses?: number
   }
   /**
    * A successful check makes the holder's location unknown to the observers that fail to notice it

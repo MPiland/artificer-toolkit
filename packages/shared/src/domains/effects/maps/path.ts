@@ -452,7 +452,7 @@ const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
   ({ map, nodes, data }) => {
-    const { selectSingle, selectMulti, groupObject, groupArray, toggle } = nodes
+    const { selectSingle, selectMulti, groupObject, groupArray, toggle, number } = nodes
     const { table } = data
 
     map
@@ -505,6 +505,10 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         })
       )
       .set('fromSourceOnly', toggle(['fromSourceOnly'], 'From Source Only'))
+      .set(
+        'uses',
+        number(['uses'], 'Uses before it ends', { constraints: { minimum: 1, maximum: 255 } })
+      )
       .set(
         'activeOnlyOnFinalAnchorTurn',
         toggle(['activeOnlyOnFinalAnchorTurn'], 'Active Only On Final Anchor Turn')
