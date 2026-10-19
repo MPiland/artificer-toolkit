@@ -11192,7 +11192,7 @@
             },
             {
               "id": "SPELLS-31.T4k2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -11202,7 +11202,7 @@
                 "after": ["SPELLS-31.T4k2a", "SPELLS-4.T2k3b"]
               },
               "text": "Join SPELLS-4.T2k on INCOMING_ATTACK_GATE. Gate runtime: accept a holder-owned passive grant with the holder as the DC owner, and dcMethod DERIVED_DC for that holder. Nature's Sanctuary: optional attackerCreatureTypeIds; on a failed save the attacker picks another target through T2k3b's ATTACK_RETARGET or the attack misses; optional successImmunity {duration} reusing T5l SOURCE_IMMUNITY (24 h). Tranquility: the existing long-rest event also works as an invocation trigger (one event, no second rest hook); when it fires, the old effect's ON_LONG_REST end runs before the new invocation; Sanctuary-style endOnTriggers. Each conversion has an authoring-parity proof and deletes its kind (D156; split from T4k2 and ruled 2026-10-19). Rulings 2026-10-19: Tranquility adds LONG_REST_FINISHED to TRIGGER, fired only from the COMPLETE_REST site after the ON_LONG_REST ends (ordering test); runtime successImmunity split to T4k2c (field accepted, inert until then).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m199 (54a079a23)."
             },
             {
               "id": "SPELLS-31.T4k2c",
