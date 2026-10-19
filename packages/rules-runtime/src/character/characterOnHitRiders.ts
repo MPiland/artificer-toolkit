@@ -26,13 +26,20 @@ function isOnHitDamage(entry: CompiledEffectGroup['entries'][number]): entry is 
 /**
  * The `ON_HIT` outcomes of each passive Effect: they ride on the attack its trigger names. A rider
  * with a usage limit spends its owner's use (the Feature, option or feat that grants it), so
- * every Effect of that owner shares one.
+ * every Effect of that owner shares one. An Effect that still carries a closed rule is not yet
+ * executable, so none of its outcomes ride: its gate or remainder would be lost (D156).
  */
 export function collectOnHitRiders(
   effects: readonly CompiledEffectGroup[] | undefined,
   ownerId: string
 ): OnHitRider[] {
   return (effects ?? []).flatMap((effect) => {
+    if (
+      effect.entries.some(
+        (entry) => 'outcome' in entry && entry.outcome.effectKind === 'CLOSED_RULE'
+      )
+    )
+      return []
     const entries = effect.entries
       .filter(isOnHitOutcome)
       .map((entry) => (entry.usage ? { ...entry, usageKey: ownerId } : entry))

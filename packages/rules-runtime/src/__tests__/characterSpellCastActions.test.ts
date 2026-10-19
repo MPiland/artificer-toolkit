@@ -6,6 +6,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { ManifestComponentAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
+import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
@@ -70,6 +71,9 @@ const PROTECTION_FROM_ENERGY = spell('Protection from Energy')
 const BLINDNESS_DEAFNESS = spell('Blindness/Deafness')
 const WALL_OF_FIRE = spell('Wall of Fire')
 const WALL_OF_THORNS = spell('Wall of Thorns')
+const HEROISM = spell('Heroism')
+const REGENERATE = spell('Regenerate')
+const ENHANCE_ABILITY = spell('Enhance Ability')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -932,6 +936,343 @@ describe('the conditions and speed a save cast owns together (SPELLS-27.T9)', ()
         countedByTurnEffects: true
       }
     })
+  })
+})
+
+/** A touch cast on one creature with `paths`, written out in core options alone (the parity proof). */
+function touchSpellFromCoreOptions(
+  base: SpellAuthored,
+  id: number,
+  dispositionKind: 'ANY' | 'WILLING',
+  paths: unknown[]
+): SpellAuthored {
+  return {
+    ...base,
+    id: testUuid(id),
+    label: `${base.label} from core options`,
+    effects: [
+      {
+        id: testUuid(id + 1),
+        order: 1,
+        invocation: {
+          kind: 'ACTION',
+          triggerCode: 'ACTIVATED',
+          activation: { code: 'ACTION', amount: 1 },
+          range: { id: testUuid(id + 2), rangeKind: 'TOUCH' },
+          targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind }
+        },
+        paths
+      }
+    ]
+  } as SpellAuthored
+}
+/** One ON_USE path of a SEQUENTIAL cast holding `outcomes` for `duration`. */
+const sequentialPath = (
+  id: number,
+  order: number,
+  duration: { durationKind: 'MINUTE' | 'HOUR'; amount: number },
+  outcomes: unknown[],
+  lifecycle?: { recurringKind: 'START_OF_TURN' }
+) => ({
+  id: testUuid(id),
+  order,
+  pathCode: 'ON_USE',
+  groupType: 'SEQUENTIAL',
+  originKind: 'SOURCE',
+  selectionKind: 'FIXED',
+  resultBlock: {
+    id: testUuid(id + 1),
+    resultKind: 'SEQUENCE',
+    duration: { id: testUuid(id + 2), ...duration },
+    ...(lifecycle && { lifecycle }),
+    outcomes
+  }
+})
+const advantageOn = (id: number, ability: string) => ({
+  id: testUuid(id),
+  effectKind: 'APPLY_GRANT',
+  grants: {
+    modifiers: [
+      {
+        id: testUuid(id + 1),
+        grantKind: 'MODIFIER_GRANT',
+        valueDomainCode: 'ABILITY_CHECK',
+        domain: { ability },
+        modifierKind: 'ADVANTAGE',
+        scope: 'GLOBAL',
+        selectionKind: 'GRANTED',
+        order: 1
+      }
+    ]
+  }
+})
+const HEROISM_FROM_CORE_OPTIONS = touchSpellFromCoreOptions(HEROISM, 0x3200, 'WILLING', [
+  sequentialPath(0x3210, 1, { durationKind: 'MINUTE', amount: 1 }, [
+    {
+      id: testUuid(0x3213),
+      effectKind: 'APPLY_GRANT',
+      grants: {
+        modifiers: [
+          {
+            id: testUuid(0x3214),
+            grantKind: 'MODIFIER_GRANT',
+            valueDomainCode: 'CONDITION_IMMUNITY',
+            domain: {},
+            modifierKind: 'ADD_OPTION',
+            scope: 'GLOBAL',
+            selectionKind: 'GRANTED',
+            payload: { conditionTypeId: conditionId('FRIGHTENED') },
+            order: 1
+          }
+        ]
+      }
+    }
+  ]),
+  sequentialPath(
+    0x3220,
+    2,
+    { durationKind: 'MINUTE', amount: 1 },
+    [
+      {
+        id: testUuid(0x3223),
+        effectKind: 'HEAL',
+        temporary: true,
+        valueKind: 'FIXED',
+        scalingKind: 'NONE',
+        amount: 0,
+        bonuses: [
+          {
+            id: testUuid(0x3224),
+            bonusKind: 'ABILITY_BONUS',
+            ability: SPELLCASTING_ABILITY_REFERENCE,
+            order: 1
+          }
+        ]
+      }
+    ],
+    { recurringKind: 'START_OF_TURN' }
+  )
+])
+const REGENERATE_FROM_CORE_OPTIONS = touchSpellFromCoreOptions(REGENERATE, 0x3300, 'ANY', [
+  sequentialPath(0x3310, 1, { durationKind: 'HOUR', amount: 1 }, [
+    {
+      id: testUuid(0x3313),
+      effectKind: 'HEAL',
+      valueKind: 'DICE',
+      scalingKind: 'NONE',
+      diceConfig: '4d8+15'
+    }
+  ]),
+  sequentialPath(
+    0x3320,
+    2,
+    { durationKind: 'HOUR', amount: 1 },
+    [
+      {
+        id: testUuid(0x3323),
+        effectKind: 'HEAL',
+        valueKind: 'FIXED',
+        scalingKind: 'NONE',
+        amount: 1
+      }
+    ],
+    { recurringKind: 'START_OF_TURN' }
+  )
+])
+/** Enhance Ability's Bear's Endurance and Bull's Strength, written out in core options alone. */
+const ENHANCE_ABILITY_FROM_CORE_OPTIONS = touchSpellFromCoreOptions(
+  ENHANCE_ABILITY,
+  0x3400,
+  'WILLING',
+  [
+    {
+      id: testUuid(0x3410),
+      order: 1,
+      pathCode: 'ON_USE',
+      groupType: 'CHOICE',
+      originKind: 'SOURCE',
+      selectionKind: 'CHOICE',
+      options: [
+        {
+          id: testUuid(0x3420),
+          order: 1,
+          label: "Bear's Endurance",
+          resultBlock: {
+            id: testUuid(0x3421),
+            resultKind: 'SEQUENCE',
+            duration: { id: testUuid(0x3422), durationKind: 'HOUR', amount: 1 },
+            outcomes: [
+              advantageOn(0x3423, 'CONSTITUTION'),
+              {
+                id: testUuid(0x3425),
+                effectKind: 'HEAL',
+                temporary: true,
+                valueKind: 'DICE',
+                scalingKind: 'NONE',
+                diceConfig: '2d6'
+              }
+            ]
+          }
+        },
+        {
+          id: testUuid(0x3430),
+          order: 2,
+          label: "Bull's Strength",
+          resultBlock: {
+            id: testUuid(0x3431),
+            resultKind: 'SINGLE',
+            duration: { id: testUuid(0x3432), durationKind: 'HOUR', amount: 1 },
+            outcomes: [advantageOn(0x3433, 'STRENGTH')]
+          }
+        }
+      ]
+    }
+  ]
+)
+/** The plan fields a parity proof compares, free of the ids each authoring mints. */
+const comparablePlan = (
+  plan:
+    | Pick<
+        NonNullable<NonNullable<ReturnType<typeof compiledCast>>['activeEffectPlan']>,
+        | 'recurrenceStage'
+        | 'initialRemaining'
+        | 'castFactKeys'
+        | 'recurrenceDeferred'
+        | 'ownsTemporaryHitPoints'
+        | 'modifierGrantContribution'
+        | 'maintenance'
+      >
+    | null
+    | undefined
+) =>
+  plan && {
+    recurrenceStage: plan.recurrenceStage,
+    initialRemaining: plan.initialRemaining,
+    castFactKeys: plan.castFactKeys,
+    recurrenceDeferred: plan.recurrenceDeferred,
+    ownsTemporaryHitPoints: plan.ownsTemporaryHitPoints,
+    modifiers: plan.modifierGrantContribution?.modifiers.map(
+      ({ grantId: _grantId, ...rest }) => rest
+    ),
+    countedByTurnEffects: plan.modifierGrantContribution?.countedByTurnEffects,
+    maintained: plan.maintenance !== null
+  }
+
+describe('effect-owned temporary hit points and sequential effects (SPELLS-4.T2t, D156)', () => {
+  it('compiles Heroism to one Concentration effect: frightened immunity and temporary hit points each turn, from the cast', () => {
+    const compiled = compiledCast(HEROISM)
+    expect(compiled?.executionPlan.kind).toBe('SINGLE_GRAPH')
+    expect(compiled?.activeEffectPlan).toMatchObject({
+      recurrenceStage: 'START_OF_TURN',
+      initialRemaining: 10,
+      castFactKeys: ['dnd5e.recurring-heal-amount'],
+      recurrenceDeferred: true,
+      ownsTemporaryHitPoints: true,
+      modifierGrantContribution: {
+        countedByTurnEffects: true,
+        modifiers: [{ valueDomainCode: 'CONDITION_IMMUNITY' }]
+      },
+      maintenance: { definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
+    })
+    const graph = compiled?.activeEffectPlan?.frozenGraph.definition
+    expect(graph?.nodes.map(({ inputs }) => inputs.amount)).toEqual([
+      { kind: 'FACT', factKey: 'dnd5e.recurring-heal-amount' }
+    ])
+  })
+
+  it('compiles Regenerate to an immediate heal and a 1 hour effect healing 1 at the start of each turn, without Concentration', () => {
+    const compiled = compiledCast(REGENERATE)
+    expect(compiled?.activeEffectPlan).toMatchObject({
+      recurrenceStage: 'START_OF_TURN',
+      initialRemaining: 600,
+      recurrenceDeferred: true,
+      maintenance: null
+    })
+    expect(compiled?.activeEffectPlan?.ownsTemporaryHitPoints).toBeUndefined()
+    expect(compiled?.activeEffectPlan?.modifierGrantContribution).toBeNull()
+    expect(
+      compiled?.activeEffectPlan?.frozenGraph.definition.nodes.map(({ inputs }) => inputs.amount)
+    ).toEqual([{ kind: 'LITERAL', value: 1 }])
+  })
+
+  it('compiles each Enhance Ability option to advantage on its ability, Bear owning its temporary hit points', () => {
+    const options = compiledCast(ENHANCE_ABILITY)?.choice?.options ?? []
+    expect(options.map(({ label }) => label)).toEqual([
+      "Bear's Endurance",
+      "Bull's Strength",
+      "Cat's Grace",
+      "Eagle's Splendor",
+      "Fox's Cunning",
+      "Owl's Wisdom"
+    ])
+    for (const [index, code] of [
+      'CONSTITUTION',
+      'STRENGTH',
+      'DEXTERITY',
+      'CHARISMA',
+      'INTELLIGENCE',
+      'WISDOM'
+    ].entries()) {
+      expect(options[index]?.activeEffectPlan, code).toMatchObject({
+        modifierGrantContribution: {
+          modifiers: [
+            {
+              valueDomainCode: 'ABILITY_CHECK',
+              modifierKind: 'ADVANTAGE',
+              domain: { ability: code }
+            }
+          ]
+        },
+        maintenance: { definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
+      })
+      expect(options[index]?.activeEffectPlan?.ownsTemporaryHitPoints, code).toBe(
+        index === 0 ? true : undefined
+      )
+    }
+  })
+
+  it.each([
+    ['Heroism', HEROISM, HEROISM_FROM_CORE_OPTIONS],
+    ['Regenerate', REGENERATE, REGENERATE_FROM_CORE_OPTIONS]
+  ])(
+    'compiles %s authored from core options only to the same plan as the SRD data',
+    (_label, srd, core) => {
+      const plan = comparablePlan(compiledCast(core)?.activeEffectPlan)
+      expect(plan).toBeTruthy()
+      expect(plan).toEqual(comparablePlan(compiledCast(srd)?.activeEffectPlan))
+    }
+  )
+
+  it('compiles Enhance Ability options authored from core options only to the same plans as the SRD data', () => {
+    const srd = compiledCast(ENHANCE_ABILITY)?.choice?.options ?? []
+    const core = compiledCast(ENHANCE_ABILITY_FROM_CORE_OPTIONS)?.choice?.options ?? []
+    expect(core).toHaveLength(2)
+    expect(core.map(({ activeEffectPlan }) => comparablePlan(activeEffectPlan))).toEqual(
+      srd.slice(0, 2).map(({ activeEffectPlan }) => comparablePlan(activeEffectPlan))
+    )
+  })
+
+  it('refuses a composition holding two recurring heals', () => {
+    const twice = touchSpellFromCoreOptions(REGENERATE, 0x3500, 'ANY', [
+      ...[0x3510, 0x3520].map((id, index) =>
+        sequentialPath(
+          id,
+          index + 1,
+          { durationKind: 'HOUR', amount: 1 },
+          [
+            {
+              id: testUuid(id + 3),
+              effectKind: 'HEAL',
+              valueKind: 'FIXED',
+              scalingKind: 'NONE',
+              amount: 1
+            }
+          ],
+          { recurringKind: 'START_OF_TURN' }
+        )
+      )
+    ])
+    expect(compiledCast(twice)?.activeEffectPlan ?? null).toBeNull()
   })
 })
 

@@ -184,6 +184,14 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       z.nullable(z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))),
       null
     ),
+    /** Cast evidence facts the effect keeps for its recurring executions (D156). */
+    castFactKeys: z.optional(
+      z.array(z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))).check(z.maxLength(8))
+    ),
+    /** The recurring entry first fires at its stage, not at cast (D156). */
+    recurrenceDeferred: z.optional(z.boolean()),
+    /** The effect owns the temporary hit points it gives, released when it ends (D156). */
+    ownsTemporaryHitPoints: z.optional(z.boolean()),
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     conditionContributions: z._default(
       z

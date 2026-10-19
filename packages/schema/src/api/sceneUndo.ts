@@ -10,6 +10,15 @@ export const sceneUndoExecuteInputSchema = lazySchema(() =>
   })
 )
 
+const tokenMoveUndoneSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('TOKEN_MOVE_UNDONE'),
+    tokenId: postgresUuidSchema,
+    position: scenePointDtoSchema,
+    undoneCommandId: postgresUuidSchema
+  })
+)
+
 export const sceneUndoCommandResultSchema = lazySchema(() =>
   z.strictObject({
     commandId: postgresUuidSchema,
@@ -17,12 +26,14 @@ export const sceneUndoCommandResultSchema = lazySchema(() =>
     version: z.number().check(z.int()).check(z.positive()),
     replayed: z.boolean(),
     occurrence: z.null(),
-    delta: z.strictObject({
-      kind: z.literal('TOKEN_MOVE_UNDONE'),
-      tokenId: postgresUuidSchema,
-      position: scenePointDtoSchema,
-      undoneCommandId: postgresUuidSchema
-    }),
+    /** A drag's undo restores the mover, then each token it dragged, as one batch (D105). */
+    delta: z.union([
+      tokenMoveUndoneSchema,
+      z.strictObject({
+        kind: z.literal('BATCH'),
+        deltas: z.array(tokenMoveUndoneSchema).check(z.minLength(2)).check(z.maxLength(102))
+      })
+    ]),
     restoredFogOwners: z.array(z.nullable(postgresUuidSchema)).check(z.maxLength(101))
   })
 )

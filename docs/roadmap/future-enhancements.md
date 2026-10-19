@@ -249,6 +249,9 @@ These are rare paths, roughly under 5% of sessions, whose failure is visible and
 - **A reinstated Concentration emptied by its own dependents does not record the caster (SPELLS-5.T12):** when the last relinked grant expires or is consumed, `TERMINATE_WHEN_EMPTY` deletes the state without appending the caster to `concentrationCasterCharacterIds`, so stamped grants on Characters outside the Run stay until the caster's next Concentration or the clock ends them.
 - **Crusher's move is not optional (ATTACK-7.T5):** the homebrew Crusher fixture moves its target on every qualifying hit, because an on-hit rider's only player choice is a paid one (`optionalOnHit: SPELL_SLOT`, D123). Candidate: a free optional rider kind, so "you can move it" spends the once-per-turn use only when chosen.
 
+- **Heroism's last temporary hit points leave at once (SPELLS-4.T2t, D156):** a recurring effect's final tick and its expiry fall on the same turn boundary, so the temporary hit points of the tenth start-of-turn tick are released in the same execution. The spell ends a moment later in the rules, so the gap is cosmetic.
+- **A form's temporary hit points carry no source (SPELLS-4.T2t):** entering or leaving a form drops the pool's effect source, so an effect that gave temporary hit points before the change cannot take them back when it ends. Rare: it needs a temporary-hit-point effect held across a form change.
+
 ### Code-quality refactors (deferred from Phase 8.2, 2026-10-17)
 
 The user cut these from pre-alpha scope for time to market (D145 amendment). They came from the five-surface code-quality audit; QUALITY-1 (diverging duplicates) and QUALITY-3.T1a (lint in CI) shipped. Re-register as PBIs when picked up.
@@ -308,6 +311,10 @@ Web's restraint, escape and difficult terrain ship in SPELLS-4 and SPELLS-20.T4d
 ### Day-scale durations on the Campaign clock (D156)
 
 Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM ruling. Day-scale durations counted on the Campaign clock would let it, and other effects that last days, run on their own.
+
+### Regenerate regrows limbs (D156)
+
+Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. Regrowing severed body parts after 2 minutes stays in the description, because no limb model exists.
 
 ### Surprise (D156)
 

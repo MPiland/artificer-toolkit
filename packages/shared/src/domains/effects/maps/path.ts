@@ -1346,6 +1346,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
             { code: 'SOURCE_ATTACK_ROLL_INFLUENCE', label: 'Source Attack Influence' },
             { code: 'SOURCE_FOLLOWS_TARGET', label: 'Source Follows Target' },
             { code: 'SOURCE_OCCUPIES_HAND', label: 'Source Occupies Hand' },
+            { code: 'TARGET_DRAGGED', label: 'Target Dragged' },
             { code: 'SOURCE_RELEASE_MOVEMENT_COST', label: 'Release Movement Cost' },
             { code: 'ESCAPE_CHECK', label: 'Escape Check' },
             { code: 'TARGET_CAPABILITY_SUPPRESSION', label: 'Capability Suppression' },
@@ -2063,10 +2064,7 @@ function registerOutcomeFields(
         requiredIf: true,
         showIf: and([
           local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT),
-          or([
-            local.field(['distanceMode']).eq('EXACT'),
-            local.field(['distanceMode']).eq('UP_TO')
-          ])
+          or([local.field(['distanceMode']).eq('EXACT'), local.field(['distanceMode']).eq('UP_TO')])
         ])
       })
     )

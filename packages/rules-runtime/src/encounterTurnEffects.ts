@@ -42,6 +42,7 @@ import {
 } from './encounterActionProjection.js'
 import { encounterConditionSaveAutoFailAbilityIds } from './encounterConditionMechanics.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import { expiredEffectReleases } from './encounterEndedEffectRelease.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -125,6 +126,7 @@ function executionState(target: MovementTarget) {
   return {
     current: target.state.current,
     temporary: target.state.temporary,
+    temporarySourceEffectId: target.state.temporarySourceEffectId ?? null,
     conditions: [...target.state.conditions],
     deathSaves: target.state.deathSaves,
     ownConditions: target.characterFacts
@@ -225,6 +227,7 @@ function completeExecution(input: {
     targetActorId: target.actor.id,
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
+    temporaryHitPointsSourceEffectId: input.state.temporarySourceEffectId ?? null,
     maximumHitPoints: target.effectiveMaximumHitPoints,
     deathSaves: input.state.deathSaves,
     scalarValues: input.state.scalarValues,
@@ -509,10 +512,17 @@ async function evaluateEncounterTurnEffects(input: {
       applications: result.applications,
       dispositions
     })
+    const terminal = result.terminal || damageEnded.has(effect.id)
     const settled = {
       ...result,
-      terminal: result.terminal || damageEnded.has(effect.id),
-      applications: [...result.applications, ...ended.releases]
+      terminal,
+      applications: [
+        ...result.applications,
+        ...ended.releases,
+        ...(lifecycle(effect, terminal).kind === 'EXPIRE'
+          ? expiredEffectReleases(effect, input.target.actor.id)
+          : [])
+      ]
     }
     for (const { id } of ended.endedEffects) damageEnded.add(id)
     const { execution, ownConditions } = completeExecution({
@@ -532,6 +542,7 @@ async function evaluateEncounterTurnEffects(input: {
     state = {
       current: after.currentHitPoints,
       temporary: after.temporaryHitPoints,
+      temporarySourceEffectId: after.temporaryHitPointsSourceEffectId ?? null,
       conditions: after.conditionIds,
       deathSaves: after.deathSaves,
       ownConditions,
