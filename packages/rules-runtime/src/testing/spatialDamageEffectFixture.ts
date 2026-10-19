@@ -25,7 +25,7 @@ import {
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionCompiler.js'
-import { dnd5eAddedDiceNode } from '../systems/dnd5e/d20AddedDiceGraph.js'
+import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from '../systems/dnd5e/d20AddedDiceGraph.js'
 
 /** No d20 reaches it, so a spatial save effect always fails its save. */
 const SPATIAL_SAVE_DC = 30
@@ -160,6 +160,7 @@ export async function buildSpatialDamageEffect(input: {
         [DND5E_TARGET_ACTOR_FACT_KEY]: input.targetActorId,
         ...(input.save && {
           [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
+          ...dnd5eAddedDiceFacts([]),
           [DND5E_SAVE_DC_FACT_KEY]: SPATIAL_SAVE_DC,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([]),
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: 'NONE'

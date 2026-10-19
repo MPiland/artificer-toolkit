@@ -90,17 +90,18 @@ describe('a rolled-die grant on an Encounter saving throw (SPELLS-4.T2c1, D156)'
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await targetHitPoints(room)).toBe(before - 1)
 
+    // The app's roll card records the dice it rolled, without the save's modifier: 10 - 4.
     const [card] = (await readRoomRollCards(room.room.base.stub)).filter(({ roll }) =>
       roll.normalizedExpression.startsWith('1d20')
     )
     expect(card?.roll).toMatchObject({
-      normalizedExpression: '1d20+2 - 1d4',
+      normalizedExpression: '1d20 - 1d4',
       evidence: {
         terms: [
           { count: 1, die: 20, rolls: [10] },
           { count: 1, die: 4, rolls: [4], subtotal: -4, subtracted: true }
         ],
-        total: 8
+        total: 6
       }
     })
   })

@@ -24,7 +24,10 @@ import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { dnd5eAddedDiceNode } from '@artificer-toolkit/rules-runtime/systems/dnd5e/d20AddedDiceGraph'
+import {
+  dnd5eAddedDiceFacts,
+  dnd5eAddedDiceNode
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/d20AddedDiceGraph'
 
 type EffectStore = ReturnType<typeof createActiveRuleEffectStore>
 
@@ -104,6 +107,7 @@ export async function seedTurnSaveEffect(input: {
       facts: {
         [DND5E_TARGET_ACTOR_FACT_KEY]: actor.id,
         [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
+        ...dnd5eAddedDiceFacts([]),
         [DND5E_SAVE_DC_FACT_KEY]: 30,
         [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([]),
         [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: 'NONE',

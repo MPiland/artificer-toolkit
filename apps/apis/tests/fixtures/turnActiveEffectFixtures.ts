@@ -57,7 +57,10 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { createRulesRuntime } from './rulesRuntime'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 import { attachFixtureRoom, executeInRoom } from './localRoomWorker'
-import { dnd5eAddedDiceNode } from '@artificer-toolkit/rules-runtime/systems/dnd5e/d20AddedDiceGraph'
+import {
+  dnd5eAddedDiceFacts,
+  dnd5eAddedDiceNode
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/d20AddedDiceGraph'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -339,6 +342,7 @@ export async function seedTurnSaveEffect(
         facts: {
           [DND5E_TARGET_ACTOR_FACT_KEY]: actor.id,
           [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
+          ...dnd5eAddedDiceFacts([]),
           [DND5E_SAVE_DC_FACT_KEY]: 30,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([]),
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: 'NONE',

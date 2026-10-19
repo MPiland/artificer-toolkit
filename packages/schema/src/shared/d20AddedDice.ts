@@ -65,7 +65,13 @@ export const d20RolledAddedDiceDtoSchema = lazySchema(() =>
  */
 export const d20AddedFacesDtoSchema = lazySchema(() =>
   z
-    .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(Math.max(...ROLLED_DIE_FACES))))
+    .array(
+      z
+        .number()
+        .check(z.int())
+        .check(z.gte(1))
+        .check(z.lte(Math.max(...ROLLED_DIE_FACES)))
+    )
     .check(z.minLength(1))
     .check(z.maxLength(MAX_D20_ADDED_DICE * MAX_ROLLED_DIE_COUNT))
 )
