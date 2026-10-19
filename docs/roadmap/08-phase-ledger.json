@@ -7523,7 +7523,7 @@
             {
               "id": "ATTACK-19.T1",
               "text": "Default attack weapon by hand and the off-hand damage rule, reading the existing Two-Weapon Fighting closed rules.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-19.1"]
             },
             {
