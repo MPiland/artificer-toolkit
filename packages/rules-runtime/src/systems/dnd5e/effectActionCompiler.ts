@@ -30,6 +30,7 @@ import type {
   ActorRelationshipAuthored,
   HitPointMaximumReductionAuthored,
   OptionalOnHitAuthored,
+  FailureMarginRiderAuthored,
   PathLifecycleAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
@@ -414,6 +415,8 @@ type Dnd5eEffectScalingFacts = Readonly<{
   targetCreatureTypeId?: string
   attackEnemyProximity?: Dnd5eEnemyProximity
   attackTurnUses?: readonly string[]
+  /** By how much the completed saving throw fell short of its DC. */
+  saveFailedBy?: number
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
@@ -423,6 +426,15 @@ type Dnd5eEffectActionTemplate = Readonly<{
   published: ServerPublishedRuleDefinitionDto
   templateChecksum: string
 }>
+
+function saveFailedBy(
+  facts: Readonly<Record<string, RuleValue>>,
+  testOutputs: Readonly<Record<string, RuleValue>> | undefined
+): number | undefined {
+  const dc = facts[DND5E_SAVE_DC_FACT_KEY]
+  const total = testOutputs?.total
+  return typeof dc === 'number' && typeof total === 'number' ? dc - total : undefined
+}
 
 function templateIdentity(template: Dnd5eEffectActionTemplate) {
   return {
@@ -1984,19 +1996,24 @@ function timedImmediateConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, resolved.saveEntry),
-    marginRider: rider
-      ? {
-          compiledEntryId: rider.id,
-          frozenGraphNodeId: 'rider-condition-duration',
-          failedBy: rider.failedBy,
-          conditionContributions: rider.outcomes.map((outcome) => ({
-            conditionId: outcome.conditionId,
-            recordsSource: outcome.recordsSource === true,
-            fleesSource: outcome.fleesSource === true
-          })),
-          lifecycle: { endOnTriggers: canonicalEndTriggers(rider.lifecycle.endOnTriggers ?? []) }
-        }
-      : null
+    marginRider: rider ? marginRiderPlan(rider) : null
+  }
+}
+
+/** The second active effect a failure-margin rider holds its conditions in. */
+function marginRiderPlan(
+  rider: FailureMarginRiderAuthored
+): NonNullable<CharacterRuleActionActiveEffectPlan['marginRider']> {
+  return {
+    compiledEntryId: rider.id,
+    frozenGraphNodeId: 'rider-condition-duration',
+    failedBy: rider.failedBy,
+    conditionContributions: rider.outcomes.map((outcome) => ({
+      conditionId: outcome.conditionId,
+      recordsSource: outcome.recordsSource === true,
+      fleesSource: outcome.fleesSource === true
+    })),
+    lifecycle: { endOnTriggers: canonicalEndTriggers(rider.lifecycle.endOnTriggers ?? []) }
   }
 }
 
@@ -2035,7 +2052,8 @@ function timedConditionPlan(
         entry.pathCode !== lead.entry.pathCode ||
         entry.resultBlockId !== lead.entry.resultBlockId ||
         JSON.stringify(entry.duration) !== JSON.stringify(lead.entry.duration) ||
-        JSON.stringify(entry.lifecycle) !== JSON.stringify(lead.entry.lifecycle)
+        JSON.stringify(entry.lifecycle) !== JSON.stringify(lead.entry.lifecycle) ||
+        JSON.stringify(entry.failureMarginRider) !== JSON.stringify(lead.entry.failureMarginRider)
     ) ||
     new Set(conditionEntries.map(({ outcome }) => outcome.conditionId)).size !==
       conditionEntries.length
@@ -2057,6 +2075,17 @@ function timedConditionPlan(
   const initialRemaining = duration && !untilDispelled ? conditionDurationTurns(duration) : null
   const indefinite = !duration || untilDispelled
   const grantEntry = grantEntries[0]
+  const { failureMarginRider: rider } = lead.entry
+  // The rider's conditions share the failure's path, so together they fit its immunity facts.
+  const riderUnsupported =
+    rider !== undefined &&
+    (!exactFailureMarginRider(rider) ||
+      indefinite ||
+      lead.entry.pathCode !== 'ON_SAVE_FAIL' ||
+      conditionEntries.length + rider.outcomes.length > MAX_CONDITIONS_PER_PATH ||
+      rider.outcomes.some(
+        ({ conditionId }) => !(action.conditionDefinitionIds ?? []).includes(conditionId)
+      ))
   // The grant joins the conditions' lifecycle, so it is planned without one of its own and counted
   // by the turn-effect kernel with them.
   const grantContribution = grantEntry
@@ -2075,6 +2104,7 @@ function timedConditionPlan(
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
     // conditions is counted with them by the turn-effect kernel, on the holder's turns.
     (turnAnchor && (indefinite || grantEntry)) ||
+    riderUnsupported ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     conditionEntries.some(
       ({ entry, outcome }) =>
@@ -2107,7 +2137,7 @@ function timedConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance,
-    marginRider: null
+    marginRider: rider ? marginRiderPlan(rider) : null
   }
 }
 
@@ -3561,9 +3591,7 @@ const nestedSaveRiderConditionNodeId = (index: number) =>
  * A margin rider the nested save can gate: a bounded margin and identified conditions, which share
  * the failed-save path's immunity facts after the failure's own condition.
  */
-function exactFailureMarginRider(
-  rider: NonNullable<ImmediateSaveEntry['outcome']['failureMarginRider']>
-): boolean {
+function exactFailureMarginRider(rider: FailureMarginRiderAuthored): boolean {
   return (
     UUID.test(rider.id) &&
     Number.isSafeInteger(rider.failedBy) &&
@@ -6737,6 +6765,32 @@ function pathOwed(
   })
 }
 
+/**
+ * The conditions a failed direct save also applies because it failed by the rider's margin ("fails
+ * by 5 or more, also paralyzed"): each one follows the failure's own outcomes as a result group of
+ * its own, so the OUTCOME holds them only when the completed save earned them.
+ */
+function failureMarginRiderGroups(
+  lead: CompiledEffectGroup['entries'][number] | undefined,
+  input: { selectedPath: SpecializedPath; facts: Dnd5eEffectScalingFacts }
+): readonly (readonly CompiledEffectGroup['entries'][number][])[] {
+  const rider = lead && 'failureMarginRider' in lead ? lead.failureMarginRider : undefined
+  if (!lead || !rider || input.selectedPath !== 'ON_SAVE_FAIL') return []
+  if (input.facts.saveFailedBy === undefined)
+    unsupported('D&D failure margin riders need the completed saving throw’s total.')
+  if (input.facts.saveFailedBy < rider.failedBy) return []
+  return rider.outcomes.map((outcome) => [
+    {
+      ...lead,
+      entryId: outcome.id,
+      outcome,
+      duration: undefined,
+      lifecycle: undefined,
+      failureMarginRider: undefined
+    }
+  ])
+}
+
 function specializeDnd5eEffectActionOutcomeBody(input: {
   action: Dnd5eCompiledEffectActionSource
   selectedPath: SpecializedPath
@@ -6833,14 +6887,15 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     }
   }
   const authoredGroups = selectedOutcomeGroups(input.action, input.selectedPath)
-  const groups = authoredGroups.filter((entries) =>
+  const ownedGroups = authoredGroups.filter((entries) =>
     entries.every(
       (entry) =>
         isChosenEntry(entry, input.facts) &&
         pathOwed(entry, input.action.compiledEffect.id, input.facts)
     )
   )
-  if (groups.length === 0) return null
+  if (ownedGroups.length === 0) return null
+  const groups = [...ownedGroups, ...failureMarginRiderGroups(ownedGroups[0]?.[0], input)]
   const definitions = groups.map((entries, groupIndex): RuleGraphDefinition => {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
@@ -8978,6 +9033,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     testTemplate,
     selectedPath,
     facts,
+    testOutputs,
     testRollMode
   }) => {
     if (!isSpecializedPath(selectedPath))
@@ -9002,7 +9058,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const outcome = specializeDnd5eEffectActionOutcomeBody({
       action,
       selectedPath,
-      facts: { ...dndScalingFactsFromRuleValues(facts), attackRollMode: testRollMode }
+      facts: {
+        ...dndScalingFactsFromRuleValues(facts),
+        attackRollMode: testRollMode,
+        saveFailedBy: saveFailedBy(facts, testOutputs)
+      }
     })
     return outcome
       ? {

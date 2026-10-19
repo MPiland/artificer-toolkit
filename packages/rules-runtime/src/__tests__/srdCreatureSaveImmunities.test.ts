@@ -19,10 +19,14 @@ import { prepareCreatureAction, settleCreatureAction } from './encounterCreature
 
 /**
  * SPELLS-33.T7a (D156): the SRD creatures whose save grants immunity to their source's use of the
- * action for 24 hours, authored with SOURCE_IMMUNITY in place of their closed rules.
+ * action for 24 hours, authored with SOURCE_IMMUNITY in place of their closed rules. SPELLS-33.T7b
+ * adds the Mummies' Dreadful Glare, whose failure margin also paralyzes.
  */
 
 const FRIGHTENED = srdCondition('Frightened')
+const PARALYZED = srdCondition('Paralyzed')
+// The Ogre's Wisdom of 7, which no save proficiency changes.
+const OGRE_WISDOM_MODIFIER = -2
 const conditionDefinitionIds = srdSystemRecord.conditionTypes.map(({ id }) => id)
 const abilityDefinitions = (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
 const discovery = createEncounterFeatureActionCapabilityDiscoveryRegistry([
@@ -133,4 +137,89 @@ describe('SRD creature save immunities (SPELLS-33.T7a, D156)', () => {
       ]
     })
   })
+})
+
+describe('SRD Mummies’ Dreadful Glare (SPELLS-33.T7b, D156)', () => {
+  const GLARES = [
+    { creature: 'Mummy', dc: 11 },
+    { creature: 'Mummy Lord', dc: 16 }
+  ]
+
+  it.each(GLARES)(
+    '$creature’s Dreadful Glare frightens through its next turn, paralyzes a failure by 5 or more, and makes a success immune',
+    ({ creature }) => {
+      const { effectId, plans } = compiledAction(creature, 'Dreadful Glare')
+      expect(plans).toHaveLength(1)
+      expect(plans[0]).toMatchObject({
+        recurrenceStage: 'END_OF_TURN',
+        tickAnchor: 'SOURCE',
+        conditionContributions: [{ conditionId: FRIGHTENED }],
+        marginRider: { failedBy: 5, conditionContributions: [{ conditionId: PARALYZED }] },
+        sourceImmunity: {
+          appliesTo: 'SAVE_SUCCESS',
+          immuneToId: effectId,
+          initialRemaining: 14_400
+        }
+      })
+    }
+  )
+
+  it.each(GLARES)(
+    'frightens the Ogre that fails $creature’s glare by less than 5, adds paralysis from 5, and spares one that succeeds',
+    async ({ creature, dc }) => {
+      const mummy = srdByLabel(SRD.creatures, creature)
+      const glare = creatureFeature(mummy, 'Dreadful Glare')
+      // The zero-based roll that gives the Ogre a save total of `total`.
+      const rollFor = (total: number) => total - OGRE_WISDOM_MODIFIER - 1
+      const settle = async (total: number) => {
+        const prepared = await prepareCreatureAction({
+          actor: srdCreatureActor({ id: testUuid(0x5310), creature: mummy }),
+          target: srdCreatureActor({
+            id: testUuid(0x5311),
+            creature: srdByLabel(SRD.creatures, 'Ogre')
+          }),
+          featureId: glare.id,
+          overridable: true
+        })
+        const { execution, mechanics } = await settleCreatureAction({
+          prepared,
+          rolls: [rollFor(total)]
+        })
+        const target = mechanics.targetPlan.updatedActor
+        if (target.kind === 'CHARACTER') throw new Error('Expected the Ogre target.')
+        return {
+          d20: execution.d20,
+          conditionIds: [...readEncounterActorConditionState(target.conditions).ids].sort(),
+          effects: prepareNativeActionEffectsPlan({
+            prepared,
+            execution,
+            occurrenceId: testUuid(0x5312),
+            commandId: testUuid(0x5313),
+            activeEffectsByActorId: new Map()
+          })
+        }
+      }
+      const narrow = await settle(dc - 4)
+      expect(narrow.conditionIds).toEqual([FRIGHTENED])
+      expect(narrow.effects.riderEffect).toBeNull()
+      const margin = await settle(dc - 5)
+      expect(margin.conditionIds).toEqual([FRIGHTENED, PARALYZED].sort())
+      expect(margin.effects.riderEffect?.definition).toMatchObject({
+        stateContributions: [{ kind: 'CONDITION_OWNERSHIP', conditionId: PARALYZED }]
+      })
+      const saved = await settle(dc)
+      expect(saved.d20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+      expect(saved.conditionIds).toEqual([])
+      expect(saved.effects.riderEffect?.definition).toMatchObject({
+        recurrence: { expiration: { initialRemaining: 14_400 } },
+        stateContributions: [
+          {
+            kind: 'SOURCE_IMMUNITY',
+            immuneToId: glare.effects?.[0]?.id,
+            sourceLabel: 'Dreadful Glare'
+          }
+        ]
+      })
+    }
+  )
 })

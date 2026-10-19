@@ -1,5 +1,6 @@
 import type { CheckChoiceAuthored, HeldEscapeDcAuthored } from './check.js'
 import type { ActivationAuthored } from './effect.js'
+import type { FailureMarginRiderAuthored } from './followUpSave.js'
 import type {
   DurationAuthored,
   FacetAuthored,
@@ -75,6 +76,8 @@ export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthor
   maintenanceDefinitionId?: string
   duration?: DurationAuthored
   lifecycle?: PathLifecycleAuthored
+  /** Only a direct saving throw's failed result block (ON_SAVE_FAIL) carries one. */
+  failureMarginRider?: FailureMarginRiderAuthored
   outcomes: TOutcome[]
 }
 
