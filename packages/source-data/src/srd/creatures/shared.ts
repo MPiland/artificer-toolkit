@@ -1,6 +1,7 @@
 import {
   ABILITY_CODE,
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CHARGE_RESET_KIND,
@@ -450,6 +451,75 @@ export function selfCone(rangeId: string, shapeId: string, lengthFeet: number) {
   }
 }
 
+const SRD_INCOMING_DAMAGE_GRANT_NAMESPACE = '5d1f0f1e-8a4b-4c63-9b52-3e7a2c9d4b10'
+
+type AuthoredModifierGrant = NonNullable<
+  NonNullable<FeatureAuthored['grants']>['modifiers']
+>[number]
+
+/** A modifier grant minus the fields the Effect supplies; distributes so each value domain keeps its own shape. */
+type IncomingDamageGrant = AuthoredModifierGrant extends infer Grant
+  ? Grant extends unknown
+    ? Omit<Grant, 'id' | 'grantKind' | 'scope' | 'selectionKind' | 'order'>
+    : never
+  : never
+
+/**
+ * A passive Effect by which the creature, on taking damage of the given types, gains modifier
+ * grants until the end of its next turn. The Effect's range, path, result, outcome and grant ids
+ * derive from the Effect's own id.
+ */
+export function incomingDamageGrantEffect(
+  effectId: string,
+  damageTypeCodes: readonly string[],
+  grants: readonly IncomingDamageGrant[]
+): EffectAuthored {
+  const childId = (kind: string, index = 0) =>
+    uuidv5(`${effectId}:${kind}:${index}`, SRD_INCOMING_DAMAGE_GRANT_NAMESPACE)
+  return {
+    id: effectId,
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.INCOMING_DAMAGE,
+      damageTypeIds: damageTypeCodes.map(damageTypeId),
+      range: { id: childId('range'), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+    },
+    paths: [
+      {
+        id: childId('path'),
+        order: 1,
+        pathCode: PATH_CODE.PASSIVE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: childId('result'),
+          resultKind: 'SINGLE',
+          duration: { id: childId('duration'), durationKind: DURATION_KIND.ROUND, amount: 1 },
+          lifecycle: { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' } },
+          outcomes: [
+            {
+              id: childId('outcome'),
+              effectKind: EFFECT_KIND.APPLY_GRANT,
+              grants: {
+                modifiers: grants.map((grant, order) => ({
+                  ...grant,
+                  id: childId('grant', order),
+                  grantKind: GRANT_KIND.MODIFIER_GRANT,
+                  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                  selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                  order
+                }))
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
 /**
  * A passive Effect by which the creature sheds light around itself: bright light, then dim light
  * for the additional distance. It is the same MANIFEST light a torch carries; the Effect's range,
@@ -1450,6 +1520,7 @@ function legendaryActionOptionId(featureId: string, order: number): string {
 export {
   ABILITY_CODE,
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   PATH_CODE,
@@ -1465,6 +1536,7 @@ export {
   FOLLOW_UP_SAVE_TIMING,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
   SIZE_CODE,
   RANGE_KIND,
   SCALING,
@@ -1473,5 +1545,6 @@ export {
   SPELL_GRANT_ATTRIBUTE,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
-  TRIGGER
+  TRIGGER,
+  VALUE_DOMAIN_CODE
 }

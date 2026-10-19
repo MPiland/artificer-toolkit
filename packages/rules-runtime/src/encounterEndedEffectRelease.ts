@@ -13,6 +13,7 @@ import {
   effectsEndedBy,
   isInEffectEventScope
 } from './encounterGrantLifetimes.js'
+import type { prepareRecurringActiveEffect } from './encounterActionEffectPlans.js'
 import { dnd5eAbilityCode } from './systems/dnd5e/identity.js'
 
 /**
@@ -108,11 +109,26 @@ export function savingThrowSpentEffects(
 }
 
 /**
+ * A timed grant a damaged creature's passive feature gives itself: the effect it would hold, made
+ * ahead of the damage, and the damage types that set it off.
+ */
+export interface IncomingDamageGrantTrigger {
+  /** The id the effect takes if the damage sets it off. */
+  id: string
+  /** The passive feature's Effect; a grant it gave before is refreshed, never stacked. */
+  authoredEffectId: string
+  damageTypeIds: readonly string[]
+  effect: NonNullable<ReturnType<typeof prepareRecurringActiveEffect>>
+}
+
+/**
  * What an action ends on its target: the effects used up by an attack roll against the holder
  * (`ON_ATTACKED`, after their modifiers applied to that roll), those whose `DAMAGE_TAKEN` end
  * trigger the outcome meets (damage that survives the holder's defenses, of a type the trigger
  * names, by someone the trigger allows), and the conditions only they held. The holder's own
- * mechanics batch applies the releases in the same transaction as the effects' deletion.
+ * mechanics batch applies the releases in the same transaction as the effects' deletion. Damage of a
+ * type a passive grantTriggers entry names then gives its grant, replacing the one the same feature
+ * gave before; it joins after the ended effects are released, so a grant from this hit stays.
  */
 export function targetEndedEffects(input: {
   holderActorId: string
@@ -129,6 +145,8 @@ export function targetEndedEffects(input: {
   damagerActorId: string | null
   /** Every Encounter actor's disposition, to tell the effect source's side from the rest. */
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+  /** The grants the holder's passive features give when it takes damage; none when omitted. */
+  grantTriggers?: readonly IncomingDamageGrantTrigger[]
 }) {
   const dealt = input.applications.filter(
     (application) =>
@@ -163,8 +181,16 @@ export function targetEndedEffects(input: {
       ? []
       : savingThrowSpentEffects(input.held, dnd5eAbilityCode(abilityDefinitionId))
   })
+  const grants = (input.grantTriggers ?? []).filter((trigger) =>
+    dealt.some(
+      (application) =>
+        application.kind === 'DAMAGE' && trigger.damageTypeIds.includes(application.damageTypeId)
+    )
+  )
   const endedEffects = input.held.filter((effect) => {
     const { definition } = effect
+    if (grants.some(({ authoredEffectId }) => authoredEffectId === definition.authoredEffectId))
+      return true
     if (attackConsumed.includes(effect) || saveConsumed.includes(effect)) return true
     if (!dealt.length || definition.schemaVersion !== 2) return false
     const sourceActorId =
@@ -187,7 +213,8 @@ export function targetEndedEffects(input: {
       holderActorId: input.holderActorId,
       held: input.held,
       ended: endedEffects
-    })
+    }),
+    grants: grants.map(({ id, effect }) => ({ id, effect }))
   }
 }
 

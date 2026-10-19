@@ -245,8 +245,9 @@ export type InvocationNodeMap = NodeMap<EffectInvocationAuthored>
 
 export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
   'invocation',
-  ({ map, nodes, cond, logic }) => {
-    const { selectSingle, groupObject } = nodes
+  ({ map, nodes, cond, logic, data }) => {
+    const { selectSingle, selectMulti, groupObject } = nodes
+    const { table } = data
     const { and } = logic
     const local = cond.local()
 
@@ -322,6 +323,23 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
           order: 6,
           showIf: local.field(['kind']).eq('ACTION')
         })
+      )
+      .set(
+        'damageTypeIds',
+        selectMulti(
+          ['damageTypeIds'],
+          'Damage types',
+          {
+            kind: 'DATA',
+            relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            order: 7,
+            requiredIf: local.field(['triggerCode']).eq('INCOMING_DAMAGE'),
+            showIf: local.field(['triggerCode']).eq('INCOMING_DAMAGE'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
       )
       .set(
         'optionalOnHit',

@@ -176,8 +176,12 @@ export interface CharacterPlayOverrides {
   deathSaves?: CharacterDeathSaves
   /** The SRD Class the Character's levels are in (default the captured Fighter); its source must publish it. */
   characterClass?: ClassAuthored
+  /** The SRD subclass the Character follows (its source publishes it with the Class); its levels come with the Class level. */
+  characterSubclass?: ClassAuthored
   /** The Character's Class level (default 1); each level after the first adds 7 fixed hit points and a hit die. */
   classLevel?: number
+  /** Standard-array options that replace the captured assignments (default Strength 15, Dexterity 14, Charisma 8), by ability code; keep the array's values a permutation. */
+  abilityScores?: Readonly<Record<string, number>>
   /** Sheet conditions the Character already carries. */
   conditions?: { conditionTypeId: string; label: string }[]
   /** The spells the Character's Class has learned and prepared. */
@@ -197,7 +201,9 @@ export function characterOwnerRowFor({
     carried = [],
     carriedQuantity = 1,
     characterClass,
+    characterSubclass,
     classLevel = 1,
+    abilityScores = {},
     conditions,
     spells,
     spellSlots
@@ -219,7 +225,23 @@ export function characterOwnerRowFor({
     userId,
     intent: {
       ...capturedPage.inputs.character.intent,
-      classes: [{ ...capturedClass!, classId, classLevel }],
+      abilities: {
+        ...capturedPage.inputs.character.intent.abilities,
+        assignments: capturedPage.inputs.character.intent.abilities.assignments.map(
+          (assignment) => ({
+            ...assignment,
+            option: String(abilityScores[assignment.ability] ?? assignment.option)
+          })
+        )
+      },
+      classes: [
+        {
+          ...capturedClass!,
+          classId,
+          classLevel,
+          ...(characterSubclass && { subclassId: characterSubclass.id })
+        }
+      ],
       hitpoints: {
         ...capturedPage.inputs.character.intent.hitpoints,
         levels: Array.from({ length: classLevel }, (_, index) => ({

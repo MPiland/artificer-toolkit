@@ -864,6 +864,32 @@ describe('D&D 5e saving throws and defenses', () => {
   })
 })
 
+describe('Monk Ki-Empowered Strikes (SPELLS-31.T4e)', () => {
+  it('makes unarmed strikes magical for overcoming resistance, and no weapon attack', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { DEXTERITY: 16, WISDOM: 14 },
+      classes: [{ label: 'Monk', level: 6 }],
+      features: [
+        srdFeature({
+          owner: 'CLASS',
+          classLabel: 'Monk',
+          featureLabel: 'Ki-Empowered Strikes',
+          level: 6
+        })
+      ],
+      items: [{ label: 'Quarterstaff' }]
+    })
+    const candidate = itemAction(character, 'Quarterstaff', {
+      attackKind: 'MELEE',
+      grip: 'ONE_HANDED'
+    }).candidate
+    const traits = (attackKind: 'MELEE' | 'UNARMED') =>
+      dnd5eCharacterAttackTraits({ candidate, attackKind, policy: character.output })
+    expect(traits('UNARMED').magical).toBe(true)
+    expect(traits('MELEE').magical).toBe(false)
+  })
+})
+
 describe('D&D 5e modifier scope', () => {
   const requirement = (constraint: 'INCLUDE' | 'EXCLUDE', property: string) => [
     {

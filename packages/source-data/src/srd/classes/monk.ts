@@ -2,12 +2,14 @@ import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from 
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DAMAGE_DEFENSE_BYPASS_CODE,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   EFFECT_KIND,
@@ -636,22 +638,23 @@ export const monk: ClassAuthored = {
         'Starting at 6th level, your unarmed strikes count as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage.',
       availableAtLevel: 6,
       order: 10,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(M, 0x60, 11),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_KI_EMPOWERED_STRIKES,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.UNARMED_ATTACK,
-            range: { id: classRowId(M, 0x69, 11), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'HOSTILE'
-            }
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(M, 0x92, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
+            domain: {
+              trait: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL,
+              attackDomain: ATTACK_DOMAIN_CODE.UNARMED
+            },
+            modifierKind: MODIFIER_KIND.ENABLE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            order: 0
           }
-        })
-      ]
+        ]
+      }
     },
     {
       id: classRowId(M, 3, 12),

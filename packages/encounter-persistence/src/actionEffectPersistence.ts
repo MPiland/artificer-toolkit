@@ -75,14 +75,21 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     outputs.kind === 'CHARACTER_MECHANICS_BATCH'
       ? [...(outputs.reaction?.activeEffectTransitions ?? []), ...outputs.reactionEffectTransitions]
       : []
+  // The target's own damage triggers create timed grants on it beside the action's effects.
+  const grantTransition =
+    outputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? outputs.grantEffectTransitions : []
   // The action's recurring effect may carry a failure-margin rider's effect after it.
   if (
-    input.createdEffects.length > 4 ||
+    input.createdEffects.length > 8 ||
     stateTransition.length > 1 ||
     activeTransition.length > 2 ||
     reactionTransition.length > 1 ||
+    grantTransition.length > 4 ||
     input.createdEffects.length !==
-      stateTransition.length + activeTransition.length + reactionTransition.length
+      stateTransition.length +
+        activeTransition.length +
+        reactionTransition.length +
+        grantTransition.length
   )
     throw new Error('Completed action effects do not match the stored receipt.')
   const ids = input.createdEffects.map((effect) => effect.id)
@@ -105,7 +112,14 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     ? (input.createdEffects.find((effect) => effect.id === reactionTransition[0]!.activeEffectId) ??
       null)
     : null
+  const grants = grantTransition.flatMap((transition) => {
+    const effect = input.createdEffects.find(
+      (candidate) => candidate.id === transition.activeEffectId
+    )
+    return effect ? [effect] : []
+  })
   if (
+    grants.length !== grantTransition.length ||
     (stateTransition.length > 0 && !state) ||
     (activeTransition.length > 0 && !recurring) ||
     (activeTransition.length > 1 && !rider) ||
@@ -114,7 +128,7 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     (reaction && (reaction.id === state?.id || reaction.id === recurring?.id))
   )
     throw new Error('Completed action effects do not match the stored receipt.')
-  return { state, recurring, rider, reaction, outputs }
+  return { state, recurring, rider, reaction, grants, outputs }
 }
 
 /**
@@ -318,7 +332,7 @@ export async function persistEncounterActionEffects(
     occurredAt: string
   }
 ): Promise<EncounterRunActorState[]> {
-  const { state, recurring, rider, reaction, outputs } = classifyCreatedEffects(input)
+  const { state, recurring, rider, reaction, grants, outputs } = classifyCreatedEffects(input)
   const target = input.actors.find(
     (actor) => actor.id === actionTargetActorId(input.command.target)
   )
@@ -346,8 +360,11 @@ export async function persistEncounterActionEffects(
       checksumCanonicalJson(effect.owner) !== checksumCanonicalJson(owner) ||
       origin.kind !== 'ENCOUNTER' ||
       origin.sourceAggregateId !== input.state.id ||
-      // A reaction's effect comes from the reactor, which is the target.
-      origin.sourceActorId !== (effect.id === reaction?.id ? target.id : input.command.actorId) ||
+      // A reaction's effect and a damage-trigger grant come from the target itself.
+      origin.sourceActorId !==
+        (effect.id === reaction?.id || grants.some((grant) => grant.id === effect.id)
+          ? target.id
+          : input.command.actorId) ||
       origin.sourceOccurrenceId !== input.execution.occurrenceId ||
       origin.rootCommandId !== input.command.commandId ||
       effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId ||
@@ -388,7 +405,19 @@ export async function persistEncounterActionEffects(
     }).activeEffectTransitions,
     null
   )
+  const grantReceipts = grants.flatMap(
+    (grant) =>
+      projectNativeActionEffectTransitions({
+        state: null,
+        recurring: grant,
+        targetActorId: target.id
+      }).activeEffectTransitions
+  )
   if (
+    checksumCanonicalJson(grantReceipts) !==
+      checksumCanonicalJson(
+        outputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? outputs.grantEffectTransitions : []
+      ) ||
     checksumCanonicalJson(projected.stateEffectTransitions) !==
       checksumCanonicalJson(outputs.stateEffectTransitions) ||
     checksumCanonicalJson(

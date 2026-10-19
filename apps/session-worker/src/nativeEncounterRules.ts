@@ -135,7 +135,8 @@ import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/e
 import type { EncounterLegendaryResistanceOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import {
   encounterActorEffectiveSize,
-  prepareNativeActionEffectsPlan
+  prepareNativeActionEffectsPlan,
+  prepareNativeIncomingDamageGrantTriggers
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import {
@@ -1358,7 +1359,13 @@ export async function planNativeLiveEncounterAction(
     turnActorId: prepared.state.currentActorId,
     applications,
     damagerActorId: prepared.actor.id,
-    dispositions
+    dispositions,
+    grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+      prepared: settledPrepared,
+      occurrenceId,
+      commandId: command.commandId,
+      activeEffectsByActorId
+    })
   })
   // A basic action another creature uses on the target (rousing a sleeper) ends what names it.
   const actionEnded = isEncounterBasicActionId(command.actorId, command.actionId)
@@ -1441,6 +1448,7 @@ export async function planNativeLiveEncounterAction(
       )
         ? reactionUse.applied.reactionEffect
         : null,
+    damageGrants: damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     attackAction,
@@ -1554,7 +1562,8 @@ export async function planNativeLiveEncounterAction(
       }
     },
     targetFailedCounterSpend,
-    meleeRetaliation: retaliation?.evidence ?? null
+    meleeRetaliation: retaliation?.evidence ?? null,
+    grantEffectTransitions: settlement.grantEffectTransitions
   })
   const cleaving =
     storedExecution.status === 'COMPLETE' && actionRange.success && sceneContext

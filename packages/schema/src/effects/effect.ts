@@ -21,7 +21,7 @@ import { rangeDtoSchema } from '../shared/range.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
+import { damageTypeFilterDtoSchema, reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
 import { targetingDtoSchema } from './targeting.js'
 import {
   authoredIdentifierSchema,
@@ -99,6 +99,17 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       resourceUse: z.optional(z.never()),
       reactionTrigger: z.optional(z.never()),
       optionalOnHit: z.optional(optionalOnHitDtoSchema)
+    }),
+    z.object({
+      kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
+      triggerCode: z.literal(triggerCodeSchema._zod.def.entries.INCOMING_DAMAGE),
+      damageTypeIds: damageTypeFilterDtoSchema,
+      range: rangeDtoSchema,
+      shape: z.optional(shapeDtoSchema),
+      targeting: z.optional(targetingDtoSchema),
+      resourceUse: z.optional(z.never()),
+      reactionTrigger: z.optional(z.never()),
+      optionalOnHit: z.optional(z.never())
     }),
     z.object({
       ...actionInvocationShape(),

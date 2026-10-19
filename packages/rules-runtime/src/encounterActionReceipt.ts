@@ -76,6 +76,10 @@ export function buildEncounterActionStoredExecution(input: {
   >['activeEffectTransitions']
   /** The zones the melee hit set off against the attacker (D153); its commit applies them after the hit. */
   meleeRetaliation?: MeleeRetaliationEvidenceDto | null
+  /** The timed grants the creature target's own passive damage triggers made from this hit. */
+  grantEffectTransitions?: ReturnType<
+    typeof projectNativeActionEffectTransitions
+  >['activeEffectTransitions']
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -202,6 +206,7 @@ export function buildEncounterActionStoredExecution(input: {
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions,
+            grantEffectTransitions: input.grantEffectTransitions ?? [],
             stateEffectTransitions,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }

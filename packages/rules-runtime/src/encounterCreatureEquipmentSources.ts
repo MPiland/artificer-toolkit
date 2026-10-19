@@ -1,6 +1,7 @@
 import {
   baseEquipmentAuthoredDtoSchema,
-  equipmentAuthoredDtoSchema
+  equipmentAuthoredDtoSchema,
+  type BaseEquipmentAuthoredDto
 } from '@artificer-toolkit/schema/subjects/equipment'
 import { creatureEquipmentLoadoutDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
@@ -28,7 +29,16 @@ import { resolveDnd5eCreatureArmorClass } from './systems/dnd5e/armorClass.js'
 const checksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
 const positiveRevisionSchema = z.number().int().positive()
 
-const equipmentSourceDtoSchema = z
+type SerializedEncounterCreatureEquipmentSource = {
+  loadoutEntryId: string
+  equipmentId: string
+  sourceRevision: number
+  sourceVersionId: string
+  sourceChecksum: string
+  payload: BaseEquipmentAuthoredDto
+}
+
+const equipmentSourceDtoSchema: z.ZodType<SerializedEncounterCreatureEquipmentSource> = z
   .strictObject({
     loadoutEntryId: postgresUuidSchema,
     equipmentId: postgresUuidSchema,
@@ -47,11 +57,9 @@ const equipmentSourceDtoSchema = z
     }
   })
 
-export type EncounterCreatureEquipmentSource = z.infer<typeof equipmentSourceDtoSchema> & {
+export type EncounterCreatureEquipmentSource = SerializedEncounterCreatureEquipmentSource & {
   compiled: CompiledEquipment
 }
-
-type SerializedEncounterCreatureEquipmentSource = z.infer<typeof equipmentSourceDtoSchema>
 
 type CreatureSnapshotActor = {
   kind: string

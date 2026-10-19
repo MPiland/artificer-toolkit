@@ -43,7 +43,8 @@ async function publishSrdSource(
   equipment: readonly EquipmentAuthored[],
   spells: ClassSpells | undefined,
   creatures: readonly CreatureAuthored[] | undefined,
-  characterClass: ClassAuthored | undefined
+  characterClass: ClassAuthored | undefined,
+  characterSubclass: ClassAuthored | undefined
 ): Promise<ContentSnapshotHead> {
   const kinds: ContentSnapshotHead['kinds'] = {}
   for (const { kind, header, built } of buildSrdSourceKinds(
@@ -53,7 +54,8 @@ async function publishSrdSource(
     equipment,
     spells,
     creatures,
-    characterClass
+    characterClass,
+    characterSubclass
   )) {
     const store = async (part: ContentSnapshotPart) => {
       const { json, sha256, byteLength, rootCount } = built[part]
@@ -125,7 +127,8 @@ export async function characterRoomInputs({
           equipment,
           spellcasting?.spells,
           creatures,
-          play?.characterClass
+          play?.characterClass,
+          play?.characterSubclass
         )
       }
     ],
