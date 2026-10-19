@@ -37,6 +37,7 @@ import {
 } from './encounterConditionMechanics.js'
 import { featureChargeUsed } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
+import { isInEffectEventScope } from './encounterGrantLifetimes.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   mergeCanonicalD20Contributors,
@@ -470,12 +471,18 @@ export async function prepareEncounterActionMechanics<
         : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
   // A target's active ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it
   // their advantage or disadvantage, those that require the holder to see the attacker only when it
-  // can, and so does a target beyond a ranged attack's normal range (D62). The attacker's and the
-  // target's condition mechanics add their own contributors (D94), and so does sight: an unseen
-  // attacker has advantage, an unseen target disadvantage.
+  // can and only from the attackers and on the turn their effect admits, and so does a target
+  // beyond a ranged attack's normal range (D62). The attacker's and the target's condition
+  // mechanics add their own contributors (D94), and so does sight: an unseen attacker has
+  // advantage, an unseen target disadvantage.
   const attackDomain = isDnd5eSpellAttackKind(attackKind) ? 'SPELL' : attackKind
   const attacksAgainst = targetFacts.attackAgainstContributors.filter(
-    (entry) => entry.attackDomain === attackDomain
+    (entry) =>
+      entry.attackDomain === attackDomain &&
+      isInEffectEventScope(entry.eventScope, {
+        actorId: actor.id,
+        turnActorId: state.currentActorId
+      })
   )
   const longRange = encounterActionLongRangeContributor({
     targetPolicy,

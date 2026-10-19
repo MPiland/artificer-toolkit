@@ -251,6 +251,7 @@ export async function persistEncounterTurnResources(
         ({ id }) => !consumedGrants.some((ended) => ended.id === id)
       ),
       attacked: attackRoll,
+      turnActorId: state.currentActorId,
       applications: application.applications.map((planned) => ({
         ...planned,
         targetActorId

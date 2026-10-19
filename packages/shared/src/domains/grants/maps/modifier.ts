@@ -31,7 +31,7 @@ const modifierGrantDomain = buildNodeMap<ModifierDomain>()
 const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
   'modifierGrantDomain',
   ({ map, nodes, cond, data, logic }) => {
-    const { selectSingle, number, toggle } = nodes
+    const { selectSingle, selectMulti, number, toggle } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const { and, or } = logic
     const { table } = data
@@ -124,6 +124,21 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         toggle(['requiresHolderSeesAttacker'], 'Only Attackers The Holder Can See', {
           showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST')
         })
+      )
+      .set(
+        'exemptAttackerSenseDefinitionIds',
+        selectMulti(
+          ['exemptAttackerSenseDefinitionIds'],
+          'Attackers Seeing Through These Senses Are Unaffected',
+          {
+            kind: 'DATA',
+            relationship: table('senses', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            showIf: parent.field(['valueDomainCode']).eq('ATTACKS_AGAINST'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
       )
       .set(
         'requiresHolderSeesSource',

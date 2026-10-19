@@ -14,9 +14,12 @@ import { conditionTypeId } from '@artificer-toolkit/source-data/srd/spells/share
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   SRD_ABILITIES,
+  SRD_BLINDSIGHT_SENSE_ID,
   SRD_CONDITION_TYPES,
   SRD_DAMAGE_TYPES,
-  SRD_SYSTEM_ID
+  SRD_PERCEPTION_SKILL_ID,
+  SRD_SYSTEM_ID,
+  SRD_TRUESIGHT_SENSE_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
@@ -2161,5 +2164,63 @@ describe('a cast that departs its travelers beside a GM ruling (SPELLS-4.T2a5, D
     expect(keys).toContain('dnd5e.depart-proposal')
     expect(keys).toContain('dnd5e.manual-adjudication-proposal')
     expect(compiled.activeEffectPlan).toBeNull()
+  })
+})
+
+describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1, D156)', () => {
+  it('holds Blur’s disadvantage on attacks against the caster for a minute under Concentration, except for Blindsight and Truesight', () => {
+    const plan = compiledCast(spell('Blur'))?.activeEffectPlan
+    expect(plan).toMatchObject({ recurrenceStage: 'END_OF_TURN', initialRemaining: 10 })
+    expect(plan?.modifierGrantContribution?.modifiers).toHaveLength(4)
+    for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
+      expect(modifier).toMatchObject({
+        valueDomainCode: 'ATTACKS_AGAINST',
+        modifierKind: 'DISADVANTAGE',
+        domain: {
+          requiresHolderSeesAttacker: false,
+          exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID]
+        }
+      })
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+  })
+
+  it('gives each creature that fails Enthrall’s save disadvantage on Perception checks for a minute', () => {
+    const plan = compiledCast(spell('Enthrall'))?.activeEffectPlan
+    expect(plan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 10,
+      modifierGrantContribution: {
+        modifiers: [
+          {
+            valueDomainCode: 'SKILL_MODIFIER',
+            modifierKind: 'DISADVANTAGE',
+            domain: { skillId: SRD_PERCEPTION_SKILL_ID }
+          }
+        ]
+      }
+    })
+    expect(plan?.maintenance).toBeNull()
+  })
+
+  it('gives True Strike’s target advantage against the caster’s first attack on the caster’s next turn, under Concentration', () => {
+    const plan = compiledCast(spell('True Strike'))?.activeEffectPlan
+    expect(plan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 1,
+      tickAnchor: 'SOURCE',
+      modifierGrantContribution: {
+        consumeOnFirstEvents: ['ON_ATTACKED'],
+        fromSourceOnly: true,
+        activeOnlyOnFinalAnchorTurn: true
+      }
+    })
+    expect(plan?.modifierGrantContribution?.modifiers).toHaveLength(4)
+    for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
+      expect(modifier).toMatchObject({
+        valueDomainCode: 'ATTACKS_AGAINST',
+        modifierKind: 'ADVANTAGE',
+        domain: { requiresHolderSeesAttacker: false }
+      })
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
   })
 })

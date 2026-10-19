@@ -150,7 +150,13 @@ describe('encounter attack d20 belief', () => {
     })
     const trueSight = encounterAttackSightContributors({
       perception: actual,
-      attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
+      attacksAgainst: [
+        {
+          requiresHolderSeesAttacker: true,
+          exemptAttackerSenseDefinitionIds: [],
+          contributor: dodge
+        }
+      ]
     })
     const policy = truePolicy(trueSight)
     expect(policy.rollMode).toBe('DISADVANTAGE')
@@ -159,7 +165,13 @@ describe('encounter attack d20 belief', () => {
       trueSight,
       believedSight: encounterAttackSightContributors({
         perception: believed,
-        attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
+        attacksAgainst: [
+          {
+            requiresHolderSeesAttacker: true,
+            exemptAttackerSenseDefinitionIds: [],
+            contributor: dodge
+          }
+        ]
       })
     })
     expect(belief?.rollMode).toBe('ADVANTAGE')
@@ -201,7 +213,13 @@ describe('encounter attack d20 belief', () => {
     const { actual, believed } = await perceptions({})
     const trueSight = encounterAttackSightContributors({
       perception: actual,
-      attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
+      attacksAgainst: [
+        {
+          requiresHolderSeesAttacker: true,
+          exemptAttackerSenseDefinitionIds: [],
+          contributor: dodge
+        }
+      ]
     })
     const policy = truePolicy(trueSight)
     const belief = encounterAttackD20Belief({
@@ -209,7 +227,13 @@ describe('encounter attack d20 belief', () => {
       trueSight,
       believedSight: encounterAttackSightContributors({
         perception: believed,
-        attacksAgainst: [{ requiresHolderSeesAttacker: true, contributor: dodge }]
+        attacksAgainst: [
+          {
+            requiresHolderSeesAttacker: true,
+            exemptAttackerSenseDefinitionIds: [],
+            contributor: dodge
+          }
+        ]
       })
     })
     expect(belief).toBeNull()
@@ -243,6 +267,7 @@ describe('encounter attack sight captions', () => {
     attackerSeesTarget: 'SEES',
     targetSenseLabels: [],
     attackerSenseLabels: [],
+    attackerSenseDefinitionIds: [],
     ...value
   })
   const names = { attackerLabel: 'Quill Beast', targetLabel: 'Wolf' }
@@ -344,7 +369,8 @@ describe('encounter save sight captions', () => {
       targetSeesAttacker: 'SEES',
       attackerSeesTarget: 'SEES',
       targetSenseLabels: [],
-      attackerSenseLabels: []
+      attackerSenseLabels: [],
+      attackerSenseDefinitionIds: []
     },
     trueSight: [],
     believedSight: [],
@@ -376,7 +402,8 @@ describe('encounter save sight captions', () => {
           targetSeesAttacker: 'SEES',
           attackerSeesTarget: 'SEES',
           targetSenseLabels: [blindsightLabel],
-          attackerSenseLabels: []
+          attackerSenseLabels: [],
+          attackerSenseDefinitionIds: []
         }
       })
     )

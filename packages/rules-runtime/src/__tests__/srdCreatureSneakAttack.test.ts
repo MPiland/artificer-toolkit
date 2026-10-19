@@ -21,6 +21,8 @@ const TARGET_ID = testUuid(0xc2)
 const advantageAgainst = (attackDomain: 'MELEE' | 'RANGED') => ({
   attackDomain,
   requiresHolderSeesAttacker: false,
+  exemptAttackerSenseDefinitionIds: [],
+  eventScope: { actorId: null, turnActorId: null },
   contributor: {
     sourceId: 'test:advantage',
     grantId: null,

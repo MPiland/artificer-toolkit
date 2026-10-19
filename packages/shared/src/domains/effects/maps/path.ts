@@ -504,6 +504,11 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
           presentation: 'inline'
         })
       )
+      .set('fromSourceOnly', toggle(['fromSourceOnly'], 'From Source Only'))
+      .set(
+        'activeOnlyOnFinalAnchorTurn',
+        toggle(['activeOnlyOnFinalAnchorTurn'], 'Active Only On Final Anchor Turn')
+      )
       .set('heldBySource', toggle(['heldBySource'], 'Held By Zone'))
       .set(
         'escape',

@@ -353,6 +353,7 @@ export async function prepareTurnLegendaryActions<
         ({ id }) => !ownerEnded.consumedGrants.some((ended) => ended.id === id)
       ),
       attacked: makesAttackRoll,
+      turnActorId: prepared.state.currentActorId,
       applications: result.applications,
       damagerActorId: actor.id,
       dispositions

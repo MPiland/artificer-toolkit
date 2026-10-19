@@ -142,6 +142,10 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
     /** The holder may end the effect themselves, at the cost of this activation. */
     holderEnd: z.optional(z.strictObject({ activation: activationCodeSchema })),
+    /** See `PathLifecycleAuthored.fromSourceOnly`. */
+    fromSourceOnly: z.optional(z.boolean()),
+    /** See `PathLifecycleAuthored.activeOnlyOnFinalAnchorTurn`. */
+    activeOnlyOnFinalAnchorTurn: z.optional(z.boolean()),
     /** The zone holds the condition (D146); see `PathLifecycleAuthored.heldBySource`. */
     heldBySource: z.optional(z.boolean()),
     /** The check a creature the zone holds may make to free itself. */

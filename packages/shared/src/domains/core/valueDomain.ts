@@ -347,8 +347,13 @@ export type ValueDomainParamByCode = {
   ATTACK_ROLL: { attackDomain: AttackDomainCode; ability?: AbilityCode }
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
-  // holder can see (D100).
-  ATTACKS_AGAINST: { attackDomain: AttackDomainCode; requiresHolderSeesAttacker: boolean }
+  // holder can see (D100), and `exemptAttackerSenseDefinitionIds` excludes attackers that see the
+  // holder through one of those System Senses (Blur's Blindsight and Truesight).
+  ATTACKS_AGAINST: {
+    attackDomain: AttackDomainCode
+    requiresHolderSeesAttacker: boolean
+    exemptAttackerSenseDefinitionIds?: string[]
+  }
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
