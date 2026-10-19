@@ -161,8 +161,11 @@ export function biteWolf(
  * feet makes a Dexterity save (DC 10) against 1 damage. It is the shape of Fireball, authored as a
  * Creature so a room can run it without a Character's spell slots.
  */
-export function fireballWolf(): CreatureAuthored {
-  const bite = biteWolf('SAVE', { reachFeet: 150 })
+export function fireballWolf(damageTypeCode?: 'FIRE' | 'COLD'): CreatureAuthored {
+  const bite = biteWolf('SAVE', {
+    reachFeet: 150,
+    save: { ability: 'DEXTERITY', damageTypeCode }
+  })
   return creatureAuthoredDtoSchema.parse({
     ...bite,
     features: bite.features?.map((feature) =>

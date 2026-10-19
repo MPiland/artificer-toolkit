@@ -1,6 +1,7 @@
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
@@ -9,6 +10,8 @@ import {
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   PATH_USAGE,
@@ -21,6 +24,7 @@ import {
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
@@ -68,6 +72,36 @@ const R = 9 // Rogue class index
 
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 10th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+
+/** Elusive holds only while the Rogue can act (is not incapacitated). */
+function elusiveRestriction(grant: number): FacetAuthored {
+  const id = (entry: number) => classRowId(R, 0x8b, grant * 4 + entry)
+  return {
+    id: id(0),
+    groups: [
+      {
+        id: id(1),
+        order: 0,
+        contexts: [
+          {
+            id: id(2),
+            order: 0,
+            subject: 'CHARACTER',
+            conditions: [
+              {
+                id: id(3),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint: 'INCLUDE',
+                predicateCode: 'CAN_ACT'
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
 
 function selfClassRuleEffect(
   entry: number,
@@ -919,7 +953,19 @@ export const rogue: ClassAuthored = {
       label: 'Elusive',
       description:
         "Beginning at 18th level, you are so evasive that attackers rarely gain the upper hand against you. No attack roll has advantage against you while you aren't incapacitated.",
-      effects: [selfClassRuleEffect(20, CLOSED_RULE_KIND.CLASS_ROGUE_ELUSIVE)],
+      grants: {
+        modifiers: Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, index) => ({
+          id: classRowId(R, 0x8a, index + 1),
+          grantKind: GRANT_KIND.MODIFIER_GRANT,
+          valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+          domain: { attackDomain, requiresHolderSeesAttacker: false },
+          modifierKind: MODIFIER_KIND.NEGATE_ADVANTAGE,
+          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+          order: index,
+          restrictions: elusiveRestriction(index + 1)
+        }))
+      },
       availableAtLevel: 18,
       order: 19
     },

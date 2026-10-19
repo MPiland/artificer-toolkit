@@ -10252,7 +10252,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         positionalFacts,
         sceneContext
       })
-      const allContributors = flanking ? [...contributors, flanking] : contributors
+      // A target's grant that negates advantage (Elusive) leaves the attack no advantage at all.
+      const allContributors = (flanking ? [...contributors, flanking] : contributors).filter(
+        ({ influence }) =>
+          sourceDerivedFacts.attackAdvantageNegated !== true || influence !== 'ADVANTAGE'
+      )
       allContributors.sort(compareCanonicalD20Contributors)
       const hasAdvantage = allContributors.some(
         (contributor) => contributor.influence === 'ADVANTAGE'

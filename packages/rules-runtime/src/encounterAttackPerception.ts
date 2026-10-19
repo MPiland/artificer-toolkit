@@ -308,26 +308,43 @@ export function encounterAttackPerceptionContributors(
  * Every attack-roll contributor that sight decides: the target's `ATTACKS_AGAINST` contributors
  * (Dodge), those that require the target to see the attacker holding only while it can, those
  * that exempt Senses dropped for an attacker seeing the target through one (Blur), and the unseen
- * attacker/target contributors. True and believed perception build theirs with this one rule.
+ * attacker/target contributors. A grant that negates advantage (Elusive) and holds drops every
+ * advantage among them. True and believed perception build theirs with this one rule.
  */
 export function encounterAttackSightContributors(input: {
   perception: EncounterAttackPerception
-  attacksAgainst: readonly Pick<
-    EncounterAttackAgainstContributor,
-    'requiresHolderSeesAttacker' | 'exemptAttackerSenseDefinitionIds' | 'contributor'
-  >[]
+  attacksAgainst: readonly SightDecidedAttackAgainst[]
 }): readonly EncounterRelationshipD20Contributor[] {
   const { perception } = input
-  return mergeCanonicalD20Contributors(
-    input.attacksAgainst
-      .filter(
-        ({ requiresHolderSeesAttacker, exemptAttackerSenseDefinitionIds }) =>
-          (!requiresHolderSeesAttacker || perception.targetSeesAttacker !== 'UNSEEN') &&
-          !exemptAttackerSenseDefinitionIds.some((senseId) =>
-            perception.attackerSenseDefinitionIds.includes(senseId)
-          )
-      )
-      .map(({ contributor }) => contributor),
+  const held = input.attacksAgainst.filter((entry) => attackAgainstHolds(entry, perception))
+  const contributors = mergeCanonicalD20Contributors(
+    held.flatMap(({ contributor }) => (contributor ? [contributor] : [])),
     encounterAttackPerceptionContributors(perception)
+  )
+  return held.some(({ contributor }) => contributor === null)
+    ? contributors.filter(({ influence }) => influence !== 'ADVANTAGE')
+    : contributors
+}
+
+type SightDecidedAttackAgainst = Pick<
+  EncounterAttackAgainstContributor,
+  'requiresHolderSeesAttacker' | 'exemptAttackerSenseDefinitionIds' | 'contributor'
+>
+
+/**
+ * Whether a target's attacks-against grant holds for an attack as the target perceives it: one that
+ * requires the target to see the attacker holds only while it can, and none holds for an attacker
+ * seeing the target through a Sense it exempts. Without perception, every grant holds.
+ */
+export function attackAgainstHolds(
+  entry: Omit<SightDecidedAttackAgainst, 'contributor'>,
+  perception: EncounterAttackPerception | null
+): boolean {
+  return (
+    perception === null ||
+    ((!entry.requiresHolderSeesAttacker || perception.targetSeesAttacker !== 'UNSEEN') &&
+      !entry.exemptAttackerSenseDefinitionIds.some((senseId) =>
+        perception.attackerSenseDefinitionIds.includes(senseId)
+      ))
   )
 }

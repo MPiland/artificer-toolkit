@@ -9,6 +9,7 @@ import {
   encounterAttackAgainstContributors,
   encounterSourceSightSaveGrants,
   hasEncounterDefensiveGrants,
+  hasFeatureAttacksAgainstGrants,
   holderStateRestrictionsHold,
   withActiveGrantSpeeds,
   withHolderStateGrantSaves,
@@ -111,7 +112,7 @@ export function encounterActorHeldItems(
 }
 
 /**
- * Applies the target's own defensive grants (Dodge) to its target facts: the attack-roll
+ * Applies the target's own defensive grants (Dodge, a Character's Elusive) to its target facts: the attack-roll
  * contributors attacks against it gain, and the saving-throw advantage or disadvantage its
  * holder-state-restricted grants give. Grants whose restrictions do not hold now (the holder can't
  * act or its speed is 0) apply nothing. Whether the holder sees its attacker, or the source of an
@@ -142,7 +143,9 @@ function sourceSightSaveGrants(target: MovementTarget) {
 
 function hasHolderDefenseGrants(target: MovementTarget): boolean {
   return (
-    hasEncounterDefensiveGrants(target.activeEffects) || sourceSightSaveGrants(target).length > 0
+    hasEncounterDefensiveGrants(target.activeEffects) ||
+    hasFeatureAttacksAgainstGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
+    sourceSightSaveGrants(target).length > 0
   )
 }
 
@@ -156,11 +159,12 @@ export function withHolderDefenseGrants<T extends MovementTarget>(
   return {
     ...target,
     holderState,
-    attackAgainstContributors: encounterAttackAgainstContributors(
-      target.actor.id,
-      target.activeEffects,
+    attackAgainstContributors: encounterAttackAgainstContributors({
+      holderActorId: target.actor.id,
+      effects: target.activeEffects,
+      grantFold: target.effectiveRulePolicyOutput?.grantFold ?? null,
       holderState
-    ),
+    }),
     sourceSightSaves: sourceSightSaves
       .filter(({ restrictions }) => holderStateRestrictionsHold(restrictions, holderState))
       .map(({ abilityDefinitionId, contributor }) => ({ abilityDefinitionId, contributor })),
