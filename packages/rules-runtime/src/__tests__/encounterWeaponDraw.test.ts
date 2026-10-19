@@ -4,7 +4,7 @@ import {
   characterActionDrawWeapon,
   creatureActionDrawWeapon,
   evaluateEncounterWeaponDraw
-} from '../encounterWeaponDraw'
+} from '../encounterWeaponDraw.js'
 
 const club = { id: 'club', twoHanded: false, drawn: false }
 const greatclub = { id: 'greatclub', twoHanded: true, drawn: false }
