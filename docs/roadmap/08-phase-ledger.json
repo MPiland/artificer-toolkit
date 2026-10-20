@@ -12567,8 +12567,7 @@
             },
             {
               "id": "SPELLS-33.T3c1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 8,
@@ -12577,7 +12576,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T3b"]
               },
-              "text": "Feature-level spell slot table (split from T3c, ruled 2026-10-20): grants.spellSlots { id, resetKind, levels[{ level, amount }] } through schema, shared authoring, compiler, node map and web defaults; T3b casters become one table plus SPELL_SLOT-mode spell grants; parity proof keeps the GM description and slot counts. No runtime change."
+              "text": "Feature-level spell slot table (split from T3c, ruled 2026-10-20): grants.spellSlots { id, resetKind, levels[{ level, amount }] } through schema, shared authoring, compiler, node map and web defaults; T3b casters become one table plus SPELL_SLOT-mode spell grants; parity proof keeps the GM description and slot counts. No runtime change.",
+              "note": "Merged m243 (03ef52a00)."
             },
             {
               "id": "SPELLS-33.T3c2a",
