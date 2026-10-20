@@ -11,6 +11,7 @@ import {
   actionUsedOnHolderEndedEffects,
   endedEffectReleases,
   expiredEffectReleases,
+  moveEndHolds,
   targetEndedEffects,
   withOwnedTemporaryHitPoints
 } from '../encounterEndedEffectRelease.js'
@@ -736,5 +737,63 @@ describe('a condition-owning effect’s end events', () => {
     expect(JSON.stringify(parsed.error?.issues)).toContain(
       `Condition-owning effects cannot end on ${event}`
     )
+  })
+})
+
+describe('what taking an action or moving ends for the holder', () => {
+  const hiding = (id: string, endOnEvents: readonly ('ON_MOVE' | 'ON_TAKE_ACTION')[]) =>
+    activeEffect({
+      id,
+      owner,
+      createdOrdinal: 1,
+      endOnEvents,
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
+      ]
+    })
+  const taking = (held: ReturnType<typeof hiding>[]) =>
+    actionEndedEffects({
+      holderActorId: HOLDER_ID,
+      held,
+      makesAttackRoll: false,
+      againstEnemy: false
+    })
+
+  it('ends an effect that lasts until its holder takes an action, releasing the condition it owned', () => {
+    const held = hiding(FIRST_ID, ['ON_MOVE', 'ON_TAKE_ACTION'])
+    const { consumedGrants, sourceReleases } = taking([held])
+    expect(consumedGrants).toEqual([held])
+    expect(sourceReleases).toEqual(
+      endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
+    )
+    expect(sourceReleases).toHaveLength(1)
+  })
+
+  it('leaves an effect that ends only when its holder moves', () => {
+    expect(taking([hiding(FIRST_ID, ['ON_MOVE'])])).toEqual({
+      consumedGrants: [],
+      sourceReleases: []
+    })
+  })
+
+  it('names the holders whose effects a voluntary move ends, and no others', () => {
+    const moving = hiding(FIRST_ID, ['ON_MOVE', 'ON_TAKE_ACTION'])
+    const staying = hiding(SECOND_ID, ['ON_TAKE_ACTION'])
+    expect(
+      moveEndHolds([
+        { actor: { id: HOLDER_ID }, activeEffects: [moving, staying] },
+        { actor: { id: SECOND_ID }, activeEffects: [staying] }
+      ])
+    ).toEqual([{ actorId: HOLDER_ID, effectId: FIRST_ID }])
+  })
+
+  it('accepts both events on a condition-owning effect, whose consumers release the condition', () => {
+    const { definition } = hiding(FIRST_ID, [])
+    expect(
+      activeRuleEffectDefinitionDtoSchema.safeParse({
+        ...definition,
+        recurrence: { ...definition.recurrence, endOnEvents: ['ON_MOVE', 'ON_TAKE_ACTION'] }
+      }).success
+    ).toBe(true)
   })
 })

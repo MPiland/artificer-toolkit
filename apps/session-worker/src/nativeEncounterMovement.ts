@@ -10,6 +10,7 @@ import {
   liveSessionMovementSettlementSchema,
   type LiveSessionMovementSettlement
 } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import { moveEndHolds } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { spatialEffectTransition } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
 import {
   heldUntilLeavingZoneId,
@@ -447,7 +448,12 @@ export async function prepareNativeLiveMovement(
       },
       evaluateSpatial: (spatial, targets, stageTerminalSettlement) =>
         prepareEncounterSpatialMovement({
-          input: { ...spatial, carefully, leavingAreaHolds: leavingAreaHolds(targets.values()) },
+          input: {
+            ...spatial,
+            carefully,
+            leavingAreaHolds: leavingAreaHolds(targets.values()),
+            moveEndHolds: moveEndHolds(targets.values())
+          },
           state,
           actors: captured.actors,
           userId,
@@ -878,20 +884,32 @@ export async function prepareNativeLiveMovement(
         })
     })
   })
-  // A creature that left a zone holding it until it leaves is released after every other contact.
-  const departures =
-    planned.outcome.kind === 'TERMINAL' ? (planned.outcome.areaDepartures ?? []) : []
-  for (const departure of departures) {
-    const holderEffects = captured.targets.get(departure.holderActorId)?.activeEffects
-    const endedEffect = holderEffects?.find(
-      (effect) => heldUntilLeavingZoneId(effect) === departure.zoneEffectId
-    )
-    if (!holderEffects || !endedEffect)
-      throw new Error('Movement area departure holder is missing.')
+  // A creature that left a zone holding it until it leaves, or that moved while holding an effect
+  // until it moved, is released after every other contact.
+  const outcome = planned.outcome.kind === 'TERMINAL' ? planned.outcome : null
+  const releases = [
+    ...(outcome?.areaDepartures ?? []).map((departure) => ({
+      kind: 'AREA_DEPARTURE' as const,
+      key: { departure },
+      holderActorId: departure.holderActorId,
+      isHeld: (effect: ActiveRuleEffectRecord) =>
+        heldUntilLeavingZoneId(effect) === departure.zoneEffectId
+    })),
+    ...(outcome?.moveEnds ?? []).map((moveEnd) => ({
+      kind: 'MOVE_END' as const,
+      key: { moveEnd },
+      holderActorId: moveEnd.holderActorId,
+      isHeld: (effect: ActiveRuleEffectRecord) => effect.id === moveEnd.effectId
+    }))
+  ]
+  for (const release of releases) {
+    const holderEffects = captured.targets.get(release.holderActorId)?.activeEffects
+    const endedEffect = holderEffects?.find(release.isHeld)
+    if (!holderEffects || !endedEffect) throw new Error('Movement release holder is missing.')
     settlementInputs.push(
       liveSessionMovementSettlementSchema.parse({
-        kind: 'AREA_DEPARTURE',
-        departure,
+        kind: release.kind,
+        ...release.key,
         endedEffect,
         removedConditionIds: encounterEscapeEndedConditionIds(holderEffects, endedEffect.id)
       })
@@ -899,7 +917,7 @@ export async function prepareNativeLiveMovement(
     for (const actor of encounterActorsAfterEscape({
       encounterId: state.id,
       actors: captured.actors.map((entry) => finalActors.get(entry.id)!),
-      holderId: departure.holderActorId,
+      holderId: release.holderActorId,
       holderEffects,
       activeEffectId: endedEffect.id
     }))
