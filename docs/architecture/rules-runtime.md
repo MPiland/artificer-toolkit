@@ -663,6 +663,13 @@ save and GM edit paths have no undoable root, so their endings are not undone. T
 receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
 and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
 
+A result that tiers on the target's hit points (`HIT_POINT_TIERS` path rows, T2i4a) compiles to
+`compilation.hitPointTierPlans`: one active-effect plan per tier, each carrying `hitPointTier: { atMost }`, with
+`activeEffectPlan` null. `hitPointTiers.ts` is the one place a ceiling is compared with current hit points (the
+lowest `atMost` the target satisfies wins, none means no tier); `encounterActiveEffectPlan` picks the target's plan
+with it and the hit-point-gated proposal operations decide with it. Tier plans author no maintenance or source
+immunity, and a cast pick cannot also tier.
+
 **Placed-zone damage dice (SPELLS-20 T1, D133, current).** A zone whose failed entry save deals authored dice
 (`valueKind: 'DICE'`, a plain `NdM`) compiles those dice into the zone's one frozen entry graph: `damage-enabled`
 (the movement-interruption authorization) gates one `evidence.optional-integer-range` node per die, sum nodes add

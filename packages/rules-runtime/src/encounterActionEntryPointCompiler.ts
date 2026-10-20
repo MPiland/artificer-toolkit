@@ -192,7 +192,10 @@ function assertDescriptorAlignment(input: {
   }
 }
 
-/** The plans that run an action: its execution plan and its at most one active-effect plan. */
+/**
+ * The plans that run an action: its execution plan and its active-effect plans. An action holds at
+ * most one plan for every target, or one plan per hit-point tier (a tiered result) and no other.
+ */
 function compileActionPlans(
   adapter: CharacterRuleActionSystemAdapter,
   descriptor: EffectActionCapabilityDescriptor
@@ -208,9 +211,16 @@ function compileActionPlans(
   const published =
     executionPlan.kind === 'SINGLE_GRAPH' ? executionPlan.published : executionPlan.test.published
   const activeEffectPlans = adapter.activeEffectPlans?.({ action: descriptor, published }) ?? []
-  if (activeEffectPlans.length > 1) {
+  const hitPointTierPlans = activeEffectPlans.filter((plan) => plan.hitPointTier)
+  if (
+    hitPointTierPlans.length > 0
+      ? hitPointTierPlans.length !== activeEffectPlans.length ||
+        new Set(hitPointTierPlans.map((plan) => plan.hitPointTier?.atMost)).size !==
+          hitPointTierPlans.length
+      : activeEffectPlans.length > 1
+  ) {
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'Character actions support at most one active-effect plan.'
+      'Character actions support at most one active-effect plan, or one per hit-point tier.'
     )
   }
   // A grant freezes its own graph and reads only the TEST's hit path, a condition's repeated
@@ -229,7 +239,11 @@ function compileActionPlans(
       'TEST/OUTCOME actions combine only with grant, repeated-save or creature-form active-effect plans.'
     )
   }
-  return { activeEffectPlan: activeEffectPlans[0] ?? null, executionPlan }
+  return {
+    activeEffectPlan: hitPointTierPlans.length > 0 ? null : (activeEffectPlans[0] ?? null),
+    ...(hitPointTierPlans.length > 0 && { hitPointTierPlans }),
+    executionPlan
+  }
 }
 
 /**
@@ -268,7 +282,11 @@ export function compileCastChoicePlans(
 ) {
   const compiled = castChoiceOptions(descriptor.compiledEffect)?.map((option) => {
     const optionDescriptor = { ...descriptor, compiledEffect: option.compiledEffect }
-    const plans = compileActionPlans(adapter, optionDescriptor)
+    const { hitPointTierPlans, ...plans } = compileActionPlans(adapter, optionDescriptor)
+    if (hitPointTierPlans)
+      throw new CharacterRuleActionUnsupportedCompilationError(
+        'A cast pick cannot also tier on hit points.'
+      )
     return {
       option: { optionId: option.optionId, label: option.label, ...plans },
       sharedTest: sharedTestKey(adapter, optionDescriptor, plans.executionPlan)
@@ -292,9 +310,14 @@ export function compileCastChoicePlans(
     throw new CharacterRuleActionUnsupportedCompilationError(
       'The options a cast picks between share their test and their Concentration.'
     )
-  const { activeEffectPlan, executionPlan } =
+  const { activeEffectPlan, hitPointTierPlans, executionPlan } =
     options?.[0] ?? compileActionPlans(adapter, descriptor)
-  return { activeEffectPlan, executionPlan, choice: options ? { options } : null }
+  return {
+    activeEffectPlan,
+    ...(hitPointTierPlans && { hitPointTierPlans }),
+    executionPlan,
+    choice: options ? { options } : null
+  }
 }
 
 export function compileCharacterActionEntryPoints(
@@ -391,11 +414,8 @@ export function compileCharacterActionEntryPoints(
             }
           }
         }
-        const { activeEffectPlan, executionPlan, choice } = compileCastChoicePlans(
-          adapter,
-          descriptor,
-          exactTargetPolicy
-        )
+        const { activeEffectPlan, hitPointTierPlans, executionPlan, choice } =
+          compileCastChoicePlans(adapter, descriptor, exactTargetPolicy)
         return {
           schemaVersion: 4,
           kind: 'CHARACTER_ACTION',
@@ -406,6 +426,7 @@ export function compileCharacterActionEntryPoints(
             kind: 'COMPILED',
             resourceBinding: compiledResourceBinding(candidate),
             activeEffectPlan,
+            ...(hitPointTierPlans && { hitPointTierPlans }),
             zonePlacement: null,
             choice,
             executionPlan

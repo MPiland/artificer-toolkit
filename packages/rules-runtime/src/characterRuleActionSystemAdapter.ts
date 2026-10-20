@@ -69,6 +69,8 @@ export interface CharacterRuleActionActiveEffectPlan {
   recurrenceStage: 'NONE' | 'START_OF_TURN' | 'END_OF_TURN'
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
+  /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
+  hitPointTier?: { atMost: number }
   /**
    * Whose turn boundary counts the effect down: its holder's (the default) or its source's. The
    * grant tick planner counts a source-anchored effect on the source's turns.
