@@ -81,72 +81,57 @@ export const lich: CreatureAuthored = {
       label: 'Spellcasting',
       description:
         'Spellcasting. The lich is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 20, +12 to hit with spell attacks). The lich has the following wizard spells prepared: Cantrips (at will): mage hand, prestidigitation, ray of frost 1st level (4 slots): detect magic, magic missile, shield, thunderwave 2nd level (3 slots): acid arrow, detect thoughts, invisibility, mirror image 3rd level (3 slots): animate dead, counterspell, dispel magic, fireball 4th level (3 slots): blight, dimension door 5th level (3 slots): cloudkill, scrying 6th level (1 slot): disintegrate, globe of invulnerability 7th level (1 slot): finger of death, plane shift 8th level (1 slot): dominate monster, power word stun 9th level (1 slot): power word kill',
-      grants: {
-        spells: [
+      grants: S.slottedSpellcastingGrants(
+        183,
+        S.ABILITY_CODE.INTELLIGENCE,
+        [S.SPELL_IDS.MAGE_HAND, S.SPELL_IDS.PRESTIDIGITATION, S.SPELL_IDS.RAY_OF_FROST],
+        [
           {
-            id: S.actionId(183, 701),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [
-              S.SPELL_IDS.MAGE_HAND,
-              S.SPELL_IDS.PRESTIDIGITATION,
-              S.SPELL_IDS.RAY_OF_FROST
-            ],
-            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
-            order: 0
-          },
-          {
-            id: S.actionId(183, 702),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            level: 1,
+            slots: 4,
             spellIds: [
               S.SPELL_IDS.DETECT_MAGIC,
               S.SPELL_IDS.MAGIC_MISSILE,
               S.SPELL_IDS.SHIELD,
-              S.SPELL_IDS.THUNDERWAVE,
+              S.SPELL_IDS.THUNDERWAVE
+            ]
+          },
+          {
+            level: 2,
+            slots: 3,
+            spellIds: [
               S.SPELL_IDS.ACID_ARROW,
               S.SPELL_IDS.DETECT_THOUGHTS,
               S.SPELL_IDS.INVISIBILITY,
-              S.SPELL_IDS.MIRROR_IMAGE,
+              S.SPELL_IDS.MIRROR_IMAGE
+            ]
+          },
+          {
+            level: 3,
+            slots: 3,
+            spellIds: [
               S.SPELL_IDS.ANIMATE_DEAD,
               S.SPELL_IDS.COUNTERSPELL,
               S.SPELL_IDS.DISPEL_MAGIC,
-              S.SPELL_IDS.FIREBALL,
-              S.SPELL_IDS.BLIGHT,
-              S.SPELL_IDS.DIMENSION_DOOR,
-              S.SPELL_IDS.CLOUDKILL,
-              S.SPELL_IDS.SCRYING,
-              S.SPELL_IDS.DISINTEGRATE,
-              S.SPELL_IDS.GLOBE_OF_INVULNERABILITY,
-              S.SPELL_IDS.FINGER_OF_DEATH,
-              S.SPELL_IDS.PLANE_SHIFT,
-              S.SPELL_IDS.DOMINATE_MONSTER,
-              S.SPELL_IDS.POWER_WORD_STUN,
-              S.SPELL_IDS.POWER_WORD_KILL
-            ],
-            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED],
-            order: 1
-          }
-        ]
-      },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(183, 703),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(183, 704), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+              S.SPELL_IDS.FIREBALL
+            ]
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_SPELLCASTING
-        })
-      ],
+          { level: 4, slots: 3, spellIds: [S.SPELL_IDS.BLIGHT, S.SPELL_IDS.DIMENSION_DOOR] },
+          { level: 5, slots: 3, spellIds: [S.SPELL_IDS.CLOUDKILL, S.SPELL_IDS.SCRYING] },
+          {
+            level: 6,
+            slots: 1,
+            spellIds: [S.SPELL_IDS.DISINTEGRATE, S.SPELL_IDS.GLOBE_OF_INVULNERABILITY]
+          },
+          { level: 7, slots: 1, spellIds: [S.SPELL_IDS.FINGER_OF_DEATH, S.SPELL_IDS.PLANE_SHIFT] },
+          {
+            level: 8,
+            slots: 1,
+            spellIds: [S.SPELL_IDS.DOMINATE_MONSTER, S.SPELL_IDS.POWER_WORD_STUN]
+          },
+          { level: 9, slots: 1, spellIds: [S.SPELL_IDS.POWER_WORD_KILL] }
+        ]
+      ),
       order: 3
     },
     {

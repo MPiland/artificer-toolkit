@@ -68,52 +68,24 @@ export const priest: CreatureAuthored = {
       label: 'Spellcasting',
       description:
         'Spellcasting. The priest is a 5th-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 13, +5 to hit with spell attacks). The priest has the following cleric spells prepared: Cantrips (at will): light, sacred flame, thaumaturgy 1st level (4 slots): cure wounds, guiding bolt, sanctuary 2nd level (3 slots): lesser restoration, spiritual weapon 3rd level (2 slots): dispel magic, spirit guardians',
-      grants: {
-        spells: [
+      grants: S.slottedSpellcastingGrants(
+        225,
+        S.ABILITY_CODE.WISDOM,
+        [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
+        [
           {
-            id: S.actionId(225, 701),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
-            castingAbility: S.ABILITY_CODE.WISDOM,
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
-            order: 0
+            level: 1,
+            slots: 4,
+            spellIds: [S.SPELL_IDS.CURE_WOUNDS, S.SPELL_IDS.GUIDING_BOLT, S.SPELL_IDS.SANCTUARY]
           },
           {
-            id: S.actionId(225, 702),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [
-              S.SPELL_IDS.CURE_WOUNDS,
-              S.SPELL_IDS.GUIDING_BOLT,
-              S.SPELL_IDS.SANCTUARY,
-              S.SPELL_IDS.LESSER_RESTORATION,
-              S.SPELL_IDS.SPIRITUAL_WEAPON,
-              S.SPELL_IDS.DISPEL_MAGIC,
-              S.SPELL_IDS.SPIRIT_GUARDIANS
-            ],
-            castingAbility: S.ABILITY_CODE.WISDOM,
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED],
-            order: 1
-          }
+            level: 2,
+            slots: 3,
+            spellIds: [S.SPELL_IDS.LESSER_RESTORATION, S.SPELL_IDS.SPIRITUAL_WEAPON]
+          },
+          { level: 3, slots: 2, spellIds: [S.SPELL_IDS.DISPEL_MAGIC, S.SPELL_IDS.SPIRIT_GUARDIANS] }
         ]
-      },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(225, 703),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(225, 704), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PRIEST_SPELLCASTING
-        })
-      ],
+      ),
       order: 2
     },
     {
