@@ -735,7 +735,8 @@ function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind 
  * Pattern's speed of 0), and a save's grant the plan holds alone (see `saveGrantPlan`; Enthrall's
  * disadvantage on Perception, Vicious Mockery's on an attack). Any other save grant stays an
  * ordinary test outcome. A source immunity and a chosen item's release are always the plan's (see
- * `sourceImmunityPlan` and `chosenItemPlan`).
+ * `sourceImmunityPlan` and `chosenItemPlan`). An equipment degradation is the resolver's (see
+ * `planEncounterEquipmentDegradation`).
  */
 function isActiveEffectPlanOutcome(
   entry: CompiledEffectGroup['entries'][number],
@@ -746,6 +747,7 @@ function isActiveEffectPlanOutcome(
     entry.outcome.effectKind === 'ACTOR_RELATIONSHIP' ||
     entry.outcome.effectKind === 'SOURCE_IMMUNITY' ||
     entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ||
+    entry.outcome.effectKind === 'DEGRADE_EQUIPMENT' ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT')) ||
     (entry.outcome.effectKind === 'APPLY_GRANT' && saveGrantPlan(action) !== null) ||
