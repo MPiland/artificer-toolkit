@@ -1943,6 +1943,12 @@ graph's threshold reads the fact either way. Hold Person and Hold Monster author
 `FOLLOW_UP_SAVE` after their Paralyzed condition, and the condition lasts the `conditionDurationTurns` of its
 duration.
 
+**Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it
+(Guardian Naga Spit Poison) and one whose failure applies a condition and then a once-only `TARGET_TURN_END`
+save that ends the effect with a second condition (Cockatrice Bite) compile as `ESCALATING_CONDITION`.
+`escalatingImmediateSave` checks the structure; `repeatingImmediateFollowUpSavePlan` gives the effect one turn tick
+and stores the escalation condition under the same fact as the direct plan, so the repeat-save kernel is shared.
+
 `repeatingDirectFollowUpSavePlan` takes a `CONDITION` or an `APPLY_GRANT` as its lead entry. A grant lead plans
 its contribution through `modifierGrantEntryPlan` and marks it `countedByTurnEffects`: the repeat-save kernel
 rolls, counts and ends it, so the grant tick planner neither adds its extra tick nor sets a recurrence stage. In

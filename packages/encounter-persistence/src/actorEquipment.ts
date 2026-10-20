@@ -66,20 +66,23 @@ export async function replaceActorEquipment(
     snapshot: { ...snapshot, equipmentLoadoutOverride, equipmentSources },
     updatedAt
   })
+  const incompatible = new Error(
+    'Replacement Equipment is incompatible with the Creature Feature actions.'
+  )
   try {
     assertEncounterCreatureEquipmentLoadoutCapabilities(next)
-    const replaced = currentSources.find((current) => current.loadoutEntryId === entry.id)
-    const replacement = snapshotCreatureEquipmentSources(next).find(
-      (current) => current.loadoutEntryId === entry.id
-    )
-    if (
-      entry.actionFeatureIds.length > 0 &&
-      (!replaced || !replacement || !equipmentReplacementKeepsDamageTypes(replaced, replacement))
-    )
-      throw new Error('Replacement changes the damage types of the held Equipment.')
   } catch {
-    throw new Error('Replacement Equipment is incompatible with the Creature Feature actions.')
+    throw incompatible
   }
+  const replaced = currentSources.find((current) => current.loadoutEntryId === entry.id)
+  const replacement = snapshotCreatureEquipmentSources(next).find(
+    (current) => current.loadoutEntryId === entry.id
+  )
+  if (
+    entry.actionFeatureIds.length > 0 &&
+    (!replaced || !replacement || !equipmentReplacementKeepsDamageTypes(replaced, replacement))
+  )
+    throw incompatible
   if (
     new TextEncoder().encode(JSON.stringify(next.snapshot)).byteLength >
     AUTHORED_LIMITS.mutationPayloadBytes

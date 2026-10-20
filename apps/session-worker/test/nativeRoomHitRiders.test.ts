@@ -492,6 +492,56 @@ describe('seeded SRD Creature hit riders in the room', () => {
     ])
   })
 
+  it('restrains the Character with the Cockatrice’s Bite when it fails its save (ATTACK-5.15)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Cockatrice',
+      feature: 'Bite',
+      playerAutoRoll: false,
+      rolls: [18, 0]
+    })
+    const batch = await settle(room, 1)
+    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 11, resultPath: 'ON_SAVE_FAIL' })
+    expect(batch.targetTransition.after.conditionIds).toContain(conditionId('RESTRAINED'))
+    expect(batch.activeEffectTransitions).toMatchObject([{ kind: 'CREATE' }])
+  })
+
+  it('leaves the Character free when it passes the Cockatrice’s save (ATTACK-5.15)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Cockatrice',
+      feature: 'Bite',
+      playerAutoRoll: false,
+      rolls: [18, 0]
+    })
+    const batch = await settle(room, 19)
+    expect(batch.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(batch.targetTransition.after.conditionIds).not.toContain(conditionId('RESTRAINED'))
+    expect(batch.activeEffectTransitions).toEqual([])
+  })
+
+  it('poisons the Character with the Guardian Naga’s Spit Poison, with no damage before the save (ATTACK-5.15)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Guardian Naga',
+      feature: 'Spit Poison',
+      playerAutoRoll: false,
+      rolls: [18, ...Array<number>(10).fill(0)]
+    })
+    const batch = await settle(room, 1)
+    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 15, resultPath: 'ON_SAVE_FAIL' })
+    expect(batch.damage).toEqual([[10, damageTypeId('POISON')]])
+  })
+
+  it('halves the Guardian Naga’s poison when the Character passes its save (ATTACK-5.15)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Guardian Naga',
+      feature: 'Spit Poison',
+      playerAutoRoll: false,
+      rolls: [18, ...Array<number>(10).fill(0)]
+    })
+    const batch = await settle(room, 19)
+    expect(batch.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(batch.damage).toEqual([[5, damageTypeId('POISON')]])
+  })
+
   it('drains the Character’s Strength with the Shadow’s Strength Drain (ATTACK-5.12)', async () => {
     const room = await hitRiderRoom({
       creature: 'Shadow',
