@@ -452,7 +452,11 @@ Irresistible Dance and the generic holder-action save. Ruled seam: extend `lifec
 4. Runtime/room: save facts in `prepareEncounterEscapeCheck`, ON_SAVING_THROW consumed grants, pending-context and output schemas, `escapeEffectVerification`, `nativeEscapeAction`, offers; success ends the effect.
 5. Dance data: speed multiply 0, ADVANTAGE `ATTACKS_AGAINST` (`requiresHolderSeesAttacker: false`), DISADVANTAGE on attack rolls and Dex saves, charm immunity via the existing path; delete `IRRESISTIBLE_DANCE`. Proofs: grant parity and a room journey (the dancer saves as an action and the effect ends; a failed save keeps it).
 
-#### Resume: T2m1b (size 3, `repeatTriggers`, funnel hook)
+#### Resume: T2m1b (split into T2m1b1, T2m1b1b, T2m1b2)
+
+Split (orchestrator ruling): **T2m1b1 (done, size 3)** adds `FollowUpSave.repeatTriggers` (DAMAGE_TAKEN only) to the authored type, Zod schema, node map and web defaults, the stored `recurrence.repeatTriggers` and the compiler output on the active-effect plan (proof on a Hold Person homebrew; no spell converted). **`repeatTriggers` has no consumer until T2m1b2: it is stored data, not live behaviour.** **T2m1b1b (size 3)** extends the repeat plan to multiple conditions (plan, graph, a fact list instead of the single-string `dnd5e.active-effect-repeat-save-condition-id`, removal) and converts Hideous Laughter data, deleting the `HIDEOUS_LAUGHTER` kind. **T2m1b2 (size 5)** is the funnel hook below, a shared seam for T2m3, SPELLS-33.T6e2 and SPELLS-33.T4m. Parity note for b2: "can't stand up" is out of scope and a recorded gap against Hideous Laughter's rules text.
+
+Original T2m1b design (now b2):
 
 `FollowUpSave.repeatTriggers: [{ kind: 'DAMAGE_TAKEN', by: 'ANYONE' | 'SOURCE_SIDE', damageTypeIds?, rollInfluence }]` (DAMAGE_TAKEN only; HOLDER_ACTION is T2m1d's escape, so it is not on this schema). Contract for T2m1b, SPELLS-33.T6e2 (Vampire Charm) and SPELLS-33.T4m: the on-damage repeat timing is exactly this field. The hook is modelled on D161's `raiseRoomHpZeroEffects` (`apps/session-worker/src/roomEncounterHpZeroTriggers.ts`): it reads the committed receipt's DAMAGE applications, raises a SYSTEM root per holder with undo bound to the parent, and runs the effect's frozen save (same DC and ability, advantage when authored); success ends the effect. Converts HIDEOUS_LAUGHTER with room journeys for a single-target hit and an area hit. T2m3 and SPELLS-33.T6e2 follow.
 

@@ -23,6 +23,7 @@ import type {
   ActiveEffectConsumeEvent,
   ActiveEffectEndEvent,
   ActiveEffectEndTrigger,
+  ActiveEffectRepeatTrigger,
   ActiveGrantHolderEnd,
   GrantConsumeEvent,
   GrantEndEvent
@@ -96,6 +97,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     endOnEvents?: readonly ActiveEffectEndEvent[]
     /** The structured events that end the effect, unique and in canonical order. */
     endOnTriggers?: readonly ActiveEffectEndTrigger[]
+    /** The structured events that repeat the effect's save, unique and in canonical order. */
+    repeatTriggers?: readonly ActiveEffectRepeatTrigger[]
   }
   /** The timed APPLY_GRANT modifiers this effect owns, folded into the holder while it lasts. */
   modifierGrantContribution?: null | {
