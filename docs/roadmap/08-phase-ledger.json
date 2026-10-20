@@ -6366,24 +6366,37 @@
             },
             {
               "text": "A grappler that moves drags the creatures it grapples, at half speed unless each is two or more sizes smaller; dragged creatures provoke no opportunity attacks.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterMovementDrag.test.ts",
+                "apps/session-worker/test/nativeRoomGrappleDrag.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice G.",
               "id": "ATTACK-7.5"
             },
             {
               "text": "Shove replaces one attack of the Attack action against a creature within reach and no more than one size larger, with the same contest; on a win the shover knocks it prone or pushes it 5 feet away.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomShoveContest.test.ts",
+                "apps/session-worker/test/nativeRoomAttackAction.test.ts",
+                "packages/rules-runtime/src/__tests__/checkActionCompile.test.ts",
+                "packages/authoring/src/nodeRuntime/contestOutcomeAuthoringParity.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice F.",
               "id": "ATTACK-7.6"
             },
             {
               "text": "Forced movement is authored with a direction (away, toward, aside within the source's reach, or any) and an exact or up-to distance; away and toward follow the straight line from the source through the target (the mover chooses only how far, for an up-to distance), any lets the mover pick a legal unoccupied square, and it provokes no opportunity attacks. A homebrew Crusher feat (any direction, 5 feet, on a bludgeoning hit) proves the any-direction case.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomForcedMovement.test.ts",
+                "apps/session-worker/test/nativeRoomAreaForcedMovementPick.test.ts",
+                "apps/session-worker/test/nativeRoomCrusher.test.ts",
+                "packages/shared/src/__tests__/optionalCombatGeometry.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice E.",
               "id": "ATTACK-7.7"
@@ -6595,7 +6608,7 @@
             },
             {
               "id": "ATTACK-7.T10",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.5", "ATTACK-7.6", "ATTACK-7.7"],
               "wsjf": {
                 "bv": 3,
@@ -6603,7 +6616,8 @@
                 "rr": 3,
                 "size": 3
               },
-              "text": "Close the proof gaps the 2026-10-20 audit found in merged work: a drag with mixed-size holds prices each creature (7.5); Shove refused outside reach and against a target more than one size larger, and Shove filling one attack of the Attack action (7.6); room-level ASIDE and single-target UP_TO forced movement, and no opportunity attacks on a picked forced move (7.7). Tests run real code; a failing test is a bug to fix in this task, with the test as its regression proof."
+              "text": "Close the proof gaps the 2026-10-20 audit found in merged work: a drag with mixed-size holds prices each creature (7.5); Shove refused outside reach and against a target more than one size larger, and Shove filling one attack of the Attack action (7.6); room-level ASIDE and single-target UP_TO forced movement, and no opportunity attacks on a picked forced move (7.7). Tests run real code; a failing test is a bug to fix in this task, with the test as its regression proof.",
+              "note": "Merged m217 (f2e325779). Found and fixed: a Shove or Grapple spent the Action without opening the Attack action (D152 amendment)."
             }
           ],
           "wsjf": {
@@ -7786,7 +7800,7 @@
             },
             {
               "id": "ATTACK-19.T4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-19.4"],
               "wsjf": {
                 "bv": 5,
