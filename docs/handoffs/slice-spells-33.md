@@ -602,6 +602,7 @@ Authoring the gate as a second ON_HIT path in the attack fails the same shape ch
 outcome. `collectOnHitRiders` also skips effects that carry a CLOSED_RULE.
 
 Build:
+
 1. A Feature-scoped rider: a passive that rides only the named Feature's attack, not every attack with the trigger.
 2. In the merge, rewrite the rider's entries (damage and FOLLOW_UP_SAVE) into the weapon's result block and group kind; the
    weapon path must be SEQUENTIAL so the shape matches. The existing `FORCED_MOVEMENT_THEN_CONDITION` shape already fits the
@@ -612,8 +613,8 @@ Build:
    - Unicorn: minFeet 20, 2d8 piercing, DC 15, on Horn.
    - Wereboar: minFeet 15, 2d6 slashing, DC 13; the Feature label is 'Charge (Boar or Hybrid Form Only)'. Its Tusks already carry a CON
      follow-up save, which may conflict with the one-save shape.
-   Warhorse and Weretiger are not in this slice (D164).
+     Warhorse and Weretiger are not in this slice (D164).
 4. Authoring-parity proof plus real-code tests; delete the four closed kinds (GIANT_ELK_CHARGE_GATE, MINOTAUR_SKELETON_CHARGE,
    UNICORN_CHARGE, WEREBOAR_CHARGE) from `closedRuleKind.ts` and the T1 table rows; update the plan row and the rules-runtime doc.
-Accepted limits (D164): a move published in segments records only the last segment; dragged tokens do not clear `lastMove`; the
-reaction and opportunity-attack route has no `loadMoveToward`, so the gate fails off-turn.
+   Accepted limits (D164): a move published in segments records only the last segment; dragged tokens do not clear `lastMove`; the
+   reaction and opportunity-attack route has no `loadMoveToward`, so the gate fails off-turn.
