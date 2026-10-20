@@ -4954,7 +4954,7 @@
             {
               "id": "SCENE-5.T1",
               "text": "The GM grants and revokes Campaign-level control of a Character; granted members move its tokens outside Encounters and are its controllers in every Run. One source of truth with the existing per-Run controllerUserIds (ADR 0034, max 8, assigned player always a controller).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SCENE-5.1"],
               "wsjf": {
                 "bv": 8,
@@ -4979,7 +4979,7 @@
             {
               "id": "SCENE-5.T3",
               "text": "Zoom control (percentage field and steps) with per-device zoom for every viewer, a screen-sized tabletop popup and a Full screen button.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SCENE-5.3"],
               "wsjf": {
                 "bv": 8,
