@@ -8654,7 +8654,7 @@
             },
             {
               "id": "SPELLS-4.T2d2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8664,8 +8664,20 @@
                 "after": ["SPELLS-4.T2d", "SPELLS-4.T2l"]
               },
               "text": "Generic option: move a held effect to a new target as a granted action (Hunter’s Mark re-mark after its target drops to 0 HP), with a parity proof and a room journey. Split from SPELLS-4.T2d (2026-10-18 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": "Ruling A (2026-10-20): authored lifecycle move-on-holder-0-HP compiled into the effect, offered through T2lb's grantedActions seam as MOVE_HELD_EFFECT; waits for T2lb to merge. 2026-10-20 ruling: T2lb offers only holder basic actions, so T2d2 builds the generic source-side offer seam (discovery by source or holder role, pick with range and LOS, re-home commit with undo); T2lb2 reuses it. Size 2 to 5."
+              "note": "Ruling A (2026-10-20): authored lifecycle move-on-holder-0-HP compiled into the effect, offered through T2lb's grantedActions seam as MOVE_HELD_EFFECT; waits for T2lb to merge. 2026-10-20 ruling: T2lb offers only holder basic actions, so T2d2 builds the generic source-side offer seam (discovery by source or holder role, pick with range and LOS, re-home commit with undo); T2lb2 reuses it. Size 2 to 5. Merged m237 (56033ee03): authored lifecycle.effectOffers (MOVE_HELD_EFFECT), offer discovery, MOVE_HELD_EFFECT command with undo; Hunter's Mark re-mark from data. Web new-holder picker split to T2d3."
+            },
+            {
+              "id": "SPELLS-4.T2d3",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2d2"]
+              },
+              "text": "Effect offers in the web table (split from T2d2, 2026-10-20): the action choices response already carries effectOffers[]; show them in the actor drawer and stage, with a Scene token pick for the new holder, so a player can move a held effect (Hunter's Mark re-mark) in-app. Stories, component tests and a browser journey."
             },
             {
               "status": "DONE",
@@ -8731,7 +8743,7 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled 2026-10-20: a hit-point threshold gate on the result block and a generic KILL outcome, plus the HIT_POINT_TIERS contract (compile only). Converts POWER_WORD_KILL with parity and room proofs; kind deleted. Split 2026-10-20: Power Word Stun to T2i3, Divine Word to T2i4, Death Ward to T2i2; FINGER_OF_DEATH_ZOMBIE to SPELLS-33.T6a2.",
+              "text": "New generic option (D156 T2 split, class B), ruled 2026-10-20: a hit-point threshold gate on the result block and a generic KILL outcome, plus the HIT_POINT_TIERS contract (compile only). Converts POWER_WORD_KILL with parity and room proofs; kind deleted. Split 2026-10-20: Power Word Stun to T2i3, Divine Word to T2i4, Death Ward to T2i2. FINGER_OF_DEATH_ZOMBIE (zombie rise) moves to SPELLS-33.T6a2; the Finger of Death kill is ordinary damage and already runs.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
@@ -8745,7 +8757,7 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2i"]
               },
-              "text": "Power Word Stun (split from T2i, 2026-10-20): a gated condition apply and a repeating follow-up save on an activated action, honoured by active-effect creation. Converts POWER_WORD_STUN with a parity proof; kind deleted. Includes the Finger of Death kill if T2i did not land it."
+              "text": "Power Word Stun (split from T2i, 2026-10-20): a gated condition apply and a repeating follow-up save on an activated action, honoured by active-effect creation. Converts POWER_WORD_STUN with a parity proof; kind deleted."
             },
             {
               "id": "SPELLS-4.T2i4",
@@ -12065,7 +12077,7 @@
             },
             {
               "id": "SPELLS-31.T5n",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12074,11 +12086,12 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): movement-bound end events and gates; One with Shadows, Hide in Plain Sight, Supreme Sneak. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): movement-bound end events and gates; One with Shadows, Hide in Plain Sight, Supreme Sneak. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5o",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12087,7 +12100,21 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): initiative events; Perfect Self, Superior Inspiration, Thief's Reflexes. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option, ruled 2026-10-20: a ROLL_INITIATIVE trigger (fires once per actor when initiative settles) and a RESTORE_RESOURCE outcome (feature charge restored to a floor when at 0). Perfect Self, Superior Inspiration (Bardic Inspiration as a feature charge). Thief's Reflexes split to T5o2. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T5o2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T5o"]
+              },
+              "text": "Extra turn (split from T5o, 2026-10-20): an EXTRA_TURN outcome on the ROLL_INITIATIVE trigger, adding a first-round turn-order entry at an initiative offset (Thief's Reflexes: initiative minus 10, round 1 only). Authoring-parity proof and room journey; deletes its kind."
             },
             {
               "id": "SPELLS-31.T5p",
@@ -12411,7 +12438,7 @@
             },
             {
               "id": "SPELLS-33.T3b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12420,7 +12447,22 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "A: author spell slot charges for the slotted casters (acolyte pattern) and delete their spellcasting kinds (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "A: author spell slot charges for the slotted casters (acolyte pattern) and delete their spellcasting kinds (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
+              "note": "2026-10-20 ruling: data conversion with parity proofs (spell list, DC and slots stay visible to the GM); the room cast proof moves to T3c because creature SPELL_GRANTs are not castable in a room yet."
+            },
+            {
+              "id": "SPELLS-33.T3c",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T3b"]
+              },
+              "text": "Creature spell grants cast in the room (found by T3b, 2026-10-20): creatureFeatureGrantFold folds creature SPELL_GRANTs to no spells, and grant handling (cast at level, limited use, slot charges) is Character-only. A creature with authored spell grants offers those spells, casts them through the existing cast path, spends its slot or use with undo, and refreshes on its rest. Room journey: a converted SRD caster casts a levelled spell and spends the slot."
             },
             {
               "id": "SPELLS-33.T4c",
