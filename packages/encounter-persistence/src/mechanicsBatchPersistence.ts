@@ -15,6 +15,7 @@ import type {
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { rejectDomain } from './domainRejections.js'
+import { ensureEncounterSpellPins } from './spellPins.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
 import { endGrantsOnHitPointsRegained } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
@@ -185,6 +186,14 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       plan.itemDrawTransition?.kind === 'CHARACTER_ITEM_DRAW'
     )
       throw new Error('Encounter non-Character plan contains Character state.')
+    // A system-less actor is an ad hoc one: it names no authored Spells.
+    if (formChanged && actor.systemId)
+      await ensureEncounterSpellPins(ctx, ctx.ports.readEncounterSource, {
+        encounterId: actor.encounterId,
+        userId: target.userId,
+        systemId: actor.systemId,
+        snapshots: [updatedActor.snapshot]
+      })
     if (plan.stateChanged || updatedActor !== plan.updatedActor)
       await writeRunActor(ctx, actorRow._id, updatedActor)
     return {

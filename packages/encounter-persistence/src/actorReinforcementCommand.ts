@@ -27,6 +27,7 @@ import {
   replayEncounterCommandResult
 } from './replayReceipts.js'
 import { insertReinforcementInitiative } from './actorReinforcementInitiative.js'
+import { ensureEncounterSpellPins } from './spellPins.js'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
@@ -76,7 +77,7 @@ function requireHistoricalActor(input: {
 
 export async function reinforceEncounterActors(
   ctx: EncounterPersistenceTransaction & {
-    readonly ports: Pick<EncounterWritePorts, 'snapshotBlueprintEnemies'>
+    readonly ports: Pick<EncounterWritePorts, 'snapshotBlueprintEnemies' | 'readEncounterSource'>
   },
   command: ReinforceCommand,
   userId: string
@@ -252,6 +253,12 @@ export async function reinforceEncounterActors(
     await writeRunActor(ctx, actorRow._id, updatedActor)
   }
   await insertRunActor(ctx, actor)
+  await ensureEncounterSpellPins(ctx, ctx.ports.readEncounterSource, {
+    encounterId: row.id,
+    userId,
+    systemId: state.gameSystemId,
+    snapshots: [actor.snapshot]
+  })
   await ctx.db.patch(row._id, {
     version: nextState.version,
     updatedAt: now,

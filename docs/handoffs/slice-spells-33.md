@@ -557,6 +557,15 @@ Branch `ci/spells-33-t3c2a`, base the phase branch. Size ~5. Do not edit the led
 - `encounterFeatureActionCapabilityDiscovery.ts` `discover` gains the loaded spells and emits `ENCOUNTER_FEATURE` capabilities (`spellCast: { castLevel }`, the spell's compiled effect group) through `bindEffect`. One cast action runs one effect group; follow `buildCharacterSpellCastActions` (several groups only when each is a reaction).
 - Out of scope: spending (T3c2b), rest (T3c3). Proof: rules-runtime tests that Mage lists Fireball at levels 3-5 and cantrips at will, and Character cast lists unchanged.
 
+## T3c2a2b resume: load Spell pins into discovery (fresh session, after T3c2a2a)
+
+Branch `ci/spells-33-t3c2a2b`. Size ~3. Do not edit the ledger. T3c2a2a (D163 pinning) landed the table, the pin writers and the lifecycle; nothing reads the pins yet.
+
+- Landed by T3c2a2a: `encounterSpellPins` (`(encounterId, spellId)`, stored compilation, whole-Run lifetime, deleted on completion, Campaign deletion and development removal), `readEncounterSource` kind `SPELL`, and `ensureEncounterSpellPins` at run creation, reinforcement and form entry. Helpers: `packages/encounter-persistence/src/spellPins.ts` (`readEncounterSpellPins` hydrates a Run's pins and fails closed).
+- Load the pins in the Convex read path and in the Session Worker room (`roomInputs.ts` already loads the rows; hydrate them with `readEncounterSpellPins` or `readStoredSpellPin`), and pass `spells` (`ReadonlyMap<string, CompiledSpell>`) into the five synchronous `discoverEncounterFeatureActionCapabilities` callers: `encounterProjection`, legendary discovery, initiative declaration, movement reaction facts and the creature action fixtures.
+- Replay safety proofs: a Spell edited or deleted after the pin gives the same discovery (no recompile, no source read); a missing pin for a named Spell fails closed rather than dropping the cast.
+- Character-kind actors that enter a Creature form are not pinned (they use their own Spells); pins are not released per actor.
+
 ## T3c2b resume: creature cast, slot spend and undo in the room (fresh session, after T3c2a)
 
 Branch `ci/spells-33-t3c2b`. Size ~5. Do not edit the ledger.

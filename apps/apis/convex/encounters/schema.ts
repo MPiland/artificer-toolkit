@@ -9,6 +9,7 @@ import {
   encounterStoredRunActorSchema,
   encounterStoredActorSnapshotSchema,
   encounterStoredSourceProjectionFactsSchema,
+  encounterStoredSpellPinSchema,
   encounterSceneBindingSchema,
   encounterActorTokenBindingSchema,
   encounterStoredRuleOccurrenceSchema,
@@ -47,6 +48,10 @@ export const encounterTables = {
   encounterSourceProjectionFacts: defineTable(
     zodToConvexFields(encounterStoredSourceProjectionFactsSchema.shape)
   ).index('by_encounterId_checksum', ['encounterId', 'checksum']),
+  encounterSpellPins: defineTable(zodToConvexFields(encounterStoredSpellPinSchema.shape)).index(
+    'by_encounterId_spellId',
+    ['encounterId', 'spellId']
+  ),
   encounterSceneBindings: defineTable(zodToConvexFields(encounterSceneBindingSchema.shape)).index(
     'by_encounterId',
     ['encounterId']
