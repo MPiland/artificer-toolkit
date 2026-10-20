@@ -20,9 +20,9 @@ import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splas
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
@@ -67,7 +67,7 @@ async function fixture() {
       }
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [fireBolt, acidSplash].map((spell) =>
       importedSubject({ subjectKind: 'SPELL', ...spell, document: spell })
@@ -110,7 +110,7 @@ describe('native Character Sheet spell customization', () => {
         spellLimits: [{ classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], cantripsLimit: 0 }]
       }
     })
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({

@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
 import { createCharacterBuilderCatalog } from '@artificer-toolkit/rules-runtime/character/builderCatalog'
 import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.js'
@@ -8,11 +8,6 @@ import { clubPlus1 } from '@artificer-toolkit/source-data/srd/equipment/club-plu
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
-import {
-  deleteAuthoredVersion,
-  insertAuthoredVersion,
-  readAuthoredVersionCompilation
-} from '../content/documents'
 import * as relationships from '../content/equipmentRelationships'
 import { loadCharacterBuilderContext } from './builderContext'
 
@@ -20,7 +15,6 @@ afterEach(() => vi.restoreAllMocks())
 
 it.each([
   ['missing parent', 'Readable parent Equipment in the same System is required.'],
-  ['cycle', 'Equipment variant cycle detected.'],
   ['metadata mismatch', 'Stored Equipment parent metadata mismatch.']
 ] as const)('rejects catalogue inheritance with %s', async (failure, message) => {
   const child = { ...clubPlus1, parentEquipmentId: backpack.id }
@@ -42,41 +36,7 @@ it.each([
       .unique()
     if (!root) throw new Error('Missing Equipment fixture.')
     if (failure === 'missing parent') await ctx.db.delete(root._id)
-    else if (failure === 'metadata mismatch')
-      await ctx.db.patch(root._id, { parentEquipmentId: null })
-    else {
-      const document = { ...child, parentEquipmentId: child.id }
-      const imported = importedSubject({
-        subjectKind: 'EQUIPMENT',
-        ...document,
-        document
-      })
-      const version = await ctx.db.get(root.currentVersionId)
-      if (!version) throw new Error('Missing Equipment version fixture.')
-      const compilation = await readAuthoredVersionCompilation(ctx, version)
-      await deleteAuthoredVersion(ctx, version)
-      const currentVersionId = await insertAuthoredVersion(
-        ctx,
-        {
-          subjectKind: version.subjectKind,
-          id: version.id,
-          systemId: version.systemId,
-          label: version.label,
-          checksum: imported.checksum,
-          contentSourceId: version.contentSourceId,
-          versionId: version.versionId,
-          version: version.version,
-          documentSchemaVersion: version.documentSchemaVersion
-        },
-        canonicalizeRuleDocument(imported.document),
-        compilation
-      )
-      await ctx.db.patch(root._id, {
-        parentEquipmentId: child.id,
-        checksum: imported.checksum,
-        currentVersionId
-      })
-    }
+    else await ctx.db.patch(root._id, { parentEquipmentId: null })
   })
   const character = createEmptyCharacterAuthored({
     id: crypto.randomUUID(),
@@ -244,7 +204,7 @@ it.each([
   ['missing parent', 'Readable parent Equipment in the same System is required.'],
   ['cycle', 'Equipment variant cycle detected.'],
   ['metadata mismatch', 'Stored Equipment parent metadata mismatch.'],
-  ['checksum mismatch', 'Stored equipment option checksum mismatch.']
+  ['checksum mismatch', 'Stored Equipment builder facts are missing or stale.']
 ] as const)(
   'rejects invalid materialized Equipment catalogue facts: %s',
   async (failure, message) => {
@@ -301,7 +261,7 @@ it.each([
   }
 )
 
-it('falls back to complete publications when any Equipment catalogue fact lacks its builder projection', async () => {
+it('fails closed when any Equipment catalogue fact lacks its builder projection', async () => {
   const base = { ...backpack, label: 'Z parent', maxStack: 5 }
   const child = { ...clubPlus1, label: 'A child', parentEquipmentId: base.id }
   const documents = [base, child]
@@ -329,25 +289,10 @@ it('falls back to complete publications when any Equipment catalogue fact lacks 
     systemId: srdSystemRecord.id,
     userId: first.userId
   })
-  const result = await t.run(
-    async (ctx) =>
-      (await loadCharacterBuilderContext(ctx, character, first.userId, 'resolution')).catalog
-        .equipment
-  )
-  const expected = createCharacterBuilderCatalog({
-    system: srdSystemRecord,
-    races: [],
-    classes: [],
-    backgrounds: [],
-    equipment: [...documents]
-      .sort((left, right) => left.label.localeCompare(right.label))
-      .map((document) =>
-        resolveEquipmentAuthored(document, (id) => documents.find((parent) => parent.id === id))
-      ),
-    feats: [],
-    spells: []
-  }).equipment
-  expect(result).toEqual(expected)
+  // D163: the catalogue reads stored builder facts only and never falls back to payloads.
+  await expect(
+    t.run((ctx) => loadCharacterBuilderContext(ctx, character, first.userId, 'resolution'))
+  ).rejects.toThrow('Stored Equipment builder facts are missing or stale.')
 })
 it('rejects corrupt materialized facts even when another Equipment root needs backfill', async () => {
   const base = { ...backpack, label: 'Z parent' }
@@ -388,5 +333,5 @@ it('rejects corrupt materialized facts even when another Equipment root needs ba
   })
   await expect(
     t.run((ctx) => loadCharacterBuilderContext(ctx, character, first.userId, 'resolution'))
-  ).rejects.toThrow('Stored equipment option checksum mismatch.')
+  ).rejects.toThrow('Stored Equipment builder facts are missing or stale.')
 })

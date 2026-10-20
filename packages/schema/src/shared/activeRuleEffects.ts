@@ -19,6 +19,7 @@ import {
   MAX_ACTIVE_EFFECT_TURNS,
   activeEffectUsesSchema
 } from './activeRuleEffectLifecycle.js'
+import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import {
   activationCodeSchema,
@@ -383,12 +384,21 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
        * modifiers are frozen at creation and held for `turns` of the holder's own turns. The effect
        * store creates it where the ended effect is removed; a created follow-on carries none.
        */
-      onEnd: z.optional(activeEffectOnEndSchema)
+      onEnd: z.optional(activeEffectOnEndSchema),
+      /**
+       * The actions the holder may take while this effect is held (Expeditious Retreat, Haste's extra
+       * action). Frozen at creation; the offer is read from the held effect, never from the spell.
+       */
+      grantedActions: z.optional(storedGrantedActionsSchema)
     })
     .check(
       z.refine(
-        (contribution) => contribution.modifiers.length + contribution.senses.length > 0,
-        'A grant contribution grants a modifier or a sense.'
+        (contribution) =>
+          contribution.modifiers.length +
+            contribution.senses.length +
+            (contribution.grantedActions?.length ?? 0) >
+          0,
+        'A grant contribution grants a modifier, a sense or an action.'
       )
     )
 )

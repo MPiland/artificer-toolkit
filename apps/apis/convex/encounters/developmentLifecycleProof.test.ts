@@ -9,7 +9,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { verifyEncounterLifecycle } from '../../tests/developmentEncounterLifecycle'
@@ -116,7 +116,7 @@ it('runs the shared Manual and Assisted lifecycles, native map/Scene binding and
   })
   await seedRoomContentSnapshots(campaign.id)
   const result = await verifyEncounterLifecycle({ ...clients, campaignId: campaign.id })
-  await t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
   })

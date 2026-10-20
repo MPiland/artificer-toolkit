@@ -17,8 +17,8 @@ import {
   createCharacterResourceOwnerKey,
   toCharacterResourceOwnerKey
 } from '@artificer-toolkit/shared/character'
-import { api, internal } from '../_generated/api'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
@@ -101,7 +101,7 @@ async function fixture(spellcasting?: typeof wizard.spellcasting) {
   }
   const creature = { ...cat, id: crypto.randomUUID(), label: 'Rest Cat', features: [feature] }
   const base = await readyCharacterFixture({ resources: shortResource, spellcasting })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ subjectKind: 'EQUIPMENT', ...longEquipment, document: longEquipment }),

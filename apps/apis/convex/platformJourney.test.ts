@@ -21,7 +21,7 @@ import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { convexTest } from '../tests/convexTest'
-import { importedSubject } from '../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../tests/fixtures/publication'
 import { api, internal } from './_generated/api'
 import schema from './schema'
 
@@ -161,7 +161,7 @@ describe('Platform bootstrap and bounded read journeys (PLATFORM-2)', () => {
     }
 
     // 5. SRD content is imported; readers see it scoped to its System, in bounded pages.
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: srdSubjects
     })

@@ -336,7 +336,7 @@ Drawing a weapon while every hand holds a weapon or a grappled creature is refus
 
 ### Touch and Heated Body retaliation (D153)
 
-The Balor's "touches the balor" clause needs a touch event, which the rules runtime does not model. Heated Body (Azer, Remorhaz, Salamander) is data on D153's `MELEE_HIT_ON_SOURCE` zone option and can be authored once T6d lands.
+The Balor's "touches the balor" clause needs a touch event, which the rules runtime does not model. Heated Body is authored as a zone-less passive melee trait (SPELLS-33 T4k2, Remorhaz); Azer and Salamander still carry it as description only and can author the same trait.
 
 ### Hand-rolled retaliation dice (D153)
 

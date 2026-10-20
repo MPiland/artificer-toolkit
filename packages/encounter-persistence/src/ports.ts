@@ -1,4 +1,5 @@
 import type { AuthIdentityDto } from '@artificer-toolkit/schema/api/authIdentity'
+import type { AuthoredStoredCompilation } from '@artificer-toolkit/schema/api/authoredPublication'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type {
   GmCampaignRollDto,
@@ -36,12 +37,13 @@ export type CampaignAuthority = {
   membership: EncounterDocument<'campaignMemberships'>
 }
 
-/** A published Creature or Equipment source an Encounter snapshot pins. */
+/** A published Creature or Equipment source an Encounter snapshot pins, with its stored compilation. */
 export type EncounterAuthoredSource = {
   document: unknown
   checksum: string
   version: number
   versionId: string
+  compilation: AuthoredStoredCompilation
 }
 
 /**

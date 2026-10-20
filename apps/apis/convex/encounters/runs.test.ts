@@ -20,8 +20,8 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { srdPrintedArmorClass, srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { encounterReadTransaction } from './encounterPorts'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -90,7 +90,7 @@ async function setup() {
 describe('native Encounter Run creation', () => {
   it('evaluates a real Creature snapshot through the native policy', async () => {
     const { t, other, input } = await setup()
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
     })

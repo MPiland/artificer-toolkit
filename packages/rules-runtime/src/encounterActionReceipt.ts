@@ -155,6 +155,7 @@ export function buildEncounterActionStoredExecution(input: {
             targetFeatureResourceConsumption: null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             sourceItemDraw: settled.sourceItemDraw,
+            sourceItemDegradation: settled.sourceItemDegradation,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
             targetItemDegradation: settled.targetItemDegradation,
@@ -193,6 +194,7 @@ export function buildEncounterActionStoredExecution(input: {
             ...(input.maintenanceTransition ||
             settled.sourceItemUseStateTransition ||
             settled.sourceItemDraw?.kind === 'CHARACTER_ITEM_DRAW' ||
+            settled.sourceItemDegradation ||
             settled.itemConsumptionReceipt ||
             settled.spellConsumptionReceipt ||
             settled.sourceApplications.length
@@ -209,6 +211,7 @@ export function buildEncounterActionStoredExecution(input: {
             reaction: reactionReceipt((transition) => transition),
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             sourceItemDraw: settled.sourceItemDraw,
+            sourceItemDegradation: settled.sourceItemDegradation,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
             actionEconomyTransition,

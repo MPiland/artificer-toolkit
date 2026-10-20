@@ -21,11 +21,13 @@ reloads content from cached inputs without a Convex call. Character rules prepar
 reads those objects through the browser Builder's snapshot readers (S10, implemented locally; the
 end-to-end proof is REL-4's). System/vocabulary inputs keep the existing revision-bound
 path; a new SYSTEM snapshot format is outside this completion.
-SOURCE/CAMPAIGN objects now use format 2 and `v2/` keys. Their `documents` part includes an aligned
+SOURCE/CAMPAIGN objects now use format 3 and `v3/` keys. Their `documents` part includes an aligned
 `versions` array with each root's original public version ID, numeric version, stored checksum,
 actual content-source ID and stored parent metadata. Those pins identify the stored publication;
-the object hash or a normalized DTO hash cannot replace them. The pre-launch local reset/rebuild
-replaces format 1 objects before browser/room integration proofs. No format 1 compatibility is kept.
+the object hash or a normalized DTO hash cannot replace them. Amendment (PLATFORM-21.T1b, D163):
+format 3 adds an aligned `compilations` array, each root's stored compilation row, which the
+browser Builder, commit and the room hydrate instead of compiling the documents. The local
+rebuild replaces format 2 objects; no format 1 or 2 compatibility is kept.
 The shared local R2 fixture bridge and in-memory content-token secret wiring are implemented locally;
 complete browser Builder and snapshot-list proof remains pending.
 See [the implementation plan](../handoffs/adr-0036-implementation-plan.md) for slice evidence and local integration gaps.
@@ -42,8 +44,8 @@ Q16 makes Convex database I/O the binding free-tier constraint. Published conten
    - **Granularity:** one object per scope × subject kind × part. The parts are `index`, the picker facts, `list`, the columns, filter facts and search text of the authored-content list pages (S11), and `documents`, the full published documents.
    - **Scopes:** a content source (`SOURCE`, PLATFORM sources such as the SRD included, because Campaign rules catalogues select PLATFORM sources) and a Campaign's share set (`CAMPAIGN`). A `SYSTEM` scope will hold only System-level data (the System document, vocabulary and definitions) with its own object format, added when a reader needs it (D67).
    - **Keys:** the SHA-256 of canonical JSON, which includes a format and scope header.
-   - **Source pins:** format 2 document objects retain original publication version metadata beside
-     the normalized documents, in the same root order. Build and read validation bind every pin to
+   - **Source pins:** format 3 document objects retain original publication version metadata and
+     the stored compilation beside the normalized documents, in the same root order. Build and read validation bind every pin to
      its root, kind and System, and SOURCE pins to their actual source scope.
    - **Heads:** Convex records each scope's current hashes in `contentSnapshotHeads`.
    - **Building:** a coalesced, compare-and-set-fenced scheduled action, triggered from the writing transaction through the existing mutation triggers.

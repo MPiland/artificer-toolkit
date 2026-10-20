@@ -566,6 +566,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       }
     case 'pathLifecycleHolderEnd':
       return { activation: 'BONUS_ACTION' }
+    case 'pathLifecycleGrantedAction':
+      return { activation: 'BONUS_ACTION', actionDefinitionIds: [] }
     case 'pathLifecycleOnEnd':
       return { turns: 1, modifiers: [] }
     case 'pathLifecycleTurnAnchor':

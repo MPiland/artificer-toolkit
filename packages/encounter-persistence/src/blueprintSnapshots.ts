@@ -33,7 +33,7 @@ export async function buildEncounterBlueprintEnemies({
     const creature: CreatureAuthored = creatureAuthoredDtoSchema.parse(source.document)
     const equipmentSources = pinCreatureEquipmentSources({
       creature,
-      equipmentRecords: await readCreatureEquipmentRecords(
+      equipment: await readCreatureEquipmentRecords(
         (id) => readSource(id, 'EQUIPMENT'),
         (creature.equipmentLoadout ?? []).map((entry) => entry.equipmentId)
       )

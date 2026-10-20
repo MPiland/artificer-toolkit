@@ -11,7 +11,10 @@ import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
 } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
-import { assertEncounterCreatureEquipmentLoadoutCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscovery'
+import {
+  assertEncounterCreatureEquipmentLoadoutCapabilities,
+  equipmentReplacementKeepsDamageTypes
+} from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscovery'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { readCreatureEquipmentRecords } from './creatureEquipmentRecords.js'
@@ -44,7 +47,7 @@ export async function replaceActorEquipment(
       ...armorClassInputs,
       equipmentLoadout: [{ ...entry, equipmentId: input.equipmentId }]
     },
-    equipmentRecords: await readCreatureEquipmentRecords(
+    equipment: await readCreatureEquipmentRecords(
       (id) => ctx.ports.readEncounterSource(userId, systemId, id, 'EQUIPMENT'),
       [input.equipmentId]
     )
@@ -63,11 +66,23 @@ export async function replaceActorEquipment(
     snapshot: { ...snapshot, equipmentLoadoutOverride, equipmentSources },
     updatedAt
   })
+  const incompatible = new Error(
+    'Replacement Equipment is incompatible with the Creature Feature actions.'
+  )
   try {
     assertEncounterCreatureEquipmentLoadoutCapabilities(next)
   } catch {
-    throw new Error('Replacement Equipment is incompatible with the Creature Feature actions.')
+    throw incompatible
   }
+  const replaced = currentSources.find((current) => current.loadoutEntryId === entry.id)
+  const replacement = snapshotCreatureEquipmentSources(next).find(
+    (current) => current.loadoutEntryId === entry.id
+  )
+  if (
+    entry.actionFeatureIds.length > 0 &&
+    (!replaced || !replacement || !equipmentReplacementKeepsDamageTypes(replaced, replacement))
+  )
+    throw incompatible
   if (
     new TextEncoder().encode(JSON.stringify(next.snapshot)).byteLength >
     AUTHORED_LIMITS.mutationPayloadBytes

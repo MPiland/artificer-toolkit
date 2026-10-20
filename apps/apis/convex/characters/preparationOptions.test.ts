@@ -16,9 +16,9 @@ import { detectMagic } from '@artificer-toolkit/source-data/srd/spells/detect-ma
 import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readCharacterRow } from './stateDocuments'
 
 const getOptions = makeFunctionReference<
@@ -62,7 +62,7 @@ async function fixture(usesSpellbook = true) {
       spellLimits: [{ classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], cantripsLimit: 0 }]
     }
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       ...[magicMissile, shield, detectMagic].map((spell) =>

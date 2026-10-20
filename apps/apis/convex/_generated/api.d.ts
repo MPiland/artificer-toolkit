@@ -26897,7 +26897,8 @@ export declare const api: {
                             | "MELEE_SPELL_ATTACK"
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
-                            | "ENTER_AREA";
+                            | "ENTER_AREA"
+                            | "INCOMING_WEAPON_HIT";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -37914,7 +37915,8 @@ export declare const api: {
                             | "MELEE_SPELL_ATTACK"
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
-                            | "ENTER_AREA";
+                            | "ENTER_AREA"
+                            | "INCOMING_WEAPON_HIT";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -48940,7 +48942,8 @@ export declare const api: {
                             | "MELEE_SPELL_ATTACK"
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
-                            | "ENTER_AREA";
+                            | "ENTER_AREA"
+                            | "INCOMING_WEAPON_HIT";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -59957,7 +59960,8 @@ export declare const api: {
                             | "MELEE_SPELL_ATTACK"
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
-                            | "ENTER_AREA";
+                            | "ENTER_AREA"
+                            | "INCOMING_WEAPON_HIT";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -71009,7 +71013,8 @@ export declare const api: {
                             | "MELEE_SPELL_ATTACK"
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
-                            | "ENTER_AREA";
+                            | "ENTER_AREA"
+                            | "INCOMING_WEAPON_HIT";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -82026,7 +82031,8 @@ export declare const api: {
                             | "MELEE_SPELL_ATTACK"
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
-                            | "ENTER_AREA";
+                            | "ENTER_AREA"
+                            | "INCOMING_WEAPON_HIT";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -93000,7 +93006,8 @@ export declare const api: {
                           | "MELEE_SPELL_ATTACK"
                           | "RANGED_SPELL_ATTACK"
                           | "INCOMING_SAVING_THROW"
-                          | "ENTER_AREA";
+                          | "ENTER_AREA"
+                          | "INCOMING_WEAPON_HIT";
                       }
                     | {
                         damageTypeIds: Array<string>;
@@ -103920,7 +103927,8 @@ export declare const api: {
                             | "MELEE_SPELL_ATTACK"
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
-                            | "ENTER_AREA";
+                            | "ENTER_AREA"
+                            | "INCOMING_WEAPON_HIT";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -114937,7 +114945,8 @@ export declare const api: {
                             | "MELEE_SPELL_ATTACK"
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
-                            | "ENTER_AREA";
+                            | "ENTER_AREA"
+                            | "INCOMING_WEAPON_HIT";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -136313,6 +136322,20 @@ export declare const internal: {
       >;
     };
     compilationMigration: {
+      backfillRootCatalogueFacts: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
       recompileStaleCompilations: FunctionReference<
         "mutation",
         "internal",
@@ -137595,6 +137618,36 @@ export declare const internal: {
           playerUserId: string;
         },
         null
+      >;
+    };
+    equipmentPinMigration: {
+      blueprintEquipmentPins: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      runActorEquipmentPins: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
       >;
     };
     sceneBindings: {

@@ -81,15 +81,15 @@ describe('the weapon an action draws', () => {
   const items = [
     {
       entry: { id: 'club', useState: 'CARRIED' as const },
-      source: { payload: { properties: [] } }
+      source: { compiled: { properties: [] } }
     },
     {
       entry: { id: 'javelin', useState: 'MAIN_HAND' as const },
-      source: { payload: { properties: ['THROWN'] } }
+      source: { compiled: { properties: ['THROWN'] } }
     },
     {
       entry: { id: 'greatclub', useState: 'MAIN_HAND' as const },
-      source: { payload: { properties: ['TWO_HANDED'] } }
+      source: { compiled: { properties: ['TWO_HANDED'] } }
     }
   ]
 

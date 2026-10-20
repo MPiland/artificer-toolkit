@@ -15,9 +15,9 @@ import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
@@ -80,7 +80,7 @@ async function fixture(attribute: 'LIMITED_USE' | 'CAST_AT_LEVEL' = 'LIMITED_USE
       }
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [magicMissile, fireBolt].map((spell) =>
       importedSubject({

@@ -12,6 +12,11 @@ import {
   authoredContentPermissionsDtoSchema,
   authoredContentProvenanceDtoSchema
 } from './common.js'
+import {
+  contentSnapshotBackgroundIndexEntrySchema,
+  contentSnapshotClassIndexEntrySchema,
+  contentSnapshotRaceIndexEntrySchema
+} from './contentSnapshots.js'
 
 // Derived browse and selector facts; full documents remain the mechanics input.
 export const authoredCatalogueFamilySchema = lazySchema(() =>
@@ -41,11 +46,20 @@ export const authoredCatalogueMetadataSchema = lazySchema(() =>
     description: z.nullable(z.string()),
     category: z.optional(z.string()),
     selectionMode: z.optional(z.enum(RACE_SELECTION_MODE)),
+    // Whether the current publication is ACTIVE, so share and parent authorization read the root
+    // alone (D163). Optional until content/compilationMigration backfills it; readers reject absence.
+    publishedActive: z.optional(z.boolean()),
+    // The root's own picker facts, derived once at publish by `toContentSnapshotIndexEntry`, so
+    // commit reads no authored payload (D163). Each is present exactly on its kind's roots.
+    race: z.optional(contentSnapshotRaceIndexEntrySchema),
+    class: z.optional(contentSnapshotClassIndexEntrySchema),
+    background: z.optional(contentSnapshotBackgroundIndexEntrySchema),
+    // An Equipment root's prose beyond label and description, so a held item's pin reads the root.
+    equipment: z.optional(z.strictObject({ quote: z.optional(authoredRichTextSchema) })),
     spell: z.optional(
       z.strictObject({
         // Transitional backfill marker; readers reject incomplete selector facts.
         selectionVersion: z.optional(z.literal(1)),
-        publishedActive: z.optional(z.boolean()),
         attributes: z.optional(authoredReferenceCollectionSchema(spellAttributeSchema)),
         components: z.optional(authoredReferenceCollectionSchema(spellComponentSchema)),
         materialDescription: z.optional(authoredRichTextSchema),

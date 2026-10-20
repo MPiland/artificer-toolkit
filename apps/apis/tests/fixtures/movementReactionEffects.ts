@@ -38,7 +38,7 @@ import { writeRunActor } from '@artificer-toolkit/encounter-persistence/document
 import { fixture } from './characters'
 import { reactionBinding } from './reactionBinding'
 import { createEncounterLifecyclePolicyFixture } from './encounterInitiative'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { api, internal } from '../../convex/_generated/api'
 import { sourceImportBatches } from '../../convex/content/importBatches'
 import { attachFixtureRoom, closeRoom, executeInRoom } from './localRoomWorker'
@@ -314,7 +314,7 @@ export async function setupCreatureReactionRun(
       }))
     }))
   }
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

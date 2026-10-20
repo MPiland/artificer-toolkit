@@ -90,6 +90,9 @@ export function planEncounterPassiveZones(input: {
       const area = compileEncounterPointArea(
         {
           ...buildCompiledActionTargetPolicy(capability),
+          // A passive zone is centered on its holder, whatever range its trait authors.
+          range: { id: capability.effectId, rangeKind: 'SELF' },
+          targeting: { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' },
           shape: zoneShapeAtSource(zone.shape, source)
         },
         grid

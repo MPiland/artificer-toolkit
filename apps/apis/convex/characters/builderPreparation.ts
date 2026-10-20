@@ -4,7 +4,7 @@ import { prepareCharacterBuilderFromContext } from '@artificer-toolkit/rules-run
 import { toCharacterBuilderSpellCatalogRecord } from '@artificer-toolkit/rules-runtime/character/builderCatalog'
 import type { prepareCharacterRuleSources } from '@artificer-toolkit/rules-runtime/character/characterRuleSnapshot'
 import type { QueryCtx } from '../_generated/server'
-import { loadCharacterBuilderContext } from './builderContext'
+import { loadCharacterBuilderContext, type CharacterSourceContext } from './builderContext'
 import { loadCharacterRuleContext, type CharacterReferencedReads } from './context'
 import { loadCharacterReferencedContext } from './referencedContext'
 
@@ -17,7 +17,7 @@ export async function prepareCharacterBuilder(
     mode: 'create' | 'edit'
     finalize?: boolean
     catalogScope?: 'resolution' | 'active'
-    sourceContext?: Awaited<ReturnType<typeof loadCharacterBuilderContext>>
+    sourceContext?: CharacterSourceContext
     sourcePreparation?: ReturnType<typeof prepareCharacterRuleSources>
     authorityScope?: import('../campaigns/authority').CampaignInternalScope
     /** Commit: read only referenced content (ADR 0036 S7), with verified feature hints. */
@@ -29,7 +29,7 @@ export async function prepareCharacterBuilder(
     state: input.current?.state ?? createEmptyCharacterAuthored(input.character).state
   }
   const reads = input.referenced
-  const context: Awaited<ReturnType<typeof loadCharacterBuilderContext>> =
+  const context: CharacterSourceContext =
     input.sourceContext ??
     (reads
       ? await loadCharacterReferencedContext(ctx, candidate, candidate.userId, reads)
@@ -70,10 +70,10 @@ export async function prepareCharacterBuilder(
         character.userId,
         previousContext.spellCatalogueEntries &&
           previousContext.spellCatalogueEntries.length > 0 &&
-          previousContext.currentSpellDocumentsById
+          previousContext.currentSpellsById
           ? {
               spellCatalogueEntries: previousContext.spellCatalogueEntries,
-              currentSpellDocumentsById: previousContext.currentSpellDocumentsById,
+              currentSpellsById: previousContext.currentSpellsById,
               sourceIdentities: previousContext.sourceIdentities
             }
           : undefined,

@@ -51,7 +51,7 @@ import {
   automaticChargedCreatureId
 } from './encounterAction'
 import { createEncounterInitiativeDefinitions } from './encounterInitiative'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { components, internal } from '../../convex/_generated/api'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { createRulesRuntime } from './rulesRuntime'
@@ -131,7 +131,7 @@ export async function turnActiveEffectFixture(
       }
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

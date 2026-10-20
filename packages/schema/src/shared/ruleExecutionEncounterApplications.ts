@@ -576,6 +576,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       ),
       /** The carried weapon the source's attack drew into a hand; undo puts it back. */
       sourceItemDraw: z._default(z.nullable(sourceItemDrawDtoSchema), null),
+      /** The weapon that hit the source's holder and corroded; undo restores it. */
+      sourceItemDegradation: z._default(z.nullable(characterItemDegradationReceiptDtoSchema), null),
       sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
       /** The item the target dropped with this outcome (Heat Metal); undo puts it back in hand. */
       targetItemUseStateTransition: z._default(
@@ -956,6 +958,16 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             path: ['sourceItemDraw'],
             message: 'Source item draw must match the source and its version.'
           })
+        const degradation = value.sourceItemDegradation
+        if (
+          degradation &&
+          (value.sourceCharacterId == null || degradation.characterId !== value.sourceCharacterId)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceItemDegradation'],
+            message: 'Item degradation must match the source Character.'
+          })
         const consumption = value.sourceItemConsumption
         if (
           consumption &&
@@ -988,6 +1000,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             resource !== null ||
             stow !== null ||
             draw?.kind === 'CHARACTER_ITEM_DRAW' ||
+            degradation !== null ||
             consumption !== null ||
             spell !== null ||
             sourceMaintenanceMutation ||
@@ -1301,6 +1314,8 @@ export const sourceSpendReceiptShape = () => ({
   featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
   sourceItemUseStateTransition: z.nullable(characterItemUseStateTransitionDtoSchema),
   sourceItemDraw: z._default(z.nullable(sourceItemDrawDtoSchema), null),
+  /** The weapon the source hit with, corroded by what it struck; undo restores its penalty and use. */
+  sourceItemDegradation: z._default(z.nullable(characterItemDegradationReceiptDtoSchema), null),
   sourceItemConsumption: z.nullable(characterItemConsumptionReceiptDtoSchema),
   spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
   actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
@@ -1313,6 +1328,7 @@ export type SourceSpendReceipts = Pick<
   | 'featureResourceConsumption'
   | 'sourceItemUseStateTransition'
   | 'sourceItemDraw'
+  | 'sourceItemDegradation'
   | 'sourceItemConsumption'
   | 'spellCastConsumption'
   | 'actionEconomyTransition'
@@ -1340,6 +1356,7 @@ export function validateSourceSpendReceipts(
     })
   const stow = value.sourceItemUseStateTransition
   const draw = value.sourceItemDraw
+  const degradation = value.sourceItemDegradation
   const consumption = value.sourceItemConsumption
   const spell = value.spellCastConsumption
   if (
@@ -1350,6 +1367,7 @@ export function validateSourceSpendReceipts(
       (draw.characterId !== value.sourceCharacterId ||
         draw.afterStreamVersion !== value.sourceCharacterStreamVersion)) ||
     (draw?.kind === 'ENCOUNTER_ACTOR_ITEM_DRAW' && draw.actorId !== value.sourceActorId) ||
+    (degradation && degradation.characterId !== value.sourceCharacterId) ||
     (consumption && consumption.characterId !== value.sourceCharacterId) ||
     (spell && spell.characterId !== value.sourceCharacterId)
   )
@@ -1378,6 +1396,7 @@ export function validateSourceSpendReceipts(
       resource !== null ||
       stow !== null ||
       draw?.kind === 'CHARACTER_ITEM_DRAW' ||
+      degradation !== null ||
       consumption !== null ||
       spell !== null ||
       sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)

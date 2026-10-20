@@ -88,14 +88,14 @@ export function characterActionDrawWeapon(
 export function creatureActionDrawWeapon(
   items: readonly {
     entry: { id: string; useState: EquipmentSlotCode }
-    source: { payload: { properties: readonly string[] } }
+    source: { compiled: { properties: readonly string[] } }
   }[],
   loadoutEntryId: string | undefined,
   attackKind: AttackKind | null
 ): EncounterAttackWeapon | null {
   const item = items.find(({ entry }) => entry.id === loadoutEntryId)
   if (!item) return null
-  const { properties } = item.source.payload
+  const { properties } = item.source.compiled
   return {
     id: item.entry.id,
     twoHanded: properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED),

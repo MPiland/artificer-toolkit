@@ -23,12 +23,12 @@ import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import type { Id, TableNames } from '../_generated/dataModel'
 import schema from '../schema'
 import * as deletionState from './deletionState'
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { populateCampaignLifecycleInventory } from '../../tests/developmentCampaignLifecycleInventory'
 import {
@@ -364,7 +364,7 @@ describe('native Campaign custody deletion', () => {
     'removes populated party and unavailable Vehicle custody from a %s Campaign while preserving personal and unrelated Campaign state',
     async (status) => {
       const base = await readySheetFixture()
-      await base.t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(base.t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
           importedSubject({
@@ -454,7 +454,7 @@ describe('native Campaign custody deletion', () => {
     'rolls back a failed cleanup page for populated %s Campaign custody and retries',
     async (status) => {
       const base = await readySheetFixture()
-      await base.t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(base.t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
           importedSubject({
@@ -551,7 +551,7 @@ describe('native Campaign custody deletion', () => {
     async ({ status, buildTiming }) => {
       const base = await readySheetFixture()
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
-      await base.t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(base.t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
           importedSubject({

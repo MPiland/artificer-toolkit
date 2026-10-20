@@ -254,6 +254,17 @@ describe('SRD Creature weapon attacks through held Equipment (D62, M9)', () => {
     expect(hit.execution.d20).toMatchObject({ total: 16, resultPath: 'ON_HIT' })
     expect(hit.damage).toEqual([[1 + 2 + 4, srdDamageTypeId('BLUDGEONING')]])
   })
+
+  it('deals the Ogre Zombie’s printed bludgeoning, whatever damage type its held Morningstar defaults to (ATTACK-5.T4a)', async () => {
+    // Morningstar, +6: 13 (2d8 + 4) bludgeoning, printed over the Equipment's own piercing.
+    const hit = await attackOgre({
+      attacker: 'Ogre Zombie',
+      feature: 'Morningstar',
+      rolls: [9, 0, 1]
+    })
+    expect(hit.execution.d20).toMatchObject({ total: 16, resultPath: 'ON_HIT' })
+    expect(hit.damage).toEqual([[1 + 2 + 4, srdDamageTypeId('BLUDGEONING')]])
+  })
 })
 
 describe('SRD hits that apply several conditions (D62, M9)', () => {
@@ -524,6 +535,52 @@ describe('SRD Creature hits with saves, drains and holds (ATTACK-5.10 to 5.14)',
     })
     expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
     expect(saved.damage.map(([amount]) => amount)).toEqual([5, 3])
+  })
+
+  it('restrains with the Cockatrice’s Bite on a failed save, escalating to petrified at its turn end (ATTACK-5.15)', async () => {
+    // Bite, +3: 1d4 + 1 piercing, then DC 11 Constitution: restrained, repeating at the target's turn end.
+    const failed = await attackOgre({ attacker: 'Cockatrice', feature: 'Bite', rolls: [9, 0, 0] })
+    expect(failed.execution.nestedD20).toMatchObject({
+      defenseOrDc: 11,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.damage).toEqual([[2, srdDamageTypeId('PIERCING')]])
+    expect(failed.conditionIds).toEqual([srdCondition('Restrained')])
+    expect(failed.effects.recurringEffect).toMatchObject({
+      definition: {
+        recurrence: {
+          recurrenceStage: 'END_OF_TURN',
+          expiration: { kind: 'TICKS', initialRemaining: 1 }
+        }
+      },
+      lifecycle: { remainingTicks: 1 }
+    })
+
+    const saved = await attackOgre({ attacker: 'Cockatrice', feature: 'Bite', rolls: [9, 0, 19] })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.conditionIds).toEqual([])
+    expect(saved.effects.recurringEffect).toBeNull()
+  })
+
+  it('spits the Guardian Naga’s poison with no hit damage: full on a failed save, half on a success (ATTACK-5.15)', async () => {
+    // Spit Poison, +8: no damage on the hit itself, then DC 15 Constitution: 10d8 poison, half on a success.
+    const failed = await attackOgre({
+      attacker: 'Guardian Naga',
+      feature: 'Spit Poison',
+      rolls: [9, 0, ...Array<number>(10).fill(0)]
+    })
+    expect(failed.execution.nestedD20).toMatchObject({
+      defenseOrDc: 15,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.damage).toEqual([[10, srdDamageTypeId('POISON')]])
+    const saved = await attackOgre({
+      attacker: 'Guardian Naga',
+      feature: 'Spit Poison',
+      rolls: [9, 19, ...Array<number>(10).fill(0)]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.damage).toEqual([[5, srdDamageTypeId('POISON')]])
   })
 
   it('reduces the Ogre’s Strength with the Shadow’s Strength Drain', async () => {

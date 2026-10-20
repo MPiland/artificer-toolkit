@@ -2,6 +2,7 @@ import {
   FORCED_MOVEMENT_DIRECTION,
   type ForcedMovementDirection
 } from '@artificer-toolkit/shared/core'
+import type { GrantedAction } from '@artificer-toolkit/schema/effects/grantedAction'
 import type { AttackSlotConditionDto } from '@artificer-toolkit/schema/features/attackSlots'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
@@ -121,6 +122,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     uses?: number
     /** The grant the holder keeps for `turns` of its turns when the effect ends, however it ends. */
     onEnd?: { turns: number; modifiers: readonly CharacterGrantFoldModifier[] }
+    /** The actions the holder may take while the effect is held. */
+    grantedActions?: readonly GrantedAction[]
   }
   /**
    * The item the action is used on, chosen at use from what its target holds or wears; null for
@@ -559,6 +562,8 @@ export interface CharacterRuleActionSystemAdapter {
    */
   compileZonePlacement?(input: {
     action: EffectActionCapabilityDescriptor
+    /** The label of the feature that keeps a zone its Effect does not author (a passive melee trait). */
+    label?: string
   }): CharacterRuleActionZonePlacementPlan | CharacterRuleActionZoneChoicePlan | null
   /** Returns the exact supported recurring plan for this locked action, if any. */
   activeEffectPlans?(input: {

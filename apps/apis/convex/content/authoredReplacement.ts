@@ -24,7 +24,7 @@ export async function replaceCurrentAuthoredVersion(
       Doc<'authoredRoots'>,
       '_id' | '_creationTime' | 'currentVersionId' | 'catalogue' | 'catalogueFamily'
     >
-    document: Parameters<typeof catalogueMetadata>[1]
+    document: Parameters<typeof catalogueMetadata>[1]['document']
     publicId: string
   }
 ) {
@@ -44,11 +44,15 @@ export async function replaceCurrentAuthoredVersion(
   await syncCatalogueMetadata(
     ctx,
     rootId,
-    await catalogueMetadata(ctx, document, {
-      checksum: version.checksum,
-      publicId,
-      createdAt: published._creationTime
-    })
+    await catalogueMetadata(
+      ctx,
+      { subjectKind: current.subjectKind, document },
+      {
+        checksum: version.checksum,
+        publicId,
+        createdAt: published._creationTime
+      }
+    )
   )
   if (current.subjectKind === 'CLASS') {
     const currentRoot = await ctx.db.get(rootId)

@@ -20,10 +20,10 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_LANGUAGES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readCharacterDraft } from '../characters/documents'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 
@@ -85,7 +85,7 @@ async function snapshot(base: Awaited<ReturnType<typeof readySheetFixture>>, sub
 describe('native Equipment deletion source-loss cleanup', () => {
   it('retains acquired Equipment rules and contents in active and saved Character state after authored deletion', async () => {
     const base = await readySheetFixture()
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({

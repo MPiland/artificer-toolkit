@@ -284,7 +284,7 @@ actor, Manual mode and completed Encounters are hard checks, never warnings. Rea
 Actions, Disarm and movement call preparation with `overridable: false` and keep refusing.
 
 `REVERT_LAST_ACTION` (GM-only) undoes the Run's last `RESOLVE_ACTION` and its committed child receipts,
-inverting only recorded before-states (hit points, conditions, resource usage, a stowed shield, a used-up single-use item (given back by lowering its `itemUsage`), item corrosion (`CharacterInverse.degradation`, restoring the `itemDegradation` penalty and any destroyed-item `itemUsage`), charges,
+inverting only recorded before-states (hit points, conditions, resource usage, a stowed shield, a used-up single-use item (given back by lowering its `itemUsage`), item corrosion, of the target's worn item or (`subject` ATTACKER_WEAPON, on an `INCOMING_WEAPON_HIT` passive) of the weapon that hit, carried by `targetItemDegradation` or `sourceItemDegradation` (`CharacterInverse.degradation`, restoring the `itemDegradation` penalty and any destroyed-item `itemUsage`), charges,
 the action allowance, created effects and maintained states). It refuses, naming the kind, removed
 conditions, replaced maintained effects, lost Concentration, Cleaving damage to a Character, Disarm and
 other contested actions (a contested `ESCAPE` too); a second undo is refused. Its implementation is
@@ -526,6 +526,12 @@ against the attacker with system-rolled dice, as one attacker mechanics batch ca
 application; Legendary Action attacks run it through `prepareTurnLegendaryActions`' `meleeRetaliation` port, carried
 on the window's application. Both replay from that evidence (`retained`), so a staged response or a later window's
 re-run rolls no fresh die.
+A creature's passive melee trait with no zone (Remorhaz Heated Body, SPELLS-33 T4k2) is the same zone derived from the
+trait: a PASSIVE effect whose melee attack trigger and distance range say how near a hitter must stand, with direct
+dice damage on `ON_USE`. `passiveMeleeRetaliationZone` stands for it as a SOURCE sphere of that range with one
+`MELEE_HIT_ON_SOURCE` component whose behavior is the trait's own effect, so discovery, placement on the token, the
+selection, the system-rolled plan, persistence and the damage-ends seam are the zone path above. Placement centers every
+passive zone on its holder whatever range its trait authors. A hit by touch is not modeled.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's
@@ -1328,6 +1334,15 @@ silence have no Sheet rule yet, so an Encounter applies none either.
 
 `deleteCas` and `deleteMaintainedStateCas` (`encounter-persistence/effectStore.ts`) are the one place a held effect leaves encounter state, in the Convex path and the room alike. Each takes a required `removal`: `ENDED` (expiry, Concentration drop or replacement, early end, consumption, a departing source) or `REMOVED` (undo, an actor's own removal, Run completion). An `ENDED` effect whose definition carries a `MODIFIER_GRANT` `onEnd` template leaves its follow-on grant on the same holder (Haste's lethargy, `rules-runtime/encounterEffectOnEnd.ts`): a holder-anchored timed grant with an id derived from the ended effect's, created inside the tick pass so it is not ticked in the same pass. Restoring the effect (`create` with `restoredFrom`) takes that follow-on back.
 
+### Granted-action offers (current, SPELLS-4.T2lb, D160)
+
+A held effect's result block may carry `lifecycle.grantedActions` (generic authored data: `activation`, optional `usesPerTurn`, optional `weaponAttack`, `actionDefinitionIds` of BASIC_ACTIONs; never a spell name). The compiler stores it on the `MODIFIER_GRANT` contribution (`grantedActions`); `encounterGrantedActions.ts` reads it back from the holder's current effects (`heldGrantedActions`). The `onEnd` follow-on never inherits it.
+
+- **Id form:** `<basic action id>:GRANTED:<activeEffectId>:<offerIndex>` (`grantedActionId` / `parseGrantedActionId`). The basic-action prefix check still holds, so clients echo `choice.id` unchanged.
+- **Resolve-time re-check:** `resolveEncounterActionSource` takes a `granted` input (held effects plus this turn's spent keys) and refuses a stale offer (effect ended, no longer offers that action) or a spent one. A source carries the offer's `activation` in place of the action's own, and `grantedUseKey`.
+- **Allowance:** a `FREE` offer skips the allowance in `evaluateNativeLiveActionEconomy`; any other activation spends the real allowance. A `weaponAttack` offer is the Attack action's fallback when its own economy is unavailable: the attack opens a total-1 Attack action charged to the offer's use key.
+- **Use count:** a capped offer spends `granted:<effectId>:<offerIndex>:<use>` in the turn row's `usedOncePerTurn` (see persistence.md); the commit spends it and an undo restores it.
+
 ## Initiative
 
 Initiative is application policy over typed rules evidence. Campaign settings select an allowed
@@ -1441,6 +1456,8 @@ calculation (best of worn armor, unarmored, or an authored formula; a shield and
 Creature `qualifiedDamageDefenses` apply only to attacks lacking every bypassing trait. Modifier kinds
 without a consumer are rejected at grant validation (see [authoring schema](authoring-schema.md)).
 
+**Creature loadout replacement and the printed attack.** A Creature Feature action binds to its loadout Equipment by attack kind (`triggerCode`) alone: the Feature's own print governs the bound attack's damage and damage type, so a Creature printed with a different damage type than its Equipment's default (the Ogre Zombie's bludgeoning Morningstar) still runs. `replaceActorEquipment` keeps that binding honest: the replacement must keep the attack kind the Feature acts through and, for an entry a Feature action is bound to, the damage types of the Equipment it replaces (`equipmentReplacementKeepsDamageTypes`), so a piercing weapon swaps for another piercing one and a bludgeoning weapon is refused.
+
 **Creature equipment hands (D107).** A Creature's authored `equipmentLoadout` places each item in
 `MAIN_HAND`, `OFF_HAND`, `CARRIED` or `WORN` (`EQUIPMENT_SLOT_CODES`, `packages/shared` core). One
 function, `resolveHandOccupancy`, decides hand legality for the schema (two items in one hand), the
@@ -1450,6 +1467,11 @@ also read the Equipment's `TWO_HANDED` property because a two-handed main-hand i
 hand and a two-handed item cannot sit in the off hand. Disarm moves an item from either hand to
 `CARRIED` and records the hand in the transition's `fromState`. ATTACK-18 and ATTACK-19 reuse the
 function for Characters.
+
+**Creature Equipment pins (D163).** Each Encounter Creature's `equipmentSources[]` pin holds a copy of the
+Equipment version's stored `subject-compiler-v2` compilation (resolved, variant parents applied). The room,
+blueprint snapshots and `creatureLoadoutHands` hydrate it with `hydrateStoredCompilation` and never compile;
+`encounters/equipmentPinMigration` (steps of `content/compilationMigration:run`) re-pins older rows.
 
 **Default attack (ATTACK-19, D107).** `encounterDefaultAttackActionId` (`encounterDefaultAttack.ts`)
 picks the action the tabletop drawer starts on, reported as `defaultActionId` in the action choices
@@ -1940,6 +1962,12 @@ same `resolveSave` path every save-trigger plan uses) under that fact when the a
 graph's threshold reads the fact either way. Hold Person and Hold Monster author the SRD repeat save as a
 `FOLLOW_UP_SAVE` after their Paralyzed condition, and the condition lasts the `conditionDurationTurns` of its
 duration.
+
+**Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it
+(Guardian Naga Spit Poison) and one whose failure applies a condition and then a once-only `TARGET_TURN_END`
+save that ends the effect with a second condition (Cockatrice Bite) compile as `ESCALATING_CONDITION`.
+`escalatingImmediateSave` checks the structure; `repeatingImmediateFollowUpSavePlan` gives the effect one turn tick
+and stores the escalation condition under the same fact as the direct plan, so the repeat-save kernel is shared.
 
 `repeatingDirectFollowUpSavePlan` takes a `CONDITION` or an `APPLY_GRANT` as its lead entry. A grant lead plans
 its contribution through `modifierGrantEntryPlan` and marks it `countedByTurnEffects`: the repeat-save kernel

@@ -254,7 +254,7 @@ the death area refuses the undo like any pending decision; the GM voids it, then
 `encounterRuns`, `encounterRunActors` (one document per actor with its validated snapshot and `kind`-discriminated
 state), `encounterSceneBindings`, `encounterActorTokenBindings`, `encounterInitiativeRounds`,
 `encounterInitiativeParticipants`, `encounterInitiativeSides`, `encounterRuleOccurrences`,
-`encounterTurnMovements` (also the once-per-turn record, `usedOncePerTurn`, D119 f), `encounterDecisionSkips`, `encounterRunCommands`, `encounterRuleReceipts`
+`encounterTurnMovements` (also the once-per-turn record, `usedOncePerTurn`, D119 f; a capped granted-action offer counts its uses there as `granted:<effectId>:<offerIndex>:<use>`, spent by the commit and restored by an undo, SPELLS-4.T2lb), `encounterDecisionSkips`, `encounterRunCommands`, `encounterRuleReceipts`
 and `encounterReplayIndex` carry Run state and history in Convex. The Convex `encounterEvidenceRolls`
 table is removed (current): evidence rolls are room-only since D88, written and read only in the room's
 store.
@@ -514,17 +514,31 @@ The compiler version is `subject-compiler-v2` (PLATFORM-21.T1a, D163): it carrie
 the Builder reads, stores Equipment in its resolved shape (variant parents applied, `parentEquipmentIds`), and
 carries no prose; views read prose from the authored payload by id. `content/compilationMigration` recompiles a
 superseded row from its version's stored document (Race and Equipment against their current parents), and
-`readAuthoredVersionCompilation` refuses a superseded row. Import stores base Equipment's compilation and
-builder facts at once; a variant compiles in `syncEquipmentDerived` after its parent exists. The seed's derived
+`readAuthoredVersionCompilation` refuses a superseded row. Import stores the compilation of base Equipment
+(with its builder facts) and of a base Race at once; a variant, a subrace and every Class compile in the seed's
+derived step (`syncEquipmentDerived`, `raceRelationships.syncDerived`, `syncClassDerived`) once their parents exist.
+Tests import canonical subjects the same way through `importSeededSubjects` (`tests/fixtures/publication.ts`). The seed's derived
 syncs replace a superseded compilation of a canonical row (`syncCanonicalCompilation`), because the seed is the
-source of truth for canonical content; an authored row's superseded compilation is left to the migration. Transitional until PLATFORM-21.T1b: the table
-validator still admits `subject-compiler-v1` rows so the migration can read them.
+source of truth for canonical content; an authored row's superseded compilation is left to the migration. The table
+validator still admits `subject-compiler-v1` rows so the migration can read them; readers reject them as stale.
+Read paths never compile (PLATFORM-21.T1b, D163): Convex Builder and Sheet preparation, commit, the browser Builder
+(format 3 snapshot `compilations`) and the room hydrate the stored row, checked against the root checksum. Only
+publish, import, the seed and the migration call a subject compiler (`readPathCompilation.test.ts`), and publish
+compiles before it stores, so a compile failure stores no version or compilation.
 
 **Equipment projection.** `authoredRoots.equipmentOptions.builder` is an optional checksum-bound projection of
 the Equipment selector fields. Builder reads preserve the complete authorized set and validate the parent graph;
-a missing projection falls back to the full publication path, a corrupt one is rejected. Spell selector facts
-live in `authoredRoots.catalogue.spell` (`selectionVersion: 1`, `publishedActive`); current readers reject an
-absent marker or stale checksum.
+a missing or stale projection is rejected; there is no payload fallback. Spell selector facts live in
+`authoredRoots.catalogue.spell` (`selectionVersion: 1`); current readers reject an absent marker or stale checksum.
+
+**Root catalogue facts (D163).** Every root's `catalogue.publishedActive` is true unless its current payload's
+status is `DRAFT` (canonical documents carry no status and are active; publication always writes `ACTIVE`); every write that stores a version sets it (`rootCatalogueFacts.test.ts` walks import,
+replacement and publication). RACE, CLASS and BACKGROUND roots also hold `catalogue.race`, `.class` or
+`.background`: the picker facts `toContentSnapshotIndexEntry` derives once at publish; EQUIPMENT roots hold
+`catalogue.equipment.quote`. Share and parent-chain authorization, the subclass and Spell witnesses, commit and the
+held-item capture (`captureAcquiredEquipmentRules`, prose from the root label and catalogue) read these root rows
+alone, so commit loads no authored payload (`commitReadBudget.test.ts` makes every payload unreadable before it commits). `compilationMigration:run`
+backfills both on older roots.
 
 **Normal publication** replaces and deletes the previous version atomically. Custody, Encounter snapshots and
 receipts carry embedded JSON, checksums and external version provenance and do not pin the `authoredVersions`
@@ -799,7 +813,8 @@ EQUIPMENT source for the held leaf and up to 500 SPELL sources its grants name o
 identity, a copy of that version's stored compilation (resolved Equipment with no variant chain, or a `CompiledSpell`)
 and a small `presentation` block (label, description, quote, materialDescription). The engine hydrates the
 compilations as they are, with no compile call, after checking both checksums; views read the pinned prose, so a
-held item keeps its description after its source is deleted. Equipment Feature prose is not pinned.
+held item keeps its description after its source is deleted, and the Sheet lists a Spell only the pinned record
+supplies with its pinned prose (view only; it is never a picker option). Equipment Feature prose is not pinned.
 `content/compilationMigration` repins rows stored in the earlier raw-document shape from the stored compilation of
 the same pinned version.
 Parsed retained rules and parsed published Equipment are memoized per module (`createContentMemo`, shared

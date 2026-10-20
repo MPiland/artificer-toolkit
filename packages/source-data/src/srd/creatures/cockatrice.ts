@@ -74,7 +74,7 @@ export const cockatrice: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(67, 3) + '__result',
+                id: S.actionId(67, 906),
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {

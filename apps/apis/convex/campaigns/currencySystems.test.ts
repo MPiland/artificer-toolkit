@@ -24,9 +24,9 @@ import {
 } from '@artificer-toolkit/schema/projections/campaignInventoryPersistence'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
@@ -1047,7 +1047,7 @@ describe('native Campaign currency systems', () => {
         campaignCurrencySystemId: created.id
       }
     })
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
     })

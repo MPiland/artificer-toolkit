@@ -13,6 +13,7 @@ export const degradeEquipmentDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
     effectKind: z.literal('DEGRADE_EQUIPMENT'),
+    subject: z.optional(z.enum(['TARGET_ITEM', 'ATTACKER_WEAPON'])),
     category: z.enum(['ARMOR', 'SHIELD', 'WEAPON']),
     nonmagical: z.boolean(),
     materials: z.array(z.enum(['METAL', 'WOOD'])).check(z.maxLength(2)),

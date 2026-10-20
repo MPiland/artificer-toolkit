@@ -19,7 +19,7 @@ import { sourceImportBatches } from '../../convex/content/importBatches'
 import { setupReactionMovementScene } from './automaticSceneMovement'
 import { setupCharacterRun } from './encounterCharacter'
 import { conditionReactionCreature } from './movementReactionEffects'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { activateFixtureRun } from './activeInitiative'
 
 const createBlueprint = makeFunctionReference<
@@ -120,7 +120,7 @@ export async function setupMovementReactionCharacterEffects(withSecondReactor = 
       }))
     })
   )
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: creatures.map((creature) =>
       importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })

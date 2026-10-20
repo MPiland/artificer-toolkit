@@ -36,7 +36,7 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { api, components, internal } from '../_generated/api'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
@@ -458,7 +458,7 @@ describe('native Campaign Character Sheet boundary', () => {
       ]
     })
     const equipment = { ...club, id: crypto.randomUUID(), label: 'Private Keepsake Club' }
-    await fixture.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(fixture.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment }),
@@ -907,7 +907,7 @@ describe('native Campaign Character Sheet boundary', () => {
       label: 'Attuned Club',
       requiresAttunement: true
     }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })]
     })

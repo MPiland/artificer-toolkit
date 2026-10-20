@@ -96,6 +96,18 @@ export type PathLifecycleAuthored = {
     turns: number // int
     modifiers: ModifierGrantAuthored[]
   }
+  /**
+   * Actions the holder may take while the effect is held, beside its own allowances (Expeditious
+   * Retreat's bonus-action Dash, Haste's extra action). Each is listed with the named basic actions
+   * (and a weapon attack when `weaponAttack`), charged to `activation`; a `FREE` one spends only its
+   * own `usesPerTurn`, shared by everything it offers.
+   */
+  grantedActions?: {
+    activation: ActivationCode
+    usesPerTurn?: number // int, required when activation is FREE
+    actionDefinitionIds: string[]
+    weaponAttack?: boolean
+  }[]
 }
 
 export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> = {

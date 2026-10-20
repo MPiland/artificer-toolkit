@@ -524,7 +524,7 @@ async function stageActive(
   )
   const version = await ctx.db.get(storedVersionId)
   if (!version) throw new Error('Staged authored version is missing.')
-  const catalogue = await catalogueMetadata(ctx, prepared.subject.document, {
+  const catalogue = await catalogueMetadata(ctx, prepared.subject, {
     checksum: prepared.checksum,
     publicId,
     createdAt: version._creationTime

@@ -9,7 +9,8 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { SUBJECT_COMPILER_VERSION } from '@artificer-toolkit/schema/api/authoredPublication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
 import schema from '../schema'
 import { snapshotBlueprintEnemies } from './blueprintSnapshots'
@@ -47,7 +48,7 @@ async function fixture() {
     contentSource: SRD_CONTENT_SOURCE,
     catalogue: SRD_RULES_CATALOGUE
   })
-  await t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature }),
@@ -80,9 +81,18 @@ describe('native Blueprint enemy snapshots', () => {
         vocabularySnapshotChecksum: vocabulary?.checksum
       },
       equipmentSources: [
-        { equipmentId: club.id, sourceRevision: 1, sourceChecksum: checksumRuleDocument(club) }
+        {
+          equipmentId: club.id,
+          sourceRevision: 1,
+          sourceChecksum: checksumRuleDocument(club),
+          compilation: {
+            compilerVersion: SUBJECT_COMPILER_VERSION,
+            authoredChecksum: checksumRuleDocument(club)
+          }
+        }
       ]
     })
+    expect(enemy?.snapshot).not.toHaveProperty('equipmentSources.0.payload')
     const before = JSON.stringify(enemy)
     await t.run(async (ctx) => {
       const root = await ctx.db
@@ -96,6 +106,21 @@ describe('native Blueprint enemy snapshots', () => {
       'unavailable'
     )
     expect(JSON.stringify(enemy)).toBe(before)
+  }, 30000)
+
+  it('refuses Equipment from another Game System when pinning a Creature loadout', async () => {
+    const t = await fixture()
+    await t.run(async (ctx) => {
+      const root = await ctx.db
+        .query('authoredRoots')
+        .withIndex('by_publicId', (q) => q.eq('id', club.id))
+        .unique()
+      if (!root) throw new Error('Missing Equipment.')
+      await ctx.db.patch(root._id, { systemId: '10000000-0000-4000-8000-000000000004' })
+    })
+    await expect(t.run((ctx) => snapshotBlueprintEnemies(ctx, owner, input))).rejects.toThrow(
+      'Encounter source is unavailable in the selected Game System.'
+    )
   }, 30000)
 
   it('creates custom enemies and rejects unavailable or foreign Creature roots', async () => {
