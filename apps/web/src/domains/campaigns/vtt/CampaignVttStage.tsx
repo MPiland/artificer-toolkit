@@ -296,7 +296,9 @@ export function CampaignVttStage({
   })
   // A player's last shown decision stays in its drawer to say whether the GM skipped it (D39).
   const [shownDecision, setShownDecision] =
-    useState<PendingEncounterRuleOccurrenceSummaryDto | null>(null)
+    useState<PendingEncounterRuleOccurrenceSummaryDto | null>(
+      campaign.role !== 'OWNER' ? (pendingOccurrence ?? null) : null
+    )
   const settledDecision = pendingOccurrence ? null : shownDecision
   const storedDecisionSettlement = useQuery(
     getEncounterDecisionSettlement(
