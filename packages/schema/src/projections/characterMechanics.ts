@@ -6,7 +6,7 @@ import {
   characterRuleSenseRangeSchema
 } from '../api/characterRules.js'
 import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
-import { characterAuthoredDtoSchema } from '../subjects/character.js'
+import { characterAuthoredDtoSchema, type CharacterAuthoredDto } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import {
@@ -45,6 +45,7 @@ import {
   serverPublishedRuleDefinitionDtoSchema,
   ruleGraphSourceIdentityDtoSchema
 } from '../shared/ruleExecutionCore.js'
+import { effectOffersDtoSchema } from '../effects/effectOffer.js'
 import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import {
   activeEffectConsumeEventsSchema,
@@ -241,7 +242,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
             uses: z.optional(activeEffectUsesSchema),
             onEnd: z.optional(activeEffectOnEndSchema),
-            grantedActions: z.optional(storedGrantedActionsSchema)
+            grantedActions: z.optional(storedGrantedActionsSchema),
+            effectOffers: z.optional(effectOffersDtoSchema)
           })
           .check(
             z.refine(
@@ -796,10 +798,13 @@ export const characterMechanicsRuleSnapshotSchema = lazySchema(() =>
 
 export type CharacterMechanicsRuleSnapshot = z.infer<typeof characterMechanicsRuleSnapshotSchema>
 
+/** Named so the projection embedding the authored Character stays within the declaration size limit (TS7056). */
+const characterCommandStateSchema: z.ZodMiniType<CharacterAuthoredDto> = characterAuthoredDtoSchema
+
 const characterMechanicsProjectionObjectSchema = lazySchema(() =>
   z.strictObject({
     characterId: projectionIdentifierSchema,
-    commandState: characterAuthoredDtoSchema,
+    commandState: characterCommandStateSchema,
     commandStateChecksum: projectionChecksumSchema,
     commandLaneChecksum: projectionChecksumSchema,
     projectionSchemaVersion: z.literal(2),

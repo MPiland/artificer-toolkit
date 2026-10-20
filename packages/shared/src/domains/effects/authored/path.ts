@@ -13,6 +13,7 @@ import type {
 import type {
   ActivationCode,
   EquipmentCategoryCode,
+  LengthUnitCode,
   EquipmentPropertyCode,
   PathCodesByTrigger,
   PathGroupType,
@@ -107,6 +108,19 @@ export type PathLifecycleAuthored = {
     usesPerTurn?: number // int, required when activation is FREE
     actionDefinitionIds: string[]
     weaponAttack?: boolean
+  }[]
+  /**
+   * Choices the effect offers a creature beside the holder's own turns (D160). `MOVE_HELD_EFFECT`
+   * lets `offeredTo` (the effect's source, or its holder) move the effect, with its remaining
+   * duration and Concentration, to another creature within `range`, charged to `activation`, once
+   * `when` holds for the holder. Only an `APPLY_GRANT` effect carries one.
+   */
+  effectOffers?: {
+    kind: 'MOVE_HELD_EFFECT'
+    offeredTo: 'SOURCE' | 'HOLDER'
+    when: 'HOLDER_AT_ZERO_HP'
+    activation: ActivationCode
+    range: { amount: number; unit: LengthUnitCode }
   }[]
 }
 

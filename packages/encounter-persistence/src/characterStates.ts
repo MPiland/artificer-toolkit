@@ -185,6 +185,31 @@ export async function readEncounterActorDefeated(
   return isEncounterActorDefeated(actor, await readDeadCharacterIds(ctx, [actor]))
 }
 
+/**
+ * The ids of the actors at 0 hit points, whether defeated or not (a dying Character is at 0): a
+ * Creature's or custom actor's own pool, a Character's play record, or its frozen values. A Character
+ * whose play record is gone is not at 0.
+ */
+export async function readZeroHitPointActorIds(
+  ctx: Parameters<typeof readDeadCharacterIds>[0],
+  actors: readonly EncounterRunActorState[]
+): Promise<Set<string>> {
+  const zero = new Set<string>()
+  for (const actor of actors) {
+    if (actor.kind !== 'CHARACTER') {
+      if (actor.currentHitPoints === 0) zero.add(actor.id)
+      continue
+    }
+    if (actor.frozenState) {
+      if (actor.frozenState.currentHitPoints === 0) zero.add(actor.id)
+      continue
+    }
+    const play = await readEncounterCharacterPlay(ctx, actor.sourceId)
+    if (play && ctx.ports.readCharacterPlay(play).hitpoints.current === 0) zero.add(actor.id)
+  }
+  return zero
+}
+
 /** A Character's current projected values, read from its play record alone. */
 export async function readCharacterPlayProjection(
   ctx: EncounterProjectionTransaction,

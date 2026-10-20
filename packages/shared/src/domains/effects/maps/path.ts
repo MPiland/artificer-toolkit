@@ -222,6 +222,10 @@ const pathLifecycleEscape = buildNodeMap<NonNullable<PathLifecycleAuthored['esca
 const pathLifecycleOnEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['onEnd']>>()
 const pathLifecycleGrantedAction =
   buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
+const pathLifecycleEffectOffer =
+  buildNodeMap<NonNullable<PathLifecycleAuthored['effectOffers']>[number]>()
+const pathLifecycleEffectOfferRange =
+  buildNodeMap<NonNullable<PathLifecycleAuthored['effectOffers']>[number]['range']>()
 const pathLifecycleEndTrigger =
   buildNodeMap<NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
@@ -490,6 +494,96 @@ const PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP: NodeMap<
   }
 )
 
+const PATH_LIFECYCLE_EFFECT_OFFER_RANGE_NODE_MAP: NodeMap<
+  NonNullable<PathLifecycleAuthored['effectOffers']>[number]['range']
+> = pathLifecycleEffectOfferRange.define(
+  'pathLifecycleEffectOfferRange',
+  ({ map, nodes }) => {
+    const { number, selectSingle } = nodes
+
+    map
+      .set(
+        'amount',
+        number(['amount'], 'Range', { requiredIf: true, constraints: { minimum: 1 } })
+      )
+      .set(
+        'unit',
+        selectSingle(
+          ['unit'],
+          'Unit',
+          { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
+          { requiredIf: true }
+        )
+      )
+  }
+)
+
+const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
+  NonNullable<PathLifecycleAuthored['effectOffers']>[number]
+> = pathLifecycleEffectOffer.define('pathLifecycleEffectOffer', ({ map, nodes }) => {
+  const { selectSingle, groupObject } = nodes
+
+  map
+    .set(
+      'kind',
+      selectSingle(
+        ['kind'],
+        'Offer',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'MOVE_HELD_EFFECT', label: 'Move the effect to another creature' }]
+        },
+        { requiredIf: true }
+      )
+    )
+    .set(
+      'offeredTo',
+      selectSingle(
+        ['offeredTo'],
+        'Offered To',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'SOURCE', label: 'The effect source' },
+            { code: 'HOLDER', label: 'The effect holder' }
+          ]
+        },
+        { requiredIf: true }
+      )
+    )
+    .set(
+      'when',
+      selectSingle(
+        ['when'],
+        'When',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'HOLDER_AT_ZERO_HP', label: 'The holder is at 0 hit points' }]
+        },
+        { requiredIf: true }
+      )
+    )
+    .set(
+      'activation',
+      selectSingle(
+        ['activation'],
+        'Costs',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: ACTIVATION_OPTIONS.filter(({ code }) => code !== 'REACTION' && code !== 'FREE')
+        },
+        { requiredIf: true }
+      )
+    )
+    .set(
+      'range',
+      groupObject(['range'], 'Range', () => PATH_LIFECYCLE_EFFECT_OFFER_RANGE_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true
+      })
+    )
+})
+
 const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
 > = pathLifecycleEndTrigger.define(
@@ -668,6 +762,15 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
           ['grantedActions'],
           'Actions Granted While Held',
           () => PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP,
+          { presentation: 'inline' }
+        )
+      )
+      .set(
+        'effectOffers',
+        groupArray(
+          ['effectOffers'],
+          'Offers Beside The Holder',
+          () => PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP,
           { presentation: 'inline' }
         )
       )

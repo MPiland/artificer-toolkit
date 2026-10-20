@@ -2,6 +2,7 @@ import {
   FORCED_MOVEMENT_DIRECTION,
   type ForcedMovementDirection
 } from '@artificer-toolkit/shared/core'
+import type { EffectOffer } from '@artificer-toolkit/schema/effects/effectOffer'
 import type { GrantedAction } from '@artificer-toolkit/schema/effects/grantedAction'
 import type { AttackSlotConditionDto } from '@artificer-toolkit/schema/features/attackSlots'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
@@ -124,6 +125,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     onEnd?: { turns: number; modifiers: readonly CharacterGrantFoldModifier[] }
     /** The actions the holder may take while the effect is held. */
     grantedActions?: readonly GrantedAction[]
+    /** The choices the effect offers beside its holder's turns, such as moving it when the holder falls. */
+    effectOffers?: readonly EffectOffer[]
   }
   /**
    * The item the action is used on, chosen at use from what its target holds or wears; null for

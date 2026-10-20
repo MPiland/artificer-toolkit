@@ -2760,6 +2760,7 @@ function modifierGrantEntryPlan(input: {
     uses,
     onEnd,
     grantedActions,
+    effectOffers,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
@@ -2831,6 +2832,9 @@ function modifierGrantEntryPlan(input: {
       ...(activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
       ...(uses !== undefined && { uses }),
       ...(grantedActions && { grantedActions: grantedActions.map((offer) => ({ ...offer })) }),
+      ...(effectOffers && {
+        effectOffers: effectOffers.map((offer) => ({ ...offer, range: { ...offer.range } }))
+      }),
       ...(onEnd && {
         onEnd: {
           turns: onEnd.turns,

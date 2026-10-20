@@ -35,6 +35,7 @@ import {
   onEndGrantEffect,
   onEndGrantEffectId
 } from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { z } from 'zod'
 import {
   endActorFormHeldBy,
@@ -238,6 +239,25 @@ export async function listActiveRuleEffects(
   if (effects.length > MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)
     throw new Error('Active rule effects exceed the supported bound.')
   return effects
+}
+
+/**
+ * The active effects of every actor in the Run, keyed by the holding actor's id: the bounded scan
+ * for what an actor applied to others, since effects are indexed by holder, not by source.
+ */
+export async function readActiveEffectsByActorId(
+  ctx: EncounterReadContext,
+  encounterId: string,
+  actors: readonly Parameters<typeof turnEffectOwner>[0][]
+): Promise<Map<string, ActiveRuleEffectRecord[]>> {
+  return new Map(
+    await Promise.all(
+      actors.map(
+        async (held) =>
+          [held.id, await listActiveRuleEffects(ctx, turnEffectOwner(held, encounterId))] as const
+      )
+    )
+  )
 }
 
 /** Every Character-held grant carried over from a Concentration the given Character cast (D99). */
