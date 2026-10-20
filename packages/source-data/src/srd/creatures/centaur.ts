@@ -52,6 +52,17 @@ export const centaur: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The centaur makes two attacks: one with its pike and one with its hooves or two with its longbow.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(60, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(60, 4) }] }
+            ]
+          },
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(60, 5) }] }] }
+        ]
+      },
       order: 2
     },
     {

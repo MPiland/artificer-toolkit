@@ -66,6 +66,16 @@ export const xorn: CreatureAuthored = {
       id: S.featureId(300, 4),
       label: 'Multiattack',
       description: 'Multiattack. The xorn makes three claw attacks and one bite attack.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 3, fillers: [{ kind: 'FEATURE', featureId: S.featureId(300, 5) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(300, 6) }] }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

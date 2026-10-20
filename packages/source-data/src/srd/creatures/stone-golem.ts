@@ -188,6 +188,11 @@ export const stoneGolem: CreatureAuthored = {
       id: S.featureId(265, 6),
       label: 'Multiattack',
       description: 'Multiattack. The golem makes two slam attacks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(265, 5) }] }] }
+        ]
+      },
       order: 6
     }
   ]

@@ -77,18 +77,16 @@ export const giantVulture: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The vulture makes two attacks: one with its beak and one with its talons.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(137, 204),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(137, 1204), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_VULTURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(137, 5) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(137, 6) }] }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

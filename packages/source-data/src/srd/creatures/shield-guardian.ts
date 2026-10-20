@@ -131,18 +131,11 @@ export const shieldGuardian: CreatureAuthored = {
       id: S.featureId(252, 5),
       label: 'Multiattack',
       description: 'The guardian makes two fist attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(252, 210),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(252, 211), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(252, 6) }] }] }
+        ]
+      },
       order: 5
     },
     {

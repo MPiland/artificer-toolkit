@@ -50,18 +50,16 @@ export const dretch: CreatureAuthored = {
       id: S.featureId(86, 2),
       label: 'Multiattack',
       description: 'The dretch makes two attacks: one with its bite and one with its claws.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(86, 202),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(86, 1202), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRETCH_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(86, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(86, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

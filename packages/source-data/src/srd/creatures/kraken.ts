@@ -105,19 +105,21 @@ export const kraken: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The kraken makes three tentacle attacks, each of which it can replace with one use of Fling.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(180, 504),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(180, 604), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 3,
+                fillers: [
+                  { kind: 'FEATURE', featureId: S.featureId(180, 6) },
+                  { kind: 'FEATURE', featureId: S.featureId(180, 10) }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       order: 5
     },
     {

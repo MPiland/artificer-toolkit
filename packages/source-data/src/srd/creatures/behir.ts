@@ -47,6 +47,16 @@ export const behir: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The behir makes two attacks: one with its bite and one to constrict.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(43, 2) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(43, 3) }] }
+            ]
+          }
+        ]
+      },
       order: 1
     },
     {

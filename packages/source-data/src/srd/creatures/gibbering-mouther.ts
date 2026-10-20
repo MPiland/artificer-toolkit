@@ -59,6 +59,20 @@ export const gibberingMouther: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The gibbering mouther makes one bite attack and, if it can, uses its Blinding Spittle.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(141, 4) }] },
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(141, 5) }],
+                optional: true
+              }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

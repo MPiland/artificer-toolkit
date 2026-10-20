@@ -68,19 +68,11 @@ export const knight: CreatureAuthored = {
       id: S.featureId(178, 2),
       label: 'Multiattack',
       description: 'Multiattack. The knight makes two melee attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(178, 502),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(178, 602), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KNIGHT_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(178, 3) }] }] }
+        ]
+      },
       order: 2
     },
     {

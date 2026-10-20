@@ -93,18 +93,11 @@ export const chainDevil: CreatureAuthored = {
       id: S.featureId(61, 4),
       label: 'Multiattack',
       description: 'Multiattack. The devil makes two attacks with its chains.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(61, 103),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(61, 104), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(61, 5) }] }] }
+        ]
+      },
       order: 4
     },
     {

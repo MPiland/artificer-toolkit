@@ -130,19 +130,12 @@ export const oni: CreatureAuthored = {
       id: S.featureId(211, 5),
       label: 'Multiattack',
       description: 'Multiattack. The oni makes two attacks, either with its claws or its glaive.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(211, 503),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(211, 603), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ONI_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(211, 6) }] }] },
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(211, 8) }] }] }
+        ]
+      },
       order: 5
     },
     {

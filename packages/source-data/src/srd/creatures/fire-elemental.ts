@@ -72,6 +72,11 @@ export const fireElemental: CreatureAuthored = {
       id: S.featureId(101, 4),
       label: 'Multiattack',
       description: 'Multiattack. The elemental makes two touch attacks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(101, 5) }] }] }
+        ]
+      },
       order: 4
     },
     {

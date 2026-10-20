@@ -81,18 +81,28 @@ export const hornedDevil: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The devil makes three melee attacks: two with its fork and one with its tail. It can use Hurl Flame in place of any melee attack.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(167, 203),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(167, 1203), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HORNED_DEVIL_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 2,
+                fillers: [
+                  { kind: 'FEATURE', featureId: S.featureId(167, 4) },
+                  { kind: 'FEATURE', featureId: S.featureId(167, 6) }
+                ]
+              },
+              {
+                count: 1,
+                fillers: [
+                  { kind: 'FEATURE', featureId: S.featureId(167, 5) },
+                  { kind: 'FEATURE', featureId: S.featureId(167, 6) }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

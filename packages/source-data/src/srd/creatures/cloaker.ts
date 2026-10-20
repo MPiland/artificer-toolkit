@@ -216,18 +216,16 @@ export const cloaker: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The cloaker makes two attacks: one with its bite and one with its tail.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(65, 125),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(65, 126), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLOAKER_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(65, 7) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(65, 8) }] }
+            ]
+          }
+        ]
+      },
       order: 6
     },
     {

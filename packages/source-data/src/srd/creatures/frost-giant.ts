@@ -46,6 +46,11 @@ export const frostGiant: CreatureAuthored = {
       id: S.featureId(107, 1),
       label: 'Multiattack',
       description: 'The giant makes two greataxe attacks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(107, 2) }] }] }
+        ]
+      },
       order: 1
     },
     {

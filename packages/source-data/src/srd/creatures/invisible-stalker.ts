@@ -77,18 +77,11 @@ export const invisibleStalker: CreatureAuthored = {
       id: S.featureId(174, 4),
       label: 'Multiattack',
       description: 'Multiattack. The stalker makes two slam attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(174, 204),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(174, 1204), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_INVISIBLE_STALKER_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(174, 5) }] }] }
+        ]
+      },
       order: 4
     },
     {

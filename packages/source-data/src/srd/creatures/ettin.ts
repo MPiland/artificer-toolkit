@@ -58,6 +58,16 @@ export const ettin: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The ettin makes two attacks: one with its battleaxe and one with its morningstar.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(100, 4) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(100, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {
