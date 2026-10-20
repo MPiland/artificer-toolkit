@@ -2,7 +2,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import type { CreatureAuthored } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
