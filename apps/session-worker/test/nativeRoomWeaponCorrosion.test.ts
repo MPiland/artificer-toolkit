@@ -4,7 +4,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { arrows } from '@artificer-toolkit/source-data/srd/equipment/arrows.js'
-import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { mace } from '@artificer-toolkit/source-data/srd/equipment/mace.js'
 import { longbow } from '@artificer-toolkit/source-data/srd/equipment/longbow.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { runInDurableObject } from 'cloudflare:test'
@@ -89,7 +89,7 @@ async function nextRound(room: Room) {
 
 describe('Corrosive Form corrodes the weapon that hits the pudding (SPELLS-33 T6i2)', () => {
   it('gives a hit weapon a -1 penalty, and undo restores it', async () => {
-    const room = await puddingRoom({ equipment: [club], weaponLabel: 'Club' })
+    const room = await puddingRoom({ equipment: [mace], weaponLabel: 'Mace' })
     expect((await readAttackerPlay(room)).itemDegradation).toEqual([])
 
     await strike(room)
@@ -103,7 +103,7 @@ describe('Corrosive Form corrodes the weapon that hits the pudding (SPELLS-33 T6
   })
 
   it('destroys the weapon at -5, and undo gives it back', async () => {
-    const room = await puddingRoom({ equipment: [club], weaponLabel: 'Club' })
+    const room = await puddingRoom({ equipment: [mace], weaponLabel: 'Mace' })
     for (let hit = 0; hit < 5; hit += 1) {
       await strike(room)
       if (hit < 4) await nextRound(room)

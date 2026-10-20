@@ -2,7 +2,7 @@ import { compileEffect, compileEquipment } from '@artificer-toolkit/shared/compi
 import { rustMonster } from '@artificer-toolkit/source-data/srd/creatures/rust-monster.js'
 import { blackPudding } from '@artificer-toolkit/source-data/srd/creatures/black-pudding.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
-import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { mace } from '@artificer-toolkit/source-data/srd/equipment/mace.js'
 import { leatherArmor } from '@artificer-toolkit/source-data/srd/equipment/leather-armor.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { longbow } from '@artificer-toolkit/source-data/srd/equipment/longbow.js'
@@ -158,7 +158,7 @@ describe('planEncounterEquipmentDegradation (SPELLS-33 T6i)', () => {
         afterPenalty: 2,
         destroyed: false
       })
-      expect(corrode([worn('c', club, { degradation: 4 })], 'c')).toMatchObject({
+      expect(corrode([worn('c', mace, { degradation: 4 })], 'c')).toMatchObject({
         afterPenalty: 5,
         destroyed: true
       })
