@@ -8702,6 +8702,7 @@ function testApplications(
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
+        application.kind === 'KILL_NEGATED' ||
         application.kind === 'DEPART'
       )
         continue
@@ -9514,6 +9515,7 @@ function interpretDirect(
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
+        application.kind === 'KILL_NEGATED' ||
         application.kind === 'DEPART'
       )
         continue

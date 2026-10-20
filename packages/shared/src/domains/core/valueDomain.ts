@@ -22,6 +22,7 @@ export const VALUE_DOMAIN_CODE = {
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
   ATTACK_DECOYS: 'ATTACK_DECOYS',
+  DAMAGE_INTERCEPTION: 'DAMAGE_INTERCEPTION',
   INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
@@ -157,6 +158,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Attack Decoys',
     description:
       'Decoys of the holder that a d20 roll can redirect an attack to; the effect spends one use per decoy destroyed.'
+  },
+
+  [VALUE_DOMAIN_CODE.DAMAGE_INTERCEPTION]: {
+    code: VALUE_DOMAIN_CODE.DAMAGE_INTERCEPTION,
+    label: 'Damage Interception',
+    description:
+      'Damage that would drop the holder to 0 hit points leaves it at a set hit point total instead; the effect spends one use each time.'
   },
 
   [VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE]: {
@@ -465,6 +473,9 @@ export type ValueDomainParamByCode = {
 
   // Decoys an attack against the holder may target instead (Mirror Image).
   ATTACK_DECOYS: EmptyObject
+
+  // Damage that would drop the holder to 0 hit points leaves it at a set total instead (Death Ward).
+  DAMAGE_INTERCEPTION: EmptyObject
 
   // A save an attacker must pass before targeting the holder.
   INCOMING_ATTACK_GATE: EmptyObject
