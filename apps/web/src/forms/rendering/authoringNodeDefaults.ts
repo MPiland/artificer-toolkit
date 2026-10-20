@@ -76,6 +76,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'SOURCE_SAVE_DC' }
     case 'spellCast':
       return { castLevel: 1 }
+    case 'featureGrantedSpellCast':
+      return { spellKind: 'CANTRIP' }
     case 'featureWeaponAttack':
       return {}
     case 'chargeBonus':
