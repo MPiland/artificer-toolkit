@@ -8786,7 +8786,7 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2i4a"]
               },
-              "text": "Divine Word (split from T2i4): the gated KILL tier inside the save-fail graph chosen by the same tier selection; Divine Word data with a parity proof, boundary tests, room journey; DIVINE_WORD kind deleted; docs. Planar banishment stays description-only."
+              "text": "Divine Word (split from T2i4): the gated KILL tier inside the save-fail graph chosen by the same tier selection; Divine Word data with a parity proof, boundary tests, room journey; DIVINE_WORD kind deleted; docs. Planar banishment stays description-only. Removes T2i4a's stubbed adapter compile stand-in in the entry-point test (and compiledTestSpellCast's optional registry argument if unused) so the tiered test compiles real product code."
             },
             {
               "id": "SPELLS-4.T2i2a",
@@ -9001,10 +9001,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2l", "SPELLS-4.T2lb"]
               },
-              "text": "Repeat saves (split from T2m, ruled 2026-10-20): FollowUpSave repeatTriggers schema and compiler (DAMAGE_TAKEN, HOLDER_ACTION, THRESHOLDS shapes); HOLDER_ACTION through a save variant of the D105/D146 ESCAPE seam (DC pinned from the cast, ON_SAVING_THROW, success ends the effect). Converts IRRESISTIBLE_DANCE and ANIMAL_FRIENDSHIP with parity proofs; kinds deleted. Writes the DAMAGE_TAKEN funnel contract for T2m1b, T2m3, SPELLS-33.T6e2 and T4m.",
+              "text": "Repeat saves, increment 1 (split from T2m, re-ruled 2026-10-20): converts ANIMAL_FRIENDSHIP (kind deleted, parity proof), DAY counted in TURNS_PER_DURATION_UNIT; Int gates deferred as an edge case. Writes resume sections for T2m1b, T2m1c and T2m1d.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
@@ -9031,7 +9031,20 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2m1"]
               },
-              "text": "On-damage repeat saves in the room (split from T2m1, ruled 2026-10-20): one hook at the room command funnel (D161 pattern) reads the committed receipt's DAMAGE applications and raises a rule-raised SYSTEM repeat-save root per holder with the trigger's roll influence; undo binds to the parent command. Covers every damage root. Converts HIDEOUS_LAUGHTER with a parity proof; room journeys for a single-target hit and an area hit."
+              "text": "On-damage repeat saves in the room (split from T2m1, ruled 2026-10-20): FollowUpSave repeatTriggers schema and compiler (DAMAGE_TAKEN only) plus one hook at the room command funnel (D161 pattern) that reads the committed receipt's DAMAGE applications and raises a rule-raised SYSTEM repeat-save root per holder with the trigger's roll influence; undo binds to the parent command. Covers every damage root. Converts HIDEOUS_LAUGHTER with a parity proof; room journeys for a single-target hit and an area hit."
+            },
+            {
+              "id": "SPELLS-4.T2m1d",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T2m1"]
+              },
+              "text": "Holder-action repeat save (split from T2m1, ruled 2026-10-20): a save variant of the D105/D146 lifecycle.escape seam (prepare, verify, plan, offers, outputs) beside any held condition, not only spatial; DC pinned at cast through the T2i3 castFactKeys save-DC pin (no second pin path). Converts IRRESISTIBLE_DANCE with a parity proof and room journey; kind deleted. Propose a split at start if still size 8."
             },
             {
               "id": "SPELLS-4.T2m2",
@@ -12193,7 +12206,7 @@
             },
             {
               "id": "SPELLS-31.T5o",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12203,7 +12216,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "New option, ruled 2026-10-20: a ROLL_INITIATIVE trigger (fires once per actor when initiative settles) and a RESTORE_RESOURCE outcome (feature charge restored to a floor when at 0). Perfect Self, Superior Inspiration (Bardic Inspiration as a feature charge). Thief's Reflexes split to T5o2. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m242 (4d88ea7b3)."
             },
             {
               "id": "SPELLS-31.T5o2",
@@ -12554,8 +12567,7 @@
             },
             {
               "id": "SPELLS-33.T3c1",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 8,
@@ -12564,7 +12576,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T3b"]
               },
-              "text": "Feature-level spell slot table (split from T3c, ruled 2026-10-20): grants.spellSlots { id, resetKind, levels[{ level, amount }] } through schema, shared authoring, compiler, node map and web defaults; T3b casters become one table plus SPELL_SLOT-mode spell grants; parity proof keeps the GM description and slot counts. No runtime change."
+              "text": "Feature-level spell slot table (split from T3c, ruled 2026-10-20): grants.spellSlots { id, resetKind, levels[{ level, amount }] } through schema, shared authoring, compiler, node map and web defaults; T3b casters become one table plus SPELL_SLOT-mode spell grants; parity proof keeps the GM description and slot counts. No runtime change.",
+              "note": "Merged m243 (03ef52a00)."
             },
             {
               "id": "SPELLS-33.T3c2a",

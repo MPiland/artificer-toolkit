@@ -705,6 +705,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return createGrantLevel(order)
     case 'spellGrantProgression':
       return createGrantProgression()
+    case 'spellSlotTable':
+      return { id: crypto.randomUUID(), resetKind: 'LONG_REST', levels: [] }
     case 'startingEquipment':
       return createEmptyStartingEquipment()
     case 'startingEquipmentCurrency':

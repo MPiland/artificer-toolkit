@@ -2,7 +2,8 @@ import type {
   FacetAuthored,
   FeatureBaseAuthored,
   FeatureRollDefinitionAuthored,
-  FeatureWeaponAttackAuthored
+  FeatureWeaponAttackAuthored,
+  SpellSlotTableAuthored
 } from '#authored'
 import {
   type CompiledFeatGrant,
@@ -41,6 +42,7 @@ export type CompiledFeatureBase = {
   proficiencies?: CompiledProficiencyGrant[]
   senses?: CompiledSenseGrant[]
   spells?: CompiledSpellGrant[]
+  spellSlots?: SpellSlotTableAuthored
   order: number
 }
 
@@ -87,6 +89,7 @@ export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatu
     proficiencies,
     senses,
     spells,
+    ...(authored.grants?.spellSlots ? { spellSlots: authored.grants.spellSlots } : {}),
     order: authored.order
   }
 }

@@ -45,6 +45,8 @@ export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotRes
   actionEntryPoints: ReturnType<typeof buildCharacterActionRuleFacts>['entryPoints']
   /** Server-only passive zone sources an Encounter places on the Character's token (D155). */
   passiveZoneSources: ReturnType<typeof buildCharacterActionRuleFacts>['passiveZones']
+  /** Server-only charges the Character's passive features raise when it rolls initiative. */
+  initiativeRestoreSources: ReturnType<typeof buildCharacterActionRuleFacts>['initiativeRestores']
 }
 
 interface CharacterRulePolicyFactsPreparation {
@@ -144,6 +146,7 @@ export function composeCharacterRulePolicyFacts(
     ...assembled,
     facts,
     actionEntryPoints: actionFacts.entryPoints,
-    passiveZoneSources: actionFacts.passiveZones
+    passiveZoneSources: actionFacts.passiveZones,
+    initiativeRestoreSources: actionFacts.initiativeRestores
   }
 }

@@ -26,7 +26,8 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * Volley, Whirlwind Attack (T3), Sacred Weapon and Ki-Empowered Strikes (T4e), Elusive and Escape
  * the Horde (T4k2a) and Nature's Sanctuary (T4k2b) resolve from the
  * same core options a Builder author has on a class feature or option, so each must pass the class
- * node map exactly as authored, as must a homebrew variant built from those options.
+ * node map exactly as authored, as must a homebrew variant built from those options. Perfect Self
+ * and Superior Inspiration (T5o) are a RESTORE_RESOURCE outcome on a ROLL_INITIATIVE passive.
  */
 
 const reader = createSrdNodeRuntimeReader()
@@ -318,7 +319,27 @@ const CASES: ReadonlyArray<{
       }
       return record
     }
-  }
+  },
+  ...(
+    [
+      { record: monk, label: 'Perfect Self' },
+      { record: bard, label: 'Superior Inspiration' }
+    ] as const
+  ).map(({ record, label }) => ({
+    record,
+    label,
+    variant: () => {
+      const variant = structuredClone(record)
+      const path = feature(variant, label).effects?.[0]?.paths[0]
+      const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      if (outcome?.effectKind !== 'RESTORE_RESOURCE')
+        throw new Error(`${label} must author a resource restore.`)
+      // A homebrew variant that restores more, and also when one use is left.
+      outcome.floor += 1
+      outcome.whenAtOrBelow = 1
+      return variant
+    }
+  }))
 ]
 
 describe('class features resolved from core options through the class node map (SPELLS-31.T3a-T3c, T5s)', () => {

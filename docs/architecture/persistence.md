@@ -376,6 +376,16 @@ whose only Concentration holder is the zone has no creature outcome to carry the
 created state with the zone; undoing a cast that replaced a state stays unsupported. Ending the Concentration
 removes the zone in the same transaction in T2b (current: the link exists, cleanup does not yet act on it).
 
+Initiative restores (current, SPELLS-31.T5o). When a turn commit settles initiative (`root.initiative` is non-null:
+encounter start, or an EACH_ROUND re-roll), `persistEncounterInitiativeRestores` runs once after the START zones and
+grant ticks and before the Run state is written. For each Character in `orderedActorIds` it reads the Character's
+rule evaluation through the same `readCharacterRules` callback as passive zones, plans the restores
+(`planCharacterInitiativeRestores`) and, when there are any, applies one Character mechanics batch with event phase
+`INITIATIVE_RESTORE` and `forceVersionAdvance: false`. The batch's command id comes from the occurrence, the root
+command, the phase and the actor's place in the order, so a replayed commit applies nothing twice. It runs after the
+sealed turn plans because it bumps the Character's stream version. `actionRevert` does not undo it: a turn commit is
+not reverted.
+
 Zones act at turn boundaries (SPELLS-20.T4b2b, ADR 0034). The room plans each boundary's zone batch against the
 live Scene (`prepareEncounterTurnZoneEffects`) and keeps it in the turn result (`outgoingZoneTurn` on the root,
 `incomingZoneTurn` on the commit input; absent when no zone caught the creature). The terminal transaction
