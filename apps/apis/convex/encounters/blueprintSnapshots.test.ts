@@ -108,6 +108,21 @@ describe('native Blueprint enemy snapshots', () => {
     expect(JSON.stringify(enemy)).toBe(before)
   }, 30000)
 
+  it('refuses Equipment from another Game System when pinning a Creature loadout', async () => {
+    const t = await fixture()
+    await t.run(async (ctx) => {
+      const root = await ctx.db
+        .query('authoredRoots')
+        .withIndex('by_publicId', (q) => q.eq('id', club.id))
+        .unique()
+      if (!root) throw new Error('Missing Equipment.')
+      await ctx.db.patch(root._id, { systemId: '10000000-0000-4000-8000-000000000004' })
+    })
+    await expect(t.run((ctx) => snapshotBlueprintEnemies(ctx, owner, input))).rejects.toThrow(
+      'Encounter source is unavailable in the selected Game System.'
+    )
+  }, 30000)
+
   it('creates custom enemies and rejects unavailable or foreign Creature roots', async () => {
     const t = await fixture()
     const custom = { kind: 'CUSTOM' as const, label: 'Training dummy', maxHitPoints: 0 }
