@@ -8995,7 +8995,7 @@
             },
             {
               "id": "SPELLS-4.T2m1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9005,7 +9005,7 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2l", "SPELLS-4.T2lb"]
               },
               "text": "Repeat saves, increment 1 (split from T2m, re-ruled 2026-10-20): converts ANIMAL_FRIENDSHIP (kind deleted, parity proof), DAY counted in TURNS_PER_DURATION_UNIT; Int gates deferred as an edge case. Writes resume sections for T2m1b, T2m1c and T2m1d.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m244 (b4e2b6ac5)."
             },
             {
               "id": "SPELLS-4.T2m1c",
