@@ -325,7 +325,7 @@ export type CharacterItemUseStateTransitionDto = z.infer<
  * `slot`, or `THROW` out of it. The checksums either side are those of the equipment before and
  * after the move, whichever way it went.
  */
-export const itemHandMovementSchema = z.enum(['DRAW', 'THROW'])
+const itemHandMovementSchema = lazySchema(() => z.enum(['DRAW', 'THROW']))
 
 /**
  * A Character's weapon an attack moved between carried and a hand (D107): the Character version
