@@ -417,6 +417,112 @@ describe('seeded SRD Creature hit riders in the room', () => {
     }
   )
 
+  it('frightens the Character with the Quasit’s Scare when it fails its Wisdom save (ATTACK-5.11)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Quasit',
+      feature: 'Scare (1/Day)',
+      playerAutoRoll: false,
+      rolls: []
+    })
+    const batch = await settle(room, 1)
+    expect(batch.targetTransition.after.conditionIds).toContain(conditionId('FRIGHTENED'))
+    // One active effect times the fear: 10 of the Character's turns, each ending in a repeated save.
+    expect(batch.activeEffectTransitions).toMatchObject([
+      { kind: 'CREATE', recurrenceStage: 'END_OF_TURN', remainingTicks: 10 }
+    ])
+  })
+
+  it('poisons the Character and adds the Quasit’s poison damage when it fails its save against the Claws (ATTACK-5.10)', async () => {
+    // Claws: 1d4 + 3 piercing, then DC 10 Constitution: 2d4 poison and poisoned for 1 hour on a failure.
+    const room = await hitRiderRoom({
+      creature: 'Quasit',
+      feature: 'Claws (Bite in Beast Form)',
+      playerAutoRoll: false,
+      rolls: [18, 0, 0, 0]
+    })
+    const batch = await settle(room, 1)
+    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 10, resultPath: 'ON_SAVE_FAIL' })
+    expect(batch.damage).toEqual([
+      [4, damageTypeId('PIERCING')],
+      [2, damageTypeId('POISON')]
+    ])
+    expect(batch.targetTransition.after.conditionIds).toContain(conditionId('POISONED'))
+  })
+
+  it('deals only the Quasit’s piercing damage when the Character passes its save against the Claws (ATTACK-5.10)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Quasit',
+      feature: 'Claws (Bite in Beast Form)',
+      playerAutoRoll: false,
+      rolls: [18, 0, 0, 0]
+    })
+    const batch = await settle(room, 19)
+    expect(batch.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(batch.damage).toEqual([[4, damageTypeId('PIERCING')]])
+    expect(batch.targetTransition.after.conditionIds).not.toContain(conditionId('POISONED'))
+  })
+
+  it('adds the Spirit Naga’s 7d8 poison to its Bite when the Character fails its save (ATTACK-5.13)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Spirit Naga',
+      feature: 'Bite',
+      playerAutoRoll: false,
+      rolls: [18, 0, 0, 0, 0, 0, 0, 0, 0]
+    })
+    const batch = await settle(room, 1)
+    expect(batch.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_FAIL' })
+    expect(batch.damage).toEqual([
+      [5, damageTypeId('PIERCING')],
+      [7, damageTypeId('POISON')]
+    ])
+  })
+
+  it('halves the Spirit Naga’s poison when the Character passes its save (ATTACK-5.13)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Spirit Naga',
+      feature: 'Bite',
+      playerAutoRoll: false,
+      rolls: [18, 0, 0, 0, 0, 0, 0, 0, 0]
+    })
+    const batch = await settle(room, 19)
+    expect(batch.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(batch.damage).toEqual([
+      [5, damageTypeId('PIERCING')],
+      [3, damageTypeId('POISON')]
+    ])
+  })
+
+  it('drains the Character’s Strength with the Shadow’s Strength Drain (ATTACK-5.12)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Shadow',
+      feature: 'Strength Drain',
+      playerAutoRoll: true,
+      rolls: [18, 0, 0, 3]
+    })
+    const batch = await settle(room, null)
+    expect(batch.damage).toEqual([[4, damageTypeId('NECROTIC')]])
+    expect(batch.applications).toContainEqual(
+      expect.objectContaining({ kind: 'SCALAR_REDUCTION', reductionAmount: 4 })
+    )
+  })
+
+  it('grapples, restrains and blinds a Medium Character with the Rug of Smothering (ATTACK-5.14)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Rug of Smothering',
+      feature: 'Smother',
+      playerAutoRoll: true,
+      rolls: [18]
+    })
+    const batch = await settle(room, null)
+    expect(batch.targetTransition.after.conditionIds).toEqual(
+      expect.arrayContaining([
+        conditionId('GRAPPLED'),
+        conditionId('RESTRAINED'),
+        conditionId('BLINDED')
+      ])
+    )
+  })
+
   it('hits with the Ogre’s Greatclub for its printed damage through its held Equipment', async () => {
     // 2d8 + 4 bludgeoning (the Equipment alone deals 1d8) with both dice rolling 1.
     const room = await hitRiderRoom({

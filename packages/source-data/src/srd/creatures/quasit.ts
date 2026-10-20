@@ -230,7 +230,7 @@ export const quasit: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(228, 804) + '__result',
+                id: S.actionId(228, 955),
                 resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(228, 947),
