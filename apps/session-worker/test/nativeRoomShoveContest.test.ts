@@ -12,6 +12,7 @@ import {
   SRD_ACROBATICS_SKILL_ID,
   SRD_ATHLETICS_SKILL_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -51,7 +52,10 @@ afterEach(() => {
  * The shover Wolf (Athletics +5) shoves the adjacent Wolf (Athletics +0, Acrobatics +2) 5 feet to
  * its east; a token is 100 px, a cell 5 ft. The shover's d20 is drawn first, then the defender's.
  */
-function shoveRoom(faces: number[]) {
+function shoveRoom(
+  faces: number[],
+  target: { at?: { x: number; y: number }; size?: CreatureAuthored['size'] } = {}
+) {
   return actionRoom({
     autoRoll: 'BOTH',
     rolls: faces.map(draw),
@@ -59,12 +63,18 @@ function shoveRoom(faces: number[]) {
       withCheckTotals(srdCreatureActor({ id: SHOVER_ID, creature: plainWolf }), {
         [SRD_ATHLETICS_SKILL_ID]: 5
       }),
-      withCheckTotals(srdCreatureActor({ id: TARGET_ID, creature: plainWolf }), {
-        [SRD_ATHLETICS_SKILL_ID]: 0,
-        [SRD_ACROBATICS_SKILL_ID]: 2
-      })
+      withCheckTotals(
+        srdCreatureActor({
+          id: TARGET_ID,
+          creature: target.size ? { ...plainWolf, size: target.size } : plainWolf
+        }),
+        {
+          [SRD_ATHLETICS_SKILL_ID]: 0,
+          [SRD_ACROBATICS_SKILL_ID]: 2
+        }
+      )
     ],
-    positions: { [SHOVER_ID]: SHOVER_AT, [TARGET_ID]: TARGET_AT },
+    positions: { [SHOVER_ID]: SHOVER_AT, [TARGET_ID]: target.at ?? TARGET_AT },
     ownerFeatureId: creatureFeature(plainWolf, 'Bite').id
   })
 }
@@ -195,6 +205,52 @@ describe('Shove, a basic action contested by the target, in the room (ATTACK-7 A
       expect(await settled(room)).toEqual(before)
     }
   )
+
+  describe('with the Scene checked', () => {
+    // The Wolf is Medium: a Large target is one size larger, a Huge one two.
+    const checked = async (
+      target: Parameters<typeof shoveRoom>[1],
+      acknowledged: Parameters<ShoveRoom['startAction']>[1] = []
+    ) => {
+      const room = await shoveRoom([12, 10], target)
+      const choiceOptionId = await shoveOption(room, 'Knock prone')
+      const started = await room.startAction(
+        TARGET_ID,
+        acknowledged,
+        room.sceneContext(),
+        null,
+        SHOVE_ACTION_ID,
+        SHOVER_ID,
+        choiceOptionId
+      )
+      return { room, answer: started.answer }
+    }
+    const warningCodes = (answer: object) =>
+      (answer as { warnings: { code: string }[] }).warnings.map(({ code }) => code)
+
+    it('shoves a target within reach that is one size larger', async () => {
+      const { answer } = await checked({ size: 'LARGE' })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    })
+
+    it('refuses a target beyond reach until the GM overrides', async () => {
+      const far = { x: 450, y: 150 }
+      const { room, answer } = await checked({ at: far })
+      expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'RULE_WARNINGS' })
+      expect(warningCodes(answer)).toEqual(['TARGET_OUT_OF_RANGE'])
+      expect((await settled(room)).outputs).toEqual([])
+    })
+
+    it('refuses a target more than one size larger until the GM overrides', async () => {
+      const { room, answer } = await checked({ size: 'HUGE' })
+      expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'RULE_WARNINGS' })
+      expect(warningCodes(answer)).toEqual(['TARGET_TOO_LARGE'])
+      expect((await settled(room)).outputs).toEqual([])
+
+      const overridden = await checked({ size: 'HUGE' }, ['TARGET_TOO_LARGE'])
+      expect(overridden.answer.type, JSON.stringify(overridden.answer)).toBe('COMMAND_COMMITTED')
+    })
+  })
 
   it('refuses a Shove that names no outcome, or one it does not offer', async () => {
     const room = await shoveRoom([])

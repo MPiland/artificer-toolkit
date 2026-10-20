@@ -29,8 +29,7 @@ export type CompiledFeatureEffectGroup = CompiledEffectGroup & {
 
 export type CompiledFeatureBase = {
   id: string
-  /** Retained for bounded play-surface projections; historical snapshots may omit it. */
-  label?: string
+  label: string
   attributes?: FeatureAttribute[]
   restrictions?: FacetAuthored
   effects?: CompiledFeatureEffectGroup[]

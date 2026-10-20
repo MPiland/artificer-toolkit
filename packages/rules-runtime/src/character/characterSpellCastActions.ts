@@ -9,8 +9,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
-import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { v5 as uuidv5 } from 'uuid'
 
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
@@ -131,22 +130,14 @@ function isCastOffered(
 const LEVEL_SUFFIXES = ['th', 'st', 'nd', 'rd']
 
 /** "Cure Wounds (2nd level)"; a cantrip is just its name. */
-function spellCastLabel(spell: SpellAuthored, cast: SpellCastCandidate): string {
+function spellCastLabel(spell: CompiledSpell, cast: SpellCastCandidate): string {
   return cast.spellLevel === 0
     ? spell.label
     : `${spell.label} (${cast.castLevel}${LEVEL_SUFFIXES[cast.castLevel] ?? 'th'} level)`
 }
 
-const spellEffectGroups = new WeakMap<SpellAuthored, readonly CompiledEffectGroup[]>()
-
-function activeSpellEffects(spell: SpellAuthored): readonly CompiledEffectGroup[] {
-  const known = spellEffectGroups.get(spell)
-  if (known) return known
-  const groups = (compileSpell(spell).effects ?? []).filter(
-    (effect) => effect.invocation.kind !== 'PASSIVE'
-  )
-  spellEffectGroups.set(spell, groups)
-  return groups
+function activeSpellEffects(spell: CompiledSpell): readonly CompiledEffectGroup[] {
+  return (spell.effects ?? []).filter((effect) => effect.invocation.kind !== 'PASSIVE')
 }
 
 /**
@@ -187,7 +178,7 @@ export function buildCharacterSpellCastActions(input: {
   spellAccessCandidates: readonly SpellAccessCandidate[]
   castableCandidateIds: ReadonlySet<string>
   policyOutput: SpellPolicyOutput
-  spellDocumentsById: ReadonlyMap<string, SpellAuthored> | undefined
+  spellsById: ReadonlyMap<string, CompiledSpell> | undefined
   /** The Character's level, the sum of its class levels. */
   characterLevel: number
   firstSequence: number
@@ -208,7 +199,7 @@ export function buildCharacterSpellCastActions(input: {
   const entryPoints: CharacterActionRuleEntryPoint[] = []
   const decisions: ActionDecision[] = []
   for (const cast of input.spellCastCandidates) {
-    const spell = input.spellDocumentsById?.get(cast.spellId)
+    const spell = input.spellsById?.get(cast.spellId)
     if (
       !spell ||
       !isCastOffered(cast, decisionsByCandidateId.get(cast.candidateId), input.castableCandidateIds)

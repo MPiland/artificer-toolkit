@@ -30,7 +30,7 @@ import {
 export interface CompiledClassResource {
   id: string
   label: string
-  description?: string
+  order?: number
   availableAtLevel: number
   charges: CompiledCharge
 }
@@ -70,7 +70,10 @@ export interface CompiledSpellLimits {
 }
 
 export interface CompiledSpellcasting {
+  magicName?: string
+  order?: number
   spellLimits: CompiledSpellLimits[]
+  availableAtLevel?: number
   availableSpellIds?: string[]
   ability?: AbilityCode
   maxSpellLevel: number // int
@@ -103,11 +106,13 @@ export interface CompiledMulticlass {
 
 export interface CompiledSpecialization {
   id: string
+  label: string
   order: number // int
 }
 
 export type CompiledClassBase = {
   id: string
+  label: string
   proficiencies?: CompiledProficiencyGrant[]
   spellcasting?: CompiledSpellcasting
   features?: CompiledFeature[]
@@ -118,6 +123,7 @@ export type CompiledClass = CompiledClassBase &
   (
     | {
         category: typeof CLASS_CATEGORY.BASE
+        subclassSelectionLevel?: number
         startingGold: CompiledStartingGold
         startingEquipment: StartingEquipmentAuthored
         hitpoint: CompiledHitpoint
@@ -134,7 +140,7 @@ export function compileResource(authored: ClassResourceAuthored): CompiledClassR
   return {
     id: authored.id,
     label: authored.label,
-    description: authored.description,
+    order: authored.order,
     availableAtLevel: authored.availableAtLevel,
     charges: compileCharge(authored.charges)
   }
@@ -167,7 +173,10 @@ export function compileSpellcasting(authored: ClassSpellcastingAuthored): Compil
     : undefined
 
   return {
+    magicName: authored.magicName,
+    order: authored.order,
     spellLimits: authored.spellLimits.map((spellLimit) => compileSpellLimits(spellLimit)),
+    availableAtLevel: authored.availableAtLevel,
     availableSpellIds: authored.availableSpellIds,
     ability: authored.ability,
     maxSpellLevel: authored.maxSpellLevel,
@@ -203,6 +212,7 @@ export function compileSpecialization(
 ): CompiledSpecialization {
   return {
     id: authored.id,
+    label: authored.label,
     order: authored.order
   }
 }
@@ -226,6 +236,7 @@ export function compileClass(authored: ClassAuthored): CompiledClass {
 
   const base: CompiledClassBase = {
     id: authored.id,
+    label: authored.label,
     proficiencies,
     features,
     spellcasting,
@@ -237,6 +248,7 @@ export function compileClass(authored: ClassAuthored): CompiledClass {
       return {
         ...base,
         category: authored.category,
+        subclassSelectionLevel: authored.subclassSelectionLevel,
         startingGold: authored.startingGold,
         startingEquipment: authored.startingEquipment,
         hitpoint: authored.hitpoint,

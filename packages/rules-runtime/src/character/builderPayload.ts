@@ -28,7 +28,7 @@ import { evaluateCharacterRules } from './characterRuleEvaluation.js'
  */
 export async function resolveCharacterBuilderPayload(
   character: CharacterAuthored,
-  context: CharacterBuilderContext,
+  context: CharacterBuilderContext & Required<Pick<CharacterBuilderContext, 'presentation'>>,
   input: {
     mode: 'create' | 'edit'
     previousCharacter: CharacterAuthored | null
@@ -51,13 +51,14 @@ export async function resolveCharacterBuilderPayload(
             character,
             context,
             eligibilityFacets,
-            spellDocumentsById: context.spellDocumentsById
+            spellsById: context.spellsById
           })
       })
   })
   const payload = toCharacterBuilderPayload(
     character,
     resolution,
+    context.presentation,
     input.builderIntent,
     input.baseActiveUpdatedAt,
     input.publicId

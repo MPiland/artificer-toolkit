@@ -804,8 +804,9 @@ remain uncompleted cutover work.
 Equipment publication resolves current same-System visible parent chains, then atomically recompiles
 published descendants with the shared compiler. Descendant authored checksums and drafts are unchanged;
 unresolved descendants or cycles roll back the parent publication. Deletion rejects published variants.
-Exact canonical replay first backfills `parentEquipmentId`; `content/import.syncEquipmentDerived` then
-compiles one Equipment after all imported parents exist. Missing relationship metadata fails closed,
+Import stores base Equipment's compilation with its version. Exact canonical replay first backfills
+`parentEquipmentId`; `content/import.syncEquipmentDerived` then compiles one variant after all imported
+parents exist. Missing relationship metadata fails closed,
 and conflicting evidence is never overwritten. See the [authoring guide](../../docs/architecture/authoring-schema.md)
 for the existing bounded-authoring ceiling. Equipment's web transport and managed lifecycle proof are pending.
 

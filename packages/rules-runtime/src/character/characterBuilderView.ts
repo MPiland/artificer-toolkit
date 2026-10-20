@@ -1,4 +1,5 @@
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import { withGrantProse, type CharacterPresentationLookup } from './characterRuleContext.js'
 import { getAvailableSubclassesForClass } from './builderEligibility.js'
 import { evaluateMulticlassRequirements } from '@artificer-toolkit/shared/character'
 import {
@@ -20,10 +21,11 @@ import {
 import {
   isSameCharacterProvenanceIdentity,
   type BackgroundAuthored,
-  type CharacterAuthored,
-  type ClassAuthored
+  type CharacterAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
-import type { FeatureAuthored, StartingEquipmentAuthored } from '@artificer-toolkit/shared/authored'
+import type { StartingEquipmentAuthored } from '@artificer-toolkit/shared/authored'
+import type { CompiledFeature } from '@artificer-toolkit/shared/compilers'
+import type { CompiledClass } from '@artificer-toolkit/shared/subjects/compilers'
 import { startingEquipmentDtoSchema } from '@artificer-toolkit/schema/shared/startingEquipment'
 import type {
   CharacterBuilderChoiceOptionDto,
@@ -263,6 +265,7 @@ export function stripCharacterBuilderResolution(
 export function toCharacterBuilderPayload(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution,
+  presentation: CharacterPresentationLookup,
   builderIntent?: CharacterBuilderIntentCacheDto,
   baseActiveUpdatedAt?: string | null,
   publicId?: string
@@ -271,8 +274,8 @@ export function toCharacterBuilderPayload(
     publicId,
     character,
     resolution: stripCharacterBuilderResolution(resolution),
-    references: toCharacterBuilderReferences(resolution),
-    view: buildCharacterBuilderView(character, resolution),
+    references: toCharacterBuilderReferences(resolution, presentation),
+    view: buildCharacterBuilderView(character, resolution, presentation),
     builderIntent,
     baseActiveUpdatedAt
   }
@@ -296,8 +299,8 @@ function toChoiceOption(params: {
 }
 
 function isBaseClass(
-  classRecord: ClassAuthored
-): classRecord is Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.BASE }> {
+  classRecord: CompiledClass
+): classRecord is Extract<CompiledClass, { category: typeof CLASS_CATEGORY.BASE }> {
   return classRecord.category === CLASS_CATEGORY.BASE
 }
 
@@ -521,34 +524,17 @@ function getFeatureChoiceViews(params: {
 
 function getGrantedFeatureViews(params: {
   resolution: CharacterBuilderResolution
+  presentation: CharacterPresentationLookup
   includeSource: (source: CharacterProvenance) => boolean
 }): CharacterBuilderGrantSummaryItemDto[] {
   return params.resolution.grants.features
     .filter((grant) => params.includeSource(grant.source))
-    .map((grant) => toFeatureGrantSummary(params.resolution, grant))
-}
-
-function toFeatureGrantSummary(
-  resolution: CharacterBuilderResolution,
-  grant: CharacterBuilderGrantSummaryItemDto
-): CharacterBuilderGrantSummaryItemDto {
-  const feature = findGrantedFeature(resolution, grant.id)
-  return {
-    ...grant,
-    details:
-      feature?.details
-        ?.slice()
-        .sort((left, right) => left.order - right.order)
-        .map((detail) => ({
-          id: detail.id,
-          label: detail.label,
-          description: detail.description
-        })) ?? grant.details
-  }
+    .map((grant) => withGrantProse(params.presentation, grant, 'FEATURE'))
 }
 
 function getGrantedClassContentViews(params: {
   resolution: CharacterBuilderResolution
+  presentation: CharacterPresentationLookup
   includeSource: (source: CharacterProvenance) => boolean
 }): CharacterBuilderGrantSummaryItemDto[] {
   const uniqueItems = new Map<string, { item: CharacterBuilderGrantSummaryItemDto; kind: string }>()
@@ -563,15 +549,19 @@ function getGrantedClassContentViews(params: {
       `${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`,
       key
     )
-    uniqueItems.set(key, { item: toFeatureGrantSummary(params.resolution, item), kind: 'FEATURE' })
+    uniqueItems.set(key, {
+      item: withGrantProse(params.presentation, item, 'FEATURE'),
+      kind: 'FEATURE'
+    })
   }
 
   for (const [kind, items] of [
     ['RESOURCE', params.resolution.grants.resources],
     ['SPELLCASTING', params.resolution.grants.spellcasting]
   ] as const)
-    for (const item of items) {
-      if (!params.includeSource(item.source)) continue
+    for (const grant of items) {
+      if (!params.includeSource(grant.source)) continue
+      const item = withGrantProse(params.presentation, grant, kind)
       const matchingFeatureKey = featureKeysByIdentity.get(
         `${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`
       )
@@ -591,10 +581,7 @@ function getGrantedClassContentViews(params: {
         }
         continue
       }
-      uniqueItems.set(`${item.id}:${JSON.stringify(item.source)}`, {
-        item: toFeatureGrantSummary(params.resolution, item),
-        kind
-      })
+      uniqueItems.set(`${item.id}:${JSON.stringify(item.source)}`, { item, kind })
     }
 
   return [...uniqueItems.values()]
@@ -611,7 +598,7 @@ function getGrantedClassContentViews(params: {
 function findGrantedFeature(
   resolution: CharacterBuilderResolution,
   featureId: string
-): FeatureAuthored | undefined {
+): CompiledFeature | undefined {
   return [
     ...resolution.registry.features,
     ...resolution.registry.races.flatMap((race) => [
@@ -630,7 +617,7 @@ function getRequiredFeatureOptionCount({
   source
 }: {
   character: CharacterAuthored
-  feature: FeatureAuthored
+  feature: CompiledFeature
   resolution: CharacterBuilderResolution
   source: CharacterProvenance
 }): number {
@@ -684,7 +671,7 @@ function getSelectedFeatureOptionIds(
 
 function getSpellChoiceViews(params: {
   character: CharacterAuthored
-  classRecord: ClassAuthored | undefined
+  classRecord: CompiledClass | undefined
   classId: string
   classLevel: number
   resolution: CharacterBuilderResolution
@@ -799,7 +786,8 @@ function getBackgroundDetailSections(
 
 function buildCharacterBuilderView(
   character: CharacterAuthored,
-  resolution: CharacterBuilderResolution
+  resolution: CharacterBuilderResolution,
+  presentation: CharacterPresentationLookup
 ): CharacterBuilderViewDto {
   const equipmentOptions = resolution.catalog.equipment.map((equipment) =>
     toChoiceOption({
@@ -831,6 +819,13 @@ function buildCharacterBuilderView(
         (background) => background.id === character.intent.background.backgroundId
       )
     : undefined
+  const backgroundProse = selectedBackground
+    ? presentation.backgrounds[selectedBackground.id]
+    : undefined
+  if (selectedBackground && !backgroundProse)
+    throw new Error(
+      `Character Builder background presentation is missing: ${selectedBackground.id}`
+    )
   const backgroundStartingEquipmentRequired = resolution.outstandingChoices.some(
     (choice) => choice.code === 'BACKGROUND_STARTING_EQUIPMENT_REQUIRED'
   )
@@ -856,6 +851,7 @@ function buildCharacterBuilderView(
         : null,
       features: getGrantedFeatureViews({
         resolution,
+        presentation,
         includeSource: (source) =>
           source.kind === 'RACE' || source.kind === 'SUBRACE' || source.kind === 'ANCESTRY'
       }),
@@ -920,6 +916,7 @@ function buildCharacterBuilderView(
         ]
         const features = getGrantedClassContentViews({
           resolution,
+          presentation,
           includeSource: (source) => {
             if (source.kind === 'CLASS') return source.classId === classRecord.classId
             if (source.kind === 'SUBCLASS') return source.subclassId === classRecord.subclassId
@@ -996,10 +993,11 @@ function buildCharacterBuilderView(
       backgroundOptions: resolution.catalog.backgrounds.map((background) =>
         toChoiceOption({ id: background.id, label: background.label })
       ),
-      description: selectedBackground?.description,
-      detailSections: getBackgroundDetailSections(selectedBackground?.details ?? []),
+      description: backgroundProse?.description,
+      detailSections: getBackgroundDetailSections(backgroundProse?.details ?? []),
       features: getGrantedFeatureViews({
         resolution,
+        presentation,
         includeSource: (source) => source.kind === 'BACKGROUND'
       }),
       grantChoices: getChosenGrantChoiceViews({
@@ -1059,7 +1057,8 @@ function buildCharacterBuilderView(
 }
 
 function toCharacterBuilderReferences(
-  resolution: CharacterBuilderResolution
+  resolution: CharacterBuilderResolution,
+  presentation: CharacterPresentationLookup
 ): CharacterBuilderReferencesDto {
   return {
     abilities: ABILITY_OPTIONS.map((option) => ({ id: option.code, label: option.label })),
@@ -1087,6 +1086,9 @@ function toCharacterBuilderReferences(
     pointBuyTotalPoints: POINT_BUY_TOTAL_POINTS,
     races: resolution.catalog.races.map((race) => {
       const resolvedRace = resolution.registry.races.find((record) => record.id === race.id)
+      const raceProse = resolvedRace ? presentation.races[resolvedRace.id] : undefined
+      if (resolvedRace && !raceProse)
+        throw new Error(`Character Builder race presentation is missing: ${resolvedRace.id}`)
       return {
         id: race.id,
         label: race.label,
@@ -1104,20 +1106,24 @@ function toCharacterBuilderReferences(
               options: resolvedRace.ancestry.options.map((option) => ({
                 id: option.id,
                 label: option.label,
-                description: option.description,
+                description: raceProse?.ancestry?.options.find(({ id }) => id === option.id)
+                  ?.description,
                 features: (option.features ?? []).map((feature) =>
-                  toFeatureGrantSummary(resolution, {
-                    id: feature.id,
-                    label: feature.label,
-                    description: feature.description,
-                    attributes: feature.attributes,
-                    sourceLabel: option.label,
-                    source: {
-                      kind: 'ANCESTRY',
-                      ancestryId: resolvedRace.ancestry!.id,
-                      optionId: option.id
-                    }
-                  })
+                  withGrantProse(
+                    presentation,
+                    {
+                      id: feature.id,
+                      label: feature.label,
+                      attributes: feature.attributes,
+                      sourceLabel: option.label,
+                      source: {
+                        kind: 'ANCESTRY',
+                        ancestryId: resolvedRace.ancestry!.id,
+                        optionId: option.id
+                      }
+                    },
+                    'FEATURE'
+                  )
                 )
               }))
             }

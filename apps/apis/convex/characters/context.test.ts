@@ -7,6 +7,7 @@ import { composeCharacterRulePolicyFacts } from '@artificer-toolkit/rules-runtim
 import type { CharacterRuleContext } from '@artificer-toolkit/rules-runtime/character/characterRuleContext'
 import { evaluateInstalledCharacterPolicy } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
+import { compileFeature } from '@artificer-toolkit/shared/compilers'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
@@ -28,7 +29,7 @@ import { fixture, input } from '../../tests/fixtures/characters'
 
 async function serializableContext(...args: Parameters<typeof loadCharacterRuleContext>) {
   const {
-    spellDocumentsById,
+    spellsById,
     currentSpellDocumentsById,
     creaturesById,
     vehiclesById,
@@ -42,7 +43,7 @@ async function serializableContext(...args: Parameters<typeof loadCharacterRuleC
       ...context.registry,
       acquiredEquipmentByItemId: Object.fromEntries(context.registry.acquiredEquipmentByItemId)
     },
-    spellDocumentsById: Object.fromEntries(spellDocumentsById),
+    spellsById: Object.fromEntries(spellsById),
     currentSpellDocumentsById: Object.fromEntries(currentSpellDocumentsById),
     creaturesById: Object.fromEntries(creaturesById),
     vehiclesById: Object.fromEntries(vehiclesById),
@@ -364,7 +365,9 @@ describe('native current Character rule context', () => {
     }))
     const context = await t.run((ctx) => serializableContext(ctx, character, owner.userId))
     expect(context.registry.backgrounds).toEqual([])
-    expect(context.registry.features).toEqual([ownFeature])
+    // D163: the registry holds the compiled Feature; its prose is read through the presentation lookup.
+    expect(context.registry.features).toEqual([compileFeature(ownFeature)])
+    expect(Object.values(context.presentation.features)).toEqual([ownFeature])
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
@@ -416,12 +419,12 @@ describe('native current Character rule context', () => {
     ]
     const context = await t.run((ctx) => serializableContext(ctx, character, owner.userId))
     expect(context.catalog.spells.map((row) => row.id).sort()).toEqual([light.id, own.id].sort())
-    expect(Object.keys(context.spellDocumentsById)).toEqual([light.id])
+    expect(Object.keys(context.spellsById)).toEqual([light.id])
     expect(context.spellCatalogueEntries.map((row) => row.id).sort()).toEqual(
       [light.id, own.id].sort()
     )
-    expect(context.spellDocumentsById[foreign.id]).toBeUndefined()
-    expect(context.spellDocumentsById[light.id]?.classIds).toEqual(light.classIds)
+    expect(context.spellsById[foreign.id]).toBeUndefined()
+    expect(context.spellsById[light.id]?.classIds).toEqual(light.classIds)
     expect(context.sourceIdentities[own.id]?.checksum).toBeDefined()
     await t.run((ctx) => corruptPublishedVersionPayload(ctx, own.id))
     // Unused mechanics are not parsed; complete checksum-bound selection facts remain available.

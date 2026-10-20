@@ -45,6 +45,7 @@ export function projectCharacterSheetFacts(
     additionalCurrencyOptions: facts.campaignContext.currencyOptions,
     creaturesById: facts.prepared.context.creaturesById,
     vehiclesById: facts.prepared.context.vehiclesById,
+    presentation: facts.prepared.context.presentation,
     spellCustomizations: facts.sheetState.spellCustomizations,
     ruleEvaluation: facts.ruleEvaluation,
     activeEffects: facts.activeEffects,
@@ -66,6 +67,7 @@ export function projectCharacterSheetFacts(
     ruleEvaluation: facts.ruleEvaluation,
     ruleProjection,
     resolution: facts.prepared.resolution,
+    presentation: facts.prepared.context.presentation,
     contentMaturity: facts.prepared.context.sourceAccess.campaign?.contentMaturity ?? null,
     sheet: {
       ...sheet,

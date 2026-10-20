@@ -70,7 +70,7 @@ export type CharacterMovementFacts = {
     'conditions' | 'adjustments' | 'attunementSlotOverride'
   >
   prepared: {
-    context: Pick<CharacterBuilderContext, 'vocabularySnapshot' | 'spellDocumentsById'> & {
+    context: Pick<CharacterBuilderContext, 'vocabularySnapshot' | 'spellsById'> & {
       registry: {
         system: Pick<
           NonNullable<CharacterBuilderContext['registry']['system']>,
@@ -340,7 +340,7 @@ export function buildMovementTarget<
               }
             }),
             policyOutput: effectiveRulePolicyOutput,
-            spellDocumentsById: characterFacts.prepared.context.spellDocumentsById,
+            spellsById: characterFacts.prepared.context.spellsById,
             characterLevel: characterTotalLevel(characterFacts),
             firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
           })
@@ -372,9 +372,10 @@ export function buildMovementTarget<
             executableActionIds.has(entry.actionId)
           ),
           magicSchoolIdBySpellId: new Map(
-            [...(characterFacts.prepared.context.spellDocumentsById ?? [])].map(
-              ([spellId, spell]) => [spellId, spell.magicSchoolId]
-            )
+            [...(characterFacts.prepared.context.spellsById ?? [])].map(([spellId, spell]) => [
+              spellId,
+              spell.magicSchoolId
+            ])
           )
         }
       : input.includeReactionSources

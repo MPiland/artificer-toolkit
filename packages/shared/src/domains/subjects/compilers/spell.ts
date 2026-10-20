@@ -14,8 +14,7 @@ export type CompiledCastingTime = {
 
 export type CompiledSpell = {
   id: string
-  /** Retained for bounded play-surface projections; historical snapshots may omit it. */
-  label?: string
+  label: string
   level: number
   attributes?: SpellAttribute[]
   components?: SpellComponent[]

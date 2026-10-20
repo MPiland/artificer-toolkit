@@ -16,11 +16,10 @@ import type { Doc } from '../_generated/dataModel'
 import { internalMutation } from '../lib/mutations'
 import {
   canReadAuthoredRoot,
-  insertAuthoredVersionCompilation,
   readAuthoredVersion,
-  readAuthoredVersionCompilation,
   replaceAuthoredVersionCompilation,
-  readPublishedDocument
+  readPublishedDocument,
+  syncCanonicalCompilation
 } from './documents'
 import { compilePublicationDocument } from './publicationDocument'
 import { backfillCatalogueFamily } from './catalogueFamilies'
@@ -150,15 +149,13 @@ export const syncDerived = internalMutation({
     if (root.parentRaceId !== undefined && root.parentRaceId !== parentRaceId)
       throw new Error('Canonical content conflict.')
     const { compilation } = await compileCurrentRace(ctx, document, null)
-    const storedCompilation = await readAuthoredVersionCompilation(ctx, version)
+    const storedCompilation = await syncCanonicalCompilation(ctx, root, version, compilation)
     if (
       storedCompilation !== undefined &&
       checksumRuleDocument(storedCompilation) !== checksumRuleDocument(compilation)
     )
       throw new Error('Canonical content conflict.')
     if (root.parentRaceId === undefined) await ctx.db.patch(root._id, { parentRaceId })
-    if (storedCompilation === undefined)
-      await insertAuthoredVersionCompilation(ctx, version, compilation)
     const current = await ctx.db.get(root._id)
     if (!current) throw new Error('Canonical Race root is missing.')
     await backfillCatalogueFamily(ctx, current)

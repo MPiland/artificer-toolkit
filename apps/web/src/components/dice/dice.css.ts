@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css'
+import { globalStyle, keyframes, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
@@ -47,6 +47,16 @@ export const staticDiceList = style({
   }
 })
 
+const drawCancelledMark = keyframes({
+  from: { clipPath: 'inset(0 100% 0 0)' },
+  to: { clipPath: 'inset(0 0 0 0)' }
+})
+
+const rollInAddedDie = keyframes({
+  from: { opacity: 0, transform: 'translateY(-14px) scale(0.6)' },
+  to: { transform: 'none' }
+})
+
 export const staticDie = style({
   '@layer': {
     [app]: {
@@ -92,6 +102,16 @@ export const cancelledMark = style({
       position: 'absolute'
     }
   }
+})
+
+// DESIGN.md Motion: the ✕ draws in 200ms, then the added die rolls in over 250ms. Never applied under
+// reduced motion, which shows the settled result.
+globalStyle(`${staticDiceOverlay}[data-mode-change='playing'] ${cancelledMark}`, {
+  animation: `${drawCancelledMark} 200ms ease-out both`
+})
+
+globalStyle(`${staticDiceOverlay}[data-mode-change='playing'] ${staticDie}[data-added='true']`, {
+  animation: `${rollInAddedDie} 250ms ease-out 250ms both`
 })
 
 export const staticDiceCaption = style({

@@ -26,6 +26,7 @@ import {
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import { characterSourceActionIdPrefix } from './characterActionRuleFacts.js'
 import type { CharacterSheetRuleProjection } from './characterSheetRuleProjection.js'
 import { resolveCharacterSheetSkillKey } from './characterSheetVocabulary.js'
@@ -887,11 +888,12 @@ function buildItemPanel(
         use.equipmentId === item.equipmentId &&
         use.itemInstanceId === item.id
     )
+    const description = params.presentation.features[feature.id]?.description
     return [
       {
         id: feature.id,
         label: feature.label,
-        ...(feature.description ? { description: feature.description } : {}),
+        ...(description ? { description } : {}),
         ...(chargeUse
           ? {
               resourceCost: chargeUse.cost,
@@ -1675,6 +1677,7 @@ function buildVehiclePanel(
 interface BuildCharacterSheetPanelParams {
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
+  presentation: CharacterPresentationLookup
   sheet: CharacterSheetResponseDto
   ruleProjection: CharacterSheetRuleProjection
   knownSpellEligibleIdsByClass: ReadonlyMap<string, ReadonlySet<string>>

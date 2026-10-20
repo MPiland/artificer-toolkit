@@ -1,9 +1,7 @@
 import { CLASS_CATEGORY, HITPOINT_CALCULATION_METHOD_CODE } from '@artificer-toolkit/shared/core'
 import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
-import type {
-  CharacterAuthored,
-  ParentClassAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CompiledClass } from '@artificer-toolkit/shared/subjects/compilers'
 import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
@@ -89,7 +87,7 @@ export function prepareCharacterHitpointProgression(
   const rows = orderedLevels.map((orderedLevel, index) => {
     const level = index + 1
     const authoredClass = authoredClasses.find(
-      (record): record is ParentClassAuthored =>
+      (record): record is Extract<CompiledClass, { category: typeof CLASS_CATEGORY.BASE }> =>
         record.category === CLASS_CATEGORY.BASE && record.id === orderedLevel.classId
     )
     const die = parseHitDie(authoredClass?.hitpoint?.dieConfig)
@@ -209,7 +207,7 @@ export function appendManualHitpointValidationIssues(
     if (level.level === 1) continue
 
     const authoredClass = authoredClasses.find(
-      (record): record is ParentClassAuthored =>
+      (record): record is Extract<CompiledClass, { category: typeof CLASS_CATEGORY.BASE }> =>
         record.category === CLASS_CATEGORY.BASE && record.id === level.classId
     )
     const die = parseHitDie(authoredClass?.hitpoint?.dieConfig)

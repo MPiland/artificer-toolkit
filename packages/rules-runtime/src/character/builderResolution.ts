@@ -5,7 +5,7 @@ import {
   type CharacterAuthored,
   type CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
-import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { CompiledFeature } from '@artificer-toolkit/shared/compilers'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import {
   getSelectedFeatureOptionIds,
@@ -203,14 +203,14 @@ function getFeatureChoiceLevelForCharacter(
   return character.intent.classes.reduce((sum, record) => sum + record.classLevel, 0)
 }
 
-function getRequiredFeatureOptionCount(feature: FeatureAuthored, level: number): number {
+function getRequiredFeatureOptionCount(feature: CompiledFeature, level: number): number {
   return (feature.optionChoices ?? [])
     .filter((choice) => choice.level <= level)
     .reduce((sum, choice) => sum + choice.count, 0)
 }
 
 function getFeatureOptionReplacementCount(params: {
-  feature: FeatureAuthored
+  feature: CompiledFeature
   source: CharacterProvenance
   currentCharacter: CharacterAuthored
   previousCharacter: CharacterAuthored | null
@@ -351,7 +351,6 @@ export async function resolveCharacterBuilder({
     features: grantedFeatures.map((record) => ({
       id: record.feature.id,
       label: record.feature.label,
-      description: record.feature.description,
       sortOrder: record.feature.order,
       availableAtLevel: record.feature.availableAtLevel,
       attributes: record.feature.attributes,
@@ -367,7 +366,6 @@ export async function resolveCharacterBuilder({
         items.push({
           id: selection.baseClass.resources.id,
           label: selection.baseClass.resources.label,
-          description: selection.baseClass.resources.description,
           sortOrder: selection.baseClass.resources.order,
           availableAtLevel: selection.baseClass.resources.availableAtLevel,
           sourceLabel: selection.baseClass.label,
@@ -385,7 +383,6 @@ export async function resolveCharacterBuilder({
         items.push({
           id: selection.subclass.resources.id,
           label: selection.subclass.resources.label,
-          description: selection.subclass.resources.description,
           sortOrder: selection.subclass.resources.order,
           availableAtLevel: selection.subclass.resources.availableAtLevel,
           sourceLabel: selection.subclass.label,
@@ -407,14 +404,6 @@ export async function resolveCharacterBuilder({
         items.push({
           id: `${selection.baseClass.id}:spellcasting`,
           label: selection.baseClass.spellcasting.magicName ?? 'Spellcasting',
-          details: selection.baseClass.spellcasting.details
-            ?.slice()
-            .sort((left, right) => left.order - right.order)
-            .map((detail) => ({
-              id: detail.id,
-              label: detail.label,
-              description: detail.description
-            })),
           sortOrder: selection.baseClass.spellcasting.order,
           availableAtLevel: selection.baseClass.spellcasting.availableAtLevel ?? 1,
           sourceLabel: selection.baseClass.label,
@@ -432,14 +421,6 @@ export async function resolveCharacterBuilder({
         items.push({
           id: `${selection.subclass.id}:spellcasting`,
           label: selection.subclass.spellcasting.magicName ?? 'Spellcasting',
-          details: selection.subclass.spellcasting.details
-            ?.slice()
-            .sort((left, right) => left.order - right.order)
-            .map((detail) => ({
-              id: detail.id,
-              label: detail.label,
-              description: detail.description
-            })),
           sortOrder: selection.subclass.spellcasting.order,
           availableAtLevel: selection.subclass.spellcasting.availableAtLevel ?? 1,
           sourceLabel: selection.subclass.label,
