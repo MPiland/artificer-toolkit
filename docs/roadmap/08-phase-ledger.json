@@ -7123,9 +7123,12 @@
         {
           "id": "ATTACK-11",
           "title": "Authored Multiattack with auto-sequence",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomMultiattackSlots.test.ts",
+            "apps/web/src/forms/tests/AttackSlotAuthoring.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -7142,8 +7145,8 @@
             },
             {
               "text": "All 142 SRD Multiattacks are authored as slot sets, and the stat-block audit refuses a description-only Multiattack.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["packages/source-data/src/srd/creatureStatBlocks.test.ts"],
               "origin": [],
               "note": "D93. Shambling Mound's conditional Engulf slot is authored here; Engulf itself is offered once ATTACK-7 lands.",
               "id": "ATTACK-11.2"
@@ -7224,7 +7227,7 @@
             {
               "id": "ATTACK-11.T4",
               "text": "Author every remaining SRD Multiattack as a slot set, delete the remaining CREATURE_*_MULTIATTACK closed rules and the description-only allowlist entries, and make the stat-block audit refuse a description-only Multiattack. Split by creature family if it exceeds one slice. A conditional Engulf slot is authored now and offered once ATTACK-7.T8 lands.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-11.2"],
               "wsjf": {
                 "bv": 5,
@@ -7232,7 +7235,8 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["ATTACK-11.T1"]
-              }
+              },
+              "note": "Merged m214 (05cce2fef). Contract limits recorded in D93 and future-enhancements."
             }
           ]
         },
