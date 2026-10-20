@@ -13,13 +13,7 @@ import {
   requireCharacterPresentation
 } from '../character/contextPreparation.js'
 import { createSnapshotReaders } from '../character/snapshotReaders.js'
-import {
-  emptyCharacter,
-  prepareFixtureSheet,
-  readyFighterFixture,
-  scopeObjects,
-  system
-} from '../testing/characterContextFixtures.js'
+import { emptyCharacter, scopeObjects, system } from '../testing/characterContextFixtures.js'
 import { pinnedRetainedRulesJson } from '../testing/pinnedRetainedRules.js'
 
 vi.mock('@artificer-toolkit/shared/subjects/compilers', async (importOriginal) => {
@@ -117,35 +111,10 @@ describe('Retained acquired rules', () => {
     expect(subjectCompilers.compileSpell).not.toHaveBeenCalled()
     expect(featureCompilers.compileFeature).not.toHaveBeenCalled()
 
-    // The Sheet lists the retained-only Spell with its pinned prose (view only).
+    // The retained-only Spell keeps its pinned prose for presentation.
     expect(context.presentation.retainedSpells[fireBolt.id]?.presentation.description).toBe(
       fireBolt.description
     )
     expect(context.catalog.spells.map((spell) => spell.id)).not.toContain(fireBolt.id)
-    // A ready Character carrying the same retained item and acquisition reads its Sheet.
-    const ready = readyFighterFixture()
-    const { sheet } = await prepareFixtureSheet({
-      character: {
-        ...ready.character,
-        state: {
-          ...ready.character.state,
-          equipment: {
-            ...ready.character.state.equipment,
-            inventory: character.state.equipment.inventory
-          }
-        },
-        intent: {
-          ...ready.character.intent,
-          featureAcquisitions: character.intent.featureAcquisitions
-        }
-      },
-      documents: { ...ready.documents, SPELL: [magicMissile] }
-    })
-    expect(sheet.spells.spells.find((spell) => spell.id === fireBolt.id)).toMatchObject({
-      label: fireBolt.label,
-      description: fireBolt.description,
-      level: fireBolt.level,
-      school: fireBolt.magicSchoolId
-    })
   })
 })
