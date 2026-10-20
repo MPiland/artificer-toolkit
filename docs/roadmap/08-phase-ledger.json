@@ -6191,40 +6191,55 @@
             },
             {
               "text": "Quasit Claws run.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-QUASIT-CLAWS"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.10"
             },
             {
               "text": "Quasit Scare runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-QUASIT-SCARE"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.11"
             },
             {
               "text": "Rug of Smothering runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-RUG-SMOTHER"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.12"
             },
             {
               "text": "Shadow Strength Drain runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-SHADOW-DRAIN"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.13"
             },
             {
               "text": "Spirit Naga Bite runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-SPIRIT-NAGA-BITE"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.14"
@@ -6277,7 +6292,7 @@
             {
               "id": "ATTACK-5.T3",
               "text": "Quasit, Rug of Smothering, Shadow and Spirit Naga attacks.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-5.10", "ATTACK-5.11", "ATTACK-5.12", "ATTACK-5.13", "ATTACK-5.14"],
               "wsjf": {
                 "bv": 3,
@@ -6285,11 +6300,12 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["ATTACK-7"]
-              }
+              },
+              "note": "Merged m225 (37e2e73e9). Quasit Scare result block id fixed to a UUID; the rest proof only."
             },
             {
               "id": "ATTACK-5.T4a",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
