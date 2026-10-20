@@ -103,6 +103,7 @@ import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
 import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP, HELD_ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
+import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
@@ -1771,6 +1772,13 @@ function registerOutcomeFields(
       'actorRelationshipHeldAtOnce',
       number(['heldAtOnce'], 'Held at Once', {
         constraints: { minimum: 1 },
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTOR_RELATIONSHIP)
+      })
+    )
+    .set(
+      'actorRelationshipAppliesWhen',
+      groupObject(['appliesWhen'], 'Applies Only When', () => ATTACK_SLOT_CONDITION_NODE_MAP, {
+        presentation: 'inline',
         showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTOR_RELATIONSHIP)
       })
     )

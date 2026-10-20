@@ -1337,20 +1337,26 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   if (entries.length !== 1) unsupported('D&D action has more than one relationship outcome.')
   const entry = entries[0]!
   const relationship = entry.outcome
-  // An attack holds its target on a hit; a contest (Grapple) on the initiator's win.
+  // An attack holds its target on a hit; a contest (Grapple) on the initiator's win; an action
+  // with no roll (Engulf) as soon as it is used.
   const invocation = action.compiledEffect.invocation
   const contest = invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'CONTEST'
+  const direct = invocation.triggerCode === 'ACTIVATED'
   if (
     invocation.kind !== 'ACTION' ||
     entry.resolutionKind !== 'DIRECT' ||
     (entry.groupKind !== 'SINGLE' && entry.groupKind !== 'SEQUENTIAL') ||
     (contest
       ? entry.pathCode !== 'ON_CHECK_SUCCESS'
-      : testPhaseKindOrNull(action) !== 'ATTACK' ||
-        (entry.pathCode !== 'ON_HIT' && entry.pathCode !== 'ON_CRIT')) ||
+      : direct
+        ? entry.pathCode !== 'ON_USE'
+        : testPhaseKindOrNull(action) !== 'ATTACK' ||
+          (entry.pathCode !== 'ON_HIT' && entry.pathCode !== 'ON_CRIT')) ||
     !UUID.test(relationship.id)
   ) {
-    unsupported('D&D relationship outcomes require one bounded attack-hit or contest-win result.')
+    unsupported(
+      'D&D relationship outcomes require one bounded attack-hit, contest-win or direct-use result.'
+    )
   }
   const orderedModules = [...relationship.modules].sort(
     (left, right) => left.order - right.order || left.id.localeCompare(right.id)
@@ -1414,6 +1420,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
     actorRelationshipContribution: {
       relationshipOutcomeId: relationship.id,
       heldAtOnce: relationship.heldAtOnce,
+      ...(relationship.appliesWhen ? { appliesWhen: relationship.appliesWhen } : {}),
       modules,
       conditionIds,
       capabilitySuppressions
@@ -4453,7 +4460,11 @@ function executableAction(action: Dnd5eCompiledEffectActionSource) {
 // specializes its win as the ON_CHECK_SUCCESS outcome.
 function supported(
   action: Dnd5eCompiledEffectActionSource
-): SpecializedOutcome | { kind: 'CONTEST_RELATIONSHIP' } | { kind: 'CONTEST_OUTCOME' } {
+):
+  | SpecializedOutcome
+  | { kind: 'CONTEST_RELATIONSHIP' }
+  | { kind: 'CONTEST_OUTCOME' }
+  | { kind: 'DIRECT_RELATIONSHIP' } {
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
@@ -4666,6 +4677,14 @@ function supported(
     )
       unsupported('D&D contest check action condition is not in the pinned System vocabulary.')
     return { kind: 'CONTEST_OUTCOME' }
+  }
+  // The action holds its target by its relationship alone (Engulf): the relationship's own graph
+  // is the action's, and its active-effect plan stores the hold.
+  if (outcome.effectKind === 'ACTOR_RELATIONSHIP') {
+    if (supportsChosenCreatures)
+      unsupported('D&D chosen-creature action outcome cannot be a relationship.')
+    relationshipPlan(action)
+    return { kind: 'DIRECT_RELATIONSHIP' }
   }
   if (outcome.effectKind === 'CONDITION') {
     uuid(outcome.conditionId, 'D&D condition definition identity')
@@ -7930,6 +7949,11 @@ function compileEffectActionGraph(
       action,
       published: createDnd5eContestGraph(action.effectId)
     })
+  if (outcome.kind === 'DIRECT_RELATIONSHIP') {
+    const plan = relationshipPlan(action)
+    if (!plan) unsupported('D&D direct relationship action has no relationship.')
+    return bindMovementInterruptionOutput({ action, published: plan.frozenGraph })
+  }
   if (outcome.kind === 'CONTEST_OUTCOME')
     unsupported('D&D contest outcome requires its contest test phase.')
   if (outcome.kind === 'DICE_SCALAR_REDUCTION')
@@ -9033,6 +9057,14 @@ function interpretDirect(
   const proposals = input.execution.evidence.trace.filter((entry) =>
     proposalKeys.has(entry.operation.key)
   )
+  // A direct relationship applies nothing here; its active effect plan owns the held state.
+  if (
+    proposals.length === 0 &&
+    input.execution.evidence.trace.some(
+      (entry) => entry.operation.key === DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+    )
+  )
+    return []
   if (proposals.length === 0)
     throw new Dnd5eEffectActionCompilerError(
       'The committed D&D rule action must contain an application proposal.'

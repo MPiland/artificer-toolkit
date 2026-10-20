@@ -2,6 +2,7 @@ import type { DamageAuthored } from './damage.js'
 import type { ConditionAuthored } from './condition.js'
 import type { ActivationAuthored } from './effect.js'
 import type { CheckChoiceAuthored, EscapeDcAuthored } from './check.js'
+import type { AttackSlotCondition } from '#authored'
 import { EFFECT_KIND, type LengthUnitCode } from '#core'
 
 export type ActorRelationshipModuleAuthored =
@@ -58,6 +59,8 @@ export type ActorRelationshipAuthored = {
   effectKind: typeof EFFECT_KIND.ACTOR_RELATIONSHIP
   /** The most creatures this outcome holds at once, counted per outcome (D105). */
   heldAtOnce: number
+  /** The hold applies only while this predicate holds over the open Attack action; absent, always. */
+  appliesWhen?: AttackSlotCondition
   modules: ActorRelationshipModuleAuthored[]
   /** Existing condition documents owned by this target relationship. */
   conditions?: ConditionAuthored[]

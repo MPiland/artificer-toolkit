@@ -495,6 +495,7 @@ export function CampaignVttStage({
             range: actionPreview?.range,
             scene: encounterScene,
             selfRefused: targeting.selfRefused,
+            onlyActorIds: targeting.onlyActorIds,
             sourceTokenId: actionPreview?.sourceTokenId ?? null
           })
         : null,

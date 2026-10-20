@@ -11,15 +11,13 @@ import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import {
   canReadAuthoredRoot,
-  readAuthoredVersion,
-  readPublishedDocument,
   replaceAuthoredVersionCompilation,
   type PublishedDocumentReads
 } from './documents'
 import { compilePublicationDocument } from './publicationDocument'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { isImportRowVisible } from '../imports/visibility'
-import { requireEquipmentParents } from './relationshipReads'
+import { readRecompiledDependent, requireEquipmentParents } from './relationshipReads'
 
 export async function assertEquipmentRelationshipsIndexed(ctx: QueryCtx, systemId: string) {
   for await (const root of ctx.db
@@ -85,7 +83,8 @@ export async function assertNoEquipmentChildren(
 export async function recompileEquipmentChildren(
   ctx: MutationCtx,
   published: ResolvedEquipment,
-  userId: string | null
+  userId: string | null,
+  reimportedIds: ReadonlySet<string> = new Set()
 ) {
   // Parent-first traversal carries the validated effective parent, so each descendant's
   // source is read and compiled once within this mutation; nothing survives the transaction.
@@ -111,10 +110,14 @@ export async function recompileEquipmentChildren(
         !(await canReadAuthoredRoot(ctx, root, userId))
       )
         throw new Error('Equipment dependent ownership mismatch.')
-      const version = await readAuthoredVersion(ctx, root)
-      const document = equipmentAuthoredDtoSchema.parse(
-        await readPublishedDocument(ctx, root, version)
+      const dependent = await readRecompiledDependent(
+        ctx,
+        root,
+        equipmentAuthoredDtoSchema,
+        reimportedIds
       )
+      if (!dependent) continue
+      const { version, document } = dependent
       if (document.category !== 'VARIANT' || document.parentEquipmentId !== parent.id)
         throw new Error('Stored Equipment parent metadata mismatch.')
       const effective = resolveEquipmentAuthored(document as EquipmentAuthored, (id) =>

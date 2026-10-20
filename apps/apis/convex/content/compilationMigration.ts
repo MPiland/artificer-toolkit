@@ -162,6 +162,7 @@ export const repinPartyRetainedRules = migrations.define({
 })
 
 export const run = migrations.runner([
+  internal.content.sourceMigrations.backfillAuthoringSources,
   internal.content.compilationMigration.recompileStaleCompilations,
   internal.content.compilationMigration.repinCharacterRetainedRules,
   internal.content.compilationMigration.repinCharacterDraftRetainedRules,

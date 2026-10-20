@@ -1803,6 +1803,13 @@ Character target's `CHARACTER_MECHANICS_BATCH` binds each of those `CONDITION_AP
 batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's result path rather than to a
 kernel trace.
 
+**Gated holds and held-only actions (D93, ATTACK-7.T8).** An `ACTOR_RELATIONSHIP` outcome's optional `appliesWhen`
+(an attack-slot condition) gates the hold on the open Attack action: the planner evaluates it with
+`attackSlotConditionHolds` over the attacks of `encounterAttackActionAttacks`, and outside an open Attack action it is
+false. A `SINGLE_TARGET` selection with `heldBySource` is offered only on creatures the source holds
+(`encounterHeldActorIds`); `prepareEncounterActionMechanics` refuses any other target. An `ON_USE` relationship needs
+no roll and applies on use.
+
 **Drag (D105, ATTACK-7.T7).** An outcome's `TARGET_DRAGGED` module makes its hold drag: the SRD Grapple and
 the creature grapple riders author it. `encounterMovementDrag` finds the actors the mover itself holds through
 such a hold (one level deep; nothing keys on the Grappled condition) for a voluntary, automated move. Each held

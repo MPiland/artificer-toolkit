@@ -1278,9 +1278,15 @@
             },
             {
               "id": "PLATFORM-21.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated."
+              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated.",
+              "proof": [
+                "apps/apis/convex/content/compilationMigration.test.ts",
+                "apps/apis/convex/content/import.test.ts",
+                "apps/apis/convex/authoring/nodeRuntime.test.ts",
+                "packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -1300,7 +1306,7 @@
             },
             {
               "id": "PLATFORM-21.T1a2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-21.2"],
               "wsjf": {
                 "bv": 8,
@@ -1309,11 +1315,12 @@
                 "size": 2,
                 "after": ["PLATFORM-21.T1a"]
               },
-              "text": "Local development data recompiles (found in T1a, 2026-10-20): the local seed refuses the unchanged SRD Sorcerer with \"Canonical content conflict\", the first chunked document in the run, so the T1a migration cannot run on review data. Find the stored-versus-parsed difference with the real parser, fix its root cause in import or chunking with a regression test, then seed and migrate the local container with no reset."
+              "text": "Local development data recompiles (found in T1a, 2026-10-20): the local seed refuses the unchanged SRD Sorcerer with \"Canonical content conflict\", the first chunked document in the run, so the T1a migration cannot run on review data. Find the stored-versus-parsed difference with the real parser, fix its root cause in import or chunking with a regression test, then seed and migrate the local container with no reset.",
+              "note": "Merged m219 (92560662b). Local seed and migrate succeeded without a reset."
             },
             {
               "id": "PLATFORM-21.T1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-21.1"],
               "wsjf": {
                 "bv": 8,
@@ -6027,23 +6034,26 @@
         {
           "id": "ATTACK-4",
           "title": "Cleaving",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/encounters/cleaving.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Cleaving policy and target selection are authored and typed.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["packages/rules-runtime/src/__tests__/encounterCleaving.test.ts"],
               "origin": ["P81-CLEAVING-SOURCE"],
               "note": "Decisions D31/D48; no 8.2 criterion names Cleaving.",
               "id": "ATTACK-4.1"
             },
             {
               "text": "Cleaving carries excess damage down its chain.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterCleaving.test.ts",
+                "apps/apis/convex/encounters/cleaving.test.ts"
+              ],
               "origin": ["P81-CLEAVING-EXECUTION"],
               "note": "Decisions D31/D48; cleaving.test.ts exists but no criterion accepts it.",
               "id": "ATTACK-4.2"
@@ -6059,21 +6069,22 @@
             {
               "id": "ATTACK-4.T1",
               "text": "Prove the shipped Cleaving (scoped 2026-10-19): a rules-runtime test resolves the authored CLEAVING definition and the schema refuses non-MELEE or non-undamaged parameters (4.1, authored as typed SRD data); the excess-damage chain proof cites encounterCleaving.test.ts and the cleaving.test.ts journey, with a 2+ hop chain asserted (4.2). Reach stays the D48 measure.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-4.1", "ATTACK-4.2"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 1,
                 "size": 1
-              }
+              },
+              "note": "Merged m220 (f65f6ffbc)."
             }
           ]
         },
         {
           "id": "ATTACK-5",
           "title": "Every SRD monster attack runs",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
             "apps/apis/convex/encounters/srdLegendaryAction.test.ts"
@@ -6214,7 +6225,7 @@
             {
               "id": "ATTACK-5.T1",
               "text": "Marquee monster attacks: Balor Whip, Kraken Lightning Storm and Purple Worm Tail Stinger.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-5.2", "ATTACK-5.8", "ATTACK-5.9"],
               "wsjf": {
                 "bv": 5,
@@ -6328,13 +6339,14 @@
         {
           "id": "ATTACK-7",
           "title": "Grapple and shove",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
-            "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
-            "apps/session-worker/test/nativeRoomGrappleContest.test.ts",
-            "apps/session-worker/test/nativeRoomReleaseRelationship.test.ts"
+            "apps/session-worker/test/nativeRoomShamblingMoundGrapple.test.ts",
+            "apps/session-worker/test/nativeRoomShoveContest.test.ts",
+            "apps/session-worker/test/nativeRoomGrappleDrag.test.ts",
+            "apps/session-worker/test/nativeRoomEscapeRescue.test.ts"
           ],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -6418,8 +6430,13 @@
             },
             {
               "text": "Grapple riders (\"on hit, the target is grappled, escape DC N\") and \"grappled by this creature\" targeting are authorable effects; the full Shambling Mound turn grapples a Medium or smaller target hit by both slams and then offers Engulf on it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomShamblingMoundGrapple.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackSlots.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterHeldActorIds.test.ts",
+                "packages/source-data/src/srd/creatureGrappleRiders.test.ts"
+              ],
               "origin": [],
               "note": "D93. After ATTACK-11 (conditional slot).",
               "id": "ATTACK-7.2"
@@ -6596,8 +6613,9 @@
             {
               "id": "ATTACK-7.T8",
               "text": "Engulf and \"grappled by this creature\" targeting, after ATTACK-11.",
-              "status": "IN_PROGRESS",
-              "closes": ["ATTACK-7.2"]
+              "status": "DONE",
+              "closes": ["ATTACK-7.2"],
+              "note": "Merged m218 (0d3dfe505). Engulf rebuilt as a generic held relationship; its start-of-turn save moved to SPELLS-33.T6n."
             },
             {
               "id": "ATTACK-7.T9",
@@ -12752,7 +12770,7 @@
             },
             {
               "id": "SPELLS-33.T6i",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12942,6 +12960,18 @@
               },
               "text": "Generic option: failureMarginRider on direct-save timed conditions (compiler and planner, red-first test), then convert MUMMY_DREADFUL_GLARE and MUMMY_LORD_DREADFUL_GLARE with their SOURCE_IMMUNITY (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (2026-10-18 ruling on the T7a split; workbook slice-spells-33.md).",
               "note": "Merged m160 (5d8288291)."
+            },
+            {
+              "id": "SPELLS-33.T6n",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "text": "new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md)."
             }
           ]
         }

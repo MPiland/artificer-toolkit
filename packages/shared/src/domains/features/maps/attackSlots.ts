@@ -47,7 +47,7 @@ const ATTACK_SLOT_FILLER_NODE_MAP = filler.define('attackSlotFiller', ({ map, no
 const condition = buildNodeMap<AttackSlotCondition>()
 
 /** A predicate a slot holds only while true (D93). */
-const ATTACK_SLOT_CONDITION_NODE_MAP = condition.define(
+export const ATTACK_SLOT_CONDITION_NODE_MAP = condition.define(
   'attackSlotCondition',
   ({ map, nodes, cond }) => {
     const { selectSingle } = nodes

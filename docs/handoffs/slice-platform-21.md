@@ -183,3 +183,19 @@ the stored projection".
   keeps the pinned description after the source is deleted). Known gaps: Equipment Feature prose is not pinned,
   so a retained-only item's feature descriptions render empty; retained Spell prose is stored but no view reads it
   yet (Sheet spell lists read the catalogue index, so a retained-only Spell was absent before too).
+- 2026-10-20: **PLATFORM-21.T1a2** (`ci/platform-21-t1a2`, D163 source-facts versioning). Stored `authoringSources`
+  carry `factsVersion`; the seed and `content/sourceMigrations:backfillAuthoringSources` re-derive an older or
+  absent version (cause: 7237c161b added `proficiency_grant_equipment` without refreshing stored facts). The local
+  seed then stopped at SRD Halfling: SPELLS-32 retired the closed Race rule kinds (0c64e71a5 and siblings) without
+  refreshing the stored canonical documents, so replacing a base Race recompiled its stored Lightfoot child, which
+  the current schema rejects, and replacing the child first read the stale parent. No user-owned row was affected
+  (all 1057 local roots parsed offline: 317 Creature and 3 Race failures, all canonical). Fix (ruling, folded in):
+  the seed passes `reimportedSubjectIds` (changed subjects later batches replace) to `importSubjects`, and a parent
+  replace's dependent recompile (`readRecompiledDependent`, shared by Race and Equipment) leaves those to their own
+  import; any other dependent that does not parse fails, naming the row. Canonical rows refresh through the seed,
+  which can now always do so. Proofs in `content/import.test.ts`: a Race and an Equipment family replaced over a
+  retired stored dependent, and a non-reimported broken dependent refused by name.
+  The seed next stopped at definitions: 8786d4527 added `contractVersion`, `publishedAt` and `publishedBy` to the
+  seeded definition record without backfilling stored rows (all 61 local rows lacked them). `importDefinitions` now
+  backfills absent publication metadata on a canonical row and still refuses a different present value (proof in
+  `content/import.test.ts`).

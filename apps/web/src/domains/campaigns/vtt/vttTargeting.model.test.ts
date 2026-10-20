@@ -165,6 +165,14 @@ describe('target entries', () => {
     expect(targetableEncounterActors(actors, 'caster', true).map(({ id }) => id)).toEqual(['near'])
   })
 
+  it('lists only the creatures a held-only action may target', () => {
+    const actors = [actor('caster'), actor('near'), actor('far')]
+    expect(targetableEncounterActors(actors, 'caster', false, ['far']).map(({ id }) => id)).toEqual(
+      ['far']
+    )
+    expect(build({ actors, onlyActorIds: ['far'] }).map(({ actorId }) => actorId)).toEqual(['far'])
+  })
+
   it('orders the turn-order list by target order and leaves unlisted creatures after it', () => {
     const actors = [actor('far'), actor('caster'), actor('near'), actor('gone', true)]
     const entries = build({ actors, selfRefused: true })

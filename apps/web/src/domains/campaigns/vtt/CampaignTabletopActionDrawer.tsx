@@ -287,7 +287,16 @@ export function CampaignTabletopActionDrawer({
   // A defeated creature isn't a target (D63; the server still warns if one is named), and neither is
   // the acting creature when the action refuses itself (Help, First Aid).
   const selfRefused = choiceTarget?.kind === 'ACTOR' && choiceTarget.self === 'REFUSED'
-  const targetableActors = targetableEncounterActors(encounter.actors, currentActorId, selfRefused)
+  const onlyActorIds =
+    choiceTarget?.kind === 'ACTOR' && choiceTarget.heldBySource
+      ? releases.map(({ heldActorId }) => heldActorId)
+      : undefined
+  const targetableActors = targetableEncounterActors(
+    encounter.actors,
+    currentActorId,
+    selfRefused,
+    onlyActorIds
+  )
   const pickedOrPreselectedTargetActorId =
     pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
   const targetActorId = targetableActors.some(
@@ -1193,7 +1202,11 @@ export function CampaignTabletopActionDrawer({
                       disabled={selectionControlsDisabled}
                       variant='default'
                       onClick={() =>
-                        onPickTargetOnMap({ actionId: selectedAction.id, selfRefused })
+                        onPickTargetOnMap({
+                          actionId: selectedAction.id,
+                          selfRefused,
+                          onlyActorIds
+                        })
                       }
                     >
                       Pick on map

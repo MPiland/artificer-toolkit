@@ -60,6 +60,13 @@ async function attackOgre(input: {
       commandId: testUuid(0xb4),
       activeEffectsByActorId: new Map()
     }),
+    spatial:
+      prepared.adapter.interpretSpatial?.({
+        execution: execution.execution,
+        occurrenceId: testUuid(0xb3),
+        published: execution.published,
+        targetActorId: TARGET_ID
+      }) ?? [],
     hitPoints: target.currentHitPoints,
     conditionIds: readEncounterActorConditionState(target.conditions).ids,
     receiptApplications: mechanics.targetPlan.receiptApplications,
@@ -386,6 +393,71 @@ describe('SRD swarm attacks', () => {
 })
 
 describe('SRD Creature hits that force a saving throw', () => {
+  it('adds the Purple Worm’s Tail Stinger poison on its hit: full on a failed save, half on a success (ATTACK-5.9)', async () => {
+    // Tail Stinger, +9: 3d6 + 9 piercing, then DC 19 Constitution: 12d6 poison, half on a success.
+    const failed = await attackOgre({
+      attacker: 'Purple Worm',
+      feature: 'Tail Stinger',
+      rolls: [9, 0, 0, 0, 0, ...Array<number>(12).fill(1)]
+    })
+    expect(failed.execution.nestedD20).toMatchObject({
+      defenseOrDc: 19,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.damage).toEqual([
+      [12, srdDamageTypeId('PIERCING')],
+      [24, srdDamageTypeId('POISON')]
+    ])
+
+    const saved = await attackOgre({
+      attacker: 'Purple Worm',
+      feature: 'Tail Stinger',
+      rolls: [9, 0, 0, 0, 19, ...Array<number>(12).fill(1)]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.damage.map(([amount]) => amount)).toEqual([12, 12])
+  })
+
+  it('pulls the target of the Balor’s Whip 25 feet on a failed Strength save (ATTACK-5.2)', async () => {
+    // Whip, +14: 2d6 + 3d6 damage, then DC 20 Strength or pulled up to 25 feet toward the Balor.
+    const failed = await attackOgre({
+      attacker: 'Balor',
+      feature: 'Whip',
+      rolls: [9, 0, 0, 0, 0, 0, 0]
+    })
+    expect(failed.execution.nestedD20).toMatchObject({
+      defenseOrDc: 20,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.spatial).toEqual([
+      expect.objectContaining({
+        kind: 'FORCED_MOVEMENT',
+        targetActorId: TARGET_ID,
+        direction: 'TOWARD_SOURCE',
+        feet: 25
+      })
+    ])
+
+    const saved = await attackOgre({
+      attacker: 'Balor',
+      feature: 'Whip',
+      rolls: [9, 0, 0, 0, 0, 0, 19]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.spatial).toEqual([])
+  })
+
+  it('deals the Kraken’s Lightning Storm bolt in full on a failed Dexterity save (ATTACK-5.8)', async () => {
+    // DC 23 Dexterity: 4d10 lightning, half on a success. The Ogre's -1 never meets the DC.
+    const bolt = await attackOgre({
+      attacker: 'Kraken',
+      feature: 'Lightning Storm',
+      rolls: [19, 3, 3, 3, 3]
+    })
+    expect(bolt.execution.d20).toMatchObject({ defenseOrDc: 23, resultPath: 'ON_SAVE_FAIL' })
+    expect(bolt.damage).toEqual([[16, srdDamageTypeId('LIGHTNING')]])
+  })
+
   it('takes the Giant Spider’s full poison on a failed save and half on a success', async () => {
     // Bite, +5: 7 (1d8 + 3) piercing, then DC 11 Constitution: 9 (2d8) poison, half on a success.
     const failed = await attackOgre({

@@ -5,7 +5,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 ## Scope
 
 - This session: T3 (the basic Grapple and the contested escape; AC 7.1 and 7.3), then T4 (release with no action and the end sweeps; AC 7.4).
-- T5, T6, T7 and T9 are follow-up sessions. T8 waits for ATTACK-11.
+- T5, T6, T7 and T9 are follow-up sessions. T8 waits for ATTACK-11. T8 (AC 7.2) landed on `ci/attack-7-t8`: gated Slam rider, `heldBySource` targeting and a rebuilt Engulf (see D93); the Engulf start-of-turn CON save is T8b.
 - Contracts: [D152](phase-08-2-decisions.md) (rulings on the seven changes). Built from core options (ADR 0038), with failing-first tests on real code and a room journey per AC.
 - Out of scope (D152): a release-on-draw prompt. Drawing with every hand full is refused by the existing hand check.
 

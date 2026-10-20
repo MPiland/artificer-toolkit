@@ -1,8 +1,10 @@
 import { convexTest } from '../../tests/convexTest'
+import type { TestConvex } from 'convex-test'
 import { runToCompletion } from '@convex-dev/migrations'
 import migrations from '@convex-dev/migrations/test'
 import { describe, expect, it } from 'vitest'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
+import { AUTHORED_SOURCE_FACTS_VERSION } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import {
   sourceImportDefinitionDtoSchema,
   sourceImportSubjectDtoSchema,
@@ -444,7 +446,11 @@ describe('internal canonical source import', () => {
       const roots = await ctx.db.query('authoredRoots').withIndex('by_publicId').take(3)
       await ctx.db.patch(roots[0]._id, { authoringSources: undefined })
       await ctx.db.patch(roots[1]._id, {
-        authoringSources: { checksum: roots[1].checksum, rows: {} }
+        authoringSources: {
+          checksum: roots[1].checksum,
+          factsVersion: AUTHORED_SOURCE_FACTS_VERSION,
+          rows: {}
+        }
       })
       return ctx.db.query('authoredRoots').withIndex('by_publicId').take(3)
     })
@@ -510,6 +516,40 @@ describe('internal canonical source import', () => {
     await expect(t.query(internal.content.import.readSubjects, page)).rejects.toThrow(
       'Canonical content conflict.'
     )
+  })
+
+  it('re-derives canonical source facts that an older or unversioned derivation stored', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const input = { contentSourceId: sourceId, subjects: [subject()] }
+    await t.mutation(internal.content.import.importSubjects, input)
+    const root = await t.run((ctx) =>
+      ctx.db
+        .query('authoredRoots')
+        .withIndex('by_publicId', (q) => q.eq('id', acolyte.id))
+        .unique()
+    )
+    if (!root?.authoringSources) throw new Error('Missing projected source fixture')
+    expect(root.authoringSources.factsVersion).toBe(AUTHORED_SOURCE_FACTS_VERSION)
+    const tables = Object.keys(root.authoringSources.rows)
+    expect(tables.length).toBeGreaterThan(1)
+    // An older derivation produced no rows for a table the current one derives, and no version.
+    await t.run((ctx) =>
+      ctx.db.patch(root._id, {
+        authoringSources: {
+          checksum: root.authoringSources!.checksum,
+          rows: Object.fromEntries(
+            Object.entries(root.authoringSources!.rows).filter(([table]) => table !== tables.at(-1))
+          )
+        }
+      })
+    )
+    expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
+      inserted: 0,
+      reused: 1,
+      replaced: 0
+    })
+    expect(await t.run((ctx) => ctx.db.get(root._id))).toEqual(root)
   })
 
   it('backfills catalogue metadata and counts exactly once, rejecting stale metadata', async () => {
@@ -875,6 +915,163 @@ describe('internal canonical source import', () => {
     expect(projection.weight).toEqual(whip.weight)
   })
 
+  // T1a2: a retired rule kind left stored canonical dependents that the current schema rejects.
+  async function storeRetiredShape(t: TestConvex<typeof schema>, id: string) {
+    await t.run(async (ctx) => {
+      const root = await ctx.db
+        .query('authoredRoots')
+        .withIndex('by_publicId', (q) => q.eq('id', id))
+        .unique()
+      if (!root) throw new Error('Missing dependent fixture')
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
+      if (!version) throw new Error('Missing dependent fixture version')
+      const document = jsonValueSchema.parse({
+        ...(await deleteAuthoredVersion(ctx, version)),
+        features: [{ retiredRuleKind: 'RETIRED' }]
+      })
+      const checksum = checksumRuleDocument(document)
+      // A version of the older document, as the seed stored it.
+      const versionId = crypto.randomUUID()
+      const currentVersionId = await insertAuthoredVersion(
+        ctx,
+        {
+          subjectKind: version.subjectKind,
+          id: version.id,
+          systemId: version.systemId,
+          label: version.label,
+          checksum,
+          contentSourceId: version.contentSourceId,
+          versionId,
+          version: version.version,
+          documentSchemaVersion: version.documentSchemaVersion
+        },
+        canonicalizeRuleDocument(document),
+        version.compilation
+      )
+      await ctx.db.patch(root._id, {
+        checksum,
+        currentVersionId,
+        currentVersionPublicId: versionId,
+        authoringSources: root.authoringSources && { ...root.authoringSources, checksum }
+      })
+    })
+  }
+
+  it('replaces a Race family whose stored subrace predates the current schema in one seed', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const toSubject = (item: RaceAuthored) =>
+      importedSubject({
+        subjectKind: 'RACE',
+        id: item.id,
+        systemId: item.systemId,
+        label: item.label,
+        document: item
+      })
+    const [base, child] = [halfling, lightfoot].map(toSubject)
+    for (const item of [base, child]) {
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [item]
+      })
+      await t.mutation(internal.content.raceRelationships.syncDerived, {
+        id: item.id,
+        checksum: item.checksum
+      })
+    }
+    await storeRetiredShape(t, child.id)
+
+    expect(
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [toSubject({ ...halfling, label: 'Halfling Kin' })],
+        reimportedSubjectIds: [child.id]
+      })
+    ).toEqual({ inserted: 0, reused: 0, replaced: 1 })
+    expect(
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [child]
+      })
+    ).toEqual({ inserted: 0, reused: 0, replaced: 1 })
+    // The strict derived sync proves the subrace was compiled against the replaced parent.
+    await t.mutation(internal.content.raceRelationships.syncDerived, {
+      id: child.id,
+      checksum: child.checksum
+    })
+  })
+
+  it('replaces an Equipment family whose stored variant predates the current schema in one seed', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const toSubject = (item: EquipmentAuthored) =>
+      importedSubject({
+        subjectKind: 'EQUIPMENT',
+        id: item.id,
+        systemId: item.systemId,
+        label: item.label,
+        document: item
+      })
+    if (!('weight' in club) || !('weight' in whip)) throw new Error('Expected base fixtures')
+    const [base, variant] = [club, clubPlus1].map(toSubject)
+    for (const item of [base, variant]) {
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [item]
+      })
+      await t.mutation(internal.content.import.syncEquipmentDerived, {
+        id: item.id,
+        checksum: item.checksum
+      })
+    }
+    await storeRetiredShape(t, variant.id)
+
+    expect(
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [toSubject({ ...club, weight: whip.weight })],
+        reimportedSubjectIds: [variant.id]
+      })
+    ).toEqual({ inserted: 0, reused: 0, replaced: 1 })
+    expect(
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [variant]
+      })
+    ).toEqual({ inserted: 0, reused: 0, replaced: 1 })
+    // The strict derived sync proves the variant was compiled against the replaced parent.
+    await t.mutation(internal.content.import.syncEquipmentDerived, {
+      id: variant.id,
+      checksum: variant.checksum
+    })
+  })
+
+  it('refuses a parent replace whose stored dependent outside the seed predates the current schema, naming it', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const toSubject = (item: RaceAuthored) =>
+      importedSubject({
+        subjectKind: 'RACE',
+        id: item.id,
+        systemId: item.systemId,
+        label: item.label,
+        document: item
+      })
+    for (const item of [halfling, lightfoot].map(toSubject))
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [item]
+      })
+    await storeRetiredShape(t, lightfoot.id)
+
+    await expect(
+      t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: sourceId,
+        subjects: [toSubject({ ...halfling, label: 'Halfling Kin' })]
+      })
+    ).rejects.toThrow(`Stored RACE ${lightfoot.id} does not match its current schema at features`)
+  })
+
   it('refuses a replayed subject whose document changed under its old checksum, and replaces it under a new one', async () => {
     const t = convexTest(schema, modules)
     await t.mutation(internal.content.import.bootstrap, bootstrap)
@@ -1052,6 +1249,37 @@ describe('internal canonical source import', () => {
         definitions: [{ ...next, label: 'Another label' }]
       })
     ).rejects.toThrow('Canonical content conflict.')
+  })
+
+  it('backfills the publication metadata a definition was seeded without, and refuses a different one', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const input = { contentSourceId: sourceId, definitions: [definition] }
+    await t.mutation(internal.content.import.importDefinitions, input)
+    const [seeded] = await t.run((ctx) => ctx.db.query('reusableDefinitions').take(10))
+    await t.run((ctx) =>
+      ctx.db.patch(seeded._id, {
+        contractVersion: undefined,
+        publishedAt: undefined,
+        publishedBy: undefined
+      })
+    )
+
+    expect(await t.mutation(internal.content.import.importDefinitions, input)).toEqual({
+      inserted: 0,
+      reused: 1,
+      replaced: 0
+    })
+    const [backfilled] = await t.run((ctx) => ctx.db.query('reusableDefinitions').take(10))
+    expect(backfilled).toMatchObject({
+      contractVersion: seeded.contractVersion,
+      publishedBy: seeded.publishedBy,
+      publishedAt: expect.any(String)
+    })
+    await t.run((ctx) => ctx.db.patch(seeded._id, { publishedBy: 'another-owner' }))
+    await expect(t.mutation(internal.content.import.importDefinitions, input)).rejects.toThrow(
+      'Canonical content conflict.'
+    )
   })
 
   it('rejects an identity change in bootstrap metadata and leaves the original untouched', async () => {
