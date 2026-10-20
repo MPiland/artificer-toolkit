@@ -45,6 +45,7 @@ import {
 import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
 import {
   applyEncounterActorItemDraw,
+  applyEncounterActorItemThrow,
   applyEncounterActorOptionalContestSuccess,
   readEncounterActorOptionalContestContext
 } from './encounterActorOptionalContestContext.js'
@@ -99,6 +100,11 @@ export type EncounterMechanicsBatchInput = {
    * Creature's loadout entry moves to the hand. The inverse of a stow, with the same exclusions.
    */
   drawHeldItem?: { itemId: string; slot: HandSlotCode }
+  /**
+   * The weapon an attack throws out of this hand (D107): a Character's item is unequipped, a
+   * Creature's loadout entry carried. It follows a stow in one Character version.
+   */
+  throwHeldItem?: { itemId: string; slot: HandSlotCode }
   /** A dying Character's turn-start death save die (D96); Characters only. */
   deathSave?: { rawDie: number; addedTotal: number }
   /** The Creature form this outcome swaps the actor into, held by `effectId` (D130). */
@@ -124,7 +130,7 @@ export type EncounterMechanicsBatchPlan = {
     | CharacterItemUseStateTransitionDto
     | EncounterActorItemUseStateTransitionDto
     | null
-  /** The weapon the actor drew (`drawHeldItem`); null when it drew none. */
+  /** The weapon the actor drew or threw (`drawHeldItem`, `throwHeldItem`); null when it moved none. */
   itemDrawTransition: SourceItemDrawDto | null
   stateChanged: boolean
   shouldAdvance: boolean
@@ -226,12 +232,20 @@ export function planEncounterMechanicsBatch(input: {
       ? applyEncounterActorOptionalContestSuccess({ context: releaseContext, actor: formed })
       : null
     const draw = batch.drawHeldItem
-    if (draw !== undefined && release !== undefined)
-      throw new Error('Encounter actor cannot draw and drop items in one change.')
+    const thrown = batch.throwHeldItem
+    if ((draw !== undefined || thrown !== undefined) && release !== undefined)
+      throw new Error('Encounter actor cannot draw or throw and drop items in one change.')
+    if (draw !== undefined && thrown !== undefined)
+      throw new Error('Encounter actor cannot draw and throw in one change.')
     const drawn = draw
       ? applyEncounterActorItemDraw({ actor: formed, loadoutEntryId: draw.itemId, slot: draw.slot })
       : null
-    const changedActor = released?.actor ?? drawn?.actor
+    const thrownOut = thrown
+      ? applyEncounterActorItemThrow({ actor: formed, loadoutEntryId: thrown.itemId })
+      : null
+    const handMoved = drawn ?? thrownOut
+    const handMove = draw ?? thrown
+    const changedActor = released?.actor ?? handMoved?.actor
     return {
       updatedActor: changedActor ? encounterRunActorStateSchema.parse(changedActor) : formed,
       receiptApplications: folded.applications,
@@ -252,15 +266,16 @@ export function planEncounterMechanicsBatch(input: {
             }
           : null,
       itemDrawTransition:
-        drawn && draw
+        handMoved && handMove
           ? {
               kind: 'ENCOUNTER_ACTOR_ITEM_DRAW',
+              movement: drawn ? 'DRAW' : 'THROW',
               actorId: actor.id,
-              loadoutEntryId: draw.itemId,
-              equipmentId: drawn.equipmentId,
-              slot: draw.slot,
-              beforeStateChecksum: drawn.beforeStateChecksum,
-              afterStateChecksum: drawn.afterStateChecksum
+              loadoutEntryId: handMove.itemId,
+              equipmentId: handMoved.equipmentId,
+              slot: handMove.slot,
+              beforeStateChecksum: handMoved.beforeStateChecksum,
+              afterStateChecksum: handMoved.afterStateChecksum
             }
           : null,
       stateChanged:
@@ -268,7 +283,7 @@ export function planEncounterMechanicsBatch(input: {
         folded.afterAbsence !== actor.absence ||
         batch.enterForm !== undefined ||
         released !== null ||
-        drawn !== null,
+        handMoved !== null,
       shouldAdvance: false,
       characterUpdate: null
     }
@@ -393,10 +408,17 @@ export function planEncounterMechanicsBatch(input: {
   const stowItemId = batch.stowEquippedItemInstanceId
   const releaseItemId = batch.releaseHeldItemInstanceId
   const draw = batch.drawHeldItem
+  const thrown = batch.throwHeldItem
   // One Character version records one equipment change: a draw follows a stow (the shield an
-  // attack stows frees the hand its weapon is drawn into), and a drop stands alone.
-  if (releaseItemId !== undefined && (stowItemId !== undefined || draw !== undefined))
-    throw new Error('Encounter Character cannot drop items and stow or draw in one change.')
+  // attack stows frees the hand its weapon is drawn into), a throw follows one too, and a drop
+  // stands alone.
+  if (
+    releaseItemId !== undefined &&
+    (stowItemId !== undefined || draw !== undefined || thrown !== undefined)
+  )
+    throw new Error('Encounter Character cannot drop items and stow, draw or throw in one change.')
+  if (draw !== undefined && thrown !== undefined)
+    throw new Error('Encounter Character cannot draw and throw in one change.')
   const { equipped } = loaded.character.state.equipment
   if (stowItemId !== undefined && !equipped.some((entry) => entry.itemId === stowItemId))
     throw new Error('Encounter Character item to stow is no longer equipped.')
@@ -414,11 +436,21 @@ export function planEncounterMechanicsBatch(input: {
     )
   )
     throw new Error('Encounter Character weapon to draw is already equipped or its hand is taken.')
+  if (
+    thrown !== undefined &&
+    !afterStow.state.equipment.equipped.some(
+      (entry) => entry.itemId === thrown.itemId && entry.slot === thrown.slot
+    )
+  )
+    throw new Error('Encounter Character weapon to throw is no longer in that hand.')
+  const handMove = draw ?? thrown
   const equippedCharacter = draw
     ? drawCharacterItem(afterStow, draw.itemId, draw.slot)
-    : releaseItemId === undefined
-      ? afterStow
-      : unequipCharacterItem(loaded.character, releaseItemId)
+    : thrown
+      ? unequipCharacterItem(afterStow, thrown.itemId)
+      : releaseItemId === undefined
+        ? afterStow
+        : unequipCharacterItem(loaded.character, releaseItemId)
 
   const itemTransition = (
     itemInstanceId: string,
@@ -531,12 +563,13 @@ export function planEncounterMechanicsBatch(input: {
     itemUseStateTransition: stowItemId === undefined ? null : itemTransition(stowItemId, afterStow),
     itemReleaseTransition:
       releaseItemId === undefined ? null : itemTransition(releaseItemId, equippedCharacter),
-    itemDrawTransition: draw
+    itemDrawTransition: handMove
       ? {
           kind: 'CHARACTER_ITEM_DRAW',
+          movement: draw ? 'DRAW' : 'THROW',
           characterId: loaded.active.id,
-          itemInstanceId: draw.itemId,
-          slot: draw.slot,
+          itemInstanceId: handMove.itemId,
+          slot: handMove.slot,
           beforeStreamVersion: loaded.active.play.streamVersion,
           afterStreamVersion: loaded.active.play.streamVersion + 1,
           beforeStateChecksum: checksumRuleDocument(afterStow.state.equipment),

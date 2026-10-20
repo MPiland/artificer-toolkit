@@ -321,13 +321,21 @@ export type CharacterItemUseStateTransitionDto = z.infer<
 >
 
 /**
- * A Character's carried weapon an attack drew into a hand (D107): the Character version that
- * equipped it, with the equipment checksums either side. Undo takes the weapon back to carried.
+ * Which way an attack moved its weapon between carried and a hand (D107): `DRAW` into the hand
+ * `slot`, or `THROW` out of it. The checksums either side are those of the equipment before and
+ * after the move, whichever way it went.
+ */
+export const itemHandMovementSchema = z.enum(['DRAW', 'THROW'])
+
+/**
+ * A Character's weapon an attack moved between carried and a hand (D107): the Character version
+ * that changed its equipment, with the equipment checksums either side. Undo moves it back.
  */
 export const characterItemDrawTransitionDtoSchema = lazySchema(() =>
   z
     .strictObject({
       kind: z.literal('CHARACTER_ITEM_DRAW'),
+      movement: z._default(itemHandMovementSchema, 'DRAW'),
       characterId: uuidSchema,
       itemInstanceId: uuidSchema,
       slot: z.enum(['MAIN_HAND', 'OFF_HAND']),
@@ -342,16 +350,17 @@ export const characterItemDrawTransitionDtoSchema = lazySchema(() =>
           value.afterStreamVersion !== value.beforeStreamVersion + 1 ||
           value.beforeStateChecksum === value.afterStateChecksum
         )
-          context.addIssue({ code: 'custom', message: 'Character item draw is invalid.' })
+          context.addIssue({ code: 'custom', message: 'Character item hand move is invalid.' })
       })
     )
 )
 
-/** A Creature's carried loadout weapon an attack drew into a hand (D107). */
+/** A Creature's loadout weapon an attack moved between carried and a hand (D107). */
 export const encounterActorItemDrawTransitionDtoSchema = lazySchema(() =>
   z
     .strictObject({
       kind: z.literal('ENCOUNTER_ACTOR_ITEM_DRAW'),
+      movement: z._default(itemHandMovementSchema, 'DRAW'),
       actorId: uuidSchema,
       loadoutEntryId: uuidSchema,
       equipmentId: uuidSchema,
@@ -362,12 +371,12 @@ export const encounterActorItemDrawTransitionDtoSchema = lazySchema(() =>
     .check(
       z.superRefine((value, context) => {
         if (value.beforeStateChecksum === value.afterStateChecksum)
-          context.addIssue({ code: 'custom', message: 'Creature item draw is invalid.' })
+          context.addIssue({ code: 'custom', message: 'Creature item hand move is invalid.' })
       })
     )
 )
 
-/** The weapon the source's attack drew into a hand: a Character's equip, or a Creature's loadout. */
+/** The weapon the source's attack drew into a hand or threw out of it: a Character's equipment, or a Creature's loadout. */
 export const sourceItemDrawDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     characterItemDrawTransitionDtoSchema,

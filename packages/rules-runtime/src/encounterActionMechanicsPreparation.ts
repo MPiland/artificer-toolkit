@@ -35,6 +35,7 @@ import {
   creatureActionDrawWeapon,
   evaluateEncounterWeaponDraw
 } from './encounterWeaponDraw.js'
+import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { pickedCastChoiceEffect } from './encounterCastChoice.js'
 import {
@@ -454,21 +455,6 @@ export async function prepareEncounterActionMechanics<
   // A directly resolved attack draws its bound weapon (D107) after any shield it stows, which
   // frees the hand the weapon takes.
   const stowedItemId = acceptedWieldConflict && encounterStowedItemInstanceId(acceptedWieldConflict)
-  const hands = encounterActorHeldItems(sourceFacts).filter(({ id }) => id !== stowedItemId)
-  const boundWeapon =
-    source.kind === 'CHARACTER_ACTION'
-      ? characterActionDrawWeapon(source.candidate.equipment)
-      : creatureActionDrawWeapon(
-          hands,
-          source.kind === 'CREATURE'
-            ? source.capability.equipmentBinding?.loadoutEntryId
-            : undefined
-        )
-  const weaponDraw =
-    acceptance.kind === 'PROMPTED'
-      ? evaluateEncounterWeaponDraw({ weapon: boundWeapon, hands, holds: acceptance.handHolds })
-      : ({ kind: 'NONE' } as const)
-  if (weaponDraw.kind === 'RELEASE_REQUIRED') throw new HandReleaseRequiredError()
   const facts = buildEncounterActorRuleFacts({ actors })
   const actorRules = reconcileEncounterActorRuleOutput(
     evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
@@ -516,6 +502,24 @@ export async function prepareEncounterActionMechanics<
       : featureActionMechanic(source.capability)
   const attackKind =
     actionMechanic.attackKind == null ? null : attackKindSchema.parse(actionMechanic.attackKind)
+  const hands = encounterActorHeldItems(sourceFacts).filter(({ id }) => id !== stowedItemId)
+  const boundWeapon =
+    source.kind === 'CHARACTER_ACTION'
+      ? characterActionDrawWeapon(source.candidate.equipment, attackKind)
+      : creatureActionDrawWeapon(
+          sourceFacts.actor.kind === 'CREATURE'
+            ? snapshotCreatureEquipmentItems(sourceFacts.actor)
+            : [],
+          source.kind === 'CREATURE'
+            ? source.capability.equipmentBinding?.loadoutEntryId
+            : undefined,
+          attackKind
+        )
+  const weaponDraw =
+    acceptance.kind === 'PROMPTED'
+      ? evaluateEncounterWeaponDraw({ weapon: boundWeapon, hands, holds: acceptance.handHolds })
+      : ({ kind: 'NONE' } as const)
+  if (weaponDraw.kind === 'RELEASE_REQUIRED') throw new HandReleaseRequiredError()
   // Only attack damage meets "from nonmagical attacks" defenses; a Creature's attack is magical
   // when it is a spell attack or an ATTACK_TRAIT grant of its features applies (Magic Weapons).
   const creatureGranted = dnd5eGrantedAttackTraits(
