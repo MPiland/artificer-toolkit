@@ -45,6 +45,8 @@ import { characterProjectionState } from '@artificer-toolkit/encounter-persisten
 import { insertRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
+import { readEncounterSource } from './blueprintSnapshots'
+import { ensureEncounterSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'
 import { removeEncounterRunChildren } from './campaignDeletion'
 import { isRoomHeldRun } from '../liveSessions/authorityGuard'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
@@ -255,6 +257,17 @@ export async function createEncounterRun(
     })
   )
   for (const actor of actors) await insertRunActor(encounterWriteTransaction(ctx), actor)
+  await ensureEncounterSpellPins(
+    encounterWriteTransaction(ctx),
+    (sourceUserId, systemId, id, kind) =>
+      readEncounterSource(ctx, sourceUserId, systemId, id, kind),
+    {
+      encounterId,
+      userId,
+      systemId: campaign.gameSystemId,
+      snapshots: actors.map((actor) => actor.snapshot)
+    }
+  )
   await insertRunCommand(
     encounterWriteTransaction(ctx),
     encounterStoredRunCommandSchema.parse({

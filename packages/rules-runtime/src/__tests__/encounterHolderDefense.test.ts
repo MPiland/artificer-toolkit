@@ -171,6 +171,7 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       conditionDefinitions: [],
       conditionMechanics: [],
       attackTraitGrants: [],
+      featureModifiers: [],
       innateConditionIds: []
     }
   }

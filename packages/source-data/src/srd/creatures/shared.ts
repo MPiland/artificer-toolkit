@@ -333,6 +333,59 @@ export function advantageGrants(
 }
 
 /**
+ * A feature's Pack Tactics: advantage on attack rolls of every attack domain while an enemy of the
+ * target that can act stands within 5 feet of it. One grant per attack domain, each with its own
+ * restriction, takes the IDs `grantId(creatureIndex, firstLocalIndex)` onward (five per domain).
+ */
+export function packTacticsGrants(
+  creatureIndex: number,
+  firstLocalIndex: number
+): NonNullable<FeatureAuthored['grants']> {
+  return {
+    modifiers: Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, order) => {
+      const id = (offset: number) => grantId(creatureIndex, firstLocalIndex + order * 5 + offset)
+      return {
+        id: id(0),
+        grantKind: GRANT_KIND.MODIFIER_GRANT,
+        valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+        domain: { attackDomain },
+        modifierKind: MODIFIER_KIND.ADVANTAGE,
+        scope: MODIFIER_SCOPE_KIND.GLOBAL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        order,
+        restrictions: {
+          id: id(1),
+          groups: [
+            {
+              id: id(2),
+              order: 0,
+              contexts: [
+                {
+                  id: id(3),
+                  order: 0,
+                  subject: 'EQUIPMENT' as const,
+                  authoringModeKind: 'ALL' as const,
+                  conditions: [
+                    {
+                      id: id(4),
+                      order: 0,
+                      kind: 'PREDICATE' as const,
+                      constraint: 'INCLUDE' as const,
+                      predicateCode: 'ENEMY_NEAR_TARGET' as const,
+                      feet: 5
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    })
+  }
+}
+
+/**
  * A sphinx's Inscrutable: immunity to divination spells, and disadvantage on Wisdom (Insight) checks
  * made to read it. The grants take the IDs `grantId(creatureIndex, firstLocalIndex)` onward.
  */

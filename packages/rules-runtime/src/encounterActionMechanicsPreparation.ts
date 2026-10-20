@@ -18,6 +18,8 @@ import {
 import {
   activeEffectSourceAttackContributors,
   creatureActiveGrantAttackContributors,
+  creatureFeatureAttackContributors,
+  featureModifiersReadEnemyProximity,
   creatureAttackAbility,
   encounterAttackAddedDice,
   withSourceSightSave
@@ -611,8 +613,9 @@ export async function prepareEncounterActionMechanics<
   const enemyProximity =
     attackKind !== null &&
     input.loadEnemyProximity &&
-    compiledEffect &&
-    effectReadsEnemyProximity(compiledEffect)
+    ((compiledEffect && effectReadsEnemyProximity(compiledEffect)) ||
+      (source.kind !== 'CHARACTER_ACTION' &&
+        featureModifiersReadEnemyProximity(sourceFacts.featureModifiers)))
       ? await input.loadEnemyProximity({ sourceFacts, targetFacts })
       : null
   const moveToward =
@@ -782,6 +785,14 @@ export async function prepareEncounterActionMechanics<
                       attackKind,
                       creatureAttackAbility(source.capability.mechanicFacts.outcomes),
                       sourceFacts.activeEffects
+                    ).concat(
+                      creatureFeatureAttackContributors(
+                        actor.id,
+                        attackKind,
+                        creatureAttackAbility(source.capability.mechanicFacts.outcomes),
+                        sourceFacts.featureModifiers,
+                        enemyProximity?.nearestFeet ?? null
+                      )
                     ),
                     contributors
                   )

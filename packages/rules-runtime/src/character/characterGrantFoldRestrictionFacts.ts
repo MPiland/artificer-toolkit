@@ -257,6 +257,8 @@ function normalizeItemContext(
           requiredProperties:
             condition.authoringModeKind === 'SELECTED' ? [...condition.properties] : []
         }
+      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'ENEMY_NEAR_TARGET')
+        return { ...baseCondition(condition, 'ENEMY_NEAR_TARGET'), max: condition.feet }
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'SOLE_WIELDED_WEAPON')
         return baseCondition(condition, 'ITEM_SOLE_WEAPON')
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ABILITY')

@@ -19,6 +19,7 @@ import {
 import { changedFields, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
+import { readStoredSpellPin } from '@artificer-toolkit/encounter-persistence/spellPins'
 import {
   readCharacterEffect,
   readEncounterEffect,
@@ -530,6 +531,9 @@ export async function applyCheckpointRecords(
           throw new Error('Checkpoint source facts checksum does not match.')
         break
       }
+      case 'encounterSpellPins':
+        readStoredSpellPin(row as Doc<'encounterSpellPins'>)
+        break
       case 'characterActiveRuleEffects':
         readCharacterEffect(row as Doc<'characterActiveRuleEffects'>)
         break

@@ -78,6 +78,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'TURN_MOVEMENT',
       /** An Attack-action weapon attack with `requiredProperties` was made this turn (Encounter state). */
       'ATTACK_ACTION_OTHER_WEAPON',
+      /** An enemy of the attack's target that can act stands within `max` feet of it (Encounter state). */
+      'ENEMY_NEAR_TARGET',
       /**
        * The holder is of a kind in `requiredIds` (CHARACTER or CREATURE): each facet context gates on
        * its subject. The Character fold decides it as a constant; an Encounter reads the holder (D152).

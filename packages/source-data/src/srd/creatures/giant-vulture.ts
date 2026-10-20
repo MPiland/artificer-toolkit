@@ -49,18 +49,7 @@ export const giantVulture: CreatureAuthored = {
       label: 'Pack Tactics',
       description:
         "Pack Tactics. The vulture has advantage on an attack roll against a creature if at least one of the vulture's allies is within 5 feet of the creature and the ally isn't incapacitated.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(137, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(137, 1202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PACK_TACTICS
-        })
-      ],
+      grants: S.packTacticsGrants(137, 1),
       order: 2
     },
     {

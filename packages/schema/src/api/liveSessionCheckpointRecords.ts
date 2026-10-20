@@ -15,6 +15,7 @@ export const liveSessionCheckpointKeyFields = {
   encounterRunActors: ['encounterId', 'id'],
   encounterActorSnapshots: ['encounterId', 'checksum'],
   encounterSourceProjectionFacts: ['encounterId', 'checksum'],
+  encounterSpellPins: ['encounterId', 'spellId'],
   encounterSceneBindings: ['encounterId'],
   encounterActorTokenBindings: ['encounterId', 'actorId'],
   encounterInitiativeRounds: ['encounterId', 'round'],

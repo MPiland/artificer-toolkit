@@ -141,6 +141,7 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     conditionDefinitions: [],
     conditionMechanics: [],
     attackTraitGrants: [],
+    featureModifiers: [],
     innateConditionIds: []
   }
   return movementTarget

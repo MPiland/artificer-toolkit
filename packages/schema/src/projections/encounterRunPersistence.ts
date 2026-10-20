@@ -149,6 +149,22 @@ export const encounterStoredSourceProjectionFactsSchema = lazySchema(() =>
 )
 
 /**
+ * One Spell a Run's Creatures name, pinned once per Run by `spellId`: the stored compilation
+ * (`authoredStoredCompilationSchema` JSON) of the version read when the Run first needed it, as
+ * D163's Equipment pins hold theirs. Actors reference it by the Spell IDs in their Creature grants.
+ */
+export const encounterStoredSpellPinSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: postgresUuidSchema,
+    spellId: postgresUuidSchema,
+    sourceRevision: z.number().check(z.int()).check(z.positive()),
+    sourceVersionId: postgresUuidSchema,
+    sourceChecksum: projectionChecksumSchema,
+    compilationJson: z.string()
+  })
+)
+
+/**
  * One app roll for a pending evidence request ("Roll dice"). Rows are immutable: a settle by
  * `rollId` reads these faces, and every attempt stays for the roll log and audit.
  */
