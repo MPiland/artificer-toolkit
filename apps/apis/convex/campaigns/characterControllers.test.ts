@@ -74,7 +74,7 @@ async function controlsCharacterActor(base: PlayerControlFixture, userId: string
     const viewer = await readEncounterPlayerViewer(
       encounterReadTransaction(ctx),
       { id: base.run.id, actors: [actor] },
-      { campaignId: base.campaign.id, userId, role: 'PLAYER' }
+      { userId, role: 'PLAYER' }
     )
     // The two derivations of control must agree.
     expect(playerControlsActor(actor, { ...viewer, userId })).toBe(control !== null)

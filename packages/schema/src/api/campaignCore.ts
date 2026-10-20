@@ -20,7 +20,7 @@ const campaignToneDetailsSchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))
 )
 export const MAX_CAMPAIGN_RULES_CATALOGUES = 32
-const CAMPAIGN_CHARACTER_CONTROLLER_LIMIT = 32
+export const CAMPAIGN_CHARACTER_CONTROLLER_LIMIT = 32
 const additionalRulesCatalogueIdsSchema = lazySchema(() =>
   z
     .array(postgresUuidSchema)
