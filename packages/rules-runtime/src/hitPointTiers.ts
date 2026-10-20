@@ -14,12 +14,14 @@ export function withinHitPointBand(
 }
 
 /** The ceilings of the tiers an action authors, once each, lowest first; none for an untiered action. */
-export function hitPointTierCeilings(
-  entries: readonly { hitPointTier?: { atMost: number } }[]
-): number[] {
-  return [...new Set(entries.flatMap((entry) => entry.hitPointTier?.atMost ?? []))].sort(
-    (left, right) => left - right
-  )
+export function hitPointTierCeilings(entries: readonly object[]): number[] {
+  return [
+    ...new Set(
+      entries.flatMap(
+        (entry) => (entry as { hitPointTier?: { atMost: number } }).hitPointTier?.atMost ?? []
+      )
+    )
+  ].sort((left, right) => left - right)
 }
 
 /** The floor of the band a tier owns: the nearest lower ceiling among its siblings, if any. */
