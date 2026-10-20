@@ -16,6 +16,7 @@ import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
 import { senseGrantDtoSchema } from '../grants/sense.js'
 import { spellGrantDtoSchema } from '../grants/spell.js'
+import { spellSlotTableDtoSchema } from '../grants/spellSlots.js'
 
 const featureGrantsDtoSchemaBase = lazySchema(() =>
   z.object({
@@ -23,7 +24,8 @@ const featureGrantsDtoSchemaBase = lazySchema(() =>
     modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
     proficiencies: z.optional(authoredNestedCollectionSchema(proficiencyGrantDtoSchema)),
     senses: z.optional(authoredNestedCollectionSchema(senseGrantDtoSchema)),
-    spells: z.optional(authoredNestedCollectionSchema(spellGrantDtoSchema))
+    spells: z.optional(authoredNestedCollectionSchema(spellGrantDtoSchema)),
+    spellSlots: z.optional(spellSlotTableDtoSchema)
   })
 )
 

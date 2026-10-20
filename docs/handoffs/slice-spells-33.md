@@ -538,3 +538,9 @@ Class A (acolyte pattern), data only. Cult Fanatic, Druid, Guardian Naga, Gynosp
 - Spell-grant handling (access, cast rule facts, charge spend, cast-at-level choice) lives only under `packages/rules-runtime/src/character/` (`characterSpellAccess`, `characterSpellCastRuleFacts`, `characterResourceRuleFacts`, `sheetResourceUsage`) and is Character-only.
 - The one creature spell-cast path today is a capability `spellCast` (`{ castLevel }` on an action invocation), used by the Counterspell offer (`nativeRoomCounterspellCreatureCast.test.ts`); it spends no slot.
 - T3c needs: fold creature grants into cast actions, spend the level's charge on cast with undo, offer cast at level, then the room proof that a converted caster spends a slot when it casts.
+
+### T3c-1: feature spell-slot table (data shape, `ci/spells-33-t3c`)
+
+Orchestrator ruling (2026-10-20): T3b's per-level charge pools become one feature-level table, so a creature can later spend a higher slot on a lower spell. Any feature may author it: `grants.spellSlots = { id, resetKind, levels: [{ id, level, amount }] }` (schema `grants/spellSlots.ts`, authored `SpellSlotTableAuthored`, node map `spellSlotTable`). The feature's spell grants that carry no cast attribute (no `CAST_AT_WILL`, `LIMITED_USE`, `CAST_AT_LEVEL`) cast from it: a spell of level N spends the lowest slot of level N or higher with a slot left.
+- `S.slottedSpellcastingGrants` now authors the cantrip grant, one `PREPARED` grant per spell level (spell access only) and the table; `creatureSpellSlotsAuthoringParity.test.ts` asserts the table equals the stat-block slot clauses.
+- Runtime (T3c-2): the room cast, spend with undo and rest refresh are not wired yet.

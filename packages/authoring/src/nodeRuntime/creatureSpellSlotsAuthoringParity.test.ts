@@ -17,7 +17,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 
 /**
  * SPELLS-33 T3b: a slotted caster authors its Spellcasting as a cantrip grant plus one PREPARED
- * SPELL_GRANT per spell level, with the level's slots as long-rest charges (the options a Builder
+ * SPELL_GRANT per spell level, with the slots as one long-rest table on the feature (the options a Builder
  * author has on a creature feature). The feature keeps the stat-block text, so the GM still reads the
  * save DC, attack bonus, spell list and slots; each grant is checked against that text.
  */
@@ -74,18 +74,18 @@ describe.each(casters)(
       expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
     })
 
-    it('spends one long-rest charge pool per spell level, sized as the stat block says', () => {
+    it('casts from one long-rest slot table, sized as the stat block says', () => {
       const { description } = spellcasting(creature)
-      const slotted = spellGrants(creature).filter(({ charges }) => charges)
-      expect(
-        slotted.map(({ castAtLevel, charges }) => ({
-          level: castAtLevel,
-          slots: charges && 'amount' in charges ? charges.amount : undefined
-        }))
-      ).toEqual(describedSlots(description ?? ''))
+      const table = spellcasting(creature).grants?.spellSlots
+      expect(table?.resetKind).toBe('LONG_REST')
+      expect(table?.levels.map(({ level, amount }) => ({ level, slots: amount }))).toEqual(
+        describedSlots(description ?? '')
+      )
+      const slotted = spellGrants(creature).slice(1)
+      expect(slotted.length).toBe(table?.levels.length)
       for (const grant of slotted) {
-        expect(grant.attributes).toEqual(['PREPARED', 'LIMITED_USE', 'CAST_AT_LEVEL'])
-        expect(grant.charges).toMatchObject({ limitKind: 'FIXED_AMOUNT', resetKind: 'LONG_REST' })
+        expect(grant.attributes).toEqual(['PREPARED'])
+        expect(grant.charges).toBeUndefined()
       }
     })
 
@@ -94,7 +94,11 @@ describe.each(casters)(
       const [cantrips] = spells
       expect(cantrips.attributes).toEqual(['PREPARED', 'CAST_AT_WILL'])
       expect(new Set(spells.map(({ castingAbility }) => castingAbility)).size).toBe(1)
-      const ids = spells.flatMap(({ id, charges }) => (charges ? [id, charges.id] : [id]))
+      const table = spellcasting(creature).grants?.spellSlots
+      const ids = [
+        ...spells.map(({ id }) => id),
+        ...(table ? [table.id, ...table.levels.map(({ id }) => id)] : [])
+      ]
       expect(new Set(ids).size).toBe(ids.length)
     })
 

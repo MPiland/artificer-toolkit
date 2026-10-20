@@ -139,6 +139,7 @@ type AuthoringDefaultKind =
   | 'spellGrant'
   | 'spellGrantLevel'
   | 'spellGrantProgression'
+  | 'spellSlotTable'
   | 'startingEquipment'
   | 'startingEquipmentCurrency'
   | 'startingEquipmentGroup'
@@ -169,7 +170,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   checkChoice: ['checkChoice'],
   checkDc: ['checkDc', 'escapeDc'],
   heldEscapeDc: ['heldEscapeDc'],
-  chargeLevelScaling: ['levels'],
+  chargeLevelScaling: ['levels', 'spellSlotLevels'],
   charges: ['charges'],
   classDetail: [
     'authoredDetail',
@@ -313,6 +314,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   spellGrant: ['spellGrant'],
   spellGrantLevel: ['spellGrantLevel'],
   spellGrantProgression: ['spellGrantProgression'],
+  spellSlotTable: ['spellSlotTable'],
   startingEquipment: ['startingEquipment'],
   startingEquipmentCurrency: ['startingEquipmentCurrency'],
   startingEquipmentGroup: ['startingEquipmentGroup'],
