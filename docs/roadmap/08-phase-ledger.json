@@ -8790,8 +8790,7 @@
             },
             {
               "id": "SPELLS-4.T2i2a",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8800,7 +8799,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2i"]
               },
-              "text": "Damage interception contract (split from T2i2, ruled 2026-10-20): authored damageInterception (drop to N, negates kill, uses EFFECT_ENDS; RESOURCE uses as a documented extension point), one shared pure interception for Characters and Run creatures in the mechanics planner, fold validation (interceptedBy, negatedBy), KILL negation, heldDamageInterceptions resolver; unit proofs for both actor kinds."
+              "text": "Damage interception contract (split from T2i2, ruled 2026-10-20): authored damageInterception (drop to N, negates kill, uses EFFECT_ENDS; RESOURCE uses as a documented extension point), one shared pure interception for Characters and Run creatures in the mechanics planner, fold validation (interceptedBy, negatedBy), KILL negation, heldDamageInterceptions resolver; unit proofs for both actor kinds.",
+              "note": "Merged m241 (5593b12cc). Review findings carried into T2i2b: the fold validates its own interception rewrite (tautological check), and a non-damage HP change after an interception in one batch is refused."
             },
             {
               "id": "SPELLS-4.T2i2b",
@@ -8813,7 +8813,7 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2i2a"]
               },
-              "text": "Damage interception in the room (split from T2i2, 2026-10-20): one derivation point for held-effect batch inputs (effective max HP and damage interceptions) used by every mechanics batch builder; the ward ends in the same batch with undo. Converts DEATH_WARD with a parity proof (kind deleted) and a room journey: a warded Character takes lethal damage, stays at 1 HP, the ward ends, undo restores both."
+              "text": "Damage interception in the room (split from T2i2, 2026-10-20): one derivation point for held-effect batch inputs (effective max HP and damage interceptions) used by every mechanics batch builder; the ward ends in the same batch with undo. Converts DEATH_WARD with a parity proof (kind deleted) and a room journey: a warded Character takes lethal damage, stays at 1 HP, the ward ends, undo restores both. Also fixes the T2i2a review findings: one role for interception (planner applies, fold validates, or the reverse) with a regression test, and generic handling of heals/temporary HP after an interception in one batch."
             },
             {
               "status": "TODO",
