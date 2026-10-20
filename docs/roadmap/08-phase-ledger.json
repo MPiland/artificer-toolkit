@@ -6034,23 +6034,26 @@
         {
           "id": "ATTACK-4",
           "title": "Cleaving",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/encounters/cleaving.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Cleaving policy and target selection are authored and typed.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["packages/rules-runtime/src/__tests__/encounterCleaving.test.ts"],
               "origin": ["P81-CLEAVING-SOURCE"],
               "note": "Decisions D31/D48; no 8.2 criterion names Cleaving.",
               "id": "ATTACK-4.1"
             },
             {
               "text": "Cleaving carries excess damage down its chain.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterCleaving.test.ts",
+                "apps/apis/convex/encounters/cleaving.test.ts"
+              ],
               "origin": ["P81-CLEAVING-EXECUTION"],
               "note": "Decisions D31/D48; cleaving.test.ts exists but no criterion accepts it.",
               "id": "ATTACK-4.2"
@@ -6066,14 +6069,15 @@
             {
               "id": "ATTACK-4.T1",
               "text": "Prove the shipped Cleaving (scoped 2026-10-19): a rules-runtime test resolves the authored CLEAVING definition and the schema refuses non-MELEE or non-undamaged parameters (4.1, authored as typed SRD data); the excess-damage chain proof cites encounterCleaving.test.ts and the cleaving.test.ts journey, with a 2+ hop chain asserted (4.2). Reach stays the D48 measure.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-4.1", "ATTACK-4.2"],
               "wsjf": {
                 "bv": 3,
                 "tc": 2,
                 "rr": 1,
                 "size": 1
-              }
+              },
+              "note": "Merged m220 (f65f6ffbc)."
             }
           ]
         },
@@ -12766,7 +12770,7 @@
             },
             {
               "id": "SPELLS-33.T6i",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
