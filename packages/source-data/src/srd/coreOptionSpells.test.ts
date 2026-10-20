@@ -10,6 +10,7 @@ const plainText = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\s+/g,
  */
 describe.each([
   { label: 'Blur', ruleKind: 'BLUR', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Death Ward', ruleKind: 'DEATH_WARD', effectKinds: ['APPLY_GRANT'] },
   { label: 'Enthrall', ruleKind: 'ENTHRALL', effectKinds: ['APPLY_GRANT'] },
   { label: 'Guiding Bolt', ruleKind: 'GUIDING_BOLT', effectKinds: ['DAMAGE', 'APPLY_GRANT'] },
   { label: 'Light', ruleKind: 'LIGHT', effectKinds: ['MANIFEST', 'MANUAL_ADJUDICATION'] },
@@ -101,6 +102,31 @@ describe('SRD Power Word Stun (SPELLS-4.T2i3)', () => {
 
   it('states the limit its gate carries in its description', () => {
     expect(plainText(spell?.description ?? '')).toContain('150 hit points or fewer')
+  })
+})
+
+/**
+ * SPELLS-4.T2i2b: Death Ward runs from data. One use of a damage interception that drops the ward's
+ * holder to 1 hit point and negates instant death; the use ends the spell.
+ */
+describe('SRD Death Ward (SPELLS-4.T2i2b)', () => {
+  const spell = srdSpells.find((entry) => entry.label === 'Death Ward')
+  const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
+
+  it('authors one damage interception use, with no closed rule left', () => {
+    if (path?.selectionKind !== 'FIXED') throw new Error('Expected one fixed path.')
+    expect(path.resultBlock.lifecycle).toEqual({ uses: 1 })
+    expect(path.resultBlock.duration).toMatchObject({ durationKind: 'HOUR', amount: 8 })
+    const [outcome] = path.resultBlock.outcomes
+    if (outcome?.effectKind !== 'APPLY_GRANT') throw new Error('Expected a grant outcome.')
+    expect(outcome.grants.modifiers).toMatchObject([
+      {
+        valueDomainCode: 'DAMAGE_INTERCEPTION',
+        modifierKind: 'ENABLE',
+        payload: { dropToHitPoints: 1, negatesKill: true }
+      }
+    ])
+    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('DEATH_WARD')
   })
 })
 

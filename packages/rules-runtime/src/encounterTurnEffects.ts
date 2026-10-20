@@ -632,6 +632,7 @@ function turnEffectMechanicsBatch(input: {
     applications: input.applications,
     expectedCharacterStreamVersion: input.target.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: input.target.effectiveMaximumHitPoints,
+    damageInterceptions: input.target.damageInterceptions,
     sheetMaximumHitPoints: input.target.sheetMaximumHitPoints,
     effectiveScalarValues: input.target.effectiveScalarValues,
     retainedConditionIds: input.retainedConditionIds,

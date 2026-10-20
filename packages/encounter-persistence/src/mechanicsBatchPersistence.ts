@@ -16,8 +16,12 @@ import type {
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { rejectDomain } from './domainRejections.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
-import { endGrantsOnHitPointsRegained } from './consumedGrantPersistence.js'
-import { listActiveRuleEffects } from './effectStore.js'
+import {
+  deleteGrants,
+  endGrantsOnHitPointsRegained,
+  spendEffectUses
+} from './consumedGrantPersistence.js'
+import { createActiveRuleEffectStore, listActiveRuleEffects } from './effectStore.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
@@ -123,6 +127,40 @@ async function endGrantsOnRegain<CharacterSources>(
 }
 
 /**
+ * Spends the damage interceptions the plan's receipt names (`DAMAGE.interceptedBy`,
+ * `KILL_NEGATED.negatedBy`): each spends one use of its holding effect and the last use ends it. The
+ * records come back as they were so an undoable root gives the uses back (`restoreConsumedGrants`).
+ */
+async function spendDamageInterceptions<CharacterSources>(
+  ctx: EncounterCharacterWriteTransaction<CharacterSources>,
+  target: Awaited<ReturnType<typeof readEncounterMechanicsBatchTarget>>,
+  receiptApplications: EncounterMechanicsBatchPlan['receiptApplications']
+) {
+  const spentEffectIds = receiptApplications.flatMap((application) =>
+    application.kind === 'DAMAGE' && application.interceptedBy !== undefined
+      ? [application.interceptedBy]
+      : application.kind === 'KILL_NEGATED'
+        ? [application.negatedBy]
+        : []
+  )
+  if (!spentEffectIds.length) return []
+  const held = await createActiveRuleEffectStore(ctx).list(
+    turnEffectOwner(target.actor, target.state.id)
+  )
+  const effects = [...new Set(spentEffectIds)].map((effectId) => {
+    const effect = held.find(({ id }) => id === effectId)
+    if (!effect) throw new Error('The damage interception effect is no longer held.')
+    return effect
+  })
+  for (const effect of effects) {
+    const spent = spentEffectIds.filter((effectId) => effectId === effect.id).length
+    if ((effect.lifecycle.remainingUses ?? 0) <= spent) await deleteGrants(ctx, [effect])
+    else for (let use = 0; use < spent; use += 1) await spendEffectUses(ctx, [effect])
+  }
+  return effects
+}
+
+/**
  * Writes a trusted domain plan after current authority and exact aggregate checks. The caller
  * owns source/effect freshness and root command replay in the same transaction. This helper is
  * not a remote-plan authorization boundary and does not evaluate rules or rebuild Sheet facts.
@@ -196,7 +234,10 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       itemReleaseTransition: plan.itemReleaseTransition,
       itemDrawTransition: plan.itemDrawTransition,
       itemDegradationTransition: null,
-      endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
+      endedGrants: [
+        ...(await spendDamageInterceptions(ctx, target, plan.receiptApplications)),
+        ...(await endGrantsOnRegain(ctx, target, plan.targetTransition))
+      ]
     }
   }
   if (
@@ -261,6 +302,9 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     itemReleaseTransition: plan.itemReleaseTransition,
     itemDrawTransition: plan.itemDrawTransition,
     itemDegradationTransition: plan.itemDegradationTransition,
-    endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
+    endedGrants: [
+      ...(await spendDamageInterceptions(ctx, target, plan.receiptApplications)),
+      ...(await endGrantsOnRegain(ctx, target, plan.targetTransition))
+    ]
   }
 }
