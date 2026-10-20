@@ -13020,7 +13020,7 @@
             },
             {
               "id": "SPELLS-33.T5n1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13030,7 +13030,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-31.T5n"]
               },
               "text": "MOVED_TOWARD_TARGET {minFeet} hit-path gate: the turn lastMove record, its capture in Convex and the Session Worker, and the evaluator (D164). No creature conversion.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m258 (ae9727869)."
             },
             {
               "id": "SPELLS-33.T5n2",
