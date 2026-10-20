@@ -10010,6 +10010,7 @@ export declare const api: {
             | "OTHER"
           >;
           tableConduct: string | null;
+          trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
         }
@@ -10073,6 +10074,7 @@ export declare const api: {
             | "OTHER"
           >;
           tableConduct: string | null;
+          trackAmmunition?: boolean;
         },
         {
           absentCharacterPolicy: string | null;
@@ -10097,6 +10099,7 @@ export declare const api: {
             | "OTHER"
           >;
           tableConduct: string | null;
+          trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
         }
@@ -123003,6 +123006,11 @@ export declare const api: {
         {
           actions: Array<{
             actionCost?: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+            ammunition?: Array<{
+              itemInstanceId: string;
+              label: string;
+              quantity: number;
+            }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
@@ -124750,6 +124758,11 @@ export declare const api: {
           actorId: string;
           basicActionChoices: Array<{
             actionCost?: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+            ammunition?: Array<{
+              itemInstanceId: string;
+              label: string;
+              quantity: number;
+            }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
@@ -126835,6 +126848,7 @@ export declare const api: {
                 }>;
                 round: number;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
               }
@@ -127804,6 +127818,7 @@ export declare const api: {
                 }>;
                 round: number;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
               }
@@ -128694,6 +128709,7 @@ export declare const api: {
             }>;
             round: number;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
+            trackAmmunition?: boolean;
             updatedAt: string;
             version: number;
           }
@@ -128995,6 +129011,7 @@ export declare const api: {
                 }>;
                 round: number;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
               }
@@ -129559,6 +129576,7 @@ export declare const api: {
           }>;
           round: number;
           status: "PREPARED" | "ACTIVE" | "COMPLETED";
+          trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
         }
