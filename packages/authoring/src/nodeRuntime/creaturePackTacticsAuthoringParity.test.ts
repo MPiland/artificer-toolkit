@@ -49,7 +49,7 @@ describe('a creature’s Pack Tactics through the creature node map (SPELLS-33 T
     const grants = authored.features?.find(({ label }) => label === 'Pack Tactics')?.grants
     if (!grants?.modifiers) throw new Error('The Giant Rat must author Pack Tactics grants.')
     for (const grant of grants.modifiers) {
-      const condition = grant.restrictions?.groups[0]?.contexts[0]?.conditions[0]
+      const condition = grant.restrictions?.groups?.[0]?.contexts?.[0]?.conditions?.[0]
       if (condition?.kind !== 'PREDICATE' || condition.predicateCode !== 'ENEMY_NEAR_TARGET')
         throw new Error('Pack Tactics must author an enemy-near-target condition.')
       condition.feet = 10
