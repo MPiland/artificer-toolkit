@@ -6398,8 +6398,11 @@
             },
             {
               "text": "When a grapple's escape allows it (the Cloaker), another creature within reach of the grappled creature can use its Action to make the escape check and free it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterRescues.test.ts",
+                "apps/session-worker/test/nativeRoomEscapeRescue.test.ts"
+              ],
               "origin": [],
               "note": "D105. Registered 2026-10-11 in slice B: the SRD Cloaker authors `CREATURE_WITHIN_REACH` and no play path existed. Reuses the slice B escape command with the rescuer as the actor.",
               "id": "ATTACK-7.9"
@@ -6574,6 +6577,18 @@
               "status": "DONE",
               "closes": ["ATTACK-7.9"],
               "note": "Merged m200 (a0a21ae5d)."
+            },
+            {
+              "id": "ATTACK-7.T10",
+              "status": "TODO",
+              "closes": ["ATTACK-7.5", "ATTACK-7.6", "ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "text": "Close the proof gaps the 2026-10-20 audit found in merged work: a drag with mixed-size holds prices each creature (7.5); Shove refused outside reach and against a target more than one size larger, and Shove filling one attack of the Attack action (7.6); room-level ASIDE and single-target UP_TO forced movement, and no opportunity attacks on a picked forced move (7.7). Tests run real code; a failing test is a bug to fix in this task, with the test as its regression proof."
             }
           ],
           "wsjf": {
