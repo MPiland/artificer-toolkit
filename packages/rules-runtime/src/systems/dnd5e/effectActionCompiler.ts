@@ -2159,7 +2159,8 @@ const TURNS_PER_DURATION_UNIT: Partial<Record<CompiledDuration['durationKind'], 
   TURN: 1,
   ROUND: 1,
   MINUTE: 10,
-  HOUR: 600
+  HOUR: 600,
+  DAY: 14_400
 }
 
 /**
