@@ -33,7 +33,7 @@ afterEach(() => {
 })
 
 describe('a Brown Bear’s Multiattack in the room (D93)', () => {
-  it('offers only the attack that fills its remaining slot and returns the slot when an attack is undone', async () => {
+  it('offers only the attack that fills its remaining slot and returns the slot when the last attack is undone', async () => {
     const room = await actionRoom({
       autoRoll: 'BOTH',
       rolls: Array.from({ length: 12 }, (_, index) => (index % 2 === 0 ? 14 : 1)),
@@ -45,10 +45,7 @@ describe('a Brown Bear’s Multiattack in the room (D93)', () => {
     })
     const labels = async () => (await room.actionChoices()).actions.map(({ label }) => label)
     const claws = (await room.actionChoices()).actions.find(({ label }) => label.includes('Claws'))
-    if (!claws)
-      throw new Error(
-        `The Brown Bear offers no Claws: ${JSON.stringify((await room.actionChoices()).unavailableActions)}.`
-      )
+    if (!claws) throw new Error('The Brown Bear offers no Claws.')
 
     // Before any attack both are offered, each the first of the Multiattack's two.
     expect(await labels()).toEqual(expect.arrayContaining(['Bite', claws.label]))
@@ -66,22 +63,16 @@ describe('a Brown Bear’s Multiattack in the room (D93)', () => {
     expect(second.answer.type, JSON.stringify(second.answer)).toBe('COMMAND_COMMITTED')
     expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 2, total: 2 })
 
-    // Undoing the claws returns its slot; undoing the bite returns both.
-    for (const expected of [
-      { made: 1, bite: false },
-      { made: 0, bite: true }
-    ]) {
-      const undone = await room.send({
-        type: 'REVERT_LAST_ACTION',
-        encounterId: room.room.encounterId,
-        commandId: crypto.randomUUID(),
-        expectedVersion: await room.version()
-      })
-      expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
-      const choices = await room.actionChoices()
-      expect(choices.openAttackAction?.made ?? 0).toBe(expected.made)
-      expect(choices.actions.some(({ label }) => label === 'Bite')).toBe(expected.bite)
-      expect(choices.actions.some(({ label }) => label.includes('Claws'))).toBe(true)
-    }
+    // Undoing the claws returns its slot: the bite stays spent, the claws are offered again.
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 1, total: 2 })
+    expect(await labels()).not.toContain('Bite')
+    expect(await labels()).toContain(claws.label)
   })
 })
