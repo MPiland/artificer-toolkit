@@ -516,7 +516,8 @@ export async function verifyCampaignAuthoredCustodyDeletion(
     (source) => source.subjectKind === 'EQUIPMENT' && source.subjectId === equipmentId
   )
   assert.ok(pinnedSource)
-  assert.ok(pinnedSource.documentJson)
+  assert.ok(pinnedSource.compilation.projectionJson)
+  assert.ok(pinnedSource.presentation.label)
   assert.equal(held.notes, 'Private acquired custody notes.')
   const transferredGroupIds = new Map<string, string[]>()
   for (const vehicleId of [availableSource.id, unavailableSource.id]) {

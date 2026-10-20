@@ -1286,7 +1286,7 @@
           "tasks": [
             {
               "id": "PLATFORM-21.T1a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-21.2"],
               "wsjf": {
                 "bv": 8,
@@ -1295,11 +1295,12 @@
                 "size": 5,
                 "after": ["PLATFORM-20.T1"]
               },
-              "text": "Compiled projection v2 (D163; split 2026-10-19): the projection carries every field the Builder reads from authored payloads (Class subclass selection level, spellcasting availability, proficiency scaling and restrictions, chosen-grant shapes, subclass label, feature checksum, plus any found in Spell, Race, Equipment and Background), with Equipment in the resolved shape; Builder and rules-runtime reads move to the compiled shapes while compilation is still at runtime; a migration recompiles stale rows, run on development data."
+              "text": "Compiled projection v2 (D163; split 2026-10-19): the projection carries every field the Builder reads from authored payloads (Class subclass selection level, spellcasting availability, proficiency scaling and restrictions, chosen-grant shapes, subclass label, feature checksum, plus any found in Spell, Race, Equipment and Background), with Equipment in the resolved shape; Builder and rules-runtime reads move to the compiled shapes while compilation is still at runtime; a migration recompiles stale rows, run on development data.",
+              "note": "Merged m216 (67c9bdb51). Local dev-data migration moved to T1a2."
             },
             {
               "id": "PLATFORM-21.T1a2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-21.2"],
               "wsjf": {
                 "bv": 8,

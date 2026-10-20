@@ -32,7 +32,13 @@ const optionalStateKeys: OptionalStateKey[] = [
   'vehicleEquipment'
 ]
 
-function record<Value>(characterId: string, id: string, position: number, value: Value) {
+/** One owned collection record with its integrity checksum. */
+export function characterCollectionRecord<Value>(
+  characterId: string,
+  id: string,
+  position: number,
+  value: Value
+) {
   const fields = { characterId, id, position, value }
   return { ...fields, checksum: checksumRuleDocument(fields) }
 }
@@ -58,29 +64,29 @@ export function encodeCharacterOperationalStructure(capture: CharacterCapture): 
   const { state } = document
   const collections: CharacterCollectionRecords = {
     characterInventoryItems: state.equipment.inventory.map((value, position) =>
-      record(capture.id, value.id, position, value)
+      characterCollectionRecord(capture.id, value.id, position, value)
     ),
     characterCurrencyGroups: state.currency.map((value, position) =>
-      record(capture.id, value.id, position, value)
+      characterCollectionRecord(capture.id, value.id, position, value)
     ),
     // Class state has no instance ID; its existing array position identifies its record.
     characterClassSpellStates: (state.classes ?? []).map((value, position) =>
-      record(capture.id, String(position), position, value)
+      characterCollectionRecord(capture.id, String(position), position, value)
     ),
     characterSpellCustomizations: sheet.spellCustomizations.map((value, position) =>
-      record(capture.id, value.id, position, value)
+      characterCollectionRecord(capture.id, value.id, position, value)
     ),
     characterCreatureInstances: (state.creatures ?? []).map((value, position) =>
-      record(capture.id, value.id, position, value)
+      characterCollectionRecord(capture.id, value.id, position, value)
     ),
     characterVehicleInstances: (state.vehicles ?? []).map((value, position) =>
-      record(capture.id, value.id, position, value)
+      characterCollectionRecord(capture.id, value.id, position, value)
     ),
     characterNotes: (state.notes ?? []).map((value, position) =>
-      record(capture.id, value.id, position, value)
+      characterCollectionRecord(capture.id, value.id, position, value)
     ),
     characterNoteGroups: (state.noteGroups ?? []).map((value, position) =>
-      record(capture.id, value.id, position, value)
+      characterCollectionRecord(capture.id, value.id, position, value)
     ),
     characterExtraEquipment: [
       ...Object.entries(state.creatureEquipment ?? {}).map(([instanceId, assignments]) => ({
@@ -94,7 +100,7 @@ export function encodeCharacterOperationalStructure(capture: CharacterCapture): 
         equipmentItemIds: assignments.map((item) => item.equipmentItemId)
       }))
     ].map((value, position) =>
-      record(capture.id, `${value.kind}:${value.instanceId}`, position, value)
+      characterCollectionRecord(capture.id, `${value.kind}:${value.instanceId}`, position, value)
     )
   }
   const fields = {
@@ -217,11 +223,11 @@ export function encodeCharacterNoteRecords(
   const collections = {
     characterNotes: (next.notes ?? []).map((value, position) => {
       const note = characterNoteStateDtoSchema.parse(JSON.parse(JSON.stringify(value)))
-      return record(build.characterId, note.id, position, note)
+      return characterCollectionRecord(build.characterId, note.id, position, note)
     }),
     characterNoteGroups: (next.noteGroups ?? []).map((value, position) => {
       const group = characterNoteGroupStateDtoSchema.parse(JSON.parse(JSON.stringify(value)))
-      return record(build.characterId, group.id, position, group)
+      return characterCollectionRecord(build.characterId, group.id, position, group)
     })
   }
   const fields = {

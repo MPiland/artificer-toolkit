@@ -16,17 +16,19 @@ import {
   type CharacterChosenGrantOwner
 } from './chosenGrantChoiceResolver.js'
 import type {
-  BackgroundAuthored,
   CharacterAcquisitionTiming,
   CharacterAuthored,
   CharacterClassIntent,
   CharacterProvenance,
-  CharacterResourceGrantRecord,
-  FeatAuthored,
-  ParentClassAuthored
+  CharacterResourceGrantRecord
 } from '@artificer-toolkit/shared/subjects/authored'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
-import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type {
+  CompiledBackground,
+  CompiledClass,
+  CompiledFeat
+} from '@artificer-toolkit/shared/subjects/compilers'
+import type { CompiledFeature } from '@artificer-toolkit/shared/compilers'
 import type {
   CharacterBuilderClassCatalogRecord,
   CharacterBuilderCatalog
@@ -52,7 +54,7 @@ export const abilityOrder: AbilityCode[] = [
 ]
 
 type CharacterBuilderGrantedFeatureLookup = readonly {
-  feature: Pick<FeatureAuthored, 'id'>
+  feature: { id: string }
 }[]
 
 export function appendAbilityIntentValidationIssues(
@@ -113,7 +115,7 @@ export function getAvailableSubclassesForClass(params: {
   registry: CharacterBuilderRegistry
 }): CharacterBuilderClassCatalogRecord[] {
   const baseClass = params.registry.classes.find(
-    (record): record is ParentClassAuthored =>
+    (record): record is Extract<CompiledClass, { category: typeof CLASS_CATEGORY.BASE }> =>
       record.category === CLASS_CATEGORY.BASE && record.id === params.classId
   )
 
@@ -340,9 +342,9 @@ function isSameRequiredResourceGrantSource(
 export function getCharacterChosenGrantOwners(
   character: CharacterAuthored,
   classSelections: ResolvedClassSelection[],
-  selectedBackground: BackgroundAuthored | undefined,
+  selectedBackground: CompiledBackground | undefined,
   grantedFeatures: GrantedFeatureRecord[],
-  feats: readonly FeatAuthored[]
+  feats: readonly CompiledFeat[]
 ): CharacterChosenGrantOwner[] {
   const owners: CharacterChosenGrantOwner[] = []
 
@@ -410,17 +412,15 @@ export function getCharacterChosenGrantOwners(
 
   for (const granted of grantedFeatures) {
     const timing = getChosenGrantOwnerTiming(character, granted)
-    if (granted.feature.grants) {
-      owners.push({
-        label: granted.feature.label,
-        ownerFeatureId: granted.feature.id,
-        sourceLabel: granted.sourceLabel,
-        source: granted.source,
-        timing,
-        activeLevel: granted.level,
-        grants: granted.feature.grants
-      })
-    }
+    owners.push({
+      label: granted.feature.label,
+      ownerFeatureId: granted.feature.id,
+      sourceLabel: granted.sourceLabel,
+      source: granted.source,
+      timing,
+      activeLevel: granted.level,
+      grants: granted.feature
+    })
 
     const acquisition = findCurrentCharacterFeatureAcquisition(
       character,
@@ -431,7 +431,7 @@ export function getCharacterChosenGrantOwners(
       getSelectedFeatureOptionIds(granted.feature, character, granted.source)
     )
     for (const option of granted.feature.options ?? []) {
-      if (!acquisition || !selectedOptionIds.has(option.id) || !option.grants) continue
+      if (!acquisition || !selectedOptionIds.has(option.id)) continue
       owners.push({
         label: option.label,
         ownerFeatureId: granted.feature.id,
@@ -443,13 +443,12 @@ export function getCharacterChosenGrantOwners(
         },
         timing,
         activeLevel: granted.level,
-        grants: option.grants
+        grants: option
       })
     }
   }
 
   for (const feat of feats) {
-    if (!feat.grants) continue
     const acquisitions = character.intent.featureAcquisitions.filter(
       (record) =>
         record.source.kind === 'FEAT' &&
@@ -470,7 +469,7 @@ export function getCharacterChosenGrantOwners(
         character.intent.classes.reduce((sum, row) => sum + row.classLevel, 0),
         1
       ),
-      grants: feat.grants
+      grants: feat
     })
   }
   return owners
@@ -508,7 +507,7 @@ export type FeatureOptionEligibility<
   T extends { output: CharacterRulePolicyOutput } = { output: CharacterRulePolicyOutput }
 > = {
   character: CharacterAuthored
-  optionsByFeatureId: ReadonlyMap<string, NonNullable<FeatureAuthored['options']>>
+  optionsByFeatureId: ReadonlyMap<string, NonNullable<CompiledFeature['options']>>
   eligibilityById: ReadonlyMap<string, boolean>
   ruleEvaluation: T | null
 }
@@ -544,7 +543,7 @@ function compileFeatureOptionEligibilityRuleFacts(
 function getFeatureOptionsById(
   grantedFeatures: readonly GrantedFeatureRecord[],
   eligibilityById: ReadonlyMap<string, boolean>
-): Map<string, NonNullable<FeatureAuthored['options']>> {
+): Map<string, NonNullable<CompiledFeature['options']>> {
   return new Map(
     grantedFeatures.map(({ feature }) => [
       feature.id,
@@ -564,7 +563,7 @@ function getFeatureOptionsById(
 function filterFeatureOptionSelections(
   character: CharacterAuthored,
   grantedFeatures: readonly GrantedFeatureRecord[],
-  optionsByFeatureId: ReadonlyMap<string, NonNullable<FeatureAuthored['options']>>
+  optionsByFeatureId: ReadonlyMap<string, NonNullable<CompiledFeature['options']>>
 ): { character: CharacterAuthored; changed: boolean } {
   let changed = false
   const featureAcquisitions = character.intent.featureAcquisitions.map((acquisition) => {
@@ -680,18 +679,18 @@ export async function resolveFeatureOptionEligibility<
 }
 
 function filterFeatureOptions(
-  feature: FeatureAuthored,
-  optionsByFeatureId: ReadonlyMap<string, NonNullable<FeatureAuthored['options']>>
-): FeatureAuthored {
+  feature: CompiledFeature,
+  optionsByFeatureId: ReadonlyMap<string, NonNullable<CompiledFeature['options']>>
+): CompiledFeature {
   const options = optionsByFeatureId.get(feature.id)
   return options ? { ...feature, options: [...options] } : feature
 }
 
 export function filterRegistryFeatureOptions(
   registry: CharacterBuilderRegistry,
-  optionsByFeatureId: ReadonlyMap<string, NonNullable<FeatureAuthored['options']>>
+  optionsByFeatureId: ReadonlyMap<string, NonNullable<CompiledFeature['options']>>
 ): CharacterBuilderRegistry {
-  const mapFeatures = (features: FeatureAuthored[] | undefined) =>
+  const mapFeatures = (features: readonly CompiledFeature[] | undefined) =>
     features?.map((feature) => filterFeatureOptions(feature, optionsByFeatureId))
 
   return {

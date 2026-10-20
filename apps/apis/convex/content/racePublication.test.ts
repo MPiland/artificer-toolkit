@@ -3,7 +3,10 @@ import { srdRaces } from '@artificer-toolkit/source-data/srd/races/index.js'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import type { AuthoredDraftResult } from '@artificer-toolkit/schema/api/authoredDrafts'
-import { authoredPublishDraftInputSchema } from '@artificer-toolkit/schema/api/authoredPublication'
+import {
+  authoredPublishDraftInputSchema,
+  authoredStoredCompilationSchema
+} from '@artificer-toolkit/schema/api/authoredPublication'
 import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import { nodeRuntimeResolveRequestDtoSchema } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
@@ -655,9 +658,11 @@ describe('native Race publication', () => {
     expect(await storedState(t)).toEqual(before)
     const root = before.roots.find((entry) => entry.id === subjects[0]!.id)!
     const version = before.versions.find((entry) => entry._id === root.currentVersionId)!
-    const compilation = before.compilations.find(
+    const stored = before.compilations.find(
       (entry) => entry.versionId === version.versionId
     )?.compilation
+    // Publication stores the current compiler's output; parsing proves it.
+    const compilation = stored && authoredStoredCompilationSchema.parse(stored)
     await expect(t.mutation(syncDerived, { id: root.id, checksum: 'wrong' })).rejects.toThrow()
     await t.run((ctx) => ctx.db.patch(root._id, { parentRaceId: crypto.randomUUID() }))
     const parentConflict = await storedState(t)

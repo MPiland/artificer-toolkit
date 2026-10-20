@@ -5,33 +5,39 @@ import {
   type AbilityCode
 } from '@artificer-toolkit/shared/core'
 import type {
-  BackgroundAuthored,
   CharacterAcquisitionTiming,
   CharacterAbilityScoresIntent,
   CharacterAuthored,
   CharacterClassIntent,
   CharacterFeatureAcquisitionRecord,
-  CharacterProvenance,
-  ClassAuthored,
-  ParentClassAuthored
+  CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
-import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import type { ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
+import type { CompiledFeature } from '@artificer-toolkit/shared/compilers'
+import type {
+  CompiledBackground,
+  CompiledClass,
+  CompiledClassResource,
+  CompiledRace,
+  CompiledSpellcasting
+} from '@artificer-toolkit/shared/subjects/compilers'
 
 import type { CharacterRuleRegistry } from './characterRuleContext.js'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
 
+type CompiledBaseClass = Extract<CompiledClass, { category: typeof CLASS_CATEGORY.BASE }>
+type CompiledSubclass = Extract<CompiledClass, { category: typeof CLASS_CATEGORY.SUBCLASS }>
+
 export type ResolvedClassSelection = {
   row: CharacterClassIntent
-  baseClass?: ParentClassAuthored
-  subclass?: Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.SUBCLASS }>
-  features: FeatureAuthored[]
-  resources: NonNullable<ClassAuthored['resources']>[]
-  spellcasting: NonNullable<ClassAuthored['spellcasting']>[]
+  baseClass?: CompiledBaseClass
+  subclass?: CompiledSubclass
+  features: CompiledFeature[]
+  resources: CompiledClassResource[]
+  spellcasting: CompiledSpellcasting[]
 }
 
 export type GrantedFeatureRecord = {
-  feature: FeatureAuthored
+  feature: CompiledFeature
   source: CharacterProvenance
   sourceLabel: string
   level: number
@@ -145,12 +151,12 @@ function loadClassSelection(
   registry: CharacterRuleRegistry
 ): ResolvedClassSelection {
   const baseClass = registry.classes.find(
-    (record): record is ParentClassAuthored =>
+    (record): record is CompiledBaseClass =>
       record.category === CLASS_CATEGORY.BASE && record.id === row.classId
   )
   const subclass = row.subclassId
     ? registry.classes.find(
-        (record): record is Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.SUBCLASS }> =>
+        (record): record is CompiledSubclass =>
           record.category === CLASS_CATEGORY.SUBCLASS && record.id === row.subclassId
       )
     : undefined
@@ -198,11 +204,11 @@ export function getCharacterRaceSelection(
   character: CharacterAuthored,
   registry: CharacterRuleRegistry
 ): {
-  baseRace?: ResolvedRace
-  selectedRace?: ResolvedRace
-  ancestryRace?: ResolvedRace
+  baseRace?: CompiledRace
+  selectedRace?: CompiledRace
+  ancestryRace?: CompiledRace
   selectedAncestry?: NonNullable<CharacterAuthored['intent']['ancestrySelections']>[number]
-  selectedAncestryOption?: NonNullable<ResolvedRace['ancestry']>['options'][number]
+  selectedAncestryOption?: NonNullable<CompiledRace['ancestry']>['options'][number]
 } {
   const baseRace = character.intent.race.raceId
     ? registry.races.find(
@@ -242,12 +248,12 @@ export function collectGrantedFeaturesForCharacter(
 ): {
   classSelections: ResolvedClassSelection[]
   totalLevel: number
-  baseRace?: ResolvedRace
-  selectedRace?: ResolvedRace
-  ancestryRace?: ResolvedRace
-  selectedBackground?: BackgroundAuthored
+  baseRace?: CompiledRace
+  selectedRace?: CompiledRace
+  ancestryRace?: CompiledRace
+  selectedBackground?: CompiledBackground
   selectedAncestry?: NonNullable<CharacterAuthored['intent']['ancestrySelections']>[number]
-  selectedAncestryOption?: NonNullable<ResolvedRace['ancestry']>['options'][number]
+  selectedAncestryOption?: NonNullable<CompiledRace['ancestry']>['options'][number]
   grantedFeatures: GrantedFeatureRecord[]
 } {
   const classSelections = character.intent.classes.map((row) => loadClassSelection(row, registry))
@@ -272,7 +278,7 @@ export function collectGrantedFeaturesForCharacter(
   if (selectedRace && selectedRace.id !== baseRace?.id && selectedRace.features?.length) {
     const inheritedFeatureIds = new Set(
       selectedRace.category === RACE_CATEGORY_CODE.SUBRACE
-        ? (selectedRace.subrace.inherited.features ?? []).map((feature) => feature.id)
+        ? (selectedRace.inheritedFeatureIds ?? [])
         : []
     )
     for (const feature of selectedRace.features) {

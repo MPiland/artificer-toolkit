@@ -168,16 +168,19 @@ describe('Character authored source access loss', () => {
     ).rejects.toThrow('Acquired Equipment scope mismatch')
     const source = raw.sources[0]
     if (!source) throw new Error('Captured Equipment source is missing.')
-    const document: Record<string, unknown> = JSON.parse(source.documentJson)
+    const projection: Record<string, unknown> = JSON.parse(source.compilation.projectionJson)
     held.retainedRulesJson = JSON.stringify({
       ...raw,
       sources: [
         {
           ...source,
-          documentJson: JSON.stringify({
-            ...document,
-            label: 'Corrupt captured rules'
-          })
+          compilation: {
+            ...source.compilation,
+            projectionJson: JSON.stringify({
+              ...projection,
+              label: 'Corrupt captured rules'
+            })
+          }
         },
         ...raw.sources.slice(1)
       ]

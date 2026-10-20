@@ -115,7 +115,7 @@ describe('internal canonical source import', () => {
     expect(total).toBe(371)
   }, 120_000)
 
-  it('replays a Builder-projected Equipment root before its deferred compilation', async () => {
+  it('stores a base Equipment compilation at import and replay restores it exactly', async () => {
     const t = convexTest(schema, modules)
     await t.mutation(internal.content.import.bootstrap, bootstrap)
     const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(club)))
@@ -139,9 +139,15 @@ describe('internal canonical source import', () => {
         .unique()
       if (!root?.equipmentOptions?.builder) throw new Error('Missing Builder Equipment facts')
       const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
-      if (!version || version.compilation !== undefined)
-        throw new Error('Equipment compilation should remain deferred.')
+      if (!version?.compilation) throw new Error('Base Equipment compiles at import.')
       return { root, version }
+    })
+    expect(before.version.compilation?.authoredChecksum).toBe(base.checksum)
+    // A root stored before import compiled base Equipment has no compilation; replay backfills it.
+    await t.run(async (ctx) => {
+      const version = await ctx.db.get(before.version._id)
+      if (!version) throw new Error('Missing Equipment version.')
+      await setVersionCompilation(ctx, version, undefined)
     })
     expect(await t.mutation(internal.content.import.importSubjects, imported)).toEqual({
       inserted: 0,
@@ -151,7 +157,7 @@ describe('internal canonical source import', () => {
     expect(
       await t.run(async (ctx) => ({
         root: await ctx.db.get(before.root._id),
-        version: await ctx.db.get(before.version._id)
+        version: await versionWithCompilation(ctx, await ctx.db.get(before.version._id))
       }))
     ).toEqual(before)
   })

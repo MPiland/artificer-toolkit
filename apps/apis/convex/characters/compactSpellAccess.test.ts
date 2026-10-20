@@ -96,7 +96,7 @@ describe('compact Campaign Spell selector access', () => {
         return {
           spellIds: context.catalog.spells.map((spell) => spell.id).sort(),
           catalogueIds: context.spellCatalogueEntries.map((spell) => spell.id).sort(),
-          documentIds: [...context.spellDocumentsById.keys()],
+          documentIds: [...context.spellsById.keys()],
           sourceIdentities: Object.fromEntries(context.sourceIdentities)
         }
       })

@@ -335,6 +335,12 @@ describe('native Equipment deletion source-loss cleanup', () => {
     ).toBe(true)
     const acquired = active.state.equipment.inventory.find((item) => item.id === removedItemId)
     expect(acquired?.retainedRulesJson).toBeDefined()
+    // D163: with its source deleted, the Sheet reads the held item's pinned prose.
+    const itemDescription = (sheet: typeof afterSheet) =>
+      sheet.inventory.items.find((item) => item.id === removedItemId)?.description
+    expect(healersKit.description).toBeTruthy()
+    expect(itemDescription(beforeSheet)).toBe(healersKit.description)
+    expect(itemDescription(afterSheet)).toBe(healersKit.description)
     await expect(
       base.owner.caller.mutation(api.characters.sheetCommands.execute, {
         id: base.character.id,

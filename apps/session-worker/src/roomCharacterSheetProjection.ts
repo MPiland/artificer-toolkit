@@ -24,6 +24,7 @@ export function projectRoomCharacterSheet(
     additionalCurrencyOptions: facts.campaignContext.currencyOptions,
     creaturesById: facts.prepared.context.creaturesById,
     vehiclesById: facts.prepared.context.vehiclesById,
+    presentation: facts.prepared.context.presentation,
     spellCustomizations: facts.sheetState.spellCustomizations,
     ruleEvaluation: facts.ruleEvaluation,
     activeEffects,

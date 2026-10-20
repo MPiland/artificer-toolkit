@@ -401,7 +401,7 @@ export function createNativeLiveTurnStages(
             loadCharacter,
             readPublishedSpell: async (spellId, facts) => {
               const pin = facts.sourceVersions.get(spellId)
-              const spell = facts.evaluationInput.spellDocumentsById?.get(spellId)
+              const spell = facts.prepared.context.currentSpellDocumentsById?.get(spellId)
               if (pin?.identity.subjectKind !== 'SPELL' || !spell)
                 throw new Error('The declared spell source is unavailable.')
               return {

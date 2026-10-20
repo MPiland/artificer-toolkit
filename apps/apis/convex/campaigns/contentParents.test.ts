@@ -27,6 +27,8 @@ import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { parsePublicationDocument } from '../content/publicationDocument'
+import { insertAuthoredVersionCompilation } from '../content/documents'
+import { compileCurrentEquipment } from '../content/equipmentRelationships'
 import { requireDefaultUserContentSource } from '../content/sources'
 import { readPartyEquipmentSource } from './partyInventoryDocuments'
 
@@ -98,6 +100,13 @@ async function setup() {
             ? publication.document.parentEquipmentId
             : null
       })
+      // Acquisition pins the stored compilation that publication writes.
+      if (publication.subjectKind === 'EQUIPMENT')
+        await insertAuthoredVersionCompilation(
+          ctx,
+          { ...metadata, versionId: publicVersionId },
+          (await compileCurrentEquipment(ctx, publication.document, base.owner.userId)).compilation
+        )
     })
     return document.id
   }
@@ -259,9 +268,9 @@ describe('Campaign shared child parent prerequisites', () => {
     expect(item).toMatchObject({ campaignId: campaign.id, id: itemId, equipmentId: child })
     const retained = readAcquiredEquipmentRules(item.retainedRulesJson, child, srdSystemRecord.id)
     expect(retained.equipment.id).toBe(child)
-    expect(new Set(retained.sources.map((source) => source.subjectId))).toEqual(
-      new Set([base, child])
-    )
+    // D163 ruling C: the pinned leaf compilation already holds its resolved parent rules.
+    expect(retained.sources.map((source) => source.subjectId)).toEqual([child])
+    expect(retained.equipment.parentEquipmentIds).toEqual([base])
     expect(after.inventories).toHaveLength(1)
     expect(after.inventories[0]).toMatchObject({ campaignId: campaign.id, version: 2 })
 

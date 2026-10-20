@@ -206,7 +206,7 @@ async function ownedEquipment(
         documentSchemaVersion: current.documentSchemaVersion
       },
       canonicalizeRuleDocument(document),
-      current.compilation
+      (await equipmentRelationships.compileCurrentEquipment(ctx, document, null)).compilation
     )
     const rootId = await ctx.db.insert('authoredRoots', {
       id,

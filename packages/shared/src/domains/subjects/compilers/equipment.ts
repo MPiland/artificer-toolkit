@@ -84,8 +84,7 @@ export type CompiledEquipmentEffectGroup = CompiledEffectGroup & {
 
 export type CompiledEquipmentBase = {
   id: string
-  /** Retained for bounded play-surface projections; historical snapshots may omit it. */
-  label?: string
+  label: string
   restrictions?: BaseEquipmentAuthored['restrictions']
   requiresAttunement?: BaseEquipmentAuthored['requiresAttunement']
   cost?: CompiledCost
