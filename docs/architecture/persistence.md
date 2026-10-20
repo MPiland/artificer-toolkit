@@ -345,7 +345,7 @@ store.
   (`postGrantEndMessages`, entry id `grantEndNoticeId(occurrence, grant)`, so a replay adds nothing; a private GM holder posts none). A turn advance is not an undo root, so its
   ended grants carry no receipt. An `ON_IDLE_TURN` grant is ended by that turn commit (`persistEncounterIdleTurnCheck`); its
   `idleTurnMark` lives in the actor's `resources` (hashed with the actor state), and the `RESOLVE_ACTION` root's `idleTurnMarkChanges`
-  lists each actor whose mark that action changed with its previous value so `REVERT_LAST_ACTION` restores exactly those (`rules-runtime.md`, Idle turns). A holder-ended grant is the stored Run command `END_HELD_GRANT`; like any costed
+  lists each actor whose mark that action changed with its previous value so `REVERT_LAST_ACTION` restores exactly those (`rules-runtime.md`, Idle turns). A moved effect (D160) is the stored Run command `MOVE_HELD_EFFECT`: its receipt keeps `{ actorId, actionEconomy, effectId, fromActorId, toActorId, before, afterVersion }`, where `before` is the whole record as the old holder kept it and `afterVersion` the version the new holder's copy was created with. `REVERT_LAST_ACTION` deletes the new holder's copy only while its version is still `afterVersion` and recreates `before` at the old holder with `restoredFrom` (exact ordinal, version and timestamps); it is a root command, so anything committed after it makes the undo unavailable. A holder-ended grant is the stored Run command `END_HELD_GRANT`; like any costed
   Run command it blocks undo of the prior action (D99). The Sheet end of a holder-end grant is free in a MANUAL Run
   (`economyEnforced: false`).
 - **No Convex timeline:** the timeline and latest evidence roll are read only from the room. Encounter

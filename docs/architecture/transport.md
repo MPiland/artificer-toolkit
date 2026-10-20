@@ -344,6 +344,10 @@ An effect whose holder may end it (`recurrence.holderEnd`, D113) is offered in t
 `END_HELD_GRANT` Run command (`EndHeldGrantInputDto`: `actorId`, `activeEffectId`, `acknowledgedWarnings`), which spends that activation
 and is refused for another member, an effect already ended, or an activation not available. The live commit
 payloads (action, area, cleaving, concentration and turn) carry the grants the engine ended as `endedGrants`.
+An effect another actor is offered to move (`effectOffers`, D160) is moved with the `MOVE_HELD_EFFECT` Run command
+(`MoveHeldEffectInputDto`: `actorId`, `effectId`, `offerIndex`, `target: { kind: 'ACTOR', actorId }`, `acknowledgedWarnings`, optional `sceneContext`),
+which spends the offer's activation, is a PLAYER command for the actor's controller, and is refused for a stale offer,
+a defeated or unchanged holder, or an unacknowledged range warning.
 The Sheet `END_ACTIVE_EFFECT` command ends a `holderEnd` effect for its own player only when the Run is not live: in an
 ACTIVE Encounter that holds the Character, a costed end is refused with "End this effect from the Encounter actions."
 
