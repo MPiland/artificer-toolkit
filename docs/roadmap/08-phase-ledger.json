@@ -8842,7 +8842,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2i2a"]
               },
-              "text": "Damage interception in the room (split from T2i2, 2026-10-20): one derivation point for held-effect batch inputs (effective max HP and damage interceptions) used by every mechanics batch builder; the ward ends in the same batch with undo. Converts DEATH_WARD with a parity proof (kind deleted) and a room journey: a warded Character takes lethal damage, stays at 1 HP, the ward ends, undo restores both. Also fixes the T2i2a review findings: one role for interception (planner applies, fold validates, or the reverse) with a regression test, and generic handling of heals/temporary HP after an interception in one batch."
+              "text": "Damage interception in the room (split from T2i2, 2026-10-20): one derivation point for held-effect batch inputs (effective max HP and damage interceptions) used by every mechanics batch builder; the ward ends in the same batch with undo. Converts DEATH_WARD with a parity proof (kind deleted) and a room journey: a warded Character takes lethal damage, stays at 1 HP, the ward ends, undo restores both. Also fixes the T2i2a review findings: one role for interception (planner applies, fold validates, or the reverse) with a regression test, and generic handling of heals/temporary HP after an interception in one batch.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -9076,7 +9077,8 @@
                 "after": ["SPELLS-4.T2m1b1"]
               },
               "text": "Multi-condition repeat plan: repeatingDirectFollowUpSavePlan, the outcome graph, the repeat-save condition fact (list) and runtime removal take a condition list; Hideous Laughter authored as data (Prone + Incapacitated, 1-minute Wis save at turn end, advantage on damage).",
-              "note": "Split from T2m1b1 2026-10-20: plan, graph, fact and removal are single-condition."
+              "note": "Split from T2m1b1 2026-10-20: plan, graph, fact and removal are single-condition.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2m1b2",
@@ -13117,7 +13119,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T3b"]
               },
-              "text": "new: legendary option that casts a granted spell (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: legendary option that casts a granted spell (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6d1",
@@ -13170,7 +13173,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T6d3a"]
               },
-              "text": "Assassinate and Surprise Attack (2 kinds): new TARGET_HAS_NOT_TAKEN_TURN predicate derived from initiative for Assassinate advantage; surprise parts description-only (D165). Authoring-parity proof; deletes the kinds (D156; workbook slice-spells-33.md)."
+              "text": "Assassinate and Surprise Attack (2 kinds): new TARGET_HAS_NOT_TAKEN_TURN predicate derived from initiative for Assassinate advantage; surprise parts description-only (D165). Authoring-parity proof; deletes the kinds (D156; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6e",
