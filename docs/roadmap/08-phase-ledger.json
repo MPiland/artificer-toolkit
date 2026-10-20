@@ -12438,7 +12438,7 @@
             },
             {
               "id": "SPELLS-33.T3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12448,8 +12448,7 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "A: author spell slot charges for the slotted casters (acolyte pattern) and delete their spellcasting kinds (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
-              "note": "2026-10-20 ruling: data conversion with parity proofs (spell list, DC and slots stay visible to the GM); the room cast proof moves to T3c because creature SPELL_GRANTs are not castable in a room yet."
+              "note": "2026-10-20 ruling: data conversion with parity proofs (spell list, DC and slots stay visible to the GM); the room cast proof moves to T3c because creature SPELL_GRANTs are not castable in a room yet. Merged m238 (7f5b03598): 8 casters author per-level slot charges; 8 spellcasting kinds deleted; parity proof creatureSpellSlotsAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-33.T3c",
@@ -12462,7 +12461,7 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3b"]
               },
-              "text": "Creature spell grants cast in the room (found by T3b, 2026-10-20): creatureFeatureGrantFold folds creature SPELL_GRANTs to no spells, and grant handling (cast at level, limited use, slot charges) is Character-only. A creature with authored spell grants offers those spells, casts them through the existing cast path, spends its slot or use with undo, and refreshes on its rest. Room journey: a converted SRD caster casts a levelled spell and spends the slot."
+              "text": "Creature spell grants cast in the room (found by T3b, 2026-10-20): creatureFeatureGrantFold folds creature SPELL_GRANTs to no spells, and grant handling (cast at level, limited use, slot charges) is Character-only. A creature with authored spell grants offers those spells, casts them through the existing cast path, spends its slot or use with undo, and refreshes on its rest. Room journey: a converted SRD caster casts a levelled spell and spends the slot. Slots are authored per spell level today (one charge pool per level), so a creature cannot spend a higher slot on a lower-level spell; T3c makes the slot pool spendable at or above the spell level (upcast) or records why not."
             },
             {
               "id": "SPELLS-33.T4c",
