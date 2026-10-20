@@ -228,3 +228,13 @@ the stored projection".
   snapshot rebuild, and a Session Worker room reset (Durable Object SQLite keeps old pins). These are known gaps,
   dev data only. Pending contest and action pins of snapshot checksums are not rewritten.
   `encounterBlueprintUpdates.resultJson` receipts keep the old pin shape.
+- 2026-10-20: **PLATFORM-21.T1b** CI fallout (orchestrator ruling B). Test fixtures store the compilation that
+  publication writes (`compileAsPublished`, `tests/fixtures/publication.ts`), JSON round-trip raw documents,
+  and checksum the parsed document. "JSON values only" was a fixture issue, since the product receives JSON.
+  The builder catalogue tests expect the D163 fail-closed error: there's no payload fallback, and the cycle case
+  is dropped. The Sheet's retained Spell view (`sheetProjection.ts`, "A Spell only a held item's pinned rules
+  supply…") is unreachable: it lists only Spells in `displayedSpellIds`, but spell access
+  (`characterRules.ts` `sourceKind`) covers only Class, Subclass, Race and Subrace, and
+  `buildCharacterSpellRuleFacts` walks only those features. No Equipment `SPELL_GRANT` reaches the Sheet, retained
+  or current. `retainedRulesWithoutCompile.test.ts` proves the pinned prose lookup
+  (`presentation.retainedSpells`). Equipment and Feat Spell access is a new-PBI question with the user.
