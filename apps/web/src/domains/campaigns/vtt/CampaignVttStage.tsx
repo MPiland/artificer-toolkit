@@ -13,17 +13,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import {
-  Check,
-  Crosshair,
-  Eye,
-  EyeOff,
-  Gamepad2,
-  SlidersHorizontal,
-  Undo2,
-  ZoomIn,
-  ZoomOut
-} from 'lucide-react'
+import { Check, Crosshair, Eye, EyeOff, Gamepad2, SlidersHorizontal, Undo2 } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import type {
   CampaignSceneStateDto,
@@ -88,6 +78,8 @@ import { CampaignTabletopMovementReadout } from './CampaignTabletopMovementReado
 import { selectMovementAllowance } from './CampaignTabletopMovementReadout.model'
 import { CampaignEncounterDecision } from '../components/CampaignEncounterDecision'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
+import { VttZoomControl } from './VttZoomControl'
+import { readStoredVttZoom, vttZoomStorageKey, writeStoredVttZoom } from './vttZoom.model'
 import * as styles from './CampaignVttStage.css'
 import { useActionTargetModifiers } from './useActionTargetModifiers'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
@@ -159,6 +151,7 @@ export function CampaignVttStage({
   const optimisticDoorCommands = useRef(new Map<string, string>())
   const [mode, setMode] = useState<CampaignVttMode>('PLAY')
   const [mapLoadStatus, setMapLoadStatus] = useState<VttMapLoadStatus | null>(null)
+  const [zoomScale, setZoomScale] = useState(1)
   const [tool, setTool] = useState<CampaignVttTool>('SELECT')
   const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
   const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
@@ -898,6 +891,14 @@ export function CampaignVttStage({
         setActionsOpened(true)
       },
       onSquarePick: (center) => pickDestinationRef.current?.(center),
+      onZoomChange: (scale, origin) => {
+        setZoomScale(scale)
+        const sceneId = sceneRef.current?.id
+        if (origin === 'USER' && sceneId) {
+          writeStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId), scale)
+        }
+      },
+      resolveSceneZoom: (sceneId) => readStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId)),
       onMapLoadStatus: (status) => {
         setMapLoadStatus(status)
         mapDelivery.onMapLoadStatus(status)
@@ -1611,15 +1612,10 @@ export function CampaignVttStage({
               if (token) commitTokenMove(tokenId, [token.position, position])
             }}
           />
-          <Tooltip label='Zoom out'>
-            <ActionIcon
-              aria-label='Zoom out'
-              variant='default'
-              onClick={() => renderer.current?.zoomOut()}
-            >
-              <ZoomOut aria-hidden size={18} />
-            </ActionIcon>
-          </Tooltip>
+          <VttZoomControl
+            scale={zoomScale}
+            onChange={(scale) => renderer.current?.setZoomScale(scale)}
+          />
           <Tooltip label='Fit map to view'>
             <ActionIcon
               aria-label='Fit map to view'
@@ -1627,15 +1623,6 @@ export function CampaignVttStage({
               onClick={() => renderer.current?.fit()}
             >
               <Crosshair aria-hidden size={18} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label='Zoom in'>
-            <ActionIcon
-              aria-label='Zoom in'
-              variant='default'
-              onClick={() => renderer.current?.zoomIn()}
-            >
-              <ZoomIn aria-hidden size={18} />
             </ActionIcon>
           </Tooltip>
         </div>
