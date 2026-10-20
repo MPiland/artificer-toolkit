@@ -9105,7 +9105,8 @@
                 "after": ["SPELLS-4.T2m1b1b"]
               },
               "text": "Damage repeat-save funnel: hook in roomEncounterCommands.ts (shared seam for T2m3, SPELLS-33.T6e2/T4m) reads receipt DAMAGE applications, raises one SYSTEM repeat-save root per matching holder with the trigger roll influence; success ends the effect; admission, undo bound to parent, parity proof, delete HIDEOUS_LAUGHTER; journeys for single-target and area hits.",
-              "note": "Split from T2m1b 2026-10-20."
+              "note": "Split from T2m1b 2026-10-20.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2m1d",
@@ -12690,11 +12691,12 @@
                 "bv": 8,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-33.T3c2a2a"]
               },
               "text": "Load the pinned spells in Convex and the Session Worker room and pass them to the 5 discover callers; replay-safety proof (a source spell edited or deleted after pinning gives the same discovery, no recompile).",
-              "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port."
+              "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port. Re-sized 3->5 2026-10-20: spells is a required discovery input across Convex and room callers, one slice.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T3c2b",
