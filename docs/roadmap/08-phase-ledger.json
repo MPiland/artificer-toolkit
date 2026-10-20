@@ -12679,7 +12679,21 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3c2a2"]
               },
-              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey."
+              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey. Also from T3c2a1: assertEncounterFeatureActionCapabilityCurrent must recognize spell-cast capabilities, and spell attacks need their attackMechanic (null today)."
+            },
+            {
+              "id": "SPELLS-33.T3c2c",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T3c2b"]
+              },
+              "text": "Creature innate casting in the room: offer and cast creature spell grants paid from a charge pool (LIMITED_USE, X/day) and FIXED_LEVEL grants through the shared cast-candidate builder, spending the charge with undo; room journey on an innate caster. T3c2a1 offers only at-will and slot-paid grants.",
+              "note": "Registered 2026-10-20 from the T3c2a1 review."
             },
             {
               "id": "SPELLS-33.T3c3",
