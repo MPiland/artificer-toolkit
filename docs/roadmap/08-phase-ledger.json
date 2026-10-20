@@ -5687,14 +5687,15 @@
             {
               "id": "ENCOUNTER-8.T1",
               "text": "Static mode-change roll card: the added die and the settled mode are shown beside the cancelled ✕ from modeAdjustment; this is also the reduced-motion presentation.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ENCOUNTER-8.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 2,
                 "size": 2
-              }
+              },
+              "note": "Merged m206 (3120bcf0d)."
             },
             {
               "id": "ENCOUNTER-8.T2",
