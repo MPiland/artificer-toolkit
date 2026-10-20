@@ -1040,6 +1040,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Scope:** the four kinds (Giant Elk, Minotaur Skeleton, Unicorn, Wereboar) convert by data authoring, each with an authoring-parity proof, and are deleted. Warhorse Trampling Charge and Weretiger Pounce reuse the gate in their own tasks. Re-sized from 2 to 5.
   - **Rejected:** keeping only the existing total-feet `TURN_MOVEMENT` check and leaving "straight toward" to the GM. The rule resolves a hit's damage and a save, so D156 calls for authored options; the existing check would pass a creature that circled the target. Also rejected: storing the full path and heading, which costs more state for no extra rules coverage.
 
+* **D165** (2026-10-20) Encounter-state gates without surprise (SPELLS-33.T6d3, AC 33.1; [slice-spells-33.md](slice-spells-33.md)). Orchestrator ruling under D156.
+  - **Pack Tactics (T6d3a):** a standing `ATTACK_ROLL` advantage modifier accepts the existing `ENEMY_NEAR_TARGET {feet: 5}` predicate, read at roll time from the enemy proximity the attack path already supplies. No new option.
+  - **Assassinate's advantage (T6d3b):** a new predicate, `TARGET_HAS_NOT_TAKEN_TURN`, derived from the Run's existing initiative order and turn history, with no new stored state. If it cannot be derived without new state, the session reports back before adding any.
+  - **Surprise stays out:** the engine has no surprise step, and adding one is post-launch work (future-enhancements "Surprise (D156)"), following the Foresight precedent (T2a2 ruling). Assassinate's automatic critical against a surprised creature and Surprise Attack's extra 2d6 stay description-only, and the SURPRISE_ATTACK kind is deleted. Rejected: a GM-set surprised flag or a surprise round now, which is new encounter state and a new outcome for two creature features.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

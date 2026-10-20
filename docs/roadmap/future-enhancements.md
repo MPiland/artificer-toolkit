@@ -377,7 +377,7 @@ Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. 
 
 ### Surprise (D156)
 
-Encounters have no surprise step, so Foresight's "can't be surprised" ships as description only (SPELLS-4.T2a2). A surprise round, with creatures that can't be surprised exempt, would let it resolve.
+Encounters have no surprise step, so Foresight's "can't be surprised", Assassinate's automatic critical against a surprised creature and Surprise Attack's extra 2d6 ship as description only (SPELLS-4.T2a2, SPELLS-33.T6d3b, D165). A surprise round, with creatures that can't be surprised exempt, would let it resolve.
 
 ### Shared table screen extras (SCENE-5, 2026-10-19)
 
