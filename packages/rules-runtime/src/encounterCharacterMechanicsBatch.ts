@@ -25,11 +25,7 @@ import { z } from 'zod'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
-import {
-  applyDamageInterceptions,
-  hitPointsAfterDamage,
-  type HeldDamageInterception
-} from './encounterDamageInterception.js'
+import { hitPointsAfterDamage, type HeldDamageInterception } from './encounterDamageInterception.js'
 import { EncounterValidationError } from './encounterErrors.js'
 
 export type ReceiptApplications = Extract<
@@ -150,9 +146,9 @@ export function foldCharacterMechanicsApplications<
   layers?: { ownConditionIds: readonly string[]; campaignConditionIds: readonly string[] }
   applications: readonly CharacterRuleActionApplication[]
   /**
-   * The holder's unspent damage interceptions, in spend order. The first lethal damage or kill
-   * spends the first one it fits (`applyDamageInterceptions`), and the receipt names it
-   * (`interceptedBy`, `negatedBy`); the fold re-derives each result from its own running state.
+   * The holder's unspent damage interceptions, in spend order. The planner already applied them
+   * (`applyDamageInterceptions`); the fold validates that each lethal damage or kill was settled by
+   * the first interception it fits and names it (`interceptedBy`, `negatedBy`).
    */
   damageInterceptions?: readonly HeldDamageInterception[]
   /**
@@ -225,14 +221,7 @@ export function foldCharacterMechanicsApplications<
   let absence = input.absence ?? null
   const receipt: ReceiptApplications = []
   const unspentInterceptions = [...(input.damageInterceptions ?? [])]
-  const applications = applyDamageInterceptions({
-    applications: input.applications,
-    currentHitPoints: current,
-    temporaryHitPoints: temporary,
-    maximumHitPoints: maximum,
-    interceptions: unspentInterceptions
-  })
-  for (const [ordinal, application] of applications.entries()) {
+  for (const [ordinal, application] of input.applications.entries()) {
     if (application.targetActorId !== input.targetActorId)
       throw new EncounterValidationError('The Character rule action target is invalid.')
     if (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE') {

@@ -39,7 +39,10 @@ import {
   updateSpellSlotUsage
 } from './character/sheetCommandReducer.js'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
-import type { HeldDamageInterception } from './encounterDamageInterception.js'
+import {
+  applyDamageInterceptions,
+  type HeldDamageInterception
+} from './encounterDamageInterception.js'
 import {
   enterActorForm,
   enterCharacterForm,
@@ -203,7 +206,13 @@ export function planEncounterMechanicsBatch(input: {
       conditionIds: conditions.ids,
       scalarValues: batch.effectiveScalarValues,
       retainedConditionIds: batch.retainedConditionIds,
-      applications: batch.applications,
+      applications: applyDamageInterceptions({
+        applications: batch.applications,
+        currentHitPoints: actor.currentHitPoints,
+        temporaryHitPoints: actor.tempHitPoints,
+        temporaryHitPointsSourceEffectId: actor.tempHitPointsSourceEffectId,
+        interceptions: batch.damageInterceptions ?? []
+      }),
       ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
       absence: actor.absence
     })
@@ -713,7 +722,13 @@ function foldCharacterBatch(input: {
       ...shared,
       ...sheet,
       maximumHitPoints: batch.effectiveMaximumHitPoints,
-      applications: batch.applications,
+      applications: applyDamageInterceptions({
+        applications: batch.applications,
+        currentHitPoints: sheet.currentHitPoints,
+        temporaryHitPoints: sheet.temporaryHitPoints,
+        temporaryHitPointsSourceEffectId: sheet.temporaryHitPointsSourceEffectId,
+        interceptions: batch.damageInterceptions ?? []
+      }),
       ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
       deathSaveRoll: batch.deathSave
     })
@@ -732,7 +747,13 @@ function foldCharacterBatch(input: {
     temporaryHitPointsSourceEffectId: form.tempHitPointsSourceEffectId,
     maximumHitPoints: batch.effectiveMaximumHitPoints,
     deathSaves: null,
-    applications: batch.applications,
+    applications: applyDamageInterceptions({
+      applications: batch.applications,
+      currentHitPoints: form.currentHitPoints,
+      temporaryHitPoints: form.tempHitPoints,
+      temporaryHitPointsSourceEffectId: form.tempHitPointsSourceEffectId,
+      interceptions: batch.damageInterceptions ?? []
+    }),
     ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions })
   })
   if (inForm.after.currentHitPoints > 0)

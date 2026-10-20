@@ -1,5 +1,10 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -62,11 +67,27 @@ export const deathWard: SpellAuthored = {
               durationKind: DURATION_KIND.HOUR,
               amount: 8
             },
+            // One interception: the first lethal damage or instant death ends the spell.
+            lifecycle: { uses: 1 },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.DEATH_WARD, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'DEATH_WARD' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.DEATH_WARD, 0x214, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_INTERCEPTION,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.ENABLE,
+                      payload: { dropToHitPoints: 1, negatesKill: true },
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 1
+                    }
+                  ]
+                }
               }
             ]
           }
