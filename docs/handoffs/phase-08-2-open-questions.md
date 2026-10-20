@@ -2,9 +2,20 @@
 
 > Questions waiting for the user's answer only; keep this file short. Answer inline under **Answer** (or in chat). Answered items move to [Resolved](phase-08-2-decisions.md#resolved) with the decision; decisions made on the user's behalf, approved implementation decisions and resolved questions live in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 >
-> Updated: 2026-10-18 (Q27 added).
+> Updated: 2026-10-20 (Q28 added).
 
 ## Open
+
+### Q28 (2026-10-20) Should Spells granted by Equipment or Feats appear on the Sheet as castable?
+
+**Context:** PLATFORM-21.T1b found that Spell access only reads Class, Subclass, Race and Subrace features (`sourceKind` enum in `schema/api/characterRules.ts`, `buildCharacterSpellRuleFacts`). A held magic item's or a Feat's `SPELL_GRANT` never reaches the Sheet's Spell list, so wands, staffs and spell-granting Feats can't be cast from the Sheet, and the retained-Spell view T1b added stays unreachable. No acceptance criterion covers it.
+
+**Options:**
+
+- A (recommended): register a SPELLS PBI, "Spells granted by held or attuned Equipment and by Feats appear on the Sheet with their source and are castable under the grant's limits", after PLATFORM-21.T1b (size about 8). Spell-casting magic items are common at the table.
+- B: leave item and Feat spell grants to the players and GM until after beta, recorded in future-enhancements.
+
+**Answer:**
 
 ### Q27 (2026-10-18) Should spells cast from the Sheet outside an Encounter create their effects?
 
