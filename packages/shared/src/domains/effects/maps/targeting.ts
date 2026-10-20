@@ -138,6 +138,13 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
         })
       )
       .set(
+        'heldBySource',
+        nodes.toggle(['heldBySource'], 'Only Creatures Held by the User', {
+          order: 12,
+          showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
+        })
+      )
+      .set(
         'maxTargets',
         number(['maxTargets'], 'Max Targets', {
           order: 3,

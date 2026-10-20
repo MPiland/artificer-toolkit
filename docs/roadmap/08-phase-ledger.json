@@ -6328,13 +6328,14 @@
         {
           "id": "ATTACK-7",
           "title": "Grapple and shove",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
-            "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
-            "apps/session-worker/test/nativeRoomGrappleContest.test.ts",
-            "apps/session-worker/test/nativeRoomReleaseRelationship.test.ts"
+            "apps/session-worker/test/nativeRoomShamblingMoundGrapple.test.ts",
+            "apps/session-worker/test/nativeRoomShoveContest.test.ts",
+            "apps/session-worker/test/nativeRoomGrappleDrag.test.ts",
+            "apps/session-worker/test/nativeRoomEscapeRescue.test.ts"
           ],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -6418,8 +6419,13 @@
             },
             {
               "text": "Grapple riders (\"on hit, the target is grappled, escape DC N\") and \"grappled by this creature\" targeting are authorable effects; the full Shambling Mound turn grapples a Medium or smaller target hit by both slams and then offers Engulf on it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomShamblingMoundGrapple.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackSlots.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterHeldActorIds.test.ts",
+                "packages/source-data/src/srd/creatureGrappleRiders.test.ts"
+              ],
               "origin": [],
               "note": "D93. After ATTACK-11 (conditional slot).",
               "id": "ATTACK-7.2"
@@ -6596,8 +6602,9 @@
             {
               "id": "ATTACK-7.T8",
               "text": "Engulf and \"grappled by this creature\" targeting, after ATTACK-11.",
-              "status": "IN_PROGRESS",
-              "closes": ["ATTACK-7.2"]
+              "status": "DONE",
+              "closes": ["ATTACK-7.2"],
+              "note": "Merged m218 (0d3dfe505). Engulf rebuilt as a generic held relationship; its start-of-turn save moved to SPELLS-33.T6n."
             },
             {
               "id": "ATTACK-7.T9",
@@ -12942,6 +12949,18 @@
               },
               "text": "Generic option: failureMarginRider on direct-save timed conditions (compiler and planner, red-first test), then convert MUMMY_DREADFUL_GLARE and MUMMY_LORD_DREADFUL_GLARE with their SOURCE_IMMUNITY (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (2026-10-18 ruling on the T7a split; workbook slice-spells-33.md).",
               "note": "Merged m160 (5d8288291)."
+            },
+            {
+              "id": "SPELLS-33.T6n",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "text": "new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md)."
             }
           ]
         }

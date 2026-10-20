@@ -26,6 +26,7 @@ import { type EncounterAttackDecoy, withAttackDecoyArmorClass } from './encounte
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
 import {
   CastChoiceUnavailableError,
+  EncounterValidationError,
   HandReleaseRequiredError,
   StaleCharacterActionError
 } from './encounterErrors.js'
@@ -57,6 +58,7 @@ import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscove
 import { isInEffectEventScope } from './encounterGrantLifetimes.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
+  encounterHeldActorIds,
   mergeCanonicalD20Contributors,
   type EncounterRelationshipD20Contributor
 } from './encounterRelationshipActionFacts.js'
@@ -395,6 +397,16 @@ export async function prepareEncounterActionMechanics<
     // first authored option of a pick it cannot ask for.
     firstOptionByDefault: !input.overridable
   })
+  const { targeting } = targetPolicy
+  if (
+    targeting?.selectionKind === 'SINGLE_TARGET' &&
+    targeting.heldBySource &&
+    !encounterHeldActorIds(
+      new Map([...currentTargets].map(([id, value]) => [id, value.activeEffects])),
+      actor.id
+    ).has(target.id)
+  )
+    throw new EncounterValidationError('The selected action target is not held by the user.')
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
     source.kind === 'CHARACTER_ACTION'

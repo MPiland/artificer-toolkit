@@ -1392,6 +1392,7 @@ export async function planNativeLiveEncounterAction(
     occurrenceId,
     commandId: command.commandId,
     activeEffectsByActorId,
+    attackAction,
     chosenItemInstanceId
   })
   const reactionUse =

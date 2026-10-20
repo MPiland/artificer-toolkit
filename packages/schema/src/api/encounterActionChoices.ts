@@ -195,7 +195,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         self: targetingSelfDtoSchema,
         /** The options the caster picks one of at cast (D148); absent for an action with none. */
         choiceOptions: choiceOptionsSchema,
-        choosesItem: choosesItemSchema
+        choosesItem: choosesItemSchema,
+        /** Only the creatures the user holds (`releases`) may be named (Engulf); the commit refuses any other. */
+        heldBySource: z.optional(z.literal(true))
       }),
       /**
        * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word), or

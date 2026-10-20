@@ -25,6 +25,8 @@ export interface VttTargetingRequest {
   actionId: string
   /** The action refuses the acting creature as its own target (Help, First Aid). */
   selfRefused: boolean
+  /** The only creatures the action may name (it targets what the user holds); absent for any creature. */
+  onlyActorIds?: readonly string[]
 }
 
 /** One creature the caster can pick as the target of the chosen action (ATTACK-17.1). */
@@ -50,9 +52,15 @@ export interface VttTargetEntry {
 export function targetableEncounterActors<Actors extends readonly TargetingActor[]>(
   actors: Actors,
   currentActorId: string | null,
-  selfRefused: boolean
+  selfRefused: boolean,
+  onlyActorIds?: readonly string[]
 ): Actors[number][] {
-  return actors.filter((actor) => !actor.defeated && !(selfRefused && actor.id === currentActorId))
+  return actors.filter(
+    (actor) =>
+      !actor.defeated &&
+      !(selfRefused && actor.id === currentActorId) &&
+      (!onlyActorIds || onlyActorIds.includes(actor.id))
+  )
 }
 
 /**
@@ -68,6 +76,7 @@ export function buildTargetEntries({
   range,
   scene,
   selfRefused,
+  onlyActorIds,
   sourceTokenId
 }: {
   actorIdByTokenId: ReadonlyMap<string, string>
@@ -77,6 +86,7 @@ export function buildTargetEntries({
   range: VttActionPreview['range']
   scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'> | null
   selfRefused: boolean
+  onlyActorIds?: readonly string[]
   sourceTokenId: string | null
 }): VttTargetEntry[] {
   const source = scene?.tokens.find((token) => token.id === sourceTokenId) ?? null
@@ -88,7 +98,7 @@ export function buildTargetEntries({
   )
   const [normal, long] = actionRangeLengths(range)
   const measurable = normal !== undefined && [normal, long].every((length) => !length?.scaling)
-  return targetableEncounterActors(actors, currentActorId, selfRefused)
+  return targetableEncounterActors(actors, currentActorId, selfRefused, onlyActorIds)
     .map((actor): VttTargetEntry => {
       const unseenReason = actor.unseenReason ?? null
       const token = unseenReason ? null : (tokenByActorId.get(actor.id) ?? null)
