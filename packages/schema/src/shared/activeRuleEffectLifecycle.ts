@@ -19,6 +19,16 @@ export const activeEffectSaveTallySchema = lazySchema(() =>
   })
 )
 
+/** A repeat save counted to thresholds: the successes that end the effect and the failures that settle it. */
+export const activeEffectSaveThresholdsSchema = lazySchema(() =>
+  z.strictObject({
+    successesToEnd: z.number().check(z.int()).check(z.gte(1)).check(z.lte(255)),
+    failuresToResolve: z.number().check(z.int()).check(z.gte(1)).check(z.lte(255)),
+    /** A success zeroes the failure count and a failure the success count. */
+    consecutive: z.boolean()
+  })
+)
+
 /** Mutable current lifecycle state. It never repeats immutable recurrence configuration. */
 export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -33,7 +43,8 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
     remainingUses: z.optional(activeEffectUsesSchema),
     /**
      * Only on an effect authored with repeat-save `THRESHOLDS`: the successes and failures its
-     * turn saves have counted, advanced in the same CAS as `remainingTicks`.
+     * turn saves have counted, advanced in the same CAS as `remainingTicks`. The thresholds live in
+     * the definition's `recurrence.saveThresholds`.
      */
     saveTally: z.optional(activeEffectSaveTallySchema),
     /**
@@ -84,5 +95,6 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
   })
 )
 
+export type ActiveEffectSaveThresholds = z.infer<typeof activeEffectSaveThresholdsSchema>
 export type ActiveEffectSaveTally = z.infer<typeof activeEffectSaveTallySchema>
 export type ActiveRuleEffectLifecycleDto = z.infer<typeof activeRuleEffectLifecycleDtoSchema>

@@ -17,6 +17,7 @@ import {
   activeRuleEffectLifecycleDtoSchema,
   MAX_ACTIVE_EFFECT_STORED_TICKS,
   MAX_ACTIVE_EFFECT_TURNS,
+  activeEffectSaveThresholdsSchema,
   activeEffectUsesSchema
 } from './activeRuleEffectLifecycle.js'
 import { effectOffersDtoSchema } from '../effects/effectOffer.js'
@@ -238,6 +239,8 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
       /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
       uses: z.optional(activeEffectUsesSchema),
+      /** Only on a repeat save counted to thresholds; its lifecycle `saveTally` counts toward these. */
+      saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),

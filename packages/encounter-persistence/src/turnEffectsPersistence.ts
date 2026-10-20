@@ -187,7 +187,11 @@ export async function persistEncounterTurnEffects(
               remainingTicks: afterRemainingTicks,
               ...(lifecycle.afterSaveTally ? { saveTally: lifecycle.afterSaveTally } : {})
             }) ||
-          !isSaveTallyStep(effect.lifecycle.saveTally, lifecycle.afterSaveTally))) ||
+          !isSaveTallyStep(
+            effect.lifecycle.saveTally,
+            lifecycle.afterSaveTally,
+            recurrence.saveThresholds
+          ))) ||
       (lifecycle.kind === 'EXPIRE' &&
         lifecycle.afterRemainingTicks !== (remaining === null ? null : 0))
     )

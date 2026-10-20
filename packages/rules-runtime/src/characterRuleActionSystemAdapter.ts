@@ -11,7 +11,10 @@ import type {
   CharacterGrantFoldModifier,
   CharacterGrantFoldSense
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
-import type { ActiveEffectSaveTally } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import type {
+  ActiveEffectSaveTally,
+  ActiveEffectSaveThresholds
+} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type {
   ActiveRuleEffectDefinitionDto,
   ActiveRuleEffectLifecycleDto,
@@ -68,6 +71,8 @@ export interface CharacterRuleActionActiveEffectPlan {
    * planner, so it is stored with no recurrence stage of its own.
    */
   recurrenceStage: 'NONE' | 'START_OF_TURN' | 'END_OF_TURN'
+  /** Set on a repeat save counted to thresholds; the room stores it in the effect's recurrence. */
+  saveThresholds?: ActiveEffectSaveThresholds
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
   /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */

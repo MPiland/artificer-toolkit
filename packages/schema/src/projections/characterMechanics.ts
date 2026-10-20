@@ -62,6 +62,7 @@ import {
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
 import {
   MAX_ACTIVE_EFFECT_TURNS,
+  activeEffectSaveThresholdsSchema,
   activeEffectUsesSchema
 } from '../shared/activeRuleEffectLifecycle.js'
 import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
@@ -192,6 +193,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     tickAnchor: z._default(z.enum(['HOLDER', 'SOURCE']), 'HOLDER'),
     /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
     hitPointTier: z.optional(z.strictObject({ atMost: z.number().check(z.int()).check(z.gte(1)) })),
+    /** Set on a repeat-save plan that counts saves: frozen into the effect's recurrence. */
+    saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
     adapterFacts: z.record(
       z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/)),
       ruleValueDtoSchema
