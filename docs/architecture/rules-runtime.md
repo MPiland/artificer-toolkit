@@ -1014,7 +1014,8 @@ the parent: ending the parent early leaves the rider for the GM to end. A follow
 `PASSIVE`) and a `RESTORE_RESOURCE { chargeId, floor, whenAtOrBelow }` outcome raises a feature charge when its
 holder's initiative settles: Perfect Self (`kiCharge`, floor 4) and Superior Inspiration (`bardicInspirationCharge`,
 floor 1), both at `whenAtOrBelow: 0`. It is a Character-only fact. `appendActions` (`characterActionRuleFacts.ts`)
-lists the restores of a feature, option or feat effect in `initiativeRestores` instead of the action sinks, and the
+lists the restores of a feature, option or feat effect (`character/characterInitiativeRestores.ts`, kept out of the
+`encounter*` modules the web boundary test forbids) in `initiativeRestores` instead of the action sinks, and the
 rule evaluation carries them as `initiativeRestoreSources`. `planCharacterInitiativeRestores`
 (`encounterInitiativeRestores.ts`) reads the Character's resolved pools: a charge with no resolved pool restores
 nothing and one that names two pools throws. A pool with at most `whenAtOrBelow` uses remaining is raised to

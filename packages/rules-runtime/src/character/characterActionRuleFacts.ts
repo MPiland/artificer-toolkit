@@ -21,7 +21,7 @@ import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './charact
 import {
   initiativeRestoreSources,
   type InitiativeRestoreSource
-} from '../encounterInitiativeRestores.js'
+} from './characterInitiativeRestores.js'
 import { placedSpaceEntries } from '../placedSpaceEntries.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
