@@ -38,6 +38,7 @@ import {
   updateSpellSlotUsage
 } from './character/sheetCommandReducer.js'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
+import type { HeldDamageInterception } from './encounterDamageInterception.js'
 import {
   enterActorForm,
   enterCharacterForm,
@@ -73,6 +74,11 @@ export type EncounterMechanicsBatchInput = {
   commandId: string
   occurredAt: string
   applications: readonly CharacterRuleActionApplication[]
+  /**
+   * The target's unspent damage interceptions (`heldDamageInterceptions` over its held effects), in
+   * spend order. Omitted when none; whoever commits the plan spends the effects the receipt names.
+   */
+  damageInterceptions?: readonly HeldDamageInterception[]
   /** The Character stream version the applications were planned against; null for other actors. */
   expectedCharacterStreamVersion: number | null
   /** The maximum of the hit points the applications change: a Character in a form takes the form's. */
@@ -193,6 +199,7 @@ export function planEncounterMechanicsBatch(input: {
       scalarValues: batch.effectiveScalarValues,
       retainedConditionIds: batch.retainedConditionIds,
       applications: batch.applications,
+      ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
       absence: actor.absence
     })
     const nextConditions = [
@@ -674,6 +681,7 @@ function foldCharacterBatch(input: {
       ...sheet,
       maximumHitPoints: batch.effectiveMaximumHitPoints,
       applications: batch.applications,
+      ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
       deathSaveRoll: batch.deathSave
     })
     return {
@@ -691,7 +699,8 @@ function foldCharacterBatch(input: {
     temporaryHitPointsSourceEffectId: form.tempHitPointsSourceEffectId,
     maximumHitPoints: batch.effectiveMaximumHitPoints,
     deathSaves: null,
-    applications: batch.applications
+    applications: batch.applications,
+    ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions })
   })
   if (inForm.after.currentHitPoints > 0)
     return {

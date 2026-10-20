@@ -8762,8 +8762,8 @@
               "note": "Merged m240 (47197271d)."
             },
             {
-              "id": "SPELLS-4.T2i4",
-              "status": "TODO",
+              "id": "SPELLS-4.T2i4a",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8772,12 +8772,25 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2i"]
               },
-              "text": "Divine Word (split from T2i, 2026-10-20): runtime HIT_POINT_TIERS selection with per-tier durations and entries. Converts DIVINE_WORD with a parity proof (planar banishment description-only, D156); kind deleted."
+              "text": "Hit-point tier selection seam (split from T2i4, ruled 2026-10-20): a generic tiered active-effect plan list chosen per target by current hit points through the T2i HIT_POINT_TIERS evaluation, carrying per-tier timed conditions and durations; lifts the one-plan refusal without changing single-plan actions. Boundary tests for the condition tiers.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2i4b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2i4a"]
+              },
+              "text": "Divine Word (split from T2i4): the gated KILL tier inside the save-fail graph chosen by the same tier selection; Divine Word data with a parity proof, boundary tests, room journey; DIVINE_WORD kind deleted; docs. Planar banishment stays description-only."
             },
             {
               "id": "SPELLS-4.T2i2a",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8786,7 +8799,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2i"]
               },
-              "text": "Damage interception contract (split from T2i2, ruled 2026-10-20): authored damageInterception (drop to N, negates kill, uses EFFECT_ENDS; RESOURCE uses as a documented extension point), one shared pure interception for Characters and Run creatures in the mechanics planner, fold validation (interceptedBy, negatedBy), KILL negation, heldDamageInterceptions resolver; unit proofs for both actor kinds."
+              "text": "Damage interception contract (split from T2i2, ruled 2026-10-20): authored damageInterception (drop to N, negates kill, uses EFFECT_ENDS; RESOURCE uses as a documented extension point), one shared pure interception for Characters and Run creatures in the mechanics planner, fold validation (interceptedBy, negatedBy), KILL negation, heldDamageInterceptions resolver; unit proofs for both actor kinds.",
+              "note": "Merged m241 (5593b12cc). Review findings carried into T2i2b: the fold validates its own interception rewrite (tautological check), and a non-damage HP change after an interception in one batch is refused."
             },
             {
               "id": "SPELLS-4.T2i2b",
@@ -8799,7 +8813,7 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2i2a"]
               },
-              "text": "Damage interception in the room (split from T2i2, 2026-10-20): one derivation point for held-effect batch inputs (effective max HP and damage interceptions) used by every mechanics batch builder; the ward ends in the same batch with undo. Converts DEATH_WARD with a parity proof (kind deleted) and a room journey: a warded Character takes lethal damage, stays at 1 HP, the ward ends, undo restores both."
+              "text": "Damage interception in the room (split from T2i2, 2026-10-20): one derivation point for held-effect batch inputs (effective max HP and damage interceptions) used by every mechanics batch builder; the ward ends in the same batch with undo. Converts DEATH_WARD with a parity proof (kind deleted) and a room journey: a warded Character takes lethal damage, stays at 1 HP, the ward ends, undo restores both. Also fixes the T2i2a review findings: one role for interception (planner applies, fold validates, or the reverse) with a regression test, and generic handling of heals/temporary HP after an interception in one batch."
             },
             {
               "status": "TODO",
@@ -12165,6 +12179,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
+              "id": "SPELLS-31.T5n2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-31.T5n"]
+              },
+              "text": "Scene-light activation gate (split from T5n, ruled 2026-10-20): ACTION_SCENE reads the holder cell's illumination (scene lights, zones, barriers) so an activation can require dim light or darkness; One with Shadows gains the gate (converted ungated in T5n). Generic predicate, no feature-specific code."
+            },
+            {
               "id": "SPELLS-31.T5o",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
@@ -12540,7 +12567,7 @@
               "text": "Feature-level spell slot table (split from T3c, ruled 2026-10-20): grants.spellSlots { id, resetKind, levels[{ level, amount }] } through schema, shared authoring, compiler, node map and web defaults; T3b casters become one table plus SPELL_SLOT-mode spell grants; parity proof keeps the GM description and slot counts. No runtime change."
             },
             {
-              "id": "SPELLS-33.T3c2",
+              "id": "SPELLS-33.T3c2a",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12550,7 +12577,33 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3c1"]
               },
-              "text": "Creature spell grants cast in the room (split from T3c, ruled 2026-10-20): one holder-agnostic cast candidate builder for Characters and creatures (no Character assertion changes); creature fold; a cast spends a slot at or above the spell level, preferring the exact level, through actor.resources.featureCharges; undo and rest refresh proofs; room journey: the SRD Mage casts a levelled spell, including a low spell from a higher slot."
+              "text": "Creature spell discovery (split from T3c2, ruled 2026-10-20): load compiled spell definitions for creature actors in Convex and the session worker; creature spell-cast discovery through the shared holder-agnostic candidate builder (Character-parity extraction); slot rows keyed by spellSlots levels[].id with the real feature as owner (no synthetic features)."
+            },
+            {
+              "id": "SPELLS-33.T3c2b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T3c2a"]
+              },
+              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey."
+            },
+            {
+              "id": "SPELLS-33.T3c3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T3c1"]
+              },
+              "text": "Creature rest (split from T3c2, ruled 2026-10-20): a creature-rest room command (schema, persistence, undo) that resets actor featureCharges and spell slot rows by resetKind."
             },
             {
               "id": "SPELLS-33.T4c",

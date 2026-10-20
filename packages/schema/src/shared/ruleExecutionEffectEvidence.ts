@@ -291,6 +291,7 @@ const refineSpatialExecutionEvidence = (
             ? trace.outputs.conditionId === application.conditionId
             : application.kind === 'STABILIZE' ||
                 application.kind === 'KILL' ||
+                application.kind === 'KILL_NEGATED' ||
                 application.kind === 'DEPART'
               ? true
               : application.kind === 'SCALAR_REDUCTION'

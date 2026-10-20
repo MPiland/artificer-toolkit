@@ -285,6 +285,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   ATTACK_DECOYS: [MODIFIER_KIND.ENABLE],
 
+  DAMAGE_INTERCEPTION: [MODIFIER_KIND.ENABLE],
+
   INCOMING_ATTACK_GATE: [MODIFIER_KIND.ENABLE],
 
   SKILL_MODIFIER: [
@@ -607,6 +609,16 @@ export type ModifierAttackDecoysAuthored = {
 }
 
 /**
+ * Damage that would drop the holder to 0 hit points leaves it at `dropToHitPoints` instead (Death
+ * Ward, Undead Fortitude, Relentless Endurance). `negatesKill` also negates an instant-death effect
+ * (`KILL`) against the holder. The held effect's `uses` count the interceptions it spends.
+ */
+export type ModifierDamageInterceptionAuthored = {
+  dropToHitPoints: number // int, at least 1
+  negatesKill: boolean
+}
+
+/**
  * While held, a creature that targets the holder with a single-target attack or harmful spell must
  * first make this save against the holder's source; on a failure the attack or spell is lost.
  */
@@ -623,9 +635,11 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
   K extends 'ENABLE'
     ? V extends 'ATTACK_DECOYS'
       ? ModifierAttackDecoysAuthored
-      : V extends 'INCOMING_ATTACK_GATE'
-        ? ModifierIncomingAttackGateAuthored
-        : undefined
+      : V extends 'DAMAGE_INTERCEPTION'
+        ? ModifierDamageInterceptionAuthored
+        : V extends 'INCOMING_ATTACK_GATE'
+          ? ModifierIncomingAttackGateAuthored
+          : undefined
     : K extends 'MULTIPLY'
       ? ModifierFractionAuthored
       : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
