@@ -105,12 +105,15 @@ type AuthoringDefaultKind =
   | 'pathChoiceOption'
   | 'pathChosenItem'
   | 'pathLifecycle'
+  | 'pathLifecycleEffectOffer'
+  | 'pathLifecycleEffectOfferRange'
   | 'pathLifecycleEndTrigger'
   | 'pathLifecycleEscape'
   | 'pathLifecycleGrantedAction'
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleOnEnd'
   | 'pathLifecycleTurnAnchor'
+  | 'pathHitPointTierRow'
   | 'pathRollTableRow'
   | 'perTargetLockout'
   | 'proficiencyGrant'
@@ -119,6 +122,7 @@ type AuthoringDefaultKind =
   | 'range'
   | 'reactionTrigger'
   | 'resourceUse'
+  | 'resultBlockGate'
   | 'scaling'
   | 'resultBlock'
   | 'rollTableRepeat'
@@ -269,12 +273,15 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
   pathChosenItem: ['pathChosenItem'],
   pathLifecycle: ['pathLifecycle'],
+  pathLifecycleEffectOffer: ['pathLifecycleEffectOffer'],
+  pathLifecycleEffectOfferRange: ['pathLifecycleEffectOfferRange'],
   pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
   pathLifecycleEscape: ['pathLifecycleEscape'],
   pathLifecycleGrantedAction: ['pathLifecycleGrantedAction'],
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleOnEnd: ['pathLifecycleOnEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
+  pathHitPointTierRow: ['hitPointTierRow', 'nonManifestHitPointTierRow'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],
   perTargetLockout: ['perTargetLockout'],
   proficiencyGrant: ['proficiencyGrant'],
@@ -283,6 +290,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   range: ['range', 'senseRange'],
   reactionTrigger: ['reactionTrigger'],
   resourceUse: ['resourceUse'],
+  resultBlockGate: ['resultBlockGate'],
   scaling: [
     'durationScaling',
     'rangeScaling',

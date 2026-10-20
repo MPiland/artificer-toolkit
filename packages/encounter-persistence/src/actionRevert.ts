@@ -238,6 +238,10 @@ export async function revertLastEncounterAction(
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertConcealmentObservers(ctx, { ...scope, root })
   }
+  if (root?.commandType === 'MOVE_HELD_EFFECT') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertMoveHeldEffect(ctx, { ...scope, root })
+  }
   if (root?.commandType !== 'RESOLVE_ACTION')
     unavailable(
       root
@@ -832,7 +836,9 @@ type RevertScope = {
   userId: string
   root: Extract<
     StoredCommand,
-    { commandType: 'RESOLVE_ACTION' | 'ESCAPE' | 'SET_CONCEALMENT_OBSERVERS' }
+    {
+      commandType: 'RESOLVE_ACTION' | 'ESCAPE' | 'SET_CONCEALMENT_OBSERVERS' | 'MOVE_HELD_EFFECT'
+    }
   >
 }
 
@@ -1187,7 +1193,7 @@ async function revertConcealmentCheck(
     const created = resolution.createdEffect
     if (created) {
       const store = createActiveRuleEffectStore(ctx)
-      const owner = concealmentHolderOwner(state, actors, created.targetActorId)
+      const owner = heldEffectOwner(state, actors, created.targetActorId)
       const effect = await store.findById(owner, created.activeEffectId)
       if (!effect || effect.version !== created.afterVersion)
         unavailable('The concealment changed after this action; adjust manually.')
@@ -1242,7 +1248,49 @@ async function revertConcealmentObservers(
   })
 }
 
-function concealmentHolderOwner(
+/**
+ * Undoes a move of a held effect (D160): the effect leaves its new holder and returns to the old one
+ * exactly as it was (same record, duration and maintained state), and the offer's activation goes
+ * back, only while nothing touched the moved effect since.
+ */
+async function revertMoveHeldEffect(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'MOVE_HELD_EFFECT' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const { receipt } = root
+  const actors = await readRunActors(ctx, state)
+  const actor = actors.find((entry) => entry.id === receipt.actorId)
+  if (!actor) unavailable('The actor left the Encounter; adjust manually.')
+  const store = createActiveRuleEffectStore(ctx)
+  const toOwner = heldEffectOwner(state, actors, receipt.toActorId)
+  const moved = await store.findById(toOwner, receipt.effectId)
+  if (!moved || moved.version !== receipt.afterVersion)
+    unavailable('The effect changed after it was moved; adjust manually.')
+  await store.deleteCas({
+    id: moved.id,
+    owner: toOwner,
+    expectedVersion: moved.version,
+    removal: 'REMOVED'
+  })
+  await store.create({
+    id: receipt.before.id,
+    owner: heldEffectOwner(state, actors, receipt.fromActorId),
+    definition: receipt.before.definition,
+    lifecycle: receipt.before.lifecycle,
+    maintainedEffectStateId: receipt.before.maintainedEffectStateId,
+    restoredFrom: receipt.before
+  })
+  const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
+    updatedAt: new Date().toISOString()
+  })
+}
+
+function heldEffectOwner(
   state: EncounterRunState,
   actors: readonly EncounterRunActorState[],
   holderActorId: string
@@ -1265,7 +1313,7 @@ async function restoreConcealmentObservers(
   }
 ) {
   const store = createActiveRuleEffectStore(ctx)
-  const owner = concealmentHolderOwner(state, actors, input.holderActorId)
+  const owner = heldEffectOwner(state, actors, input.holderActorId)
   const effect = await store.findById(owner, input.activeEffectId)
   if (!effect || effect.version !== input.afterVersion)
     unavailable('The concealment changed after this action; adjust manually.')

@@ -1,6 +1,7 @@
 import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  MoveHeldEffectInputDto,
   ReleaseRelationshipInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { ResolveCheckActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -20,6 +21,7 @@ type BasicActionRootCommand =
   | ResolveCheckActionInputDto
   | EscapeRelationshipInputDto
   | EndHeldGrantInputDto
+  | MoveHeldEffectInputDto
   | ReleaseRelationshipInputDto
 type BasicActionScopeInput = Omit<LiveSessionEncounterRulesInput, 'request'>
 
@@ -162,6 +164,32 @@ export async function readEndHeldGrantAdmission(
     actorId: input.command.actorId.toLowerCase()
   }
   return admitCurrentActorCommand(ctx, input, command)
+}
+
+/**
+ * Admits moving a held effect (D160) for the room: the caller controls the current actor, which takes
+ * the offer, and the new holder is an actor the caller sees that is not defeated.
+ */
+export async function readMoveHeldEffectAdmission(
+  ctx: EncounterReadTransaction,
+  input: BasicActionScopeInput & { command: MoveHeldEffectInputDto }
+) {
+  const command: MoveHeldEffectInputDto = {
+    ...input.command,
+    encounterId: input.command.encounterId.toLowerCase(),
+    commandId: input.command.commandId.toLowerCase(),
+    actorId: input.command.actorId.toLowerCase(),
+    effectId: input.command.effectId.toLowerCase(),
+    target: { ...input.command.target, actorId: input.command.target.actorId.toLowerCase() }
+  }
+  return admitCurrentActorCommand(ctx, input, command, {
+    checkTarget: async ({ state, membership }) => {
+      const target = await readRunActor(ctx, state, command.target.actorId)
+      await requireTargetSeenByMember(ctx, { encounterId: state.id, target, membership })
+      if (await readEncounterActorDefeated(ctx, target))
+        rejectDomain('TARGET_UNAVAILABLE', "A defeated actor can't take the effect.")
+    }
+  })
 }
 
 /**

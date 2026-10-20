@@ -1,8 +1,10 @@
 import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  MoveHeldEffectInputDto,
   ReleaseRelationshipInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import {
   liveSessionEncounterRulesInputSchema,
   type LiveSessionEncounterRulesInput
@@ -24,11 +26,13 @@ import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterR
 type HolderActivationCommand =
   | EndHeldGrantInputDto
   | EscapeRelationshipInputDto
+  | MoveHeldEffectInputDto
   | ReleaseRelationshipInputDto
 
 /**
  * Admits a command a creature runs on an effect it holds (an Escape, D105, an end of its own
- * grant, D113, or a release of a creature it holds, D152) and reads the Run inputs it plans against: the replay of an already-recorded
+ * grant, D113, or a release of a creature it holds, D152, or a move of an effect
+ * it is offered, D160) and reads the Run inputs it plans against: the replay of an already-recorded
  * command, or the admitted command with the reads that fence its commit.
  */
 export async function admitNativeLiveHolderCommand(
@@ -61,7 +65,8 @@ export async function admitNativeLiveHolderCommand(
 
 /**
  * Spends the activation a holder command costs: its economy consumption, the warnings the command
- * must have acknowledged and the actor after paying. A FREE activation costs nothing.
+ * must have acknowledged and the actor after paying. A FREE activation costs nothing. `extraWarnings`
+ * are the command's own (a move's range) and are acknowledged alongside the economy's.
  */
 export async function spendNativeHolderActivation(input: {
   actor: ActionEconomyInput['actor']
@@ -69,6 +74,7 @@ export async function spendNativeHolderActivation(input: {
   holder: NonNullable<ActionEconomyInput['target']>
   activation: { code: 'FREE' } | ActionEconomyInput['activation']
   acknowledgedWarnings: readonly string[]
+  extraWarnings?: readonly EncounterRuleWarningDto[]
   capture: ReturnType<typeof liveEncounterCaptures>['capture']
 }) {
   const { actor, state, holder, activation, acknowledgedWarnings, capture } = input
@@ -82,7 +88,10 @@ export async function spendNativeHolderActivation(input: {
         loadTarget: async () => holder,
         definitions: captureActionEconomyDefinitions(capture)
       })
-  const warnings = encounterActionEconomyWarnings(economy, activation.code)
+  const warnings = [
+    ...(input.extraWarnings ?? []),
+    ...encounterActionEconomyWarnings(economy, activation.code)
+  ]
   if (!warnings.every((warning) => acknowledgedWarnings.includes(warning.code)))
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',

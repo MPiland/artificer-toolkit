@@ -227,6 +227,53 @@ export function actionId(creatureIndex: number, localIndex: number) {
   return localId(2, creatureIndex, localIndex)
 }
 
+/**
+ * A slotted caster's Spellcasting grants: its at-will cantrips, then one PREPARED grant per spell
+ * level that spends that level's long-rest slot charges (Acolyte, Spirit Naga). Grant ids use
+ * local indexes 220-229 and charge ids 240-249 of the creature.
+ */
+export function slottedSpellcastingGrants(
+  creatureIndex: number,
+  castingAbility: AbilityCode,
+  cantripIds: string[],
+  slotted: ReadonlyArray<{ level: number; slots: number; spellIds: string[] }>
+): NonNullable<FeatureAuthored['grants']> {
+  const spellGrant = (index: number, spellIds: string[]) => ({
+    id: featureId(creatureIndex, 220 + index),
+    grantKind: GRANT_KIND.SPELL_GRANT,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    scalingKind: SCALING.NONE,
+    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+    spellIds,
+    castingAbility,
+    order: index
+  })
+  return {
+    spells: [
+      {
+        ...spellGrant(0, cantripIds),
+        attributes: [SPELL_GRANT_ATTRIBUTE.PREPARED, SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL]
+      },
+      ...slotted.map(({ level, slots, spellIds }) => ({
+        ...spellGrant(level, spellIds),
+        attributes: [
+          SPELL_GRANT_ATTRIBUTE.PREPARED,
+          SPELL_GRANT_ATTRIBUTE.LIMITED_USE,
+          SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL
+        ],
+        castAtLevel: level,
+        charges: {
+          id: featureId(creatureIndex, 240 + level),
+          limitKind: 'FIXED_AMOUNT' as const,
+          scalingKind: SCALING.NONE,
+          resetKind: CHARGE_RESET_KIND.LONG_REST,
+          amount: slots
+        }
+      }))
+    ]
+  }
+}
+
 /** A feature's grant of where the Creature may move: through creatures, objects, or both. */
 export function movementPassageGrants(
   id: string,

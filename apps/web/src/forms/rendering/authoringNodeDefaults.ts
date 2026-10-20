@@ -556,6 +556,16 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
     case 'pathChosenItem':
     case 'pathLifecycle':
       return {}
+    case 'pathLifecycleEffectOffer':
+      return {
+        kind: 'MOVE_HELD_EFFECT',
+        offeredTo: 'SOURCE',
+        when: 'HOLDER_AT_ZERO_HP',
+        activation: 'BONUS_ACTION',
+        range: { amount: 30, unit: 'FEET' }
+      }
+    case 'pathLifecycleEffectOfferRange':
+      return { amount: 30, unit: 'FEET' }
     case 'pathLifecycleEndTrigger':
       return { event: 'DAMAGE_TAKEN', by: 'ANYONE' }
     case 'pathLifecycleEscape':
@@ -572,6 +582,17 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { turns: 1, modifiers: [] }
     case 'pathLifecycleTurnAnchor':
       return { actor: 'TARGET', boundary: 'END_OF_TURN' }
+    case 'pathHitPointTierRow':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        atMost: 1,
+        resultBlock: {
+          id: crypto.randomUUID(),
+          resultKind: 'SINGLE',
+          outcomes: []
+        }
+      }
     case 'pathRollTableRow':
       return {
         id: crypto.randomUUID(),
@@ -593,6 +614,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       }
     case 'rollTableRepeat':
       return { count: 2, rerollValues: [] }
+    case 'resultBlockGate':
+      return { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 1 }
     case 'perTargetLockout':
       return { until: 'SOURCE_LONG_REST' }
     case 'proficiencyGrant':

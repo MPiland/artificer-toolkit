@@ -19,6 +19,7 @@ import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import {
   endHeldGrantInputDtoSchema,
   escapeRelationshipInputDtoSchema,
+  moveHeldEffectInputDtoSchema,
   releaseRelationshipInputDtoSchema,
   resolveCheckActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
@@ -173,6 +174,22 @@ export const liveSessionEncounterEndHeldGrantCommitInputSchema = lazySchema(() =
 )
 
 /**
+ * A room-planned move of a held effect to another creature (D160): the activation it spent. Convex
+ * re-reads the effect and its offer, checks the new holder, moves the record and records the command.
+ */
+export const liveSessionEncounterMoveHeldEffectCommitInputSchema = lazySchema(() =>
+  z.extend(basicActionScope, {
+    command: moveHeldEffectInputDtoSchema,
+    revisions: liveSessionRulesRevisionsSchema,
+    occurredAt: z.iso.datetime(),
+    actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+    /** Warnings the command acknowledged and the room overrode. */
+    ruleOverrides: encounterRuleWarningsDtoSchema,
+    rules: encounterActorRuleOutputSchema
+  })
+)
+
+/**
  * A room-planned release of a relationship by its source (D152): free, so it spends nothing.
  * Convex re-reads the effect's source, ends it and the conditions only it held, and records it.
  */
@@ -201,6 +218,9 @@ export type LiveSessionEncounterEscapeCommitInput = z.infer<
 >
 export type LiveSessionEncounterEndHeldGrantCommitInput = z.infer<
   typeof liveSessionEncounterEndHeldGrantCommitInputSchema
+>
+export type LiveSessionEncounterMoveHeldEffectCommitInput = z.infer<
+  typeof liveSessionEncounterMoveHeldEffectCommitInputSchema
 >
 export type LiveSessionEncounterReleaseRelationshipCommitInput = z.infer<
   typeof liveSessionEncounterReleaseRelationshipCommitInputSchema

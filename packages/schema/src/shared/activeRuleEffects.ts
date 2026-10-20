@@ -19,6 +19,7 @@ import {
   MAX_ACTIVE_EFFECT_TURNS,
   activeEffectUsesSchema
 } from './activeRuleEffectLifecycle.js'
+import { effectOffersDtoSchema } from '../effects/effectOffer.js'
 import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import {
@@ -389,7 +390,13 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
        * The actions the holder may take while this effect is held (Expeditious Retreat, Haste's extra
        * action). Frozen at creation; the offer is read from the held effect, never from the spell.
        */
-      grantedActions: z.optional(storedGrantedActionsSchema)
+      grantedActions: z.optional(storedGrantedActionsSchema),
+      /**
+       * The choices this effect offers beside its holder's turns (Hunter's Mark's re-mark). Frozen at
+       * creation; the offer is read from the held effect, never from the spell. A created follow-on
+       * carries none.
+       */
+      effectOffers: z.optional(effectOffersDtoSchema)
     })
     .check(
       z.refine(

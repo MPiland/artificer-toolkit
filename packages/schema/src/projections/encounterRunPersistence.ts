@@ -487,6 +487,24 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('MOVE_HELD_EFFECT'),
+      /** The timeline label: plain "Move effect", which never names a source a player cannot see. */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      /** What the move spent and the effect it moved, so the GM's undo can put it back (D160). */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+        effectId: postgresUuidSchema,
+        fromActorId: postgresUuidSchema,
+        toActorId: postgresUuidSchema,
+        /** The effect as the old holder kept it; undo recreates exactly this record there. */
+        before: activeRuleEffectRecordSchema,
+        /** The version the effect had at the new holder, so undo refuses once it has changed. */
+        afterVersion: z.number().check(z.int()).check(z.positive())
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('RELEASE_RELATIONSHIP'),
       /** The timeline label: plain "Release", which never names a held creature a player cannot see. */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),

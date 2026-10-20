@@ -170,6 +170,7 @@ const roomChoices = validatedChoices({
   basicActionChoices: [],
   escapes: [],
   heldGrantEnds: [],
+  effectOffers: [],
   releases: [],
   optionalRules: []
 })

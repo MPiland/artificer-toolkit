@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
+import { effectOffersDtoSchema } from './effectOffer.js'
 import { grantedActionsDtoSchema } from './grantedAction.js'
 import { applyGrantDtoSchema } from './applyGrant.js'
 import { commandManifestDtoSchema } from './commandManifest.js'
@@ -180,7 +181,9 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
       })
     ),
     /** Actions the holder may take while the effect is held; see `PathLifecycleAuthored.grantedActions`. */
-    grantedActions: z.optional(grantedActionsDtoSchema)
+    grantedActions: z.optional(grantedActionsDtoSchema),
+    /** Choices offered beside the holder's turns; see `PathLifecycleAuthored.effectOffers`. */
+    effectOffers: z.optional(effectOffersDtoSchema)
   })
 )
 

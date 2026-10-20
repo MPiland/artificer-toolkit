@@ -75,6 +75,17 @@ export const huntersMark: SpellAuthored = {
               durationKind: DURATION_KIND.HOUR,
               amount: 1
             },
+            lifecycle: {
+              effectOffers: [
+                {
+                  kind: 'MOVE_HELD_EFFECT' as const,
+                  offeredTo: 'SOURCE' as const,
+                  when: 'HOLDER_AT_ZERO_HP' as const,
+                  activation: ACTIVATION_CODE.BONUS_ACTION,
+                  range: { amount: 90, unit: MEASUREMENT_UNIT_CODE.FEET }
+                }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.HUNTERS_MARK, 0x212, 1),

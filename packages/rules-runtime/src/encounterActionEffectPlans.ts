@@ -617,6 +617,9 @@ export function prepareRecurringActiveEffect(
                     ...(grantContribution.onEnd && { onEnd: grantContribution.onEnd }),
                     ...(grantContribution.grantedActions && {
                       grantedActions: grantContribution.grantedActions
+                    }),
+                    ...(grantContribution.effectOffers && {
+                      effectOffers: grantContribution.effectOffers
                     })
                   }
                 ]
