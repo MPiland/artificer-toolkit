@@ -251,7 +251,7 @@ settled, whether it hit). The next attacks of that turn fill it without spending
 The alternatives are the implicit one slot of `ANY_ATTACK` times the dnd5e policy output
 `attacksPerAttackAction` (value domain `ATTACKS_PER_ATTACK_ACTION`, SET_VALUE only, highest source wins,
 base 1; every class Extra Attack and Thirsting Blade is a grant of it), plus every alternative a
-Creature's Features author as `attackSlots` (`packages/schema/src/features/attackSlots.ts`): slots with a
+Creature's Features author as `attackSlots` (`packages/schema/src/features/attackSlots.ts`, authored in the Creature editor from the Creature-only `attackSlots` group of `CREATURE_FEATURE_NODE_MAP`, ATTACK-11.3): slots with a
 `count`, `fillers` (a Feature or `ANY_ATTACK`), `optional`, `comesFirst` and one generic `condition`
 (`EARLIER_SLOTS_HIT_SAME_TARGET`, `TARGET_SIZE_AT_MOST`; an unknown size passes). A Feature that fills a
 slot is tracked in the Attack action; a swap ("instead of its bite") is a further alternative. An active

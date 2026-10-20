@@ -8,6 +8,7 @@ import {
   FEATURE_GRANTS_NODE_MAP,
   DETAIL_NODE_MAP
 } from '#maps'
+import { ATTACK_SLOT_SET_NODE_MAP } from './attackSlots.js'
 import { CREATURE_OPTION_NODE_MAP, OPTION_NODE_MAP } from './option.js'
 import { FEATURE_EFFECT_NODE_MAP } from './effect.js'
 import { FEATURE_ROLL_DEFINITION_NODE_MAP } from './rollDefinition.js'
@@ -155,6 +156,24 @@ function defineFeatureNodeMap(mapId: string, creature: boolean) {
         ? groupArray(['effects'], 'Effects', () => FEATURE_EFFECT_NODE_MAP, effects)
         : groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, effects)
     )
+    if (creature)
+      map.set(
+        'attackSlots',
+        groupObject(['attackSlots'], 'Attack Slots', () => ATTACK_SLOT_SET_NODE_MAP, {
+          presentation: 'branch',
+          section: FEATURE_SECTIONS.effects,
+          order: 5,
+          authoring: {
+            actions: [
+              {
+                type: 'collection.add',
+                label: 'Add Attack Slots',
+                presentation: AUTHORING_ACTION_PRESENTATIONS.button
+              }
+            ]
+          }
+        })
+      )
     map
       .set(
         'rollDefinitions',
