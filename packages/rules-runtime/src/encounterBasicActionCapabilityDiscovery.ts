@@ -49,6 +49,8 @@ export function encounterBasicActionId(
 
 const ACTION_ID_SEPARATOR = ':BASIC_ACTION:'
 const EFFECT_ID_SEPARATOR = ':EFFECT:'
+/** Marks a basic action id taken through a held effect's offer (D160); what follows is the offer. */
+export const GRANTED_ACTION_ID_SEPARATOR = ':GRANTED:'
 
 /** Whether an action id names an authored basic action of this actor. */
 export function isEncounterBasicActionId(actorId: string, actionId: string): boolean {
@@ -66,7 +68,8 @@ export function readEncounterBasicActionEffect(
   entry: EncounterBasicActionEntry,
   actionId: string
 ): EncounterBasicActionEntry['document']['effects'][number] | null {
-  const effectId = actionId.slice(
+  const grantedAt = actionId.indexOf(GRANTED_ACTION_ID_SEPARATOR)
+  const effectId = (grantedAt < 0 ? actionId : actionId.slice(0, grantedAt)).slice(
     actionId.lastIndexOf(EFFECT_ID_SEPARATOR) + EFFECT_ID_SEPARATOR.length
   )
   return entry.document.effects.find((effect) => effect.id === effectId) ?? null

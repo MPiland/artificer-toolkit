@@ -218,6 +218,8 @@ const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleEscape = buildNodeMap<NonNullable<PathLifecycleAuthored['escape']>>()
 const pathLifecycleOnEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['onEnd']>>()
+const pathLifecycleGrantedAction =
+  buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
 const pathLifecycleEndTrigger =
   buildNodeMap<NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
@@ -439,6 +441,52 @@ const PATH_LIFECYCLE_ON_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored[
       )
   })
 
+const PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP: NodeMap<
+  NonNullable<PathLifecycleAuthored['grantedActions']>[number]
+> = pathLifecycleGrantedAction.define(
+  'pathLifecycleGrantedAction',
+  ({ map, nodes, data, cond }) => {
+    const { selectSingle, selectMulti, number, toggle } = nodes
+    const { table } = data
+    const isFree = cond.local().field(['activation']).eq('FREE')
+
+    map
+      .set(
+        'activation',
+        selectSingle(
+          ['activation'],
+          'Costs',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: ACTIVATION_OPTIONS.filter(({ code }) => code !== 'REACTION')
+          },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'usesPerTurn',
+        number(['usesPerTurn'], 'Uses Per Turn', {
+          requiredIf: isFree,
+          showIf: isFree,
+          constraints: { minimum: 1, maximum: 10 }
+        })
+      )
+      .set(
+        'actionDefinitionIds',
+        selectMulti(
+          ['actionDefinitionIds'],
+          'Actions',
+          {
+            kind: 'DATA',
+            relationship: table('reusable_definitions', { selectColumns: ['id', 'label'] })
+          },
+          { requiredIf: true }
+        )
+      )
+      .set('weaponAttack', toggle(['weaponAttack'], 'Includes One Weapon Attack'))
+  }
+)
+
 const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
 > = pathLifecycleEndTrigger.define(
@@ -610,6 +658,15 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         groupObject(['onEnd'], 'When It Ends', () => PATH_LIFECYCLE_ON_END_NODE_MAP, {
           presentation: 'inline'
         })
+      )
+      .set(
+        'grantedActions',
+        groupArray(
+          ['grantedActions'],
+          'Actions Granted While Held',
+          () => PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP,
+          { presentation: 'inline' }
+        )
       )
   }
 )

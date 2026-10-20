@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
+import { grantedActionsDtoSchema } from './grantedAction.js'
 import { applyGrantDtoSchema } from './applyGrant.js'
 import { commandManifestDtoSchema } from './commandManifest.js'
 import { conditionDtoSchema } from './condition.js'
@@ -171,7 +172,9 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
         turns: z.number().check(z.int()).check(z.gte(1)).check(z.lte(255)),
         modifiers: authoredNestedCollectionSchema(modifierGrantDtoSchema)
       })
-    )
+    ),
+    /** Actions the holder may take while the effect is held; see `PathLifecycleAuthored.grantedActions`. */
+    grantedActions: z.optional(grantedActionsDtoSchema)
   })
 )
 

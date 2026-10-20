@@ -17,6 +17,11 @@ import {
   encounterActionSpentTurnUses,
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import {
+  heldGrantedActions,
+  nextGrantedActionUseKey,
+  parseGrantedActionId
+} from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
   encounterActionSourceLabel,
@@ -625,6 +630,13 @@ export async function planNativeLiveEncounterAction(
     loadSource: async (input: EncounterActionSourceRequest) =>
       resolveEncounterActionSource({
         ...input,
+        // A granted action resolves against the holder's effects and spent uses as they stand now (D160).
+        granted: parseGrantedActionId(input.actionId)
+          ? {
+              heldEffects: activeEffectsByActorId.get(input.actor.id) ?? [],
+              spentKeys: await readNativeLiveTurnUses(capture, input.actor.id)
+            }
+          : undefined,
         system,
         basicActions: await readEncounterBasicActionEntries({
           actorId: input.actor.id,
@@ -764,14 +776,24 @@ export async function planNativeLiveEncounterAction(
     })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
-  const { activationCode, economy, suppressed, attackAction } =
+  const weaponAttackHolds = heldGrantedActions(
+    activeEffectsByActorId.get(prepared.actor.id) ?? []
+  ).filter(({ offer }) => offer.weaponAttack)
+  const turnUsesSpent =
+    weaponAttackHolds.length > 0 ? await readNativeLiveTurnUses(capture, prepared.actor.id) : []
+  const weaponAttackUseKey =
+    weaponAttackHolds
+      .map((held) => nextGrantedActionUseKey(held, turnUsesSpent))
+      .find((key): key is string => typeof key === 'string') ?? null
+  const { activationCode, economy, suppressed, attackAction, grantedUseKey } =
     await evaluateNativeLiveActionEconomy({
       prepared,
       state,
       actionId: command.actionId,
       sourceTarget: movementTargets.get(prepared.actor.id),
       targetIds: [prepared.target.id],
-      capture
+      capture,
+      weaponAttackOffer: weaponAttackUseKey ? { useKey: weaponAttackUseKey } : null
     })
   const mechanicFacts =
     prepared.source.kind === 'CHARACTER_ACTION'
@@ -1798,7 +1820,10 @@ export async function planNativeLiveEncounterAction(
     storedExecution,
     turnUses:
       storedExecution.status === 'COMPLETE'
-        ? encounterActionSpentTurnUses(prepared, storedExecution.evidence)
+        ? [
+            ...encounterActionSpentTurnUses(prepared, storedExecution.evidence),
+            ...(grantedUseKey ? [grantedUseKey] : [])
+          ]
         : [],
     cleaving,
     reactionUse,

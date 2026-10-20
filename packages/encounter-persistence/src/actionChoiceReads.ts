@@ -67,7 +67,13 @@ import {
 } from './actionPreparationReads.js'
 import { requireTargetSeenByMember } from './targetVisibility.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
+import {
+  grantedActionId,
+  heldGrantedActions,
+  nextGrantedActionUseKey
+} from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { listActiveRuleEffects } from './effectStore.js'
+import { readTurnUses } from './turnMovement.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import type { CampaignAuthority, EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
@@ -430,8 +436,39 @@ export async function readEncounterActionChoices(
         : ({ kind: 'MET' } as const)
       return admission.kind === 'UNMET' ? [] : [{ action, admission }]
     })
+    // What a held effect offers the actor (D160): the same actions, taken through the offer's
+    // activation and, when it is capped, its uses this turn.
+    const spentKeys = await readTurnUses(tx, { state, actorId: actor.id })
+    const heldOffers = heldGrantedActions(
+      await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))
+    ).flatMap((held) => {
+      if (nextGrantedActionUseKey(held, spentKeys) === undefined) return []
+      return offered.flatMap(({ action, admission }) =>
+        held.offer.actionDefinitionIds.includes(action.definitionId)
+          ? [{ action, admission, held }]
+          : []
+      )
+    })
+    const choiceSources = [...offered.map((entry) => ({ ...entry, held: null })), ...heldOffers]
     basicActionChoices = await Promise.all(
-      offered.map(async ({ action, admission }) => {
+      choiceSources.map(async ({ action: base, admission, held }) => {
+        const action = held
+          ? {
+              ...base,
+              actionId: grantedActionId(base.actionId, held.effectId, held.offerIndex),
+              mechanicFacts: {
+                ...base.mechanicFacts,
+                invocation: {
+                  ...base.mechanicFacts.invocation,
+                  activation: {
+                    ...base.mechanicFacts.invocation.activation,
+                    code: held.offer.activation,
+                    amount: 1
+                  }
+                }
+              }
+            }
+          : base
         const { activation, triggerCode } = action.mechanicFacts.invocation
         const economy = await readEconomy(activation, triggerCode, action.actionCost === 'ATTACK')
         const document = catalogue.find(

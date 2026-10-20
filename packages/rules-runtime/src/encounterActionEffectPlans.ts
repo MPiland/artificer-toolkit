@@ -596,7 +596,10 @@ export function prepareRecurringActiveEffect(
                     sourceLabel: grantLabel,
                     sourceHidden: input.sourceHidden,
                     ...(boundItem && { boundItem }),
-                    ...(grantContribution.onEnd && { onEnd: grantContribution.onEnd })
+                    ...(grantContribution.onEnd && { onEnd: grantContribution.onEnd }),
+                    ...(grantContribution.grantedActions && {
+                      grantedActions: grantContribution.grantedActions
+                    })
                   }
                 ]
               : []),

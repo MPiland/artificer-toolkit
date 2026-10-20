@@ -8,6 +8,7 @@ import { StaleCharacterActionError, UnavailableCreatureActionError } from './enc
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
+import { parseGrantedActionId, resolveGrantedAction } from './encounterGrantedActions.js'
 import {
   discoverEncounterBasicActions,
   isEncounterBasicActionId,
@@ -34,6 +35,14 @@ export type EncounterActionSourceInput = {
   system?: SystemAuthoredDto
   /** The System's current authored basic actions, read for a basic action's identity. */
   basicActions?: readonly EncounterBasicActionEntry[]
+  /**
+   * The actor's held effects and the once-per-turn keys it has spent, read for a granted action
+   * (D160); required when `actionId` names one.
+   */
+  granted?: {
+    heldEffects: Parameters<typeof resolveGrantedAction>[0]['heldEffects']
+    spentKeys: readonly string[]
+  }
 }
 
 /** What a caller names; the loader adds the System and the basic action the id names. */
@@ -52,6 +61,8 @@ export type NativeEncounterActionSource =
       kind: 'BASIC_ACTION'
       actor: EncounterRunActorState
       capability: EncounterBasicActionCapabilityDescriptor
+      /** Set when a held effect's offer grants the action: the key its use spends, null for none. */
+      grantedUseKey?: string | null
     }
   | {
       kind: 'CHARACTER_ACTION'
@@ -81,15 +92,42 @@ export function resolveEncounterActionSource(
     const { system } = input
     if (!system || system.id !== input.gameSystemId)
       throw new Error('The selected basic action source is stale.')
+    const grantedId = parseGrantedActionId(input.actionId)
+    const granted = grantedId
+      ? resolveGrantedAction({
+          actionId: input.actionId,
+          heldEffects: input.granted?.heldEffects ?? [],
+          spentKeys: input.granted?.spentKeys ?? []
+        })
+      : null
+    const baseActionId = granted?.baseActionId ?? input.actionId
     const capability = discoverEncounterBasicActions({
       actorId: actor.id,
       gameSystemId: input.gameSystemId,
       entries: input.basicActions ?? [],
       conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: systemAbilityDefinitions(system)
-    }).available.find((value) => value.actionId === input.actionId)
+    }).available.find((value) => value.actionId === baseActionId)
     if (!capability) throw new Error('The selected basic action source is stale.')
-    return { kind: 'BASIC_ACTION', actor, capability }
+    if (!granted) return { kind: 'BASIC_ACTION', actor, capability }
+    // The offer decides what the action spends; the action's own mechanics are unchanged.
+    const { invocation } = capability.mechanicFacts
+    return {
+      kind: 'BASIC_ACTION',
+      actor,
+      grantedUseKey: granted.useKey,
+      capability: {
+        ...capability,
+        actionId: input.actionId,
+        mechanicFacts: {
+          ...capability.mechanicFacts,
+          invocation: {
+            ...invocation,
+            activation: { ...invocation.activation, code: granted.offer.activation, amount: 1 }
+          }
+        }
+      }
+    }
   }
   // A Character in a creature form acts from the form's stat block, not its Sheet (SPELLS-28.T4d).
   const creature = actor.kind === 'CHARACTER' ? characterFormCreatureView(actor) : actor

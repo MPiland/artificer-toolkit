@@ -45,6 +45,7 @@ import {
   serverPublishedRuleDefinitionDtoSchema,
   ruleGraphSourceIdentityDtoSchema
 } from '../shared/ruleExecutionCore.js'
+import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import {
   activeEffectConsumeEventsSchema,
   activeEffectOnEndSchema,
@@ -238,7 +239,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             fromSourceOnly: z.optional(z.literal(true)),
             activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
             uses: z.optional(activeEffectUsesSchema),
-            onEnd: z.optional(activeEffectOnEndSchema)
+            onEnd: z.optional(activeEffectOnEndSchema),
+            grantedActions: z.optional(storedGrantedActionsSchema)
           })
           .check(
             z.refine(
