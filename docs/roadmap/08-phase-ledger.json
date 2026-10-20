@@ -12653,7 +12653,7 @@
               "note": "Merged m249 (349b2d7a5)."
             },
             {
-              "id": "SPELLS-33.T3c2a2",
+              "id": "SPELLS-33.T3c2a2a",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12663,7 +12663,22 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3c2a1"]
               },
-              "text": "Pin compiled creature spells at run creation: readEncounterSource kind SPELL mirroring equipmentSources, each spell pinned once per run keyed by id and referenced by actors; discovery stays sync and replay-safe in Convex and the Session Worker; size proof for a Lich-class caster under the Convex document limit.",
+              "text": "Pin compiled creature spells: a per-run pinned-spell table (on the encounterSourceProjectionFacts model, in every store, checkpoint, lifecycle and deletion path), readEncounterSource kind SPELL in Convex and the Worker, pinning at run creation, reinforcement and form, and a Lich-class size proof under the Convex document limit.",
+              "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T3c2a2b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T3c2a2a"]
+              },
+              "text": "Load the pinned spells in Convex and the Session Worker room and pass them to the 5 discover callers; replay-safety proof (a source spell edited or deleted after pinning gives the same discovery, no recompile).",
               "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port."
             },
             {
@@ -12675,7 +12690,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T3c2a2"]
+                "after": ["SPELLS-33.T3c2a2b"]
               },
               "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey. Also from T3c2a1: assertEncounterFeatureActionCapabilityCurrent must recognize spell-cast capabilities, and spell attacks need their attackMechanic (null today)."
             },
