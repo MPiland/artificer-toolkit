@@ -36,6 +36,14 @@ export class CastChoiceUnavailableError extends Error {
   }
 }
 
+/** An ammunition attack names no ammunition when several fit, or one that does not fit its weapon. */
+export class AmmunitionChoiceError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'AmmunitionChoiceError'
+  }
+}
+
 /** A Creature action whose authored mechanics cannot run was chosen; discovery lists it unavailable with the reason. */
 export class UnavailableCreatureActionError extends Error {
   constructor(label: string, reason: string) {

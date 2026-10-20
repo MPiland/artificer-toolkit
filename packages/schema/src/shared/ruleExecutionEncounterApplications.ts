@@ -404,18 +404,27 @@ export const characterItemConsumptionFieldsSchema = lazySchema(() =>
     afterQuantity: nonNegativeIntegerSchema
   })
 )
+/** An item consumption uses one or more pieces: its used count rises as its quantity falls. */
+export function characterItemConsumptionPiecesMatch(value: {
+  beforeUsed: number
+  afterUsed: number
+  beforeQuantity: number
+  afterQuantity: number
+}) {
+  return (
+    value.afterUsed > value.beforeUsed &&
+    value.afterUsed - value.beforeUsed === value.beforeQuantity - value.afterQuantity
+  )
+}
 // Named so the receipt unions that embed it stay under the compiler's declaration size limit.
 export const characterItemConsumptionReceiptDtoSchema: z.ZodMiniType<CharacterItemConsumptionReceiptDto> =
   lazySchema(() =>
     characterItemConsumptionFieldsSchema.check(
       z.superRefine((value, context) => {
-        if (
-          value.afterUsed !== value.beforeUsed + 1 ||
-          value.afterQuantity !== value.beforeQuantity - 1
-        )
+        if (!characterItemConsumptionPiecesMatch(value))
           context.addIssue({
             code: 'custom',
-            message: 'An item consumption uses exactly one item.'
+            message: 'An item consumption uses as many pieces as its quantity falls.'
           })
       })
     )

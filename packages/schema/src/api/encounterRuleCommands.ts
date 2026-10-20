@@ -140,12 +140,16 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
        * The target's equipped item the action is used on, for an action that chooses one
        * (Shillelagh's club, Heat Metal's armor): Disarm's item choice.
        */
-      boundItemInstanceId: z.optional(postgresUuidSchema)
+      boundItemInstanceId: z.optional(postgresUuidSchema),
+      /** The ammunition stack a weapon attack fires, when several fit (ATTACK-19.4). */
+      ammunitionItemInstanceId: z.optional(postgresUuidSchema)
     }),
     z.strictObject({
       kind: z.literal('ACTORS'),
       /** The option the caster picks at cast, for an action that offers several (D148). */
       choiceOptionId: z.optional(postgresUuidSchema),
+      /** The ammunition stack an attack list (Volley) fires, one piece per creature (ATTACK-19.4). */
+      ammunitionItemInstanceId: z.optional(postgresUuidSchema),
       /** One entry per creature, or per dart for an action that allows repeated targets. */
       actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       /** The form the creatures take, for an action that authors forms (Giant Insect); absent otherwise. */
@@ -223,6 +227,15 @@ export type AreaActionTargetDto = Exclude<
 /** The option or zone the caster picked at cast (D140, D148); a directed area takes none. */
 export function castChoiceOptionId(target: ResolveEncounterActionTargetDto): string | undefined {
   return 'choiceOptionId' in target ? target.choiceOptionId : undefined
+}
+
+/** The ammunition a weapon attack fires: the stack the command names, and one piece per target. */
+export function ammunitionCommandChoice(target: ResolveEncounterActionTargetDto) {
+  return {
+    itemInstanceId:
+      'ammunitionItemInstanceId' in target ? target.ammunitionItemInstanceId : undefined,
+    attacks: target.kind === 'ACTORS' ? target.actorIds.length : 1
+  }
 }
 
 /** The creature a single-target action aims at; an area or a creature list names none. */

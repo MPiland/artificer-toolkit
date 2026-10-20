@@ -40,6 +40,7 @@ import {
   meleeWeaponAbilityModifiers as sharedMeleeWeaponAbilityModifiers,
   meleeWeaponEffects as sharedMeleeWeaponEffects,
   rangedFixedDamageWeaponEffects as sharedRangedFixedDamageWeaponEffects,
+  magicAmmunitionModifiers as sharedMagicAmmunitionModifiers,
   rangedMagicWeaponModifiers as sharedRangedMagicWeaponModifiers,
   rangedWeaponAbilityModifiers as sharedRangedWeaponAbilityModifiers,
   rangedWeaponEffects as sharedRangedWeaponEffects,
@@ -231,44 +232,6 @@ export function passiveEquipmentClosedRuleEffect(
   }
 }
 
-export function magicAmmunitionExpirationEffect(equipmentId: string): EquipmentEffectAuthored {
-  const bucket = 0x2e0
-  return {
-    id: equipmentChildId(equipmentId, bucket, 1),
-    order: 1,
-    grip: null,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-      range: {
-        id: equipmentChildId(equipmentId, bucket + 1, 1),
-        rangeKind: RANGE_KIND.SELF
-      }
-    },
-    paths: [
-      {
-        id: equipmentChildId(equipmentId, bucket + 2, 1),
-        order: 1,
-        pathCode: PATH_CODE.ON_HIT,
-        groupType: PATH_GROUP_TYPE.SINGLE,
-        originKind: 'SOURCE',
-        selectionKind: 'FIXED',
-        resultBlock: {
-          id: `${equipmentChildId(equipmentId, bucket + 2, 1)}__result`,
-          resultKind: 'SINGLE',
-          outcomes: [
-            {
-              id: equipmentChildId(equipmentId, bucket + 3, 1),
-              effectKind: EFFECT_KIND.CLOSED_RULE,
-              ruleKind: 'EQUIPMENT_MAGIC_AMMUNITION'
-            }
-          ]
-        }
-      }
-    ]
-  }
-}
-
 export function lightSourceEffect(
   equipmentId: string,
   brightFeet: number,
@@ -421,7 +384,7 @@ export function withOffHandDamage(equipmentId: string, modifiers: ModifierGrantA
   return sharedWithOffHandDamage(srdChildId(equipmentId), modifiers)
 }
 export function magicAmmoModifiers(equipmentId: string, bonus: number) {
-  return rangedMagicWeaponModifiers(equipmentId, bonus)
+  return sharedMagicAmmunitionModifiers(srdChildId(equipmentId), bonus)
 }
 export function heavyArmorStrengthModifier(
   equipmentId: string,

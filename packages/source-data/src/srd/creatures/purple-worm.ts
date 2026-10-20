@@ -1,4 +1,3 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const purpleWorm: CreatureAuthored = {
@@ -176,12 +175,12 @@ export const purpleWorm: CreatureAuthored = {
               id: S.actionId(7604, 9),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(7604, 9) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(7604, 9),
@@ -198,79 +197,15 @@ export const purpleWorm: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.actionId(227, 503),
-          order: 2,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            savingThrow: {
-              id: S.actionId(227, 603),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-              baseDc: 19
-            },
-            range: {
-              id: S.actionId(227, 653),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(227, 803),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(227, 803) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(227, 930),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('POISON'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
+                  },
+                  S.constitutionPoisonDamageSave({
+                    id: S.actionId(7604, 11),
+                    savingThrowId: S.actionId(7604, 12),
+                    dc: 19,
+                    failureDamageId: S.actionId(7604, 13),
+                    successDamageId: S.actionId(7604, 14),
                     diceConfig: '12d6'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(227, 823),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(227, 823) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(227, 950),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('POISON'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '12d6',
-                    multiplier: 0.5
-                  }
+                  })
                 ]
               }
             }

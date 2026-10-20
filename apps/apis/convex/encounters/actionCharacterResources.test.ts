@@ -177,6 +177,8 @@ describe('native Character action resource persistence', () => {
         expectedStreamVersion: current.active.play.streamVersion,
         classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
         automationMode: 'ASSISTED',
+        trackAmmunition: false,
+        ammunition: null,
         overridable: false
       })
       if (!prepared.resourceConsumption) throw new Error('Missing resource consumption.')
@@ -200,6 +202,8 @@ describe('native Character action resource persistence', () => {
           expectedStreamVersion: current.active.play.streamVersion,
           classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
           automationMode: 'ASSISTED',
+          trackAmmunition: false,
+          ammunition: null,
           overridable: false
         })
       ).toThrow('unavailable or stale')
@@ -227,6 +231,8 @@ describe('native Character action resource persistence', () => {
           expectedStreamVersion: current.active.play.streamVersion,
           classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
           automationMode: 'ASSISTED',
+          trackAmmunition: false,
+          ammunition: null,
           overridable: false
         })
       } catch (error) {
@@ -276,7 +282,9 @@ describe('native Character action resource persistence', () => {
         itemUsage: [],
         expectedStreamVersion: current.active.play.streamVersion,
         classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
-        automationMode: 'ASSISTED' as const
+        automationMode: 'ASSISTED' as const,
+        trackAmmunition: false,
+        ammunition: null
       }
       const overridden = prepareNativeCharacterActionState({ ...exhausted, overridable: true })
       expect(overridden.resourceConsumption).toBeNull()
@@ -302,6 +310,8 @@ describe('native Character action resource persistence', () => {
         expectedStreamVersion: current.active.play.streamVersion,
         classLevels: current.ruleEvaluation.facts.grantFoldFacts.base.classes,
         automationMode: 'ASSISTED',
+        trackAmmunition: false,
+        ammunition: null,
         overridable: true
       })
       expect(unequipped.ruleWarnings).toEqual([

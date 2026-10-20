@@ -10,7 +10,6 @@ export const blowgunNeedlesPlus1: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: blowgunNeedles.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  effects: [S.magicAmmunitionExpirationEffect(S.equipId(345))],
   rarityId: S.RARITY_UNCOMMON,
   modifiers: S.magicAmmoModifiers(S.equipId(345), 1),
   userId: S.SRD_USER_ID,

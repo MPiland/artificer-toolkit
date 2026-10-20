@@ -11,6 +11,7 @@ import {
   type CharacterResourceUsage
 } from '@artificer-toolkit/shared/character'
 import { StaleCharacterActionError } from '../encounterErrors.js'
+import { selectAmmunition, type AmmunitionStack } from './characterAmmunition.js'
 import { readSpellCastSlot, spellCastActionId } from './characterSpellCastActions.js'
 
 type CompiledCharacterAction = Extract<
@@ -164,6 +165,10 @@ export function prepareNativeCharacterActionState(input: {
   expectedStreamVersion: number
   classLevels: readonly { classId: string; level: number }[]
   automationMode: AutomationModeDto
+  /** The Encounter's frozen Campaign option: an ammunition attack draws pieces from its stack. */
+  trackAmmunition: boolean
+  /** What the command fires: the stack it names, and how many attacks it makes (one piece each); null for a read. */
+  ammunition: { itemInstanceId?: string; attacks: number } | null
   /** Assisted RESOLVE_ACTION reports overridable warnings; every other caller refuses them. */
   overridable: boolean
 }): {
@@ -171,6 +176,8 @@ export function prepareNativeCharacterActionState(input: {
   resourceConsumption: NativeCharacterActionResourceConsumption | null
   itemConsumption: NativeCharacterItemConsumption | null
   spellConsumption: NativeCharacterSpellConsumption | null
+  /** The ammunition stack this attack fires, whose modifiers apply to it alone. */
+  ammunition: AmmunitionStack | null
   ruleWarnings: EncounterRuleWarningDto[]
 } {
   if (
@@ -197,6 +204,22 @@ export function prepareNativeCharacterActionState(input: {
     ? [{ code: 'SOURCE_NOT_EQUIPPED', message: "The item this action uses isn't equipped." }]
     : []
 
+  // Manual play counts and applies nothing; otherwise the attack fires the stack it was given.
+  const fired =
+    input.automationMode === 'MANUAL'
+      ? null
+      : selectAmmunition({
+          equipment: input.candidate.equipment,
+          inventory: input.inventory,
+          requestedItemInstanceId: input.ammunition?.itemInstanceId,
+          preview: !input.ammunition
+        })
+  const ammunition = fired?.stack ?? null
+  const baseMechanic = ammunition
+    ? (decision.ammunitionMechanics?.find(
+        ({ itemInstanceId }) => itemInstanceId === ammunition.itemInstanceId
+      )?.mechanic ?? stale())
+    : decision.mechanic
   const savingThrow = input.candidate.mechanicFacts.invocation.savingThrow
   // A spell cast's action id is a digest of its cast candidate's id, so the id names the candidate.
   const isSpellCast = input.candidate.mechanicsOwner.kind === 'SPELL'
@@ -209,18 +232,18 @@ export function prepareNativeCharacterActionState(input: {
     ? input.policyOutput.spellCastMechanics.find(namesCast)?.castLevel
     : undefined
   const actionMechanic: NativeCharacterActionMechanic = {
-    ...decision.mechanic,
+    ...baseMechanic,
     ...(spellCastLevel === undefined ? {} : { spellCastLevel }),
     classLevels: Object.fromEntries(
       input.classLevels.map(({ classId, level }) => [classId, level])
     ),
     save:
-      decision.mechanic.save === null
+      baseMechanic.save === null
         ? null
         : savingThrow
           ? {
               abilityDefinitionId: savingThrow.abilityDefinitionId,
-              dc: decision.mechanic.save.dc
+              dc: baseMechanic.save.dc
             }
           : stale()
   }
@@ -243,6 +266,35 @@ export function prepareNativeCharacterActionState(input: {
       beforeQuantity: row.quantity,
       afterQuantity: row.quantity - 1,
       expectedStreamVersion: input.expectedStreamVersion
+    }
+  }
+
+  // Tracked ammunition is drawn one piece per attack; "Do it anyway" fires what remains.
+  if (fired && input.trackAmmunition && !consumedItem) {
+    const pieces = input.ammunition?.attacks ?? 1
+    const drawn = Math.min(pieces, fired.remaining)
+    if (drawn < pieces) {
+      if (!overridable) stale()
+      ruleWarnings.push({
+        code: 'RESOURCE_UNAVAILABLE',
+        message:
+          fired.remaining === 0
+            ? 'No ammunition left.'
+            : `Needs ${pieces} pieces of ammunition, has ${fired.remaining}.`
+      })
+    }
+    const row = input.inventory.find(({ id }) => id === ammunition?.itemInstanceId)
+    if (row && drawn > 0) {
+      const beforeUsed = input.itemUsage.find((usage) => usage.itemInstanceId === row.id)?.used ?? 0
+      itemConsumption = {
+        characterId: input.characterId,
+        itemInstanceId: row.id,
+        beforeUsed,
+        afterUsed: beforeUsed + drawn,
+        beforeQuantity: row.quantity,
+        afterQuantity: row.quantity - drawn,
+        expectedStreamVersion: input.expectedStreamVersion
+      }
     }
   }
 
@@ -279,6 +331,7 @@ export function prepareNativeCharacterActionState(input: {
       resourceConsumption: null,
       itemConsumption,
       spellConsumption,
+      ammunition,
       ruleWarnings
     }
   }
@@ -328,6 +381,7 @@ export function prepareNativeCharacterActionState(input: {
       resourceConsumption: null,
       itemConsumption,
       spellConsumption,
+      ammunition,
       ruleWarnings
     }
   // "Do it anyway" spends only what remains; the warning records the shortfall.
@@ -343,6 +397,7 @@ export function prepareNativeCharacterActionState(input: {
       resourceConsumption: null,
       itemConsumption,
       spellConsumption,
+      ammunition,
       ruleWarnings
     }
   const afterUsed = beforeUsed + spent
@@ -353,6 +408,7 @@ export function prepareNativeCharacterActionState(input: {
     ruleWarnings,
     itemConsumption,
     spellConsumption,
+    ammunition,
     resourceConsumption: {
       poolId: binding.poolId,
       chargeId: binding.chargeId,

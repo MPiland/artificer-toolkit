@@ -6,6 +6,7 @@ import {
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
   actionTargetActorId,
+  ammunitionCommandChoice,
   castChoiceOptionId,
   resolveEncounterActionInputDtoSchema,
   type RemoveAreaTargetInputDto,
@@ -649,6 +650,7 @@ export async function planNativeLiveEncounterAction(
       actors,
       actionId: command.actionId,
       choiceOptionId,
+      ammunition: ammunitionCommandChoice(command.target),
       wieldConflictAcceptance: {
         kind: 'PROMPTED',
         accepted: command.acceptedWieldConflict,

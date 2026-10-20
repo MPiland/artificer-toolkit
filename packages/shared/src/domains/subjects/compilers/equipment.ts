@@ -61,6 +61,7 @@ export interface ResolvedEquipmentVariantInherited {
   maxStack?: BaseEquipmentAuthored['maxStack']
   rarityId: BaseEquipmentAuthored['rarityId']
   armorClass?: BaseEquipmentAuthored['armorClass']
+  ammunitionEquipmentId?: BaseEquipmentAuthored['ammunitionEquipmentId']
   contains?: BaseEquipmentAuthored['contains']
   features?: BaseEquipmentAuthored['features']
   restrictions?: BaseEquipmentAuthored['restrictions']
@@ -97,6 +98,7 @@ export type CompiledEquipmentBase = {
   maxStack?: number
   rarityId: string
   armorClass?: number
+  ammunitionEquipmentId?: string
   contains?: CompiledContainsAuthored[]
   features?: CompiledFeature[]
 }
@@ -169,6 +171,8 @@ function compileEquipmentBase(
     rarityId: authored.rarityId,
     maxStack: 'maxStack' in authored ? authored.maxStack : undefined,
     armorClass: 'armorClass' in authored ? authored.armorClass : undefined,
+    ammunitionEquipmentId:
+      'ammunitionEquipmentId' in authored ? authored.ammunitionEquipmentId : undefined,
     contains: 'contains' in authored ? authored.contains : undefined,
     modifiers
   }
