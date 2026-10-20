@@ -1260,7 +1260,7 @@
         {
           "id": "PLATFORM-21",
           "title": "The engine loads compiled content instead of recompiling",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -1293,7 +1293,8 @@
                 "apps/apis/convex/content/compilationMigration.test.ts",
                 "apps/apis/convex/content/import.test.ts",
                 "apps/apis/convex/authoring/nodeRuntime.test.ts",
-                "packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts"
+                "packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts",
+                "packages/rules-runtime/src/__tests__/authoredPublicationHydrate.test.ts"
               ]
             }
           ],
@@ -1342,7 +1343,7 @@
             },
             {
               "id": "PLATFORM-21.T1c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-21.2"],
               "wsjf": {
                 "bv": 3,
@@ -1351,9 +1352,17 @@
                 "size": 1,
                 "after": ["PLATFORM-21.T1b"]
               },
-              "text": "Test the stored-compilation guards T1b added without a test (from the m231 assertion audit): hydrateStoredCompilation refuses a superseded compilerVersion and a projection whose id is not the subject id; Creature Equipment pin and snapshot refuse Equipment from another Game System (or prove a reader-level test already covers it). Then add the PBI journey test list."
+              "text": "Test the stored-compilation guards T1b added without a test (from the m231 assertion audit): hydrateStoredCompilation refuses a superseded compilerVersion and a projection whose id is not the subject id; Creature Equipment pin and snapshot refuse Equipment from another Game System (or prove a reader-level test already covers it). Then add the PBI journey test list.",
+              "note": "Merged m232 (030a2334f): authoredPublicationHydrate.test.ts (superseded compiler, id mismatch), blueprintSnapshots.test.ts (other Game System refused)."
             }
-          ]
+          ],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomEquipmentReplacement.test.ts",
+            "apps/session-worker/test/nativeContentSnapshots.test.ts",
+            "apps/apis/convex/encounters/blueprintSnapshots.test.ts",
+            "apps/apis/convex/characters/commitReadBudget.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "PLATFORM-22",
