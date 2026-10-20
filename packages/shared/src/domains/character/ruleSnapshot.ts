@@ -81,6 +81,8 @@ export interface CharacterBuildSnapshot {
     contentRef: ContentRef
     equippedState?: EquippedState
     attuned: boolean
+    /** The penalty corrosion has put on its armor class or damage rolls; absent when none. */
+    degradation?: number
     compiledItem: CompiledEquipment | CompiledEquipmentVariant
   }>
   adjustments?: CharacterMechanicalAdjustment[]

@@ -364,7 +364,8 @@ export function resolveDnd5eActionMechanic(
       ? 0
       : abilityTotal('DAMAGE') +
         appliedTotal(applicable('DAMAGE', ['BONUS', 'PENALTY'])) +
-        (adjustment?.damageBonus ?? 0)
+        (adjustment?.damageBonus ?? 0) -
+        (equipment?.degradation ?? 0)
   const firstDamageOutcome = outcomes.find((outcome) => outcome.kind === 'DAMAGE')
   /** A weapon attack's damage die can be replaced (Shillelagh's d8); the largest one applies. */
   const weaponDieFaces =

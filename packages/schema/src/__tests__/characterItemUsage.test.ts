@@ -67,3 +67,22 @@ describe('single-use item usage over the stored inventory', () => {
     expect(effectiveItemIds(['a', 'b', 'c'], effective)).toEqual(['a', 'c'])
   })
 })
+
+describe('corrosion over the stored inventory', () => {
+  const degradation = [{ itemInstanceId: 'a', penalty: 2 }]
+
+  it('shows the penalty on the corroded row and leaves the others alone', () => {
+    expect(effectiveInventory(inventory, [], degradation)).toEqual([
+      { ...row('a', 3), degradation: 2 },
+      row('b', 1),
+      row('c', 2)
+    ])
+  })
+
+  it('never stores a derived penalty on the row when an editor writes the inventory back', () => {
+    const base = { inventory, itemUsage: [] }
+    expect(
+      storeInventory(effectiveInventory(inventory, [], degradation), [], base).inventory
+    ).toEqual(inventory)
+  })
+})

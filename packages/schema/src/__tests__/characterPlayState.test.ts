@@ -96,6 +96,7 @@ const sheetState = fc.record({
   // Usage of rows the inventory no longer stores is pruned, so only an empty overlay round-trips here;
   // characterItemUsage.test.ts proves the overlay itself.
   itemUsage: fc.constant(new Array<never>()),
+  itemDegradation: fc.constant(new Array<never>()),
   spellCustomizations: fc.constant(new Array<never>())
 })
 
@@ -109,7 +110,8 @@ describe('Character play state split', () => {
       attuned: [],
       partyVisibility: { sheet: false, health: 'HIDDEN' as const },
       resourceUsage: [],
-      itemUsage: []
+      itemUsage: [],
+      itemDegradation: []
     }
     const stored = characterStoredPlayStateSchema.parse({
       characterId: '00000000-0000-4000-8000-000000000001',
@@ -170,6 +172,7 @@ describe('Character play state split', () => {
           expect(structureKeys.has(key)).toBe(false)
         expect(structureKeys.has('resourceUsage')).toBe(false)
         expect(structureKeys.has('itemUsage')).toBe(false)
+        expect(structureKeys.has('itemDegradation')).toBe(false)
         expect(structureKeys.has('partyVisibility')).toBe(false)
         expect('equipped' in structure.state.equipment).toBe(false)
         expect('attuned' in structure.state.equipment).toBe(false)
@@ -191,6 +194,7 @@ describe('Character play state split', () => {
         partyVisibility: { sheet: false, health: 'HIDDEN' },
         resourceUsage: [],
         itemUsage: [],
+        itemDegradation: [],
         spellCustomizations: []
       }
     })
@@ -198,6 +202,7 @@ describe('Character play state split', () => {
       'attuned',
       'equipped',
       'hitpoints',
+      'itemDegradation',
       'itemUsage',
       'partyVisibility',
       'resourceUsage'

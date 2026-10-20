@@ -125,6 +125,7 @@ const capturedPage = {
       partyVisibility: { health: 'HIDDEN', sheet: false },
       resourceUsage: [],
       itemUsage: [],
+      itemDegradation: [],
       spellCustomizations: []
     },
     streamVersion: 1,

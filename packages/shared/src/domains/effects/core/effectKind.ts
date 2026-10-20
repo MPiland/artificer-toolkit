@@ -28,6 +28,7 @@ export const EFFECT_KIND = {
   CANCEL_TRIGGERING_EVENT: 'CANCEL_TRIGGERING_EVENT',
   SOURCE_IMMUNITY: 'SOURCE_IMMUNITY',
   RELEASE_CHOSEN_ITEM: 'RELEASE_CHOSEN_ITEM',
+  DEGRADE_EQUIPMENT: 'DEGRADE_EQUIPMENT',
   CLOSED_RULE: 'CLOSED_RULE',
   MANUAL_ADJUDICATION: 'MANUAL_ADJUDICATION'
 } as const
@@ -175,6 +176,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Release Chosen Item',
     description:
       'The target lets go of the path’s chosen item when it is releasable (held, not worn).'
+  },
+  [EFFECT_KIND.DEGRADE_EQUIPMENT]: {
+    code: EFFECT_KIND.DEGRADE_EQUIPMENT,
+    label: 'Degrade Equipment',
+    description:
+      'A nonmagical item the target wears or wields takes a permanent, cumulative penalty and may be destroyed.'
   },
   [EFFECT_KIND.CLOSED_RULE]: {
     code: EFFECT_KIND.CLOSED_RULE,

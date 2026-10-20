@@ -11,6 +11,8 @@ export interface CharacterEquipmentItemState {
   notes?: string
   /** Server-owned raw acquired rules and source identities; travels with this held item. */
   retainedRulesJson?: string
+  /** The corrosion penalty play has put on this item; derived from the Sheet play overlay, never stored. */
+  degradation?: number
 }
 
 /** An equipped inventory item and where it sits (D107). An item not listed is carried. */

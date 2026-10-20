@@ -27,7 +27,8 @@ export function buildCharacterArmorClassRuleFacts(
         },
         category: item.compiledItem.category,
         equippedSlot: item.equippedState.slot,
-        armorClass: item.compiledItem.armorClass ?? null
+        armorClass: item.compiledItem.armorClass ?? null,
+        ...(item.degradation === undefined ? {} : { degradation: item.degradation })
       }
     ]
   })
