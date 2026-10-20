@@ -4,6 +4,21 @@ export function buildTabletopHref(campaignPublicId: string): string {
   return `/tabletop/campaigns/${encodeURIComponent(campaignPublicId)}`
 }
 
+/** The popup features that fill the screen's available area (the part not covered by the taskbar). */
+export function buildAuxiliaryWindowFeatures(
+  screen: Pick<Screen, 'availHeight' | 'availWidth'> & { availLeft?: number; availTop?: number }
+): string {
+  return [
+    'popup=yes',
+    `width=${screen.availWidth}`,
+    `height=${screen.availHeight}`,
+    `left=${screen.availLeft ?? 0}`,
+    `top=${screen.availTop ?? 0}`,
+    'resizable=yes',
+    'scrollbars=yes'
+  ].join(',')
+}
+
 export function openAuxiliaryWindow(
   event: MouseEvent<HTMLAnchorElement>,
   windowName: string
@@ -15,7 +30,7 @@ export function openAuxiliaryWindow(
   const opened = window.open(
     event.currentTarget.href,
     windowName,
-    'popup=yes,width=1440,height=900,resizable=yes,scrollbars=yes'
+    buildAuxiliaryWindowFeatures(window.screen)
   )
   if (!opened) return
 

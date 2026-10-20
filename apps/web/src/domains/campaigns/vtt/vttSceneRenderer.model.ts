@@ -33,8 +33,8 @@ const unexploredOpacity = 224
 const maximumGridLines = 2_048
 const transientInterpolationRatePerSecond = 14
 const transientInterpolationSnapDistance = 0.25
-const minimumVttZoomScale = 0.02
-const maximumVttZoomScale = 8
+export const minimumVttZoomScale = 0.02
+export const maximumVttZoomScale = 8
 
 interface VttFogMask {
   height: number
