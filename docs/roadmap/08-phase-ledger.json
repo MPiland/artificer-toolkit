@@ -12179,6 +12179,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
+              "id": "SPELLS-31.T5n2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-31.T5n"]
+              },
+              "text": "Scene-light activation gate (split from T5n, ruled 2026-10-20): ACTION_SCENE reads the holder cell's illumination (scene lights, zones, barriers) so an activation can require dim light or darkness; One with Shadows gains the gate (converted ungated in T5n). Generic predicate, no feature-specific code."
+            },
+            {
               "id": "SPELLS-31.T5o",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
