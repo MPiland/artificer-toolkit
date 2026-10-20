@@ -3672,17 +3672,21 @@ function unsavedZonePlacementPlan(
  * The direct-save form applies its condition, or its timed modifier grants, only in the originating
  * SAVE outcome. Its delayed FOLLOW_UP_SAVE becomes a separate active-effect graph. The turn-effect
  * kernel counts the grant form down with its repeat save, so the grant tick planner leaves it alone.
+ * An ACTIVATED action (Power Word Stun) has no first save: its condition applies at cast on the
+ * ON_USE path and only the condition form repeats, against the DC the cast settles.
  */
 function repeatingDirectFollowUpSavePlan(
-  action: Dnd5eCompiledEffectActionSource
+  action: Dnd5eCompiledEffectActionSource,
+  triggerCode: 'SAVING_THROW' | 'ACTIVATED' = 'SAVING_THROW'
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { invocation } = action.compiledEffect
   const entries = entriesBesideSourceImmunity(action)
   const leadEntry = entries[0]
   const saveEntry = entries[1]
+  const pathCode = triggerCode === 'ACTIVATED' ? 'ON_USE' : 'ON_SAVE_FAIL'
   if (
     invocation.kind !== 'ACTION' ||
-    invocation.triggerCode !== 'SAVING_THROW' ||
+    invocation.triggerCode !== triggerCode ||
     entries.length !== 2 ||
     !leadEntry ||
     !saveEntry ||
@@ -3692,10 +3696,11 @@ function repeatingDirectFollowUpSavePlan(
     saveEntry.resolutionKind !== 'DIRECT' ||
     leadEntry.groupKind !== 'SEQUENTIAL' ||
     saveEntry.groupKind !== 'SEQUENTIAL' ||
-    leadEntry.pathCode !== 'ON_SAVE_FAIL' ||
-    saveEntry.pathCode !== 'ON_SAVE_FAIL' ||
+    leadEntry.pathCode !== pathCode ||
+    saveEntry.pathCode !== pathCode ||
     leadEntry.resultBlockId !== saveEntry.resultBlockId ||
-    saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE'
+    saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE' ||
+    (triggerCode === 'ACTIVATED' && leadEntry.outcome.effectKind !== 'CONDITION')
   ) {
     return null
   }
@@ -3794,7 +3799,9 @@ function repeatingDirectFollowUpSavePlan(
           }
         : {})
     },
-    castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
+    // A cast with no save of its own rolls no d20 to carry the DC, so the cast's own graph settles it.
+    ...(triggerCode === 'ACTIVATED' ? { castFactKeys: [DND5E_SAVE_DC_FACT_KEY] } : {}),
+    castSaveDcFactKey: triggerCode === 'ACTIVATED' ? null : pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
     maintenance: maintenancePlan(action, leadEntry),
     marginRider: null
@@ -4662,19 +4669,23 @@ function supported(
   )
     unsupported('D&D Effect action is not the supported activated self action shape.')
   const entry = effect.entries[0]
+  // The condition and the save it repeats (Power Word Stun) are one cast: the lead entry applies now.
+  const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
   if (
-    effect.entries.length !== 1 ||
+    effect.entries.length !== (repeatPlan ? 2 : 1) ||
     !entry ||
     entry.resolutionKind !== 'DIRECT' ||
-    entry.groupKind !== 'SINGLE' ||
+    (entry.groupKind !== 'SINGLE' && !repeatPlan) ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
     (entry.maintenanceDefinitionId &&
+      !repeatPlan &&
       !supportedRecurringPlan(action) &&
       !grantPlan &&
       !conditionPlan &&
       !linkPlan &&
       !formPlan) ||
     ((entry.duration || entry.lifecycle) &&
+      !repeatPlan &&
       !supportedRecurringPlan(action) &&
       !grantPlan &&
       !conditionPlan &&
@@ -5579,6 +5590,39 @@ export const dnd5eConditionApplyProposalOperation: ProposalRuleOperationContract
   }
 }
 
+/**
+ * Version 2 of the condition proposal also reads the target's current hit points and the gate's
+ * ceiling: the condition is authorized only for a target that is not immune and is at or under it.
+ */
+export const dnd5eHitPointGatedConditionApplyProposalOperation: ProposalRuleOperationContract = {
+  ...dnd5eConditionApplyProposalOperation,
+  contractVersion: 2,
+  inputs: {
+    ...dnd5eConditionApplyProposalOperation.inputs,
+    targetCurrentHitPoints: RULE_VALUE_KIND.NUMBER,
+    hitPointsAtMost: RULE_VALUE_KIND.NUMBER
+  },
+  execute(inputs) {
+    const { targetCurrentHitPoints, hitPointsAtMost } = inputs
+    if (
+      typeof targetCurrentHitPoints !== 'number' ||
+      !Number.isSafeInteger(targetCurrentHitPoints) ||
+      targetCurrentHitPoints < 0 ||
+      typeof hitPointsAtMost !== 'number' ||
+      !Number.isSafeInteger(hitPointsAtMost) ||
+      hitPointsAtMost < 1
+    )
+      throw new Error(
+        "D&D condition proposal requires the target's hit points and a hit-point gate."
+      )
+    const base = dnd5eConditionApplyProposalOperation.execute(inputs)
+    return {
+      ...base,
+      authorized: base.authorized === true && targetCurrentHitPoints <= hitPointsAtMost
+    }
+  }
+}
+
 const DND5E_TEST_OUTCOME_RULES = [
   'NONE',
   'SAVE_AUTO_FAIL',
@@ -6011,7 +6055,8 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
         dnd5eAttackTestOperation,
         dnd5eSaveTestOperation,
         dnd5eTestMarginConditionProposalOperation,
-        dnd5eHitPointGatedKillProposalOperation
+        dnd5eHitPointGatedKillProposalOperation,
+        dnd5eHitPointGatedConditionApplyProposalOperation
       ].map(({ key, contractVersion }) => ({ key, contractVersion }))
     )
 }
@@ -7967,6 +8012,7 @@ function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolea
   const plan =
     sequentialCompositionPlan(action) ??
     repeatingDirectFollowUpSavePlan(action) ??
+    repeatingDirectFollowUpSavePlan(action, 'ACTIVATED') ??
     repeatingImmediateFollowUpSavePlan(action) ??
     timedImmediateConditionPlan(action) ??
     timedConditionPlan(action) ??
@@ -8063,8 +8109,9 @@ function compileEffectActionGraph(
     })
   }
   const outcome = supported(action)
-  if (gateAtMost !== undefined && outcome.kind !== 'KILL')
-    unsupported('D&D hit-point gate belongs to a kill outcome.')
+  const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
+  if (gateAtMost !== undefined && outcome.kind !== 'KILL' && outcome.kind !== 'CONDITION_APPLY')
+    unsupported('D&D hit-point gate belongs to a kill or condition outcome.')
   if (outcome.kind === 'DICE_HEAL') {
     const entry = action.compiledEffect.entries[0]
     if (
@@ -8144,6 +8191,8 @@ function compileEffectActionGraph(
             ? TARGET_ONLY_OUTCOME_OPERATION_KEYS[outcome.kind]
             : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
+  // The save the target repeats (Power Word Stun) is pinned to the DC this cast settles.
+  const repeatsSave = outcome.kind === 'CONDITION_APPLY' && repeatPlan !== null
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: action.effectId,
@@ -8197,7 +8246,12 @@ function compileEffectActionGraph(
       ...(isTargetOnlyOutcome(outcome)
         ? {}
         : outcome.kind === 'CONDITION_APPLY'
-          ? { conditionId: { kind: 'NODE_OUTPUT', nodeId, port: 'conditionId' } }
+          ? {
+              conditionId: { kind: 'NODE_OUTPUT', nodeId, port: 'conditionId' },
+              ...(repeatsSave
+                ? { castSaveDc: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY } }
+                : {})
+            }
           : {
               amount: { kind: 'NODE_OUTPUT', nodeId, port: 'amount' },
               ...(outcome.kind === 'DAMAGE'
@@ -8911,12 +8965,14 @@ function conditionImmunityFacts(
 /**
  * Whether a proposal's authorization follows from the target's hit points on its evidence: an
  * ungated proposal always authorizes; a gated one binds the target's current hit points fact and
- * authorizes exactly while they are at most the gate's literal ceiling.
+ * authorizes exactly while they are at most the gate's literal ceiling (and, for a proposal with
+ * its own protection, while that does not refuse it).
  */
 function hitPointGateEvidenceIsValid(
   input: Pick<DirectInterpretationInput, 'execution' | 'currentHitPoints'>,
   publishedNode: Pick<CompiledRuleGraph['nodes'][number], 'inputs'>,
-  trace: { operation: { contractVersion: number }; outputs: Record<string, unknown> }
+  trace: { operation: { contractVersion: number }; outputs: Record<string, unknown> },
+  otherwiseAuthorized = true
 ): boolean {
   const hitPoints = publishedNode.inputs.targetCurrentHitPoints
   const ceiling = publishedNode.inputs.hitPointsAtMost
@@ -8929,7 +8985,7 @@ function hitPointGateEvidenceIsValid(
     typeof ceiling.value === 'number' &&
     input.execution.evidence.facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] ===
       input.currentHitPoints &&
-    trace.outputs.authorized === input.currentHitPoints <= ceiling.value
+    trace.outputs.authorized === (otherwiseAuthorized && input.currentHitPoints <= ceiling.value)
   )
 }
 
@@ -9021,7 +9077,16 @@ function interpretDirectProposal(
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D condition proposal trace is invalid.'
       )
-    if (trace.outputs.authorized !== !conditionFacts[conditionFactKey]) {
+    if (
+      trace.operation.contractVersion === 1
+        ? trace.outputs.authorized !== !conditionFacts[conditionFactKey]
+        : !hitPointGateEvidenceIsValid(
+            input,
+            publishedNode,
+            trace,
+            !conditionFacts[conditionFactKey]
+          )
+    ) {
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D condition proposal protection evidence is invalid.'
       )
@@ -10164,7 +10229,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const composed = sequentialCompositionPlan(action)
     if (composed) return [composed]
     const repeatPlan =
-      repeatingDirectFollowUpSavePlan(action) ?? repeatingImmediateFollowUpSavePlan(action)
+      repeatingDirectFollowUpSavePlan(action) ??
+      repeatingDirectFollowUpSavePlan(action, 'ACTIVATED') ??
+      repeatingImmediateFollowUpSavePlan(action)
     const timedPlan = repeatPlan
       ? null
       : (timedImmediateConditionPlan(action) ??
@@ -10656,6 +10723,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }
     }
     const save = action.save
+    // The cast of a condition that repeats a save (Power Word Stun) settles only that save's DC; the
+    // target rolls nothing now.
+    if (save && published.definition.outputs.castSaveDc) {
+      if (typeof save.dc !== 'number' || !Number.isSafeInteger(save.dc))
+        throw new Dnd5eEffectActionCompilerError('D&D save DC is unavailable.')
+      return { facts: { ...baseFacts, [DND5E_SAVE_DC_FACT_KEY]: save.dc } }
+    }
     if (save && typeof save.abilityDefinitionId === 'string' && typeof save.dc === 'number') {
       if (!Number.isSafeInteger(save.dc))
         throw new Dnd5eEffectActionCompilerError('D&D save DC is unavailable.')
