@@ -397,3 +397,20 @@ Converts POWER_WORD_KILL, POWER_WORD_STUN and DIVINE_WORD; each kind is deleted.
 - Reuses existing outcomes: `CONDITION` (Stunned, Deafened, Blinded), `STABILIZE`, `FOLLOW_UP_SAVE` (Power Word Stun's end-of-turn Constitution save).
 - Rejected: a nested-outcome wrapper kind (nothing nests outcomes today) and a `FacetAuthored` predicate (facets are evaluated at authoring time against static subjects, not live hit points).
 - Where: `packages/shared/src/domains/effects/{authored,core,maps,compilers}`, `packages/schema/src/effects`, `effectActionCompiler.ts` (gate beside `conditionImmune`), `encounterCharacterMechanicsBatch.ts` (KILL application). Full packet: side-session notes `spells-4-t2i-design-packet.md`.
+
+### T2i3 (Power Word Stun, done; `ci/spells-4-t2i3`)
+
+POWER_WORD_STUN is data: one SEQUENCE result block gated at 150 hit points, a `stunned` CONDITION for 1 minute, and a FOLLOW_UP_SAVE (Constitution, SOURCE_SAVE_DC, `TARGET_TURN_END`, onSuccess END). Mechanism, all generic: `dnd5e.condition-apply-proposal` v2 (`dnd5eHitPointGatedConditionApplyProposalOperation`, authorized = not immune and hit points at most the ceiling); the gate guard allows CONDITION_APPLY as well as KILL; `repeatingDirectFollowUpSavePlan(action, triggerCode)` also accepts an `ACTIVATED` action (both entries on ON_USE, CONDITION lead) and carries `dnd5e.save-dc` through `castFactKeys`. Proofs: `powerWordStun.test.ts`, the Stun block in `coreOptionSpells.test.ts`, `apps/session-worker/test/nativeRoomStunSpell.test.ts`.
+
+### T2i4 resume (Divine Word, size 2; fresh session)
+
+Converts DIVINE_WORD and deletes the kind. Not started. Branch from the phase branch; push to `ci/spells-4-t2i4`.
+
+- The tier contract exists (T2i): path `selectionKind: 'HIT_POINT_TIERS'` with `hitPointTierRows` (`atMost`, `resultBlock`; node maps `HIT_POINT_TIER_ROW_NODE_MAP`, `NON_MANIFEST_HIT_POINT_TIER_ROW_NODE_MAP`; web defaults `pathHitPointTierRow`). Nothing selects a tier at runtime yet; the lowest `atMost` the target's hit points satisfy wins (exclusive tiers, 20/30/40/50).
+- Build: runtime tier selection from the bound `dnd5e.target-current-hit-points` fact (reuse the T2i fact and the v2 proposal operation pattern in `effectActionCompiler.ts`); per-tier durations (Deafened, Blinded, Stunned, and the 50-hp-or-less KILL-free tiers per the spell text) and per-tier entry ids so each tier's application has its own evidence id.
+- Planar banishment stays description-only (no plane model); add it to future-enhancements if absent.
+- Proof: rules-runtime test per tier boundary (20, 21, 30, 31, 40, 41, 50, 51), a room journey, a parity proof, delete DIVINE_WORD from `closedRuleKind.ts`.
+
+### T2i2 resume (Death Ward and damage interception, size 3; fresh session)
+
+Converts DEATH_WARD and deletes the kind. Not started; push to `ci/spells-4-t2i2`. Generic seam: "would drop to 0 hit points, instead drop to N, with uses X", authored as a grant (Mirror Image `lifecycle.uses` is the use-limited precedent), also negating a KILL outcome (T2i). Undead Fortitude (SPELLS-33.T4i) and Relentless Endurance reuse it, so author it as an option, not per feature. The interception point is the damage application in `encounterCharacterMechanicsBatch.ts`. Proofs: rules-runtime test (survive at 1 hit point, use consumed, spell ends, KILL negated), a room journey, and an authoring-parity proof.
