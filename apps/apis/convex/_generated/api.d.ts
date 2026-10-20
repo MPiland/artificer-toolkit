@@ -24586,6 +24586,7 @@ export declare const api: {
               | {
                   actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
+                    grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
                     invocation:
@@ -35605,6 +35606,7 @@ export declare const api: {
               | {
                   actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
+                    grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
                     invocation:
@@ -46633,6 +46635,7 @@ export declare const api: {
               | {
                   actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
+                    grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
                     invocation:
@@ -57652,6 +57655,7 @@ export declare const api: {
               | {
                   actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
+                    grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
                     invocation:
@@ -68706,6 +68710,7 @@ export declare const api: {
               | {
                   actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
+                    grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
                     invocation:
@@ -79725,6 +79730,7 @@ export declare const api: {
               | {
                   actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
+                    grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
                     invocation:
@@ -90731,6 +90737,7 @@ export declare const api: {
             | {
                 actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                 effects: Array<{
+                  grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                   grip?: "ONE_HANDED" | "TWO_HANDED";
                   id: string;
                   invocation:
@@ -101623,6 +101630,7 @@ export declare const api: {
               | {
                   actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
+                    grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
                     invocation:
@@ -112642,6 +112650,7 @@ export declare const api: {
               | {
                   actionCost: "ACTION" | "ATTACK" | "BONUS_ACTION" | "FREE";
                   effects: Array<{
+                    grantedSpellCast?: { spellKind: "CANTRIP" | "LEVELED" };
                     grip?: "ONE_HANDED" | "TWO_HANDED";
                     id: string;
                     invocation:
