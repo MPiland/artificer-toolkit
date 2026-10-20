@@ -374,6 +374,11 @@ const predicatePayloadSchemas = lazySchemaParts(
       FREE_HAND: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.FREE_HAND)
       }),
+      TURN_MOVEMENT: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.TURN_MOVEMENT),
+        maxFeet: z.optional(z.number()),
+        maxSpeedFraction: z.optional(z.number())
+      }),
       ATTACK_ACTION_OTHER_WEAPON: z.intersection(
         z.object({
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ACTION_OTHER_WEAPON)

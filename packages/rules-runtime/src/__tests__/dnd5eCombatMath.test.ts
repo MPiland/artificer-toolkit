@@ -4,12 +4,14 @@ import type { CharacterGrantFoldSource } from '@artificer-toolkit/schema/api/cha
 import {
   SRD_ABILITIES,
   SRD_CONDITION_TYPES,
-  SRD_DAMAGE_TYPES
+  SRD_DAMAGE_TYPES,
+  SRD_STEALTH_SKILL_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeCharacterGrantRestrictions } from '../character/characterGrantFoldRestrictionFacts.js'
 import { buildEncounterActorRuleFacts } from '../encounterActorRuleFacts.js'
 import {
+  encounterFeatureSkillCheckContributors,
   encounterSourceSightSaveGrants,
   holderStateRestrictionsHold
 } from '../encounterActiveGrants.js'
@@ -678,6 +680,57 @@ describe('D&D 5e saving throws and defenses', () => {
     }
   })
 
+  it('Supreme Sneak keeps its Stealth advantage out of the Sheet and grants it only while the turn’s movement stays within half the speed', () => {
+    const character = evaluateSrdCharacter({
+      abilities: { DEXTERITY: 16 },
+      classes: [{ label: 'Rogue', level: 9 }],
+      features: [
+        srdFeature({
+          owner: 'SUBCLASS',
+          classLabel: 'Rogue',
+          subclassLabel: 'Thief',
+          featureLabel: 'Supreme Sneak',
+          level: 9
+        })
+      ]
+    })
+    const { grantFold } = character.output
+    const stealth = (usedFeet: number) =>
+      encounterFeatureSkillCheckContributors({
+        holderActorId: 'rogue',
+        grantFold,
+        skillAliases: [SRD_STEALTH_SKILL_ID],
+        holderState: {
+          kind: 'CHARACTER',
+          creatureTypeIds: [],
+          canAct: true,
+          speedAboveZero: true,
+          freeHand: true,
+          stowableHeldItemInstanceId: null,
+          turnMovement: { usedFeet, speedFeet: 30 }
+        }
+      }).map(({ influence }) => influence)
+    expect(stealth(0)).toEqual(['ADVANTAGE'])
+    expect(stealth(15)).toEqual(['ADVANTAGE'])
+    expect(stealth(16)).toEqual([])
+    expect(
+      encounterFeatureSkillCheckContributors({
+        holderActorId: 'rogue',
+        grantFold,
+        skillAliases: [testUuid(0xd5f1)],
+        holderState: {
+          kind: 'CHARACTER',
+          creatureTypeIds: [],
+          canAct: true,
+          speedAboveZero: true,
+          freeHand: true,
+          stowableHeldItemInstanceId: null,
+          turnMovement: { usedFeet: 0, speedFeet: 30 }
+        }
+      })
+    ).toEqual([])
+  })
+
   it('Danger Sense keeps its Dexterity advantage out of the Sheet and hands the Encounter the source-sight grant', () => {
     const character = evaluateSrdCharacter({
       abilities: { DEXTERITY: 14 },
@@ -719,7 +772,8 @@ describe('D&D 5e saving throws and defenses', () => {
       canAct,
       speedAboveZero: true,
       freeHand: true,
-      stowableHeldItemInstanceId: null
+      stowableHeldItemInstanceId: null,
+      turnMovement: { usedFeet: 0, speedFeet: 30 }
     })
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(true))).toBe(true)
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(false))).toBe(false)
@@ -933,6 +987,7 @@ describe('D&D 5e modifier scope', () => {
           secondaryRequiredIds: [],
           min: null,
           max: null,
+          speedFraction: null,
           proficiencyKind: null,
           minimumRank: null,
           category: null,

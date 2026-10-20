@@ -3,6 +3,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterEscapeEndedConditionIds } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { heldUntilLeavingZoneId } from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
@@ -60,7 +61,7 @@ export async function endEncounterEscapedEffect(
  * zone's holder effect from the holder's current rows, requires the room's plan to match it, and
  * ends it like an escape. Returns the actors and the holder Character's stream transition.
  */
-export async function persistLiveMovementAreaDeparture(
+export function persistLiveMovementAreaDeparture(
   ctx: EncounterCharacterWriteTransaction,
   input: {
     state: { id: string }
@@ -69,15 +70,51 @@ export async function persistLiveMovementAreaDeparture(
     occurredAt: string
   }
 ) {
+  return persistLiveMovementHeldEffectEnd(ctx, {
+    ...input,
+    holderActorId: input.step.departure.holderActorId,
+    isHeld: (effect) => heldUntilLeavingZoneId(effect) === input.step.departure.zoneEffectId
+  })
+}
+
+/**
+ * Settles a mover moving voluntarily while holding an effect that lasts until it moves: re-derives
+ * the effect from the holder's current rows and ends it like an escape.
+ */
+export function persistLiveMovementMoveEnd(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    state: { id: string }
+    actors: EncounterRunActorState[]
+    step: Extract<LiveSessionMovementSettlement, { kind: 'MOVE_END' }>
+    occurredAt: string
+  }
+) {
+  return persistLiveMovementHeldEffectEnd(ctx, {
+    ...input,
+    holderActorId: input.step.moveEnd.holderActorId,
+    isHeld: (effect) => effect.id === input.step.moveEnd.effectId
+  })
+}
+
+async function persistLiveMovementHeldEffectEnd(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    state: { id: string }
+    actors: EncounterRunActorState[]
+    step: Extract<LiveSessionMovementSettlement, { kind: 'AREA_DEPARTURE' | 'MOVE_END' }>
+    holderActorId: string
+    isHeld: (effect: ActiveRuleEffectRecord) => boolean
+    occurredAt: string
+  }
+) {
   const { state, step } = input
-  const holder = input.actors.find((actor) => actor.id === step.departure.holderActorId)
-  if (!holder) throw new Error('Movement area departure holder is unavailable.')
+  const holder = input.actors.find((actor) => actor.id === input.holderActorId)
+  if (!holder) throw new Error('Movement release holder is unavailable.')
   const owner = turnEffectOwner(holder, state.id)
-  const held = (await createActiveRuleEffectStore(ctx).list(owner)).find(
-    (effect) => heldUntilLeavingZoneId(effect) === step.departure.zoneEffectId
-  )
+  const held = (await createActiveRuleEffectStore(ctx).list(owner)).find(input.isHeld)
   if (!held || checksumCanonicalJson(held) !== checksumCanonicalJson(step.endedEffect))
-    throw new Error('Movement area departure differs from its holder effect.')
+    throw new Error('Movement release differs from its holder effect.')
   const streamVersion = async () =>
     owner.kind === 'CHARACTER'
       ? ((await ctx.ports.readCharacterRow(owner.characterId))?.play.streamVersion ?? null)
@@ -95,7 +132,7 @@ export async function persistLiveMovementAreaDeparture(
     checksumCanonicalJson(ended.endedConditionIds) !==
       checksumCanonicalJson(step.removedConditionIds)
   )
-    throw new Error('Movement area departure differs from its plan.')
+    throw new Error('Movement release differs from its plan.')
   const afterStreamVersion = await streamVersion()
   return {
     actors: ended.actors,

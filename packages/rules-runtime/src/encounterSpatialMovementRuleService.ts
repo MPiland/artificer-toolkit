@@ -145,6 +145,12 @@ export type MovementAreaDeparture = {
   pathDistance: number
 }
 
+/** A voluntary move that ended an effect on its mover, which holds it until the mover moves. */
+export type MovementEffectEnd = {
+  effectId: string
+  holderActorId: string
+}
+
 export type SpatialMovementIntent = {
   tokenId: string
   position: ScenePoint
@@ -178,6 +184,8 @@ export type SpatialMovementRuleEvaluation =
       result: SpatialMovementTerminalResult
       /** The held zones the mover left on its way, each ending what that zone held on it (D146). */
       areaDepartures: readonly MovementAreaDeparture[]
+      /** The effects the mover held until it moved, which this voluntary move ends. */
+      moveEnds: readonly MovementEffectEnd[]
       movementIntent: SpatialMovementIntent | null
       resolutionCommands: readonly MovementRuleResolutionCommand[]
       selectionChecksum: string
@@ -239,6 +247,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   interruptAfterPathDistance?: number
   /** The zones holding a condition on each actor until it leaves their area (D146). */
   leavingAreaHolds?: readonly { actorId: string; zoneEffectId: string }[]
+  /** The effects each actor holds until it moves (`ON_MOVE`). */
+  moveEndHolds?: readonly { actorId: string; effectId: string }[]
   interruptAfterContactToActorIds?: ReadonlySet<string>
 }): Promise<SpatialMovementRuleEvaluation> {
   const root = normalizeRoot(input.root)
@@ -402,6 +412,13 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       ]
     })
   }
+  /** A voluntary move of any length ends what its mover holds until it moves. */
+  const movedEnds = (): MovementEffectEnd[] =>
+    root.movementKind === 'VOLUNTARY' && moverActorId
+      ? (input.moveEndHolds ?? [])
+          .filter((hold) => hold.actorId === moverActorId)
+          .map((hold) => ({ effectId: hold.effectId, holderActorId: hold.actorId }))
+      : []
   const candidates = frozenReactionRemainder
     ? frozenSpatialCandidates(frozenReactionRemainder, appliedExecutions.length)
     : collect(snapshotEffects)
@@ -493,7 +510,8 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       }
     }
     const areaDepartures = departedBy(appliedStopDistance)
-    if (!frozenReactionRemainder && !areaDepartures.length)
+    const moveEnds = movedEnds()
+    if (!frozenReactionRemainder && !areaDepartures.length && !moveEnds.length)
       return { kind: 'NO_CANDIDATES', movementIntent: terminalIntent }
     if (appliedPrefix) await input.beforeTerminalApply?.()
     const result = appliedPrefix
@@ -511,6 +529,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       kind: 'TERMINAL',
       result,
       areaDepartures,
+      moveEnds,
       movementIntent: terminalIntent,
       resolutionCommands,
       selectionChecksum,
@@ -843,6 +862,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     kind: 'TERMINAL',
     result,
     areaDepartures: departedBy(stopAtDistance),
+    moveEnds: movedEnds(),
     movementIntent: intent(root.tokenId, input.currentPosition, terminalPosition),
     resolutionCommands,
     selectionChecksum,

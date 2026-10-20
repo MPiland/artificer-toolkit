@@ -1,5 +1,10 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
   RANGE_KIND,
@@ -8,7 +13,7 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
-import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_STEALTH_SKILL_ID, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { closedRuleEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
@@ -78,18 +83,46 @@ export const thiefRoguishArchetype: ClassAuthored = {
         'Starting at 9th level, you have advantage on a Dexterity (Stealth) check if you move no more than half your speed on the same turn.',
       availableAtLevel: 9,
       order: 2,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(R, 20, 3),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(R, 21, 3), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_THIEF_SUPREME_SNEAK
-        })
-      ]
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(R, 0x8a, 3),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
+            domain: { skillId: SRD_STEALTH_SKILL_ID },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            order: 0,
+            restrictions: {
+              id: classRowId(R, 0x8b, 0),
+              groups: [
+                {
+                  id: classRowId(R, 0x8b, 1),
+                  order: 0,
+                  contexts: [
+                    {
+                      id: classRowId(R, 0x8b, 2),
+                      order: 0,
+                      subject: 'CHARACTER',
+                      conditions: [
+                        {
+                          id: classRowId(R, 0x8b, 3),
+                          order: 0,
+                          kind: 'PREDICATE',
+                          constraint: 'INCLUDE',
+                          predicateCode: 'TURN_MOVEMENT',
+                          maxSpeedFraction: 0.5
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
     },
     {
       id: classRowId(R, 11, 4),

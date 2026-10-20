@@ -74,6 +74,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'CAN_ACT',
       'SPEED_ABOVE_ZERO',
       'FREE_HAND',
+      /** The holder moved at most `max` feet and/or `speedFraction` of its speed this turn (Encounter state). */
+      'TURN_MOVEMENT',
       /** An Attack-action weapon attack with `requiredProperties` was made this turn (Encounter state). */
       'ATTACK_ACTION_OTHER_WEAPON',
       /**
@@ -107,6 +109,7 @@ const restrictionConditionSchema = lazySchema(() =>
     secondaryRequiredIds: z.array(identitySchema).check(z.maxLength(200)),
     min: z.nullable(z.number()),
     max: z.nullable(z.number()),
+    speedFraction: z.nullable(z.number()),
     proficiencyKind: z.nullable(codeSchema),
     minimumRank: z.nullable(z.enum(['HALF', 'FULL', 'DOUBLE'])),
     category: z.nullable(codeSchema),

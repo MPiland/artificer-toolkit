@@ -67,6 +67,15 @@ export const sceneSpatialPreparationSchema = lazySchema(() =>
             .check(z.minLength(1))
             .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
         ),
+        /** The effects the mover held until it moved that this voluntary move ends, each a `MOVE_END` step. */
+        moveEnds: z.optional(
+          z
+            .array(
+              z.strictObject({ effectId: postgresUuidSchema, holderActorId: postgresUuidSchema })
+            )
+            .check(z.minLength(1))
+            .check(z.maxLength(MAX_SPATIAL_CANDIDATES))
+        ),
         resolutionCommands: z.optional(spatialMovementPendingRootDtoSchema.shape.resolutionCommands)
       }),
       z.strictObject({

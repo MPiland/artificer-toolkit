@@ -2572,7 +2572,13 @@ function modifierGrantPlan(
     testPhaseKindOrNull(action) === 'SAVE'
       ? saveGrantPlan(action)
       : entry
-        ? modifierGrantEntryPlan({ action, entry, resultGated: attack, untilEndEvent: false })
+        ? // A grant with no duration lasts until one of its authored end events (Hide in Plain Sight).
+          modifierGrantEntryPlan({
+            action,
+            entry,
+            resultGated: attack,
+            untilEndEvent: !('duration' in entry) || entry.duration === undefined
+          })
         : null
   return plan && { ...plan, chosenItem: chosenItemPlan(action) }
 }
