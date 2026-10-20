@@ -618,3 +618,10 @@ Build:
    UNICORN_CHARGE, WEREBOAR_CHARGE) from `closedRuleKind.ts` and the T1 table rows; update the plan row and the rules-runtime doc.
    Accepted limits (D164): a move published in segments records only the last segment; dragged tokens do not clear `lastMove`; the
    reaction and opportunity-attack route has no `loadMoveToward`, so the gate fails off-turn.
+
+## T6c: legendary options that cast a granted spell (done, `ci/spells-33-t6c`)
+
+Class B, new generic option (D156). A Feature or option effect may carry `grantedSpellCast: { spellKind: 'CANTRIP' | 'LEVELED' }` (schema `featureEffectDtoSchema`, authored `FeatureGrantedSpellCastAuthored`, node map `featureGrantedSpellCast`): an ACTION that casts one of its holder's granted spells, chosen at the table. It authors no paths of its own, is refused on a passive effect or beside `spellCast`, and spends the legendary pool through the usual `resourceUse`. The Lich's Cantrip (`CANTRIP`, cost 1; its option had no cost or action invocation before) and the Gynosphinx's Cast a Spell (`LEVELED`, cost 3) use it, and `CREATURE_LICH_LEGENDARY_ACTIONS` and `CREATURE_GYNOSPHINX_LEGENDARY_ACTIONS` are deleted.
+
+- Proofs: `creatureGrantedSpellCastAuthoringParity.test.ts` (node map unchanged, no closed rule, pool spend), `feature-granted-spell-cast-contracts.test.ts` (schema rules).
+- Data and schema only: discovery does not yet emit a capability for it. The runtime path (list the holder's granted spells of the kind, spend the slot) belongs to T3c2a/T3c2b, which should read `effect.grantedSpellCast` in `encounterFeatureActionCapabilityDiscovery.ts`.

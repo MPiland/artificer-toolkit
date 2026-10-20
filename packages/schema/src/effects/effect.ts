@@ -298,6 +298,14 @@ const featureSpellCastDtoSchema = lazySchema(() =>
   z.object({ castLevel: z.number().check(z.int()).check(z.gte(1)).check(z.lte(9)) })
 )
 
+/**
+ * An action that casts one of the spells its holder is granted, chosen at the table (D156,
+ * SPELLS-33.T6c): a cantrip, or a levelled spell cast from a slot as normal.
+ */
+const featureGrantedSpellCastDtoSchema = lazySchema(() =>
+  z.object({ spellKind: z.enum(['CANTRIP', 'LEVELED']) })
+)
+
 /** An attack made with each wielded weapon that has these properties (D156). */
 const featureWeaponAttackDtoSchema = lazySchema(() =>
   z.object({
@@ -317,11 +325,16 @@ export const featureEffectDtoSchema = lazySchema(() =>
         paths: authoredNestedCollectionSchema(pathDtoSchema),
         grip: z.optional(equipmentGripSchema),
         spellCast: z.optional(featureSpellCastDtoSchema),
+        grantedSpellCast: z.optional(featureGrantedSpellCastDtoSchema),
         weaponAttack: z.optional(featureWeaponAttackDtoSchema)
       })
       .check(
         z.superRefine((effect, context) => {
-          if (effect.paths.length === 0 && effect.weaponAttack === undefined)
+          if (
+            effect.paths.length === 0 &&
+            effect.weaponAttack === undefined &&
+            effect.grantedSpellCast === undefined
+          )
             context.addIssue({
               code: 'custom',
               path: ['paths'],
@@ -341,6 +354,21 @@ export const featureEffectDtoSchema = lazySchema(() =>
               code: 'custom',
               path: ['spellCast'],
               message: 'Only an action can cast a spell.'
+            })
+          if (
+            effect.grantedSpellCast !== undefined &&
+            effect.invocation.kind === invocationKindSchema._zod.def.entries.PASSIVE
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['grantedSpellCast'],
+              message: 'Only an action can cast a granted spell.'
+            })
+          if (effect.grantedSpellCast !== undefined && effect.spellCast !== undefined)
+            context.addIssue({
+              code: 'custom',
+              path: ['spellCast'],
+              message: 'A granted spell names its own level when cast, so the action names none.'
             })
           if (effect.weaponAttack !== undefined && !isWeaponAttack(effect))
             context.addIssue({

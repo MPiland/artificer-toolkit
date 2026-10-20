@@ -11,7 +11,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import {
+  heldBatchInputs,
+  heldDamageInterceptions
+} from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
@@ -79,25 +83,23 @@ export async function applyRoomEncounterMechanicsBatch(input: {
   // A Character in a form takes hits on the form's pool; the Sheet maximum is where excess damage
   // lands, so callers' maxima (a Sheet's for a source, the form's for a target) are replaced (D130).
   const form = read.actor.kind === 'CHARACTER' ? read.actor.form : null
-  const formMaxima =
+  // The commit applies receipt applications that persistence builders assemble without the target's
+  // held effects, so the room derives the batch inputs they imply here, once, for every caller.
+  const heldEffects = await listActiveRuleEffects(ctx, turnEffectOwner(read.actor, read.state.id), {
+    ownerVerified: true
+  })
+  const heldInputs =
     character && form
       ? {
-          effectiveMaximumHitPoints: effectiveHitPointMaximum(
-            form.maxHitPoints,
-            await listActiveRuleEffects(
-              ctx,
-              { kind: 'ENCOUNTER_ACTOR', encounterId: read.state.id, targetActorId: read.actor.id },
-              { ownerVerified: true }
-            )
-          ),
+          ...heldBatchInputs({ baseMaximumHitPoints: form.maxHitPoints, effects: heldEffects }),
           sheetMaximumHitPoints: await readCharacterMaximumHitPoints(ctx, character.play)
         }
-      : {}
+      : { damageInterceptions: heldDamageInterceptions(heldEffects) }
   const target = {
     ...read,
     input: {
       ...read.input,
-      ...formMaxima,
+      ...heldInputs,
       expectedCharacterStreamVersion: character?.play.streamVersion ?? null
     }
   }

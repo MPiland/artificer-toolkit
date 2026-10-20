@@ -74,6 +74,7 @@ type AuthoringDefaultKind =
   | 'followUpSaveRepeatAttemptGate'
   | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
+  | 'followUpSaveRepeatTrigger'
   | 'higherLevelCheck'
   | 'degradeEquipmentDestroyWhen'
   | 'hitPointMaximumReductionAmountSource'
@@ -144,6 +145,7 @@ type AuthoringDefaultKind =
   | 'startingEquipmentCurrency'
   | 'startingEquipmentGroup'
   | 'spellCast'
+  | 'featureGrantedSpellCast'
   | 'featureWeaponAttack'
   | 'startingEquipmentItem'
   | 'startingEquipmentOption'
@@ -243,6 +245,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveRepeatAttemptGate: ['followUpSaveRepeatAttemptGate'],
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
+  followUpSaveRepeatTrigger: ['followUpSaveRepeatTrigger'],
   higherLevelCheck: ['higherLevelCheck'],
   degradeEquipmentDestroyWhen: ['degradeEquipmentDestroyWhen'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],
@@ -319,6 +322,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   startingEquipmentCurrency: ['startingEquipmentCurrency'],
   startingEquipmentGroup: ['startingEquipmentGroup'],
   spellCast: ['spellCast'],
+  featureGrantedSpellCast: ['featureGrantedSpellCast'],
   featureWeaponAttack: ['featureWeaponAttack'],
   startingEquipmentItem: ['startingEquipmentItem'],
   startingEquipmentOption: ['startingEquipmentOption'],

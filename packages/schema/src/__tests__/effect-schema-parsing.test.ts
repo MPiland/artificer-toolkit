@@ -955,6 +955,36 @@ describe('effect schema parsing', () => {
     expect(followUpSave({ repeatRollInfluence: { influence: 'DISADVANTAGE', when } })).toBe(false)
   })
 
+  it('accepts repeat triggers only on a repeated one-time follow-up save', () => {
+    const followUpSaveDtoSchema = createFollowUpSaveDtoSchema(z.unknown())
+    const trigger = { kind: 'DAMAGE_TAKEN', by: 'ANYONE', rollInfluence: 'ADVANTAGE' }
+    const followUpSave = (overrides: Record<string, unknown>) =>
+      followUpSaveDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000ec',
+        effectKind: 'FOLLOW_UP_SAVE',
+        timing: 'TARGET_TURN_END',
+        repeatTriggers: [trigger],
+        savingThrow: {
+          id: '00000000-0000-4000-8000-0000000000ed',
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: '00000000-0000-0000-0011-000500000000'
+        },
+        attempts: { kind: 'ONCE', repeatOnFailure: true },
+        onSuccess: { kind: 'END' },
+        onFailure: { kind: 'CONTINUE' },
+        ...overrides
+      }).success
+
+    expect(followUpSave({})).toBe(true)
+    expect(followUpSave({ repeatTriggers: [{ kind: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE' }] })).toBe(
+      true
+    )
+    expect(followUpSave({ repeatTriggers: [] })).toBe(false)
+    expect(followUpSave({ repeatTriggers: [{ ...trigger, kind: 'HOLDER_ACTION' }] })).toBe(false)
+    expect(followUpSave({ repeatTriggers: [{ ...trigger, rollInfluence: 'MAYBE' }] })).toBe(false)
+    expect(followUpSave({ attempts: { kind: 'ONCE' } })).toBe(false)
+  })
+
   it('parses passive effects with saving throw invocations', () => {
     const parsed = effectDtoSchema.parse({
       id: '00000000-0000-4000-8000-0000000000e3',

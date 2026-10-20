@@ -170,6 +170,7 @@ export async function planNativeLiveCleavingResponse(
             expectedCharacterStreamVersion:
               chosen.target.characterFacts?.active.play.streamVersion ?? null,
             effectiveMaximumHitPoints: chosen.target.effectiveMaximumHitPoints,
+            damageInterceptions: chosen.target.damageInterceptions,
             sheetMaximumHitPoints: chosen.target.sheetMaximumHitPoints,
             effectiveScalarValues: chosen.target.effectiveScalarValues,
             forceVersionAdvance: false

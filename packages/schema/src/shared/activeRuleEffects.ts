@@ -17,6 +17,7 @@ import {
   activeRuleEffectLifecycleDtoSchema,
   MAX_ACTIVE_EFFECT_STORED_TICKS,
   MAX_ACTIVE_EFFECT_TURNS,
+  activeEffectSaveThresholdsSchema,
   activeEffectUsesSchema
 } from './activeRuleEffectLifecycle.js'
 import { effectOffersDtoSchema } from '../effects/effectOffer.js'
@@ -187,6 +188,44 @@ export const activeEffectEndTriggersSchema = lazySchema(() =>
     )
 )
 
+/**
+ * An event that makes the holder repeat the effect's save outside its own turn, as the stored effect
+ * carries it: filters explicit. `DAMAGE_TAKEN` repeats it when the holder takes damage: `by` limits
+ * whose damage counts and `damageTypeIds` which types do; `rollInfluence` is how that roll differs
+ * from the turn-end one. A room's damage funnel raises it.
+ */
+export const activeEffectRepeatTriggerSchema = lazySchema(() =>
+  z.strictObject({
+    event: z.literal('DAMAGE_TAKEN'),
+    by: pathLifecycleEndTriggerBySchema,
+    damageTypeIds: z.nullable(damageTypeFilterDtoSchema),
+    rollInfluence: z.nullable(z.enum(['ADVANTAGE', 'DISADVANTAGE']))
+  })
+)
+
+/** The repeat triggers of one effect: unique, in canonical order. */
+export const activeEffectRepeatTriggersSchema = lazySchema(() =>
+  z
+    .array(activeEffectRepeatTriggerSchema)
+    .check(z.minLength(1))
+    .check(z.maxLength(16))
+    .check(
+      z.superRefine((triggers, context) => {
+        const keys = triggers.map((trigger) => JSON.stringify(trigger))
+        if (new Set(keys).size !== keys.length)
+          context.addIssue({
+            code: 'custom',
+            message: 'Active-effect repeat triggers must be unique.'
+          })
+        if (keys.some((key, index) => index > 0 && keys[index - 1]! > key))
+          context.addIssue({
+            code: 'custom',
+            message: 'Active-effect repeat triggers must be sorted.'
+          })
+      })
+    )
+)
+
 /** The events whose first occurrence uses a grant up: sorted and unique. */
 export const activeEffectConsumeEventsSchema = lazySchema(() =>
   sortedUniqueEventsSchema(pathLifecycleConsumeEventSchema, 'consume events')
@@ -230,6 +269,8 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       consumeOnFirstEvents: activeEffectConsumeEventsSchema,
       endOnEvents: activeEffectEndEventsSchema,
       endOnTriggers: z._default(activeEffectEndTriggersSchema, []),
+      /** Events that repeat the effect's save outside its holder's turn; absent when none do. */
+      repeatTriggers: z.optional(activeEffectRepeatTriggersSchema),
       endOnConditionIds: activeGrantEndConditionIdsSchema,
       holderEnd: z.nullable(activeGrantHolderEndSchema),
       /** Only the effect's Encounter source meets its attacker grants and attack consume. */
@@ -238,6 +279,8 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
       /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
       uses: z.optional(activeEffectUsesSchema),
+      /** Only on a repeat save counted to thresholds; its lifecycle `saveTally` counts toward these. */
+      saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),
@@ -715,6 +758,9 @@ export type ActiveEffectEndEvent = z.infer<typeof pathLifecycleEndEventSchema>
 
 /** A structured event that ends an active effect early. */
 export type ActiveEffectEndTrigger = z.infer<typeof activeEffectEndTriggerSchema>
+
+/** A structured event that repeats an active effect's save. */
+export type ActiveEffectRepeatTrigger = z.infer<typeof activeEffectRepeatTriggerSchema>
 
 /** The events that end an Encounter grant early. */
 export type GrantEndEvent = z.infer<typeof pathLifecycleGrantEndEventSchema>
