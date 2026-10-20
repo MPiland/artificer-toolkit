@@ -92,6 +92,7 @@ import {
   encounterZoneChoiceTarget
 } from '../../encounterAreaAction.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
+import { withinHitPointTier } from '../../hitPointTiers.js'
 import {
   passiveMeleeRetaliationZone,
   placedSpaceZone,
@@ -4990,7 +4991,7 @@ function hitPointGatedTargetOnlyProposalOperation(
         )
       return {
         ...base.execute(inputs),
-        authorized: targetCurrentHitPoints <= hitPointsAtMost
+        authorized: withinHitPointTier(targetCurrentHitPoints, hitPointsAtMost)
       }
     }
   }
@@ -5623,7 +5624,8 @@ export const dnd5eHitPointGatedConditionApplyProposalOperation: ProposalRuleOper
     const base = dnd5eConditionApplyProposalOperation.execute(inputs)
     return {
       ...base,
-      authorized: base.authorized === true && targetCurrentHitPoints <= hitPointsAtMost
+      authorized:
+        base.authorized === true && withinHitPointTier(targetCurrentHitPoints, hitPointsAtMost)
     }
   }
 }
@@ -8029,6 +8031,139 @@ function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolea
   return plan?.maintenance != null
 }
 
+/**
+ * The action narrowed to each hit-point tier its entries author, with the entries no tier owns
+ * (a success path's immunity) riding every tier; null for an action that authors no tier.
+ */
+function hitPointTierActions(
+  action: Dnd5eCompiledEffectActionSource
+): { atMost: number; tierAction: Dnd5eCompiledEffectActionSource }[] | null {
+  const { entries } = action.compiledEffect
+  const tierOf = (entry: (typeof entries)[number]) =>
+    'hitPointTier' in entry ? entry.hitPointTier?.atMost : undefined
+  const atMosts = [...new Set(entries.flatMap((entry) => tierOf(entry) ?? []))]
+  if (atMosts.length === 0) return null
+  return atMosts.map((atMost) => ({
+    atMost,
+    tierAction: {
+      ...action,
+      compiledEffect: {
+        ...action.compiledEffect,
+        entries: entries
+          .filter((entry) => tierOf(entry) === undefined || tierOf(entry) === atMost)
+          .map((entry) => {
+            if (!('hitPointTier' in entry)) return entry
+            const { hitPointTier: _tier, ...untiered } = entry
+            return untiered
+          })
+      }
+    }
+  }))
+}
+
+function dnd5eActiveEffectPlans(
+  action: Dnd5eCompiledEffectActionSource,
+  published: ServerPublishedRuleDefinitionDto
+): CharacterRuleActionActiveEffectPlan[] {
+  if (published.id !== action.effectId || published.checksum.length !== 64)
+    throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
+  const composed = sequentialCompositionPlan(action)
+  if (composed) return [composed]
+  const repeatPlan =
+    repeatingDirectFollowUpSavePlan(action) ??
+    repeatingDirectFollowUpSavePlan(action, 'ACTIVATED') ??
+    repeatingImmediateFollowUpSavePlan(action)
+  const timedPlan = repeatPlan
+    ? null
+    : (timedImmediateConditionPlan(action) ??
+      timedConditionPlan(action) ??
+      modifierGrantPlan(action) ??
+      actorLinkPlan(action) ??
+      creatureFormPlan(action))
+  const relationship = relationshipPlan(action)
+  const plan =
+    repeatPlan ??
+    timedPlan ??
+    relationship ??
+    supportedRecurringPlan(action) ??
+    concealmentPlan(action)
+  // A chosen item rides a grant plan; with any other plan its binding or release would vanish.
+  if (
+    !plan?.chosenItem &&
+    action.compiledEffect.entries.some(
+      (entry) =>
+        'outcome' in entry &&
+        (entry.chosenItem !== undefined ||
+          entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ||
+          (entry.outcome.effectKind === 'APPLY_GRANT' &&
+            (entry.outcome.bindsChosenItem || entry.outcome.unlessChosenItemReleased)))
+    )
+  )
+    unsupported('D&D chosen item needs a timed grant it rides.')
+  const sourceImmunity = sourceImmunityPlan(action)
+  // The immunity rides the plan the action makes; with no such plan it would silently vanish. A
+  // save's immunity under a Concentration would end with it, so it is refused; a lockout is
+  // created apart from the Concentration it outlasts, and takes the slot a failure rider would.
+  if (
+    sourceImmunity &&
+    (!plan || (sourceImmunity.appliesTo === 'SAVE_SUCCESS' ? plan.maintenance : plan.marginRider))
+  )
+    unsupported('D&D source immunity needs a lasting effect it can ride.')
+  if (!plan) return []
+  const frozenGraph = repeatPlan
+    ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
+    : timedPlan
+      ? durationPublishedGraph({ effectId: action.effectId, plan: timedPlan })
+      : relationship
+        ? relationship.frozenGraph
+        : published
+  const test = repeatPlan || timedPlan || relationship ? null : testPlan(action)
+  const outcome = repeatPlan || timedPlan || relationship || test ? null : supported(action)
+  const firstEntry = action.compiledEffect.entries[0]
+  const recurringOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : null
+  const expectedOperation = relationship
+    ? relationship.recurrenceStage === 'START_OF_TURN'
+      ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
+      : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+    : repeatPlan
+      ? DND5E_SAVE_TEST_OPERATION_KEY
+      : timedPlan
+        ? DND5E_CONDITION_DURATION_OPERATION_KEY
+        : test && recurringOutcome
+          ? testProposalOperationKey(boundedTestOutcome(action.compiledEffect.entries[0]!))
+          : outcome?.kind === 'DICE_HEAL'
+            ? outcome.temporary
+              ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
+              : DND5E_HEAL_PROPOSAL_OPERATION_KEY
+            : outcome?.kind === 'HEAL'
+              ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
+              : outcome?.kind === 'TEMPORARY_HIT_POINTS'
+                ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
+                : outcome?.kind === 'DAMAGE'
+                  ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
+                  : outcome?.kind === 'CONCEAL'
+                    ? DND5E_CONCEAL_PROPOSAL_OPERATION_KEY
+                    : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+  if (
+    frozenGraph.definition.nodes.filter(
+      (node) => node.id === plan.frozenGraphNodeId && node.operation.key === expectedOperation
+    ).length !== 1
+  )
+    throw new Dnd5eEffectActionCompilerError(
+      'The D&D active effect plan does not bind one exact frozen graph node.'
+    )
+  if (
+    frozenGraph.definition.sourceEntryBindings?.filter(
+      (binding) =>
+        binding.sourceEntryId === plan.compiledEntryId && binding.nodeId === plan.frozenGraphNodeId
+    ).length !== 1
+  )
+    throw new Dnd5eEffectActionCompilerError(
+      'The D&D active effect plan does not bind one exact authored result block.'
+    )
+  return [{ ...plan, frozenGraph, ...(sourceImmunity && { sourceImmunity }) }]
+}
+
 function compileDnd5eEffectAction({
   action
 }: {
@@ -8991,7 +9126,8 @@ function hitPointGateEvidenceIsValid(
     typeof ceiling.value === 'number' &&
     input.execution.evidence.facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] ===
       input.currentHitPoints &&
-    trace.outputs.authorized === (otherwiseAuthorized && input.currentHitPoints <= ceiling.value)
+    trace.outputs.authorized ===
+      (otherwiseAuthorized && withinHitPointTier(input.currentHitPoints, ceiling.value))
   )
 }
 
@@ -10231,104 +10367,15 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   },
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
-    if (published.id !== action.effectId || published.checksum.length !== 64)
-      throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
-    const composed = sequentialCompositionPlan(action)
-    if (composed) return [composed]
-    const repeatPlan =
-      repeatingDirectFollowUpSavePlan(action) ??
-      repeatingDirectFollowUpSavePlan(action, 'ACTIVATED') ??
-      repeatingImmediateFollowUpSavePlan(action)
-    const timedPlan = repeatPlan
-      ? null
-      : (timedImmediateConditionPlan(action) ??
-        timedConditionPlan(action) ??
-        modifierGrantPlan(action) ??
-        actorLinkPlan(action) ??
-        creatureFormPlan(action))
-    const relationship = relationshipPlan(action)
-    const plan =
-      repeatPlan ??
-      timedPlan ??
-      relationship ??
-      supportedRecurringPlan(action) ??
-      concealmentPlan(action)
-    // A chosen item rides a grant plan; with any other plan its binding or release would vanish.
-    if (
-      !plan?.chosenItem &&
-      action.compiledEffect.entries.some(
-        (entry) =>
-          'outcome' in entry &&
-          (entry.chosenItem !== undefined ||
-            entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ||
-            (entry.outcome.effectKind === 'APPLY_GRANT' &&
-              (entry.outcome.bindsChosenItem || entry.outcome.unlessChosenItemReleased)))
+    const tiers = hitPointTierActions(action)
+    if (tiers)
+      return tiers.flatMap(({ atMost, tierAction }) =>
+        dnd5eActiveEffectPlans(tierAction, published).map((plan) => ({
+          ...plan,
+          hitPointTier: { atMost }
+        }))
       )
-    )
-      unsupported('D&D chosen item needs a timed grant it rides.')
-    const sourceImmunity = sourceImmunityPlan(action)
-    // The immunity rides the plan the action makes; with no such plan it would silently vanish. A
-    // save's immunity under a Concentration would end with it, so it is refused; a lockout is
-    // created apart from the Concentration it outlasts, and takes the slot a failure rider would.
-    if (
-      sourceImmunity &&
-      (!plan || (sourceImmunity.appliesTo === 'SAVE_SUCCESS' ? plan.maintenance : plan.marginRider))
-    )
-      unsupported('D&D source immunity needs a lasting effect it can ride.')
-    if (!plan) return []
-    const frozenGraph = repeatPlan
-      ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
-      : timedPlan
-        ? durationPublishedGraph({ effectId: action.effectId, plan: timedPlan })
-        : relationship
-          ? relationship.frozenGraph
-          : published
-    const test = repeatPlan || timedPlan || relationship ? null : testPlan(action)
-    const outcome = repeatPlan || timedPlan || relationship || test ? null : supported(action)
-    const firstEntry = action.compiledEffect.entries[0]
-    const recurringOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : null
-    const expectedOperation = relationship
-      ? relationship.recurrenceStage === 'START_OF_TURN'
-        ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-        : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
-      : repeatPlan
-        ? DND5E_SAVE_TEST_OPERATION_KEY
-        : timedPlan
-          ? DND5E_CONDITION_DURATION_OPERATION_KEY
-          : test && recurringOutcome
-            ? testProposalOperationKey(boundedTestOutcome(action.compiledEffect.entries[0]!))
-            : outcome?.kind === 'DICE_HEAL'
-              ? outcome.temporary
-                ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-                : DND5E_HEAL_PROPOSAL_OPERATION_KEY
-              : outcome?.kind === 'HEAL'
-                ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
-                : outcome?.kind === 'TEMPORARY_HIT_POINTS'
-                  ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-                  : outcome?.kind === 'DAMAGE'
-                    ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-                    : outcome?.kind === 'CONCEAL'
-                      ? DND5E_CONCEAL_PROPOSAL_OPERATION_KEY
-                      : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
-    if (
-      frozenGraph.definition.nodes.filter(
-        (node) => node.id === plan.frozenGraphNodeId && node.operation.key === expectedOperation
-      ).length !== 1
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The D&D active effect plan does not bind one exact frozen graph node.'
-      )
-    if (
-      frozenGraph.definition.sourceEntryBindings?.filter(
-        (binding) =>
-          binding.sourceEntryId === plan.compiledEntryId &&
-          binding.nodeId === plan.frozenGraphNodeId
-      ).length !== 1
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The D&D active effect plan does not bind one exact authored result block.'
-      )
-    return [{ ...plan, frozenGraph, ...(sourceImmunity && { sourceImmunity }) }]
+    return dnd5eActiveEffectPlans(action, published)
   },
   bindFacts: ({
     actionMechanic,

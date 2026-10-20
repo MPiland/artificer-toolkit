@@ -27,6 +27,7 @@ import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { selectHitPointTierPlan } from './hitPointTiers.js'
 
 type CharacterActionMovementFacts = CharacterMovementFacts & {
   sheetState: Pick<CharacterSheetState, 'resourceUsage' | 'itemUsage'>
@@ -149,18 +150,28 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
   })
 }
 
-/** The active-effect plan an action's capability carries, selected by the definition that ran. */
+/**
+ * The active-effect plan an action's capability carries, selected by the definition that ran. An
+ * action tiered on hit points carries one plan per tier; the target's current hit points pick it.
+ */
 export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMovementFacts>(
   prepared: PreparedMechanics<TCharacterFacts>,
   published: CompleteExecution['published']
 ) {
+  const plans: readonly CharacterRuleActionActiveEffectPlan[] =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? (prepared.source.entry.compilation.hitPointTierPlans ?? [])
+      : (prepared.adapter.activeEffectPlans?.({
+          action: prepared.source.capability,
+          published
+        }) ?? [])
+  if (plans.some((plan) => plan.hitPointTier)) {
+    const target = prepared.movementTargets.get(prepared.target.id)
+    if (!target) throw new Error('Encounter action effect target is stale.')
+    return selectHitPointTierPlan(plans, target.state.current)
+  }
   if (prepared.source.kind === 'CHARACTER_ACTION')
     return prepared.source.entry.compilation.activeEffectPlan
-  const plans =
-    prepared.adapter.activeEffectPlans?.({
-      action: prepared.source.capability,
-      published
-    }) ?? []
   if (plans.length > 1) throw new Error('Encounter action selected multiple active-effect plans.')
   return plans[0] ?? null
 }

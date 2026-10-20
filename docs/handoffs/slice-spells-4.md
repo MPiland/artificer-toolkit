@@ -417,14 +417,20 @@ Generic "damage that would drop the holder to 0 hit points leaves it at N instea
 
 POWER_WORD_STUN is data: one SEQUENCE result block gated at 150 hit points, a `stunned` CONDITION for 1 minute, and a FOLLOW_UP_SAVE (Constitution, SOURCE_SAVE_DC, `TARGET_TURN_END`, onSuccess END). Mechanism, all generic: `dnd5e.condition-apply-proposal` v2 (`dnd5eHitPointGatedConditionApplyProposalOperation`, authorized = not immune and hit points at most the ceiling); the gate guard allows CONDITION_APPLY as well as KILL; `repeatingDirectFollowUpSavePlan(action, triggerCode)` also accepts an `ACTIVATED` action (both entries on ON_USE, CONDITION lead) and carries `dnd5e.save-dc` through `castFactKeys`. Proofs: `powerWordStun.test.ts`, the Stun block in `coreOptionSpells.test.ts`, `apps/session-worker/test/nativeRoomStunSpell.test.ts`.
 
-### T2i4 resume (Divine Word, size 2; fresh session)
+### T2i4a (hit-point tier selection seam, done; `ci/spells-4-t2i4a`)
 
-Converts DIVINE_WORD and deletes the kind. Not started. Branch from the phase branch; push to `ci/spells-4-t2i4`.
+T2i4 was split: T2i4a is the generic tier-selection seam, T2i4b the tiered save graph and Divine Word. Mechanism: `packages/rules-runtime/src/hitPointTiers.ts` is the one place a target's current hit points are compared with a ceiling (`withinHitPointTier`, `selectHitPointTier`: the lowest `atMost` the hit points satisfy wins, none means no tier, `selectHitPointTierPlan`); the T2i gated proposal operations and `hitPointGateEvidenceIsValid` call it. The dnd5e adapter's `activeEffectPlans` narrows an action to each tier its compiled entries carry (`hitPointTier` from a `HIT_POINT_TIERS` row; untiered entries ride every tier) and plans each, stamping `hitPointTier: { atMost }` on the plan. `compileActionPlans` accepts either one plan or a tiered list (unique `atMost`, no untiered plan beside it, none inside a cast pick) and persists it as `compilation.hitPointTierPlans` (`activeEffectPlan` is then null; absent for every single-plan action). `encounterActiveEffectPlan` picks the target's plan by its current hit points. Proofs: `hitPointTiers.test.ts`, `hitPointTierPlans.test.ts` (the entry-point compile stands in a published graph; the tiered one is T2i4b); single-plan actions are proved unchanged by the existing suites (`powerWordStun`, `concealCompile`, `characterSpellCastActions`).
 
-- The tier contract exists (T2i): path `selectionKind: 'HIT_POINT_TIERS'` with `hitPointTierRows` (`atMost`, `resultBlock`; node maps `HIT_POINT_TIER_ROW_NODE_MAP`, `NON_MANIFEST_HIT_POINT_TIER_ROW_NODE_MAP`; web defaults `pathHitPointTierRow`). Nothing selects a tier at runtime yet; the lowest `atMost` the target's hit points satisfy wins (exclusive tiers, 20/30/40/50).
-- Build: runtime tier selection from the bound `dnd5e.target-current-hit-points` fact (reuse the T2i fact and the v2 proposal operation pattern in `effectActionCompiler.ts`); per-tier durations (Deafened, Blinded, Stunned, and the 50-hp-or-less KILL-free tiers per the spell text) and per-tier entry ids so each tier's application has its own evidence id.
-- Planar banishment stays description-only (no plane model); add it to future-enhancements if absent.
-- Proof: rules-runtime test per tier boundary (20, 21, 30, 31, 40, 41, 50, 51), a room journey, a parity proof, delete DIVINE_WORD from `closedRuleKind.ts`.
+Maintenance readers (`encounterActionMaintenance.ts`, `encounterSourceImmunity.ts`, `actionChoiceReads.ts`, `nativeEncounterRules.ts`) read `compilation.activeEffectPlan`, which is null for a tiered action: a tier plan may author no maintenance or source immunity until one of them needs it.
+
+### T2i4b resume (Divine Word, size 2; fresh session)
+
+Converts DIVINE_WORD and deletes the kind. Not started. Branch from the phase branch with T2i4a merged; push to `ci/spells-4-t2i4b`.
+
+- A tiered action does not compile end to end yet: `compileExecutionPlan`/`adapter.compile` refuse it (a tiered spell becomes MANUAL). Build the tiered **save** graph: `testPlan` refuses distinct result blocks on one path ("D&D test action branches must not merge distinct authored result blocks") and `refuseGate` blocks a gate beside a save/test; both need to admit tiers on the ON_SAVE_FAIL path. Divine Word saves once (Charisma, SOURCE_SAVE_DC, CHOSEN_CREATURES); the failed-save path then selects the tier by the target's hit points.
+- Each tier's entry has its own entry id, so its application has its own evidence id; the KILL tier (20 or fewer) is a generic `KILL` outcome inside the save-fail graph, negated by Death Ward (T2i2).
+- Data (`packages/source-data/src/srd/spells/divine-word.ts`): `selectionKind: 'HIT_POINT_TIERS'` rows 50 (deafened, 1 minute), 40 (deafened and blinded, 10 minutes), 30 (blinded, deafened and stunned, 1 hour), 20 (KILL). Planar banishment stays description-only (no plane model); add it to future-enhancements if absent.
+- Proof: rules-runtime test per tier boundary (20, 21, 30, 31, 40, 41, 50, 51) through the real compile and graph, a room journey, an authoring-parity proof, and delete DIVINE_WORD from `closedRuleKind.ts`. Then drop the published-graph stand-in in `hitPointTierPlans.test.ts` (`compiledTieredCast`): the real tiered graph replaces it.
 
 ### T2m1 (Animal Friendship; repeat-save design ruled 2026-10-20)
 
