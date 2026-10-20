@@ -15,3 +15,11 @@ Proofs: `srdCreatureHitRiders.test.ts` (rules-runtime) and `nativeRoomMonsterRid
 Lightning Storm names each creature once. A repeating save list is refused on purpose (`isSupportedTestTargetPolicy`: a creature named twice would save twice), so the print's "each bolt can strike a target" cannot aim two bolts at one creature. Allowing it needs a ruling on repeated save targets; it is not built.
 
 None of the three was on `SRD_CREATURE_ATTACK_UNSUPPORTED`, so the allowlist does not shrink.
+
+## ATTACK-5.T2 (5.3 to 5.7)
+
+Clay Golem Slam, Cloaker Bite, Dryad Shillelagh club and the enlarged Duergar war pick and javelin already ran from generic options (ACs 8.1: the GM picks the exact option). None was on `SRD_CREATURE_ATTACK_UNSUPPORTED`, so the allowlist is unchanged. T2 only adds proof: `srdCreatureHitRiders.test.ts` (rules-runtime, with an option picker on `prepareCreatureAction`) and `nativeRoomHitRiders.test.ts` (room journeys).
+
+## ATTACK-5.T3 (5.10 to 5.14)
+
+Quasit Claws and Scare, Shadow Strength Drain, Spirit Naga Bite and Rug of Smothering Smother all run from generic options; none was on `SRD_CREATURE_ATTACK_UNSUPPORTED`, so the allowlist is unchanged. One authoring gap: Scare's result block id was `actionId + '__result'`, which is not a UUID, so the repeating-save plan refused it ("unsupported bounded shape"). It now uses a UUID like the Dust Mephit's. The Rug's Smother is size-capped to Medium, so it is proved against a Medium target (a Large Ogre is not a legal target). Proofs: `srdCreatureHitRiders.test.ts` (rules-runtime, with a target picker on `attackOgre`) and `nativeRoomHitRiders.test.ts` (room journeys).

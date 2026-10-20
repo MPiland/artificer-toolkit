@@ -34,6 +34,10 @@ async function attackOgre(input: {
   feature: string
   rolls: readonly number[]
   attackerHitPoints?: number
+  /** The label of the feature option the GM picks (a Dryad's Shillelagh club, an enlarged Duergar pick). */
+  option?: string
+  /** The label of the target Creature; the Ogre unless the attack is size-capped. */
+  target?: string
 }) {
   const attacker = srdByLabel(SRD.creatures, input.attacker)
   const prepared = await prepareCreatureAction({
@@ -44,8 +48,16 @@ async function attackOgre(input: {
         ? {}
         : { currentHitPoints: input.attackerHitPoints })
     }),
-    target: srdCreatureActor({ id: TARGET_ID, creature: srdByLabel(SRD.creatures, 'Ogre') }),
+    target: srdCreatureActor({
+      id: TARGET_ID,
+      creature: srdByLabel(SRD.creatures, input.target ?? 'Ogre')
+    }),
     featureId: creatureFeature(attacker, input.feature).id,
+    ...(input.option && {
+      effectId: creatureFeature(attacker, input.feature).options?.find(
+        ({ label }) => label === input.option
+      )?.effects?.[0]?.id
+    }),
     overridable: true
   })
   const { execution, mechanics } = await settleCreatureAction({ prepared, rolls: input.rolls })
@@ -389,6 +401,164 @@ describe('SRD swarm attacks', () => {
     expect(resolve(null)).toBeNull()
     expect(resolve({ current: 12, maximum: 22 })).toBe('4d4')
     expect(resolve({ current: 11, maximum: 22 })).toBe('2d4')
+  })
+})
+
+describe('SRD Creature hits the GM picks the exact option of (ATTACK-5.3 to 5.7)', () => {
+  it('reduces the target’s hit point maximum by the Clay Golem’s Slam damage on a failed save, not on a success', async () => {
+    // Slam, +8: 2d10 + 5 bludgeoning, then DC 15 Constitution; the Ogre saves at +3.
+    const failed = await attackOgre({
+      attacker: 'Clay Golem',
+      feature: 'Slam',
+      rolls: [9, 0, 0, 0]
+    })
+    expect(failed.execution.nestedD20).toMatchObject({
+      defenseOrDc: 15,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.damage).toEqual([[7, srdDamageTypeId('BLUDGEONING')]])
+    expect(failed.transition.after.maximumHitPoints).toBe(
+      failed.transition.before.maximumHitPoints - 7
+    )
+
+    const saved = await attackOgre({
+      attacker: 'Clay Golem',
+      feature: 'Slam',
+      rolls: [9, 0, 0, 19]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.transition.after.maximumHitPoints).toBe(saved.transition.before.maximumHitPoints)
+  })
+
+  it('deals the Cloaker’s Bite damage and attaches it to the Ogre, a Large target', async () => {
+    // Bite, +6: 2d6 + 3 piercing with both dice rolling 1.
+    const hit = await attackOgre({ attacker: 'Cloaker', feature: 'Bite', rolls: [9, 0, 0] })
+    expect(hit.damage).toEqual([[5, srdDamageTypeId('PIERCING')]])
+    expect(hit.effects.recurringEffect?.definition).toBeDefined()
+  })
+
+  it.each([
+    { attacker: 'Dryad', feature: 'Club', option: 'Club', rolls: [9, 0], damage: 1 },
+    { attacker: 'Dryad', feature: 'Club', option: 'Club (Shillelagh)', rolls: [9, 0], damage: 5 },
+    { attacker: 'Duergar', feature: 'War Pick', option: 'War Pick', rolls: [9, 0], damage: 3 },
+    {
+      attacker: 'Duergar',
+      feature: 'War Pick',
+      option: 'War Pick (Enlarged)',
+      rolls: [9, 0, 0],
+      damage: 4
+    },
+    {
+      attacker: 'Duergar',
+      feature: 'Javelin',
+      option: 'Javelin (Melee, Enlarged)',
+      rolls: [9, 0, 0],
+      damage: 4
+    },
+    {
+      attacker: 'Duergar',
+      feature: 'Javelin',
+      option: 'Javelin (Ranged, Enlarged)',
+      rolls: [9, 0, 0],
+      damage: 4
+    }
+  ])('deals the $attacker’s $option damage', async ({ damage, ...input }) => {
+    const hit = await attackOgre(input)
+    expect(hit.damage.map(([amount]) => amount)).toEqual([damage])
+  })
+})
+
+describe('SRD Creature hits with saves, drains and holds (ATTACK-5.10 to 5.14)', () => {
+  it('poisons the Ogre with the Quasit’s Claws on a failed save, not on a success', async () => {
+    // Claws, +4: 1d4 + 3 piercing, then DC 10 Constitution: 2d4 poison and poisoned for 1 minute.
+    const failed = await attackOgre({
+      attacker: 'Quasit',
+      feature: 'Claws (Bite in Beast Form)',
+      rolls: [9, 0, 0, 0, 0]
+    })
+    expect(failed.execution.nestedD20).toMatchObject({
+      defenseOrDc: 10,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.damage).toEqual([
+      [4, srdDamageTypeId('PIERCING')],
+      [2, srdDamageTypeId('POISON')]
+    ])
+    expect(failed.conditionIds).toEqual([srdCondition('Poisoned')])
+
+    const saved = await attackOgre({
+      attacker: 'Quasit',
+      feature: 'Claws (Bite in Beast Form)',
+      rolls: [9, 0, 19, 0, 0]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.damage.map(([amount]) => amount)).toEqual([4])
+    expect(saved.conditionIds).toEqual([])
+  })
+
+  it('frightens the Ogre with the Quasit’s Scare on a failed Wisdom save', async () => {
+    const scared = await attackOgre({
+      attacker: 'Quasit',
+      feature: 'Scare (1/Day)',
+      rolls: [0]
+    })
+    expect(scared.execution.d20).toMatchObject({ defenseOrDc: 10, resultPath: 'ON_SAVE_FAIL' })
+    expect(scared.conditionIds).toEqual([srdCondition('Frightened')])
+  })
+
+  it('takes the Spirit Naga’s Bite poison in full on a failed save and half on a success', async () => {
+    // Bite, +7: 1d6 + 4 piercing, then DC 13 Constitution: 7d8 poison, half on a success.
+    const failed = await attackOgre({
+      attacker: 'Spirit Naga',
+      feature: 'Bite',
+      rolls: [9, 0, 0, ...Array<number>(7).fill(0)]
+    })
+    expect(failed.damage).toEqual([
+      [5, srdDamageTypeId('PIERCING')],
+      [7, srdDamageTypeId('POISON')]
+    ])
+    const saved = await attackOgre({
+      attacker: 'Spirit Naga',
+      feature: 'Bite',
+      rolls: [9, 0, 19, ...Array<number>(7).fill(0)]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.damage.map(([amount]) => amount)).toEqual([5, 3])
+  })
+
+  it('reduces the Ogre’s Strength with the Shadow’s Strength Drain', async () => {
+    // Strength Drain, +4: 2d6 + 2 necrotic, and Strength drops by 1d4 (rolling 4).
+    const drained = await attackOgre({
+      attacker: 'Shadow',
+      feature: 'Strength Drain',
+      rolls: [9, 0, 0, 3]
+    })
+    expect(drained.damage).toEqual([[4, srdDamageTypeId('NECROTIC')]])
+    expect(drained.receiptApplications).toContainEqual(
+      expect.objectContaining({ kind: 'SCALAR_REDUCTION', reductionAmount: 4 })
+    )
+  })
+
+  it('grapples, restrains and blinds a Medium target with the Rug of Smothering', async () => {
+    // Smother, +5 against the Veteran's AC 17: grappled, restrained and blinded, escape DC 13.
+    const hit = await attackOgre({
+      attacker: 'Rug of Smothering',
+      feature: 'Smother',
+      rolls: [14],
+      target: 'Veteran'
+    })
+    const definition = hit.effects.recurringEffect?.definition
+    if (definition?.schemaVersion !== 2)
+      throw new Error('Expected the grapple relationship effect.')
+    expect(
+      definition.stateContributions
+        .flatMap((contribution) =>
+          contribution.kind === 'ACTOR_RELATIONSHIP' ? contribution.conditionIds : []
+        )
+        .sort()
+    ).toEqual(
+      [srdCondition('Blinded'), srdCondition('Grappled'), srdCondition('Restrained')].sort()
+    )
   })
 })
 
