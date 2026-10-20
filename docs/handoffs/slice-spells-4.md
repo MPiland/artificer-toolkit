@@ -397,3 +397,34 @@ Converts POWER_WORD_KILL, POWER_WORD_STUN and DIVINE_WORD; each kind is deleted.
 - Reuses existing outcomes: `CONDITION` (Stunned, Deafened, Blinded), `STABILIZE`, `FOLLOW_UP_SAVE` (Power Word Stun's end-of-turn Constitution save).
 - Rejected: a nested-outcome wrapper kind (nothing nests outcomes today) and a `FacetAuthored` predicate (facets are evaluated at authoring time against static subjects, not live hit points).
 - Where: `packages/shared/src/domains/effects/{authored,core,maps,compilers}`, `packages/schema/src/effects`, `effectActionCompiler.ts` (gate beside `conditionImmune`), `encounterCharacterMechanicsBatch.ts` (KILL application). Full packet: side-session notes `spells-4-t2i-design-packet.md`.
+
+### T2m1 (Animal Friendship; repeat-save design ruled 2026-10-20)
+
+Split of SPELLS-4.T2m (orchestrator ruling): T2m1 (this), T2m1b (the DAMAGE_TAKEN repeat-save funnel hook), T2m1c (THRESHOLDS `saveTally`), T2m1d (holder-action save, below), T2m2 (condition suppression), T2m3 (Slimy Doom and the Contagion disease rows). CONTAGION's kind is deleted in T2l2.
+
+- Status: Animal Friendship converted and its `ANIMAL_FRIENDSHIP` closed-rule kind deleted; parity proof green in the light lane (`characterSpellCastActions.test.ts`, 121/121). Irresistible Dance and Hideous Laughter did not land here (see the two findings).
+- Animal Friendship is authored data only: a Wisdom `SAVING_THROW` cast, `ON_SAVE_FAIL` to a `CHARMED` condition for a day, `lifecycle.endOnTriggers` `DAMAGE_TAKEN` by `SOURCE_SIDE`, `allowedCreatureTypeIds: [BEAST]`. The compiler counted no `DAY` duration, so `TURNS_PER_DURATION_UNIT` gained `DAY: 14_400` (the active-effect tick cap, `MAX_ACTIVE_EFFECT_TURNS`).
+- Accepted gaps: the Intelligence gates (Animal Friendship, Hideous Laughter) are description-only, one line in future-enhancements "Deferred edge cases"; Hideous Laughter's "unable to stand up" and Calm Emotions' indifference are description-only/manual (T2m2 notes the latter).
+- Finding 1, the escape seam is check-only: `findEncounterHolderEscape` / `prepareEncounterEscapeCheck` / `escapeEffectVerification` / `nativeEscapeAction` / `escapeCheckApplicationOutputDtoSchema` all roll an ability or skill check against a stored numeric DC, and `CONDITION_ESCAPE` is valid only beside a spatially held condition (`activeRuleEffects.ts` superRefine). The grant-effect compile path (`modifierGrantEntryPlan`) rejects an unknown `lifecycle.escape`. A save variant needs: an authored/stored roll kind, a non-zone `CONDITION_ESCAPE` (escape source = the effect), save facts from `selectDnd5eTargetSavingThrow(target.targetDerivedFacts.savingThrowDefinitions, abilityId)` (already carries conditions and grants: Dex disadvantage), the pending-context and application-output schemas, `escapeEffectVerification`, the planner and the offers in `actionChoiceReads.ts`.
+- Finding 2, no cast DC for a non-save cast: `castSaveDcFactKey` pins `input.d20.defenseOrDc`, which only a cast with a save roll has. Irresistible Dance's cast has no save (the save is the holder's later action), so its spell save DC (`characterActionState.actionMechanic.save?.dc` is how zones read it, `nativeEncounterAreaRules.ts:2515`) needs a new pin path through the single-target effect plan input.
+
+#### Resume: T2m1d (size 8, after T2m1; needs registering)
+
+Irresistible Dance and the generic holder-action save. Ruled seam: extend `lifecycle.escape` with a saving-throw roll (do not fork it; do not use `grantedActions`). Work, in order:
+1. Authored `escape.savingThrow` (abilityDefinitionId, `dc: SOURCE_SAVE_DC`), Zod schema, node maps; stored `CONDITION_ESCAPE` gains the roll kind and is allowed on a non-zone effect (`escapeSourceId` = the effect id).
+2. Cast DC pin for a non-save cast (Finding 2): resolve the caster's spell save DC at cast and store it under `DND5E_SAVE_DC_FACT_KEY`.
+3. `modifierGrantEntryPlan`: destructure `escape` from `lifecycle` and carry it to the stored contribution.
+4. Runtime/room: save facts in `prepareEncounterEscapeCheck`, ON_SAVING_THROW consumed grants, pending-context and output schemas, `escapeEffectVerification`, `nativeEscapeAction`, offers; success ends the effect.
+5. Dance data: speed multiply 0, ADVANTAGE `ATTACKS_AGAINST` (`requiresHolderSeesAttacker: false`), DISADVANTAGE on attack rolls and Dex saves, charm immunity via the existing path; delete `IRRESISTIBLE_DANCE`. Proofs: grant parity and a room journey (the dancer saves as an action and the effect ends; a failed save keeps it).
+
+#### Resume: T2m1b (size 3, `repeatTriggers`, funnel hook)
+
+`FollowUpSave.repeatTriggers: [{ kind: 'DAMAGE_TAKEN', by: 'ANYONE' | 'SOURCE_SIDE', damageTypeIds?, rollInfluence }]` (DAMAGE_TAKEN only; HOLDER_ACTION is T2m1d's escape, so it is not on this schema). Contract for T2m1b, SPELLS-33.T6e2 (Vampire Charm) and SPELLS-33.T4m: the on-damage repeat timing is exactly this field. The hook is modelled on D161's `raiseRoomHpZeroEffects` (`apps/session-worker/src/roomEncounterHpZeroTriggers.ts`): it reads the committed receipt's DAMAGE applications, raises a SYSTEM root per holder with undo bound to the parent, and runs the effect's frozen save (same DC and ability, advantage when authored); success ends the effect. Converts HIDEOUS_LAUGHTER with room journeys for a single-target hit and an area hit. T2m3 and SPELLS-33.T6e2 follow.
+
+#### Resume: T2m1c (size 5, THRESHOLDS `saveTally`)
+
+`attempts.kind === 'THRESHOLDS'` (`successesToEnd`, `failuresToResolve`, `consecutive`) crosses four layers: the lifecycle schema `packages/schema/src/shared/activeRuleEffectLifecycle.ts`, the staged validators `ruleExecutionTurnResults.ts`, `packages/encounter-persistence/src/turnEffectsPersistence.ts` (checksum and CAS) and `packages/rules-runtime/src/encounterTurnEffects.ts`. Adds a `saveTally {successes, failures}` advanced in the same CAS as `remaining`; ends at `successesToEnd`, runs `onFailure` once at `failuresToResolve`. Includes Contagion's save part; the `CONTAGION` kind stays until T2l2.
+
+#### Resume: T2m2 (size 5) and T2m3 (size 5)
+
+T2m2: `CONDITION_SUPPRESSION { conditionIds, effectOrigin: ANY | MAGICAL, mode: SUPPRESS | PREVENT }` on an APPLY_GRANT holder; SUPPRESS suppresses held conditions without deleting them (they resume if their duration remains), PREVENT refuses a magical apply with a receipt line. Converts CALM_EMOTIONS (indifference stays manual) and FREEDOM_OF_MOVEMENT. T2m3: lifecycle `onTriggers` `DAMAGE_TAKEN` applying a condition (Slimy Doom's stun) and the Contagion disease rows.
