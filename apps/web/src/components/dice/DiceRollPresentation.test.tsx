@@ -201,6 +201,7 @@ describe('DiceRollPresentation', () => {
     expect(screen.getAllByRole('img', { name: 'cancelled' })).toHaveLength(1)
     expect(screen.getByText('Advantage cancelled: the target can sense you')).toBeInTheDocument()
     expect(screen.queryByText('added')).not.toBeInTheDocument()
+    expect(screen.getByText('Advantage → Normal')).toBeInTheDocument()
   })
 
   it('marks an added die as added and keeps the kept die', async () => {
@@ -212,6 +213,7 @@ describe('DiceRollPresentation', () => {
     expect(screen.getByText('added')).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: 'cancelled' })).not.toBeInTheDocument()
     expect(screen.getByText("Advantage: the target can't see you")).toBeInTheDocument()
+    expect(screen.getByText('Normal → Advantage')).toBeInTheDocument()
   })
 
   it('keeps an existing canvas idle when a later roll needs the static fallback', async () => {
