@@ -153,9 +153,22 @@ function zoneEntrySavingThrow(effect: CompiledEffectGroup) {
     : undefined
 }
 
+/**
+ * The save an action with no save of its own repeats on the target's later turns (Power Word Stun):
+ * its DC is the action's to resolve, as a zone's is, so the repeat can be pinned at cast.
+ */
+function followUpSaveSavingThrow(effect: CompiledEffectGroup) {
+  for (const entry of effect.entries)
+    if ('outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE')
+      return entry.outcome.savingThrow
+  return undefined
+}
+
 function normalizeInvocation(
   invocation: CompiledEffectGroup['invocation'],
-  zoneSavingThrow: ReturnType<typeof zoneEntrySavingThrow>
+  zoneSavingThrow:
+    | ReturnType<typeof zoneEntrySavingThrow>
+    | ReturnType<typeof followUpSaveSavingThrow>
 ): ActionMechanicFacts['invocation'] {
   const activation =
     'activation' in invocation
@@ -403,7 +416,10 @@ export function normalizeCharacterActionMechanicFacts(
   }
 
   return {
-    invocation: normalizeInvocation(effect.invocation, zoneEntrySavingThrow(effect)),
+    invocation: normalizeInvocation(
+      effect.invocation,
+      zoneEntrySavingThrow(effect) ?? followUpSaveSavingThrow(effect)
+    ),
     outcomes
   }
 }
