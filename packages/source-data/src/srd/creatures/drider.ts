@@ -161,18 +161,24 @@ export const drider: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The drider makes three attacks, either with its longsword or its longbow. It can replace one of those attacks with a bite attack.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(87, 206),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(87, 1206), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRIDER_MULTIATTACK
+      attackSlots: {
+        alternatives: (['LONGSWORD', 'LONGBOW'] as const).flatMap((weapon) => {
+          const filler = {
+            kind: 'FEATURE' as const,
+            featureId: S.featureId(87, weapon === 'LONGSWORD' ? 8 : 9)
+          }
+          const bite = { kind: 'FEATURE' as const, featureId: S.featureId(87, 7) }
+          return [
+            { slots: [{ count: 3, fillers: [filler] }] },
+            {
+              slots: [
+                { count: 2, fillers: [filler] },
+                { count: 1, fillers: [bite] }
+              ]
+            }
+          ]
         })
-      ],
+      },
       order: 6
     },
     {

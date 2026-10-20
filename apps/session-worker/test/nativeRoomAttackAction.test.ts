@@ -29,6 +29,9 @@ const extraAttack = (() => {
   return feature
 })()
 
+/** The slots of a Fighter 5's Attack action: two attacks of any kind. */
+const TWO_ATTACKS = [{ slots: [{ count: 2, fillers: [{ kind: 'ANY_ATTACK' as const }] }] }]
+
 /** No Scene measures the Club's reach (D11); every attack acknowledges that. */
 const RANGE: ['TARGET_RANGE_UNCHECKED'] = ['TARGET_RANGE_UNCHECKED']
 
@@ -104,11 +107,14 @@ describe('a Fighter’s Attack action in the room', () => {
       after: {
         kind: 'ATTACK_ACTION',
         turnSequence: expect.any(Number),
-        total: 2,
+        alternatives: TWO_ATTACKS,
         attacks: [
           {
             actionId: room.actionId,
+            attack: true,
             targetIds: [WOLF_ID],
+            targetSize: expect.any(String),
+            hit: true,
             // The record names the Club it was made with, for the off-hand requirement.
             item: { itemInstanceId: expect.any(String), properties: srdClub.properties }
           }
@@ -137,7 +143,7 @@ describe('a Fighter’s Attack action in the room', () => {
     expect(secondOutputs.attackActionTransition).toMatchObject({
       before: { attacks: [{ actionId: room.actionId, item: clubItem }] },
       after: {
-        total: 2,
+        alternatives: TWO_ATTACKS,
         attacks: [
           { actionId: room.actionId, item: clubItem },
           { actionId: room.actionId, item: clubItem }
@@ -172,7 +178,7 @@ describe('a Fighter’s Attack action in the room', () => {
           { actionId: room.actionId, item: clubItem }
         ]
       },
-      after: { total: 2, attacks: [{ actionId: room.actionId, item: clubItem }] }
+      after: { alternatives: TWO_ATTACKS, attacks: [{ actionId: room.actionId, item: clubItem }] }
     })
     await undo(room)
     expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 2, total: 2 })
@@ -196,8 +202,8 @@ describe('an incapacitated Fighter finishing its Attack action in the room', () 
       resources: withEncounterAttackActionState(spent, {
         kind: 'ATTACK_ACTION',
         turnSequence: 1,
-        total: 2,
-        attacks: [{ actionId: testUuid(0xd10), targetIds: [WOLF_ID] }]
+        alternatives: TWO_ATTACKS,
+        attacks: [{ actionId: testUuid(0xd10), attack: true, targetIds: [WOLF_ID] }]
       })
     })
     const room = await actionRoom({
@@ -228,7 +234,7 @@ describe('an incapacitated Fighter finishing its Attack action in the room', () 
     expect(outputs.actionEconomyTransition).toBeNull()
     expect(outputs.attackActionTransition).toMatchObject({
       before: { attacks: [{}] },
-      after: { total: 2, attacks: [{}, { actionId: room.actionId }] }
+      after: { alternatives: TWO_ATTACKS, attacks: [{}, { actionId: room.actionId }] }
     })
   })
 })

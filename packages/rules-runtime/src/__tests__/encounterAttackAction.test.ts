@@ -57,11 +57,15 @@ const fighterOutput = evaluateSrdCharacter({
   ]
 }).output
 
-const attack = () => ({ actionId: ACTION_ID, targetIds: [WOLF_ID] })
+const attack = () => ({ actionId: ACTION_ID, targetIds: [WOLF_ID], attack: true })
+/** The slot of an Attack action that allows `count` attacks of any kind. */
+const anyAttacks = (count: number) => [
+  { slots: [{ count, fillers: [{ kind: 'ANY_ATTACK' as const }] }] }
+]
 const openState = (attacks: number, turnSequence = 1) => ({
   kind: 'ATTACK_ACTION' as const,
   turnSequence,
-  total: 2,
+  alternatives: anyAttacks(2),
   attacks: Array.from({ length: attacks }, attack)
 })
 
@@ -134,22 +138,26 @@ describe('an attack in the Attack action', () => {
     expect(result.attackAction).toEqual({
       before: null,
       turnSequence: 1,
-      total: 2,
-      attacksMade: []
+      alternatives: anyAttacks(2),
+      attacksMade: [],
+      attack: true
     })
     expect(result.slot).toEqual({ number: 1, total: 2 })
   })
 
   it('gives a Creature one attack per Attack action', async () => {
     const result = await evaluate({ actor: actorWith({}), character: false })
-    expect(result.attackAction).toMatchObject({ total: 1 })
+    expect(result.attackAction).toMatchObject({ alternatives: anyAttacks(1) })
     expect(result.slot).toEqual({ number: 1, total: 1 })
   })
 
   it('fills the open Attack action without spending an Action', async () => {
     const result = await evaluate({ actor: actorWith({ attacks: 1, actionUsed: 1 }) })
     expect(result.economy).toBeNull()
-    expect(result.attackAction).toMatchObject({ total: 2, attacksMade: [attack()] })
+    expect(result.attackAction).toMatchObject({
+      alternatives: anyAttacks(2),
+      attacksMade: [attack()]
+    })
     expect(result.slot).toEqual({ number: 2, total: 2 })
   })
 
@@ -201,7 +209,11 @@ describe('an action that takes the place of one attack (D152)', () => {
       replacesAttack: true
     })
     expect(result.economy).toMatchObject({ available: true, consumption: { afterUsed: 1 } })
-    expect(result.attackAction).toMatchObject({ before: null, total: 2, attacksMade: [] })
+    expect(result.attackAction).toMatchObject({
+      before: null,
+      alternatives: anyAttacks(2),
+      attacksMade: []
+    })
     expect(result.slot).toEqual({ number: 1, total: 2 })
   })
 
@@ -232,7 +244,7 @@ describe('an attack under a cap on attacks per Attack action (Slowing Breath)', 
 
   it('lowers the Extra Attack total to the cap', async () => {
     const result = await evaluate({ actor: actorWith({}), activeEffects: slowed() })
-    expect(result.attackAction).toMatchObject({ total: 1 })
+    expect(result.attackAction).toMatchObject({ alternatives: anyAttacks(2) })
     expect(result.slot).toEqual({ number: 1, total: 1 })
   })
 
@@ -251,7 +263,7 @@ describe('an attack under a cap on attacks per Attack action (Slowing Breath)', 
       character: false,
       activeEffects: slowed()
     })
-    expect(result.attackAction).toMatchObject({ total: 1 })
+    expect(result.attackAction).toMatchObject({ alternatives: anyAttacks(1) })
   })
 })
 
@@ -265,7 +277,10 @@ describe('an attack by an actor that cannot act', () => {
     expect(result.slot).toBeNull()
     expect(result.suppressed).toBe(true)
     expect(result.economy).toBeNull()
-    expect(result.attackAction).toMatchObject({ total: 2, attacksMade: [attack()] })
+    expect(result.attackAction).toMatchObject({
+      alternatives: anyAttacks(2),
+      attacksMade: [attack()]
+    })
   })
 
   it('does not flag a filler whose Action is merely spent', async () => {
@@ -286,8 +301,9 @@ describe('an attack change to the Attack action', () => {
   const planned = {
     before: openState(1),
     turnSequence: 1,
-    total: 2,
-    attacksMade: openState(1).attacks
+    alternatives: anyAttacks(2),
+    attacksMade: openState(1).attacks,
+    attack: true
   }
 
   it('adds the attack, and undoes it only while the Attack action is unchanged', () => {
@@ -303,7 +319,13 @@ describe('an attack change to the Attack action', () => {
     const later = applyEncounterAttackActionTransition(
       applied,
       encounterAttackActionTransition(
-        { before: openState(2), turnSequence: 1, total: 2, attacksMade: [] },
+        {
+          before: openState(2),
+          turnSequence: 1,
+          alternatives: anyAttacks(2),
+          attacksMade: [],
+          attack: true
+        },
         attack()
       )
     )
@@ -312,7 +334,13 @@ describe('an attack change to the Attack action', () => {
 
   it('restores an actor that held no Attack action', () => {
     const transition = encounterAttackActionTransition(
-      { before: null, turnSequence: 1, total: 2, attacksMade: [] },
+      {
+        before: null,
+        turnSequence: 1,
+        alternatives: anyAttacks(2),
+        attacksMade: [],
+        attack: true
+      },
       attack()
     )
     const applied = applyEncounterAttackActionTransition(actorWith({}), transition)

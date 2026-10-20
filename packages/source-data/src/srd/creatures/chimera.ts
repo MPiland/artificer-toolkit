@@ -52,18 +52,19 @@ export const chimera: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The chimera makes three attacks: one with its bite, one with its horns, and one with its claws. When its fire breath is available, it can use the breath in place of its bite or horns.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(62, 101),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(62, 102), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        // The fire breath replaces the bite or the horns, never both.
+        alternatives: [
+          [S.featureId(62, 3), S.featureId(62, 4)],
+          [S.featureId(62, 6), S.featureId(62, 4)],
+          [S.featureId(62, 3), S.featureId(62, 6)]
+        ].map((featureIds) => ({
+          slots: [...featureIds, S.featureId(62, 5)].map((featureId) => ({
+            count: 1,
+            fillers: [{ kind: 'FEATURE' as const, featureId }]
+          }))
+        }))
+      },
       order: 2
     },
     {

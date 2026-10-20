@@ -2561,8 +2561,8 @@ describe('GM undo of the last action', () => {
     // A Creature attacks once per Attack action: the one Bite fills it.
     expect(encounterAttackActionState(await sourceActorState(base))).toMatchObject({
       kind: 'ATTACK_ACTION',
-      total: 1,
-      attacks: [{ actionId: base.actionId, targetIds: [base.target.id] }]
+      alternatives: [{ slots: [{ count: 1, fillers: [{ kind: 'ANY_ATTACK' }] }] }],
+      attacks: [{ actionId: base.actionId, attack: true, targetIds: [base.target.id] }]
     })
     await revert(base, 1)
     expect(encounterAttackActionState(await sourceActorState(base))).toBeNull()

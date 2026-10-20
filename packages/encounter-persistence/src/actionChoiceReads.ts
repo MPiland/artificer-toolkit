@@ -10,6 +10,13 @@ import { castChoiceOptions } from '@artificer-toolkit/rules-runtime/encounterCas
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { characterFormCreatureView } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
+import { creatureAttackSlotAlternatives } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import {
+  attackSlotTotal,
+  isAttackSlotFiller
+} from '@artificer-toolkit/rules-runtime/encounterAttackSlots'
+import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
   encounterDefaultAttackActionId,
   type DefaultAttackChoice
@@ -129,16 +136,19 @@ export async function readEncounterActionChoices(
   type EconomyRead = {
     warnings: EncounterRuleWarningDto[]
     attackSlot: EncounterActionChoiceDto['attackSlot']
+    /** An open Attack action has no slot this action fills (D93); the drawer does not offer it. */
+    blocked: boolean
   }
   const economyReads = new Map<string, Promise<EconomyRead>>()
   const readEconomy = (
     activation: { code: string; amount: number | null } | null,
     triggerCode = '',
-    replacesAttack = false
+    replacesAttack = false,
+    featureId?: string
   ): Promise<EconomyRead> => {
     if (!activation || activation.amount === null)
-      return Promise.resolve({ warnings: [], attackSlot: null })
-    const key = `${activation.code}:${activation.amount}:${triggerCode}:${replacesAttack}`
+      return Promise.resolve({ warnings: [], attackSlot: null, blocked: false })
+    const key = `${activation.code}:${activation.amount}:${triggerCode}:${replacesAttack}:${featureId ?? ''}`
     const known = economyReads.get(key)
     if (known) return known
     const read = evaluateActionAttackAction(tx, {
@@ -148,8 +158,10 @@ export async function readEncounterActionChoices(
       activation: { code: activation.code, amount: activation.amount },
       target: actorTarget,
       triggerCode,
-      replacesAttack
-    }).then(({ economy, suppressed, slot }) => ({
+      replacesAttack,
+      featureId
+    }).then(({ economy, suppressed, slot, blocked }) => ({
+      blocked,
       warnings: [
         ...encounterActionEconomyWarnings(economy, activation.code),
         ...(suppressed ? [encounterActionSuppressedWarning(activation.code)] : [])
@@ -362,14 +374,29 @@ export async function readEncounterActionChoices(
     unavailableActions = discovered.unavailable
       .filter((action) => !legendaryFeatureIds.has(action.ownerFeatureId))
       .map(({ actionId, label, reason }) => ({ id: actionId, label, reason }))
-    actions = await Promise.all(
+    const slotAlternatives = creatureAttackSlotAlternatives(creature)
+    // A Recharge Feature that fills a slot is offered only while it is charged (D93).
+    const featureResources = evaluateInstalledEncounterActors({
+      gameSystemId: state.gameSystemId,
+      facts: buildEncounterActorRuleFacts({ actors: [creature] })
+    }).actors.find((entry) => entry.actorId === creature.id)?.featureResources
+    const offered = await Promise.all(
       discovered.available
         .filter((action) => !legendaryFeatureIds.has(action.ownerFeatureId))
         .map(async (action) => {
+          const fillsSlot = isAttackSlotFiller(slotAlternatives, action.ownerFeatureId)
           const economy = await readEconomy(
             action.mechanicFacts.invocation.activation,
-            action.mechanicFacts.invocation.triggerCode
+            action.mechanicFacts.invocation.triggerCode,
+            false,
+            fillsSlot ? action.ownerFeatureId : undefined
           )
+          const charged =
+            !fillsSlot ||
+            !action.featureResourceUse ||
+            (featureResources?.find((entry) => entry.featureId === action.ownerFeatureId)
+              ?.remaining ?? 0) >= action.featureResourceUse.cost
+          if (economy.blocked || !charged) return null
           if (action.equipmentBinding)
             itemBindings.set(action.actionId, {
               itemId: action.equipmentBinding.loadoutEntryId,
@@ -410,6 +437,7 @@ export async function readEncounterActionChoices(
           }
         })
     )
+    actions = offered.filter((choice) => choice !== null)
   }
   // The System's basic-action catalogue (Q11): its published platform entries, by label.
   const catalogue = (
@@ -562,7 +590,7 @@ export async function readEncounterActionChoices(
       attackActionThisTurn && lastAttack
         ? {
             made: attackActionThisTurn.attacks.length,
-            total: attackActionThisTurn.total,
+            total: attackSlotTotal(attackActionThisTurn.alternatives),
             lastActionId: lastAttack.actionId,
             lastTargetIds: lastAttack.targetIds
           }
