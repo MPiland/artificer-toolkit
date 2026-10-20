@@ -36,15 +36,20 @@ Two generic follow-up-save shapes in `effectActionCompiler.ts`, both authored as
 
 Couatl Bite is NOT done and keeps its `FOLLOW_UP_SAVE` entry. Its poison rider carries a CLOSED_RULE (`CREATURE_COUATL_BITE_POISON`, the wake-on-damage action), which SPELLS-33.T6m2 converts; D156 forbids partially executing an Effect with an unconverted closed rule. It also needs a save whose failure applies several conditions. Defer it to T6m2 unless the orchestrator rules otherwise.
 
-## Resume here: ATTACK-5.T4c–e (fresh session, each on its own `ci/attack-5-t4<x>` branch from the phase tip)
+## ATTACK-5.T4c (Dragon Turtle Tail)
+
+A fourth generic follow-up-save shape in `effectActionCompiler.ts`: `FORCED_MOVEMENT_THEN_CONDITION`, an immediate save whose failure pushes or pulls and then applies one condition (push and prone). It reuses the existing `nested-save-forced-movement` and `nested-save-condition` graph nodes. The forced-movement proposal now outputs `changesTargetState: false` (it was documented as changing no target state): without it a Character target's mechanics batch demanded an application for the push and the room refused the attack ("application coverage is invalid"). The Dragon Turtle print changed only its result-block id (a UUID, as in the Quasit Scare fix). Its entry left the allowlist. Proofs: `srdCreatureHitRiders.test.ts` (push and prone on a Creature target, pass leaves it standing) and `nativeRoomHitRiders.test.ts` (prone on a Character).
+
+Horned Devil Tail is NOT done and keeps its `FOLLOW_UP_SAVE` entry. Its Infernal Wound carries a CLOSED_RULE (`CREATURE_HORNED_DEVIL_INFERNAL_WOUND`) that SPELLS-33.T6m2 converts (new STACKING_RECURRING_DAMAGE); D156 forbids partially executing an Effect with an unconverted closed rule. The T4 close-out must cover it after T6m2.
+
+## Resume here: ATTACK-5.T4d–e (fresh session, each on its own `ci/attack-5-t4<x>` branch from the phase tip)
 
 Remaining allowlist entries (`packages/rules-runtime/src/__tests__/srdCreatureAttackSweepAllowlist.ts`): remove each attack's entry in the slice that makes it run; the sweep fails if a listed attack starts working or an unlisted one fails.
 
-| Slice | Attacks                                                                 | Allowlist reason | Size |
-| ----- | ----------------------------------------------------------------------- | ---------------- | ---- |
-| T4c   | Dragon Turtle Tail (push and prone), Horned Devil Tail (Infernal Wound) | `FOLLOW_UP_SAVE` | 5    |
-| T4d   | Giant Centipede Bite, Purple Worm Bite (investigate, then build)        | `OUTCOME_KIND`   | 3    |
-| T4e   | Solar Longbow slay                                                      | `OUTCOME_KIND`   | 3    |
+| Slice | Attacks                                                          | Allowlist reason | Size |
+| ----- | ---------------------------------------------------------------- | ---------------- | ---- |
+| T4d   | Giant Centipede Bite, Purple Worm Bite (investigate, then build) | `OUTCOME_KIND`   | 3    |
+| T4e   | Solar Longbow slay                                               | `OUTCOME_KIND`   | 3    |
 
 T4 itself is then a size-2 close-out: the allowlist is empty (SPELLS-33 tasks T6a1, T6a2, T6a3, T6b2, T6b3, T6e2, T6i, T6i2 remove their own entries; Kraken Bite goes with T6a1, Black Pudding with T6i/T6i2) and leftovers (Rakshasa Claw, Vampire/Spawn Bite if T6e2 misses them) are covered.
 
@@ -63,6 +68,6 @@ Pitfalls:
 - Tests import workspace packages from `dist`: pass `-BuildFor <test files>` to the light lane.
 - A new generic option needing a contract shape goes to the orchestrator before coding.
 
-Couatl Bite (see T4b) is held for SPELLS-33.T6m2 pending the orchestrator's ruling; T4 close-out must cover it.
+Couatl Bite (see T4b) and Horned Devil Tail (see T4c) are held for SPELLS-33.T6m2; the T4 close-out must cover them.
 
-Next step: start T4c (Dragon Turtle Tail, Horned Devil Tail): probe why each fails in the sweep, then build the generic follow-up-save shape with a rules-runtime test plus a room journey, remove the entries, lint, push to `ci/attack-5-t4c`, run `scripts/watchCi.ps1`.
+Next step: start T4d (Giant Centipede Bite, Purple Worm Bite): probe why each fails in the sweep (`OUTCOME_KIND`), then build the generic option with a rules-runtime test plus a room journey, remove the entries, lint, push to `ci/attack-5-t4d`, run `scripts/watchCi.ps1`. Pitfall: a Character target's mechanics batch needs an application for every authorized candidate proposal, so a new proposal that stores nothing on the target must output `changesTargetState: false`.

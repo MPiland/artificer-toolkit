@@ -674,6 +674,37 @@ describe('SRD Creature hits that force a saving throw', () => {
     expect(saved.spatial).toEqual([])
   })
 
+  it('pushes the target 10 feet and knocks it prone with the Dragon Turtle’s Tail on a failed save (ATTACK-5.15)', async () => {
+    // Tail, +13: 3d12 + 7 bludgeoning, then DC 20 Strength or pushed up to 10 feet and prone.
+    const failed = await attackOgre({
+      attacker: 'Dragon Turtle',
+      feature: 'Tail',
+      rolls: [9, 0, 0, 0, 0]
+    })
+    expect(failed.execution.nestedD20).toMatchObject({
+      defenseOrDc: 20,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.conditionIds).toEqual([srdCondition('Prone')])
+    expect(failed.spatial).toEqual([
+      expect.objectContaining({
+        kind: 'FORCED_MOVEMENT',
+        targetActorId: TARGET_ID,
+        direction: 'AWAY_FROM_SOURCE',
+        feet: 10
+      })
+    ])
+
+    const saved = await attackOgre({
+      attacker: 'Dragon Turtle',
+      feature: 'Tail',
+      rolls: [9, 0, 0, 0, 19]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.conditionIds).toEqual([])
+    expect(saved.spatial).toEqual([])
+  })
+
   it('deals the Kraken’s Lightning Storm bolt in full on a failed Dexterity save (ATTACK-5.8)', async () => {
     // DC 23 Dexterity: 4d10 lightning, half on a success. The Ogre's -1 never meets the DC.
     const bolt = await attackOgre({
