@@ -126,6 +126,9 @@ export interface CharacterRuleSpellAccess {
     | { kind: 'SUBCLASS'; subclassId: string }
     | { kind: 'RACE'; raceId: string }
     | { kind: 'SUBRACE'; subraceId: string }
+    | { kind: 'FEAT'; featId: string }
+    | { kind: 'BACKGROUND'; backgroundId: string }
+    | { kind: 'OPTION'; acquiredParentId: string; optionId: string }
   timing:
     | {
         kind: 'CLASS_LEVEL'

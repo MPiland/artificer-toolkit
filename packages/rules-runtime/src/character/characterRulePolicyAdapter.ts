@@ -6,6 +6,7 @@ import type {
   CharacterRuleSense,
   CharacterSheetRuleProjection
 } from './characterSheetRuleProjection.js'
+import { findCompiledSpellGrant } from './characterSpellRuleFacts.js'
 
 type Evaluation = Pick<CharacterRuleEvaluationResult, 'snapshot' | 'registry' | 'facts' | 'output'>
 type NumericCalculation = Evaluation['output']['derivedStats']['proficiencyBonus']
@@ -83,13 +84,7 @@ function exactSpellCharge(
   access: Evaluation['output']['spellAccess'][number]
 ): CompiledChargeUse | undefined {
   if (access.charge === null) return undefined
-  const source =
-    access.sourceKind === 'CLASS' || access.sourceKind === 'SUBCLASS'
-      ? evaluation.registry.classes[access.sourceId]
-      : evaluation.registry.races[access.sourceId]
-  const charge = source?.features
-    ?.find((feature) => feature.id === access.sourceFeatureId)
-    ?.spells?.find((grant) => grant.id === access.grantId)?.charges
+  const charge = findCompiledSpellGrant(evaluation.registry, access)?.charges
   if (!charge || charge.id !== access.charge.id) {
     throw new Error(
       `Character rule policy spell charge is missing or mismatched: ${access.accessId}`
@@ -129,6 +124,35 @@ function activeItems(
   })
 }
 
+function accessSource(
+  access: Evaluation['output']['spellAccess'][number]
+): CharacterSheetRuleProjection['spellAccess'][number]['source'] {
+  switch (access.sourceKind) {
+    case 'CLASS':
+      return { kind: 'CLASS', classId: access.sourceId }
+    case 'SUBCLASS':
+      return { kind: 'SUBCLASS', subclassId: access.sourceId }
+    case 'RACE':
+      return { kind: 'RACE', raceId: access.sourceId }
+    case 'SUBRACE':
+      return { kind: 'SUBRACE', subraceId: access.sourceId }
+    case 'FEAT':
+      return { kind: 'FEAT', featId: access.sourceId }
+    case 'BACKGROUND':
+      return { kind: 'BACKGROUND', backgroundId: access.sourceId }
+    case 'OPTION':
+      if (access.acquiredParentId === null)
+        throw new Error(
+          `Character rule policy option source is missing its acquisition: ${access.accessId}`
+        )
+      return {
+        kind: 'OPTION',
+        acquiredParentId: access.acquiredParentId,
+        optionId: access.sourceId
+      }
+  }
+}
+
 export function projectCharacterSpellAccess(
   evaluation: Evaluation
 ): CharacterSheetRuleProjection['spellAccess'] {
@@ -141,14 +165,7 @@ export function projectCharacterSpellAccess(
     return {
       id: access.accessId,
       spellId: access.spellId,
-      source:
-        access.sourceKind === 'CLASS'
-          ? { kind: 'CLASS' as const, classId: access.sourceId }
-          : access.sourceKind === 'SUBCLASS'
-            ? { kind: 'SUBCLASS' as const, subclassId: access.sourceId }
-            : access.sourceKind === 'RACE'
-              ? { kind: 'RACE' as const, raceId: access.sourceId }
-              : { kind: 'SUBRACE' as const, subraceId: access.sourceId },
+      source: accessSource(access),
       timing:
         access.timingKind === 'CLASS_LEVEL'
           ? {

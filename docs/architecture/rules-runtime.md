@@ -1066,8 +1066,14 @@ event can fall inside that round. SRD Intimidating Presence (save immunity) and 
 and creature types) author it, as do the SRD Cloaker's Moan, the Nalfeshnee's Horror Nimbus, and the Frightful
 Presence of the Tarrasque and the 20 adult and ancient dragons (SPELLS-33.T7a). The creature fears share
 `minuteFearSaveEffect` in the source data: Frightened for a minute with a repeat save at the end of each of the
-target's turns. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
-spell access (SPELLS-31.T5t).
+target's turns. A chosen option's spell grant reaches spell access through `snapshot.features` (SPELLS-31.T5t),
+so Chains of Carceri is automated in play.
+
+**Chosen-feature spell access (SPELLS-31.T5t).** `buildCharacterSpellRuleFacts` reads class, subclass and heritage
+features from their compiled definitions, and Feats, Background features and selected options from
+`snapshot.features` by provenance. Candidates and `spellAccess` carry source kind CLASS, SUBCLASS, RACE, SUBRACE,
+FEAT, BACKGROUND or OPTION, plus `acquiredParentId` for OPTION. `findCompiledSpellGrant` is the one lookup from an
+access to its authored grant, used by charge resolution and the Sheet projection.
 
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
