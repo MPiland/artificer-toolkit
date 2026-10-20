@@ -11,6 +11,7 @@ import type {
   CharacterGrantFoldModifier,
   CharacterGrantFoldSense
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type { ActiveEffectSaveTally } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type {
   ActiveRuleEffectDefinitionDto,
   ActiveRuleEffectLifecycleDto,
@@ -845,6 +846,8 @@ export interface CharacterRuleActionSystemAdapter {
     terminal: boolean
     /** A retained recurring effect may resolve an authorized no-op branch. */
     emptyApplicationAllowed?: boolean
+    /** Only a threshold-counted effect: its save tally once this turn's save is counted. */
+    saveTally?: ActiveEffectSaveTally
   }
 }
 

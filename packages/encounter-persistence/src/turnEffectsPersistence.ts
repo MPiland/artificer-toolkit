@@ -1,4 +1,5 @@
 import {
+  isSaveTallyStep,
   isTurnEffectEligible,
   requireTurnMaintainedStates,
   turnEffectDamageEnded,
@@ -183,8 +184,10 @@ export async function persistEncounterTurnEffects(
           lifecycle.afterLifecycleChecksum !==
             checksumRuleDocument({
               ...effect.lifecycle,
-              remainingTicks: afterRemainingTicks
-            }))) ||
+              remainingTicks: afterRemainingTicks,
+              ...(lifecycle.afterSaveTally ? { saveTally: lifecycle.afterSaveTally } : {})
+            }) ||
+          !isSaveTallyStep(effect.lifecycle.saveTally, lifecycle.afterSaveTally))) ||
       (lifecycle.kind === 'EXPIRE' &&
         lifecycle.afterRemainingTicks !== (remaining === null ? null : 0))
     )
@@ -321,7 +324,13 @@ export async function persistEncounterTurnEffects(
         id: effect.id,
         owner,
         expectedVersion: effect.version,
-        lifecycle: { ...effect.lifecycle, remainingTicks: execution.lifecycle.afterRemainingTicks }
+        lifecycle: {
+          ...effect.lifecycle,
+          remainingTicks: execution.lifecycle.afterRemainingTicks,
+          ...(execution.lifecycle.afterSaveTally
+            ? { saveTally: execution.lifecycle.afterSaveTally }
+            : {})
+        }
       })
   }
   // A candidate the damage ended has already expired with its own execution.

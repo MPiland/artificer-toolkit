@@ -1070,6 +1070,16 @@ unmet, as for `repeatRollInfluence`. SRD Fear authors `WHEN_UNMET` `SEE` (the sa
 caster's sight). The schema accepts a gate only on a save first made at the end of the target's turn, since
 the plan for a save made at once on application carries none.
 
+**Repeat-save thresholds (SPELLS-4.T2m1c).** A repeated `FOLLOW_UP_SAVE` authored `attempts: THRESHOLDS`
+(`successesToEnd`, `failuresToResolve`, `consecutive`; `onSuccess` END, `onFailure` CONTINUE, no escalation) freezes
+the three counts as adapter facts (`dnd5e.active-effect-repeat-save-*`) and carries the running count on the
+active effect as `lifecycle.saveTally`. Each end-of-turn save advances the tally in the same CAS as
+`remainingTicks` (the turn plan's UPDATE `afterSaveTally`, covered by `afterLifecycleChecksum`; persistence
+accepts only a one-save step, `isSaveTallyStep`). Reaching `successesToEnd` ends the effect. Reaching
+`failuresToResolve` settles it: the attempt gate refuses further rolls, the effect stops saving and its
+duration keeps counting down. `consecutive` zeroes the opposite count on each result. The tally is
+system-neutral state; only the adapter reads the thresholds.
+
 A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and
 any other held condition is at level 1.
