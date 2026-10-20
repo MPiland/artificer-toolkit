@@ -216,3 +216,64 @@ describe('Supreme Sneak is authorable from core options (D156, SPELLS-31.T5n)', 
     expect(condition).toMatchObject({ kind: 'UNSUPPORTED' })
   })
 })
+
+describe('One with Shadows is authorable from core options (D156, SPELLS-31.T5n)', () => {
+  const srd = srdBaselineContent.subjects.classes
+    .find(({ label }) => label === 'Warlock')
+    ?.features?.flatMap((feature) => feature.options ?? [])
+    .find(({ label }) => label === 'One with Shadows')
+  if (!srd?.effects) throw new Error('The SRD Warlock has no One with Shadows invocation.')
+  const invisible = srdSystemRecord.conditionTypes.find(({ code }) => code === 'INVISIBLE')!.id
+  const homebrew = [
+    {
+      id: testUuid(0x2240),
+      order: 1,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: 'ACTIVATED' as const,
+        activation: { code: 'ACTION' as const, amount: 1 },
+        range: { id: testUuid(0x2241), rangeKind: 'SELF' as const },
+        targeting: { selectionKind: 'SELF' as const }
+      },
+      paths: [
+        {
+          id: testUuid(0x2242),
+          order: 1,
+          pathCode: 'ON_USE' as const,
+          groupType: 'SINGLE' as const,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: testUuid(0x2243),
+            resultKind: 'SINGLE' as const,
+            lifecycle: { endOnEvents: ['ON_MOVE' as const, 'ON_TAKE_ACTION' as const] },
+            outcomes: [
+              { id: testUuid(0x2244), effectKind: 'CONDITION' as const, conditionId: invisible }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+  /** The plan with every id replaced and the checksums over them dropped, so two authorings of one rule compare equal. */
+  const withoutIds = (plan: unknown) =>
+    JSON.parse(
+      JSON.stringify(plan, (key, value) => (/hecksum$/.test(key) ? undefined : value)).replace(
+        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g,
+        'ID'
+      )
+    )
+
+  it('keeps no closed rule kind and plans an Invisible condition that ends on a move or any action', () => {
+    expect(JSON.stringify(srd)).not.toContain('CLOSED_RULE')
+    const plan = plannedAction(srd.effects)
+    expect(plan).not.toBeUndefined()
+    expect(JSON.stringify(plan)).toContain('"ON_MOVE"')
+    expect(JSON.stringify(plan)).toContain('"ON_TAKE_ACTION"')
+    expect(JSON.stringify(plan)).toContain(invisible)
+  })
+
+  it('compiles a homebrew action written from core options alone to the same plan', () => {
+    expect(withoutIds(plannedAction(homebrew))).toEqual(withoutIds(plannedAction(srd.effects)))
+  })
+})
