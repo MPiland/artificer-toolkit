@@ -15,8 +15,11 @@ const RAT_ID = testUuid(0xf00)
 const TARGET_ID = testUuid(0xf01)
 const PACK_MATE_ID = testUuid(0xf02)
 
-const giantRat = srdBaselineContent.subjects.creatures.find(({ label }) => label === 'Giant Rat')
-if (!giantRat) throw new Error('The SRD has no Giant Rat.')
+const giantRat = (() => {
+  const creature = srdBaselineContent.subjects.creatures.find(({ label }) => label === 'Giant Rat')
+  if (!creature) throw new Error('The SRD has no Giant Rat.')
+  return creature
+})()
 
 const incapacitated = srdSystemRecord.conditionTypes.find(({ code }) => code === 'INCAPACITATED')
 if (!incapacitated) throw new Error('The SRD has no Incapacitated Condition.')
