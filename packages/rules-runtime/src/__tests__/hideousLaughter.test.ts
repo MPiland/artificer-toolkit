@@ -119,7 +119,7 @@ describe('Hideous Laughter authored from core options', () => {
       } as const
       const paused = await executeTargetBoundActiveRuleEffectWithPause(input)
       if (!('continuation' in paused)) throw new Error('The holder is asked for its save.')
-      return resumeTargetBoundActiveRuleEffectWithPause({
+      const resumed = await resumeTargetBoundActiveRuleEffectWithPause({
         ...input,
         continuation: paused.continuation,
         resolution: {
@@ -129,6 +129,8 @@ describe('Hideous Laughter authored from core options', () => {
           addedDice: []
         }
       })
+      if ('continuation' in resumed) throw new Error('The save resolves in one roll.')
+      return resumed
     }
 
     it('removes both conditions and ends the effect on a made save', async () => {
