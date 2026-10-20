@@ -1865,6 +1865,55 @@ it('commits each fog owner with native geometry before acknowledgement and resyn
   })
 })
 
+it('explores and projects a granted Character token for its grantee, who is not the token listed controller (D162)', async () => {
+  const value = movementScene(crypto.randomUUID())
+  value.scene.fogMode = 'PER_PLAYER'
+  const characterId = crypto.randomUUID()
+  const token = value.scene.tokens[0]!
+  token.vision = { ...token.vision!, dimRange: 30, enabled: true }
+  const base = await fixture(value.scene)
+  // The GM lists only themself on the token; the assigned player and grantee come from the Character.
+  token.characterId = characterId
+  token.controlledByUserIds = [base.userId]
+  base.authorization.assignments = [
+    { characterId, controllerUserIds: [base.playerId], userId: base.otherPlayerId }
+  ]
+  await synchronizeScene(base, value.scene)
+  const grantee = await connectPlayer(base)
+  const fogOwners = () =>
+    runInDurableObject(base.stub, (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .records('SCENE_CHECKPOINT_ROW')
+        .filter(({ key }) => JSON.parse(key)[0] === 'sceneFogLayers')
+        .map(({ json }) => sceneStoredFogLayerSchema.parse(JSON.parse(json)).ownerUserId)
+        .sort()
+    )
+  const commandId = crypto.randomUUID()
+  base.socket.send(
+    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
+  )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ commandId, type: 'COMMAND_COMMITTED' })
+    )
+  )
+  expect(await fogOwners()).toEqual([base.userId, base.otherPlayerId, base.playerId].sort())
+  grantee.socket.send(JSON.stringify({ lastAppliedSequence: 0, type: 'RESUME' }))
+  await vi.waitFor(() =>
+    expect(grantee.messages).toContainEqual(
+      expect.objectContaining({
+        state: expect.objectContaining({
+          scene: expect.objectContaining({
+            fogLayers: [expect.objectContaining({ ownerUserId: base.playerId })],
+            tokens: [expect.objectContaining({ id: value.tokenId })]
+          })
+        }),
+        type: 'STATE_SYNC'
+      })
+    )
+  )
+})
+
 it('undoes a fog-deriving move through the room and removes the fog it explored', async () => {
   const value = movementScene(crypto.randomUUID())
   value.scene.fogMode = 'PER_PLAYER'

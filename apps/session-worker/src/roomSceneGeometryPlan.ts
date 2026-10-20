@@ -39,6 +39,10 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 import { geometryTarget } from '@artificer-toolkit/encounter-persistence/sceneGeometryValues'
 
+import {
+  withCharacterControllers,
+  type CharacterControlAssignment
+} from '@artificer-toolkit/shared/campaign/characterControl'
 import { LiveSessionRouteError } from './liveSessionRoutes.js'
 import { RoomSceneCommandRefusal } from './roomSceneEdits.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -89,6 +93,7 @@ type PreparedStagedSceneCommit = {
  */
 export async function prepareStagedSceneCommit(input: {
   actor: LiveEncounterActor
+  assignments: readonly CharacterControlAssignment[]
   command: StagedSceneCommand
   context: StagedSceneContext
   runtime: RulesRuntimeService
@@ -254,7 +259,12 @@ export async function prepareStagedSceneCommit(input: {
   // Each owner's layer accumulates what every moved token explored.
   const layerByOwner = new Map<string | null, SceneFogLayer>()
   for (const { delta, path } of explorations) {
-    const plan = planSceneCommandExploration(scene, explored, delta)
+    // Fog owners include a Character's grantees, though the stored Scene lists only the GM's controllers (D162).
+    const plan = planSceneCommandExploration(
+      withCharacterControllers(scene, input.assignments),
+      withCharacterControllers(explored, input.assignments),
+      delta
+    )
     for (const ownerUserId of plan.owners) {
       const layer = deriveSceneCommandFogLayer(plan, {
         ownerUserId,

@@ -289,6 +289,8 @@ export async function fixture(
     ],
     /** Members whose stored preference rolls dice automatically. */
     autoRollUserIds: [] as string[],
+    /** Campaign Character assignments with their GM control grants (D162). */
+    assignments: [] as { characterId: string; controllerUserIds?: string[]; userId: string }[],
     reads: 0
   }
   await runInDurableObject(stub, () => {
@@ -320,7 +322,8 @@ export async function fixture(
             campaignId,
             systemId: room.systemId,
             ownerUserId: userId,
-            members: authorization.members
+            members: authorization.members,
+            assignments: authorization.assignments
           })
         )
       }
@@ -337,6 +340,7 @@ export async function fixture(
         return Response.json(
           roomAuthorizationResponse({
             members: authorization.members,
+            assignments: authorization.assignments,
             autoRollUserIds: authorization.autoRollUserIds
           })
         )

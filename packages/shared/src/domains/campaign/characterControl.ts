@@ -22,6 +22,31 @@ export function controlsAssignedCharacter(
 }
 
 /**
+ * The Scene as vision and fog see it: each token linked to an assigned Character also lists that
+ * Character's player and grantees as controllers. Derived for projection and exploration planning
+ * only; the stored Scene keeps the GM's own list (D162).
+ */
+export function withCharacterControllers<
+  Token extends { characterId?: string | undefined; controlledByUserIds: string[] },
+  Scene extends { tokens: Token[] }
+>(scene: Scene, assignments: readonly CharacterControlAssignment[]): Scene {
+  if (!scene.tokens.some((token) => token.characterId !== undefined)) return scene
+  return {
+    ...scene,
+    tokens: scene.tokens.map((token) => {
+      const assignment = assignments.find(({ characterId }) => characterId === token.characterId)
+      if (!assignment) return token
+      const controllers = new Set([
+        ...token.controlledByUserIds,
+        assignment.userId,
+        ...(assignment.controllerUserIds ?? [])
+      ])
+      return { ...token, controlledByUserIds: [...controllers] }
+    })
+  }
+}
+
+/**
  * Whether a player moves an unbound Scene token: the GM lists them on the token, or the token
  * represents a Character they control. The GM always can.
  */

@@ -243,6 +243,9 @@ Character actor's assigned player is always a controller, derived and never stor
 merges it with the per-Run list for Convex, the player projection and the room, so a granted player controls the
 Character in every Run and a revoke is immediate. A Scene token carries an optional `characterId`; a grantee moves an
 unbound token only when its `characterId` is a Character granted to them.
+For Scene vision and fog the room treats a token linked by `characterId` as controlled by that Character's player and
+grantees (`withCharacterControllers`, derived per read; the stored Scene is untouched), so a member who controls several
+Characters sees the Scene through the main Character or selected token they pick (SCENE-5.2).
 `encounters/actorController.ts` is the one predicate used by admission, reads and responses. A PLAYER
 may `RESOLVE_ACTION` for an actor they control, end the current actor's turn when it is theirs,
 answer decisions routed to them, and enter initiative once for an actor they control, rolled

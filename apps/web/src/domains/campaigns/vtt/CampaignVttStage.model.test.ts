@@ -10,10 +10,13 @@ import {
 import {
   assignedCharacterTokenId,
   canMoveSceneToken,
+  characterControlAssignments,
+  controlledCharacters,
   createSceneBarrier,
   describeVttPing,
   nudgeSceneToken,
-  readActiveTurn
+  readActiveTurn,
+  resolveMainCharacterId
 } from './CampaignVttStage.model'
 import {
   createTabletopCampaign,
@@ -294,20 +297,108 @@ describe('Campaign VTT assigned Character token (VTT_UI-3.4)', () => {
 
   it('finds the token bound to the assigned Character actor', () => {
     expect(
-      assignedCharacterTokenId({ actorIdByTokenId, actors, assignedCharacterId: 'char-1' })
+      assignedCharacterTokenId({
+        actorIdByTokenId,
+        actors,
+        assignedCharacterId: 'char-1',
+        tokens: []
+      })
     ).toBe('token-hero')
   })
 
   it('finds nothing without an assigned Character or a bound token', () => {
     expect(
-      assignedCharacterTokenId({ actorIdByTokenId, actors, assignedCharacterId: null })
+      assignedCharacterTokenId({
+        actorIdByTokenId,
+        actors,
+        assignedCharacterId: null,
+        tokens: [{ characterId: 'char-1', id: 'token-linked' }]
+      })
     ).toBeNull()
     expect(
       assignedCharacterTokenId({
         actorIdByTokenId: new Map(),
         actors,
-        assignedCharacterId: 'char-1'
+        assignedCharacterId: 'char-1',
+        tokens: []
       })
     ).toBeNull()
+  })
+
+  it('falls back to the unbound token linked to the Character (D162)', () => {
+    const tokens = [
+      { characterId: 'char-2', id: 'token-linked-other' },
+      { characterId: 'char-1', id: 'token-linked' }
+    ]
+    expect(
+      assignedCharacterTokenId({
+        actorIdByTokenId: new Map(),
+        actors: [],
+        assignedCharacterId: 'char-1',
+        tokens
+      })
+    ).toBe('token-linked')
+    // The bound token wins when the Character is in the Encounter.
+    expect(
+      assignedCharacterTokenId({ actorIdByTokenId, actors, assignedCharacterId: 'char-1', tokens })
+    ).toBe('token-hero')
+  })
+})
+
+describe('Campaign VTT main Character (SCENE-5.2)', () => {
+  const own = tabletopCurrentUserId
+  const gm = '00000000-0000-4000-8000-0000000000aa'
+  const granted = '00000000-0000-4000-8000-0000000000bb'
+  const character = (id: string, label: string) => ({
+    id,
+    label,
+    publicId: label.toLowerCase(),
+    systemId: '00000000-0000-4000-8000-0000000000cc'
+  })
+  const base = createTabletopCampaign('PLAYER').memberships[0]!
+  const member = (
+    userId: string,
+    assigned: ReturnType<typeof character> | null,
+    characterControllerUserIds: string[] = []
+  ) => ({
+    ...base,
+    assignedCharacter: assigned,
+    characterControllerUserIds,
+    userId
+  })
+  const mine = character('char-mine', 'Mine')
+  const memberships = [
+    member(granted, character('char-granted', 'Granted'), [own]),
+    member(gm, character('char-ungranted', 'Ungranted'), [granted]),
+    member('00000000-0000-4000-8000-0000000000dd', null),
+    member(own, mine)
+  ]
+
+  it('lists only the Characters the member controls, their own first', () => {
+    expect(controlledCharacters(memberships, own).map(({ id }) => id)).toEqual([
+      'char-mine',
+      'char-granted'
+    ])
+    expect(controlledCharacters(memberships, granted).map(({ id }) => id)).toEqual([
+      'char-granted',
+      'char-ungranted'
+    ])
+    expect(controlledCharacters(memberships, '00000000-0000-4000-8000-0000000000ee')).toEqual([])
+  })
+
+  it('defaults to the first controlled Character and drops a pick that is no longer controlled', () => {
+    const controlled = controlledCharacters(memberships, own)
+    expect(resolveMainCharacterId(controlled, null)).toBe('char-mine')
+    expect(resolveMainCharacterId(controlled, 'char-granted')).toBe('char-granted')
+    expect(resolveMainCharacterId(controlled, 'char-ungranted')).toBe('char-mine')
+    expect(resolveMainCharacterId([], 'char-granted')).toBeNull()
+  })
+
+  it('reads every assignment with its grants for the shared control helper', () => {
+    expect(characterControlAssignments(memberships)).toEqual([
+      { characterId: 'char-granted', controllerUserIds: [own], userId: granted },
+      { characterId: 'char-ungranted', controllerUserIds: [granted], userId: gm },
+      { characterId: 'char-mine', controllerUserIds: [], userId: own }
+    ])
   })
 })
