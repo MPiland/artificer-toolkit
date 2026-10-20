@@ -12643,7 +12643,7 @@
             },
             {
               "id": "SPELLS-33.T6e1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12653,7 +12653,7 @@
                 "after": ["SPELLS-33.T6e"]
               },
               "text": "Balor Death Throes: runtime for the existing ON_HP_ZERO passive trigger. Auto-roll victims settle in the defeating commit; manual rollers get an area-save pending created in that same commit, queued behind Concentration as deferredCleaving is (2026-10-18 ruling, option A; 1 kind). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged as T6e1a m205 (df72080f1); D161."
             },
             {
               "id": "SPELLS-33.T6e1b",

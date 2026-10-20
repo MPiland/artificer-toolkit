@@ -1008,6 +1008,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **End-of-effect grants:** a generic `onEnd` grant list on the result block (Haste's lethargy first), unless an existing end-of-effect transition can carry it.
   - **Compelled movement:** Confusion's d10 behavior and d8 direction are rolled by the server with the room's seeded dice (the actor's auto or manual roll setting applies), reusing D159's `RANDOM` direction. The creature then moves itself through the normal movement planner, so opportunity attacks fire. It is not forced movement (T2a1 ruling).
   - **Time Stop:** it ends on any committed outcome that targets or affects a creature other than the caster, or an object the caster is not wearing or carrying, or when the caster moves more than 1,000 feet from where it was cast. Ambiguous objects fall to manual adjudication. Inserting turns into the initiative order needs its own design ruling at the start of T2l3.
+* **D161** (2026-10-19) Rule-raised actions: the SYSTEM admission kind (SPELLS-33.T6e1a; [slice-spells-33.md](slice-spells-33.md), [persistence](../architecture/persistence.md#rule-raised-system-action-admission-current-spells-33t6e1-d161-candidate)). Orchestrator ruling.
+  - **Admission:** a `RESOLVE_ACTION` may be raised by the rules rather than a player when it carries `systemTrigger: { parentCommandId }`. It is self-verifying: a deterministic uuidv5 command id from (parent, holder, action), a `CASTER_CENTERED` target and a committed parent in the same Encounter. No new table and no persisted flag. It is the only admission that lets a defeated actor be the source.
+  - **Trigger:** passive `HP_ZERO` effects are discovered generically (`passiveHpZeroEffects`) and raised by one hook at the room's command funnel. Nothing in code names a creature. A system-raised action does not raise further triggers.
+  - **Undo and void:** the parent and the system root are one change and revert together. Undo is refused while the raised area's save is pending; the GM voids it first.
 
 ## Approved implementation decisions
 
