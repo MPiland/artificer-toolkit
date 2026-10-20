@@ -514,7 +514,10 @@ The compiler version is `subject-compiler-v2` (PLATFORM-21.T1a, D163): it carrie
 the Builder reads, stores Equipment in its resolved shape (variant parents applied, `parentEquipmentIds`), and
 carries no prose; views read prose from the authored payload by id. `content/compilationMigration` recompiles a
 superseded row from its version's stored document (Race and Equipment against their current parents), and
-`readAuthoredVersionCompilation` refuses a superseded row. Transitional until PLATFORM-21.T1b: the table
+`readAuthoredVersionCompilation` refuses a superseded row. Import stores base Equipment's compilation and
+builder facts at once; a variant compiles in `syncEquipmentDerived` after its parent exists. The seed's derived
+syncs replace a superseded compilation of a canonical row (`syncCanonicalCompilation`), because the seed is the
+source of truth for canonical content; an authored row's superseded compilation is left to the migration. Transitional until PLATFORM-21.T1b: the table
 validator still admits `subject-compiler-v1` rows so the migration can read them.
 
 **Equipment projection.** `authoredRoots.equipmentOptions.builder` is an optional checksum-bound projection of
