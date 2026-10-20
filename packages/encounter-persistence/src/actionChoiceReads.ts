@@ -35,7 +35,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterWeaponDraw'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterBoundSceneTokens } from './actionSceneInputs.js'
-import { readEncounterActorDefeated } from './characterStates.js'
+import { readEncounterActorDefeated, readZeroHitPointActorIds } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
@@ -48,6 +48,7 @@ import {
 import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
+import { liveEffectOffers } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { listEncounterChosenItems } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
@@ -85,7 +86,7 @@ import {
   heldGrantedActions,
   nextGrantedActionUseKey
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
-import { listActiveRuleEffects } from './effectStore.js'
+import { listActiveRuleEffects, readActiveEffectsByActorId } from './effectStore.js'
 import { readTurnUses } from './turnMovement.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import type { CampaignAuthority, EncounterTurnReadTransaction } from './ports.js'
@@ -619,6 +620,17 @@ export async function readEncounterActionChoices(
       warnings: economy.warnings
     })
   }
+  // The choices effects held by other creatures offer the actor, such as moving a mark off a downed
+  // creature (D160).
+  const effectOffers: EncounterActionChoicesDto['effectOffers'] = []
+  for (const offer of liveEffectOffers({
+    actorId: actor.id,
+    effectsByHolder: await readActiveEffectsByActorId(tx, state.id, runActors),
+    zeroHitPointActorIds: await readZeroHitPointActorIds(tx, runActors)
+  })) {
+    const economy = await readEconomy({ code: offer.activation, amount: 1 })
+    effectOffers.push({ ...offer, warnings: economy.warnings })
+  }
   const attackActionThisTurn =
     openAttackAction && openAttackAction.turnSequence === state.turnSequence
       ? openAttackAction
@@ -662,6 +674,7 @@ export async function readEncounterActionChoices(
     basicActionChoices,
     escapes,
     heldGrantEnds,
+    effectOffers,
     releases,
     optionalRules: activeOptionalCombatDefinitions({
       automationMode: state.automationMode,
@@ -685,14 +698,7 @@ async function readEncounterRescues(
   actor: { id: string },
   runActors: Awaited<ReturnType<typeof readRunActors>>
 ) {
-  const activeEffectsByActorId = new Map(
-    await Promise.all(
-      runActors.map(
-        async (held) =>
-          [held.id, await listActiveRuleEffects(tx, turnEffectOwner(held, state.id))] as const
-      )
-    )
-  )
+  const activeEffectsByActorId = await readActiveEffectsByActorId(tx, state.id, runActors)
   return findEncounterRescues({
     actorId: actor.id,
     activeEffectsByActorId,
@@ -713,14 +719,7 @@ async function readHeldRelationships(
 > {
   const { state, membership, sourceActorIds } = input
   const runActors = await readRunActors(tx, state)
-  const activeEffectsByActorId = new Map(
-    await Promise.all(
-      runActors.map(
-        async (held) =>
-          [held.id, await listActiveRuleEffects(tx, turnEffectOwner(held, state.id))] as const
-      )
-    )
-  )
+  const activeEffectsByActorId = await readActiveEffectsByActorId(tx, state.id, runActors)
   return encounterRelationships(activeEffectsByActorId)
     .filter(({ sourceActorId }) => sourceActorIds.has(sourceActorId))
     .map(({ sourceActorId, actorId: heldActorId, effect, contribution }) => {

@@ -219,6 +219,18 @@ const PARITY: Record<CommandType, Entry> = {
       activeEffectId: SOME_ID
     })
   },
+  MOVE_HELD_EFFECT: {
+    access: 'PLAYER',
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'MOVE_HELD_EFFECT',
+      actorId: probe.actorId,
+      effectId: SOME_ID,
+      offerIndex: 0,
+      target: { kind: 'ACTOR', actorId: SOME_ID }
+    })
+  },
   RELEASE_RELATIONSHIP: {
     access: 'PLAYER',
     actorScoped: true,
@@ -526,6 +538,7 @@ describe('registry', () => {
       'ADVANCE_TURN',
       'END_HELD_GRANT',
       'ESCAPE',
+      'MOVE_HELD_EFFECT',
       'RELEASE_RELATIONSHIP',
       'RESOLVE_ACTION',
       'RESOLVE_RULE_OCCURRENCE',

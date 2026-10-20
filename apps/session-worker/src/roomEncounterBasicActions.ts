@@ -5,12 +5,14 @@ import {
 import { persistEncounterBasicAction } from '@artificer-toolkit/encounter-persistence/basicActionPersistence'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { persistEncounterEndHeldGrant } from '@artificer-toolkit/encounter-persistence/endHeldGrantPersistence'
+import { persistEncounterMoveHeldEffect } from '@artificer-toolkit/encounter-persistence/moveHeldEffectPersistence'
 import { persistEncounterEscape } from '@artificer-toolkit/encounter-persistence/escapePersistence'
 import { persistEncounterReleaseRelationship } from '@artificer-toolkit/encounter-persistence/releaseRelationshipPersistence'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type {
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  MoveHeldEffectInputDto,
   ReleaseRelationshipInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -22,6 +24,7 @@ import { planNativeLiveBasicActionResponse } from './nativeBasicActionResponse.j
 import { planNativeLiveEndHeldGrant } from './nativeEndHeldGrantAction.js'
 import { planNativeLiveEscape } from './nativeEscapeAction.js'
 import { planNativeLiveEscapeResponse } from './nativeEscapeActionResponse.js'
+import { planNativeLiveMoveHeldEffect } from './nativeMoveHeldEffectAction.js'
 import { planNativeLiveReleaseRelationship } from './nativeReleaseRelationshipAction.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import {
@@ -161,6 +164,28 @@ export async function executeRoomEncounterEndHeldGrant(
   const revisions = await readBasicActionRevisions(input)
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
   return persistEncounterEndHeldGrant(
+    ctx,
+    { ...plan.input, revisions },
+    {
+      validateReadFence: (state, actors, fence) =>
+        assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, {
+          revisions: fence.revisions,
+          scenes: []
+        })
+    }
+  )
+}
+
+/** Moving a held effect spends its offer's activation and re-creates the effect under its new holder in one native commit. */
+export async function executeRoomEncounterMoveHeldEffect(
+  input: RoomBasicActionInput & { command: MoveHeldEffectInputDto }
+) {
+  const { ctx, transaction, scope, observed } = input
+  const plan = await planNativeLiveMoveHeldEffect(scope, input.command, basicActionExecution(input))
+  if (plan.kind === 'REPLAY') return plan.result
+  const revisions = await readBasicActionRevisions(input)
+  mergeNativeRulesRevisions(revisions, plan.input.revisions)
+  return persistEncounterMoveHeldEffect(
     ctx,
     { ...plan.input, revisions },
     {

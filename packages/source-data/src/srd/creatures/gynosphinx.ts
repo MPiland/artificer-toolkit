@@ -62,64 +62,34 @@ export const gynosphinx: CreatureAuthored = {
       label: 'Spellcasting',
       description:
         'Spellcasting. The sphinx is a 9th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 16, +8 to hit with spell attacks). It requires no material components to cast its spells. The sphinx has the following wizard spells prepared: Cantrips (at will): mage hand, minor illusion, prestidigitation 1st level (4 slots): detect magic, identify, shield 2nd level (3 slots): darkness, locate object, suggestion 3rd level (3 slots): dispel magic, remove curse, tongues 4th level (3 slots): banishment, greater invisibility 5th level (1 slot): legend lore',
-      grants: {
-        spells: [
+      grants: S.slottedSpellcastingGrants(
+        157,
+        S.ABILITY_CODE.INTELLIGENCE,
+        [S.SPELL_IDS.MAGE_HAND, S.SPELL_IDS.MINOR_ILLUSION, S.SPELL_IDS.PRESTIDIGITATION],
+        [
           {
-            id: S.actionId(157, 301),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [
-              S.SPELL_IDS.MAGE_HAND,
-              S.SPELL_IDS.MINOR_ILLUSION,
-              S.SPELL_IDS.PRESTIDIGITATION
-            ],
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
-            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
-            order: 0
+            level: 1,
+            slots: 4,
+            spellIds: [S.SPELL_IDS.DETECT_MAGIC, S.SPELL_IDS.IDENTIFY, S.SPELL_IDS.SHIELD]
           },
           {
-            id: S.actionId(157, 302),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [
-              S.SPELL_IDS.DETECT_MAGIC,
-              S.SPELL_IDS.IDENTIFY,
-              S.SPELL_IDS.SHIELD,
-              S.SPELL_IDS.DARKNESS,
-              S.SPELL_IDS.LOCATE_OBJECT,
-              S.SPELL_IDS.SUGGESTION,
-              S.SPELL_IDS.DISPEL_MAGIC,
-              S.SPELL_IDS.REMOVE_CURSE,
-              S.SPELL_IDS.TONGUES,
-              S.SPELL_IDS.BANISHMENT,
-              S.SPELL_IDS.GREATER_INVISIBILITY,
-              S.SPELL_IDS.LEGEND_LORE
-            ],
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED],
-            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
-            order: 1
-          }
+            level: 2,
+            slots: 3,
+            spellIds: [S.SPELL_IDS.DARKNESS, S.SPELL_IDS.LOCATE_OBJECT, S.SPELL_IDS.SUGGESTION]
+          },
+          {
+            level: 3,
+            slots: 3,
+            spellIds: [S.SPELL_IDS.DISPEL_MAGIC, S.SPELL_IDS.REMOVE_CURSE, S.SPELL_IDS.TONGUES]
+          },
+          {
+            level: 4,
+            slots: 3,
+            spellIds: [S.SPELL_IDS.BANISHMENT, S.SPELL_IDS.GREATER_INVISIBILITY]
+          },
+          { level: 5, slots: 1, spellIds: [S.SPELL_IDS.LEGEND_LORE] }
         ]
-      },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(157, 303),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: {
-              id: S.actionId(157, 1303),
-              rangeKind: S.RANGE_KIND.SELF
-            },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GYNOSPHINX_SPELLCASTING
-        })
-      ],
+      ),
       order: 3
     },
     {

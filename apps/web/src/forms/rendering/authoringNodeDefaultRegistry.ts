@@ -105,6 +105,8 @@ type AuthoringDefaultKind =
   | 'pathChoiceOption'
   | 'pathChosenItem'
   | 'pathLifecycle'
+  | 'pathLifecycleEffectOffer'
+  | 'pathLifecycleEffectOfferRange'
   | 'pathLifecycleEndTrigger'
   | 'pathLifecycleEscape'
   | 'pathLifecycleGrantedAction'
@@ -271,6 +273,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
   pathChosenItem: ['pathChosenItem'],
   pathLifecycle: ['pathLifecycle'],
+  pathLifecycleEffectOffer: ['pathLifecycleEffectOffer'],
+  pathLifecycleEffectOfferRange: ['pathLifecycleEffectOfferRange'],
   pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
   pathLifecycleEscape: ['pathLifecycleEscape'],
   pathLifecycleGrantedAction: ['pathLifecycleGrantedAction'],

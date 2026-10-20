@@ -13,6 +13,7 @@ import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.
 import { shapeMeasurementDtoSchema } from '../shared/shape.js'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '../shared/basicActions.js'
 import { targetingSelfDtoSchema } from '../effects/targeting.js'
+import { effectOfferKindSchema, effectOfferRangeDtoSchema } from '../effects/effectOffer.js'
 
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 const labelSchema = lazySchema(() => z.string().check(z.trim()).check(z.minLength(1)))
@@ -364,6 +365,24 @@ export const encounterHeldGrantEndChoiceDtoSchema = lazySchema(() =>
 )
 
 /**
+ * A choice a held effect offers the actor beside its holder's turns (D160): the effect-offer pick. The
+ * client submits `effectId` and `offerIndex` with its chosen target; the effect names the cost and the
+ * range. The actor need not hold the effect: `holderActorId` does.
+ */
+export const encounterEffectOfferChoiceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    effectId: postgresUuidSchema,
+    offerIndex: z.number().check(z.int()).check(z.nonnegative()),
+    kind: effectOfferKindSchema,
+    holderActorId: postgresUuidSchema,
+    activation: activationCodeSchema,
+    range: effectOfferRangeDtoSchema,
+    /** Soft-rule warnings that already apply, as for `actions`. */
+    warnings: encounterRuleWarningsDtoSchema
+  })
+)
+
+/**
  * A creature the actor holds through a relationship it applied (D152): the release offer, which
  * spends nothing. The client submits `heldActorId` and `activeEffectId`.
  */
@@ -430,6 +449,10 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
     /** One entry per grant the actor holds that lets its holder end it. */
     heldGrantEnds: z
       .array(encounterHeldGrantEndChoiceDtoSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+    /** One entry per live offer of an effect the actor may take, wherever the effect is held. */
+    effectOffers: z
+      .array(encounterEffectOfferChoiceDtoSchema)
       .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
     /** One entry per creature the actor holds through a relationship it applied. */
     releases: z.array(encounterReleaseChoiceDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
@@ -513,6 +536,7 @@ export type GetEncounterActionChoicesInputDto = z.infer<
 export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
 export type EncounterEscapeChoiceDto = z.infer<typeof encounterEscapeChoiceDtoSchema>
 export type EncounterHeldGrantEndChoiceDto = z.infer<typeof encounterHeldGrantEndChoiceDtoSchema>
+export type EncounterEffectOfferChoiceDto = z.infer<typeof encounterEffectOfferChoiceDtoSchema>
 export type EncounterReleaseChoiceDto = z.infer<typeof encounterReleaseChoiceDtoSchema>
 export type EncounterHeldRelationshipDto = z.infer<typeof encounterHeldRelationshipDtoSchema>
 export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>

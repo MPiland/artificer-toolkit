@@ -21,9 +21,11 @@ export function seedModifierGrant(input: {
   resultPath?: 'ON_HIT' | 'ON_CRIT' | 'ON_SAVE_FAIL'
   /** The slot level a spell's grant was cast at, for a grant that scales by it (Branding Smite). */
   spellCastLevel?: number
+  /** The maintained (Concentration) state the effect depends on, held by `sourceActorId`. */
+  maintainedEffectStateId?: string
 }): NonNullable<MovementRoomConfig['seed']> {
   return async ({ effects, encounterId, occurredAt }) => {
-    const { ownedConditionId, endsOnCast, ...grant } = input
+    const { ownedConditionId, endsOnCast, maintainedEffectStateId, ...grant } = input
     const planned = plannedModifierGrant({ encounterId, ...grant })
     const { definition } = planned
     if ((ownedConditionId || endsOnCast) && definition.schemaVersion !== 2)
@@ -56,6 +58,7 @@ export function seedModifierGrant(input: {
             }
           : definition,
       lifecycle: planned.lifecycle,
+      maintainedEffectStateId,
       occurredAt
     })
   }

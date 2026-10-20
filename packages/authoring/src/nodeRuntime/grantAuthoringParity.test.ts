@@ -36,6 +36,7 @@ describe('a spell authored from core Modifier Grants through the effect node map
     // SPELLS-4.T2d: rolled damage dice, a mark, a hit-consumed die and a cast choice.
     ['Divine Favor', divineFavor],
     ['Branding Smite', brandingSmite],
+    // SPELLS-4.T2d2: the effect offer (`lifecycle.effectOffers`) Hunter's Mark authors to move itself.
     ["Hunter's Mark", huntersMark],
     ['Enlarge/Reduce', enlargeReduce],
     ['Bestow Curse', bestowCurse],

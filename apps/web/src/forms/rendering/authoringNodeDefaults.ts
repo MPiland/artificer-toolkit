@@ -556,6 +556,16 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
     case 'pathChosenItem':
     case 'pathLifecycle':
       return {}
+    case 'pathLifecycleEffectOffer':
+      return {
+        kind: 'MOVE_HELD_EFFECT',
+        offeredTo: 'SOURCE',
+        when: 'HOLDER_AT_ZERO_HP',
+        activation: 'BONUS_ACTION',
+        range: { amount: 30, unit: 'FEET' }
+      }
+    case 'pathLifecycleEffectOfferRange':
+      return { amount: 30, unit: 'FEET' }
     case 'pathLifecycleEndTrigger':
       return { event: 'DAMAGE_TAKEN', by: 'ANYONE' }
     case 'pathLifecycleEscape':

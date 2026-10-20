@@ -2846,6 +2846,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               command.type === 'REMOVE_AREA_TARGET' ||
               command.type === 'ESCAPE' ||
               command.type === 'END_HELD_GRANT' ||
+              command.type === 'MOVE_HELD_EFFECT' ||
               command.type === 'RELEASE_RELATIONSHIP'
                 ? {
                     turnExecution: { runtime: this.#liveRulesRuntime() }

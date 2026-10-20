@@ -379,6 +379,25 @@ export const endHeldGrantInputDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The current actor takes a live effect offer (D160): the effect `effectId` moves to `target` with its
+ * remaining duration and Concentration, spending the activation and reaching the range the offer
+ * `offerIndex` names. The offer is re-read from the effect at admission, so a stale pick is refused.
+ */
+export const moveHeldEffectInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('MOVE_HELD_EFFECT'),
+    actorId: uuidSchema,
+    effectId: postgresUuidSchema,
+    offerIndex: z.number().check(z.int()).check(z.nonnegative()),
+    target: z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema }),
+    /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
+    acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), []),
+    /** The Scene read that measures the offer's range, as for an action. */
+    sceneContext: resolveEncounterActionInputDtoSchema.shape.sceneContext
+  })
+)
+
+/**
  * The source of an Encounter relationship lets go of the creature it holds (D152): free, and
  * whenever it likes. `activeEffectId` names the relationship effect `heldActorId` carries.
  */
@@ -574,6 +593,7 @@ export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
 export type EscapeRelationshipInputDto = z.infer<typeof escapeRelationshipInputDtoSchema>
 export type EndHeldGrantInputDto = z.infer<typeof endHeldGrantInputDtoSchema>
+export type MoveHeldEffectInputDto = z.infer<typeof moveHeldEffectInputDtoSchema>
 export type ReleaseRelationshipInputDto = z.infer<typeof releaseRelationshipInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
