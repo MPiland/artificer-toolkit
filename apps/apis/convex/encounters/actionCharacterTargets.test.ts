@@ -20,7 +20,7 @@ import {
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import type { TableNames } from '../_generated/dataModel'
@@ -213,7 +213,7 @@ async function setup(
       ...initiative.definitions
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...sourceCreature, subjectKind: 'CREATURE', document: sourceCreature })

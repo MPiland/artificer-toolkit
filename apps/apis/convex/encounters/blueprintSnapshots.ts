@@ -4,8 +4,10 @@ import type { MutationCtx, QueryCtx } from '../_generated/server'
 import {
   canReadAuthoredRoot,
   readAuthoredVersion,
+  readAuthoredVersionCompilation,
   readPublishedDocument
 } from '../content/documents'
+import { readStoredEquipment } from '../content/storedEquipment'
 import { ensureSystemVocabularySnapshot } from '../content/systemVocabulary'
 
 export async function readEncounterSource(
@@ -27,9 +29,23 @@ export async function readEncounterSource(
   ) {
     throw new Error('Encounter source is unavailable in the selected Game System.')
   }
+  if (kind === 'EQUIPMENT') {
+    const { version, document, compilation } = await readStoredEquipment(ctx, root, userId)
+    return {
+      document,
+      compilation,
+      checksum: version.checksum,
+      version: version.version,
+      versionId: version.versionId
+    }
+  }
   const version = await readAuthoredVersion(ctx, root)
+  const compilation = await readAuthoredVersionCompilation(ctx, version)
+  if (!compilation || compilation.authoredChecksum !== version.checksum)
+    throw new Error('Encounter source compilation is missing or stale.')
   return {
     document: await readPublishedDocument(ctx, root, version),
+    compilation,
     checksum: version.checksum,
     version: version.version,
     versionId: version.versionId

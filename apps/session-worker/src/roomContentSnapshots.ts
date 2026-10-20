@@ -94,7 +94,7 @@ export async function loadRoomContentSnapshots(
         if (hashes.has(ref.sha256)) throw new Error('Content snapshot object is duplicated.')
         hashes.add(ref.sha256)
         const header = {
-          format: 2 as const,
+          format: 3 as const,
           scope: head.scope,
           scopeId: head.scopeId,
           kind,
@@ -138,7 +138,7 @@ export async function loadRoomContentSnapshots(
           parsed.scopeId !== header.scopeId ||
           parsed.kind !== kind ||
           parsed.part !== part ||
-          parsed.format !== 2
+          parsed.format !== 3
         )
           throw new Error('Content snapshot header does not match its manifest.')
         if (parsed.roots.length !== ref.rootCount)

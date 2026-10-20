@@ -26,7 +26,7 @@ import { api, internal } from '../../convex/_generated/api'
 import { seedActiveInitiative } from './activeInitiative'
 import { setupCharacterRun } from './encounterCharacter'
 import { createPartyPlayer } from './partyPlayer'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { setAutoRollDice } from './rollPreferences'
 import { attachFixtureRoom, checkpointLiveRoom, executeInRoom } from './localRoomWorker'
 
@@ -188,7 +188,7 @@ export async function playerControlFixture(
       (definition) => definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID
     )
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       ...(options.loadout ?? []).map(({ equipment }) =>

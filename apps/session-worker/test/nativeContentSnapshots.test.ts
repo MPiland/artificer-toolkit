@@ -23,7 +23,7 @@ const json = '{"roots":[]}'
 
 function keyOf(scope: 'SOURCE' | 'CAMPAIGN', scopeId: string, seed: string) {
   return contentSnapshotObjectKey(
-    { format: 2, scope, scopeId, kind: 'RACE', part: 'index' },
+    { format: 3, scope, scopeId, kind: 'RACE', part: 'index' },
     seed.repeat(64)
   )
 }

@@ -11,6 +11,7 @@ import type {
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { castChoiceOptions } from './encounterCastChoice.js'
 import { placedSpaceEntries, type PlacedSpaceManifest } from './placedSpaceEntries.js'
+import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
 
 /**
  * An authored zone an action places, with the behavior its entry runs: left at a chosen point, or
@@ -194,6 +195,50 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
     appearSave,
     entry,
     sourceGrantEntry
+  }
+}
+
+/**
+ * The retaliation zone a creature's passive melee trait stands for (Remorhaz Heated Body): a SOURCE
+ * zone as far around its holder as the trait's range, answering a melee hit on the holder with the
+ * trait's own direct entries (D153). The trait authors no zone, so the zone is derived from it. Null
+ * for any other effect.
+ */
+export function passiveMeleeRetaliationZone(
+  compiledEffect: CompiledEffectGroup,
+  label: string | undefined
+): PlacedSpaceZone | null {
+  const { invocation, entries } = compiledEffect
+  if (invocation.kind !== 'PASSIVE' || dnd5eAttackKind(invocation.triggerCode) !== 'MELEE')
+    return null
+  const { range } = invocation
+  const [entry] = entries
+  if (!label || range.rangeKind !== 'DISTANCE' || !entry)
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A passive melee trait answers a hit within a distance of its holder.'
+    )
+  return {
+    attachment: 'SOURCE',
+    label,
+    shape: {
+      id: range.id,
+      shapeKind: 'SPHERE',
+      radius: { amount: range.amount, unit: range.unit }
+    },
+    components: [
+      {
+        component: {
+          id: compiledEffect.id,
+          order: 1,
+          label,
+          interactionKinds: ['MELEE_HIT_ON_SOURCE']
+        },
+        behavior: compiledEffect
+      }
+    ],
+    appearSave: null,
+    entry,
+    sourceGrantEntry: null
   }
 }
 

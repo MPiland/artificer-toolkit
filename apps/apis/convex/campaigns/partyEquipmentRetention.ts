@@ -2,7 +2,7 @@ import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
 import { captureAcquiredEquipmentRules } from '../content/acquiredEquipmentRules'
-import { readCampaignSharedRootPublication } from './contentAccess'
+import { readCampaignSharedActiveRoot } from './contentAccess'
 import { readPartyEquipmentSource } from './partyInventoryDocuments'
 
 /** Retain acquired mechanics inside the caller's authorized custody/source-loss transaction. */
@@ -50,8 +50,7 @@ export async function retainPartyEquipmentRules(
         .withIndex('by_campaignId_subjectKind_subjectId', (q) =>
           q.eq('campaignId', campaign.id).eq('subjectKind', 'SPELL')
         )) {
-        if (!(await readCampaignSharedRootPublication(ctx, campaign, 'SPELL', share.subjectId)))
-          continue
+        if (!(await readCampaignSharedActiveRoot(ctx, campaign, 'SPELL', share.subjectId))) continue
         const root = await ctx.db
           .query('authoredRoots')
           .withIndex('by_publicId', (q) => q.eq('id', share.subjectId))

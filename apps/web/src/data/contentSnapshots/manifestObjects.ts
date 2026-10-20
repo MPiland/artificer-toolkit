@@ -28,7 +28,7 @@ function headLocations(
       ? parts.map((part) => ({
           // `kinds` is keyed by the kind enum; `Object.entries` widens the key to string.
           header: {
-            format: 2 as const,
+            format: 3 as const,
             scope: head.scope,
             scopeId: head.scopeId,
             kind: kind as ContentSnapshotHeader['kind'],

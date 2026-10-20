@@ -63,7 +63,7 @@ const catalogueManifest = contentSnapshotCatalogueManifestDtoSchema.parse({
 })
 
 const creatureListObject = contentSnapshotListObjectSchema.parse({
-  format: 2,
+  format: 3,
   scope: 'SOURCE',
   scopeId: creatureScopeId,
   kind: 'CREATURE',

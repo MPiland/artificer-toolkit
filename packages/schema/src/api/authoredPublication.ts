@@ -102,8 +102,8 @@ export const authoredStoredCompilationSchema = lazySchema(() =>
 )
 
 /**
- * Transitional (PLATFORM-21.T1a): the table also admits a superseded compiler version until
- * `content/compilationMigration` recompiles it; PLATFORM-21.T1b narrows it to the current version.
+ * The table also admits a superseded compiler version: `content/compilationMigration` reads such a
+ * row to recompile it, and readers reject it as stale (D163).
  */
 export const authoredStoredCompilationRowSchema = lazySchema(() =>
   z.extend(authoredStoredCompilationSchema, {

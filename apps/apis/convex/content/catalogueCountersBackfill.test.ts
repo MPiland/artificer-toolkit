@@ -55,7 +55,6 @@ describe('exact catalogue counter backfill', () => {
       if (!original?.catalogue?.spell) throw new Error('Missing Spell catalogue fixture.')
       const {
         selectionVersion: _marker,
-        publishedActive: _active,
         attributes: _attributes,
         components: _components,
         materialDescription: _material,
@@ -66,12 +65,9 @@ describe('exact catalogue counter backfill', () => {
       )
       for (let replay = 0; replay < 2; replay++) {
         if (replay === 1) {
-          const { publishedActive: _active, ...markedSpell } = original.catalogue.spell
-          await t.run((ctx) =>
-            ctx.db.patch(original._id, {
-              catalogue: { ...original.catalogue!, spell: markedSpell }
-            })
-          )
+          // A marked Spell from before root-level status facts is backfilled exactly too.
+          const { publishedActive: _active, ...unmarked } = original.catalogue
+          await t.run((ctx) => ctx.db.patch(original._id, { catalogue: unmarked }))
         }
         let cursor: string | null = null
         let isDone = false
@@ -91,15 +87,13 @@ describe('exact catalogue counter backfill', () => {
       }
       await t.run((ctx) =>
         ctx.db.patch(original._id, {
-          catalogue: {
-            ...original.catalogue!,
-            spell: {
-              ...original.catalogue!.spell!,
-              ...(corruptField === 'components'
-                ? { components: [] }
-                : { publishedActive: !original.catalogue!.spell!.publishedActive })
-            }
-          }
+          catalogue:
+            corruptField === 'components'
+              ? {
+                  ...original.catalogue!,
+                  spell: { ...original.catalogue!.spell!, components: [] }
+                }
+              : { ...original.catalogue!, publishedActive: !original.catalogue!.publishedActive }
         })
       )
       let cursor: string | null = null

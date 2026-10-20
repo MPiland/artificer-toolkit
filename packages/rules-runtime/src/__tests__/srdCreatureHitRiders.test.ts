@@ -254,6 +254,17 @@ describe('SRD Creature weapon attacks through held Equipment (D62, M9)', () => {
     expect(hit.execution.d20).toMatchObject({ total: 16, resultPath: 'ON_HIT' })
     expect(hit.damage).toEqual([[1 + 2 + 4, srdDamageTypeId('BLUDGEONING')]])
   })
+
+  it('deals the Ogre Zombie’s printed bludgeoning, whatever damage type its held Morningstar defaults to (ATTACK-5.T4a)', async () => {
+    // Morningstar, +6: 13 (2d8 + 4) bludgeoning, printed over the Equipment's own piercing.
+    const hit = await attackOgre({
+      attacker: 'Ogre Zombie',
+      feature: 'Morningstar',
+      rolls: [9, 0, 1]
+    })
+    expect(hit.execution.d20).toMatchObject({ total: 16, resultPath: 'ON_HIT' })
+    expect(hit.damage).toEqual([[1 + 2 + 4, srdDamageTypeId('BLUDGEONING')]])
+  })
 })
 
 describe('SRD hits that apply several conditions (D62, M9)', () => {

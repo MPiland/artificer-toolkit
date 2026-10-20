@@ -1260,7 +1260,7 @@
         {
           "id": "PLATFORM-21",
           "title": "The engine loads compiled content instead of recompiling",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -1271,10 +1271,18 @@
           "acs": [
             {
               "id": "PLATFORM-21.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "User decision 2026-10-17 (option a): compile once at publish, as ADR 0003 describes, for performance and reliability.",
-              "text": "Compile once: content is compiled when it is published or imported, the stored compiled projection is what the character engine and the room load, and no evaluation recompiles authored records; a compile failure blocks the publish with its diagnostics."
+              "text": "Compile once: content is compiled when it is published or imported, the stored compiled projection is what the character engine and the room load, and no evaluation recompiles authored records; a compile failure blocks the publish with its diagnostics.",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/readPathCompilation.test.ts",
+                "packages/rules-runtime/src/__tests__/retainedRulesWithoutCompile.test.ts",
+                "packages/rules-runtime/src/__tests__/contentSnapshots.test.ts",
+                "apps/apis/convex/characters/commitReadBudget.test.ts",
+                "apps/session-worker/test/nativeContentSnapshots.test.ts",
+                "apps/session-worker/test/nativeRoomEquipmentReplacement.test.ts"
+              ]
             },
             {
               "id": "PLATFORM-21.2",
@@ -1320,7 +1328,7 @@
             },
             {
               "id": "PLATFORM-21.T1b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-21.1"],
               "wsjf": {
                 "bv": 8,
@@ -1329,7 +1337,21 @@
                 "size": 5,
                 "after": ["PLATFORM-21.T1a2"]
               },
-              "text": "Hydrate Builder commit, the browser Builder and the room from the stored compiled projection and remove runtime recompilation (D163); snapshot documents format 3 (ADR 0036 amendment); a compile failure blocks the publish; before-and-after measurements, including commitReadBudget within D84 (measured full swap: Fighter 5 324 KB, Wizard 5 405 KB, Fighter 3/Wizard 2 525 KB). Also show the retained Spell presentation that T1a pins (view only)."
+              "text": "Hydrate Builder commit, the browser Builder and the room from the stored compiled projection and remove runtime recompilation (D163); snapshot documents format 3 (ADR 0036 amendment); a compile failure blocks the publish; before-and-after measurements, including commitReadBudget within D84 (measured full swap: Fighter 5 324 KB, Wizard 5 405 KB, Fighter 3/Wizard 2 525 KB). Also show the retained Spell presentation that T1a pins (view only).",
+              "note": "Merged m231 (aeaccfdab). Ruling B: the Sheet retained-Spell view is unreachable until Equipment/Feat spell access exists (open question Q28)."
+            },
+            {
+              "id": "PLATFORM-21.T1c",
+              "status": "TODO",
+              "closes": ["PLATFORM-21.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 8,
+                "size": 1,
+                "after": ["PLATFORM-21.T1b"]
+              },
+              "text": "Test the stored-compilation guards T1b added without a test (from the m231 assertion audit): hydrateStoredCompilation refuses a superseded compilerVersion and a projection whose id is not the subject id; Creature Equipment pin and snapshot refuse Equipment from another Game System (or prove a reader-level test already covers it). Then add the PBI journey test list."
             }
           ]
         },
@@ -6305,7 +6327,7 @@
             },
             {
               "id": "ATTACK-5.T4a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
@@ -6313,11 +6335,12 @@
                 "rr": 3,
                 "size": 1
               },
-              "text": "Ogre Zombie Morningstar (EQUIPMENT_DAMAGE_TYPE): the printed attack damage type governs over the held Equipment default, as a generic rule, with no data edit to the protected SRD print. Removes its allowlist entry. (T4 split ruled 2026-10-20.)"
+              "text": "Ogre Zombie Morningstar (EQUIPMENT_DAMAGE_TYPE): the printed attack damage type governs over the held Equipment default, as a generic rule, with no data edit to the protected SRD print. Removes its allowlist entry. (T4 split ruled 2026-10-20.)",
+              "note": "Merged m229 (0a15e4499); proofs nativeRoomEquipmentReplacement.test.ts, nativeRoomHitRiders.test.ts, srdCreatureHitRiders.test.ts; ATTACK-5.15 closes at T4."
             },
             {
               "id": "ATTACK-5.T4b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
@@ -6325,7 +6348,8 @@
                 "rr": 3,
                 "size": 5
               },
-              "text": "Follow-up save shapes: Cockatrice Bite (restrained escalating to petrified), Couatl Bite (poisoned, unconscious) and Guardian Naga Spit Poison. Generic options only; removes their allowlist entries. (T4 split ruled 2026-10-20.)"
+              "text": "Follow-up save shapes: Cockatrice Bite (restrained escalating to petrified), Couatl Bite (poisoned, unconscious) and Guardian Naga Spit Poison. Generic options only; removes their allowlist entries. (T4 split ruled 2026-10-20.)",
+              "activeWorkbook": "docs/handoffs/slice-attack-5-t1.md"
             },
             {
               "id": "ATTACK-5.T4c",
@@ -6453,7 +6477,7 @@
         {
           "id": "ATTACK-7",
           "title": "Grapple and shove",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/session-worker/test/nativeRoomShamblingMoundGrapple.test.ts",
             "apps/session-worker/test/nativeRoomShoveContest.test.ts",
@@ -6484,7 +6508,9 @@
               "status": "DONE",
               "proof": [
                 "apps/session-worker/test/nativeRoomReleaseRelationship.test.ts",
-                "packages/rules-runtime/src/__tests__/encounterRelationshipEnds.test.ts"
+                "packages/rules-runtime/src/__tests__/encounterRelationshipEnds.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.stories.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx"
               ],
               "origin": [],
               "note": "D105 slice D.",
@@ -6753,7 +6779,7 @@
             },
             {
               "id": "ATTACK-7.T11",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.4"],
               "wsjf": {
                 "bv": 5,
@@ -6761,7 +6787,8 @@
                 "rr": 3,
                 "size": 1
               },
-              "text": "Bug (found in RELIABILITY-9.T2, 2026-10-20, fails on the phase tip): the CampaignTabletopEncounterDrawer story \"Player Releases Off Turn\" never shows the \"Released.\" alert. Find whether the product (CampaignTabletopReleases, useWarnedCommand) or the story is wrong, fix it, and add a component test that fails before the fix."
+              "text": "Bug (found in RELIABILITY-9.T2, 2026-10-20, fails on the phase tip): the CampaignTabletopEncounterDrawer story \"Player Releases Off Turn\" never shows the \"Released.\" alert. Find whether the product (CampaignTabletopReleases, useWarnedCommand) or the story is wrong, fix it, and add a component test that fails before the fix.",
+              "note": "Merged m228 (d219cc19f): the story fixture waited on the drawer fade; product was correct."
             }
           ],
           "wsjf": {
@@ -8640,7 +8667,7 @@
             },
             {
               "id": "SPELLS-4.T2d2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8649,7 +8676,9 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2d", "SPELLS-4.T2l"]
               },
-              "text": "Generic option: move a held effect to a new target as a granted action (Hunter’s Mark re-mark after its target drops to 0 HP), with a parity proof and a room journey. Split from SPELLS-4.T2d (2026-10-18 ruling)."
+              "text": "Generic option: move a held effect to a new target as a granted action (Hunter’s Mark re-mark after its target drops to 0 HP), with a parity proof and a room journey. Split from SPELLS-4.T2d (2026-10-18 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "Ruling A (2026-10-20): authored lifecycle move-on-holder-0-HP compiled into the effect, offered through T2lb's grantedActions seam as MOVE_HELD_EFFECT; waits for T2lb to merge."
             },
             {
               "status": "DONE",
@@ -12463,7 +12492,7 @@
             },
             {
               "id": "SPELLS-33.T4k2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12472,7 +12501,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T4k"]
               },
-              "text": "new: Remorhaz Heated Body (1 kind): a passive creature melee-retaliation trait with no zone, reusing selectMeleeRetaliationContacts, planEncounterMeleeRetaliation and T6e4's damage-ends seam; melee hit within 5 ft only (touch contact deferred); parity proof, kind deleted (2026-10-19 split; workbook slice-spells-33.md)."
+              "text": "new: Remorhaz Heated Body (1 kind): a passive creature melee-retaliation trait with no zone, reusing selectMeleeRetaliationContacts, planEncounterMeleeRetaliation and T6e4's damage-ends seam; melee hit within 5 ft only (touch contact deferred); parity proof, kind deleted (2026-10-19 split; workbook slice-spells-33.md).",
+              "note": "Merged m230 (2836b2549); proofs nativeRoomMeleeRetaliation.test.ts, creatureZoneAuthoringParity.test.ts, encounterZonePlacementCompilation.test.ts."
             },
             {
               "id": "SPELLS-33.T4l1",
@@ -14612,7 +14642,8 @@
                 "apps/web/src/domains/characters/builder/selection/CharacterSelectionModal.test.tsx",
                 "apps/web/src/domains/characters/builder/steps/equipment/CharacterStartingEquipmentChoices.component.test.tsx",
                 "apps/web/src/domains/characters/builder/core/CharacterBuilderAuthoringRuntime.test.tsx",
-                "apps/web/src/settings/ProfileSettingsPage.test.tsx"
+                "apps/web/src/settings/ProfileSettingsPage.test.tsx",
+                "apps/web/src/domains/campaigns/components/CampaignTableSettings/CampaignTableSettings.test.tsx"
               ],
               "origin": [],
               "note": "Closed by RELIABILITY-9.T1 (merge 036b8f7d6): shared useServerDraft keeps per-field edits with the server value seen, surfaces conflicts with Use latest / Keep mine, and editors are keyed by record. Post-merge run: 16 web test files, 111 tests green; typecheck green. Storybook runs for the touched surfaces are owed (RELIABILITY-9.T2 note). Original finding: Data loss. EncounterActorCard.tsx:80-86 resets initiative, HP, temp HP, visibility and notes on every `actor` change; CampaignClockEditor.tsx:42-48 resets day, time, dawn and dusk on every `clock` change. About 15 further prop-to-state reset effects follow the same pattern; each gets a `key` instead. Second pass: SocialListingFormPage.tsx:81-85, CharacterSelectionModal.tsx:28-30, CharacterStartingEquipmentChoices.tsx:227, ProfileSettingsPage.tsx:68-107 (derivable availability states), CharacterBuilderAuthoringRuntime.tsx:35-38.",
@@ -14720,7 +14751,7 @@
             },
             {
               "id": "RELIABILITY-9.T2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-9.1"],
               "wsjf": {
                 "bv": 5,
@@ -14728,7 +14759,8 @@
                 "rr": 3,
                 "size": 1
               },
-              "text": "Suspected gap (found in RELIABILITY-9.T2, 2026-10-20): CampaignTableSettings parses its settings on every render, so a re-render of its parent may reset an unsaved draft. Prove it with a component test; if it fails, key the draft by the record and surface incoming changes as RELIABILITY-9.1 requires."
+              "text": "Suspected gap (found in RELIABILITY-9.T2, 2026-10-20): CampaignTableSettings parses its settings on every render, so a re-render of its parent may reset an unsaved draft. Prove it with a component test; if it fails, key the draft by the record and surface incoming changes as RELIABILITY-9.1 requires.",
+              "note": "Merged m228 (d219cc19f): real bug; the Table Settings draft now resets only when settings.version changes."
             }
           ]
         },

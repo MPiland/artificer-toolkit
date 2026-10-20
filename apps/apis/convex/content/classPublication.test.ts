@@ -31,6 +31,7 @@ import { api, components, internal } from '../_generated/api'
 import {
   classDerivedArgs,
   importedSubject,
+  importSeededSubjects,
   publicationFixture,
   setVersionCompilation,
   versionWithCompilation
@@ -147,7 +148,7 @@ async function importCrossSystemBase(t: Awaited<ReturnType<typeof fixture>>['t']
       gameSystemId: systemId
     }
   })
-  await t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(t, {
     contentSourceId: sourceId,
     subjects: [
       importedSubject({
@@ -466,7 +467,7 @@ describe('native Class publication', () => {
     const spellClasses = [sorcerer, wizard].map((document) =>
       importedSubject({ subjectKind: 'CLASS', ...document, document })
     )
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         ...spellClasses,
@@ -572,7 +573,7 @@ describe('native Class publication', () => {
     ])
 
     const backfill = await fixture()
-    await backfill.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(backfill.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         ...spellClasses,

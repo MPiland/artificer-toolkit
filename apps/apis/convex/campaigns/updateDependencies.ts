@@ -10,7 +10,7 @@ import { writeCharacterRecord } from '../characters/characterWrites'
 import { projectCharacterSheetFacts } from '../characters/sheetPreparation'
 import { readActiveCampaignMembers } from './authority'
 import { requireCampaignCharacterAuthority } from './characterState'
-import { readCampaignSharedPublication } from './contentAccess'
+import { readCampaignSharedAuthorizedRoot } from './contentAccess'
 import { readPartyEquipment } from './partyInventoryDocuments'
 import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
 import { requireCampaignVehicleDefinition } from './vehicleSources'
@@ -90,7 +90,9 @@ export async function validateCampaignUpdateDependencies(
     .query('campaignContentShares')
     .withIndex('by_campaignId_subjectKind_subjectId', (q) => q.eq('campaignId', campaign.id))) {
     try {
-      if (!(await readCampaignSharedPublication(ctx, campaign, share.subjectKind, share.subjectId)))
+      if (
+        !(await readCampaignSharedAuthorizedRoot(ctx, campaign, share.subjectKind, share.subjectId))
+      )
         throw new Error('Shared content is unavailable.')
     } catch (cause) {
       throw new Error(

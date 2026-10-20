@@ -26,7 +26,7 @@ import {
 } from '../../tests/fixtures/localRoomWorker'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { domainRejection } from '../../tests/fixtures/playerControl'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
   importSeededSrdCreatureSenses,
@@ -63,7 +63,7 @@ async function setup(input: { gmAutoRoll: boolean; playerAutoRoll: boolean; crea
       definitions
     })
   await importSeededSrdCreatureSenses(base.t, dragon)
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...dragon, subjectKind: 'CREATURE', document: dragon }),

@@ -86,7 +86,10 @@ export const backfill = internalMutation({
       }
       const metadata = await catalogueMetadata(
         ctx,
-        { ...document, label: root.label, systemId: root.systemId },
+        {
+          subjectKind: root.subjectKind,
+          document: { ...document, label: root.label, systemId: root.systemId }
+        },
         {
           checksum: root.checksum,
           publicId: route.publicId,
@@ -100,6 +103,12 @@ export const backfill = internalMutation({
             ...existing,
             search: existing.search ?? metadata.search,
             countsVersion: existing.countsVersion ?? metadata.countsVersion,
+            publishedActive: existing.publishedActive ?? metadata.publishedActive,
+            ...(metadata.race !== undefined ? { race: existing.race ?? metadata.race } : {}),
+            ...(metadata.class !== undefined ? { class: existing.class ?? metadata.class } : {}),
+            ...(metadata.background !== undefined
+              ? { background: existing.background ?? metadata.background }
+              : {}),
             ...(metadata.selectionMode !== undefined
               ? {
                   selectionMode: existing.selectionMode ?? metadata.selectionMode
@@ -109,11 +118,7 @@ export const backfill = internalMutation({
               ? {
                   spell: existing.spell
                     ? existing.spell.selectionVersion === 1
-                      ? {
-                          ...existing.spell,
-                          publishedActive:
-                            existing.spell.publishedActive ?? metadata.spell.publishedActive
-                        }
+                      ? existing.spell
                       : { ...metadata.spell, ...existing.spell }
                     : metadata.spell
                 }
@@ -131,7 +136,10 @@ export const backfill = internalMutation({
           (metadata.selectionMode !== undefined && existing.selectionMode === undefined) ||
           (metadata.spell !== undefined && existing.spell === undefined) ||
           (metadata.spell !== undefined && existing.spell?.selectionVersion !== 1) ||
-          (metadata.spell !== undefined && existing.spell?.publishedActive === undefined) ||
+          existing.publishedActive === undefined ||
+          (metadata.race !== undefined && existing.race === undefined) ||
+          (metadata.class !== undefined && existing.class === undefined) ||
+          (metadata.background !== undefined && existing.background === undefined) ||
           (root.subjectKind === 'SPELL' && root.spellClassesIndexed !== true)
         )
           await syncCatalogueMetadata(ctx, root._id, metadata)

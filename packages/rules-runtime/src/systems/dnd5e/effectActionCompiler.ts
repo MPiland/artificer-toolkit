@@ -93,6 +93,7 @@ import {
 } from '../../encounterAreaAction.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
+  passiveMeleeRetaliationZone,
   placedSpaceZone,
   ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY,
   zoneTriggers,
@@ -9773,9 +9774,12 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
 export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   compile: compileDnd5eEffectAction,
-  compileZonePlacement: ({ action }) => {
+  compileZonePlacement: ({ action, label }) => {
     const executable = executableAction(action)
-    return zoneChoicePlan(executable) ?? zonePlacementPlan(executable)
+    const retaliation = passiveMeleeRetaliationZone(executable.compiledEffect, label)
+    return retaliation
+      ? zoneComponentPlan(executable, retaliation, retaliation.components[0]!)
+      : (zoneChoicePlan(executable) ?? zonePlacementPlan(executable))
   },
   interpretSpatial,
   compileExecutionPlan: ({ action, compilerSource }) => {

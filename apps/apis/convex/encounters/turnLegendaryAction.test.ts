@@ -48,7 +48,7 @@ import {
   automaticChargedCreatureId
 } from '../../tests/fixtures/encounterAction'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
 import {
@@ -318,7 +318,7 @@ async function setup(
       }))
     }))
   }
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

@@ -59,7 +59,7 @@ import { encounterTurnReadTransaction } from '../../convex/encounters/turnReadPo
 import { readMovementTargets } from './movementTargets'
 import { seedActiveInitiative } from './activeInitiative'
 import { setupCharacterRun } from './encounterCharacter'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 
 import {
   createDisarmCreature,
@@ -134,7 +134,7 @@ export async function nativeDisarmFixture(
       )
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

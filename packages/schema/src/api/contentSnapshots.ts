@@ -31,7 +31,11 @@ import {
 import { castingTimeDtoSchema } from '../subjects/castingTime.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
 import { vehicleAuthoredDtoSchema } from '../subjects/vehicle.js'
-import { authoredCurrentSourceIdentitySchema } from './authoredPublication.js'
+import {
+  authoredCurrentSourceIdentitySchema,
+  authoredStoredCompilationSchema,
+  type AuthoredStoredCompilation
+} from './authoredPublication.js'
 
 // ADR 0036: immutable, content-addressed published content. One object per scope x kind x part.
 export const contentSnapshotScopeSchema = lazySchema(() => z.enum(['SYSTEM', 'SOURCE', 'CAMPAIGN']))
@@ -39,7 +43,7 @@ export const contentSnapshotKindSchema = authoredSubjectKindSchema
 export const contentSnapshotPartSchema = lazySchema(() => z.enum(['index', 'list', 'documents']))
 
 const headerShape = () => ({
-  format: z.literal(2),
+  format: z.literal(3),
   scope: contentSnapshotScopeSchema,
   scopeId: postgresUuidSchema
 })
@@ -53,10 +57,10 @@ export const contentSnapshotHeaderSchema = lazySchema(() =>
   })
 )
 
-/** `v2/{scope}/{scopeId}/{kind}/{part}/{sha256}.json`: the R2 key and Worker path of one object. */
+/** `v3/{scope}/{scopeId}/{kind}/{part}/{sha256}.json`: the R2 key and Worker path of one object. */
 export function contentSnapshotObjectKey(header: ContentSnapshotHeader, sha256: string): string {
   const { scope, scopeId, kind, part } = contentSnapshotHeaderSchema.parse(header)
-  return `v2/${scope.toLowerCase()}/${scopeId}/${kind.toLowerCase()}/${part}/${projectionChecksumSchema.parse(sha256)}.json`
+  return `v3/${scope.toLowerCase()}/${scopeId}/${kind.toLowerCase()}/${part}/${projectionChecksumSchema.parse(sha256)}.json`
 }
 
 /** The inverse of `contentSnapshotObjectKey`; null for anything that is not a canonical key. */
@@ -64,9 +68,9 @@ export function parseContentSnapshotObjectKey(
   key: string
 ): { header: ContentSnapshotHeader; sha256: string } | null {
   const [, scope = '', scopeId, kind = '', part, hash] =
-    /^v2\/([a-z]+)\/([^/]+)\/([a-z]+)\/([a-z]+)\/([^/]+)\.json$/.exec(key) ?? []
+    /^v3\/([a-z]+)\/([^/]+)\/([a-z]+)\/([a-z]+)\/([^/]+)\.json$/.exec(key) ?? []
   const header = contentSnapshotHeaderSchema.safeParse({
-    format: 2,
+    format: 3,
     scope: scope.toUpperCase(),
     scopeId,
     kind: kind.toUpperCase(),
@@ -88,7 +92,7 @@ const abilityScoreIncreaseFactSchema = lazySchema(() =>
 // Index entries hold each root's own picker facts. Labels resolved through the System vocabulary
 // or another root (speed names, proficiency targets, a subrace's inherited facts) are joined by
 // the reader, because they can change in another scope without this object changing.
-const contentSnapshotRaceIndexEntrySchema = lazySchema(() =>
+export const contentSnapshotRaceIndexEntrySchema = lazySchema(() =>
   z.discriminatedUnion('category', [
     z.strictObject({
       ...identityShape(),
@@ -109,7 +113,7 @@ const contentSnapshotRaceIndexEntrySchema = lazySchema(() =>
   ])
 )
 
-const contentSnapshotClassIndexEntrySchema = lazySchema(() =>
+export const contentSnapshotClassIndexEntrySchema = lazySchema(() =>
   z.discriminatedUnion('category', [
     z.strictObject({
       ...identityShape(),
@@ -132,7 +136,7 @@ const contentSnapshotClassIndexEntrySchema = lazySchema(() =>
   ])
 )
 
-const contentSnapshotBackgroundIndexEntrySchema = lazySchema(() =>
+export const contentSnapshotBackgroundIndexEntrySchema = lazySchema(() =>
   z.strictObject({
     ...identityShape(),
     description: z.optional(authoredRichTextSchema),
@@ -293,7 +297,8 @@ const documentsShape = <Kind extends z.infer<typeof contentSnapshotKindSchema>, 
   roots: Roots
 ) => ({
   ...partShape(kind, 'documents', roots),
-  versions: z.array(contentSnapshotPublicationVersionSchema)
+  versions: z.array(contentSnapshotPublicationVersionSchema),
+  compilations: z.array(authoredStoredCompilationSchema)
 })
 
 type ContentSnapshotDocumentsOf<
@@ -304,6 +309,7 @@ type ContentSnapshotDocumentsOf<
   part: 'documents'
   roots: Root[]
   versions: ContentSnapshotPublicationVersion[]
+  compilations: AuthoredStoredCompilation[]
 }
 
 /**
@@ -320,7 +326,7 @@ export type ContentSnapshotDocumentsObject =
   | ContentSnapshotDocumentsOf<'SPELL', z.infer<typeof spellAuthoredDtoSchema>>
   | ContentSnapshotDocumentsOf<'VEHICLE', z.infer<typeof vehicleAuthoredDtoSchema>>
 
-/** Full published documents and their original versions, in matching root order. */
+/** Full published documents, their original versions and stored compilations, in matching root order. */
 export const contentSnapshotDocumentsObjectSchema: z.ZodMiniType<ContentSnapshotDocumentsObject> =
   lazySchema(() =>
     z
@@ -338,16 +344,21 @@ export const contentSnapshotDocumentsObjectSchema: z.ZodMiniType<ContentSnapshot
         z.refine(
           (object) =>
             object.versions.length === object.roots.length &&
+            object.compilations.length === object.roots.length &&
             object.roots.every((root, index) => {
               const pin = object.versions[index]!
               return (
+                object.compilations[index]!.authoredChecksum === pin.identity.checksum &&
                 pin.identity.subjectId === root.id &&
                 pin.identity.subjectKind === object.kind &&
                 pin.identity.systemId === root.systemId &&
                 (object.scope !== 'SOURCE' || pin.identity.contentSourceId === object.scopeId)
               )
             }),
-          { message: 'Content snapshot publication versions do not match their documents.' }
+          {
+            message:
+              'Content snapshot publication versions or compilations do not match their documents.'
+          }
         )
       )
   )

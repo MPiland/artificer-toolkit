@@ -1,9 +1,11 @@
 import { createFunctionHandle } from 'convex/server'
+import type { TestConvex } from 'convex-test'
 import { convexTest } from '../convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import type { SourceImportSubjectDto } from '@artificer-toolkit/schema/api/sourceImport'
 import type { AuthoredStoredCompilation } from '@artificer-toolkit/schema/api/authoredPublication'
+import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -26,6 +28,11 @@ import {
   parsePublicationDocument
 } from '../../convex/content/publicationDocument'
 import { compileCurrentEquipment } from '../../convex/content/equipmentRelationships'
+import {
+  catalogueMetadata,
+  removeCatalogueMetadata,
+  syncCatalogueMetadata
+} from '../../convex/content/catalogueMetadata'
 import { compileCurrentRace } from '../../convex/content/raceRelationships'
 import schema from '../../convex/schema'
 
@@ -59,6 +66,45 @@ export function classDerivedArgs(subject: { id: string; checksum: string; docume
     parentClassId: parsed.document.category === 'SUBCLASS' ? parsed.document.parentClassId : null,
     compilation: compilePublicationDocument(parsed)
   }
+}
+
+/**
+ * The seed's derived step once every imported root exists: Class compilations, Races parents
+ * first, then Equipment, so each child compiles against its stored parent.
+ */
+export async function syncImportedDerived(
+  t: Pick<TestConvex<typeof schema>, 'mutation'>,
+  subjects: readonly SourceImportSubjectDto[]
+) {
+  for (const subject of subjects)
+    if (subject.subjectKind === 'CLASS')
+      await t.mutation(internal.content.import.syncClassDerived, classDerivedArgs(subject))
+  for (const category of ['BASE', 'SUBRACE'] as const)
+    for (const subject of subjects)
+      if (
+        subject.subjectKind === 'RACE' &&
+        raceAuthoredDtoSchema.parse(subject.document).category === category
+      )
+        await t.mutation(internal.content.raceRelationships.syncDerived, {
+          id: subject.id,
+          checksum: subject.checksum
+        })
+  for (const subject of subjects)
+    if (subject.subjectKind === 'EQUIPMENT')
+      await t.mutation(internal.content.import.syncEquipmentDerived, {
+        id: subject.id,
+        checksum: subject.checksum
+      })
+}
+
+/** Imports canonical subjects as the seed does: the import, then its derived step. */
+export async function importSeededSubjects(
+  t: Pick<TestConvex<typeof schema>, 'mutation'>,
+  args: { contentSourceId: string; subjects: SourceImportSubjectDto[] }
+) {
+  const result = await t.mutation(internal.content.import.importSubjects, args)
+  await syncImportedDerived(t, args.subjects)
+  return result
 }
 
 export async function corruptPublishedVersionPayload(ctx: MutationCtx, subjectId: string) {
@@ -108,13 +154,7 @@ export async function makePublishedRootOwned(
   const checksum = checksumRuleDocument(document)
   // The owned copy is a different document, so it gets its own compilation, as publication writes.
   const publication = parsePublicationDocument(version.subjectKind, document)
-  const ownedCompilation =
-    compilation &&
-    (publication.subjectKind === 'EQUIPMENT'
-      ? (await compileCurrentEquipment(ctx, publication.document, ownerUserId)).compilation
-      : publication.subjectKind === 'RACE'
-        ? (await compileCurrentRace(ctx, publication.document, ownerUserId)).compilation
-        : compilePublicationDocument(publication))
+  const ownedCompilation = compilation && (await compileAsPublished(ctx, publication, ownerUserId))
   const currentVersionId = await insertAuthoredVersion(
     ctx,
     {
@@ -131,12 +171,24 @@ export async function makePublishedRootOwned(
     canonicalizeRuleDocument(document),
     ownedCompilation
   )
+  // The root moves to the owner's source, so its catalogue counts and facts move as publication writes them.
+  await removeCatalogueMetadata(ctx, root)
   await ctx.db.patch(root._id, {
     ownerUserId,
     contentSourceId,
     checksum,
-    currentVersionId
+    currentVersionId,
+    catalogue: undefined
   })
+  await syncCatalogueMetadata(
+    ctx,
+    root._id,
+    await catalogueMetadata(ctx, publication, {
+      checksum,
+      publicId: root.id,
+      createdAt: Date.now()
+    })
+  )
 }
 
 export async function publicationFixture(
@@ -163,6 +215,7 @@ export async function publicationFixture(
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects
     })
+  await syncImportedDerived(t, subjectBatches.flat())
   const actors = []
   for (const index of [0, 1]) {
     const user = await t.run(async (ctx) =>
@@ -208,6 +261,19 @@ export async function publicationFixture(
     })
   }
   return { t, first: actors[0]!, second: actors[1]! }
+}
+
+/** The compilation publication stores for a document: variants and subraces resolve their parents. */
+export async function compileAsPublished(
+  ctx: QueryCtx,
+  publication: ReturnType<typeof parsePublicationDocument>,
+  userId: string | null
+): Promise<AuthoredStoredCompilation> {
+  if (publication.subjectKind === 'EQUIPMENT')
+    return (await compileCurrentEquipment(ctx, publication.document, userId)).compilation
+  if (publication.subjectKind === 'RACE')
+    return (await compileCurrentRace(ctx, publication.document, userId)).compilation
+  return compilePublicationDocument(publication)
 }
 
 /** A stored version with its separately stored compilation attached, for assertions. */

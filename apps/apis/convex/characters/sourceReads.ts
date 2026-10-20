@@ -1,22 +1,17 @@
 import { ConvexError } from 'convex/values'
 import type { AuthoredCurrentSourceIdentity } from '@artificer-toolkit/schema/api/authoredPublication'
-import { authoredCatalogueMetadataSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import type { CharacterBuilderCommitErrorData } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import {
-  canReadAuthoredRoot,
-  readPublishedRootDocument,
-  type PublishedDocumentReads
-} from '../content/documents'
+import { canReadAuthoredRoot, readPublishedRootDocument } from '../content/documents'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
 import { readAuthoringSources } from '../content/sources'
 import { contentStream } from '../content/streams'
 import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { requireCampaignAuthority, type CampaignInternalScope } from '../campaigns/authority'
-import { readCampaignSharedRoot, readCampaignSharedPublication } from '../campaigns/contentAccess'
+import { readCampaignSharedAuthorizedRoot } from '../campaigns/contentAccess'
 import { isImportRowVisible } from '../imports/visibility'
 /** History and source reads share current assignment authority without requiring source hydration. */
 export async function readCharacterCampaign(
@@ -126,30 +121,49 @@ export async function readSystemCharacterSources(ctx: QueryCtx, systemId: string
   }
 }
 
+/**
+ * Whether the Character may read the root's current publication, from root rows alone (D163): an
+ * own or enabled source, or an ACTIVE Campaign share whose parents are all readable.
+ */
+export async function canReadCharacterRoot(
+  ctx: QueryCtx,
+  root: Doc<'authoredRoots'>,
+  systemId: string,
+  userId: string,
+  access: Awaited<ReturnType<typeof readCharacterSources>>,
+  sourceIdentities?: Map<string, AuthoredCurrentSourceIdentity>
+) {
+  if (root.systemId !== systemId) return false
+  const source = access.sources.find((source) => source.id === root.contentSourceId)
+  const readable =
+    (source !== undefined && (await canReadAuthoredRoot(ctx, root, userId, source))) ||
+    (access.campaign !== null &&
+      (await readCampaignSharedAuthorizedRoot(
+        ctx,
+        access.campaign,
+        root.subjectKind,
+        root.id,
+        root
+      )) !== null)
+  if (readable && sourceIdentities) recordCharacterSourceIdentity(sourceIdentities, root)
+  return readable
+}
+
+/** The current publication of a root the Character may read; views only, commit reads none. */
 export async function readCharacterPublication(
   ctx: QueryCtx,
   root: Doc<'authoredRoots'>,
   systemId: string,
   userId: string,
   access: Awaited<ReturnType<typeof readCharacterSources>>,
-  sourceIdentities?: Map<string, AuthoredCurrentSourceIdentity>,
-  documents?: PublishedDocumentReads
+  sourceIdentities?: Map<string, AuthoredCurrentSourceIdentity>
 ) {
-  if (root.systemId !== systemId) return null
-  const source = access.sources.find((source) => source.id === root.contentSourceId)
-  let publication: ReturnType<typeof parsePublicationDocument> | null
-  if (source && (await canReadAuthoredRoot(ctx, root, userId, source))) {
-    publication = parsePublicationDocument(
-      root.subjectKind,
-      (await readPublishedRootDocument(ctx, root, documents)).document
-    )
-  } else {
-    publication = access.campaign
-      ? await readCampaignSharedPublication(ctx, access.campaign, root.subjectKind, root.id)
-      : null
-  }
-  if (publication && sourceIdentities) recordCharacterSourceIdentity(sourceIdentities, root)
-  return publication
+  if (!(await canReadCharacterRoot(ctx, root, systemId, userId, access, sourceIdentities)))
+    return null
+  return parsePublicationDocument(
+    root.subjectKind,
+    (await readPublishedRootDocument(ctx, root)).document
+  )
 }
 
 /** Commit fails closed when content the Character references cannot be read (ADR 0036 S7). */
@@ -214,30 +228,13 @@ export async function readCharacterSourceRoots(
     const foundIds = new Set(found.map((root) => root.id))
     for (const share of shares) {
       if (foundIds.has(share.subjectId)) continue
-      let root: Doc<'authoredRoots'> | null
-      if (kind === 'SPELL') {
-        // Spells have no parent relation. Publication seals status with this same checksum.
-        root = await readCampaignSharedRoot(ctx, access.campaign, kind, share.subjectId)
-        if (!root) continue
-        const metadata = root.catalogue && authoredCatalogueMetadataSchema.parse(root.catalogue)
-        if (
-          !metadata?.spell ||
-          metadata.spell.selectionVersion !== 1 ||
-          metadata.spell.publishedActive === undefined ||
-          metadata.checksum !== root.checksum ||
-          metadata.nameKey !== root.label.toLowerCase()
-        )
-          throw new Error('Character Spell selector facts are missing or stale.')
-        if (!metadata.spell.publishedActive) continue
-      } else {
-        if (!(await readCampaignSharedPublication(ctx, access.campaign, kind, share.subjectId)))
-          continue
-        root = await ctx.db
-          .query('authoredRoots')
-          .withIndex('by_publicId', (q) => q.eq('id', share.subjectId))
-          .unique()
-      }
-      if (!root) throw new Error('Stored Campaign content root is missing.')
+      const root = await readCampaignSharedAuthorizedRoot(
+        ctx,
+        access.campaign,
+        kind,
+        share.subjectId
+      )
+      if (!root) continue
       if (!(await isImportRowVisible(ctx, root.importJobId))) continue
       found.push(root)
       foundIds.add(root.id)

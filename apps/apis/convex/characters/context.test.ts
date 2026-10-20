@@ -21,8 +21,12 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { corruptPublishedVersionPayload, importedSubject } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import {
+  corruptPublishedVersionPayload,
+  importedSubject,
+  importSeededSubjects
+} from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
 import { loadCharacterRuleContext } from './context'
 import { loadCharacterBuilderContext } from './builderContext'
 import { fixture, input } from '../../tests/fixtures/characters'
@@ -30,7 +34,7 @@ import { fixture, input } from '../../tests/fixtures/characters'
 async function serializableContext(...args: Parameters<typeof loadCharacterRuleContext>) {
   const {
     spellsById,
-    currentSpellDocumentsById,
+    currentSpellsById,
     creaturesById,
     vehiclesById,
     publications,
@@ -44,7 +48,7 @@ async function serializableContext(...args: Parameters<typeof loadCharacterRuleC
       acquiredEquipmentByItemId: Object.fromEntries(context.registry.acquiredEquipmentByItemId)
     },
     spellsById: Object.fromEntries(spellsById),
-    currentSpellDocumentsById: Object.fromEntries(currentSpellDocumentsById),
+    currentSpellsById: Object.fromEntries(currentSpellsById),
     creaturesById: Object.fromEntries(creaturesById),
     vehiclesById: Object.fromEntries(vehiclesById),
     publications: Object.fromEntries(publications),
@@ -198,7 +202,7 @@ describe('native current Character rule context', () => {
 
   it('loads only selected Class and Race roots with their exact current inheritance', async () => {
     const { t, owner } = await fixture()
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ subjectKind: 'CLASS', ...fighter, document: fighter }),
@@ -231,7 +235,7 @@ describe('native current Character rule context', () => {
 
   it('requires a readable current base Class for a selected subclass', async () => {
     const { t, owner } = await fixture()
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [fighter, championMartialArchetype].map((document) =>
         importedSubject({ subjectKind: 'CLASS', ...document, document })
@@ -367,7 +371,7 @@ describe('native current Character rule context', () => {
     expect(context.registry.backgrounds).toEqual([])
     // D163: the registry holds the compiled Feature; its prose is read through the presentation lookup.
     expect(context.registry.features).toEqual([compileFeature(ownFeature)])
-    expect(Object.values(context.presentation.features)).toEqual([ownFeature])
+    expect(Object.values(context.presentation?.features ?? {})).toEqual([ownFeature])
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
@@ -386,7 +390,7 @@ describe('native current Character rule context', () => {
   it('loads published Spell summaries only when needed and retains exact authorized documents', async () => {
     const { t, owner, other } = await fixture()
     const platform = { ...light, effects: [] }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'SPELL', ...platform, document: platform })]
     })
@@ -464,17 +468,17 @@ describe('native current Character rule context', () => {
     const platformClass = { ...fighter, id: crypto.randomUUID(), label: 'Platform A class' }
     const platformRace = { ...elf, id: crypto.randomUUID(), label: 'Platform B race' }
     const orphanClass = { ...fighter, id: crypto.randomUUID(), label: 'Orphan platform class' }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: platformSourceA.id,
       subjects: [
         importedSubject({ subjectKind: 'CLASS', ...platformClass, document: platformClass })
       ]
     })
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: platformSourceB.id,
       subjects: [importedSubject({ subjectKind: 'RACE', ...platformRace, document: platformRace })]
     })
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: orphanSource.id,
       subjects: [importedSubject({ subjectKind: 'CLASS', ...orphanClass, document: orphanClass })]
     })
@@ -508,7 +512,7 @@ describe('native current Character rule context', () => {
       id: crypto.randomUUID(),
       parentClassId: orphanClass.id
     }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: platformSourceA.id,
       subjects: [importedSubject({ subjectKind: 'CLASS', ...orphanChild, document: orphanChild })]
     })

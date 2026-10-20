@@ -35,9 +35,13 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { fixture, input } from '../../tests/fixtures/characters'
 import { evaluateBuilderCandidate } from '../../tests/fixtures/builderEvaluation'
 import { createBrowserReaders } from '../../tests/fixtures/contentSnapshotReaders'
-import { importedSubject, makePublishedRootOwned } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  makePublishedRootOwned
+} from '../../tests/fixtures/publication'
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { readAuthoredVersion, readPublishedDocument } from '../content/documents'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
 
@@ -132,7 +136,7 @@ async function expectDocumentsRoundTrip(t: Test, objects: readonly ContentSnapsh
 
 async function importSrd(t: Test, subjects: SourceImportSubjectDto[]) {
   for (let start = 0; start < subjects.length; start += 10)
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: subjects.slice(start, start + 10)
     })

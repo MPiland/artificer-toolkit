@@ -104,7 +104,7 @@ export function encounterActorHeldItems(
       return snapshotCreatureEquipmentItems(target.actor).map(({ entry, source }) => ({
         id: entry.id,
         slot: entry.useState,
-        twoHanded: source.payload.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
+        twoHanded: source.compiled.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
       }))
     case 'CUSTOM':
       return []

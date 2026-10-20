@@ -1,4 +1,7 @@
-import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
+import type {
+  AuthoredPublicationDocument,
+  AuthoredStoredCompilation
+} from '@artificer-toolkit/schema/api/authoredPublication'
 import type { CharacterBuilderResolveInput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import {
   contentSnapshotDocumentsObjectSchema,
@@ -27,6 +30,7 @@ import { api } from '../../convex/_generated/api'
 import { requireSystem } from '../../convex/content/systemDocuments'
 import type { ContentSnapshotScopeRef } from '../../convex/contentSnapshots/marking'
 import { loadCharacterDraftCandidate } from '../../convex/characters/documents'
+import { readAuthoredVersionCompilation } from '../../convex/content/documents'
 import {
   readCharacterPublication,
   readCharacterSourceRoots,
@@ -40,6 +44,7 @@ type Caller = Awaited<ReturnType<typeof fixture>>['owner']['caller']
 type Readers = CharacterRuleContextReaders & CharacterBuilderCatalogueReaders
 type FullPoolPublication = AuthoredPublicationDocument & {
   publicationVersion: ContentSnapshotPublicationVersion
+  compilation: AuthoredStoredCompilation
 }
 
 /**
@@ -62,8 +67,11 @@ async function readFullPoolPublications(t: Test, character: CharacterAuthored, u
         if (published) {
           const version = await ctx.db.get(root.currentVersionId)
           if (!version) throw new Error('Missing full-pool publication version.')
+          const compilation = await readAuthoredVersionCompilation(ctx, version)
+          if (!compilation) throw new Error('Missing full-pool publication compilation.')
           publications.push({
             ...published,
+            compilation,
             publicationVersion: {
               identity: {
                 subjectKind: root.subjectKind,
@@ -106,13 +114,14 @@ function createFullPoolReaders(publications: readonly FullPoolPublication[]): Re
       }
       return [...scopes].map(([scopeId, entries]) =>
         contentSnapshotDocumentsObjectSchema.parse({
-          format: 2,
+          format: 3,
           scope: 'SOURCE',
           scopeId,
           kind,
           part: 'documents',
           roots: entries.map((entry) => entry.document),
-          versions: entries.map((entry) => entry.publicationVersion)
+          versions: entries.map((entry) => entry.publicationVersion),
+          compilations: entries.map((entry) => entry.compilation)
         })
       )
     })
@@ -149,10 +158,8 @@ function createFullPoolReaders(publications: readonly FullPoolPublication[]): Re
     readFeats: async () => ofKind('FEAT').map(({ document: { id, label } }) => ({ id, label })),
     // The picker entries come from the Spell documents, as the snapshot index part carries them.
     readSpellCatalogue: async (referencedSpellIds) => ({
-      entries: ofKind('SPELL').map((published) => toContentSnapshotIndexEntry(published)),
-      documents: ofKind('SPELL')
-        .map(({ document }) => document)
-        .filter((document) => referencedSpellIds.has(document.id))
+      ...(await ruleReaders.readSpellCatalogue(referencedSpellIds)),
+      entries: ofKind('SPELL').map((published) => toContentSnapshotIndexEntry(published))
     })
   }
 }

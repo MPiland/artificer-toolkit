@@ -31,9 +31,15 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api, components, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject, versionWithCompilation } from '../../tests/fixtures/publication'
+import {
+  compileAsPublished,
+  importedSubject,
+  importSeededSubjects,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { insertAuthoredVersion } from '../content/documents'
+import { parsePublicationDocument } from '../content/publicationDocument'
 import { readCharacterRow } from '../characters/stateDocuments'
 import {
   attachRoomWorker,
@@ -104,7 +110,7 @@ async function setup() {
       }
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({
@@ -408,7 +414,8 @@ describe('native initiative Spell declarations', () => {
           documentSchemaVersion: current.documentSchemaVersion
         },
         canonicalizeRuleDocument(document),
-        current.compilation
+        // The republished document gets its own compilation, as publication writes.
+        await compileAsPublished(ctx, parsePublicationDocument('SPELL', document), null)
       )
       await ctx.db.patch(root._id, {
         currentVersionId: versionId,

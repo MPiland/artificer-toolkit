@@ -42,7 +42,7 @@ import { writeRunActor } from '@artificer-toolkit/encounter-persistence/document
 import { encounterSummaryOf } from '../../tests/fixtures/encounterSummaries'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { srdCreatureRecord, srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
@@ -130,7 +130,7 @@ async function configureAutomaticInitiative(
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions
   })
-  await t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
   })
@@ -154,7 +154,7 @@ async function setup(
     const boundaryFeature = airElemental.features?.[0]
     if (!whirlwind || !boundaryFeature)
       throw new Error('Missing Air Elemental roll feature fixtures.')
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({

@@ -9,7 +9,11 @@ import { campaignStoredContentShareSchema } from '@artificer-toolkit/schema/proj
 import { getCampaignCapabilities } from '@artificer-toolkit/shared/campaign/capabilities'
 import { internalMutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
-import { readOwnedCurrentPublication, requireCampaignContentParents } from './contentAccess'
+import {
+  readCurrentPublication,
+  readOwnedCurrentRoot,
+  requireCampaignContentParents
+} from './contentAccess'
 import { requireCampaignAuthority } from './authority'
 
 export const share = internalMutation({
@@ -22,11 +26,12 @@ export const share = internalMutation({
     if (!getCampaignCapabilities(campaign.status, membership.role).shareOwnedContent)
       throw new Error('You cannot share content with this Campaign.')
     const subjectId = input.subjectId.toLowerCase()
-    const publication = await readOwnedCurrentPublication(ctx, input.subjectKind, subjectId, userId)
-    if (!publication) throw new Error('Only active homebrew you own can be shared.')
-    if (publication.document.systemId !== campaign.gameSystemId)
+    const root = await readOwnedCurrentRoot(ctx, input.subjectKind, subjectId, userId)
+    if (!root) throw new Error('Only active homebrew you own can be shared.')
+    if (root.systemId !== campaign.gameSystemId)
       throw new Error('Shared content must belong to the Campaign Game System.')
-    await requireCampaignContentParents(ctx, campaign, publication)
+    await requireCampaignContentParents(ctx, campaign, root)
+    const publication = await readCurrentPublication(ctx, root)
     const existing = await ctx.db
       .query('campaignContentShares')
       .withIndex('by_campaignId_subjectKind_subjectId', (q) =>

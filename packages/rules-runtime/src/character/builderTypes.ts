@@ -1,8 +1,7 @@
 import type { AbilityCode, AuthoredRecordStatus } from '@artificer-toolkit/shared/core'
 import {
   CharacterStartingEquipmentSource,
-  type CharacterProvenance,
-  type SpellAuthored
+  type CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
@@ -11,6 +10,7 @@ import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/co
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
 import type { CharacterBuilderChosenGrantChoice } from './chosenGrantChoiceResolver.js'
 import type { CharacterPresentationLookup, CharacterRuleRegistry } from './characterRuleContext.js'
+import type { CharacterRuleSpellPublication } from './contextPreparation.js'
 
 type BuilderMode = 'create' | 'edit'
 
@@ -25,7 +25,8 @@ export interface CharacterBuilderContext {
   presentation?: CharacterPresentationLookup
   /** Compiled Spells the rules read: the current authorized ones, then pinned acquired ones. */
   spellsById?: ReadonlyMap<string, CompiledSpell>
-  currentSpellDocumentsById?: ReadonlyMap<string, SpellAuthored>
+  /** The current authorized Spell publications `spellsById` hydrated, for reuse and source pins. */
+  currentSpellsById?: ReadonlyMap<string, CharacterRuleSpellPublication>
   spellCatalogueEntries?: readonly ContentSnapshotIndexEntry<'SPELL'>[]
   /** Exact server-loaded vocabulary snapshot that produced this registry. */
   vocabularySnapshot?: Pick<SystemVocabularySnapshot, 'document'>

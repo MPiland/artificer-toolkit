@@ -11,7 +11,10 @@ import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
 } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
-import { assertEncounterCreatureEquipmentLoadoutCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscovery'
+import {
+  assertEncounterCreatureEquipmentLoadoutCapabilities,
+  equipmentReplacementKeepsDamageTypes
+} from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscovery'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { readCreatureEquipmentRecords } from './creatureEquipmentRecords.js'
@@ -44,7 +47,7 @@ export async function replaceActorEquipment(
       ...armorClassInputs,
       equipmentLoadout: [{ ...entry, equipmentId: input.equipmentId }]
     },
-    equipmentRecords: await readCreatureEquipmentRecords(
+    equipment: await readCreatureEquipmentRecords(
       (id) => ctx.ports.readEncounterSource(userId, systemId, id, 'EQUIPMENT'),
       [input.equipmentId]
     )
@@ -65,6 +68,15 @@ export async function replaceActorEquipment(
   })
   try {
     assertEncounterCreatureEquipmentLoadoutCapabilities(next)
+    const replaced = currentSources.find((current) => current.loadoutEntryId === entry.id)
+    const replacement = snapshotCreatureEquipmentSources(next).find(
+      (current) => current.loadoutEntryId === entry.id
+    )
+    if (
+      entry.actionFeatureIds.length > 0 &&
+      (!replaced || !replacement || !equipmentReplacementKeepsDamageTypes(replaced, replacement))
+    )
+      throw new Error('Replacement changes the damage types of the held Equipment.')
   } catch {
     throw new Error('Replacement Equipment is incompatible with the Creature Feature actions.')
   }

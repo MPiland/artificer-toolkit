@@ -34,7 +34,7 @@ import { loadCharacterSheetFacts } from '../../convex/characters/sheetFacts'
 import { readCharacterLiveHold } from '../../convex/liveSessions/authorityGuard'
 import { readCharacterRecord, readCharacterRow } from '../../convex/characters/stateDocuments'
 import { srdWolf as wolf } from './srdCreatures'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { setupCharacterRun } from './encounterCharacter'
 import { createEncounterInitiativeDefinitions } from './encounterInitiative'
 import {
@@ -201,7 +201,7 @@ export async function setup({
       ...initiative.definitions
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
   })

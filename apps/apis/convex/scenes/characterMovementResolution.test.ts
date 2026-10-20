@@ -1,4 +1,4 @@
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
@@ -293,7 +293,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
   if (assisted) {
     // The reacting player rolls the selected reaction's dice; prompt for them as evidence.
     await setAutoRollDice(base.t, player.userId, false)
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
     })

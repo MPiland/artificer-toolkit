@@ -526,6 +526,12 @@ against the attacker with system-rolled dice, as one attacker mechanics batch ca
 application; Legendary Action attacks run it through `prepareTurnLegendaryActions`' `meleeRetaliation` port, carried
 on the window's application. Both replay from that evidence (`retained`), so a staged response or a later window's
 re-run rolls no fresh die.
+A creature's passive melee trait with no zone (Remorhaz Heated Body, SPELLS-33 T4k2) is the same zone derived from the
+trait: a PASSIVE effect whose melee attack trigger and distance range say how near a hitter must stand, with direct
+dice damage on `ON_USE`. `passiveMeleeRetaliationZone` stands for it as a SOURCE sphere of that range with one
+`MELEE_HIT_ON_SOURCE` component whose behavior is the trait's own effect, so discovery, placement on the token, the
+selection, the system-rolled plan, persistence and the damage-ends seam are the zone path above. Placement centers every
+passive zone on its holder whatever range its trait authors. A hit by touch is not modeled.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's
@@ -1441,6 +1447,8 @@ calculation (best of worn armor, unarmored, or an authored formula; a shield and
 Creature `qualifiedDamageDefenses` apply only to attacks lacking every bypassing trait. Modifier kinds
 without a consumer are rejected at grant validation (see [authoring schema](authoring-schema.md)).
 
+**Creature loadout replacement and the printed attack.** A Creature Feature action binds to its loadout Equipment by attack kind (`triggerCode`) alone: the Feature's own print governs the bound attack's damage and damage type, so a Creature printed with a different damage type than its Equipment's default (the Ogre Zombie's bludgeoning Morningstar) still runs. `replaceActorEquipment` keeps that binding honest: the replacement must keep the attack kind the Feature acts through and, for an entry a Feature action is bound to, the damage types of the Equipment it replaces (`equipmentReplacementKeepsDamageTypes`), so a piercing weapon swaps for another piercing one and a bludgeoning weapon is refused.
+
 **Creature equipment hands (D107).** A Creature's authored `equipmentLoadout` places each item in
 `MAIN_HAND`, `OFF_HAND`, `CARRIED` or `WORN` (`EQUIPMENT_SLOT_CODES`, `packages/shared` core). One
 function, `resolveHandOccupancy`, decides hand legality for the schema (two items in one hand), the
@@ -1450,6 +1458,11 @@ also read the Equipment's `TWO_HANDED` property because a two-handed main-hand i
 hand and a two-handed item cannot sit in the off hand. Disarm moves an item from either hand to
 `CARRIED` and records the hand in the transition's `fromState`. ATTACK-18 and ATTACK-19 reuse the
 function for Characters.
+
+**Creature Equipment pins (D163).** Each Encounter Creature's `equipmentSources[]` pin holds a copy of the
+Equipment version's stored `subject-compiler-v2` compilation (resolved, variant parents applied). The room,
+blueprint snapshots and `creatureLoadoutHands` hydrate it with `hydrateStoredCompilation` and never compile;
+`encounters/equipmentPinMigration` (steps of `content/compilationMigration:run`) re-pins older rows.
 
 **Default attack (ATTACK-19, D107).** `encounterDefaultAttackActionId` (`encounterDefaultAttack.ts`)
 picks the action the tabletop drawer starts on, reported as `defaultActionId` in the action choices

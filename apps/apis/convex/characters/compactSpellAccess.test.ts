@@ -6,16 +6,20 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { corruptPublishedVersionPayload, importedSubject } from '../../tests/fixtures/publication'
+import {
+  corruptPublishedVersionPayload,
+  importedSubject,
+  importSeededSubjects
+} from '../../tests/fixtures/publication'
 import { loadCharacterRuleContext } from './context'
 
 describe('compact Campaign Spell selector access', () => {
   it('keeps unused shared mechanics unread, validates referenced mechanics, and rechecks current access', async () => {
     const { t, owner, other, createCharacter } = await readyCharacterFixture()
     const platform = { ...light, effects: [] }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'SPELL', ...platform, document: platform })]
     })
@@ -114,7 +118,8 @@ describe('compact Campaign Spell selector access', () => {
       expect(root.catalogue).toMatchObject({
         checksum: root.checksum,
         nameKey: shared.label.toLowerCase(),
-        spell: { selectionVersion: 1, publishedActive: true }
+        publishedActive: true,
+        spell: { selectionVersion: 1 }
       })
       expect(initial.sourceIdentities[shared.id]).toMatchObject({
         subjectId: shared.id,

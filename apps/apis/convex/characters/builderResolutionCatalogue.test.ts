@@ -4,8 +4,8 @@ import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { internal } from '../_generated/api'
-import { importedSubject } from '../../tests/fixtures/publication'
+
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import * as context from './context'
 import { prepareCharacterBuilder } from './builderPreparation'
@@ -15,7 +15,7 @@ afterEach(() => vi.restoreAllMocks())
 
 it('keeps active Sheet facts exact without loading unrelated Equipment choices', async () => {
   const { t, owner, character } = await readySheetFixture()
-  await t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'EQUIPMENT', ...dagger, document: dagger })]
   })
@@ -83,7 +83,7 @@ it('refreshes the first Spell catalogue introduced by granted starting Equipment
     ]
   }
   const { t, createCharacter } = await readyCharacterFixture({}, equipment)
-  await t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'SPELL', ...light, document: light })]
   })
@@ -113,7 +113,7 @@ it('reuses the complete Spell catalogue during spell-enabled first activation', 
     }
   })
   const { character } = await createCharacter()
-  await t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'SPELL', ...light, document: light })]
   })

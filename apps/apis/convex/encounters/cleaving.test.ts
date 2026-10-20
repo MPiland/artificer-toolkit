@@ -47,7 +47,7 @@ import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import {
   automaticChargedCreature,
@@ -302,7 +302,7 @@ async function setup(
       optional
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
   })

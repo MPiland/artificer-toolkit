@@ -129,6 +129,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
       heldActorId: warden!.id,
       activeEffectId: hold.activeEffectId
     })
+    expect(await section.findByText('Released.')).toBeVisible()
   })
 
   it('keeps a defeated creature in the turn order, marked defeated', async () => {

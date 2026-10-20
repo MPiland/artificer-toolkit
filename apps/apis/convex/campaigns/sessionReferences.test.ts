@@ -28,9 +28,13 @@ import {
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
-import { internal } from '../_generated/api'
+
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject, versionWithCompilation } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { deleteAuthoredVersion, insertAuthoredVersion } from '../content/documents'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -77,7 +81,7 @@ const finish = makeFunctionReference<'mutation', FinishCampaignSessionInput, Cam
 
 async function setup(contentMaturity: 'STANDARD' | 'MATURE' = 'STANDARD') {
   const base = await fixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

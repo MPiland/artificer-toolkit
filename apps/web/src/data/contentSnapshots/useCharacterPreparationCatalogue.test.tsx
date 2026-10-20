@@ -14,7 +14,7 @@ const id = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(
 const unusedRef = { sha256: '0'.repeat(64), byteLength: 1, rootCount: 0 }
 const part = (label: string) =>
   buildContentSnapshotPart(
-    { format: 2, scope: 'SOURCE', scopeId: id(3), kind: 'SPELL', part: 'list' },
+    { format: 3, scope: 'SOURCE', scopeId: id(3), kind: 'SPELL', part: 'list' },
     [
       {
         id: id(4),

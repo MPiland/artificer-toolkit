@@ -20,6 +20,7 @@ import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterPro
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import { shieldWoodPlus1 } from '@artificer-toolkit/source-data/srd/equipment/shield-wood-plus-1.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { SUBJECT_COMPILER_VERSION } from '@artificer-toolkit/schema/api/authoredPublication'
 import { srdPrintedArmorClass, srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
@@ -31,7 +32,7 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
 import { toCreatureFeatureEffects } from '../../tests/fixtures/creatureWeaponEffects'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import {
   attachFixtureRoom,
@@ -154,7 +155,7 @@ const unevaluableReason = `Equipment "${unevaluableShield.id}" has an armor clas
 
 async function seedCampaign(authored: typeof creature = creature) {
   const base = await fixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...authored, subjectKind: 'CREATURE', document: authored }),
@@ -179,6 +180,12 @@ async function seedCampaign(authored: typeof creature = creature) {
       importedSubject({ ...greatclub, subjectKind: 'EQUIPMENT', document: greatclub })
     ]
   })
+  // A variant's stored compilation resolves its parents, so it is stored after them (D163).
+  for (const variant of [unevaluableShield, shieldWoodPlus1])
+    await base.t.mutation(internal.content.import.syncEquipmentDerived, {
+      id: variant.id,
+      checksum: checksumRuleDocument(variant)
+    })
   const campaign = await base.owner.caller.mutation(createCampaign, {
     name: 'Creature equipment',
     format: 'ONGOING',
@@ -335,7 +342,10 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
           sourceRevision: 1,
           sourceVersionId: expect.any(String),
           sourceChecksum: checksumRuleDocument(compatibleClub),
-          payload: compatibleClub
+          compilation: expect.objectContaining({
+            compilerVersion: SUBJECT_COMPILER_VERSION,
+            authoredChecksum: checksumRuleDocument(compatibleClub)
+          })
         },
         beforeState.snapshot.equipmentSources[1]
       ]

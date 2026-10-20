@@ -14,7 +14,13 @@ import type { QueryCtx } from '../_generated/server'
 import { readCharacterDraftPayload, replaceCharacterDraftPayload } from '../characters/documents'
 import schema from '../schema'
 import { internalMutation } from '../lib/mutations'
-import { readAuthoredVersionCompilation, readStoredAuthoredVersionDocument } from './documents'
+import { authoredCatalogueMetadataSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import { rootCatalogueFacts } from './catalogueMetadata'
+import {
+  readAuthoredVersionCompilation,
+  readPublishedRootDocument,
+  readStoredAuthoredVersionDocument
+} from './documents'
 import { compileCurrentEquipment } from './equipmentRelationships'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
 import { compileCurrentRace } from './raceRelationships'
@@ -54,6 +60,25 @@ export const recompileStaleCompilations = migrations.define({
           ? (await compileCurrentRace(ctx, subject.document, userId)).compilation
           : compilePublicationDocument(subject)
     return { compilation }
+  }
+})
+
+/**
+ * D163 ruling #1: share and parent authorization and commit read catalogue facts from the root
+ * alone. A root published before then gains its ACTIVE status and picker facts from its current
+ * document. Idempotent: complete rows are left alone.
+ */
+export const backfillRootCatalogueFacts = migrations.define({
+  table: 'authoredRoots',
+  batchSize: 1,
+  migrateOne: async (ctx, root) => {
+    if (!root.catalogue) return undefined
+    const existing = authoredCatalogueMetadataSchema.parse(root.catalogue)
+    if (existing.checksum !== root.checksum) throw new Error('Stored catalogue checksum mismatch.')
+    const { document } = await readPublishedRootDocument(ctx, root)
+    const facts = rootCatalogueFacts(root.subjectKind, document)
+    if (Object.keys(facts).every((key) => key in existing)) return undefined
+    return { catalogue: authoredCatalogueMetadataSchema.parse({ ...existing, ...facts }) }
   }
 })
 
@@ -164,7 +189,11 @@ export const repinPartyRetainedRules = migrations.define({
 export const run = migrations.runner([
   internal.content.sourceMigrations.backfillAuthoringSources,
   internal.content.compilationMigration.recompileStaleCompilations,
+  internal.content.compilationMigration.backfillRootCatalogueFacts,
   internal.content.compilationMigration.repinCharacterRetainedRules,
   internal.content.compilationMigration.repinCharacterDraftRetainedRules,
-  internal.content.compilationMigration.repinPartyRetainedRules
+  internal.content.compilationMigration.repinPartyRetainedRules,
+  // Encounter pins copy the stored compilations the steps above leave current.
+  internal.encounters.equipmentPinMigration.blueprintEquipmentPins,
+  internal.encounters.equipmentPinMigration.runActorEquipmentPins
 ])

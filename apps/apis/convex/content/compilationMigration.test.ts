@@ -36,6 +36,8 @@ import {
 } from './documents'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
 
+/** The runner migrates one row per scheduled batch, so a full pass exceeds convex-test's 100. */
+const MIGRATION_BATCHES = 2000
 const runMigration = makeFunctionReference<'mutation', Record<string, never>, unknown>(
   'content/compilationMigration:run'
 )
@@ -237,7 +239,7 @@ it('re-derives the unversioned source facts of an authored row from its stored d
   })
 
   await t.mutation(runMigration, {})
-  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  await t.finishAllScheduledFunctions(vi.runAllTimers, MIGRATION_BATCHES)
 
   const migrated = await t.run((ctx) =>
     ctx.db
@@ -270,10 +272,10 @@ it('recompiles every superseded stored compilation at the current compiler versi
   await t.run((ctx) => supersede(ctx, current))
 
   await t.mutation(runMigration, {})
-  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  await t.finishAllScheduledFunctions(vi.runAllTimers, MIGRATION_BATCHES)
   // A second pass proves the migration leaves current rows alone.
   await t.mutation(runMigration, {})
-  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  await t.finishAllScheduledFunctions(vi.runAllTimers, MIGRATION_BATCHES)
 
   const migrated = await t.run(async (ctx) =>
     Promise.all(
@@ -285,6 +287,59 @@ it('recompiles every superseded stored compilation at the current compiler versi
     )
   )
   expect(migrated).toEqual(current)
+})
+
+it('backfills the root ACTIVE fact, picker facts and Equipment quote of roots stored before them (D163)', async ({
+  onTestFinished
+}) => {
+  const { t } = await publicationFixture(
+    import.meta.glob('/apps/apis/convex/**/*.*s'),
+    import.meta.glob('../betterAuth/**/*.*s'),
+    fixtureBatches()
+  )
+  vi.useFakeTimers()
+  onTestFinished(() => {
+    vi.useRealTimers()
+  })
+  migrations.register(t)
+  const catalogues = () =>
+    t.run(async (ctx) =>
+      (await ctx.db.query('authoredRoots').collect()).map((root) => ({
+        id: root.id,
+        subjectKind: root.subjectKind,
+        catalogue: root.catalogue
+      }))
+    )
+  const published = await catalogues()
+  expect(
+    published.filter(
+      ({ catalogue }) => catalogue?.race ?? catalogue?.class ?? catalogue?.background
+    )
+  ).toHaveLength(sources.filter(({ subjectKind }) => subjectKind !== 'EQUIPMENT').length)
+  // Every Equipment root, the fixture's and those its sources reference, carries the quote fact.
+  const equipmentRoots = published.filter(({ subjectKind }) => subjectKind === 'EQUIPMENT')
+  expect(equipmentRoots.length).toBeGreaterThanOrEqual(
+    sources.filter(({ subjectKind }) => subjectKind === 'EQUIPMENT').length
+  )
+  expect(published.filter(({ catalogue }) => catalogue?.equipment)).toEqual(equipmentRoots)
+  await t.run(async (ctx) => {
+    for (const root of await ctx.db.query('authoredRoots').collect()) {
+      if (!root.catalogue) continue
+      const {
+        publishedActive: _publishedActive,
+        race: _race,
+        class: _class,
+        background: _background,
+        equipment: _equipment,
+        ...stored
+      } = root.catalogue
+      await ctx.db.patch(root._id, { catalogue: stored })
+    }
+  })
+
+  await t.mutation(runMigration, {})
+  await t.finishAllScheduledFunctions(vi.runAllTimers, MIGRATION_BATCHES)
+  expect(await catalogues()).toEqual(published)
 })
 
 it('repins legacy retained rules to the stored compilation of the same version, with its prose', async ({
@@ -355,7 +410,7 @@ it('repins legacy retained rules to the stored compilation of the same version, 
   expect(acquiredEquipmentRulesSchema.safeParse(JSON.parse(legacyJson)).success).toBe(false)
 
   await t.mutation(runMigration, {})
-  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  await t.finishAllScheduledFunctions(vi.runAllTimers, MIGRATION_BATCHES)
   const readRow = () =>
     t.run((ctx) =>
       ctx.db
@@ -385,6 +440,6 @@ it('repins legacy retained rules to the stored compilation of the same version, 
 
   // A second pass leaves pinned rows alone.
   await t.mutation(runMigration, {})
-  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  await t.finishAllScheduledFunctions(vi.runAllTimers, MIGRATION_BATCHES)
   expect(await readRow()).toEqual(row)
 })

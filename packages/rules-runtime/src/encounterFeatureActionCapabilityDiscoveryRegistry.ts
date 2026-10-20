@@ -140,9 +140,12 @@ export function discoverEncounterFeatureActions(
  */
 export function compilePassiveZone(
   adapter: CharacterRuleActionSystemAdapter,
-  capability: EffectActionCapabilityDescriptor
+  capability: EffectActionCapabilityDescriptor & { label?: string }
 ): CompiledActionZonePlacement {
-  const zone = adapter.compileZonePlacement?.({ action: capability })
+  const zone = adapter.compileZonePlacement?.({
+    action: capability,
+    ...(capability.label ? { label: capability.label } : {})
+  })
   if (!zone || 'options' in zone)
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A passive zone is one zone, with no cast-time choice.'

@@ -25,10 +25,15 @@ import { srdRaces } from '@artificer-toolkit/source-data/srd/races/index.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { createBrowserReaders, readScopeObjects } from '../../tests/fixtures/contentSnapshotReaders'
-import { importedSubject } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
 import { prepareCharacterBuilder } from './builderPreparation'
-import { readCharacterPublication, readCharacterSourceRoots, readCharacterSources } from './context'
+import {
+  readCharacterPublication,
+  readCharacterSourceRoots,
+  readCharacterSources,
+  readCharacterStoredCompilation
+} from './context'
 import { loadCharacterDraftCandidate } from './documents'
 
 // ADR 0036 S7 differential test (c): commit validation over the referenced context equals
@@ -52,7 +57,7 @@ const standardArray = {
 
 async function importSubjects(t: Test, subjects: SourceImportSubjectDto[]) {
   for (let start = 0; start < subjects.length; start += 10)
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: subjects.slice(start, start + 10)
     })
@@ -135,8 +140,7 @@ async function evaluateBothWays(
             ...args(),
             referenced: {
               featureSourceHints,
-              publications: new Map(),
-              documents: new Map(),
+              rulePublications: new Map(),
               unreadableRootIds: new Set(),
               roots: new Map()
             }
@@ -504,7 +508,12 @@ describe('commit validation from referenced content', () => {
             sources
           )
           if (!published) continue
-          for (const featureId of publicationFeatureIds(published))
+          const stored = await readCharacterStoredCompilation(ctx, root)
+          for (const featureId of publicationFeatureIds({
+            subjectKind: published.subjectKind,
+            id: root.id,
+            ...stored
+          }))
             holders.set(featureId, [...(holders.get(featureId) ?? []), root.id])
         }
       return {

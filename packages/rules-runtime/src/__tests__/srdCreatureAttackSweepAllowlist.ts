@@ -5,14 +5,8 @@
  *   a save whose rider is a closed rule, a push-and-prone save, a hit with no damage before its save).
  * - OUTCOME_KIND: a hit rider with no typed outcome yet: a CLOSED_RULE (swallowing, attaching,
  *   curses, draining hit points or hit point maximum, a Strength contest pull) or a choice.
- * - EQUIPMENT_DAMAGE_TYPE: the printed damage type differs from the held Equipment's, so discovery
- *   lists that action unavailable (the Ogre Zombie's bludgeoning Morningstar, a probable SRD
- *   printing error).
  */
-export type SrdCreatureAttackUnsupportedReason =
-  | 'FOLLOW_UP_SAVE'
-  | 'EQUIPMENT_DAMAGE_TYPE'
-  | 'OUTCOME_KIND'
+export type SrdCreatureAttackUnsupportedReason = 'FOLLOW_UP_SAVE' | 'OUTCOME_KIND'
 
 /**
  * The SRD Creature attack Effects the sweep expects to fail, keyed by Effect ID. It may only
@@ -21,8 +15,6 @@ export type SrdCreatureAttackUnsupportedReason =
 export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   Record<string, SrdCreatureAttackUnsupportedReason>
 > = {
-  // EQUIPMENT_DAMAGE_TYPE
-  '00000000-0002-0001-0070-00d200000000': 'EQUIPMENT_DAMAGE_TYPE', // Ogre Zombie: Morningstar
   // OUTCOME_KIND
   '00000000-0002-0069-0070-003d00000000': 'OUTCOME_KIND', // Chain Devil: Chain
   '00000000-0002-0001-0070-007500000000': 'OUTCOME_KIND', // Giant Centipede: Bite

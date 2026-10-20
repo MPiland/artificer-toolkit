@@ -26,7 +26,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { api, internal } from '../_generated/api'
@@ -221,7 +221,7 @@ async function setup(
       definitions
     })
   const creature = maintainedCreature(kind, maintenanceDefinitionId, healTarget)
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
   })
