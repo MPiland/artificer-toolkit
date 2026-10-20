@@ -18,13 +18,13 @@ Closes AC SCENE-5.3 (see [scene-5-plan.md](scene-5-plan.md)). Client only; no ba
 
 ## Proof
 
-| Criterion | Test |
-| --- | --- |
-| Type a percentage / step | `VttZoomControl.test.tsx`, `vttZoom.model.test.ts` (parse, clamp, steps, range ends) |
+| Criterion                                           | Test                                                                                                                                                                                      |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Type a percentage / step                            | `VttZoomControl.test.tsx`, `vttZoom.model.test.ts` (parse, clamp, steps, range ends)                                                                                                      |
 | Keeps zoom per device across reloads and reconnects | `CampaignVttStage.zoom.test.tsx` (real Stage and storage code; the canvas renderer is the faked platform), `vttZoom.model.test.ts` (storage round trip, corrupt values, throwing storage) |
-| Auto-fit is not saved as a choice | `CampaignVttStage.zoom.test.tsx` |
-| Window sized to the screen | `CampaignTabletopWindow.model.test.ts` |
-| Full screen button | `CampaignTabletopFullscreenButton.test.tsx` (fake Fullscreen API) |
+| Auto-fit is not saved as a choice                   | `CampaignVttStage.zoom.test.tsx`                                                                                                                                                          |
+| Window sized to the screen                          | `CampaignTabletopWindow.model.test.ts`                                                                                                                                                    |
+| Full screen button                                  | `CampaignTabletopFullscreenButton.test.tsx` (fake Fullscreen API)                                                                                                                         |
 
 ## Limits
 
