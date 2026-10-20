@@ -1000,6 +1000,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             resource !== null ||
             stow !== null ||
             draw?.kind === 'CHARACTER_ITEM_DRAW' ||
+            degradation !== null ||
             consumption !== null ||
             spell !== null ||
             sourceMaintenanceMutation ||
