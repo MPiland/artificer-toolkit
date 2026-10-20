@@ -4704,6 +4704,64 @@
               "id": "ROOM-7.1"
             }
           ]
+        },
+        {
+          "id": "ROOM-8",
+          "title": "Prompts and turn notices follow the player to any page",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-19 from the SCENE-5 plan (docs/handoffs/scene-5-plan.md), confirmed by the product owner. Helps every remote player; comes before SCENE-5, whose table window never shows prompts.",
+          "acs": [
+            {
+              "text": "A pending roll prompt for a member’s Character shows in a modal over whatever signed-in page they have open while its Session is ACTIVE. Every open tab or device shows it, answering it in one clears it everywhere, and a table window never shows it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "ROOM-8.1"
+            },
+            {
+              "text": "When one of a member’s Characters starts its turn, a ‘your turn’ notification shows on any signed-in page they have open, except a table window.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "ROOM-8.2"
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 3,
+            "rr": 3,
+            "size": 5
+          },
+          "tasks": [
+            {
+              "id": "ROOM-8.T1",
+              "text": "A global prompt modal on any signed-in page while the Session is ACTIVE; answering in one tab or device clears it everywhere; not shown in table windows. Holds one room socket per tab, only while one of the member’s Campaigns has an ACTIVE Session.",
+              "status": "TODO",
+              "closes": ["ROOM-8.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 5
+              }
+            },
+            {
+              "id": "ROOM-8.T2",
+              "text": "The ‘your turn’ notification (Mantine notifications) on any signed-in page, except a table window.",
+              "status": "TODO",
+              "closes": ["ROOM-8.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": ["ROOM-8.T1"]
+              }
+            }
+          ]
         }
       ]
     },
@@ -4920,17 +4978,17 @@
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
-          "note": "Registered 2026-10-12 by the product owner: players at one physical table share a TV running the VTT, and one person moves every party token. Foundry has no dedicated mode (a shared player account owns all party tokens and sees their combined vision). Q5 and Q6 resolved 2026-10-12 (phase-08-2-decisions.md#resolved): table mode chosen at Session launch, shared screen acts for covered Characters, main-Character vision with single-token selection override. Depends on VTT_UI-3.4 for per-Character senses. 2026-10-19: tasks T1-T4 are provisional; the product owner asked for a fuller plan (usage patterns, who drives the screen, private information) before any is pulled.",
+          "note": "Registered 2026-10-12 by the product owner: players at one physical table share a TV running the VTT, and one person moves every party token. Foundry has no dedicated mode (a shared player account owns all party tokens and sees their combined vision). Q5 and Q6 resolved 2026-10-12 (phase-08-2-decisions.md#resolved): table mode chosen at Session launch, shared screen acts for covered Characters, main-Character vision with single-token selection override. Depends on VTT_UI-3.4 for per-Character senses. 2026-10-19: replanned with the product owner (docs/handoffs/scene-5-plan.md): the table is a role on the holder’s tabletop window, granted during an ACTIVE Session; prompts follow the controller (ROOM-8); SCENE-5.4 added for zoom.",
           "acs": [
             {
-              "text": "When the GM launches a Session they choose how the table plays: each player on their own device, or one shared table screen covering chosen player Characters with one of them as the main Character. The shared screen sees the Scene through the main Character's senses; selecting a single covered token switches the view to that token's senses, and clearing or multi-selecting returns to the main Character. It never sees what the Character it is viewing through cannot see.",
+              "text": "During an ACTIVE Session the GM can give one member the table role, covering chosen player Characters with one of them as the main Character. That member’s tabletop window shows the Scene through the main Character’s senses; selecting a single covered token switches the view to that token’s senses, and clearing or multi-selecting returns to the main Character. It never sees what the Character it is viewing through cannot see.",
               "status": "TODO",
               "proof": [],
               "origin": [],
               "id": "SCENE-5.1"
             },
             {
-              "text": "The shared table screen acts for every covered Character: it moves their tokens (outside an Encounter any of them, in an Encounter the one whose turn it is), chooses their actions and answers their roll prompts; every other client converges as for any player command.",
+              "text": "The table acts for every covered Character: it moves their tokens (outside an Encounter or in a Manual Run any of them; in an Assisted Encounter the one whose turn it is) and chooses their actions; their roll prompts go to each Character’s controller; every other client converges as for any player command.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -4942,6 +5000,13 @@
               "proof": [],
               "origin": [],
               "id": "SCENE-5.3"
+            },
+            {
+              "text": "Every tabletop viewer can set the zoom by typing a percentage or stepping it. The table window keeps its zoom on that device across reloads, reconnects and view switches, so squares stay sized to physical minis.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SCENE-5.4"
             }
           ],
           "wsjf": {
@@ -4953,21 +5018,22 @@
           "tasks": [
             {
               "id": "SCENE-5.T1",
-              "text": "Launch a shared-screen table: the GM chooses the table mode, covered Characters and main Character; the screen joins and sees the Scene through the main Character’s senses, projected by the server; it moves any covered token outside an Encounter.",
+              "text": "The GM gives the table role (covered and main Characters); the holder’s tabletop window is server-projected as the table (main Character’s vision; no chat, prompts, private rolls or GM data); it remembers its zoom on that device across reloads and reconnects.",
               "status": "TODO",
-              "closes": ["SCENE-5.1", "SCENE-5.2"],
+              "closes": ["SCENE-5.1", "SCENE-5.3", "SCENE-5.4"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
-                "size": 5
+                "size": 5,
+                "after": ["ROOM-8.T1"]
               }
             },
             {
               "id": "SCENE-5.T2",
-              "text": "View switching: selecting one covered token switches the server-projected view to its senses; clearing or multi-selecting returns to the main Character.",
+              "text": "View switching by a single selected covered token; clearing or a multi-select returns to the main Character; a switch may pan but never changes zoom.",
               "status": "TODO",
-              "closes": ["SCENE-5.1"],
+              "closes": ["SCENE-5.1", "SCENE-5.4"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -4978,28 +5044,27 @@
             },
             {
               "id": "SCENE-5.T3",
-              "text": "Acting in an Encounter: the screen moves the covered Character whose turn it is, chooses its actions and answers its roll prompts; other clients converge.",
+              "text": "The table acts for covered Characters: moves (any outside an Encounter or in a Manual Run; the turn’s one in an Assisted Encounter) and the action drawer for the turn’s covered Character; other clients converge. Room admission (roomBoundTokenControl and Encounter action admission) accepts the table role for covered Characters it does not own.",
               "status": "TODO",
               "closes": ["SCENE-5.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SCENE-5.T1"]
               }
             },
             {
               "id": "SCENE-5.T4",
-              "text": "Private information for one covered Character (hidden rolls, whispers, GM notes) never reaches the screen and still reaches the owning player’s device.",
+              "text": "A Chrome-style zoom control on the tabletop for every viewer (zoom icon, percentage field, minus/plus).",
               "status": "TODO",
-              "closes": ["SCENE-5.3"],
+              "closes": ["SCENE-5.4"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
-                "size": 3,
-                "after": ["SCENE-5.T1"]
+                "size": 2
               }
             }
           ]

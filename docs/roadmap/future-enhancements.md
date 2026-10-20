@@ -366,6 +366,12 @@ Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. 
 
 Encounters have no surprise step, so Foresight's "can't be surprised" ships as description only (SPELLS-4.T2a2). A surprise round, with creatures that can't be surprised exempt, would let it resolve.
 
+### Shared table screen extras (SCENE-5, 2026-10-19)
+
+- **Push notifications** for roll prompts and "your turn" when the phone is locked or the app is in the background. ROOM-8 covers open signed-in pages only.
+- **A vision-off map-board mode** for a table that runs physical minis on a TV and wants the whole explored map shown.
+- **Touch gestures beyond tap and drag** (pinch zoom, two-finger pan) on the table window.
+
 ### Shared live cursors (Q19)
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.
