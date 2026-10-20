@@ -7198,7 +7198,7 @@
             {
               "id": "ATTACK-11.T3",
               "text": "Creature editor authoring of Multiattack slot sets (alternatives, slots, swaps, conditions), with publication refusing an invalid one.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-11.1"],
               "wsjf": {
                 "bv": 5,
