@@ -1,5 +1,5 @@
 import { createRef } from 'react'
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -71,5 +71,77 @@ describe('CampaignLiveSceneObjectEditor', () => {
       sceneId: emptyScene.id,
       type: 'UPSERT_SCENE_BARRIER'
     })
+  })
+
+  it('keeps an in-progress edit when the live scene updates and saves against the version it began from', async () => {
+    const user = userEvent.setup()
+    const onCommand = vi.fn(() => true)
+    const props = {
+      connected: true,
+      memberships: createTabletopCampaign('OWNER').memberships,
+      onCommand,
+      renderer: createRef<VttSceneRenderer>()
+    }
+    const view = renderWithAppProviders(
+      <CampaignLiveSceneObjectEditor {...props} scene={tabletopLiveScene} />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Edit objects' }))
+    await user.type(await screen.findByRole('textbox', { name: 'Label' }), ' edited')
+    view.rerender(
+      <CampaignLiveSceneObjectEditor
+        {...props}
+        scene={{ ...tabletopLiveScene, version: tabletopLiveScene.version + 1 }}
+      />
+    )
+
+    expect(await screen.findByRole('textbox', { name: 'Label' })).toHaveDisplayValue(/ edited$/)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(onCommand).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedSceneVersion: tabletopLiveScene.version })
+    )
+  })
+
+  it('follows the live scene while clean and closes when the Scene changes', async () => {
+    const user = userEvent.setup()
+    const props = {
+      connected: true,
+      memberships: createTabletopCampaign('OWNER').memberships,
+      onCommand: vi.fn(() => true),
+      renderer: createRef<VttSceneRenderer>()
+    }
+    const view = renderWithAppProviders(
+      <CampaignLiveSceneObjectEditor {...props} scene={tabletopLiveScene} />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Edit objects' }))
+    expect(await screen.findByRole('textbox', { name: 'Label' })).not.toHaveValue(
+      'Moved by the room'
+    )
+
+    view.rerender(
+      <CampaignLiveSceneObjectEditor
+        {...props}
+        scene={{
+          ...tabletopLiveScene,
+          tokens: tabletopLiveScene.tokens.map((entry) => ({
+            ...entry,
+            label: 'Moved by the room'
+          })),
+          version: tabletopLiveScene.version + 1
+        }}
+      />
+    )
+    expect(await screen.findByDisplayValue('Moved by the room')).toBeInTheDocument()
+
+    view.rerender(
+      <CampaignLiveSceneObjectEditor
+        {...props}
+        scene={{ ...tabletopLiveScene, id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }}
+      />
+    )
+    await waitFor(() =>
+      expect(screen.queryByRole('textbox', { name: 'Label' })).not.toBeInTheDocument()
+    )
   })
 })

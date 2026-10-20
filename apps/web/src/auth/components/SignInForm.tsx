@@ -1,4 +1,5 @@
-import { type SubmitEvent, useEffect, useState } from 'react'
+import { useHydrated } from '@tanstack/react-router'
+import { type SubmitEvent, useState } from 'react'
 import { browserAuthClient } from '../authClient'
 import { AuthFormProps } from './authForm.types'
 import {
@@ -27,15 +28,13 @@ export function SignInForm({
   onSuccess,
   publicSignUpEnabled = false
 }: SignInFormProps) {
-  const [hydrated, setHydrated] = useState(false)
+  const hydrated = useHydrated()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
     null
   )
-
-  useEffect(() => setHydrated(true), [])
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()

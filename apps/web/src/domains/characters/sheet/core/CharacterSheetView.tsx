@@ -1,7 +1,7 @@
 import { Alert, Tabs } from '@mantine/core'
 import { useMediaQuery, useMounted } from '@mantine/hooks'
 import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useCallback, useRef, useState, type MouseEvent } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations'
@@ -165,10 +165,12 @@ export function CharacterSheetView({
     }
   }
 
-  useEffect(() => {
+  const [seenInitialTab, setSeenInitialTab] = useState(initialTab)
+  if (seenInitialTab !== initialTab) {
+    setSeenInitialTab(initialTab)
     setActiveTab(initialTab === 'overview' ? 'actions' : initialTab)
     setActiveMobilePage(getMobilePageForTab(initialTab))
-  }, [initialTab])
+  }
 
   function setMobilePage(page: CharacterSheetMobilePageId) {
     setActiveMobilePage(page)

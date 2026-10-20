@@ -1,6 +1,6 @@
 import { Alert, Button, Drawer, Group, Modal, Select, Stack, Text } from '@mantine/core'
 import { Pencil, RotateCcw, Save, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState, type RefObject } from 'react'
+import { useMemo, useState, type RefObject } from 'react'
 import type {
   CampaignSceneStateDto,
   SceneCommandInputDto,
@@ -35,47 +35,39 @@ export function CampaignLiveSceneObjectEditor({
   const options = useMemo(() => listLiveSceneObjectOptions(scene), [scene])
   const [opened, setOpened] = useState(false)
   const [selection, setSelection] = useState<LiveSceneObjectSelection | null>(null)
-  const [draft, setDraft] = useState<SceneDefinitionDto | null>(null)
-  const [expectedSceneVersion, setExpectedSceneVersion] = useState(scene.version)
+  const [editedDraft, setEditedDraft] = useState<SceneDefinitionDto | null>(null)
+  const [editBaseVersion, setEditBaseVersion] = useState(scene.version)
   const [dirty, setDirty] = useState(false)
   const [confirmation, setConfirmation] = useState<'CLOSE' | 'DELETE' | null>(null)
+  const [trackedSceneId, setTrackedSceneId] = useState(scene.id)
 
-  useEffect(() => {
-    setOpened(false)
-    setSelection(null)
-    setDraft(null)
-    setDirty(false)
-    setConfirmation(null)
-  }, [scene.id])
-
-  useEffect(() => {
-    if (!opened || dirty || !selection) return
-    const nextDraft = createLiveSceneObjectDraft(scene, selection)
-    if (!nextDraft) {
-      setOpened(false)
-      setSelection(null)
-      setDraft(null)
-      return
-    }
-    setDraft(nextDraft)
-    setExpectedSceneVersion(scene.version)
-  }, [dirty, opened, scene, selection])
-
-  function beginEditing(nextSelection: LiveSceneObjectSelection): void {
-    const nextDraft = createLiveSceneObjectDraft(scene, nextSelection)
-    if (!nextDraft) return
-    setSelection(nextSelection)
-    setDraft(nextDraft)
-    setExpectedSceneVersion(scene.version)
-    setDirty(false)
-  }
+  // A clean editor follows the live scene; a dirty one keeps the draft and the version it began from.
+  const sourceDraft = useMemo(
+    () => (selection ? createLiveSceneObjectDraft(scene, selection) : null),
+    [scene, selection]
+  )
+  const draft = dirty ? editedDraft : sourceDraft
+  const expectedSceneVersion = dirty ? editBaseVersion : scene.version
+  const isOpen = opened && (dirty || !selection || sourceDraft !== null)
 
   function closeEditor(): void {
     setOpened(false)
     setSelection(null)
-    setDraft(null)
+    setEditedDraft(null)
     setDirty(false)
     setConfirmation(null)
+  }
+
+  if (trackedSceneId !== scene.id) {
+    setTrackedSceneId(scene.id)
+    closeEditor()
+  }
+
+  function beginEditing(nextSelection: LiveSceneObjectSelection): void {
+    if (!createLiveSceneObjectDraft(scene, nextSelection)) return
+    setSelection(nextSelection)
+    setEditedDraft(null)
+    setDirty(false)
   }
 
   function saveDraft(): void {
@@ -127,7 +119,7 @@ export function CampaignLiveSceneObjectEditor({
           if (initial) beginEditing(initial.selection)
           else {
             setSelection(null)
-            setDraft(null)
+            setEditedDraft(null)
             setDirty(false)
           }
           setOpened(true)
@@ -139,7 +131,7 @@ export function CampaignLiveSceneObjectEditor({
         closeButtonProps={{ 'aria-label': 'Close live scene editor' }}
         closeOnClickOutside={!dirty}
         closeOnEscape={!dirty}
-        opened={opened}
+        opened={isOpen}
         position='right'
         size='md'
         title='Edit live scene object'
@@ -194,7 +186,8 @@ export function CampaignLiveSceneObjectEditor({
               showObjectPicker={false}
               showSummary={false}
               onChange={(nextDraft) => {
-                setDraft(nextDraft)
+                if (!dirty) setEditBaseVersion(scene.version)
+                setEditedDraft(nextDraft)
                 setDirty(true)
               }}
               onFocus={(point) => renderer.current?.focusPoint(point)}

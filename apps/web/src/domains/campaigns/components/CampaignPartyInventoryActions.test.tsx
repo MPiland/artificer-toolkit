@@ -117,6 +117,28 @@ describe('CampaignPartyInventoryActions', () => {
     })
   })
 
+  it('follows the stored quantity when the inventory changes under an open row', async () => {
+    const user = userEvent.setup()
+    const torchAt = (quantity: number) => (
+      <CampaignPartyInventoryActions
+        campaignId={campaignId}
+        inventory={{
+          ...emptyInventory,
+          items: [
+            bag,
+            { id: torchId, label: 'Torch', quantity, containerId: bagId, isContainer: false }
+          ]
+        }}
+      />
+    )
+    const { rerender } = renderWithAppProviders(torchAt(2))
+    rerender(torchAt(5))
+    await user.click(screen.getByRole('combobox', { name: 'Torch location' }))
+    await user.click(screen.getByRole('option', { name: 'Loose' }))
+    await waitFor(() => expect(mocks.mutate).toHaveBeenCalledOnce())
+    expect(mocks.mutate.mock.calls[0]![0].input).toMatchObject({ itemId: torchId, quantity: 5 })
+  })
+
   it('moves only the selected qualified currency from its displayed placement', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(

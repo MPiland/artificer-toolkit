@@ -1,7 +1,7 @@
 import { convexQuery } from '@convex-dev/react-query'
 import { usePaginatedQuery } from 'convex/react'
-import { useEffect } from 'react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useLoadAllPages } from '#app/data/useLoadAllPages'
 
 export function getEncounter(encounterId: string | null) {
   return convexQuery(
@@ -21,9 +21,7 @@ export function useEncounterBlueprints(gameSystemId: string, enabled: boolean) {
     enabled ? { gameSystemId } : 'skip',
     { initialNumItems: 48 }
   )
-  useEffect(() => {
-    if (enabled && blueprints.status === 'CanLoadMore') blueprints.loadMore(48)
-  }, [blueprints.loadMore, blueprints.status, enabled])
+  useLoadAllPages(blueprints, 48)
   const isPending = enabled && blueprints.status !== 'Exhausted'
   return { data: enabled && !isPending ? blueprints.results : undefined, isPending }
 }

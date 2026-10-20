@@ -57,19 +57,44 @@ export function CampaignSceneEditor({
   const [mapLoadStatus, setMapLoadStatus] = useState<VttMapLoadStatus | null>(null)
   const [playerPreview, setPlayerPreview] = useState(false)
   const [tool, setTool] = useState<CampaignVttTool>('SELECT')
-  previewRef.current = playerPreview
+
+  const save = useMutation({
+    mutationFn: (submitted: SceneDefinitionDto) => {
+      const { id, version, ...definition } = submitted
+      saveCommandId.current ??= crypto.randomUUID()
+      return saveSceneDefinition(
+        convex,
+        {
+          ...definition,
+          expectedVersion: version,
+          sceneId: id
+        },
+        saveCommandId.current
+      )
+    },
+    onSuccess: async (saved) => {
+      saveCommandId.current = null
+      setDraft(structuredClone(saved))
+      setDirty(false)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.scenes(campaignId) })
+    },
+    onSettled: () => {
+      savingRef.current = false
+    }
+  })
+
+  const [syncedScene, setSyncedScene] = useState({ id: scene.id, version: scene.version })
+  if (syncedScene.id !== scene.id || syncedScene.version !== scene.version) {
+    setSyncedScene({ id: scene.id, version: scene.version })
+    if (!dirty && !save.isPending) {
+      setDraft(structuredClone(scene))
+      setPlayerPreview(false)
+      setTool('SELECT')
+    }
+  }
 
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
-
-  useEffect(() => {
-    if (dirty || savingRef.current) return
-    saveCommandId.current = null
-    setDraft(structuredClone(scene))
-    setDirty(false)
-    setPlayerPreview(false)
-    setTool('SELECT')
-  }, [scene.id, scene.version])
 
   const mapDelivery = useVttMapDelivery(draft.map.assetId, (delivery) =>
     renderer.current?.retryMap(delivery)
@@ -82,7 +107,7 @@ export function CampaignSceneEditor({
         : null
   const previewUserId =
     draft.tokens.flatMap((token) => token.controlledByUserIds)[0] ?? currentUserId
-  rendererUpdateRef.current = {
+  const rendererUpdate: VttSceneRendererUpdate = {
     // Scene preparation has no Encounter, so no token is bound to an actor.
     boundTokenControl: new Map(),
     currentUserId,
@@ -92,6 +117,12 @@ export function CampaignSceneEditor({
     scene: createEditorSceneState(draft, playerPreview ? previewUserId : null),
     tool: playerPreview ? 'PAN' : tool
   }
+
+  // Latest values for renderer callbacks and the renderer's creation; written after commit.
+  useEffect(() => {
+    previewRef.current = playerPreview
+    rendererUpdateRef.current = rendererUpdate
+  })
 
   const changeDraft = useCallback((change: (current: SceneDefinitionDto) => SceneDefinitionDto) => {
     if (savingRef.current) return
@@ -199,39 +230,16 @@ export function CampaignSceneEditor({
     if (latestUpdate) renderer.current?.update(latestUpdate)
   }, [currentUserId, draft, mapDelivery.data, playerPreview, tool])
 
-  useEffect(() => {
+  const [mapLoadKey, setMapLoadKey] = useState({ assetId: draft.map.assetId, sceneId: scene.id })
+  if (mapLoadKey.sceneId !== scene.id || mapLoadKey.assetId !== draft.map.assetId) {
+    setMapLoadKey({ assetId: draft.map.assetId, sceneId: scene.id })
     setMapLoadStatus(null)
-  }, [scene.id, draft.map.assetId])
+  }
 
   function retryMap(): void {
     setMapLoadStatus('LOADING')
     mapDelivery.refresh()
   }
-
-  const save = useMutation({
-    mutationFn: (submitted: SceneDefinitionDto) => {
-      const { id, version, ...definition } = submitted
-      saveCommandId.current ??= crypto.randomUUID()
-      return saveSceneDefinition(
-        convex,
-        {
-          ...definition,
-          expectedVersion: version,
-          sceneId: id
-        },
-        saveCommandId.current
-      )
-    },
-    onSuccess: async (saved) => {
-      saveCommandId.current = null
-      setDraft(structuredClone(saved))
-      setDirty(false)
-      await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.scenes(campaignId) })
-    },
-    onSettled: () => {
-      savingRef.current = false
-    }
-  })
 
   return (
     <section className={preparationStyles.editor} aria-label={`Scene editor: ${draft.name}`}>

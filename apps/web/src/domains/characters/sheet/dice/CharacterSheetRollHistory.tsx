@@ -27,9 +27,7 @@ export function CharacterSheetRollHistory({
     ? history.data.filter((roll) => roll.id !== pendingRollId).reverse()
     : []
 
-  useEffect(() => {
-    if (!opened) setConfirmingClear(false)
-  }, [opened])
+  if (!opened && confirmingClear) setConfirmingClear(false)
 
   useEffect(() => {
     if (!opened || !history.data) return

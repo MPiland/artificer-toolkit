@@ -68,9 +68,7 @@ export const GuidedClassAuthoring = withForm({
       getEquipmentOptions(!isSubclass && step === 2 ? session.systemId : undefined)
     )
 
-    useEffect(() => {
-      if (step >= steps.length) setStep(0)
-    }, [step, steps.length])
+    if (step >= steps.length) setStep(0)
     useEffect(() => {
       onStateChange({
         isReview: step === steps.length - 1,

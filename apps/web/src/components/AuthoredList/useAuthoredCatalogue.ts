@@ -1,13 +1,14 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { ContentSnapshotKind } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { usePaginatedQuery } from 'convex/react'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import {
   authoredCatalogueCategoryFormatters,
   mapAuthoredCatalogueItems
 } from '#app/data/authoredCatalogue'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
+import { useLoadAllPages } from '#app/data/useLoadAllPages'
 
 /**
  * Every visible row of one authored kind for `AuthoredListPage`, read from content snapshots
@@ -21,9 +22,7 @@ export function useAuthoredCatalogue(subjectKind: ContentSnapshotKind) {
     { subjectKind },
     { initialNumItems: 48 }
   )
-  useEffect(() => {
-    if (drafts.status === 'CanLoadMore') drafts.loadMore(48)
-  }, [drafts.status, drafts.loadMore])
+  useLoadAllPages(drafts, 48)
 
   const items = useMemo(
     () => (catalogue.items ? mapAuthoredCatalogueItems(catalogue.items, subjectKind) : []),

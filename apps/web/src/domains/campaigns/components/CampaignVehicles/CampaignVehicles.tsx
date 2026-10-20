@@ -11,7 +11,8 @@ import {
   Title
 } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useLoadAllPages } from '#app/data/useLoadAllPages'
 import type {
   CampaignVehicleDto,
   CampaignVehicleLifecycleInput
@@ -50,13 +51,8 @@ export function CampaignVehicles({ campaign }: { campaign: CampaignDetailDto }) 
   const [preparingLifecycle, setPreparingLifecycle] = useState(false)
   const [requestError, setRequestError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (definitionOptions.status === 'CanLoadMore') definitionOptions.loadMore(48)
-  }, [definitionOptions.loadMore, definitionOptions.status])
-
-  useEffect(() => {
-    if (sharedVehicles.status === 'CanLoadMore') sharedVehicles.loadMore(48)
-  }, [sharedVehicles.loadMore, sharedVehicles.status])
+  useLoadAllPages(definitionOptions, 48)
+  useLoadAllPages(sharedVehicles, 48)
 
   const vehicleOptions = [
     ...definitionOptions.results.map((vehicle) => ({ value: vehicle.id, label: vehicle.label })),

@@ -100,7 +100,9 @@ export function AuthoringFormProvider({
   )
   const [cancelConfirmationOpened, setCancelConfirmationOpened] = useState(false)
   const sessionRef = useRef(session)
-  sessionRef.current = session
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
   const actionsRef = useRef<AuthoringFormActionHandlers>({})
   const intentionalNavigationRef = useRef(false)
   const pendingStepIdRef = useRef<string | undefined>(undefined)
@@ -227,7 +229,7 @@ export function AuthoringFormProvider({
     onDeleted: async () =>
       navigateWithoutBlock({ to: authoredSession?.actionFactory.listPath ?? '/' })
   })
-  const activateAction = useMemo(() => {
+  const getActivateAction = useCallback(() => {
     if (!authoredSession) return undefined
 
     return createActivateAction({
@@ -242,14 +244,14 @@ export function AuthoringFormProvider({
       subjectId: authoredSession.subjectId
     })
   }, [activateMutation, authoredSession, navigateWithoutBlock, router])
-  const cancelAction = useMemo(
+  const getCancelAction = useCallback(
     () =>
       cancelHref
         ? createCancelAction({ listPath: cancelHref, navigate: navigateWithoutBlock })
         : undefined,
     [cancelHref, navigateWithoutBlock]
   )
-  const copyAction = useMemo(() => {
+  const getCopyAction = useCallback(() => {
     if (!authoredSession?.subjectId) return undefined
 
     return createCopyAction({
@@ -274,7 +276,7 @@ export function AuthoringFormProvider({
       subjectKindLabel: authoredSession.subjectKindLabel
     })
   }, [authoredSession, requestDelete])
-  const discardDraftAction = useMemo(() => {
+  const getDiscardDraftAction = useCallback(() => {
     if (!authoredSession) return undefined
 
     return createDiscardDraftAction({
@@ -287,7 +289,7 @@ export function AuthoringFormProvider({
       router
     })
   }, [authoredSession, discardDraftMutation, navigateWithoutBlock, router])
-  const saveDraftAction = useMemo(() => {
+  const getSaveDraftAction = useCallback(() => {
     if (!authoredSession) return undefined
 
     if (authoredSession.mode === 'create') {
@@ -417,17 +419,19 @@ export function AuthoringFormProvider({
   }, [])
   const activateValues = useCallback(
     async (values: object) => {
+      const activateAction = getActivateAction()
       if (!authoredSession || !activateAction) return
       await activateAction(authoredSession.normalizeForSubmit(values))
     },
-    [activateAction, authoredSession]
+    [getActivateAction, authoredSession]
   )
   const saveDraftValues = useCallback(
     async (values: object) => {
+      const saveDraftAction = getSaveDraftAction()
       if (!authoredSession || !saveDraftAction) return
       return saveDraftAction(authoredSession.normalizeForSubmit(values))
     },
-    [authoredSession, saveDraftAction]
+    [authoredSession, getSaveDraftAction]
   )
   const activate = useCallback(() => {
     void actionsRef.current.onActivate?.()
@@ -436,11 +440,11 @@ export function AuthoringFormProvider({
     setCancelConfirmationOpened(false)
     intentionalNavigationRef.current = true
     try {
-      await (cancelAction ?? actionsRef.current.onCancel)?.()
+      await (getCancelAction() ?? actionsRef.current.onCancel)?.()
     } finally {
       intentionalNavigationRef.current = false
     }
-  }, [cancelAction])
+  }, [getCancelAction])
   const cancel = useCallback(() => {
     const current = sessionRef.current
     if (current.stagedEditorOpen) return
@@ -469,8 +473,8 @@ export function AuthoringFormProvider({
     })
   }, [])
   const copy = useCallback(() => {
-    void (copyAction ?? actionsRef.current.onCopy)?.()
-  }, [copyAction])
+    void (getCopyAction() ?? actionsRef.current.onCopy)?.()
+  }, [getCopyAction])
   const copySource = useCallback(
     async (subjectId: string) => {
       if (!authoredSession) return
@@ -491,8 +495,8 @@ export function AuthoringFormProvider({
     void (deleteAction ?? actionsRef.current.onDelete)?.()
   }, [deleteAction])
   const discardDraft = useCallback(() => {
-    void (discardDraftAction ?? actionsRef.current.onDiscardDraft)?.()
-  }, [discardDraftAction])
+    void (getDiscardDraftAction() ?? actionsRef.current.onDiscardDraft)?.()
+  }, [getDiscardDraftAction])
   const setActiveProviderStep = useCallback(
     (stepId: string) => {
       const step = visibleSteps.find((visibleStep) => visibleStep.id === stepId)
