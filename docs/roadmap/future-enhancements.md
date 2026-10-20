@@ -368,9 +368,13 @@ Encounters have no surprise step, so Foresight's "can't be surprised" ships as d
 
 ### Shared table screen extras (SCENE-5, 2026-10-19)
 
-- **Push notifications** for roll prompts and "your turn" when the phone is locked or the app is in the background. ROOM-8 covers open signed-in pages only.
+- **Prompts that follow a member to any app page**: a global prompt modal on every signed-in page while a Session is ACTIVE, answered once for every tab and device, plus a "your turn" notice.
+- **Presence**: a member counts as online while any non-VTT app page is open, shown on the party list and turn tracker.
+- **A tabletop prompt fallback** when a member has no other app window open.
+- **Chat moved out of the tabletop**, so a shared TV shows no messages.
+- **OS notifications** (Notification API) for a waiting prompt when the phone is locked or the app is in the background.
 - **A vision-off map-board mode** for a table that runs physical minis on a TV and wants the whole explored map shown.
-- **Touch gestures beyond tap and drag** (pinch zoom, two-finger pan) on the table window.
+- **Touch gestures beyond tap and drag** (pinch zoom, two-finger pan).
 
 ### Shared live cursors (Q19)
 
