@@ -10921,8 +10921,25 @@
                   "SPELLS-4.T2lb"
                 ]
               },
-              "text": "Repeat saves (split from T2m, ruled 2026-10-20): FollowUpSave repeatTriggers schema and compiler (DAMAGE_TAKEN and HOLDER_ACTION through grantedActions with repeatSaveId), THRESHOLDS compiled with a save tally on the active effect. Converts IRRESISTIBLE_DANCE and ANIMAL_FRIENDSHIP and proves Contagion's save part, with parity proofs; kinds deleted (CONTAGION deleted in T2l2). Writes the DAMAGE_TAKEN funnel contract for T2m1b, T2m3, SPELLS-33.T6e2 and T4m.",
+              "text": "Repeat saves (split from T2m, ruled 2026-10-20): FollowUpSave repeatTriggers schema and compiler (DAMAGE_TAKEN, HOLDER_ACTION, THRESHOLDS shapes); HOLDER_ACTION through a save variant of the D105/D146 ESCAPE seam (DC pinned from the cast, ON_SAVING_THROW, success ends the effect). Converts IRRESISTIBLE_DANCE and ANIMAL_FRIENDSHIP with parity proofs; kinds deleted. Writes the DAMAGE_TAKEN funnel contract for T2m1b, T2m3, SPELLS-33.T6e2 and T4m.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2m1c",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-4.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-4.T2m1"
+                ]
+              },
+              "text": "THRESHOLDS repeat-save tally (split from T2m1, ruled 2026-10-20): a saveTally on the active effect lifecycle across the lifecycle schema, staged turn-execution validators (ruleExecutionTurnResults), turnEffectsPersistence checksum and CAS, and encounterTurnEffects; successes and failures reaching their thresholds end or settle the effect. Proves Contagion's save part (CONTAGION kind deleted in T2l2)."
             },
             {
               "id": "SPELLS-4.T2m1b",
