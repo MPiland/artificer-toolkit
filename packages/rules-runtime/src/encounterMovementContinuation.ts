@@ -306,7 +306,8 @@ export async function prepareEncounterMovementContinuation<
           currentnessChecksum: evaluated.currentnessChecksum,
           ...(evaluated.areaDepartures.length
             ? { areaDepartures: [...evaluated.areaDepartures] }
-            : {})
+            : {}),
+          ...(evaluated.moveEnds.length ? { moveEnds: [...evaluated.moveEnds] } : {})
         },
         settlements
       }

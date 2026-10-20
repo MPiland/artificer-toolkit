@@ -6,6 +6,7 @@ import type {
   EncounterCommandResultDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  MoveHeldEffectInputDto,
   ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -180,6 +181,7 @@ const basicActionChoices = validatedActions([
 const escapeSent = fn()
 const endHeldGrantSent = fn()
 const releaseSent = fn()
+const moveHeldEffectSent = fn()
 const escapes = validated(encounterActionChoicesDtoSchema.shape.escapes)([
   {
     heldActorId: null,
@@ -217,6 +219,11 @@ async function sendEndHeldGrantCommand(command: EndHeldGrantInputDto) {
   return resolvedCommand()
 }
 
+async function sendMoveHeldEffectCommand(command: MoveHeldEffectInputDto) {
+  moveHeldEffectSent(command)
+  return resolvedCommand()
+}
+
 async function sendReleaseCommand(command: ReleaseRelationshipInputDto) {
   releaseSent(command)
   return resolvedCommand()
@@ -231,6 +238,7 @@ const meta = {
     basicActionChoices: [],
     escapes: [],
     heldGrantEnds: [],
+    effectOffers: [],
     releases: [],
     openAttackAction: null,
     defaultActionId: null,
@@ -244,6 +252,7 @@ const meta = {
     pickedTargetActorId: undefined,
     onEscape: sendEscapeCommand,
     onEndHeldGrant: sendEndHeldGrantCommand,
+    onMoveHeldEffect: sendMoveHeldEffectCommand,
     onRelease: sendReleaseCommand,
     onOpen: fn(),
     onClose: fn()
@@ -735,6 +744,61 @@ export const ReleaseHeldCreature: Story = {
         actorId: sourceActor.id,
         heldActorId: targetActor.id,
         activeEffectId: releases[0].activeEffectId
+      })
+    )
+  }
+}
+
+const effectOffers = validated(encounterActionChoicesDtoSchema.shape.effectOffers)([
+  {
+    effectId: '00000000-0000-4000-8000-000000000e31',
+    offerIndex: 0,
+    kind: 'MOVE_HELD_EFFECT',
+    holderActorId: targetActor.id,
+    activation: 'BONUS_ACTION',
+    range: { amount: 90, unit: 'FEET' },
+    warnings: []
+  }
+])
+
+/** A held effect offers its source a move, with the cost and how far the pick reaches (D160). */
+export const EffectOfferListed: Story = {
+  args: { ...ResolveTargetedAction.args, effectOffers },
+  play: async ({ canvasElement }) => {
+    const { drawer } = await openActions(canvasElement)
+    const section = within(drawer.getByRole('region', { name: 'Effect choices' }))
+
+    await expect(section.getByText(/Move effect on Vault Warden/)).toBeVisible()
+    await expect(section.getByText(/Bonus action · within 90 feet/i)).toBeVisible()
+    await expect(section.queryByRole('combobox', { name: 'New holder' })).toBeNull()
+  }
+}
+
+/** Choosing the offer opens the new-holder pick, which is also made on the map; Move needs a holder. */
+export const EffectOfferPickingNewHolder: Story = {
+  args: { ...ResolveTargetedAction.args, effectOffers },
+  play: async ({ canvasElement }) => {
+    moveHeldEffectSent.mockClear()
+    const { page, drawer } = await openActions(canvasElement)
+    const section = within(drawer.getByRole('region', { name: 'Effect choices' }))
+
+    await userEvent.click(section.getByRole('button', { name: /Move effect on Vault Warden/ }))
+    await expect(section.getByRole('button', { name: 'Pick on map' })).toBeEnabled()
+    await expect(section.getByRole('button', { name: 'Move' })).toBeDisabled()
+
+    await userEvent.click(section.getByRole('combobox', { name: 'New holder' }))
+    await userEvent.click(await page.findByRole('option', { name: sourceActor.label }))
+    await userEvent.click(section.getByRole('button', { name: 'Move' }))
+
+    await waitFor(() => expect(moveHeldEffectSent).toHaveBeenCalledTimes(1))
+    await expect(await section.findByText('Effect moved.')).toBeVisible()
+    await expect(moveHeldEffectSent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'MOVE_HELD_EFFECT',
+        actorId: sourceActor.id,
+        effectId: effectOffers[0].effectId,
+        offerIndex: 0,
+        target: { kind: 'ACTOR', actorId: sourceActor.id }
       })
     )
   }

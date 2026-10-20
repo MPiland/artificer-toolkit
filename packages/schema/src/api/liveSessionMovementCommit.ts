@@ -89,6 +89,18 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
         .array(postgresUuidSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     }),
+    /**
+     * The mover moved voluntarily while holding an effect that lasts until it moves (`ON_MOVE`): the
+     * commit ends that effect, which it re-derives from current rows, and the conditions only it held.
+     */
+    z.strictObject({
+      kind: z.literal('MOVE_END'),
+      moveEnd: z.strictObject({ effectId: postgresUuidSchema, holderActorId: postgresUuidSchema }),
+      endedEffect: activeRuleEffectRecordSchema,
+      removedConditionIds: z
+        .array(postgresUuidSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+    }),
     z.strictObject({
       kind: z.literal('PASSAGE'),
       actorId: postgresUuidSchema,
