@@ -12239,7 +12239,7 @@
             },
             {
               "id": "SPELLS-31.T5n",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12249,7 +12249,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "New option (ruling at start): movement-bound end events and gates; One with Shadows, Hide in Plain Sight, Supreme Sneak. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m246 (c020e32d4)."
             },
             {
               "id": "SPELLS-31.T5n2",
