@@ -10,7 +10,6 @@ import {
   type CharacterResourceOwnerRef
 } from '@artificer-toolkit/shared/character'
 import type {
-  CreatureAuthored,
   CharacterAuthored,
   CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
@@ -118,14 +117,12 @@ interface CharacterRuleResourceProjectionInput {
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
   presentation: CharacterPresentationLookup
-  creaturesById: ReadonlyMap<string, CreatureAuthored>
 }
 
 export function projectCharacterRuleResources(
   params: CharacterRuleResourceProjectionInput
 ): SheetResource[] {
-  const { policy, snapshot, grantFoldFacts, character, resolution, presentation, creaturesById } =
-    params
+  const { policy, snapshot, grantFoldFacts, character, resolution, presentation } = params
   const sourceFacts = grantFoldSources(grantFoldFacts)
   const inventoryById = new Map(character.state.equipment.inventory.map((item) => [item.id, item]))
   const itemsByInstanceId = new Map(snapshot.equipmentItems.map((item) => [item.instanceId, item]))
@@ -375,7 +372,7 @@ export function projectCharacterRuleResources(
       const instance = (character.state.creatures ?? []).filter(
         (entry) => entry.id === resource.companionInstanceId
       )
-      const creature = instance.length === 1 ? creaturesById.get(instance[0]!.creatureId) : null
+      const creature = instance.length === 1 ? presentation.creatures[instance[0]!.creatureId] : null
       const feature = creature?.features?.filter((entry) => entry.id === resource.featureId) ?? []
       if (!creature || feature.length !== 1) {
         throw new Error(

@@ -1,15 +1,16 @@
 import { assembleCharacterReferencedBuilderContext } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
-import { toContentSnapshotIndexEntry } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
+import { readRootCatalogue } from '../content/catalogueMetadata'
 import { assertClassRelationshipsIndexed } from '../content/classRelationshipIndex'
 import { contentStream } from '../content/streams'
 import { isImportRowVisible } from '../imports/visibility'
 import { readCharacterEquipmentCatalogue, readCharacterFeatCatalogue } from './builderContext'
 import {
+  canReadCharacterRoot,
   loadCharacterRuleContext,
-  readCharacterPublication,
+  readSpellIndexEntry,
   type CharacterReferencedReads
 } from './context'
 import { rejectUnavailableSource } from './sourceReads'
@@ -56,7 +57,7 @@ export async function loadCharacterReferencedContext(
     return roots.get(id) ?? null
   }
 
-  /** Membership in `readCharacterSourceRoots`; readability is decided by the publication read. */
+  /** Membership in `readCharacterSourceRoots`; readability is decided by `canRead`. */
   async function isPoolRoot(root: Doc<'authoredRoots'>) {
     if (root.systemId !== systemId) return false
     const source = sourceById.get(root.contentSourceId)
@@ -117,22 +118,8 @@ export async function loadCharacterReferencedContext(
     }
   }
 
-  async function readPublication(root: Doc<'authoredRoots'>) {
-    if (!reads.publications.has(root.id))
-      reads.publications.set(
-        root.id,
-        await readCharacterPublication(
-          ctx,
-          root,
-          systemId,
-          userId,
-          sources,
-          sourceIdentities,
-          reads.documents
-        )
-      )
-    return reads.publications.get(root.id) ?? null
-  }
+  const canRead = (root: Doc<'authoredRoots'>) =>
+    canReadCharacterRoot(ctx, root, systemId, userId, sources, sourceIdentities)
 
   /** Readable Equipment among `members`, with their parents, which the Builder's verification needs. */
   async function readEquipmentPool(members: readonly Doc<'authoredRoots'>[]) {
@@ -142,7 +129,7 @@ export async function loadCharacterReferencedContext(
       if (parentId && !found.some((root) => root.id === parentId))
         found.push(...(await readPoolRoots('EQUIPMENT', [parentId])))
     }
-    return readCharacterEquipmentCatalogue(ctx, found, systemId, userId, context)
+    return readCharacterEquipmentCatalogue(ctx, found, systemId, userId, sources, sourceIdentities)
   }
 
   return assembleCharacterReferencedBuilderContext(character, context, {
@@ -166,14 +153,10 @@ export async function loadCharacterReferencedContext(
         )) {
         if (++scanned > POOL_SCAN_LIMIT)
           throw new Error('Character sources require paginated search.')
-        if (!(await isPoolRoot(root))) continue
-        const published = await readPublication(root)
-        if (
-          published?.subjectKind === 'CLASS' &&
-          published.document.category === 'SUBCLASS' &&
-          published.document.parentClassId === classId
-        )
-          return toContentSnapshotIndexEntry(published)
+        if (!(await isPoolRoot(root)) || !(await canRead(root))) continue
+        const subclass = readRootCatalogue(root).class
+        if (subclass?.category === 'SUBCLASS' && subclass.parentClassId === classId)
+          return subclass
       }
       return null
     },
@@ -186,9 +169,9 @@ export async function loadCharacterReferencedContext(
     },
     findSpell: async (candidateIds, matches) => {
       for await (const root of poolRoots('SPELL', candidateIds)) {
-        const published = await readPublication(root)
-        if (published?.subjectKind === 'SPELL' && matches(published.document))
-          return published.document
+        if (!(await canRead(root))) continue
+        const spell = readSpellIndexEntry(root)
+        if (matches(spell)) return spell
       }
       return null
     },
@@ -248,7 +231,7 @@ function requireReferencedSources(
     ...[...heldWithoutRules].map((id) => [id, 'EQUIPMENT'] as const)
   ]
   for (const [id, kind] of required)
-    if (id && context.publications.get(id)?.subjectKind !== kind) rejectUnavailableSource(id)
+    if (id && reads.rulePublications.get(id)?.subjectKind !== kind) rejectUnavailableSource(id)
   // Spells are read only when the Character needs its Spell catalogue.
   for (const id of [
     ...(intent.spellSelections ?? []).flatMap((selection) => selection.spells),
@@ -257,7 +240,10 @@ function requireReferencedSources(
       ...(entry.spells?.prepared ?? [])
     ])
   ])
-    if (context.publications.has(id) && context.publications.get(id)?.subjectKind !== 'SPELL')
+    if (
+      reads.rulePublications.has(id) &&
+      reads.rulePublications.get(id)?.subjectKind !== 'SPELL'
+    )
       rejectUnavailableSource(id)
   for (const id of reads.unreadableRootIds) if (!exempt.has(id)) rejectUnavailableSource(id)
 }

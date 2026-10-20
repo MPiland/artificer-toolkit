@@ -24,6 +24,10 @@ export function parsePublicationDocument(
   document: unknown
 ): Extract<AuthoredPublicationDocument, { subjectKind: 'CLASS' }>
 export function parsePublicationDocument(
+  subjectKind: 'RACE',
+  document: unknown
+): Extract<AuthoredPublicationDocument, { subjectKind: 'RACE' }>
+export function parsePublicationDocument(
   subjectKind: AuthoredPublishDraftInput['subjectKind'],
   document: unknown
 ): AuthoredPublicationDocument

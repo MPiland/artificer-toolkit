@@ -30,11 +30,7 @@ import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subj
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { collectReferenceIds, stripPortableMetadata } from '@artificer-toolkit/shared/utils'
 import { api, internal } from '../_generated/api'
-import {
-  importedSubject,
-  publicationFixture,
-  versionWithCompilation
-} from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects, publicationFixture, versionWithCompilation } from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
@@ -128,7 +124,7 @@ describe('native Spell publication', () => {
         })
       ]
     }
-    await t.mutation(internal.content.import.importSubjects, input)
+    await importSeededSubjects(t, input)
     const rebuilt = await t.run(async (ctx) => ({
       root: await ctx.db
         .query('authoredRoots')
@@ -141,7 +137,7 @@ describe('native Spell publication', () => {
     }))
     expect(rebuilt.root?.spellClassesIndexed).toBe(true)
     expect(rebuilt.classes.map((row) => row.classId).sort()).toEqual([...fireball.classIds].sort())
-    await t.mutation(internal.content.import.importSubjects, input)
+    await importSeededSubjects(t, input)
     expect(
       await t.run((ctx) =>
         ctx.db
@@ -378,7 +374,7 @@ describe('native Spell publication', () => {
       })
     })
     await expect(
-      t.mutation(internal.content.import.importSubjects, {
+      importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
           importedSubject({
@@ -470,7 +466,7 @@ describe('native Spell publication', () => {
 
   it('publishes the depth-22 Prismatic Wall document without flattening its mechanics', async () => {
     const { t, first } = await fixture()
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [passwall, daylight, dispelMagic].map((spell) =>
         importedSubject({ subjectKind: 'SPELL', ...spell, document: spell })

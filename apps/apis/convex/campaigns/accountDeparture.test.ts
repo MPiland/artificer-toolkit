@@ -7,15 +7,15 @@ import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { api, internal } from '../_generated/api'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import * as reconciliation from './contentShareRemoval'
 import { removeAccountCampaignMemberships } from './accountDeparture.helper'
 
 async function setup() {
   const base = await setupCharacterRun()
   const campaign = base.campaign
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
   })

@@ -34,6 +34,25 @@ export type CharacterBuilderRaceCatalogSource =
 export type CharacterBuilderClassCatalogSource = ContentSnapshotIndexEntry<'CLASS'>
 export type CharacterBuilderBackgroundCatalogSource = ContentSnapshotIndexEntry<'BACKGROUND'>
 
+/**
+ * A Race's picker facts from index entries: a subrace joins its readable base Race's size, speeds
+ * and Ability Score Increase facts, as `toCharacterBuilderRaceCatalogSource` resolves them.
+ */
+export function joinRaceCatalogSource(
+  race: RaceIndexEntry,
+  parent: RaceIndexEntry | undefined
+): CharacterBuilderRaceCatalogSource {
+  if (race.category === 'BASE') return race
+  if (parent?.category !== 'BASE' || parent.id !== race.parentRaceId || parent.id === race.id)
+    throw new Error('A readable base Race in the same System is required.')
+  return {
+    ...race,
+    size: parent.size,
+    speeds: parent.speeds,
+    abilityScoreIncreaseFacts: [...parent.abilityScoreIncreaseFacts, ...race.abilityScoreIncreaseFacts]
+  }
+}
+
 export function toCharacterBuilderRaceCatalogSource(
   race: ResolvedRace
 ): CharacterBuilderRaceCatalogSource {

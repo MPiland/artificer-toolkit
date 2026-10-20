@@ -1,60 +1,45 @@
 import {
-  baseEquipmentAuthoredDtoSchema,
-  equipmentAuthoredDtoSchema,
-  type BaseEquipmentAuthoredDto
-} from '@artificer-toolkit/schema/subjects/equipment'
+  authoredStoredCompilationSchema,
+  type AuthoredStoredCompilation
+} from '@artificer-toolkit/schema/api/authoredPublication'
 import { creatureEquipmentLoadoutDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import {
-  compileResolvedEquipment,
-  resolveEquipmentAuthored,
-  type CompiledEquipment,
-  type ResolvedEquipment
-} from '@artificer-toolkit/shared/subjects/compilers'
+import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
 import {
   EQUIPMENT_PROPERTY_CODE,
   HAND_CONFLICT_MESSAGE,
   resolveHandOccupancy,
   type EquipmentSlotCode
 } from '@artificer-toolkit/shared/core'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type {
-  EquipmentAuthored,
-  VariantEquipmentAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
 import { z } from 'zod'
 
+import { hydrateStoredCompilation } from './authoredPublicationHydrate.js'
 import { resolveDnd5eCreatureArmorClass } from './systems/dnd5e/armorClass.js'
 
 const checksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
 const positiveRevisionSchema = z.number().int().positive()
 
+/**
+ * A Creature loadout entry's pinned Equipment: the stored compilation of the pinned version (the
+ * resolved rules of a variant), as D163's retained rules pin theirs. Reads hydrate it; nothing compiles.
+ */
 type SerializedEncounterCreatureEquipmentSource = {
   loadoutEntryId: string
   equipmentId: string
   sourceRevision: number
   sourceVersionId: string
   sourceChecksum: string
-  payload: BaseEquipmentAuthoredDto
+  compilation: AuthoredStoredCompilation
 }
 
-const equipmentSourceDtoSchema: z.ZodType<SerializedEncounterCreatureEquipmentSource> = z
-  .strictObject({
+const equipmentSourceDtoSchema: z.ZodType<SerializedEncounterCreatureEquipmentSource> =
+  z.strictObject({
     loadoutEntryId: postgresUuidSchema,
     equipmentId: postgresUuidSchema,
     sourceRevision: positiveRevisionSchema,
     sourceVersionId: postgresUuidSchema,
     sourceChecksum: checksumSchema,
-    payload: baseEquipmentAuthoredDtoSchema
-  })
-  .superRefine((source, context) => {
-    if (source.payload.id !== source.equipmentId) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['payload', 'id'],
-        message: 'Pinned Equipment source payload must match its Equipment identity.'
-      })
-    }
+    compilation: authoredStoredCompilationSchema
   })
 
 export type EncounterCreatureEquipmentSource = SerializedEncounterCreatureEquipmentSource & {
@@ -75,23 +60,19 @@ function requireCanonicalUuid(value: string, label: string): string {
   return parsed.data
 }
 
+/** Fails closed on another compiler version, a compilation of another version or a corrupt one. */
+function hydrateEquipmentSource(source: SerializedEncounterCreatureEquipmentSource) {
+  return hydrateStoredCompilation(
+    'EQUIPMENT',
+    { id: source.equipmentId, checksum: source.sourceChecksum },
+    source.compilation
+  )
+}
+
 function parseEquipmentSource(value: unknown): EncounterCreatureEquipmentSource {
   const parsed = equipmentSourceDtoSchema.safeParse(value)
   if (!parsed.success) throw new Error('Creature Equipment source snapshot is invalid.')
-  if (checksumRuleDocument(parsed.data.payload) !== parsed.data.sourceChecksum) {
-    throw new Error('Creature Equipment source snapshot checksum does not match its payload.')
-  }
-  return { ...parsed.data, compiled: compilePinnedPayload(parsed.data.payload) }
-}
-
-/**
- * The strict transport document has already been parsed; this cast crosses to the shared
- * authored-domain compiler without accepting unvalidated JSON.
- */
-function compilePinnedPayload(
-  payload: SerializedEncounterCreatureEquipmentSource['payload']
-): CompiledEquipment {
-  return compileResolvedEquipment(payload as unknown as ResolvedEquipment)
+  return { ...parsed.data, compiled: hydrateEquipmentSource(parsed.data) }
 }
 
 function snapshotRecord(actor: CreatureSnapshotActor): Record<string, unknown> {
@@ -155,9 +136,6 @@ export function snapshotCreatureEquipmentItems(actor: CreatureSnapshotActor): re
     if (byLoadoutId.has(source.loadoutEntryId)) {
       throw new Error('Creature Equipment source snapshot contains duplicate loadout bindings.')
     }
-    if (source.payload.systemId !== actor.systemId) {
-      throw new Error('Creature Equipment source snapshot belongs to another Game System.')
-    }
     byLoadoutId.set(source.loadoutEntryId, source)
   }
   if (byLoadoutId.size !== loadout.length) {
@@ -184,7 +162,9 @@ export function assertCreatureLoadoutHands(
 ): void {
   const twoHandedEntryIds = new Set(
     sources
-      .filter((source) => source.payload.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED))
+      .filter((source) =>
+        hydrateEquipmentSource(source).properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
+      )
       .map((source) => source.loadoutEntryId)
   )
   const [conflict] = resolveHandOccupancy(
@@ -228,7 +208,7 @@ export function assertCreatureLoadoutArmorClass(
       return {
         id: entry.id,
         useState: entry.useState,
-        compiled: compilePinnedPayload(source.payload)
+        compiled: hydrateEquipmentSource(source)
       }
     })
   })
@@ -236,35 +216,10 @@ export function assertCreatureLoadoutArmorClass(
 }
 
 /**
- * Turns a stored Equipment record into the one a Creature pins. Base Equipment pins as authored;
- * a variant pins as its resolved, base-shaped document under the variant's own identity, so the
- * pinned payload (and the checksum taken of it) is self-contained. Provenance stays in the
- * record's version fields.
+ * Builds the persisted source arm while the active sources are authorized. The caller's reader
+ * enforces the Creature's Game System and read access; a variant arrives as its own stored,
+ * resolved compilation.
  */
-export function resolveEquipmentSourceRecord(
-  record: { document: unknown; checksum: string; version: number; versionId: string },
-  lookupParent: (id: string) => unknown
-): { document: unknown; checksum: string; version: number; versionId: string } {
-  const stored = equipmentAuthoredDtoSchema.parse(record.document)
-  if (stored.category !== 'VARIANT') return record
-  const resolved = resolveEquipmentAuthored(
-    stored as unknown as EquipmentAuthored | VariantEquipmentAuthored,
-    (id) => {
-      const parent = lookupParent(id)
-      return parent === undefined || parent === null
-        ? null
-        : (equipmentAuthoredDtoSchema.parse(parent) as unknown as
-            | EquipmentAuthored
-            | VariantEquipmentAuthored)
-    }
-  )
-  // Resolution leaves absent fields as explicit undefined, which a checksummed JSON document
-  // cannot hold; the round trip drops them.
-  const document = baseEquipmentAuthoredDtoSchema.parse(JSON.parse(JSON.stringify(resolved)))
-  return { ...record, document, checksum: checksumRuleDocument(document) }
-}
-
-/** Builds the persisted source arm while the active sources are authorized. */
 export function pinCreatureEquipmentSources(input: {
   creature: {
     equipmentLoadout?: readonly {
@@ -277,10 +232,13 @@ export function pinCreatureEquipmentSources(input: {
     abilityScores: { DEXTERITY: number }
     naturalArmorBonus: number
   }
-  equipmentRecords: ReadonlyMap<
+  equipment: ReadonlyMap<
     string,
     {
-      authored: { document: unknown; checksum: string; version: number; versionId: string }
+      checksum: string
+      version: number
+      versionId: string
+      compilation: AuthoredStoredCompilation
     }
   >
 }): readonly SerializedEncounterCreatureEquipmentSource[] {
@@ -294,28 +252,17 @@ export function pinCreatureEquipmentSources(input: {
       throw new Error('Creature Equipment loadout contains duplicate bindings.')
     }
     seenLoadoutIds.add(entry.id)
-    const record = input.equipmentRecords.get(entry.equipmentId)
+    const record = input.equipment.get(entry.equipmentId)
     if (!record) throw new Error('Creature Equipment source is unavailable.')
-    const payload = baseEquipmentAuthoredDtoSchema.safeParse(record.authored.document)
-    if (!payload.success || payload.data.id !== entry.equipmentId) {
-      throw new Error('Creature Equipment source must be a valid base Equipment document.')
-    }
-    if (payload.data.systemId !== input.creature.systemId) {
-      throw new Error('Creature Equipment source belongs to another Game System.')
-    }
-    if (checksumRuleDocument(payload.data) !== record.authored.checksum) {
-      throw new Error('Creature Equipment source checksum does not match its authored payload.')
-    }
-    sources.push(
-      equipmentSourceDtoSchema.parse({
-        loadoutEntryId: entry.id,
-        equipmentId: entry.equipmentId,
-        sourceRevision: record.authored.version,
-        sourceVersionId: record.authored.versionId,
-        sourceChecksum: record.authored.checksum,
-        payload: payload.data
-      })
-    )
+    const source = equipmentSourceDtoSchema.parse({
+      loadoutEntryId: entry.id,
+      equipmentId: entry.equipmentId,
+      sourceRevision: record.version,
+      sourceVersionId: record.versionId,
+      sourceChecksum: record.checksum,
+      compilation: record.compilation
+    })
+    sources.push(source)
   }
   assertCreatureLoadoutHands(loadout, sources)
   assertCreatureLoadoutArmorClass(input.creature, loadout, sources)

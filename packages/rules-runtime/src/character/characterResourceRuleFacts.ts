@@ -6,17 +6,14 @@ import type {
   CompiledChargeUse,
   CompiledClassResource
 } from '@artificer-toolkit/shared/compilers'
-import { compileChargeUse } from '@artificer-toolkit/shared/compilers'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import type {
   CharacterResourceUsage,
   CharacterAssemblyRegistry,
   CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
-import type {
-  CharacterAuthored,
-  CreatureAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CompiledCreature } from '@artificer-toolkit/shared/subjects/compilers'
 
 import { buildCharacterChargeRuleFact } from './characterChargeRuleFacts.js'
 import { isCharacterSpellActionAccessCandidate } from './characterSpellRuleFacts.js'
@@ -118,7 +115,7 @@ export function buildCharacterResourceRuleFacts(params: {
   registry: CharacterAssemblyRegistry
   spellAccessCandidates: CharacterRulePolicyInput['spellAccessCandidates']
   grantFoldFacts: CharacterGrantFoldInput
-  creaturesById: ReadonlyMap<string, CreatureAuthored>
+  creaturesById: ReadonlyMap<string, CompiledCreature>
   resourceUsage?: readonly CharacterResourceUsage[]
 }): ResourceFacts {
   const {
@@ -281,7 +278,7 @@ export function buildCharacterResourceRuleFacts(params: {
   for (const companion of character.state.creatures ?? []) {
     const creature = creaturesById.get(companion.creatureId)
     for (const feature of creature?.features ?? []) {
-      const charge = ownedCharge(feature.charges ? compileChargeUse(feature.charges) : undefined)
+      const charge = ownedCharge(feature.charges)
       if (!charge) continue
       const poolId = createCharacterResourceOwnerKey({
         kind: 'COMPANION_FEATURE',

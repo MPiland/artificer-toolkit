@@ -29,11 +29,7 @@ import {
   type CharacterResourceOwnerRef,
   type CharacterSheetAdjustment
 } from '@artificer-toolkit/shared/character'
-import type {
-  CharacterAuthored,
-  CreatureAuthored,
-  VehicleAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderResolution } from './builderTypes.js'
@@ -817,8 +813,6 @@ interface ProjectCharacterSheetBundleParams {
     SheetSpellSource,
     'source' | 'customName' | 'notes' | 'displayAsAttack'
   >[]
-  creaturesById: ReadonlyMap<string, CreatureAuthored>
-  vehiclesById: ReadonlyMap<string, VehicleAuthored>
   ruleEvaluation: Pick<CharacterRuleEvaluationResult, 'snapshot' | 'registry' | 'facts' | 'output'>
   /** The Character's active effects; their hit point maximum reductions lower `maxHitPoints` and their grants are listed. */
   activeEffects: readonly Pick<
@@ -843,8 +837,6 @@ export function projectCharacterSheetBundle(
     presentation,
     streamVersion,
     hasBuilderDraft,
-    creaturesById,
-    vehiclesById,
     ruleEvaluation
   } = params
   const adjustments = params.adjustments ?? []
@@ -947,7 +939,7 @@ export function projectCharacterSheetBundle(
   const creatureExtras: CharacterSheetResponseDto['extras']['items'] = (
     character.state.creatures ?? []
   ).flatMap((instance) => {
-    const creature = creaturesById.get(instance.creatureId)
+    const creature = presentation.creatures[instance.creatureId]
     if (!creature) return []
     const mechanics = companionMechanicsByInstanceId.get(instance.id)
     if (!mechanics) {
@@ -1012,7 +1004,7 @@ export function projectCharacterSheetBundle(
   const vehicleExtras: CharacterSheetResponseDto['extras']['items'] = (
     character.state.vehicles ?? []
   ).flatMap((instance) => {
-    const vehicle = vehiclesById.get(instance.vehicleId)
+    const vehicle = presentation.vehicles[instance.vehicleId]
     if (!vehicle) return []
     const maximumHitPoints = Math.max(vehicle.hitPoints ?? 0, 0)
     return [
@@ -1321,8 +1313,22 @@ export function projectCharacterSheetBundle(
       }
     })
   )
-  const sheetSpells: CharacterSheetResponseDto['spells']['spells'] = resolution.catalog.spells
+  // A Spell only a held item's pinned rules supply is absent from the catalogue; it reads its pinned prose.
+  const catalogSpellIds = new Set(resolution.catalog.spells.map((spell) => spell.id))
+  const retainedSpells = Object.values(presentation.retainedSpells)
+    .filter(({ compiled }) => !catalogSpellIds.has(compiled.id))
+    .map(({ compiled, presentation: prose }) => ({
+      ...compiled,
+      label: prose.label,
+      description: prose.description ?? undefined,
+      materialDescription: prose.materialDescription
+    }))
+  const sheetSpells: CharacterSheetResponseDto['spells']['spells'] = [
+    ...resolution.catalog.spells,
+    ...retainedSpells
+  ]
     .filter((spell) => displayedSpellIds.has(spell.id))
+    .sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id))
     .map((spell) => {
       const policyReferenceMechanics = spellReferenceMechanicsBySpellId.get(spell.id)
       const spellMechanics = (policyReferenceMechanics?.mechanics ?? []).map((mechanic) =>
@@ -1374,8 +1380,7 @@ export function projectCharacterSheetBundle(
     grantFoldFacts: ruleEvaluation.facts.grantFoldFacts,
     character,
     resolution,
-    presentation,
-    creaturesById
+    presentation
   })
   const visibleActionItems = actionItems
   const activeSpellGroups = buildActiveSpellGroups({

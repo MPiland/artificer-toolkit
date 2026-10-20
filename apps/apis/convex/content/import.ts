@@ -226,6 +226,19 @@ export const bootstrap: RegisteredMutation<
   }
 })
 
+/** Catalogue facts introduced after rows were stored; a reimport adds them to an exact match. */
+const BACKFILLED_CATALOGUE_FACTS = [
+  'search',
+  'countsVersion',
+  'publishedActive',
+  'race',
+  'class',
+  'background',
+  'equipment',
+  'selectionMode',
+  'spell'
+] as const
+
 export const importSubjects: RegisteredMutation<
   'internal',
   SourceImportSubjectsInput,
@@ -296,10 +309,15 @@ export const importSubjects: RegisteredMutation<
         contentSourceId,
         currentVersionPublicId: versionId
       }
-      // Base Equipment has no parents to wait for; a variant compiles in syncEquipmentDerived.
+      // A base Equipment or Race has no parent to wait for; a variant or subrace compiles in its
+      // derived sync once every root exists.
       const baseEquipment =
         parsed.subjectKind === 'EQUIPMENT' && parsed.document.category !== 'VARIANT'
           ? await compileCurrentEquipment(ctx, parsed.document, null)
+          : undefined
+      const baseRace =
+        parsed.subjectKind === 'RACE' && parsed.document.category !== 'SUBRACE'
+          ? await compileCurrentRace(ctx, parsed.document, null)
           : undefined
       const equipmentOptions =
         parsed.subjectKind === 'EQUIPMENT'
@@ -313,7 +331,7 @@ export const importSubjects: RegisteredMutation<
         parsed.subjectKind === 'CREATURE' ||
         parsed.subjectKind === 'VEHICLE'
           ? compilePublicationDocument(parsed)
-          : baseEquipment?.compilation
+          : (baseEquipment ?? baseRace)?.compilation
       const parentClassId =
         parsed.subjectKind === 'CLASS'
           ? parsed.document.category === 'SUBCLASS'
@@ -422,7 +440,7 @@ export const importSubjects: RegisteredMutation<
           (storedCompilationRow !== null || existingEquipmentOptions?.builder !== undefined)
             ? await compileCurrentEquipment(ctx, parsed.document, null)
             : undefined
-        // A Class, and a Race not compiled yet, are synced after every root exists.
+        // A Class, and a subrace not compiled yet, are synced after every root exists.
         const expectedCompilation =
           compilation ??
           equipment?.compilation ??
@@ -469,32 +487,26 @@ export const importSubjects: RegisteredMutation<
         if (current.authoringSources?.factsVersion === AUTHORED_SOURCE_FACTS_VERSION)
           exact(storedAuthoringSources, authoringSources)
         else await ctx.db.patch(current._id, { authoringSources })
-        const catalogue = await catalogueMetadata(ctx, parsed.document, {
+        const catalogue = await catalogueMetadata(ctx, parsed, {
           checksum: subject.checksum,
           publicId,
           createdAt: storedVersion._creationTime
         })
         if (storedCatalogue !== undefined) {
           const existing = authoredCatalogueMetadataSchema.parse(storedCatalogue)
+          // Facts added after a row was stored backfill; every other stored fact must match exactly.
+          const missing = BACKFILLED_CATALOGUE_FACTS.filter(
+            (key) => catalogue[key] !== undefined && existing[key] === undefined
+          )
           exact(
             {
               ...existing,
-              search: existing.search ?? catalogue.search,
-              countsVersion: existing.countsVersion ?? catalogue.countsVersion,
-              ...(catalogue.selectionMode !== undefined
-                ? {
-                    selectionMode: existing.selectionMode ?? catalogue.selectionMode
-                  }
-                : {}),
-              ...(catalogue.spell !== undefined ? { spell: existing.spell ?? catalogue.spell } : {})
+              ...Object.fromEntries(missing.map((key) => [key, catalogue[key]]))
             },
             catalogue
           )
           if (
-            existing.search === undefined ||
-            existing.countsVersion === undefined ||
-            (catalogue.selectionMode !== undefined && existing.selectionMode === undefined) ||
-            (catalogue.spell !== undefined && existing.spell === undefined) ||
+            missing.length > 0 ||
             (current.subjectKind === 'SPELL' && storedSpellClassesIndexed !== true)
           ) {
             await syncCatalogueMetadata(ctx, current._id, catalogue)
@@ -527,7 +539,7 @@ export const importSubjects: RegisteredMutation<
         await syncCatalogueMetadata(
           ctx,
           rootId,
-          await catalogueMetadata(ctx, parsed.document, {
+          await catalogueMetadata(ctx, parsed, {
             checksum: subject.checksum,
             publicId,
             createdAt: published._creationTime
@@ -765,11 +777,10 @@ export const readSubjects = internalQuery({
           checksum: version.checksum,
           document
         })
-        const parsedDocument = parsed.document
         exact(root.authoringSources, authoredSourceFacts(parsed))
         exact(
           root.catalogue,
-          await catalogueMetadata(ctx, parsedDocument, {
+          await catalogueMetadata(ctx, parsed, {
             checksum: root.checksum,
             publicId: route.publicId,
             createdAt: version._creationTime

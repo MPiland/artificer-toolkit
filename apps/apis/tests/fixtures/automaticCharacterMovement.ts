@@ -15,7 +15,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { setupCharacterRun } from './encounterCharacter'
 import { sourceImportBatches } from '../../convex/content/importBatches'
 import { api, components, internal } from '../../convex/_generated/api'
@@ -222,7 +222,7 @@ export async function setupAutomaticCharacterMovement(
     })
     return { id, document }
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: creatures.map(({ document }) =>
       importedSubject({ ...document, subjectKind: 'CREATURE', document })

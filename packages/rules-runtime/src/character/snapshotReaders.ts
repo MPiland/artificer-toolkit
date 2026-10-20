@@ -1,4 +1,7 @@
-import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
+import type {
+  AuthoredPublicationDocument,
+  AuthoredStoredCompilation
+} from '@artificer-toolkit/schema/api/authoredPublication'
 import type {
   ContentSnapshotIndexEntry,
   ContentSnapshotIndexObject,
@@ -6,11 +9,15 @@ import type {
   ContentSnapshotObject
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
+import type { BaseRaceAuthoredDto, SubraceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 
-import type { CharacterBuilderRaceCatalogSource } from './builderCatalog.js'
-import type {
-  CharacterBuilderCatalogueReaders,
-  CharacterRuleContextReaders
+import { joinRaceCatalogSource } from './builderCatalog.js'
+import {
+  toCharacterRulePublication,
+  type CharacterBuilderCatalogueReaders,
+  type CharacterRuleContextReaders,
+  type CharacterRulePublication,
+  type CharacterRuleSpellPublication
 } from './contextPreparation.js'
 
 // The kinds whose roots carry features, in the order the Convex feature scan reads them.
@@ -37,19 +44,30 @@ export function createSnapshotReaders(
   const ordered = [...objects].sort(
     (left, right) => Number(left.scope === 'CAMPAIGN') - Number(right.scope === 'CAMPAIGN')
   )
-  const publications = new Map<string, AuthoredPublicationDocument>()
-  const publicationsByKind = new Map<ContentSnapshotKind, AuthoredPublicationDocument[]>()
+  // A root with the version identity and stored compilation its documents object pairs with it.
+  type SnapshotRoot = {
+    published: AuthoredPublicationDocument
+    checksum: string
+    compilation: AuthoredStoredCompilation
+  }
+  const publications = new Map<string, SnapshotRoot>()
+  const publicationsByKind = new Map<ContentSnapshotKind, SnapshotRoot[]>()
   for (const object of ordered) {
     if (object.part !== 'documents') continue
     const ofKind = publicationsByKind.get(object.kind) ?? []
     publicationsByKind.set(object.kind, ofKind)
-    for (const document of object.roots) {
-      if (publications.has(document.id)) continue
-      // `kind` discriminates `roots`; TypeScript cannot correlate the pair it builds.
-      const publication = { subjectKind: object.kind, document } as AuthoredPublicationDocument
-      publications.set(document.id, publication)
-      ofKind.push(publication)
-    }
+    object.roots.forEach((document, index) => {
+      if (publications.has(document.id)) return
+      const root = {
+        // `kind` discriminates `roots`; TypeScript cannot correlate the pair it builds.
+        published: { subjectKind: object.kind, document } as AuthoredPublicationDocument,
+        // The documents schema aligns versions and compilations with roots by index.
+        checksum: object.versions[index]!.identity.checksum,
+        compilation: object.compilations[index]!
+      }
+      publications.set(document.id, root)
+      ofKind.push(root)
+    })
   }
 
   // The picker kinds the Builder reads from the index part.
@@ -92,45 +110,69 @@ export function createSnapshotReaders(
     }
   }
 
-  return {
-    readPublication: async (id) => publications.get(id) ?? null,
-    readRaceParent: async (document) => {
-      const parent = publications.get(document.parentRaceId)
+  function baseRaceOf(document: SubraceAuthoredDto): BaseRaceAuthoredDto {
+    const parent = publications.get(document.parentRaceId)?.published
+    if (
+      document.parentRaceId === document.id ||
+      parent?.subjectKind !== 'RACE' ||
+      parent.document.category !== 'BASE'
+    )
+      throw new Error('A readable base Race in the same System is required.')
+    return parent.document
+  }
+  function equipmentAncestors(document: EquipmentAuthoredDto) {
+    const ancestors = new Map<string, EquipmentAuthoredDto>([[document.id, document]])
+    for (let current = document; current.category === 'VARIANT';) {
+      const parentId = current.parentEquipmentId
+      if (ancestors.has(parentId)) throw new Error('Equipment variant cycle detected.')
+      if (ancestors.size >= 500)
+        throw new Error('Equipment inheritance exceeds the authoring limit.')
+      const parent = publications.get(parentId)?.published
+      if (parent?.subjectKind !== 'EQUIPMENT')
+        throw new Error('Readable parent Equipment in the same System is required.')
+      ancestors.set(parent.document.id, parent.document)
+      current = parent.document
+    }
+    return ancestors
+  }
+  // A snapshot carries every document, so its publications carry their presentation; a subrace,
+  // subclass or variant is readable only with its parent chain.
+  function toPublication({ published, ...stored }: SnapshotRoot): CharacterRulePublication {
+    const { document } = published
+    if (published.subjectKind === 'CLASS' && published.document.category === 'SUBCLASS') {
+      const { parentClassId } = published.document
+      const parent = publications.get(parentClassId)?.published
       if (
-        document.parentRaceId === document.id ||
-        parent?.subjectKind !== 'RACE' ||
-        parent.document.category !== 'BASE'
-      )
-        throw new Error('A readable base Race in the same System is required.')
-      return parent.document
-    },
-    requireClassParent: async (document) => {
-      const parent = publications.get(document.parentClassId)
-      if (
-        document.parentClassId === document.id ||
+        parentClassId === document.id ||
         parent?.subjectKind !== 'CLASS' ||
         parent.document.category !== 'BASE'
       )
         throw new Error('A readable base class in the same System is required.')
-    },
-    readEquipmentParents: async (document) => {
-      const ancestors = new Map<string, EquipmentAuthoredDto>([[document.id, document]])
-      for (let current = document; current.category === 'VARIANT';) {
-        const parentId = current.parentEquipmentId
-        if (ancestors.has(parentId)) throw new Error('Equipment variant cycle detected.')
-        if (ancestors.size >= 500)
-          throw new Error('Equipment inheritance exceeds the authoring limit.')
-        const parent = publications.get(parentId)
-        if (parent?.subjectKind !== 'EQUIPMENT')
-          throw new Error('Readable parent Equipment in the same System is required.')
-        ancestors.set(parent.document.id, parent.document)
-        current = parent.document
-      }
-      return ancestors
+    }
+    return toCharacterRulePublication(
+      published,
+      stored,
+      {
+        race:
+          published.subjectKind === 'RACE' && published.document.category === 'SUBRACE'
+            ? baseRaceOf(published.document)
+            : undefined,
+        equipment:
+          published.subjectKind === 'EQUIPMENT' ? equipmentAncestors(published.document) : undefined
+      },
+      true
+    )
+  }
+
+  return {
+    readPublication: async (id) => {
+      const root = publications.get(id)
+      return root ? toPublication(root) : null
     },
     readFeatureSources: async (missingFeatureIds) =>
       FEATURE_SOURCE_KINDS.flatMap((kind) =>
-        (publicationsByKind.get(kind) ?? []).filter((published) => {
+        (publicationsByKind.get(kind) ?? []).flatMap((root) => {
+          const { published } = root
           const features = [
             ...('features' in published.document ? (published.document.features ?? []) : []),
             ...(published.subjectKind === 'RACE' && published.document.category === 'BASE'
@@ -139,37 +181,27 @@ export function createSnapshotReaders(
               : [])
           ]
           return features.some((feature) => missingFeatureIds.has(feature.id))
+            ? [toPublication(root)]
+            : []
         })
       ),
     readSpellCatalogue: async (referencedSpellIds) => ({
       entries: [...index.SPELL.values()],
-      documents: (publicationsByKind.get('SPELL') ?? []).flatMap((published) =>
-        published.subjectKind === 'SPELL' && referencedSpellIds.has(published.document.id)
-          ? [published.document]
-          : []
+      publications: (publicationsByKind.get('SPELL') ?? []).flatMap(
+        (root): CharacterRuleSpellPublication[] => {
+          if (!referencedSpellIds.has(root.published.document.id)) return []
+          const spell = toPublication(root)
+          return spell.subjectKind === 'SPELL' ? [spell] : []
+        }
       )
     }),
-    readRaces: async () => {
-      const races = [...index.RACE.values()]
-      const bases = new Map(
-        races.flatMap((race) => (race.category === 'BASE' ? [[race.id, race] as const] : []))
-      )
-      return races.map((race): CharacterBuilderRaceCatalogSource => {
-        if (race.category === 'BASE') return race
-        const parent = bases.get(race.parentRaceId)
-        if (!parent || race.parentRaceId === race.id)
-          throw new Error('A readable base Race in the same System is required.')
-        return {
-          ...race,
-          size: parent.size,
-          speeds: parent.speeds,
-          abilityScoreIncreaseFacts: [
-            ...parent.abilityScoreIncreaseFacts,
-            ...race.abilityScoreIncreaseFacts
-          ]
-        }
-      })
-    },
+    readRaces: async () =>
+      [...index.RACE.values()].map((race) =>
+        joinRaceCatalogSource(
+          race,
+          race.category === 'SUBRACE' ? index.RACE.get(race.parentRaceId) : undefined
+        )
+      ),
     readClasses: async () => [...index.CLASS.values()],
     readBackgrounds: async () => [...index.BACKGROUND.values()],
     readEquipment: async () => ({ entries: [...index.EQUIPMENT.values()] }),
@@ -219,11 +251,6 @@ export function createLazySnapshotReaders(
       const kind = kindById.get(id)
       return kind ? (await withDocuments([kind])).readPublication(id) : null
     },
-    readRaceParent: async (document) => (await withDocuments(['RACE'])).readRaceParent(document),
-    requireClassParent: async (document) =>
-      (await withDocuments(['CLASS'])).requireClassParent(document),
-    readEquipmentParents: async (document) =>
-      (await withDocuments(['EQUIPMENT'])).readEquipmentParents(document),
     readFeatureSources: async (missingFeatureIds) =>
       (await withDocuments(FEATURE_SOURCE_KINDS)).readFeatureSources(missingFeatureIds),
     readSpellCatalogue: async (referencedSpellIds) =>

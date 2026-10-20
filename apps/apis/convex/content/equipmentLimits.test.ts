@@ -173,7 +173,7 @@ it('recompiles the complete 500-Equipment chain without recursive descendant sou
       await syncCatalogueMetadata(
         ctx,
         rootId,
-        await catalogueMetadata(ctx, child, {
+        await catalogueMetadata(ctx, { subjectKind: 'EQUIPMENT', document: child }, {
           checksum,
           publicId,
           createdAt: version._creationTime

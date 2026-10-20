@@ -790,7 +790,7 @@ export async function readEncounterActionItemChoices(
           facts?.prepared.resolution.registry.equipment.find(({ id }) => id === item.equipmentId)
             ?.label ??
           creatureItems.find(({ loadoutEntryId }) => loadoutEntryId === item.itemInstanceId)
-            ?.payload.label ??
+            ?.compiled.label ??
           'Unknown item'
       }
     })
@@ -844,7 +844,7 @@ export async function readEncounterOptionalActionChoices(
         }))
       : snapshotCreatureEquipmentSources(target).map((item) => ({
           id: item.loadoutEntryId,
-          label: item.payload.label
+          label: item.compiled.label
         }))
   return encounterOptionalActionChoicesDtoSchema.parse({
     definitionId: descriptor.definitionId,

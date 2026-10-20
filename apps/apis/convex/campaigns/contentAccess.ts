@@ -1,17 +1,20 @@
 import type { CampaignContentShareDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import {
-  canReadAuthoredRoot,
-  readAuthoredVersion,
-  readPublishedDocument
-} from '../content/documents'
+import { canReadAuthoredRoot, readPublishedRootDocument } from '../content/documents'
+import { readRootCatalogue } from '../content/catalogueMetadata'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
 import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
-import { requireClassParent } from '../content/classRelationships'
-import { requireEquipmentParents, requireRaceParent } from '../content/relationshipReads'
+import { requireParentRoots, rootParentId } from '../content/relationshipReads'
 
-export async function readOwnedCurrentPublication(
+/** The current publication's validated payload; authorization reads the root alone. */
+export async function readCurrentPublication(ctx: QueryCtx, root: Doc<'authoredRoots'>) {
+  const { document } = await readPublishedRootDocument(ctx, root)
+  return parsePublicationDocument(root.subjectKind, document)
+}
+
+/** An owner's own root whose current publication is ACTIVE, from the root row alone (D163). */
+export async function readOwnedCurrentRoot(
   ctx: QueryCtx,
   subjectKind: CampaignContentShareDto['subjectKind'],
   subjectId: string,
@@ -25,14 +28,21 @@ export async function readOwnedCurrentPublication(
     !root ||
     root.subjectKind !== subjectKind ||
     root.ownerUserId !== ownerUserId ||
-    !(await canReadAuthoredRoot(ctx, root, ownerUserId))
+    !(await canReadAuthoredRoot(ctx, root, ownerUserId)) ||
+    !readRootCatalogue(root).publishedActive
   )
     return null
-  const publication = parsePublicationDocument(
-    subjectKind,
-    await readPublishedDocument(ctx, root, await readAuthoredVersion(ctx, root))
-  )
-  return publication.document.status === 'ACTIVE' ? publication : null
+  return root
+}
+
+export async function readOwnedCurrentPublication(
+  ctx: QueryCtx,
+  subjectKind: CampaignContentShareDto['subjectKind'],
+  subjectId: string,
+  ownerUserId: string
+) {
+  const root = await readOwnedCurrentRoot(ctx, subjectKind, subjectId, ownerUserId)
+  return root && readCurrentPublication(ctx, root)
 }
 
 /** Header access only; publication status and parent relationships still require validation. */
@@ -77,68 +87,48 @@ export async function readCampaignSharedRoot(
   return root
 }
 
+/** A shared root whose current publication is ACTIVE; parent relationships still need validation. */
+export async function readCampaignSharedActiveRoot(
+  ctx: QueryCtx,
+  campaign: Doc<'campaigns'>,
+  subjectKind: CampaignContentShareDto['subjectKind'],
+  subjectId: string,
+  currentRoot?: Doc<'authoredRoots'>
+) {
+  const root = await readCampaignSharedRoot(ctx, campaign, subjectKind, subjectId, currentRoot)
+  return root && readRootCatalogue(root).publishedActive ? root : null
+}
+
 export async function readCampaignSharedRootPublication(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
   subjectKind: CampaignContentShareDto['subjectKind'],
   subjectId: string
 ) {
-  const root = await readCampaignSharedRoot(ctx, campaign, subjectKind, subjectId)
-  if (!root) return null
-  const publication = parsePublicationDocument(
-    subjectKind,
-    await readPublishedDocument(ctx, root, await readAuthoredVersion(ctx, root))
-  )
-  return publication.document.status === 'ACTIVE' &&
-    publication.document.systemId === campaign.gameSystemId
-    ? publication
-    : null
+  const root = await readCampaignSharedActiveRoot(ctx, campaign, subjectKind, subjectId)
+  return root && readCurrentPublication(ctx, root)
 }
 
 /** An explicit Homebrew parent share or an enabled official parent is required at every level. */
 export async function requireCampaignContentParents(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
-  publication: ReturnType<typeof parsePublicationDocument>
+  root: Doc<'authoredRoots'>
 ) {
-  if (
-    !(
-      (publication.subjectKind === 'CLASS' && publication.document.category === 'SUBCLASS') ||
-      (publication.subjectKind === 'RACE' && publication.document.category === 'SUBRACE') ||
-      (publication.subjectKind === 'EQUIPMENT' && publication.document.category === 'VARIANT')
-    )
-  )
-    return
+  if (rootParentId(root) === null) return
   const { sourceIds } = await requireRulesCatalogueBinding(ctx, {
     systemId: campaign.gameSystemId,
     primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
     additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
   })
-  const canReadSharedRoot = async (root: Doc<'authoredRoots'>) =>
-    (await readCampaignSharedRootPublication(ctx, campaign, root.subjectKind, root.id)) !== null
   // Null owner prevents the sharing author's private access from substituting for a parent share.
-  switch (publication.subjectKind) {
-    case 'CLASS':
-      if (publication.document.category === 'SUBCLASS')
-        await requireClassParent(ctx, publication.document, null, sourceIds, canReadSharedRoot)
-      break
-    case 'RACE':
-      if (publication.document.category === 'SUBRACE')
-        await requireRaceParent(ctx, publication.document, null, sourceIds, canReadSharedRoot)
-      break
-    case 'EQUIPMENT':
-      await requireEquipmentParents(ctx, publication.document, null, sourceIds, canReadSharedRoot)
-      break
-  }
-}
-
-function contentParentId(publication: ReturnType<typeof parsePublicationDocument>) {
-  const { subjectKind, document } = publication
-  if (subjectKind === 'CLASS' && document.category === 'SUBCLASS') return document.parentClassId
-  if (subjectKind === 'RACE' && document.category === 'SUBRACE') return document.parentRaceId
-  if (subjectKind === 'EQUIPMENT' && document.category === 'VARIANT')
-    return document.parentEquipmentId
-  return null
+  await requireParentRoots(ctx, root, {
+    userId: null,
+    allowedSourceIds: sourceIds,
+    canReadSharedRoot: async (parent) =>
+      (await readCampaignSharedActiveRoot(ctx, campaign, parent.subjectKind, parent.id, parent)) !==
+      null
+  })
 }
 
 /**
@@ -148,40 +138,48 @@ function contentParentId(publication: ReturnType<typeof parsePublicationDocument
 export async function hasCampaignContentParents(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
-  publication: ReturnType<typeof parsePublicationDocument>
+  root: Doc<'authoredRoots'>
 ) {
-  let parentId = contentParentId(publication)
+  let parentId = rootParentId(root)
   if (parentId === null) return true
   const { sourceIds } = await requireRulesCatalogueBinding(ctx, {
     systemId: campaign.gameSystemId,
     primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
     additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
   })
-  const visited = new Set([publication.document.id])
+  const visited = new Set([root.id])
   while (parentId !== null) {
     const id = parentId
     if (visited.has(id)) return false
     visited.add(id)
-    const shared = await readCampaignSharedRootPublication(
-      ctx,
-      campaign,
-      publication.subjectKind,
-      id
-    )
+    const shared = await readCampaignSharedActiveRoot(ctx, campaign, root.subjectKind, id)
     if (!shared) {
-      const root = await ctx.db
+      const parent = await ctx.db
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', id))
         .unique()
       return (
-        root !== null &&
-        sourceIds.has(root.contentSourceId) &&
-        (await canReadAuthoredRoot(ctx, root, null))
+        parent !== null &&
+        sourceIds.has(parent.contentSourceId) &&
+        (await canReadAuthoredRoot(ctx, parent, null))
       )
     }
-    parentId = contentParentId(shared)
+    parentId = rootParentId(shared)
   }
   return true
+}
+
+/** A shared ACTIVE root whose parents are all readable, from root rows alone (D163). */
+export async function readCampaignSharedAuthorizedRoot(
+  ctx: QueryCtx,
+  campaign: Doc<'campaigns'>,
+  subjectKind: CampaignContentShareDto['subjectKind'],
+  subjectId: string,
+  currentRoot?: Doc<'authoredRoots'>
+) {
+  const root = await readCampaignSharedActiveRoot(ctx, campaign, subjectKind, subjectId, currentRoot)
+  if (root) await requireCampaignContentParents(ctx, campaign, root)
+  return root
 }
 
 /** Caller must already hold current Campaign authority; this grants no global authored access. */
@@ -191,7 +189,6 @@ export async function readCampaignSharedPublication(
   subjectKind: CampaignContentShareDto['subjectKind'],
   subjectId: string
 ) {
-  const publication = await readCampaignSharedRootPublication(ctx, campaign, subjectKind, subjectId)
-  if (publication) await requireCampaignContentParents(ctx, campaign, publication)
-  return publication
+  const root = await readCampaignSharedAuthorizedRoot(ctx, campaign, subjectKind, subjectId)
+  return root && readCurrentPublication(ctx, root)
 }

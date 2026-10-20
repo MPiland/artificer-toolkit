@@ -9,14 +9,69 @@ import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell
 import { syncAccountUsage } from '../lib/accountUsage'
 import { requireSystem } from './systemDocuments'
 import { isImportRowVisible } from '../imports/visibility'
+import type { AuthoredPublishDraftInput } from '@artificer-toolkit/schema/api/authoredPublication'
+import { toContentSnapshotIndexEntry } from '@artificer-toolkit/rules-runtime/contentSnapshots'
+import { parsePublicationDocument } from './publicationDocumentRead'
+
+/** Convex drops object fields set to undefined; derived facts compare equal to what it stores. */
+function storedForm<Value>(value: Value): Value {
+  return JSON.parse(JSON.stringify(value)) as Value
+}
+
+/**
+ * The facts share and parent authorization and commit read from the root alone (D163): ACTIVE
+ * status, the picker facts of the one `toContentSnapshotIndexEntry` derivation, and an Equipment
+ * root's quote, which a held item's pin keeps.
+ */
+export function rootCatalogueFacts(
+  subjectKind: AuthoredPublishDraftInput['subjectKind'],
+  document: { status?: string; quote?: string }
+) {
+  // A canonical document carries no status and is active; publication always writes ACTIVE.
+  const publishedActive = (document.status ?? 'ACTIVE') === 'ACTIVE'
+  switch (subjectKind) {
+    case 'EQUIPMENT':
+      return {
+        publishedActive,
+        equipment: document.quote === undefined ? {} : { quote: document.quote }
+      }
+    case 'RACE':
+      return {
+        publishedActive,
+        race: storedForm(toContentSnapshotIndexEntry(parsePublicationDocument('RACE', document)))
+      }
+    case 'CLASS':
+      return {
+        publishedActive,
+        class: storedForm(toContentSnapshotIndexEntry(parsePublicationDocument('CLASS', document)))
+      }
+    case 'BACKGROUND':
+      return {
+        publishedActive,
+        background: storedForm(toContentSnapshotIndexEntry(parsePublicationDocument('BACKGROUND', document)))
+      }
+    default:
+      return { publishedActive }
+  }
+}
 
 export async function catalogueMetadata(
   ctx: QueryCtx,
-  document: { label: string; description?: string | null; systemId?: string },
+  publication: {
+    subjectKind: AuthoredPublishDraftInput['subjectKind']
+    document: {
+      label: string
+      description?: string | null
+      systemId?: string
+      status?: string
+      quote?: string
+    }
+  },
   identity: { checksum: string; publicId: string; createdAt: number }
 ): Promise<AuthoredCatalogueMetadata> {
+  const { subjectKind, document } = publication
   const spell =
-    'kind' in document && document.kind === 'SPELL' ? spellAuthoredDtoSchema.parse(document) : null
+subjectKind === 'SPELL' ? spellAuthoredDtoSchema.parse(document) : null
   const magicSchool = spell
     ? (await requireSystem(ctx, spell.systemId)).magicSchools.find(
         (entry) => entry.id === spell.magicSchoolId
@@ -29,6 +84,7 @@ export async function catalogueMetadata(
     activeUpdatedAt: new Date(identity.createdAt).toISOString(),
     nameKey: document.label.toLowerCase(),
     description: document.description ?? null,
+    ...rootCatalogueFacts(subjectKind, document),
     ...('category' in document && typeof document.category === 'string'
       ? { category: document.category }
       : {}),
@@ -39,7 +95,6 @@ export async function catalogueMetadata(
       ? {
           spell: {
             selectionVersion: 1,
-            publishedActive: spell.status === 'ACTIVE',
             ...(spell.attributes === undefined ? {} : { attributes: spell.attributes }),
             ...(spell.components === undefined ? {} : { components: spell.components }),
             ...(spell.materialDescription === undefined
@@ -65,6 +120,26 @@ export async function catalogueMetadata(
         .join(' ')
     }
   })
+}
+
+/**
+ * A root's stored catalogue facts, which authorization and commit read instead of the payload
+ * (D163). Facts that are absent or belong to another checksum are stale until
+ * content/compilationMigration backfills them.
+ */
+export function readRootCatalogue(root: Doc<'authoredRoots'>) {
+  const metadata = root.catalogue && authoredCatalogueMetadataSchema.parse(root.catalogue)
+  const { publishedActive } = metadata ?? {}
+  if (
+    !metadata ||
+    publishedActive === undefined ||
+    metadata.checksum !== root.checksum ||
+    (root.subjectKind === 'RACE') !== (metadata.race !== undefined) ||
+    (root.subjectKind === 'CLASS') !== (metadata.class !== undefined) ||
+    (root.subjectKind === 'BACKGROUND') !== (metadata.background !== undefined)
+  )
+    throw new Error('Stored catalogue facts are missing or stale; run content/compilationMigration.')
+  return { ...metadata, publishedActive }
 }
 
 function validateOwnerCounts(counts: Doc<'authoredCatalogueOwnerCounts'>) {

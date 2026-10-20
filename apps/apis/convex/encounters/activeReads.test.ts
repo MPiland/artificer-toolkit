@@ -25,7 +25,7 @@ import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
@@ -118,7 +118,7 @@ it('reads the active projection and pending decision together with existing visi
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: initiative.definitions
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
   })

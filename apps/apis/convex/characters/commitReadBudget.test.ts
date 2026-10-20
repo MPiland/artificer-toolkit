@@ -21,7 +21,7 @@ import {
   createDatabaseIoTotals,
   type DatabaseIoTotals
 } from '../../tests/fixtures/databaseIo'
-import { classDerivedArgs, importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, syncImportedDerived } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { prepareCharacterBuilder } from './builderPreparation'
 import { commitCharacter } from './commit'
@@ -29,6 +29,8 @@ import { commitCharacter } from './commit'
 // ADR 0036 S7 and D84: commit reads each referenced document once. Its database I/O (read plus
 // write) budget is 450 KB for one Class and 200 KB more for each further distinct Class.
 const SINGLE_CLASS_COMMIT_BUDGET_BYTES = 450 * 1024
+/** D84: each further distinct Class adds 200 KB. */
+const FURTHER_CLASS_COMMIT_BUDGET_BYTES = 200 * 1024
 
 type Test = Awaited<ReturnType<typeof fixture>>['t']
 
@@ -211,14 +213,11 @@ async function importSubjects(t: Test, subjects: SourceImportSubjectDto[]) {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: subjects.slice(start, start + 10)
     })
-  // The seed attaches each Class's compilation after import; native Class versions carry it.
-  for (const subject of subjects)
-    if (subject.subjectKind === 'CLASS')
-      await t.mutation(internal.content.import.syncClassDerived, classDerivedArgs(subject))
+  await syncImportedDerived(t, subjects)
 }
 
 describe('commit read budget', () => {
-  it('stays within 450 KB for level-5 single-Class martial and caster Characters', async () => {
+  it('stays within 450 KB per level-5 Character plus 200 KB per further Class, reading no payload', async () => {
     const { t, owner } = await fixture()
     await importSubjects(t, [
       ...srdRaces.map((document) =>
@@ -236,14 +235,30 @@ describe('commit read budget', () => {
       )
     ])
 
-    const measured: Record<string, DatabaseIoTotals['reads'] & { kb: number }> = {}
-    for (const [name, baseClass, subclass] of [
-      ['martial', fighter, championMartialArchetype],
-      ['caster', wizard, schoolOfEvocation]
+    const ready = []
+    for (const [name, classes] of [
+      ['martial', [{ baseClass: fighter, classLevel: 5, subclass: championMartialArchetype }]],
+      ['caster', [{ baseClass: wizard, classLevel: 5, subclass: schoolOfEvocation }]],
+      [
+        'multiclass',
+        [
+          { baseClass: fighter, classLevel: 3, subclass: championMartialArchetype },
+          { baseClass: wizard, classLevel: 2, subclass: schoolOfEvocation }
+        ]
+      ]
     ] as const) {
-      if (baseClass.category !== 'BASE') throw new Error('Expected a base Class.')
+      const levels = classes.flatMap(({ baseClass, classLevel }) => {
+        if (baseClass.category !== 'BASE') throw new Error('Expected a base Class.')
+        const hitDie = Number(baseClass.hitpoint.dieConfig.replace(/\D/g, ''))
+        return Array.from({ length: classLevel }, (_, index) => ({
+          classId: baseClass.id,
+          classLevel: index + 1,
+          hitDie
+        }))
+      })
+      const [first] = classes
+      if (first.baseClass.category !== 'BASE') throw new Error('Expected a base Class.')
       const draft = await owner.caller.mutation(api.characters.drafts.create, input())
-      const hitDie = Number(baseClass.hitpoint.dieConfig.replace(/\D/g, ''))
       // Validated Character DTOs bridge to the authored type as the Builder does.
       const character = characterAuthoredDtoSchema.parse({
         ...draft.payload.character,
@@ -252,46 +267,95 @@ describe('commit read budget', () => {
           ...draft.payload.character.intent,
           race: { raceId: human.id },
           background: { backgroundId: acolyte.id },
-          classes: [{ classId: baseClass.id, classLevel: 5, subclassId: subclass.id }],
+          classes: classes.map(({ baseClass, classLevel, subclass }) => ({
+            classId: baseClass.id,
+            classLevel,
+            subclassId: subclass.id
+          })),
           abilities: {
             method: 'STANDARD_ARRAY',
+            // Meets both multiclass prerequisites: Strength 13 for Fighter, Intelligence 13 for Wizard.
             assignments: [
               { ability: 'STRENGTH', option: '15' },
-              { ability: 'DEXTERITY', option: '14' },
-              { ability: 'CONSTITUTION', option: '13' },
-              { ability: 'INTELLIGENCE', option: '12' },
+              { ability: 'DEXTERITY', option: '12' },
+              { ability: 'CONSTITUTION', option: '14' },
+              { ability: 'INTELLIGENCE', option: '13' },
               { ability: 'WISDOM', option: '10' },
               { ability: 'CHARISMA', option: '8' }
             ]
           },
           hitpoints: {
             method: 'FIXED',
-            levels: [1, 2, 3, 4, 5].map((level) => ({
-              level,
-              classId: baseClass.id,
-              classLevel: level,
-              value: level === 1 ? hitDie : hitDie / 2 + 1
+            levels: levels.map(({ classId, classLevel, hitDie }, index) => ({
+              level: index + 1,
+              classId,
+              classLevel,
+              value: index === 0 ? hitDie : hitDie / 2 + 1
             }))
           },
           startingEquipment: {
-            class: startingDecision('CLASS', baseClass.startingEquipment),
+            class: startingDecision('CLASS', first.baseClass.startingEquipment),
             background: startingDecision('BACKGROUND', acolyte.startingEquipment!)
           }
         }
       }) as CharacterAuthored
-      const ready = await makeReady(t, character)
+      ready.push({
+        name,
+        draftId: draft.id,
+        character: await makeReady(t, character),
+        budget:
+          SINGLE_CLASS_COMMIT_BUDGET_BYTES + (classes.length - 1) * FURTHER_CLASS_COMMIT_BUDGET_BYTES
+      })
+    }
+
+    // The root catalogue facts D163 added, by kind: what each root read now also carries.
+    console.info(
+      'D163 root catalogue fact bytes',
+      await t.run(async (ctx) => {
+        const growth: Record<string, { roots: number; bytes: number }> = {}
+        for (const root of await ctx.db.query('authoredRoots').collect()) {
+          const { publishedActive, race, class: classFacts, background, equipment } =
+            root.catalogue ?? {}
+          const entry = (growth[root.subjectKind] ??= { roots: 0, bytes: 0 })
+          entry.roots += 1
+          entry.bytes += JSON.stringify({
+            publishedActive,
+            race,
+            class: classFacts,
+            background,
+            equipment
+          }).length
+        }
+        return growth
+      })
+    )
+
+    // D163: commit reads no authored payload. Every stored payload is now unreadable, so a commit
+    // that loaded one would fail.
+    await t.run(async (ctx) => {
+      for (const chunk of await ctx.db.query('authoredVersionPayloadChunks').collect())
+        await ctx.db.delete(chunk._id)
+      for (const version of await ctx.db.query('authoredVersions').collect())
+        await ctx.db.patch(version._id, {
+          documentJson: '{}',
+          documentChunkCount: undefined,
+          documentByteLength: undefined
+        })
+    })
+    const measured: Record<string, DatabaseIoTotals['reads'] & { kb: number }> = {}
+    for (const { name, draftId, character, budget } of ready) {
       const totals = createDatabaseIoTotals()
       const result = await owner.caller.run((ctx) =>
         commitCharacter(
           { ...ctx, db: countDatabaseIo(ctx.db, totals) },
-          { expectedDraftId: draft.id, mode: 'create', character: ready }
+          { expectedDraftId: draftId, mode: 'create', character }
         )
       )
       expect(result.character.status).toBe('ACTIVE')
       const bytes = totals.reads.bytes + totals.writes.bytes
       measured[name] = { ...totals.reads, kb: Math.round(bytes / 102.4) / 10 }
       console.info('S7 commit reads', name, JSON.stringify(measured[name]))
-      expect(bytes).toBeLessThanOrEqual(SINGLE_CLASS_COMMIT_BUDGET_BYTES)
+      expect(bytes).toBeLessThanOrEqual(budget)
     }
     console.info('S7 commit reads', measured)
   }, 600_000)

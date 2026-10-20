@@ -12,7 +12,11 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileFeature } from '@artificer-toolkit/shared/compilers'
 import {
+  compileClass,
+  compileRace,
+  compileResolvedEquipment,
   resolveEquipmentAuthored,
   resolveRaceAuthored
 } from '@artificer-toolkit/shared/subjects/compilers'
@@ -26,7 +30,6 @@ import { buildCharacterDerivedRuleFacts } from '../character/characterDerivedRul
 import { compileCharacterGrantFoldRuleFacts } from '../character/characterGrantFoldRuleFacts.js'
 import { buildCharacterItemMechanicsRuleFacts } from '../character/characterItemMechanicsRuleFacts.js'
 import { buildCharacterMovementRuleFacts } from '../character/characterMovementRuleFacts.js'
-import { compileCharacterRuleSources } from '../character/contextPreparation.js'
 import { prepareCharacterRuleSources } from '../character/characterRuleSnapshot.js'
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
@@ -54,16 +57,18 @@ function registryWith(
 ) {
   const equipment = [...SRD.equipment, ...extraEquipment]
   const equipmentById = new Map<string, EquipmentAuthored>(equipment.map((item) => [item.id, item]))
-  const { compiled } = compileCharacterRuleSources({
-    races: SRD.races.map((race) => resolveRaceAuthored(race, (id) => racesById.get(id))),
-    classes: SRD.classes,
+  const compiled = {
+    races: SRD.races.map((race) =>
+      compileRace(resolveRaceAuthored(race, (id) => racesById.get(id)))
+    ),
+    classes: SRD.classes.map(compileClass),
     backgrounds: [],
     equipment: equipment.map((item) =>
-      resolveEquipmentAuthored(item, (id) => equipmentById.get(id))
+      compileResolvedEquipment(resolveEquipmentAuthored(item, (id) => equipmentById.get(id)))
     ),
     feats: [],
-    features: extraFeatures
-  })
+    features: extraFeatures.map(compileFeature)
+  }
   return prepareCharacterRuleSources({
     registry: { ...compiled, system: { skills: [], speeds: [...SRD_SPEEDS] } },
     catalog: { spells: [] }

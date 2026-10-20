@@ -24,12 +24,8 @@ import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime'
 import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subjects/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { api, internal } from '../_generated/api'
-import {
-  importedSubject,
-  publicationFixture,
-  versionWithCompilation
-} from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
+import { importedSubject, importSeededSubjects, publicationFixture, versionWithCompilation } from '../../tests/fixtures/publication'
 import { readStoredAuthoredVersionDocument } from './documents'
 
 const publish = makeFunctionReference<
@@ -236,7 +232,7 @@ describe('native Feat publication', () => {
       checksumRuleDocument(canonicalProjection)
     )
     await expect(
-      t.mutation(internal.content.import.importSubjects, {
+      importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [grapplerSubject]
       })

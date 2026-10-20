@@ -12,8 +12,8 @@ import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { rowboat } from '@artificer-toolkit/source-data/srd/vehicles/rowboat.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
-import { api, internal } from '../_generated/api'
-import { importedSubject, versionWithCompilation } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
+import { importedSubject, importSeededSubjects, versionWithCompilation } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import {
   deleteAuthoredVersion,
@@ -54,7 +54,7 @@ async function fixture() {
     label: 'Test Rowboat',
     hitPoints: 20
   }
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

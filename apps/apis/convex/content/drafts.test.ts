@@ -25,7 +25,7 @@ import schema from '../schema'
 import authSchema from '../betterAuth/schema'
 import { readDetailMeta } from './detailMeta'
 import { deleteAuthoredVersion, insertAuthoredVersion } from './documents'
-import { versionWithCompilation } from '../../tests/fixtures/publication'
+import { importSeededSubjects, versionWithCompilation } from '../../tests/fixtures/publication'
 
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
@@ -71,7 +71,7 @@ async function fixture() {
     contentSource: SRD_CONTENT_SOURCE,
     catalogue: SRD_RULES_CATALOGUE
   })
-  await t.mutation(internal.content.import.importSubjects, source)
+  await importSeededSubjects(t, source)
   const actors = []
   for (let index = 0; index < 2; index++) {
     const user = await t.run(async (ctx) =>
@@ -378,7 +378,7 @@ describe('Convex owned working drafts', () => {
     expect(routes[0].publicId).toBe(
       (Number.parseInt(domain, 16) * 100000 + Number.parseInt(index.slice(0, 4), 16)).toString(36)
     )
-    await t.mutation(internal.content.import.importSubjects, source)
+    await importSeededSubjects(t, source)
     expect(await t.run((ctx) => ctx.db.query('authoredRouteIds').take(3))).toEqual(routes)
   })
 
@@ -389,7 +389,7 @@ describe('Convex owned working drafts', () => {
     const nextIndex = (Number.parseInt(index.slice(0, 4), 16) + 1).toString(16).padStart(4, '0')
     const id = `00000000-0000-0000-${domain}-${nextIndex}00000000`
     const next = jsonValueSchema.parse(JSON.parse(JSON.stringify({ ...acolyte, id })))
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         {
@@ -558,7 +558,7 @@ describe('Convex authored detail reads', () => {
     for (const [subjectKind, records] of groups) {
       const item = records[0]
       const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(item)))
-      await t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
           {
@@ -698,7 +698,7 @@ describe('Convex authored detail reads', () => {
       ...classes.map((item) => ({ subjectKind: 'CLASS' as const, item }))
     ]) {
       const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(item)))
-      await t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
           {
@@ -810,7 +810,7 @@ describe('Convex authored detail reads', () => {
     const equipment = srdBaselineContent.subjects.equipment.slice(0, 4)
     for (const item of equipment) {
       const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(item)))
-      await t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
           {

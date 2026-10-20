@@ -8,9 +8,17 @@ import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-mi
 import { describe, expect, it, vi } from 'vitest'
 
 import { evaluateCharacterRules } from '../character/characterRuleEvaluation.js'
-import { prepareCharacterRuleContext } from '../character/contextPreparation.js'
+import {
+  prepareCharacterRuleContext,
+  requireCharacterPresentation
+} from '../character/contextPreparation.js'
 import { createSnapshotReaders } from '../character/snapshotReaders.js'
-import { emptyCharacter, scopeObjects, system } from '../testing/characterContextFixtures.js'
+import {
+  emptyCharacter,
+  prepareFixtureSheet,
+  scopeObjects,
+  system
+} from '../testing/characterContextFixtures.js'
 import { pinnedRetainedRulesJson } from '../testing/pinnedRetainedRules.js'
 
 vi.mock('@artificer-toolkit/shared/subjects/compilers', async (importOriginal) => {
@@ -87,7 +95,9 @@ describe('Retained acquired rules', () => {
 
     // Neither source is current: only the pinned record can supply the item and its Spell.
     const readers = createSnapshotReaders(scopeObjects({ SPELL: [magicMissile] }))
-    const context = await prepareCharacterRuleContext(character, system, undefined, readers)
+    const context = requireCharacterPresentation(
+      await prepareCharacterRuleContext(character, system, undefined, readers)
+    )
     const evaluation = evaluateCharacterRules({
       character,
       context,
@@ -105,5 +115,18 @@ describe('Retained acquired rules', () => {
     expect(subjectCompilers.compileResolvedEquipment).not.toHaveBeenCalled()
     expect(subjectCompilers.compileSpell).not.toHaveBeenCalled()
     expect(featureCompilers.compileFeature).not.toHaveBeenCalled()
+
+    // The Sheet lists the retained-only Spell with its pinned prose (view only).
+    expect(context.presentation.retainedSpells[fireBolt.id]?.presentation.description).toBe(
+      fireBolt.description
+    )
+    expect(context.catalog.spells.map((spell) => spell.id)).not.toContain(fireBolt.id)
+    const { sheet } = await prepareFixtureSheet({ character, documents: { SPELL: [magicMissile] } })
+    expect(sheet.spells.spells.find((spell) => spell.id === fireBolt.id)).toMatchObject({
+      label: fireBolt.label,
+      description: fireBolt.description,
+      level: fireBolt.level,
+      school: fireBolt.magicSchoolId
+    })
   })
 })

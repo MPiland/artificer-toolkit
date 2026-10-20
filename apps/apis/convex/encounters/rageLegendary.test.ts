@@ -16,7 +16,7 @@ import {
 import { barbarianState, rages, setupBarbarianRun, srdBarbarian } from '../../tests/fixtures/barbarianRun'
 import type { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { queueRoomRolls, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import {
   importSeededSrdCreatureSenses,
   seededSrdCreature,
@@ -52,7 +52,7 @@ const dragonEnemy = {
         definitions
       })
     await importSeededSrdCreatureSenses(base.t, dragon)
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ ...dragon, subjectKind: 'CREATURE', document: dragon }),

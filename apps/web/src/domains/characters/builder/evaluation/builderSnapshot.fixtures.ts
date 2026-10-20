@@ -4,10 +4,12 @@ import type {
   ContentSnapshotManifestDto,
   ContentSnapshotObject
 } from '@artificer-toolkit/schema/api/contentSnapshots'
+import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
 import {
   buildContentSnapshotKind,
   type ContentSnapshotListSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
+import { storedCompilationOf } from '@artificer-toolkit/rules-runtime/testing/storedCompilations'
 import {
   CharacterStartingEquipmentSource,
   type CharacterAuthored
@@ -51,14 +53,24 @@ function buildSrdSnapshot(documentOverrides: ReadonlyMap<string, SrdDocument>) {
   const kinds: ContentSnapshotHead['kinds'] = {}
   for (const kind of SRD_SNAPSHOT_KINDS) {
     // The import manifest already validated each document against its publication schema.
-    const sources = srd.subjects
+    const publications = srd.subjects
       .filter((subject) => subject.subjectKind === kind)
-      .map((subject) => {
-        const document = documentOverrides.get(subject.id) ?? (subject.document as SrdDocument)
+      .map((subject) => ({
+        subject,
+        publication: parsePublicationDocument(
+          kind,
+          documentOverrides.get(subject.id) ?? subject.document
+        )
+      }))
+    const parents = publications.map(({ publication }) => publication)
+    const sources = publications.map(({ subject, publication }) => {
+        const document = publication.document as SrdDocument
+        const compilation = storedCompilationOf(publication, parents)
         return {
           subjectKind: kind,
           document,
           publicId: document.id,
+          compilation,
           publicationVersion: {
             identity: {
               subjectKind: kind,
@@ -66,7 +78,7 @@ function buildSrdSnapshot(documentOverrides: ReadonlyMap<string, SrdDocument>) {
               systemId: subject.systemId,
               contentSourceId: SRD_CONTENT_SOURCE.id,
               versionId: subject.id,
-              checksum: subject.checksum
+              checksum: compilation.authoredChecksum
             },
             version: 1,
             storedParentId: document.parentRaceId ?? document.parentClassId ?? null
@@ -75,7 +87,7 @@ function buildSrdSnapshot(documentOverrides: ReadonlyMap<string, SrdDocument>) {
         } as unknown as ContentSnapshotListSource
       })
     const built = buildContentSnapshotKind(
-      { format: 2, scope: 'SOURCE', scopeId: SRD_CONTENT_SOURCE.id, kind },
+      { format: 3, scope: 'SOURCE', scopeId: SRD_CONTENT_SOURCE.id, kind },
       sources
     )
     kinds[kind] = {

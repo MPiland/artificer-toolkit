@@ -136285,6 +136285,20 @@ export declare const internal: {
       >;
     };
     compilationMigration: {
+      backfillRootCatalogueFacts: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
       recompileStaleCompilations: FunctionReference<
         "mutation",
         "internal",
@@ -137567,6 +137581,36 @@ export declare const internal: {
           playerUserId: string;
         },
         null
+      >;
+    };
+    equipmentPinMigration: {
+      blueprintEquipmentPins: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      runActorEquipmentPins: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
       >;
     };
     sceneBindings: {

@@ -5,8 +5,10 @@ import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 import type {
   BackgroundAuthored,
   ClassAuthored,
+  CreatureAuthored,
   FeatAuthored,
-  SpellAuthored
+  SpellAuthored,
+  VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledFeature } from '@artificer-toolkit/shared/compilers'
@@ -16,6 +18,7 @@ import type {
   CompiledEquipment,
   CompiledFeat,
   CompiledRace,
+  CompiledSpell,
   ResolvedEquipment,
   ResolvedRace
 } from '@artificer-toolkit/shared/subjects/compilers'
@@ -46,9 +49,15 @@ export interface CharacterPresentationLookup {
   classes: Readonly<Record<string, ClassAuthored>>
   backgrounds: Readonly<Record<string, BackgroundAuthored>>
   feats: Readonly<Record<string, FeatAuthored>>
+  creatures: Readonly<Record<string, CreatureAuthored>>
+  vehicles: Readonly<Record<string, VehicleAuthored>>
   features: Readonly<Record<string, FeatureAuthored>>
   /** Current resolved Equipment, or the prose a held item pinned when it was acquired. */
   equipment: Readonly<Record<string, ResolvedEquipment | AcquiredPresentation>>
+  /** Spells only a held item's pinned rules supply, with their prose; the Sheet lists them (view only). */
+  retainedSpells: Readonly<
+    Record<string, { compiled: CompiledSpell; presentation: AcquiredPresentation }>
+  >
 }
 
 export interface CharacterRuleContext {

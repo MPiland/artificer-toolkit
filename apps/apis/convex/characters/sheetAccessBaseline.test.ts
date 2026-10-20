@@ -13,9 +13,9 @@ import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-mi
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import {
   executeCharacterSheetCommand,
   executeCharacterSheetCommandAcknowledgement
@@ -41,7 +41,7 @@ it('records local Sheet access for eight populated Character behaviors', async (
     }
   })
   const { owner, character, baseClass } = fixture
-  await fixture.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(fixture.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ subjectKind: 'EQUIPMENT', ...backpack, document: backpack }),

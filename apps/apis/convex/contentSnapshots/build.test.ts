@@ -26,7 +26,7 @@ import { dwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { startLocalR2 } from '../../tests/localR2'
 import { api, internal } from '../_generated/api'
 import type { Doc } from '../_generated/dataModel'
@@ -107,7 +107,7 @@ async function setup() {
       const fields = {
         label: document.label,
         checksum,
-        catalogue: await catalogueMetadata(ctx, authored, {
+        catalogue: await catalogueMetadata(ctx, { subjectKind: kind, document: authored }, {
           checksum,
           publicId: document.id,
           createdAt: Date.now()
@@ -150,7 +150,7 @@ async function setup() {
     const object = snapshot?.kinds[kind]?.[part]
     if (!object) return null
     const stored = server.contentSnapshotObjects.get(
-      contentSnapshotObjectKey({ format: 2, ...ref, kind, part }, object.sha256)
+      contentSnapshotObjectKey({ format: 3, ...ref, kind, part }, object.sha256)
     )
     if (!stored) throw new Error('Committed snapshot object is missing from R2.')
     const json = await new Response(
@@ -213,7 +213,7 @@ describe('content snapshot builds', () => {
       readObject
     } = await setup()
     try {
-      await t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [importedSubject({ subjectKind: 'RACE', ...dwarf, document: dwarf })]
       })
@@ -350,7 +350,7 @@ describe('content snapshot builds', () => {
       await settle()
       const built = await head(userSource)
       const orphan = contentSnapshotObjectKey(
-        { format: 2, ...userSource, kind: 'FEAT', part: 'index' },
+        { format: 3, ...userSource, kind: 'FEAT', part: 'index' },
         'a'.repeat(64)
       )
       const stale = await t.mutation(internal.contentSnapshots.heads.commitBuild, {
@@ -456,7 +456,7 @@ describe('content snapshot builds', () => {
         expect(
           superseded.has(
             contentSnapshotObjectKey(
-              { format: 2, ...ref, kind: 'RACE', part },
+              { format: 3, ...ref, kind: 'RACE', part },
               shared!.kinds.RACE![part].sha256
             )
           )
@@ -472,7 +472,7 @@ describe('content snapshot builds', () => {
       await publish('FEAT', homebrew(grappler))
       await settle()
       const user = await head(userSource)
-      await t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [importedSubject({ subjectKind: 'FEAT', ...grappler, document: grappler })]
       })

@@ -8,10 +8,10 @@ import { SRD_LANGUAGES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { characterBuilderResolveInputSchema } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { evaluateBuilderCandidate } from '../../tests/fixtures/builderEvaluation'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 
 type Test = Awaited<ReturnType<typeof fixture>>['t']
 type Actor = Awaited<ReturnType<typeof fixture>>['owner']
@@ -32,7 +32,7 @@ describe('native Character Builder choices', () => {
   it('resolves canonical chosen grants against the current System vocabulary', async () => {
     const { t, owner } = await fixture()
     const background = { ...acolyte, features: [], startingEquipment: undefined }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ subjectKind: 'BACKGROUND', ...background, document: background })
@@ -166,7 +166,7 @@ describe('native Character Builder choices', () => {
         grants: { proficiencies: acolyte.proficiencies },
         features: race.features
       }
-      await t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
           importedSubject({ subjectKind: 'RACE', ...selectedRace, document: selectedRace }),

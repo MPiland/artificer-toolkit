@@ -38,6 +38,80 @@ export async function readRecompiledDependent<T>(
   return { version, document: parsed.data }
 }
 
+const PARENT_REQUIRED = {
+  RACE: 'A readable base Race in the same System is required.',
+  CLASS: 'A readable base class in the same System is required.',
+  EQUIPMENT: 'Readable parent Equipment in the same System is required.'
+} as const
+
+/** A root's parent id from its row: null for a base, absent while canonical replay is pending. */
+export function rootParentId(root: Doc<'authoredRoots'>) {
+  const parentId =
+    root.subjectKind === 'RACE'
+      ? root.parentRaceId
+      : root.subjectKind === 'CLASS'
+        ? root.parentClassId
+        : root.subjectKind === 'EQUIPMENT'
+          ? root.parentEquipmentId
+          : null
+  if (parentId === undefined) throw new Error('Stored parent metadata is not materialized.')
+  return parentId
+}
+
+/**
+ * A root's whole parent chain from root rows alone (D163), nearest first. Each parent is the same
+ * kind and System and readable from the allowed sources or as a share; a Race or Class parent is a
+ * base, and an Equipment chain ends at a base within the authoring limit.
+ */
+export async function requireParentRoots(
+  ctx: QueryCtx,
+  root: Doc<'authoredRoots'>,
+  access: {
+    userId: string | null
+    allowedSourceIds?: ReadonlySet<string>
+    canReadSharedRoot?: (root: Doc<'authoredRoots'>) => Promise<boolean>
+    /** A transaction-scoped root lookup; commit reuses the roots it has already read. */
+    readRoot?: (id: string) => Promise<Doc<'authoredRoots'> | null>
+  }
+) {
+  const readRoot =
+    access.readRoot ??
+    ((id: string) =>
+      ctx.db
+        .query('authoredRoots')
+        .withIndex('by_publicId', (q) => q.eq('id', id))
+        .unique())
+  const ancestors: Doc<'authoredRoots'>[] = []
+  const seen = new Set([root.id])
+  // Only Race, Class and Equipment roots have a parent id; every other kind ends here.
+  const kind = root.subjectKind as keyof typeof PARENT_REQUIRED
+  for (let parentId = rootParentId(root); parentId !== null; ) {
+    if (seen.has(parentId)) {
+      if (kind === 'EQUIPMENT') throw new Error('Equipment variant cycle detected.')
+      throw new Error(PARENT_REQUIRED[kind])
+    }
+    if (seen.size >= 500) throw new Error('Equipment inheritance exceeds the authoring limit.')
+    seen.add(parentId)
+    const parent = await readRoot(parentId)
+    if (
+      !parent ||
+      parent.subjectKind !== kind ||
+      parent.systemId !== root.systemId ||
+      (kind !== 'EQUIPMENT' && rootParentId(parent) !== null) ||
+      (!(
+        (access.allowedSourceIds === undefined ||
+          access.allowedSourceIds.has(parent.contentSourceId)) &&
+        (await canReadAuthoredRoot(ctx, parent, access.userId))
+      ) &&
+        !(await access.canReadSharedRoot?.(parent)))
+    )
+      throw new Error(PARENT_REQUIRED[kind])
+    ancestors.push(parent)
+    parentId = rootParentId(parent)
+  }
+  return ancestors
+}
+
 export async function requireRaceParent(
   ctx: QueryCtx,
   document: SubraceAuthoredDto,

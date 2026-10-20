@@ -63,7 +63,7 @@ import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
@@ -225,7 +225,7 @@ async function setup(options: SetupOptions) {
       : []
   })
   for (const user of [base.owner, base.other]) await setAutoRollDice(base.t, user.userId, true)
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [...options.known, ...(options.granted?.map(({ spell }) => spell) ?? [])].map(
       (spell) =>
@@ -364,7 +364,7 @@ async function setup(options: SetupOptions) {
       : srdWolf.creatureTypeId
     if (!wolfTypeId) throw new Error('Missing creature type.')
     const seatedWolf = { ...srdWolf, creatureTypeId: wolfTypeId }
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ ...seatedWolf, subjectKind: 'CREATURE', document: seatedWolf })]
     })

@@ -6,8 +6,8 @@ import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/eq
 import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
 import type { CompiledSpellGrant } from '@artificer-toolkit/shared/compilers'
 import type { CompiledEquipment, CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createContentMemo } from '@artificer-toolkit/shared/contentMemo'
+import { hydrateStoredCompilation } from '../authoredPublicationHydrate.js'
 import { matchesSpellFilter } from './chosenGrantChoiceResolver.js'
 
 // Parsed and verified retained rules by their exact JSON: party pages and Sheets re-read the same
@@ -91,34 +91,29 @@ function parseAcquiredEquipmentRules(
   if (retained.equipmentId !== equipmentId || retained.systemId !== systemId)
     throw new Error('Acquired Equipment scope mismatch.')
   let equipment: { compiled: CompiledEquipment; presentation: AcquiredPresentation } | undefined
-  const spellsById = new Map<string, CompiledSpell>()
+  const spellsById = new Map<
+    string,
+    { compiled: CompiledSpell; presentation: AcquiredPresentation }
+  >()
   for (const source of retained.sources) {
-    const { compilation } = source
-    const projection: unknown = JSON.parse(compilation.projectionJson)
-    if (
-      compilation.authoredChecksum !== source.checksum ||
-      checksumRuleDocument(projection) !== compilation.projectionChecksum
-    )
-      throw new Error('Acquired source checksum mismatch.')
-    // The checksums prove this is the stored compiler output of the pinned version, so the
-    // compiler's type applies (D163).
+    const subject = { id: source.subjectId, checksum: source.checksum }
     if (source.subjectKind === 'EQUIPMENT') {
-      const compiled = projection as CompiledEquipment
-      if (source.subjectId !== equipmentId || compiled.id !== equipmentId)
+      if (source.subjectId !== equipmentId)
         throw new Error('Acquired Equipment source identity mismatch.')
-      equipment = { compiled, presentation: source.presentation }
+      equipment = {
+        compiled: hydrateStoredCompilation('EQUIPMENT', subject, source.compilation),
+        presentation: source.presentation
+      }
     } else {
-      const compiled = projection as CompiledSpell
-      if (compiled.id !== source.subjectId)
-        throw new Error('Acquired Spell source identity mismatch.')
-      spellsById.set(compiled.id, compiled)
+      const compiled = hydrateStoredCompilation('SPELL', subject, source.compilation)
+      spellsById.set(compiled.id, { compiled, presentation: source.presentation })
     }
   }
   if (!equipment) throw new Error('Acquired Equipment root is missing.')
   const dependencies = acquiredEquipmentSpellDependencies(equipment.compiled)
   for (const id of dependencies.selectedSpellIds)
     if (!spellsById.has(id)) throw new Error('Acquired Spell dependency is missing.')
-  for (const [id, spell] of spellsById)
+  for (const [id, { compiled: spell }] of spellsById)
     if (!dependencies.selectedSpellIds.has(id) && !dependencies.matchesOpenGrant(spell))
       throw new Error('Unrelated acquired Spell source.')
   return {

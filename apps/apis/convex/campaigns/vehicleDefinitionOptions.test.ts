@@ -8,12 +8,8 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
-import { api, internal } from '../_generated/api'
-import {
-  corruptPublishedVersionPayload,
-  importedSubject,
-  publicationFixture
-} from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
+import { corruptPublishedVersionPayload, importedSubject, importSeededSubjects, publicationFixture } from '../../tests/fixtures/publication'
 
 const definitionOptions = makeFunctionReference<
   'query',
@@ -64,7 +60,7 @@ describe('native Campaign Vehicle definition options', () => {
       await ctx.db.patch(root._id, { contentSourceId: sourceId })
       await ctx.db.patch(root.currentVersionId, { contentSourceId: sourceId })
     })
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
     })

@@ -25,8 +25,8 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject, makePublishedRootOwned } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import { importedSubject, importSeededSubjects, makePublishedRootOwned } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
 import { readCharacterDraft } from '../characters/documents'
 import {
   joinCharacterPlay,
@@ -243,7 +243,7 @@ describe('native Campaign membership departure effects', () => {
         }
       }))
     })
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
     })

@@ -19,9 +19,10 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { api, internal } from '../_generated/api'
+import { catalogueMetadata } from '../content/catalogueMetadata'
+import { api } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
-import { corruptPublishedVersionPayload, importedSubject } from '../../tests/fixtures/publication'
+import { corruptPublishedVersionPayload, importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import {
   deleteAuthoredVersion,
   insertAuthoredVersion,
@@ -45,7 +46,7 @@ const list = makeFunctionReference<'query', CampaignContentListInput, CampaignCo
 
 async function setup(contentMaturity: 'STANDARD' | 'MATURE' = 'STANDARD') {
   const base = await fixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'BACKGROUND', ...acolyte, document: acolyte })]
   })
@@ -127,7 +128,12 @@ async function ownedContent(
       contentSourceId,
       ownerUserId: userId,
       currentVersionId: versionId,
-      currentVersionPublicId: publicVersionId
+      currentVersionPublicId: publicVersionId,
+      catalogue: await catalogueMetadata(
+        ctx,
+        { subjectKind: 'BACKGROUND', document },
+        { checksum, publicId: id, createdAt: Date.now() }
+      )
     })
     await ctx.db.insert('authoredRouteIds', {
       subjectKind: 'BACKGROUND',
@@ -319,7 +325,12 @@ describe('native Campaign content sharing', () => {
       await ctx.db.patch(content.rootId, {
         label: document.label,
         checksum,
-        currentVersionId
+        currentVersionId,
+        catalogue: await catalogueMetadata(
+          ctx,
+          { subjectKind: 'BACKGROUND', document },
+          { checksum, publicId: content.id, createdAt: Date.now() }
+        )
       })
     })
     expect(
@@ -389,7 +400,16 @@ describe('native Campaign content sharing', () => {
         canonicalizeRuleDocument(inactive),
         compilation
       )
-      await ctx.db.patch(content.rootId, { checksum, currentVersionId })
+      // Every status write stores the root's ACTIVE fact with its checksum (D163).
+      await ctx.db.patch(content.rootId, {
+        checksum,
+        currentVersionId,
+        catalogue: await catalogueMetadata(
+          ctx,
+          { subjectKind: 'BACKGROUND', document: inactive },
+          { checksum, publicId: content.id, createdAt: Date.now() }
+        )
+      })
     })
     await expect(owner.caller.mutation(share, input)).rejects.toThrow('Only active homebrew')
     await t.run((ctx) => ctx.db.delete(membershipId))

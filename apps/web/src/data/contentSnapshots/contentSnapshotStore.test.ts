@@ -10,7 +10,7 @@ const SOURCE_ID = '00000000-0000-4000-8000-000000000001'
 
 function snapshot(scope: ContentSnapshotHeader['scope'], label: string) {
   const header = {
-    format: 2,
+    format: 3,
     scope,
     scopeId: SOURCE_ID,
     kind: 'FEAT',

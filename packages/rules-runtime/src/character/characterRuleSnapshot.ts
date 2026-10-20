@@ -11,7 +11,7 @@ import type {
   CharacterAssemblyRegistry,
   CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
-import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
+import type { CompiledCreature, CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
 
 import {
   requireDnd5eArmorClass,
@@ -26,8 +26,7 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type {
   CharacterAuthored,
-  CharacterProvenance,
-  CreatureAuthored
+  CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
 
@@ -37,7 +36,7 @@ export interface CharacterRuleSnapshotInput {
   adjustments?: readonly CharacterSheetAdjustment[]
   movementDisplayPreference?: CharacterMovementDisplayPreference
   companions?: readonly NonNullable<CharacterBuildSnapshot['companions']>[number][]
-  creaturesById?: ReadonlyMap<string, CreatureAuthored>
+  creaturesById?: ReadonlyMap<string, CompiledCreature>
 }
 
 export interface CharacterRuleSnapshotResult {
@@ -218,7 +217,7 @@ function assembleSpellSources(
 
 function assembleCompanions(
   character: CharacterAuthored,
-  creaturesById: ReadonlyMap<string, CreatureAuthored> | undefined,
+  creaturesById: ReadonlyMap<string, CompiledCreature> | undefined,
   loadoutEquipmentById: Readonly<Record<string, CompiledEquipment>> | undefined
 ): NonNullable<CharacterBuildSnapshot['companions']> {
   if (!creaturesById) return []

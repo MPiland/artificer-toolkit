@@ -19,7 +19,7 @@ import {
   executeInRoom,
   seedRoomContentSnapshots
 } from './localRoomWorker'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { setAutoRollDice } from './rollPreferences'
 import { srdWolf } from './srdCreatures'
 
@@ -65,7 +65,7 @@ export async function setupWolfRun(input: {
   const enemy = input.enemy?.creature ?? srdWolf
   if (input.enemy) await input.enemy.prepare(base)
   else
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
     })

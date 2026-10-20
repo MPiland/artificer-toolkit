@@ -18,12 +18,13 @@ import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
 import {
   hasCampaignContentParents,
-  readCampaignSharedRootPublication,
+  readCampaignSharedActiveRoot,
   requireCampaignContentParents
 } from '../campaigns/contentAccess'
 import {
   canReadAuthoredRoot,
   readAuthoredVersion,
+  readAuthoredVersionCompilation,
   readPublishedDocument
 } from '../content/documents'
 import { compileCurrentEquipment } from '../content/equipmentRelationships'
@@ -144,6 +145,12 @@ export const readScopeKind = internalQuery({
               ? { storedParentId: root.parentEquipmentId }
               : {})
       }
+      // Fails closed: a snapshot never carries a root its readers would have to recompile.
+      const compilation = await readAuthoredVersionCompilation(ctx, {
+        versionId: root.currentVersionPublicId
+      })
+      if (!compilation || compilation.authoredChecksum !== root.checksum)
+        throw new Error('Content snapshot source compilation is missing or stale.')
       const source: ContentSnapshotListSource =
         publication.subjectKind === 'EQUIPMENT'
           ? {
@@ -151,12 +158,14 @@ export const readScopeKind = internalQuery({
               document: publication.document,
               builder: await readEquipmentBuilderFacts(ctx, root, publication.document),
               publicId,
-              publicationVersion
+              publicationVersion,
+              compilation
             }
           : {
               ...publication,
               publicId,
               publicationVersion,
+              compilation,
               ...(magicSchoolLabel ? { magicSchoolLabel } : {})
             }
       sources.push(JSON.stringify(source))
@@ -228,21 +237,13 @@ async function readCampaignPublications(
     .paginate(paginationOpts)
   const page: ScopePublication[] = []
   for (const share of shares.page) {
-    const publication = await readCampaignSharedRootPublication(
-      ctx,
-      campaign,
-      kind,
-      share.subjectId
-    )
+    const root = await readCampaignSharedActiveRoot(ctx, campaign, kind, share.subjectId)
     // A child whose parent share is gone is excluded; the Builder's parent rule still applies.
-    if (!publication || !(await hasCampaignContentParents(ctx, campaign, publication))) continue
-    await requireCampaignContentParents(ctx, campaign, publication)
-    const root = await ctx.db
-      .query('authoredRoots')
-      .withIndex('by_publicId', (q) => q.eq('id', share.subjectId))
-      .unique()
-    if (!root) throw new Error('Stored Campaign content root is missing.')
-    page.push({ root, publication, version: (await readAuthoredVersion(ctx, root)).version })
+    if (!root || !(await hasCampaignContentParents(ctx, campaign, root))) continue
+    await requireCampaignContentParents(ctx, campaign, root)
+    const version = await readAuthoredVersion(ctx, root)
+    const document = await readPublishedDocument(ctx, root, version)
+    page.push({ root, publication: parsePublicationDocument(kind, document), version: version.version })
   }
   return { ...shares, page }
 }
@@ -289,7 +290,7 @@ function referencedKeys(ref: ContentSnapshotScopeRef, kinds: ContentSnapshotHead
     const parts = kinds[kind]
     if (!parts) continue
     for (const part of ['index', 'list', 'documents'] as const)
-      keys.add(contentSnapshotObjectKey({ format: 2, ...ref, kind, part }, parts[part].sha256))
+      keys.add(contentSnapshotObjectKey({ format: 3, ...ref, kind, part }, parts[part].sha256))
   }
   return keys
 }

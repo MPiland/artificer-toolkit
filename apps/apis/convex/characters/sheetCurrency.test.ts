@@ -13,9 +13,9 @@ import * as projection from '@artificer-toolkit/rules-runtime/character/sheetPro
 import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
@@ -33,7 +33,7 @@ const currencyId = fighter.startingGold.currencyId
 
 async function fixture() {
   const base = await readyCharacterFixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'EQUIPMENT', ...backpack, document: backpack })]
   })

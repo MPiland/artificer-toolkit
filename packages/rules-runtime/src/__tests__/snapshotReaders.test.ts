@@ -14,31 +14,40 @@ import { describe, expect, it } from 'vitest'
 import { getRaceAbilityScoreIncreaseFacts } from '../character/builderCatalog.js'
 import { createSnapshotReaders } from '../character/snapshotReaders.js'
 import { buildContentSnapshotKind } from '../contentSnapshots.js'
+import { storedCompilationOf } from '../testing/storedCompilations.js'
 
 const baseRace = raceAuthoredDtoSchema.parse(elf)
 const subrace = raceAuthoredDtoSchema.parse(highElf)
 
 function raceObjects(scope: ContentSnapshotScope, races: readonly RaceAuthoredDto[]) {
   const scopeId = crypto.randomUUID()
+  const parents = [baseRace, ...races].map((document) => ({
+    subjectKind: 'RACE' as const,
+    document
+  }))
   const { index, documents } = buildContentSnapshotKind(
-    { format: 2, scope, scopeId, kind: 'RACE' },
-    races.map((document) => ({
-      subjectKind: 'RACE' as const,
-      document,
-      publicId: document.id,
-      publicationVersion: {
-        identity: {
-          subjectKind: 'RACE' as const,
-          subjectId: document.id,
-          systemId: document.systemId,
-          contentSourceId: scopeId,
-          versionId: document.id,
-          checksum: checksumRuleDocument(JSON.parse(JSON.stringify(document)))
-        },
-        version: 1,
-        storedParentId: document.category === 'SUBRACE' ? document.parentRaceId : null
+    { format: 3, scope, scopeId, kind: 'RACE' },
+    races.map((document) => {
+      const compilation = storedCompilationOf({ subjectKind: 'RACE', document }, parents)
+      return {
+        subjectKind: 'RACE' as const,
+        document,
+        publicId: document.id,
+        compilation,
+        publicationVersion: {
+          identity: {
+            subjectKind: 'RACE' as const,
+            subjectId: document.id,
+            systemId: document.systemId,
+            contentSourceId: scopeId,
+            versionId: document.id,
+            checksum: compilation.authoredChecksum
+          },
+          version: 1,
+          storedParentId: document.category === 'SUBRACE' ? document.parentRaceId : null
+        }
       }
-    }))
+    })
   )
   return [
     contentSnapshotIndexObjectSchema.parse(JSON.parse(index.json)),
@@ -53,11 +62,16 @@ describe('content snapshot readers', () => {
     const scopeId = crypto.randomUUID()
     const checksum = checksumRuleDocument(JSON.parse(JSON.stringify(original)))
     expect(checksumRuleDocument(JSON.parse(JSON.stringify(normalized)))).not.toBe(checksum)
-    const built = buildContentSnapshotKind({ format: 2, scope: 'SOURCE', scopeId, kind: 'RACE' }, [
+    const built = buildContentSnapshotKind({ format: 3, scope: 'SOURCE', scopeId, kind: 'RACE' }, [
       {
         subjectKind: 'RACE',
         document: normalized,
         publicId: normalized.id,
+        // Stored at publish, over the original document.
+        compilation: {
+          ...storedCompilationOf({ subjectKind: 'RACE', document: normalized }),
+          authoredChecksum: checksum
+        },
         publicationVersion: {
           identity: {
             subjectKind: 'RACE',
@@ -79,7 +93,7 @@ describe('content snapshot readers', () => {
   it('prefers a SOURCE root over a Campaign share of the same root, in any order', async () => {
     const shared = raceObjects('CAMPAIGN', [{ ...baseRace, label: 'Stale share' }])
     const readers = createSnapshotReaders([...shared, ...raceObjects('SOURCE', [baseRace])])
-    expect((await readers.readPublication(baseRace.id))?.document.label).toBe(baseRace.label)
+    expect((await readers.readPublication(baseRace.id))?.presentation?.label).toBe(baseRace.label)
     expect((await readers.readRaces()).map((race) => race.label)).toEqual([baseRace.label])
   })
 

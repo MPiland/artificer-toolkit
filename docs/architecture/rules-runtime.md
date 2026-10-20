@@ -1451,6 +1451,11 @@ hand and a two-handed item cannot sit in the off hand. Disarm moves an item from
 `CARRIED` and records the hand in the transition's `fromState`. ATTACK-18 and ATTACK-19 reuse the
 function for Characters.
 
+**Creature Equipment pins (D163).** Each Encounter Creature's `equipmentSources[]` pin holds a copy of the
+Equipment version's stored `subject-compiler-v2` compilation (resolved, variant parents applied). The room,
+blueprint snapshots and `creatureLoadoutHands` hydrate it with `hydrateStoredCompilation` and never compile;
+`encounters/equipmentPinMigration` (steps of `content/compilationMigration:run`) re-pins older rows.
+
 **Default attack (ATTACK-19, D107).** `encounterDefaultAttackActionId` (`encounterDefaultAttack.ts`)
 picks the action the tabletop drawer starts on, reported as `defaultActionId` in the action choices
 (`readEncounterActionChoices`): the open Attack action's last weapon while it still has an attack

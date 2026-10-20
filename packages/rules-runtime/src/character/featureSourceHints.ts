@@ -1,8 +1,9 @@
-import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
 import type { CharacterBuilderFeatureSourceHint } from '@artificer-toolkit/schema/api/characterBuilderQueries'
+import type { CompiledFeature } from '@artificer-toolkit/shared/compilers'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
-import type { CharacterRuleContextReaders } from './contextPreparation.js'
+import { hydrateStoredCompilation } from '../authoredPublicationHydrate.js'
+import type { CharacterRuleContextReaders, CharacterRulePublication } from './contextPreparation.js'
 
 type FeatureProvenance = CharacterAuthored['intent']['featureAcquisitions'][number]['source']
 
@@ -46,15 +47,35 @@ export function characterFeatureProvenanceRootId(
   }
 }
 
+/**
+ * The compiled Features a publication holds, ancestry options included. A subrace holds only its
+ * own: its compilation also carries the parent's, which the selected parent race contributes.
+ */
+export function publicationFeatures(
+  published: Pick<CharacterRulePublication, 'subjectKind' | 'id' | 'checksum' | 'compilation'>
+): CompiledFeature[] {
+  const compiled = hydrateStoredCompilation(
+    published.subjectKind,
+    published,
+    published.compilation
+  )
+  if (published.subjectKind === 'RACE' && 'parentRaceId' in compiled) {
+    const inherited = new Set(compiled.inheritedFeatureIds)
+    return (compiled.features ?? []).filter((feature) => !inherited.has(feature.id))
+  }
+  return [
+    ...(('features' in compiled ? compiled.features : undefined) ?? []),
+    ...(('ancestry' in compiled ? compiled.ancestry?.options : undefined) ?? []).flatMap(
+      (option) => option.features ?? []
+    )
+  ]
+}
+
 /** Feature ids `prepareCharacterRuleContext` takes from a publication. */
-export function publicationFeatureIds(published: AuthoredPublicationDocument): Set<string> {
-  const { document } = published
-  const features = 'features' in document ? (document.features ?? []) : []
-  const ancestry =
-    published.subjectKind === 'RACE' && published.document.category === 'BASE'
-      ? (published.document.ancestry?.options.flatMap((option) => option.features ?? []) ?? [])
-      : []
-  return new Set([...features, ...ancestry].map((feature) => feature.id))
+export function publicationFeatureIds(
+  published: Parameters<typeof publicationFeatures>[0]
+): Set<string> {
+  return new Set(publicationFeatures(published).map((feature) => feature.id))
 }
 
 /**
@@ -84,8 +105,8 @@ export async function collectCharacterFeatureSourceHints(
   for (const published of await readers.readFeatureSources(needed)) {
     for (const featureId of publicationFeatureIds(published)) {
       const current = rootByFeature.get(featureId)
-      if (needed.has(featureId) && (current === undefined || published.document.id < current))
-        rootByFeature.set(featureId, published.document.id)
+      if (needed.has(featureId) && (current === undefined || published.id < current))
+        rootByFeature.set(featureId, published.id)
     }
   }
   return [...rootByFeature]

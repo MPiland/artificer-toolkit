@@ -47,7 +47,7 @@ function listPart(scopeId: string, firstId: number, labels: readonly string[]) {
     publicId: label.toLowerCase().replaceAll(' ', '-')
   }))
   return buildContentSnapshotPart(
-    { format: 2, scope: 'SOURCE', scopeId, kind: 'FEAT', part: 'list' },
+    { format: 3, scope: 'SOURCE', scopeId, kind: 'FEAT', part: 'list' },
     roots
   )
 }

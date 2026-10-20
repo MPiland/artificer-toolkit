@@ -19,7 +19,6 @@ import {
 } from '@artificer-toolkit/schema/vocabulary/system'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
   CharacterAuthored,
   EquipmentAuthored
@@ -44,6 +43,7 @@ import { prepareCharacterSheetFromContext } from '../character/sheetPreparation.
 import { projectCharacterSheetBundle } from '../character/sheetProjection.js'
 import { buildCharacterRestPreview } from '../character/sheetRest.js'
 import { buildContentSnapshotKind } from '../contentSnapshots.js'
+import { storedCompilationOf } from './storedCompilations.js'
 
 export const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
 export type PublicationKind = AuthoredPublicationDocument['subjectKind']
@@ -62,11 +62,13 @@ export function scopeObjects(
         entry.subjectKind === 'EQUIPMENT' ? [[entry.document.id, entry.document] as const] : []
       )
     )
-    const sources = published.map((entry, index) => {
+    const sources = published.map((entry) => {
       const document = entry.document
+      const compilation = storedCompilationOf(entry, published)
       const listFacts = {
         publicId: document.id,
         magicSchoolLabel: 'School',
+        compilation,
         publicationVersion: {
           identity: {
             subjectKind: entry.subjectKind,
@@ -74,7 +76,7 @@ export function scopeObjects(
             systemId: document.systemId,
             contentSourceId: scopeId,
             versionId: document.id,
-            checksum: checksumRuleDocument(JSON.parse(JSON.stringify(raw![index])))
+            checksum: compilation.authoredChecksum
           },
           version: 1,
           storedParentId:
@@ -113,7 +115,7 @@ export function scopeObjects(
       return { ...entry, builder, ...listFacts }
     })
     const { index, documents: part } = buildContentSnapshotKind(
-      { format: 2, scope, scopeId, kind },
+      { format: 3, scope, scopeId, kind },
       sources
     )
     return [
@@ -290,8 +292,6 @@ export async function prepareFixtureSheet(input: {
     streamVersion: input.streamVersion ?? 1,
     adjustments: prepared.adjustments,
     additionalCurrencyOptions: input.campaignCurrencyOptions,
-    creaturesById: prepared.prepared.context.creaturesById,
-    vehiclesById: prepared.prepared.context.vehiclesById,
     presentation: prepared.prepared.context.presentation,
     ruleEvaluation: prepared.ruleEvaluation,
     activeEffects: [],

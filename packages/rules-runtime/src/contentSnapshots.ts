@@ -1,5 +1,8 @@
 import type { AuthoredEquipmentOptionFacts } from '@artificer-toolkit/schema/api/authoredOptions'
-import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
+import type {
+  AuthoredPublicationDocument,
+  AuthoredStoredCompilation
+} from '@artificer-toolkit/schema/api/authoredPublication'
 import {
   contentSnapshotDocumentsObjectSchema,
   contentSnapshotHeaderSchema,
@@ -32,21 +35,39 @@ export function buildContentSnapshotPart<
 >(
   header: ContentSnapshotHeader & { kind: Kind; part: Part },
   roots: readonly ContentSnapshotRoot<Kind, Part>[],
-  versions?: readonly ContentSnapshotPublicationVersion[]
+  pins?: {
+    versions: readonly ContentSnapshotPublicationVersion[]
+    compilations: readonly AuthoredStoredCompilation[]
+  }
 ): { json: string; sha256: string; byteLength: number; rootCount: number } {
   const orderedRoots = [...roots].sort((left, right) =>
     left.id < right.id ? -1 : left.id > right.id ? 1 : 0
   )
-  const pins = versions ? new Map(versions.map((pin) => [pin.identity.subjectId, pin])) : null
-  if (pins && pins.size !== versions!.length)
+  const byRoot = pins
+    ? new Map(
+        pins.versions.map((version, index) => [
+          version.identity.subjectId,
+          { version, compilation: pins.compilations[index] }
+        ])
+      )
+    : null
+  if (byRoot && byRoot.size !== pins!.versions.length)
     throw new Error('Duplicate content snapshot publication version.')
-  if (header.part === 'documents' && (!versions || versions.length !== roots.length))
-    throw new Error('Content snapshot publication versions are incomplete.')
+  if (
+    header.part === 'documents' &&
+    (!pins ||
+      pins.versions.length !== roots.length ||
+      pins.compilations.length !== roots.length)
+  )
+    throw new Error('Content snapshot publication versions or compilations are incomplete.')
   const input = {
     ...contentSnapshotHeaderSchema.parse(header),
     roots: orderedRoots,
     ...(header.part === 'documents'
-      ? { versions: orderedRoots.map((root) => pins?.get(root.id)) }
+      ? {
+          versions: orderedRoots.map((root) => byRoot?.get(root.id)?.version),
+          compilations: orderedRoots.map((root) => byRoot?.get(root.id)?.compilation)
+        }
       : {})
   }
   const object =
@@ -85,7 +106,10 @@ export function buildContentSnapshotKind(
     documents: buildContentSnapshotPart(
       { ...header, part: 'documents' },
       sources.map((source) => source.document),
-      sources.map((source) => source.publicationVersion)
+      {
+        versions: sources.map((source) => source.publicationVersion),
+        compilations: sources.map((source) => source.compilation)
+      }
     )
   }
 }
@@ -202,6 +226,7 @@ export type ContentSnapshotListSource = ContentSnapshotIndexSource & {
   publicId: string
   magicSchoolLabel?: string
   publicationVersion: ContentSnapshotPublicationVersion
+  compilation: AuthoredStoredCompilation
 }
 
 export function toContentSnapshotListEntry<Source extends ContentSnapshotListSource>(

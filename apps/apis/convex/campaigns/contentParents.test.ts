@@ -24,10 +24,11 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
 import { parsePublicationDocument } from '../content/publicationDocument'
 import { insertAuthoredVersionCompilation } from '../content/documents'
+import { catalogueMetadata } from '../content/catalogueMetadata'
 import { compileCurrentEquipment } from '../content/equipmentRelationships'
 import { requireDefaultUserContentSource } from '../content/sources'
 import { readPartyEquipmentSource } from './partyInventoryDocuments'
@@ -87,6 +88,11 @@ async function setup() {
         ownerUserId: base.owner.userId,
         currentVersionId,
         currentVersionPublicId: publicVersionId,
+        catalogue: await catalogueMetadata(ctx, publication, {
+          checksum: metadata.checksum,
+          publicId: document.id,
+          createdAt: Date.now()
+        }),
         parentClassId:
           publication.subjectKind === 'CLASS' && publication.document.category === 'SUBCLASS'
             ? publication.document.parentClassId
@@ -118,7 +124,7 @@ describe('Campaign shared child parent prerequisites', () => {
     'rejects disabling the official parent source of a shared $kind child',
     async ({ kind, parent, child, field }) => {
       const { t, owner, campaign, store } = await setup()
-      await t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [importedSubject({ subjectKind: kind, ...parent, document: parent })]
       })
@@ -295,7 +301,7 @@ describe('Campaign shared child parent prerequisites', () => {
     const { t, campaign } = await setup()
     // A fresh id makes the document string new to the memo, so the first read is cold.
     const equipmentId = crypto.randomUUID()
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({
@@ -460,7 +466,7 @@ describe('Campaign shared child parent prerequisites', () => {
     'allows an enabled official $kind parent but rejects a disabled catalogue',
     async ({ kind, parent, child, field }) => {
       const { t, owner, campaign, store } = await setup()
-      await t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [importedSubject({ subjectKind: kind, ...parent, document: parent })]
       })
