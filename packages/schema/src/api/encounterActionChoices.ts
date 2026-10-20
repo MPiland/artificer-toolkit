@@ -113,6 +113,8 @@ const ringTargetSchema = lazySchema(() =>
   })
 )
 
+export const MAX_AMMUNITION_CHOICES = 100
+
 export const encounterActionChoiceDtoSchema = lazySchema(() =>
   z.strictObject({
     id: characterSheetActionDtoSchema.shape.id,
@@ -287,6 +289,21 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         ])
       })
     ]),
+    /**
+     * The ammunition in stock that fits this weapon attack, for the client to pick from; absent for
+     * an action that fires none. The client sends its pick as `ammunitionItemInstanceId` (ATTACK-19.4).
+     */
+    ammunition: z.optional(
+      z
+        .array(
+          z.strictObject({
+            itemInstanceId: postgresUuidSchema,
+            label: labelSchema,
+            quantity: z.number().check(z.int()).check(z.positive())
+          })
+        )
+        .check(z.maxLength(MAX_AMMUNITION_CHOICES))
+    ),
     /**
      * The attack of the actor's Attack action this choice would make ("Attack 2 of 3"): a weapon
      * attack that fits the open Attack action, or the first one of a fresh turn. Null for choices that

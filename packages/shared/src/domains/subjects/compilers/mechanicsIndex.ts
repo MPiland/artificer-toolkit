@@ -235,6 +235,7 @@ function rootDescriptor(
         field('maxStack', value.maxStack),
         field('rarityId', value.rarityId),
         field('armorClass', value.armorClass),
+        field('ammunitionEquipmentId', value.ammunitionEquipmentId),
         field('contains', value.contains)
       )
     }

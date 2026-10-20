@@ -1,4 +1,5 @@
 import type { EquipmentAuthored } from '@artificer-toolkit/shared'
+import { slingBullets } from './sling-bullets.js'
 import * as S from './shared.js'
 
 export const sling: EquipmentAuthored = {
@@ -21,6 +22,7 @@ export const sling: EquipmentAuthored = {
     120,
     S.EQUIPMENT_GRIP.ONE_HANDED
   ),
+  ammunitionEquipmentId: slingBullets.id,
   cost: S.sp(1),
   weight: S.lbs(0),
   rarityId: S.RARITY_COMMON,

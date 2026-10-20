@@ -10,7 +10,6 @@ export const arrowsPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: arrows.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  effects: [S.magicAmmunitionExpirationEffect(S.equipId(343))],
   rarityId: S.RARITY_RARE,
   modifiers: S.magicAmmoModifiers(S.equipId(343), 2),
   userId: S.SRD_USER_ID,

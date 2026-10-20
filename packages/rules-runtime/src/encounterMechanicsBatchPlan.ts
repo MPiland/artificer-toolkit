@@ -1,6 +1,7 @@
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { characterItemConsumptionPiecesMatch } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import {
@@ -367,8 +368,7 @@ export function planEncounterMechanicsBatch(input: {
     if (
       itemConsumption.characterId !== loaded.active.id ||
       itemConsumption.expectedStreamVersion !== loaded.active.play.streamVersion ||
-      itemConsumption.afterUsed !== itemConsumption.beforeUsed + 1 ||
-      itemConsumption.afterQuantity !== itemConsumption.beforeQuantity - 1 ||
+      !characterItemConsumptionPiecesMatch(itemConsumption) ||
       !row ||
       row.quantity !== itemConsumption.beforeQuantity ||
       currentUsed !== itemConsumption.beforeUsed

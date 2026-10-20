@@ -424,6 +424,7 @@ export function withCheckTotals(
 export interface ActionRoomConfig extends Pick<
   MovementRoomConfig,
   | 'automationMode'
+  | 'trackAmmunition'
   | 'autoRoll'
   | 'playerControlledActorIds'
   | 'otherPlayerControlledActorIds'
@@ -625,7 +626,8 @@ export async function actionRoom(config: ActionRoomConfig) {
       chosenActionId = actionId,
       actorId = source.id,
       choiceOptionId?: string,
-      boundItemInstanceId?: string
+      boundItemInstanceId?: string,
+      ammunitionItemInstanceId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -639,7 +641,8 @@ export async function actionRoom(config: ActionRoomConfig) {
           kind: 'ACTOR',
           actorId: targetActorId,
           ...(choiceOptionId && { choiceOptionId }),
-          ...(boundItemInstanceId && { boundItemInstanceId })
+          ...(boundItemInstanceId && { boundItemInstanceId }),
+          ...(ammunitionItemInstanceId && { ammunitionItemInstanceId })
         },
         actionId: chosenActionId,
         optionalCombatIntent,

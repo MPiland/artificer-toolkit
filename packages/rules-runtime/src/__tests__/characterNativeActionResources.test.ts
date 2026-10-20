@@ -81,6 +81,8 @@ function prepare(overrides: Partial<PrepareInput> = {}) {
     expectedStreamVersion: STREAM_VERSION,
     classLevels: fighter.facts.grantFoldFacts.base.classes,
     automationMode: 'ASSISTED',
+    trackAmmunition: false,
+    ammunition: null,
     overridable: false,
     ...overrides
   })
@@ -91,6 +93,7 @@ describe('native Character action state without a resource', () => {
     expect(prepare()).toEqual({
       actionMechanic: { ...decision.mechanic, save: null, classLevels: FIGHTER_LEVELS },
       resourceConsumption: null,
+      ammunition: null,
       itemConsumption: null,
       spellConsumption: null,
       ruleWarnings: []
@@ -195,6 +198,7 @@ describe('native Character action state with a bound resource', () => {
     expect(prepareBound({ policyOutput: policy(1), resourceUsage: [usage(1)] })).toEqual({
       actionMechanic: { ...decision.mechanic, save: null, classLevels: FIGHTER_LEVELS },
       ruleWarnings: [],
+      ammunition: null,
       itemConsumption: null,
       spellConsumption: null,
       resourceConsumption: {
@@ -237,6 +241,7 @@ describe('native Character action state with a bound resource', () => {
       prepareBound({ policyOutput: policy(1), resourceUsage: [usage(1)], automationMode: 'MANUAL' })
     ).toEqual({
       actionMechanic: { ...decision.mechanic, save: null, classLevels: FIGHTER_LEVELS },
+      ammunition: null,
       itemConsumption: null,
       spellConsumption: null,
       resourceConsumption: null,
@@ -250,6 +255,7 @@ describe('native Character action state with a bound resource', () => {
       prepareBound({ policyOutput: exhausted, resourceUsage: [usage(2)], overridable: true })
     ).toEqual({
       actionMechanic: { ...decision.mechanic, save: null, classLevels: FIGHTER_LEVELS },
+      ammunition: null,
       itemConsumption: null,
       spellConsumption: null,
       resourceConsumption: null,

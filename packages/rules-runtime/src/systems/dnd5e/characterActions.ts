@@ -49,6 +49,13 @@ export function evaluateDnd5e2014CharacterActions(
         : !resourceAvailable
           ? 'INSUFFICIENT_RESOURCE'
           : null
+    const ammunitionStacks = candidate.equipment?.ammunitionStacks ?? []
+    const attackContext = {
+      spellcasting: parsedInput.spellcasting,
+      spellCastLevel: null,
+      spellDamageBonus: 0,
+      spellId: null
+    }
     const boundResource =
       sourceAvailable && resourceUse !== null && resource !== null && resource.state === 'RESOLVED'
     return {
@@ -62,12 +69,19 @@ export function evaluateDnd5e2014CharacterActions(
       reasonCode,
       resourcePoolId: boundResource ? resource.poolId : null,
       resourceCost: boundResource && resourceUse !== null ? resourceUse.cost : null,
-      mechanic: resolveDnd5eActionMechanic(parsedInput, candidate, {
-        spellcasting: parsedInput.spellcasting,
-        spellCastLevel: null,
-        spellDamageBonus: 0,
-        spellId: null
-      })
+      mechanic: resolveDnd5eActionMechanic(parsedInput, candidate, attackContext),
+      // The attack as each ammunition stack that fits would make it: its bonuses reach this attack alone.
+      ...(ammunitionStacks.length === 0
+        ? {}
+        : {
+            ammunitionMechanics: ammunitionStacks.map((stack) => ({
+              itemInstanceId: stack.itemInstanceId,
+              mechanic: resolveDnd5eActionMechanic(parsedInput, candidate, {
+                ...attackContext,
+                ammunition: stack
+              })
+            }))
+          })
     }
   })
   const spellCastMechanics = parsedInput.spellCandidates.map((candidate) => {
