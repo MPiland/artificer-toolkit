@@ -1,39 +1,27 @@
 import type { AbilityCode, AuthoredRecordStatus } from '@artificer-toolkit/shared/core'
 import {
   CharacterStartingEquipmentSource,
-  type BackgroundAuthored,
   type CharacterProvenance,
-  type FeatAuthored,
-  type ClassAuthored,
   type SpellAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
-import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import type { ResolvedEquipment, ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
 import type { CharacterBuilderChosenGrantChoice } from './chosenGrantChoiceResolver.js'
+import type { CharacterPresentationLookup, CharacterRuleRegistry } from './characterRuleContext.js'
 
 type BuilderMode = 'create' | 'edit'
 
-export interface CharacterBuilderRegistry {
+export type CharacterBuilderRegistry = Omit<CharacterRuleRegistry, 'system'> & {
   system: SystemAuthoredDto | null
-  races: ResolvedRace[]
-  classes: ClassAuthored[]
-  backgrounds: BackgroundAuthored[]
-  equipment: ResolvedEquipment[]
-  acquiredEquipmentByItemId?: ReadonlyMap<
-    string,
-    { equipment: ResolvedEquipment; versionId: string }
-  >
-  feats?: FeatAuthored[]
-  features: FeatureAuthored[]
 }
 
 export interface CharacterBuilderContext {
   catalog: CharacterBuilderCatalog
   registry: CharacterBuilderRegistry
+  /** Prose by id for Builder views; commit runs without it (D163). */
+  presentation?: CharacterPresentationLookup
   /** Exact current Spell documents authorized for this Character context. */
   spellDocumentsById?: ReadonlyMap<string, SpellAuthored>
   currentSpellDocumentsById?: ReadonlyMap<string, SpellAuthored>
@@ -78,8 +66,6 @@ export interface CharacterBuilderSummary {
 export interface CharacterBuilderGrantSummaryItem {
   id: string
   label: string
-  description?: string
-  details?: Array<{ id: string; label: string; description: string }>
   sortOrder?: number
   availableAtLevel?: number
   attributes?: string[]

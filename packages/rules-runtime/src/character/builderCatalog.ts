@@ -11,7 +11,11 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { ModifierGrantAuthored } from '@artificer-toolkit/shared/authored'
-import type { ResolvedRace, ResolvedEquipment } from '@artificer-toolkit/shared/subjects/compilers'
+import type {
+  CompiledEquipment,
+  ResolvedEquipment,
+  ResolvedRace
+} from '@artificer-toolkit/shared/subjects/compilers'
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
@@ -108,7 +112,7 @@ export type CharacterBuilderEquipmentCatalogRecord = {
 }
 
 export function toCharacterBuilderEquipmentCatalogRecord(
-  equipment: ResolvedEquipment | CharacterBuilderEquipmentCatalogRecord
+  equipment: ResolvedEquipment | CompiledEquipment | CharacterBuilderEquipmentCatalogRecord
 ): CharacterBuilderEquipmentCatalogRecord {
   if ('isContainer' in equipment) return { ...equipment, properties: [...equipment.properties] }
   const maxStack =

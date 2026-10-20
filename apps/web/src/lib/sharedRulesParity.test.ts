@@ -14,6 +14,7 @@ import {
 import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
 import { parentClassAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileClass } from '@artificer-toolkit/shared/subjects/compilers'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
@@ -171,7 +172,7 @@ describe('Builder hit points match the server', () => {
     const customFighter = { ...fighter, hitpoint }
     const serverRows = prepareCharacterHitpointProgression(
       character as CharacterAuthored,
-      [customFighter],
+      [compileClass(customFighter)],
       null,
       payload.references.abilities.map((ability) => ability.id)
     ).facts.rows

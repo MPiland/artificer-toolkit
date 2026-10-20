@@ -6,7 +6,10 @@ import {
   authoredStoredDraftPayloadSchema,
   type AuthoredDraftResult
 } from '@artificer-toolkit/schema/api/authoredDrafts'
-import type { AuthoredStoredCompilation } from '@artificer-toolkit/schema/api/authoredPublication'
+import {
+  SUBJECT_COMPILER_VERSION,
+  type AuthoredStoredCompilation
+} from '@artificer-toolkit/schema/api/authoredPublication'
 import { IMPORT_MAX_ENTRY_BYTES } from '@artificer-toolkit/schema/api/imports'
 import { jsonValueSchema, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import {
@@ -397,8 +400,13 @@ export async function readAuthoredVersionCompilationRow(
 export async function readAuthoredVersionCompilation(
   ctx: QueryCtx,
   version: Pick<Doc<'authoredVersions'>, 'versionId'>
-) {
-  return (await readAuthoredVersionCompilationRow(ctx, version))?.compilation
+): Promise<AuthoredStoredCompilation | undefined> {
+  const compilation = (await readAuthoredVersionCompilationRow(ctx, version))?.compilation
+  if (!compilation) return undefined
+  const { compilerVersion, ...stored } = compilation
+  if (compilerVersion !== SUBJECT_COMPILER_VERSION)
+    throw new Error('Stored compilation is superseded; run content/compilationMigration.')
+  return { ...stored, compilerVersion }
 }
 
 export async function readStoredAuthoredVersionDocument(

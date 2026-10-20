@@ -214,7 +214,7 @@ type FixtureDocuments = Partial<Record<PublicationKind, readonly unknown[]>>
  * The Character's prepared rules context over in-memory content snapshot objects, with no
  * persistence: the same preparation the Convex and Worker paths run behind their readers.
  */
-async function prepareFixtureContext(
+export async function prepareFixtureContext(
   character: CharacterAuthored,
   documents: FixtureDocuments,
   gameSystem: SystemAuthoredDto = system
@@ -292,6 +292,7 @@ export async function prepareFixtureSheet(input: {
     additionalCurrencyOptions: input.campaignCurrencyOptions,
     creaturesById: prepared.prepared.context.creaturesById,
     vehiclesById: prepared.prepared.context.vehiclesById,
+    presentation: prepared.prepared.context.presentation,
     ruleEvaluation: prepared.ruleEvaluation,
     activeEffects: [],
     concentration: null

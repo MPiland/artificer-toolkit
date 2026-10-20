@@ -80,6 +80,7 @@ async function playCharacter(
       buildCharacterSheetPanel({
         character: played.prepared.character,
         resolution: played.prepared.resolution,
+        presentation: played.prepared.context.presentation,
         sheet,
         ruleProjection: played.ruleProjection,
         knownSpellEligibleIdsByClass: new Map(),

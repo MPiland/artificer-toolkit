@@ -395,7 +395,11 @@ describe('Builder catalogue from content snapshots', () => {
           return {
             character: prepared.character,
             resolution: rest,
-            view: toCharacterBuilderPayload(prepared.character, prepared.resolution).resolution,
+            view: toCharacterBuilderPayload(
+              prepared.character,
+              prepared.resolution,
+              prepared.context.presentation
+            ).resolution,
             preview: createCharacterBuilderChangePreview({
               previousCharacter: testCase.current ?? prepared.candidate,
               nextCharacter: prepared.character,

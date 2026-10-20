@@ -1,5 +1,6 @@
 import {
   authoredStoredCompilationSchema,
+  SUBJECT_COMPILER_VERSION,
   type AuthoredPublicationDocument,
   type AuthoredStoredCompilation
 } from '@artificer-toolkit/schema/api/authoredPublication'
@@ -39,7 +40,7 @@ export function compilePublicationDocument(
   assertCompiledSubjectMechanicsIndex(result.mechanicsIndex)
   const projection = jsonValueSchema.parse(JSON.parse(JSON.stringify(result.compiled)))
   return authoredStoredCompilationSchema.parse({
-    compilerVersion: 'subject-compiler-v1',
+    compilerVersion: SUBJECT_COMPILER_VERSION,
     projectionSchemaVersion: 1,
     authoredChecksum: checksumRuleDocument(subject.document),
     projectionChecksum: checksumRuleDocument(projection),

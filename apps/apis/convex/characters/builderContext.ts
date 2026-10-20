@@ -2,6 +2,7 @@ import type { CharacterBuilderFeatCatalogRecord } from '@artificer-toolkit/rules
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { CharacterBuilderContext } from '@artificer-toolkit/rules-runtime/character/builderTypes'
+import type { CharacterPresentationLookup } from '@artificer-toolkit/rules-runtime/character/characterRuleContext'
 import {
   assembleCharacterBuilderContext,
   prepareActiveCharacterBuilderContext
@@ -41,6 +42,7 @@ export async function loadCharacterBuilderContext(
   CharacterBuilderContext & {
     creaturesById: ReadonlyMap<string, CreatureAuthored>
     vehiclesById: ReadonlyMap<string, VehicleAuthored>
+    presentation: CharacterPresentationLookup
     sourceAccess: Awaited<ReturnType<typeof readCharacterSources>>
     publications: Awaited<ReturnType<typeof loadCharacterRuleContext>>['publications']
     sourceIdentities: Awaited<ReturnType<typeof loadCharacterRuleContext>>['sourceIdentities']

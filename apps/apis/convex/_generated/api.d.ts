@@ -136073,7 +136073,7 @@ export declare const internal: {
           };
           compilation: {
             authoredChecksum: string;
-            compilerVersion: "subject-compiler-v1";
+            compilerVersion: "subject-compiler-v2";
             projectionChecksum: string;
             projectionJson: string;
             projectionSchemaVersion: 1;
@@ -136177,6 +136177,36 @@ export declare const internal: {
         "internal",
         { systemId: string; table: string },
         string
+      >;
+    };
+    compilationMigration: {
+      recompileStaleCompilations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
       >;
     };
     development: {
@@ -136572,7 +136602,7 @@ export declare const internal: {
         {
           compilation: {
             authoredChecksum: string;
-            compilerVersion: "subject-compiler-v1";
+            compilerVersion: "subject-compiler-v2";
             projectionChecksum: string;
             projectionJson: string;
             projectionSchemaVersion: 1;
@@ -136667,7 +136697,7 @@ export declare const internal: {
           checksum: string;
           compilation: {
             authoredChecksum: string;
-            compilerVersion: "subject-compiler-v1";
+            compilerVersion: "subject-compiler-v2";
             projectionChecksum: string;
             projectionJson: string;
             projectionSchemaVersion: 1;

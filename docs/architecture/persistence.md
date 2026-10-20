@@ -510,6 +510,12 @@ UUID, never a Convex `_id`. Every writer that moves the current version sets `cu
 `by_versionId`, fields `subjectId`, `systemId`, `versionId`, `compilation`) and not on `authoredVersions`, so
 readers that do not compile, such as Builder commit, do not pay for it. Deleting a version deletes its
 compilation. Parent publication refreshes descendant projections and compilations in the same transaction.
+The compiler version is `subject-compiler-v2` (PLATFORM-21.T1a, D163): it carries every rules field and label
+the Builder reads, stores Equipment in its resolved shape (variant parents applied, `parentEquipmentIds`), and
+carries no prose; views read prose from the authored payload by id. `content/compilationMigration` recompiles a
+superseded row from its version's stored document (Race and Equipment against their current parents), and
+`readAuthoredVersionCompilation` refuses a superseded row. Transitional until PLATFORM-21.T1b: the table
+validator still admits `subject-compiler-v1` rows so the migration can read them.
 
 **Equipment projection.** `authoredRoots.equipmentOptions.builder` is an optional checksum-bound projection of
 the Equipment selector fields. Builder reads preserve the complete authorized set and validate the parent graph;

@@ -1,7 +1,5 @@
-import type {
-  CharacterAuthored,
-  ParentClassAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CompiledClass } from '@artificer-toolkit/shared/subjects/compilers'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import { resolveFeatureOptionEligibility } from './builderEligibility.js'
 import { resolveCharacterBuilder } from './builderResolution.js'
@@ -79,7 +77,7 @@ export async function prepareCharacterBuilderFromContext<
     }
     if (!input.current) {
       const primaryClass = resolution.registry.classes.find(
-        (row): row is ParentClassAuthored =>
+        (row): row is Extract<CompiledClass, { category: 'BASE' }> =>
           row.category === 'BASE' && row.id === character.intent.classes[0]?.classId
       )
       const background = resolution.registry.backgrounds.find(

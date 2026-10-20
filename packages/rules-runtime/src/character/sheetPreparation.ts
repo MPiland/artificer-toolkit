@@ -4,6 +4,7 @@ import type {
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { CharacterBuilderContext } from './builderTypes.js'
+import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import { prepareCharacterBuilderFromContext } from './builderPreparation.js'
 import { evaluateCharacterRules } from './characterRuleEvaluation.js'
 import type { prepareCharacterRuleSources } from './characterRuleSnapshot.js'
@@ -17,6 +18,8 @@ import { getPreparedAndKnownSpellIds } from './sheetSpellIds.js'
 export async function prepareCharacterSheetFromContext<
   TContext extends CharacterBuilderContext & {
     creaturesById: ReadonlyMap<string, CreatureAuthored>
+    /** Sheet views read prose by id (D163). */
+    presentation: CharacterPresentationLookup
   }
 >(input: {
   character: CharacterAuthored

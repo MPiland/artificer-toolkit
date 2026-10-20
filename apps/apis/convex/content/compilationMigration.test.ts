@@ -1,0 +1,144 @@
+import migrations from '@convex-dev/migrations/test'
+import { makeFunctionReference } from 'convex/server'
+import { expect, it, vi } from 'vitest'
+import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
+import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
+import { arrows } from '@artificer-toolkit/source-data/srd/equipment/arrows.js'
+import { arrowsPlus1 } from '@artificer-toolkit/source-data/srd/equipment/arrows-plus-1.js'
+import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
+import { dwarf, hillDwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
+import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
+import { SUBJECT_COMPILER_VERSION } from '@artificer-toolkit/schema/api/authoredPublication'
+import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
+import {
+  resolveEquipmentAuthored,
+  resolveRaceAuthored
+} from '@artificer-toolkit/shared/subjects/compilers'
+import { collectReferenceIds } from '@artificer-toolkit/shared/utils'
+import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import type { MutationCtx } from '../_generated/server'
+import { readAuthoredVersionCompilationRow } from './documents'
+import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
+
+const runMigration = makeFunctionReference<'mutation', Record<string, never>, unknown>(
+  'content/compilationMigration:run'
+)
+
+const sources = [
+  { subjectKind: 'BACKGROUND' as const, document: acolyte },
+  { subjectKind: 'CLASS' as const, document: fighter },
+  { subjectKind: 'EQUIPMENT' as const, document: arrows },
+  { subjectKind: 'EQUIPMENT' as const, document: arrowsPlus1 },
+  { subjectKind: 'RACE' as const, document: dwarf },
+  { subjectKind: 'RACE' as const, document: hillDwarf }
+]
+const sourceIds = new Set(sources.map(({ document }) => document.id))
+const documents = sources.map(({ document }) => document)
+const spellIds = new Set(collectReferenceIds(documents, 'spellId', 'spellIds'))
+const equipmentIds = new Set(collectReferenceIds(documents, 'equipmentId', 'equipmentIds'))
+const referenced = [
+  ...srdSpells
+    .filter((spell) => spellIds.has(spell.id))
+    .map((spell) => importedSubject({ subjectKind: 'SPELL', ...spell, document: spell })),
+  ...srdEquipment
+    .filter((equipment) => equipmentIds.has(equipment.id) && !sourceIds.has(equipment.id))
+    .map((equipment) =>
+      importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })
+    )
+]
+
+function stored(document: unknown) {
+  return jsonValueSchema.parse(JSON.parse(JSON.stringify(document)))
+}
+
+/** The current compilation each subject's publication stores, from the real compilers. */
+function currentCompilation(source: (typeof sources)[number]) {
+  const subject = parsePublicationDocument(source.subjectKind, stored(source.document))
+  if (subject.subjectKind === 'EQUIPMENT')
+    return compilePublicationDocument(
+      subject,
+      resolveEquipmentAuthored(source.document as typeof arrowsPlus1, (id) =>
+        id === arrows.id ? arrows : undefined
+      )
+    )
+  if (subject.subjectKind === 'RACE')
+    return compilePublicationDocument(
+      subject,
+      resolveRaceAuthored(source.document as typeof hillDwarf, (id) =>
+        id === dwarf.id ? dwarf : undefined
+      )
+    )
+  return compilePublicationDocument(subject)
+}
+
+async function readVersion(ctx: MutationCtx, id: string) {
+  const version = await ctx.db
+    .query('authoredVersions')
+    .withIndex('by_id_version', (query) => query.eq('id', id))
+    .unique()
+  if (!version) throw new Error(`${id} was not imported.`)
+  return version
+}
+
+it('recompiles every superseded stored compilation at the current compiler version', async ({
+  onTestFinished
+}) => {
+  const { t } = await publicationFixture(
+    import.meta.glob('/apps/apis/convex/**/*.*s'),
+    import.meta.glob('../betterAuth/**/*.*s'),
+    [
+      sources.map((source) =>
+        importedSubject({ ...source, ...source.document, document: source.document })
+      ),
+      ...Array.from({ length: Math.ceil(referenced.length / 10) }, (_, index) =>
+        referenced.slice(index * 10, index * 10 + 10)
+      )
+    ]
+  )
+  vi.useFakeTimers()
+  onTestFinished(() => {
+    vi.useRealTimers()
+  })
+  migrations.register(t)
+
+  const current = sources.map(currentCompilation)
+  expect(current.map((compilation) => compilation.compilerVersion)).toEqual(
+    sources.map(() => SUBJECT_COMPILER_VERSION)
+  )
+  await t.run(async (ctx) => {
+    for (const [index, { document }] of sources.entries()) {
+      const version = await readVersion(ctx, document.id)
+      const superseded = {
+        ...current[index]!,
+        compilerVersion: 'subject-compiler-v1' as const,
+        projectionJson: '{}'
+      }
+      const row = await readAuthoredVersionCompilationRow(ctx, version)
+      if (row) await ctx.db.patch(row._id, { compilation: superseded })
+      else
+        await ctx.db.insert('authoredVersionCompilations', {
+          subjectId: version.id,
+          systemId: version.systemId,
+          versionId: version.versionId,
+          compilation: superseded
+        })
+    }
+  })
+
+  await t.mutation(runMigration, {})
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  // A second pass proves the migration leaves current rows alone.
+  await t.mutation(runMigration, {})
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+
+  const migrated = await t.run(async (ctx) =>
+    Promise.all(
+      sources.map(async ({ document }) =>
+        readAuthoredVersionCompilationRow(ctx, await readVersion(ctx, document.id)).then(
+          (row) => row?.compilation
+        )
+      )
+    )
+  )
+  expect(migrated).toEqual(current)
+})
