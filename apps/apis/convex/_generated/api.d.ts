@@ -136598,6 +136598,7 @@ export declare const internal: {
         "internal",
         {
           contentSourceId: string;
+          reimportedSubjectIds?: Array<string>;
           subjects: Array<{
             checksum: string;
             document:

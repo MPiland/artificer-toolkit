@@ -399,7 +399,10 @@ Race uses the same current-parent contract for BASE/SUBRACE, with `parentRaceId`
 the parent UUID for SUBRACE and an index on `(systemId, subjectKind, parentRaceId)`. Publication
 fails closed while same-System Race parent metadata is missing. BASE replacement atomically
 recompiles published children and refreshes their catalogue family keys; their source documents, current-version IDs, checksums and working
-drafts remain unchanged. Invalid or foreign-owned dependents roll back the parent mutation.
+drafts remain unchanged. Invalid or foreign-owned dependents roll back the parent mutation, and a
+dependent whose stored document fails the current schema is named. The seed passes `importSubjects`
+the changed subjects a later batch replaces (`reimportedSubjectIds`); a Race or Equipment parent
+replace leaves those dependents to their own import, which compiles them against the current parent.
 The family limit is 500 records including the BASE; SUBRACE admission reads the sibling index in
 the publication transaction and excludes itself on replacement. Published children block BASE
 deletion and conversion to SUBRACE. Internal canonical `raceRelationships.syncDerived` fills only
