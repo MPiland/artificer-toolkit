@@ -14,6 +14,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const expeditiousRetreat: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -62,11 +63,20 @@ export const expeditiousRetreat: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 10
             },
+            // You can take the Dash action as a bonus action on each of your turns until it ends.
+            lifecycle: {
+              grantedActions: [
+                {
+                  activation: ACTIVATION_CODE.BONUS_ACTION,
+                  actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DASH]
+                }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.EXPEDITIOUS_RETREAT, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'EXPEDITIOUS_RETREAT' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {}
               }
             ]
           }

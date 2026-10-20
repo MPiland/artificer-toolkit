@@ -44,6 +44,11 @@ export async function evaluateNativeLiveActionEconomy(input: {
   /** The size of the one creature the action targets, when a slot's predicate reads it. */
   targetSize?: string | null
   capture: EconomyCapture
+  /**
+   * The unspent use of a held offer that grants one weapon attack (D160): an attack that finds the
+   * Action spent is charged to it instead, as one attack of its own Attack action.
+   */
+  weaponAttackOffer?: { useKey: string } | null
 }) {
   const { prepared } = input
   const invocation =
@@ -55,18 +60,22 @@ export async function evaluateNativeLiveActionEconomy(input: {
     prepared.source.kind === 'CHARACTER_ACTION' ? prepared.source.candidate.equipment : null
   if (!activation) throw new Error('The selected action activation is not normalized.')
   // A free action (Action Surge, a Legendary Action) spends no allowance; its charge is its cost.
+  const grantedUseKey =
+    prepared.source.kind === 'BASIC_ACTION' ? (prepared.source.grantedUseKey ?? null) : null
   if (activation.code === 'FREE')
-    return { activationCode: activation.code, economy: null, suppressed: false, attackAction: null }
+    return {
+      activationCode: activation.code,
+      economy: null,
+      suppressed: false,
+      attackAction: null,
+      grantedUseKey
+    }
   if (activation.amount === null)
     throw new Error('The selected action activation is not normalized.')
   const featureId =
     prepared.source.kind === 'CREATURE' ? prepared.source.capability.ownerFeatureId : undefined
   const targetSize = sizeCodeSchema.safeParse(input.targetSize)
-  const {
-    economy,
-    attackAction: openedAttackAction,
-    suppressed
-  } = await evaluateEncounterAttackAction({
+  const evaluated = await evaluateEncounterAttackAction({
     triggerCode: invocation.triggerCode,
     replacesAttack:
       prepared.source.kind === 'BASIC_ACTION' && prepared.source.capability.actionCost === 'ATTACK',
@@ -80,10 +89,23 @@ export async function evaluateNativeLiveActionEconomy(input: {
     loadTarget: async () => input.sourceTarget,
     definitions: captureActionEconomyDefinitions(input.capture)
   })
+  const offered =
+    input.weaponAttackOffer &&
+    evaluated.attackAction &&
+    evaluated.slot === null &&
+    !evaluated.suppressed &&
+    evaluated.economy?.available === false
+      ? input.weaponAttackOffer
+      : null
+  const { economy, suppressed } = offered ? { economy: null, suppressed: false } : evaluated
+  const openedAttackAction = offered
+    ? evaluated.attackAction && { ...evaluated.attackAction, total: 1 }
+    : evaluated.attackAction
   return {
     activationCode: activation.code,
     economy,
     suppressed,
+    grantedUseKey: offered?.useKey ?? grantedUseKey,
     attackAction: openedAttackAction
       ? encounterAttackActionTransition(openedAttackAction, {
           actionId: input.actionId,

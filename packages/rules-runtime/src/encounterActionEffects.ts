@@ -13,7 +13,10 @@ import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/sche
 import { encounterActionSourceLabel } from './encounterActionSources.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import type { IncomingDamageGrantTrigger } from './encounterEndedEffectRelease.js'
-import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import {
+  discoverEncounterFeatureActions,
+  type EncounterPassiveWeaponHit
+} from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
 import { readEncounterChosenItem } from './encounterChosenItem.js'
 import { planEncounterEquipmentDegradation } from './encounterEquipmentDegradation.js'
@@ -207,6 +210,8 @@ export function prepareNativeActionEffectsPlan<
   trigger?: { damageTypeIds: readonly string[] }
   /** The target's item the caster chose, for an action used on an item (Shillelagh, Heat Metal). */
   chosenItemInstanceId?: string
+  /** The target Creature's passives that wear down the weapon that hits it. */
+  weaponHits?: readonly EncounterPassiveWeaponHit[]
   /**
    * The zone the action places when it holds the condition the action's failed save applies
    * (D146): the hold is the creature's effect, under the Concentration the zone depends on.
@@ -245,6 +250,25 @@ export function prepareNativeActionEffectsPlan<
           chosenItemInstanceId: input.chosenItemInstanceId
         })
       : null
+  // A Character's weapon that hits wears down by what the target's passive says; its attacker is the source.
+  const attackWeapon =
+    prepared.source.kind === 'CHARACTER_ACTION' ? prepared.source.candidate.equipment : undefined
+  const hit = execution.d20?.resultPath === 'ON_HIT' || execution.d20?.resultPath === 'ON_CRIT'
+  const sourceDegradation =
+    attackWeapon && hit && prepared.actor.id !== prepared.target.id
+      ? (input.weaponHits ?? [])
+          .map(({ capability }) =>
+            planEncounterEquipmentDegradation({
+              capability,
+              resultPath: 'PASSIVE',
+              subject: 'ATTACKER_WEAPON',
+              items:
+                prepared.sourceFacts.characterFacts?.ruleEvaluation.snapshot.equipmentItems ?? null,
+              chosenItemInstanceId: attackWeapon.itemInstanceId
+            })
+          )
+          .find((plan) => plan.kind === 'DEGRADE')
+      : undefined
   const effects = prepareEncounterActionEffectPlans({
     encounterId: prepared.state.id,
     occurrenceId: input.occurrenceId,
@@ -349,6 +373,8 @@ export function prepareNativeActionEffectsPlan<
     releasedItemInstanceId: released ? chosen?.item.itemInstanceId : undefined,
     /** The worn item the outcome corrodes; absent when it corrodes none. */
     degradedItem: degradation?.kind === 'DEGRADE' ? degradation : undefined,
+    /** The weapon the source hit with that the target's passive corrodes; absent when it corrodes none. */
+    sourceDegradedItem: sourceDegradation?.kind === 'DEGRADE' ? sourceDegradation : undefined,
     // A source immunity outlasts the Concentration its action's effect depends on.
     riderMaintained: !immune,
     maintenance: recurringEffect

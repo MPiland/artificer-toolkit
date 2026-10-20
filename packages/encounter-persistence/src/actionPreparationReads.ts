@@ -1,6 +1,8 @@
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import { evaluateEncounterAttackAction } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { parseGrantedActionId } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
   resolveEncounterActionSource,
@@ -33,6 +35,7 @@ import { refuseStaleCharacterAction } from './staleCharacterAction.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import { readRunActors } from './documents.js'
+import { readTurnUses } from './turnMovement.js'
 import type { EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
@@ -158,6 +161,7 @@ export async function evaluateActionAttackAction<TFacts extends CharacterTurnFac
 async function loadActionSource(
   tx: EncounterTurnReadTransaction,
   campaign: Campaign,
+  state: EncounterRunState,
   input: EncounterActionSourceRequest
 ): Promise<NativeEncounterActionSource> {
   if (input.actor.systemId !== input.gameSystemId)
@@ -174,7 +178,15 @@ async function loadActionSource(
     basicActions.length > 0
       ? await tx.ports.requireSystem(input.gameSystemId)
       : undefined
-  return resolveEncounterActionSource({ ...input, system, basicActions })
+  // A granted action resolves against the holder's effects and spent uses as they stand now (D160).
+  const granted =
+    input.actor.kind !== 'CUSTOM' && parseGrantedActionId(input.actionId)
+      ? {
+          heldEffects: await listActiveRuleEffects(tx, turnEffectOwner(input.actor, state.id)),
+          spentKeys: await readTurnUses(tx, { state, actorId: input.actor.id })
+        }
+      : undefined
+  return resolveEncounterActionSource({ ...input, system, basicActions, granted })
 }
 
 /** Every current Run actor's active effects, keyed by actor; `given` effects are used as read. */
@@ -292,7 +304,7 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     movementTargets,
     sceneContext: input.sceneContext,
     loadAttackPerception: input.loadAttackPerception,
-    loadSource: (sourceInput) => loadActionSource(tx, input.campaign, sourceInput),
+    loadSource: (sourceInput) => loadActionSource(tx, input.campaign, state, sourceInput),
     loadRelationshipFacts: (factsInput) => loadActionRelationshipFacts(tx, factsInput)
   }).catch(refuseStaleCharacterAction)
 }

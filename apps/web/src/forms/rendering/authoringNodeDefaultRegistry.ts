@@ -107,6 +107,7 @@ type AuthoringDefaultKind =
   | 'pathLifecycle'
   | 'pathLifecycleEndTrigger'
   | 'pathLifecycleEscape'
+  | 'pathLifecycleGrantedAction'
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleOnEnd'
   | 'pathLifecycleTurnAnchor'
@@ -270,6 +271,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   pathLifecycle: ['pathLifecycle'],
   pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
   pathLifecycleEscape: ['pathLifecycleEscape'],
+  pathLifecycleGrantedAction: ['pathLifecycleGrantedAction'],
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleOnEnd: ['pathLifecycleOnEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],

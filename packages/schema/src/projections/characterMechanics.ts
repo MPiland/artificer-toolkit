@@ -45,6 +45,7 @@ import {
   serverPublishedRuleDefinitionDtoSchema,
   ruleGraphSourceIdentityDtoSchema
 } from '../shared/ruleExecutionCore.js'
+import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import {
   activeEffectConsumeEventsSchema,
   activeEffectOnEndSchema,
@@ -239,12 +240,17 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             fromSourceOnly: z.optional(z.literal(true)),
             activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
             uses: z.optional(activeEffectUsesSchema),
-            onEnd: z.optional(activeEffectOnEndSchema)
+            onEnd: z.optional(activeEffectOnEndSchema),
+            grantedActions: z.optional(storedGrantedActionsSchema)
           })
           .check(
             z.refine(
-              (contribution) => contribution.modifiers.length + contribution.senses.length > 0,
-              'A grant contribution grants a modifier or a sense.'
+              (contribution) =>
+                contribution.modifiers.length +
+                  contribution.senses.length +
+                  (contribution.grantedActions?.length ?? 0) >
+                0,
+              'A grant contribution grants a modifier, a sense or an action.'
             )
           )
       ),

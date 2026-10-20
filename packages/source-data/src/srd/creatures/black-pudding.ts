@@ -1,5 +1,13 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANIFEST_KIND, SHAPE_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+
+/** The 5-foot sphere around the pudding that its Corrosive Form covers. */
+const corrosiveShape = (offset: number) => ({
+  id: S.actionId(47, offset),
+  shapeKind: SHAPE_KIND.SPHERE,
+  radius: { amount: 5, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+})
+
 export const blackPudding: CreatureAuthored = {
   id: S.CREATURE_IDS.BLACK_PUDDING,
   label: 'Black Pudding',
@@ -56,16 +64,12 @@ export const blackPudding: CreatureAuthored = {
           invocation: {
             kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
-            range: {
-              id: S.actionId(47, 104),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
+            range: { id: S.actionId(47, 104), rangeKind: S.RANGE_KIND.SELF },
             targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            },
+            shape: corrosiveShape(111)
           },
           paths: [
             {
@@ -80,17 +84,90 @@ export const blackPudding: CreatureAuthored = {
                 resultKind: 'SINGLE',
                 outcomes: [
                   {
-                    id: S.actionId(47, 106),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('ACID'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d8'
-                  },
-                  {
                     id: S.actionId(47, 107),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_BLACK_PUDDING_CORROSIVE_FORM
+                    effectKind: S.EFFECT_KIND.MANIFEST,
+                    manifestKind: MANIFEST_KIND.ZONE,
+                    attachmentKind: 'SOURCE',
+                    label: 'Corrosive Form',
+                    shape: corrosiveShape(112),
+                    components: [
+                      {
+                        id: S.actionId(47, 113),
+                        order: 1,
+                        label: 'Acid',
+                        interactionKinds: ['MELEE_HIT_ON_SOURCE'],
+                        behaviors: [
+                          {
+                            id: S.actionId(47, 114),
+                            order: 1,
+                            invocation: {
+                              kind: 'PASSIVE',
+                              triggerCode: S.TRIGGER.ACTIVATED,
+                              range: { id: S.actionId(47, 115), rangeKind: S.RANGE_KIND.SELF }
+                            },
+                            paths: [
+                              {
+                                id: S.actionId(47, 116),
+                                order: 1,
+                                pathCode: S.PATH_CODE.ON_USE,
+                                groupType: S.PATH_GROUP_TYPE.SINGLE,
+                                originKind: 'SOURCE',
+                                selectionKind: 'FIXED',
+                                resultBlock: {
+                                  id: `${S.actionId(47, 116)}__result`,
+                                  resultKind: 'SINGLE',
+                                  outcomes: [
+                                    {
+                                      id: S.actionId(47, 106),
+                                      effectKind: S.EFFECT_KIND.DAMAGE,
+                                      damageTypeId: S.damageTypeId('ACID'),
+                                      valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                      scalingKind: S.SCALING.NONE,
+                                      diceConfig: '1d8'
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          id: S.actionId(47, 117),
+          order: 2,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_WEAPON_HIT,
+            range: { id: S.actionId(47, 118), rangeKind: S.RANGE_KIND.SELF }
+          },
+          paths: [
+            {
+              id: S.actionId(47, 119),
+              order: 1,
+              pathCode: S.PATH_CODE.PASSIVE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(47, 119)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(47, 120),
+                    effectKind: S.EFFECT_KIND.DEGRADE_EQUIPMENT,
+                    subject: 'ATTACKER_WEAPON' as const,
+                    category: 'WEAPON' as const,
+                    nonmagical: true,
+                    materials: ['METAL' as const, 'WOOD' as const],
+                    step: 1,
+                    destroyWhen: { kind: 'PENALTY_REACHES' as const, value: 5 }
                   }
                 ]
               }

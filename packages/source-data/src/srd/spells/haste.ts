@@ -22,6 +22,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 const grant = {
@@ -85,6 +86,20 @@ export const haste: SpellAuthored = {
             // The wave of lethargy: whenever the spell ends, the target can't move or take actions
             // until after its next turn.
             lifecycle: {
+              // The additional action: one use a turn, for a weapon attack or one of these actions.
+              grantedActions: [
+                {
+                  activation: ACTIVATION_CODE.FREE,
+                  usesPerTurn: 1,
+                  weaponAttack: true,
+                  actionDefinitionIds: [
+                    SRD_BASIC_ACTION_IDS.DASH,
+                    SRD_BASIC_ACTION_IDS.DISENGAGE,
+                    SRD_BASIC_ACTION_IDS.HIDE,
+                    SRD_BASIC_ACTION_IDS.USE_AN_OBJECT
+                  ]
+                }
+              ],
               onEnd: {
                 turns: 1,
                 modifiers: [
@@ -143,14 +158,6 @@ export const haste: SpellAuthored = {
                     }
                   ]
                 }
-              },
-              {
-                id: spellChildId(SPELL_IDS.HASTE, 0x216, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: 'Use the Additional Action',
-                reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions:
-                  'The target gains an additional action on each of its turns. That action can be used only to take the Attack (one weapon attack only), Dash, Disengage, Hide, or Use an Object action.'
               }
             ]
           }

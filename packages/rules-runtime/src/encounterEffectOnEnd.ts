@@ -33,7 +33,7 @@ export function onEndGrantEffect(
       contribution.kind === 'MODIFIER_GRANT'
   )
   if (!template?.onEnd) return null
-  const { onEnd, endOnEvents: _endOnEvents, ...grant } = template
+  const { onEnd, grantedActions: _grantedActions, endOnEvents: _endOnEvents, ...grant } = template
   return {
     id: onEndGrantEffectId(ended.id),
     owner: ended.owner,

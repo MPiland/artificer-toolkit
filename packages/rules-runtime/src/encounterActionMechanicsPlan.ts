@@ -60,6 +60,8 @@ export type NativeEncounterActionMechanicsInput = {
   releaseTargetItemInstanceId?: string
   /** The worn item the target's outcome corrodes (Dissolving Pseudopod, Rust Monster Antennae). */
   degradeTargetItem?: EncounterMechanicsBatchInput['degradeItem']
+  /** The weapon the source hit with that the target's passive corrodes (Black Pudding Corrosive Form). */
+  degradeSourceItem?: EncounterMechanicsBatchInput['degradeItem']
   /** The form the target takes with this outcome (D130), when the action created the effect holding it. */
   enterForm?: EncounterMechanicsBatchInput['enterForm']
   eventPhases?: {
@@ -118,6 +120,7 @@ function prepareNativeActionMechanicsBatches(
       ? []
       : [...(castConsumption ? [castConsumption] : []), ...(input.counterSpellConsumptions ?? [])]
   const stow = spend === 'NONE' ? undefined : prepared.acceptedWieldConflict
+  const sourceDegradation = spend === 'NONE' ? undefined : input.degradeSourceItem
   const draw = spend === 'NONE' ? undefined : prepared.weaponDraw
   // The stow comes first in the batch, then the draw it freed a hand for; a throw empties a hand.
   const equipmentMutation = {
@@ -129,6 +132,7 @@ function prepareNativeActionMechanicsBatches(
     ...(resourceConsumption ? { characterResourceConsumption: resourceConsumption } : {}),
     ...(itemConsumption ? { characterItemConsumption: itemConsumption } : {}),
     ...(spellConsumptions.length > 0 ? { characterSpellConsumptions: spellConsumptions } : {}),
+    ...(sourceDegradation ? { degradeItem: sourceDegradation } : {}),
     ...equipmentMutation
   }
   const sourceReleases = input.sourceReleases ?? []
@@ -138,6 +142,7 @@ function prepareNativeActionMechanicsBatches(
     ((source.kind === 'CHARACTER_ACTION' &&
       (resourceConsumption || itemConsumption || spellConsumptions.length > 0)) ||
       stow ||
+      sourceDegradation ||
       (draw && movesEncounterWeapon(draw)) ||
       sourceReleases.length) &&
     !onTargetBatch
@@ -351,6 +356,7 @@ export function finishNativeActionMechanicsSettlement(
     sourceCharacterStreamVersion,
     sourceItemUseStateTransition,
     sourceItemDraw,
+    sourceItemDegradation: sourceResourceMechanics?.itemDegradationTransition ?? null,
     targetItemUseStateTransition: mechanics.itemReleaseTransition,
     targetItemDegradation: mechanics.itemDegradationTransition,
     sourceApplications: settledSourceApplications,
@@ -441,6 +447,7 @@ export function planNativeEncounterAreaSourceSpend(
     sourceCharacterStreamVersion: sourceResourcePlan?.characterStreamVersion ?? null,
     sourceItemUseStateTransition: sourceResourcePlan?.itemUseStateTransition ?? null,
     sourceItemDraw: sourceResourcePlan?.itemDrawTransition ?? null,
+    sourceItemDegradation: sourceResourcePlan?.itemDegradationTransition ?? null,
     sourceApplications: sourceResourcePlan?.receiptApplications ?? [],
     ...nativeSourceSpendReceipts(prepared)
   }

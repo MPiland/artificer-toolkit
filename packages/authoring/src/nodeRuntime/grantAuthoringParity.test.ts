@@ -9,6 +9,7 @@ import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { brandingSmite } from '@artificer-toolkit/source-data/srd/spells/branding-smite.js'
 import { divineFavor } from '@artificer-toolkit/source-data/srd/spells/divine-favor.js'
 import { enlargeReduce } from '@artificer-toolkit/source-data/srd/spells/enlarge-reduce.js'
+import { expeditiousRetreat } from '@artificer-toolkit/source-data/srd/spells/expeditious-retreat.js'
 import { foresight } from '@artificer-toolkit/source-data/srd/spells/foresight.js'
 import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
@@ -39,7 +40,9 @@ describe('a spell authored from core Modifier Grants through the effect node map
     ['Enlarge/Reduce', enlargeReduce],
     ['Bestow Curse', bestowCurse],
     // SPELLS-4.T2l-a: the follow-on grant (`lifecycle.onEnd`) Haste's lethargy authors.
-    ['Haste', haste]
+    ['Haste', haste],
+    // SPELLS-4.T2lb: the actions a held effect offers (`lifecycle.grantedActions`), Haste's extra action and Expeditious Retreat's Dash.
+    ['Expeditious Retreat', expeditiousRetreat]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }

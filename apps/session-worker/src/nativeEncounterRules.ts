@@ -18,12 +18,19 @@ import {
   encounterActionSpentTurnUses,
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import {
+  heldGrantedActions,
+  nextGrantedActionUseKey,
+  parseGrantedActionId
+} from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
   encounterActionSourceLabel,
   resolveEncounterActionSource,
+  systemAbilityDefinitions,
   type EncounterActionSourceRequest
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated,
@@ -627,6 +634,13 @@ export async function planNativeLiveEncounterAction(
     loadSource: async (input: EncounterActionSourceRequest) =>
       resolveEncounterActionSource({
         ...input,
+        // A granted action resolves against the holder's effects and spent uses as they stand now (D160).
+        granted: parseGrantedActionId(input.actionId)
+          ? {
+              heldEffects: activeEffectsByActorId.get(input.actor.id) ?? [],
+              spentKeys: await readNativeLiveTurnUses(capture, input.actor.id)
+            }
+          : undefined,
         system,
         basicActions: await readEncounterBasicActionEntries({
           actorId: input.actor.id,
@@ -768,7 +782,16 @@ export async function planNativeLiveEncounterAction(
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const targetMovement = movementTargets.get(prepared.target.id)
-  const { activationCode, economy, suppressed, attackAction } =
+  const weaponAttackHolds = heldGrantedActions(
+    activeEffectsByActorId.get(prepared.actor.id) ?? []
+  ).filter(({ offer }) => offer.weaponAttack)
+  const turnUsesSpent =
+    weaponAttackHolds.length > 0 ? await readNativeLiveTurnUses(capture, prepared.actor.id) : []
+  const weaponAttackUseKey =
+    weaponAttackHolds
+      .map((held) => nextGrantedActionUseKey(held, turnUsesSpent))
+      .find((key): key is string => typeof key === 'string') ?? null
+  const { activationCode, economy, suppressed, attackAction, grantedUseKey } =
     await evaluateNativeLiveActionEconomy({
       prepared,
       state,
@@ -776,7 +799,8 @@ export async function planNativeLiveEncounterAction(
       sourceTarget: movementTargets.get(prepared.actor.id),
       targetIds: [prepared.target.id],
       targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
-      capture
+      capture,
+      weaponAttackOffer: weaponAttackUseKey ? { useKey: weaponAttackUseKey } : null
     })
   const mechanicFacts =
     prepared.source.kind === 'CHARACTER_ACTION'
@@ -1395,7 +1419,15 @@ export async function planNativeLiveEncounterAction(
     commandId: command.commandId,
     activeEffectsByActorId,
     attackAction,
-    chosenItemInstanceId
+    chosenItemInstanceId,
+    weaponHits:
+      prepared.source.kind === 'CHARACTER_ACTION' && prepared.target.kind === 'CREATURE'
+        ? discoverEncounterFeatureActions({
+            actor: prepared.target,
+            conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+            abilityDefinitions: systemAbilityDefinitions(system)
+          }).passiveWeaponHits
+        : []
   })
   const reactionUse =
     reaction?.audit.selection === 'USE' && reaction.applied
@@ -1582,6 +1614,11 @@ export async function planNativeLiveEncounterAction(
         itemInstanceId: preparedEffects.degradedItem.itemInstanceId,
         afterPenalty: preparedEffects.degradedItem.afterPenalty,
         destroyed: preparedEffects.degradedItem.destroyed
+      },
+      degradeSourceItem: preparedEffects.sourceDegradedItem && {
+        itemInstanceId: preparedEffects.sourceDegradedItem.itemInstanceId,
+        afterPenalty: preparedEffects.sourceDegradedItem.afterPenalty,
+        destroyed: preparedEffects.sourceDegradedItem.destroyed
       },
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
@@ -1818,7 +1855,10 @@ export async function planNativeLiveEncounterAction(
     storedExecution,
     turnUses:
       storedExecution.status === 'COMPLETE'
-        ? encounterActionSpentTurnUses(prepared, storedExecution.evidence)
+        ? [
+            ...encounterActionSpentTurnUses(prepared, storedExecution.evidence),
+            ...(grantedUseKey ? [grantedUseKey] : [])
+          ]
         : [],
     cleaving,
     reactionUse,

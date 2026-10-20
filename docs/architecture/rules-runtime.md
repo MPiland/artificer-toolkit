@@ -284,7 +284,7 @@ actor, Manual mode and completed Encounters are hard checks, never warnings. Rea
 Actions, Disarm and movement call preparation with `overridable: false` and keep refusing.
 
 `REVERT_LAST_ACTION` (GM-only) undoes the Run's last `RESOLVE_ACTION` and its committed child receipts,
-inverting only recorded before-states (hit points, conditions, resource usage, a stowed shield, a used-up single-use item (given back by lowering its `itemUsage`), item corrosion (`CharacterInverse.degradation`, restoring the `itemDegradation` penalty and any destroyed-item `itemUsage`), charges,
+inverting only recorded before-states (hit points, conditions, resource usage, a stowed shield, a used-up single-use item (given back by lowering its `itemUsage`), item corrosion, of the target's worn item or (`subject` ATTACKER_WEAPON, on an `INCOMING_WEAPON_HIT` passive) of the weapon that hit, carried by `targetItemDegradation` or `sourceItemDegradation` (`CharacterInverse.degradation`, restoring the `itemDegradation` penalty and any destroyed-item `itemUsage`), charges,
 the action allowance, created effects and maintained states). It refuses, naming the kind, removed
 conditions, replaced maintained effects, lost Concentration, Cleaving damage to a Character, Disarm and
 other contested actions (a contested `ESCAPE` too); a second undo is refused. Its implementation is
@@ -1333,6 +1333,15 @@ silence have no Sheet rule yet, so an Encounter applies none either.
 ### Ending a held effect and its `onEnd` grant (current, SPELLS-4.T2l-a)
 
 `deleteCas` and `deleteMaintainedStateCas` (`encounter-persistence/effectStore.ts`) are the one place a held effect leaves encounter state, in the Convex path and the room alike. Each takes a required `removal`: `ENDED` (expiry, Concentration drop or replacement, early end, consumption, a departing source) or `REMOVED` (undo, an actor's own removal, Run completion). An `ENDED` effect whose definition carries a `MODIFIER_GRANT` `onEnd` template leaves its follow-on grant on the same holder (Haste's lethargy, `rules-runtime/encounterEffectOnEnd.ts`): a holder-anchored timed grant with an id derived from the ended effect's, created inside the tick pass so it is not ticked in the same pass. Restoring the effect (`create` with `restoredFrom`) takes that follow-on back.
+
+### Granted-action offers (current, SPELLS-4.T2lb, D160)
+
+A held effect's result block may carry `lifecycle.grantedActions` (generic authored data: `activation`, optional `usesPerTurn`, optional `weaponAttack`, `actionDefinitionIds` of BASIC_ACTIONs; never a spell name). The compiler stores it on the `MODIFIER_GRANT` contribution (`grantedActions`); `encounterGrantedActions.ts` reads it back from the holder's current effects (`heldGrantedActions`). The `onEnd` follow-on never inherits it.
+
+- **Id form:** `<basic action id>:GRANTED:<activeEffectId>:<offerIndex>` (`grantedActionId` / `parseGrantedActionId`). The basic-action prefix check still holds, so clients echo `choice.id` unchanged.
+- **Resolve-time re-check:** `resolveEncounterActionSource` takes a `granted` input (held effects plus this turn's spent keys) and refuses a stale offer (effect ended, no longer offers that action) or a spent one. A source carries the offer's `activation` in place of the action's own, and `grantedUseKey`.
+- **Allowance:** a `FREE` offer skips the allowance in `evaluateNativeLiveActionEconomy`; any other activation spends the real allowance. A `weaponAttack` offer is the Attack action's fallback when its own economy is unavailable: the attack opens a total-1 Attack action charged to the offer's use key.
+- **Use count:** a capped offer spends `granted:<effectId>:<offerIndex>:<use>` in the turn row's `usedOncePerTurn` (see persistence.md); the commit spends it and an undo restores it.
 
 ## Initiative
 

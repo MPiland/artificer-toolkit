@@ -45,6 +45,7 @@ describe('SRD zones state where they are placed (ADR 0038)', () => {
       'Antilife Shell',
       'Antimagic Field',
       'Balor',
+      'Black Pudding',
       'Chain Devil',
       'Fire Shield',
       'Paladin',
