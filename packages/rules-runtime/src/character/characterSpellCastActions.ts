@@ -10,11 +10,11 @@ import type {
 import type { CharacterAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
-import { v5 as uuidv5 } from 'uuid'
 
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
 import { projectCharacterSpellAccess } from './characterRulePolicyAdapter.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
+import { castableEffectGroups, spellCastActionId, spellCastLabel } from '../spellCastCandidates.js'
 import {
   getCastLevelReaderSpellIds,
   getOwnedSpellSlotLevels,
@@ -31,18 +31,6 @@ type SpellPolicyOutput = Pick<
   CharacterRulePolicyOutput,
   'resources' | 'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
 >
-
-const SPELL_CAST_ACTION_NAMESPACE = 'b7a2f1d6-3c4e-5a89-9d10-6e2f4c8a1b35'
-
-/**
- * A Spell cast resolves through the action seam under this identity; the candidate carries the rest.
- * The candidate id embeds the source and the spell and can outgrow an action identity, so the action
- * id is a fixed-length digest of it. A spell's first Effect group keeps that id; each further group
- * (Shield's reaction to being targeted) is its own action, named by its Effect id as well.
- */
-export function spellCastActionId(candidateId: string, laterEffectId?: string): string {
-  return `spell-cast:${uuidv5(laterEffectId === undefined ? candidateId : `${candidateId}#${laterEffectId}`, SPELL_CAST_ACTION_NAMESPACE)}`
-}
 
 /**
  * The spells a Character may cast in an Encounter, as actions of their own: movement reactions never
@@ -127,19 +115,6 @@ function isCastOffered(
   )
 }
 
-const LEVEL_SUFFIXES = ['th', 'st', 'nd', 'rd']
-
-/** "Cure Wounds (2nd level)"; a cantrip is just its name. */
-function spellCastLabel(spell: CompiledSpell, cast: SpellCastCandidate): string {
-  return cast.spellLevel === 0
-    ? spell.label
-    : `${spell.label} (${cast.castLevel}${LEVEL_SUFFIXES[cast.castLevel] ?? 'th'} level)`
-}
-
-function activeSpellEffects(spell: CompiledSpell): readonly CompiledEffectGroup[] {
-  return (spell.effects ?? []).filter((effect) => effect.invocation.kind !== 'PASSIVE')
-}
-
 /**
  * The cast's Effect group with its targeting narrowed to the creature types its grant allows
  * (Chains of Carceri's celestials, fiends and elementals, D156): the types both allow, or the
@@ -208,14 +183,7 @@ export function buildCharacterSpellCastActions(input: {
     // One cast action runs one Effect group. Groups that are each a reaction of their own (Shield
     // answering an attack, and answering Magic Missile) are separate actions; any other spell with
     // several groups is not offered.
-    const effects = activeSpellEffects(spell)
-    if (
-      effects.length > 1 &&
-      !effects.every(
-        ({ invocation }) => 'activation' in invocation && invocation.activation.code === 'REACTION'
-      )
-    )
-      continue
+    const effects = castableEffectGroups(spell)
     const mechanics = mechanicsByCandidateId.get(cast.candidateId)?.mechanics ?? []
     const access =
       cast.source.sourceKind === 'FEATURE'
