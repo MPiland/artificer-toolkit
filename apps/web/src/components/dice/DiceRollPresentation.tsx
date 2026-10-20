@@ -62,8 +62,10 @@ function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
       {adjustment ? (
         <span className={diceStyles.staticDiceCaption}>
           <strong>{formatModeChange(adjustment)}</strong>
-          {adjustment.caption ? ` · ${adjustment.caption}` : ''}
         </span>
+      ) : null}
+      {adjustment?.caption ? (
+        <span className={diceStyles.staticDiceCaption}>{adjustment.caption}</span>
       ) : null}
       <div className={diceStyles.staticRollSummary}>
         <strong>Rolled {roll.evidence.total}</strong>

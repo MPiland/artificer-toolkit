@@ -212,9 +212,7 @@ describe('DiceRollPresentation', () => {
     expect(await screen.findByText('Rolled 20')).toBeInTheDocument()
     expect(screen.getByText('added')).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: 'cancelled' })).not.toBeInTheDocument()
-    expect(
-      screen.getByText("· Advantage: the target can't see you", { exact: false })
-    ).toBeInTheDocument()
+    expect(screen.getByText("Advantage: the target can't see you")).toBeInTheDocument()
     expect(screen.getByText('Normal → Advantage')).toBeInTheDocument()
   })
 
