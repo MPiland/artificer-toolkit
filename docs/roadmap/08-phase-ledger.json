@@ -8789,7 +8789,22 @@
               "note": "Merged m245 (d488f3343)."
             },
             {
-              "id": "SPELLS-4.T2i4b",
+              "id": "SPELLS-4.T2i4b1",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2i4a"]
+              },
+              "text": "Hit-point tier bands: change the hit-point gate contract in place to a band (hitPointsAbove plus ceiling) with one comparator in hitPointTiers.ts, migrating Power Word Kill/Stun and T2i4a; tiered save graph (testPlan, refuseGate, per-tier proposal nodes and source-entry ids, gated KILL on the save-fail path); \"KILL tier selected, no plan\" as a real outcome; widened timed-condition-on-save admission; boundary test at 20/21/30/31/40/41/50/51 with a fixture spell.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "Split from T2i4b 2026-10-20: tier gating needed a band contract and per-tier save graph."
+            },
+            {
+              "id": "SPELLS-4.T2i4b2",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
@@ -8797,10 +8812,10 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-4.T2i4a"]
+                "after": ["SPELLS-4.T2i4b1"]
               },
-              "text": "Divine Word (split from T2i4): the gated KILL tier inside the save-fail graph chosen by the same tier selection; Divine Word data with a parity proof, boundary tests, room journey; DIVINE_WORD kind deleted; docs. Planar banishment stays description-only. Removes T2i4a's stubbed adapter compile stand-in in the entry-point test (and compiledTestSpellCast's optional registry argument if unused) so the tiered test compiles real product code.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "text": "Divine Word: data, parity proof, room journey, delete DIVINE_WORD, docs; remove the compiledTieredCast test stand-in and compiledTestSpellCast registry argument.",
+              "note": "Split from T2i4b 2026-10-20."
             },
             {
               "id": "SPELLS-4.T2i2a",
