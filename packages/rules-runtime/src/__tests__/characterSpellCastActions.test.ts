@@ -31,9 +31,9 @@ import { prepareNativeCharacterActionState } from '../character/characterNativeA
 import { activeEffectEndsOnRest } from '../character/sheetRest.js'
 import {
   buildCharacterSpellCastActions,
-  readSpellCastSlot,
-  spellCastActionId
+  readSpellCastSlot
 } from '../character/characterSpellCastActions.js'
+import { spellCastActionId } from '../spellCastCandidates.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'

@@ -12641,7 +12641,7 @@
             },
             {
               "id": "SPELLS-33.T3c2a1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 8,
@@ -12651,8 +12651,7 @@
                 "after": ["SPELLS-33.T3c1"]
               },
               "text": "Creature spell discovery rules: extract the holder-agnostic cast candidate builder from characterSpellCastRuleFacts.ts (Character assertions unchanged); creature path over grants.spells plus grants.spellSlots rows with a slot left; discover takes optional compiled spells and emits ENCOUNTER_FEATURE capabilities with spellCast. Rules-runtime proofs: Mage lists Fireball at 3-5, cantrips at will.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
-              "note": "Split from T3c2a 2026-10-20: discovery is sync with ~8 callers; creature spell definitions absent from Encounter path."
+              "note": "Merged m249 (349b2d7a5)."
             },
             {
               "id": "SPELLS-33.T3c2a2",
@@ -12679,11 +12678,25 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3c2a2"]
               },
-              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey."
+              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey. Also from T3c2a1: assertEncounterFeatureActionCapabilityCurrent must recognize spell-cast capabilities, and spell attacks need their attackMechanic (null today)."
+            },
+            {
+              "id": "SPELLS-33.T3c2c",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T3c2b"]
+              },
+              "text": "Creature innate casting in the room: offer and cast creature spell grants paid from a charge pool (LIMITED_USE, X/day) and FIXED_LEVEL grants through the shared cast-candidate builder, spending the charge with undo; room journey on an innate caster. T3c2a1 offers only at-will and slot-paid grants.",
+              "note": "Registered 2026-10-20 from the T3c2a1 review."
             },
             {
               "id": "SPELLS-33.T3c3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 8,
@@ -12693,7 +12706,7 @@
                 "after": ["SPELLS-33.T3c1"]
               },
               "text": "Creature rest (split from T3c2, ruled 2026-10-20): a creature-rest room command (schema, persistence, undo) that resets actor featureCharges and spell slot rows by resetKind.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m248 (f1ec751fb). Hit point recovery on a long rest is deferred to future-enhancements."
             },
             {
               "id": "SPELLS-33.T4c",
@@ -12982,10 +12995,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 5,
                 "after": ["SPELLS-33.T1", "SPELLS-31.T5n"]
               },
-              "text": "straight-line Charge gates (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "straight-line Charge gates (4 kinds) on a new generic MOVED_TOWARD_TARGET {minFeet} hit-path gate (D164). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6a1",
@@ -13105,7 +13119,7 @@
               "text": "new: terrain and underwater predicates (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
             {
-              "id": "SPELLS-33.T6d3",
+              "id": "SPELLS-33.T6d3a",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -13115,7 +13129,21 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-31.T5o"]
               },
-              "text": "new: encounter-state gates (surprised, first round, ally near target on a standing modifier) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Pack Tactics (1 kind): a standing ATTACK_ROLL advantage modifier accepts ENEMY_NEAR_TARGET (D165). Authoring-parity proof; deletes its kind (D156; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6d3b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T6d3a"]
+              },
+              "text": "Assassinate and Surprise Attack (2 kinds): new TARGET_HAS_NOT_TAKEN_TURN predicate derived from initiative for Assassinate advantage; surprise parts description-only (D165). Authoring-parity proof; deletes the kinds (D156; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6e",

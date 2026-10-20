@@ -32,6 +32,7 @@ export const encounterRunCommandHeaderSchema = lazySchema(() =>
         'ROLL_ACTOR_INITIATIVE',
         'ROLL_ENEMY_ACTION',
         'ADJUST_FEATURE_RESOURCE',
+        'CREATURE_REST',
         'REPLACE_OPTIONAL_COMBAT_RULES',
         'SET_HEALTH_DISPLAY_DEFAULT',
         'COMPLETE',

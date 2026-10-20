@@ -35,7 +35,8 @@ function parseCharacterClassHitDie(dieConfig: string | undefined): number | unde
   return Number.isSafeInteger(die) && die >= 2 ? die : undefined
 }
 
-function getRestRecoveryTriggers(restKind: 'SHORT' | 'LONG') {
+/** The reset kinds a rest recovers: a long rest recovers short-rest resources too. Shared with creature rests. */
+export function getRestRecoveryTriggers(restKind: 'SHORT' | 'LONG') {
   return restKind === 'LONG'
     ? new Set(['SHORT_REST', 'LONG_REST'] as const)
     : new Set(['SHORT_REST'] as const)

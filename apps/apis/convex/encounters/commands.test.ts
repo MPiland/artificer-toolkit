@@ -1077,6 +1077,31 @@ describe('native Encounter Run commands', () => {
     )
   }, 30000)
 
+  it('rejects creature rests for Character actors', async () => {
+    const { t, owner, run } = await setupCharacterAutomatic()
+    const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
+    if (!actor) throw new Error('Missing Character actor.')
+    await t.run((ctx) => activateFixtureRun(ctx, run.id, { round: 1, currentActorId: actor.id }))
+    await expect(
+      executeInRoom(owner.caller, {
+        command: {
+          type: 'CREATURE_REST',
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: 0,
+          restKind: 'LONG',
+          actorIds: [actor.id]
+        }
+      })
+    ).rejects.toMatchObject({
+      data: {
+        code: 'DOMAIN_REJECTED',
+        reason: 'TARGET_UNAVAILABLE',
+        message: 'A Character rests through its Character Sheet.'
+      }
+    })
+  }, 30000)
+
   it('restores from reconciled feature usage after a maximum decreases', async () => {
     const base = await setup({ resource: true })
     const { t, owner, run } = base

@@ -9,30 +9,15 @@ import {
   isCharacterSpellActionAccessCandidate,
   type CharacterSpellAccessCandidate
 } from './characterSpellRuleFacts.js'
+import { createSpellCastCandidateList, spellCastMode } from '../spellCastCandidates.js'
 
 type ResourcePoolCandidate = CharacterRulePolicyInput['resourcePoolCandidates'][number]
-type SpellCastCandidate = CharacterRulePolicyInput['spellCastCandidates'][number]
 
 export function createCharacterSpellCastCandidateId(
   source: CharacterSpellSourceRef,
   castLevel: number
 ): string {
   return `${createCharacterSpellSourceKey(source)}:level:${castLevel}`
-}
-
-function castMode(candidate: CharacterSpellAccessCandidate): SpellCastCandidate['castMode'] {
-  const attributes = new Set(candidate.attributes)
-  if (attributes.has('LIMITED_USE')) return 'LIMITED_USE'
-  if (attributes.has('CAST_AT_WILL')) return 'AT_WILL'
-  if (attributes.has('CAST_AT_LEVEL')) return 'FIXED_LEVEL'
-  if (attributes.has('RITUAL')) return 'RITUAL'
-  return 'SPELL_SLOT'
-}
-
-function castLevels(spellLevel: number, mode: SpellCastCandidate['castMode'], fixedLevel?: number) {
-  const baseLevel = fixedLevel ?? spellLevel
-  if (spellLevel === 0 || mode !== 'SPELL_SLOT') return [baseLevel]
-  return Array.from({ length: 10 - baseLevel }, (_, index) => baseLevel + index)
 }
 
 export function buildCharacterSpellCastRuleFacts(params: {
@@ -50,36 +35,9 @@ export function buildCharacterSpellCastRuleFacts(params: {
       pool.ownerKind === 'SPELL_SOURCE' ? [[pool.accessId, pool.poolId] as const] : []
     )
   )
-  const spellCastCandidates: SpellCastCandidate[] = []
-  const seen = new Set<string>()
-
-  const append = (
-    source: CharacterSpellSourceRef,
-    label: string,
-    spellLevel: number,
-    mode: SpellCastCandidate['castMode'],
-    resourceOwnerKey: string | null,
-    fixedLevel?: number
-  ) => {
-    const levels = castLevels(spellLevel, mode, fixedLevel)
-    for (const [index, level] of levels.entries()) {
-      const candidateId = createCharacterSpellCastCandidateId(source, level)
-      if (seen.has(candidateId)) continue
-      seen.add(candidateId)
-      spellCastCandidates.push({
-        sequence: spellCastCandidates.length,
-        candidateId,
-        label,
-        spellId: source.spellId,
-        source,
-        spellLevel,
-        castMode: mode,
-        castLevel: level,
-        baseEntry: index === 0,
-        resourceOwnerKey
-      })
-    }
-  }
+  const { candidates: spellCastCandidates, append } = createSpellCastCandidateList(
+    createCharacterSpellCastCandidateId
+  )
 
   for (const source of params.snapshot.spellSources ?? []) {
     const spell = spellById.get(source.spellId)
@@ -96,14 +54,18 @@ export function buildCharacterSpellCastRuleFacts(params: {
       sourceKind: 'FEATURE',
       sourceInstanceId: access.sourceInstanceId
     }
-    const mode = castMode(access)
+    const mode = spellCastMode(access.attributes)
     append(
       source,
       spell.label,
       spell.level,
       mode,
       spellPoolByAccessId.get(access.accessId) ?? null,
-      access.attributes.includes('CAST_AT_LEVEL') ? (access.castAtLevel ?? undefined) : undefined
+      {
+        fixedLevel: access.attributes.includes('CAST_AT_LEVEL')
+          ? (access.castAtLevel ?? undefined)
+          : undefined
+      }
     )
   }
 
