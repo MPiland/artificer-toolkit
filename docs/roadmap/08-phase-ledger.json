@@ -12993,7 +12993,7 @@
             },
             {
               "id": "SPELLS-33.T6i2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13002,7 +13002,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T6i"]
               },
-              "text": "Black Pudding Corrosive Form (split from T6i, 2026-10-20): the weapon that hits the pudding degrades through degradeEquipment. This needs the attacking weapon identity on the retaliation path. Authoring-parity proof, deletes CREATURE_BLACK_PUDDING_CORROSIVE_FORM, plus a room journey. Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
+              "text": "Black Pudding Corrosive Form (split from T6i, 2026-10-20): the weapon that hits the pudding degrades through degradeEquipment. This needs the attacking weapon identity on the retaliation path. Authoring-parity proof, deletes CREATURE_BLACK_PUDDING_CORROSIVE_FORM, plus a room journey. Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "note": "Merged m234 (0110814db)."
             },
             {
               "id": "SPELLS-33.T6j",
