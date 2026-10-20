@@ -395,6 +395,16 @@ export interface CharacterStabilizeOutcomeApplication {
   targetActorId: string
 }
 
+/** A System-authorized kill: the target is left at 0 hit points and 0 temporary hit points, and a Character's death saves read dead. */
+export interface CharacterKillOutcomeApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'KILL'
+  targetActorId: string
+}
+
 /** A System-authorized departure: the target leaves the Run's play (D128). */
 export interface CharacterDepartOutcomeApplication {
   sourceNodeId: string
@@ -448,6 +458,7 @@ export type CharacterRuleActionApplication =
   | CharacterConditionRemoveOutcomeApplication
   | CharacterTemporaryHitPointsReleaseApplication
   | CharacterStabilizeOutcomeApplication
+  | CharacterKillOutcomeApplication
   | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication
   | CharacterScalarReductionApplication

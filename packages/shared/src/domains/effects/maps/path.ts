@@ -26,7 +26,9 @@ import type {
   NonManifestOutcomeAuthored,
   OutcomeAuthored,
   PathChoiceOptionAuthored,
+  PathHitPointTierRowAuthored,
   PathRollTableRowAuthored,
+  ResultBlockGateAuthored,
   ResultBlockAuthored,
   DegradeEquipmentDestroyWhenAuthored,
   ScalarReductionAuthored,
@@ -147,6 +149,11 @@ const PATH_SELECTION_KIND_OPTIONS = [
     code: 'ROLL_TABLE',
     label: 'Roll Table',
     description: 'Roll for a result.'
+  },
+  {
+    code: 'HIT_POINT_TIERS',
+    label: 'Hit Point Tiers',
+    description: "The lowest tier the target's current hit points satisfy applies."
   }
 ] as const
 
@@ -248,6 +255,10 @@ const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
 const manifestOccupantSaveBonus = buildNodeMap<ManifestOccupantSaveBonusNode>()
 const resultBlock = buildNodeMap<ResultBlockAuthored>()
 const nonManifestResultBlock = buildNodeMap<ResultBlockAuthored<NonManifestOutcomeAuthored>>()
+const resultBlockGate = buildNodeMap<ResultBlockGateAuthored>()
+const hitPointTierRow = buildNodeMap<PathHitPointTierRowAuthored>()
+const nonManifestHitPointTierRow =
+  buildNodeMap<PathHitPointTierRowAuthored<NonManifestOutcomeAuthored>>()
 const choiceOption = buildNodeMap<PathChoiceOptionAuthored>()
 const nonManifestChoiceOption = buildNodeMap<PathChoiceOptionAuthored<NonManifestOutcomeAuthored>>()
 const rollRow = buildNodeMap<PathRollTableRowAuthored>()
@@ -3453,6 +3464,12 @@ const RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored> = resultBlock.define(
         )
       )
       .set(
+        'gate',
+        groupObject(['gate'], 'Gate', () => RESULT_BLOCK_GATE_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+      .set(
         'outcomes',
         groupArray(['outcomes'], 'Outcomes', () => OUTCOME_NODE_MAP, {
           presentation: 'summary'
@@ -3501,12 +3518,89 @@ const NON_MANIFEST_RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored<NonManifes
         )
       )
       .set(
+        'gate',
+        groupObject(['gate'], 'Gate', () => RESULT_BLOCK_GATE_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+      .set(
         'outcomes',
         groupArray(['outcomes'], 'Outcomes', () => NON_MANIFEST_OUTCOME_NODE_MAP, {
           presentation: 'summary'
         })
       )
   })
+
+const RESULT_BLOCK_GATE_NODE_MAP = resultBlockGate.define('resultBlockGate', ({ map, nodes }) => {
+  const { number, selectSingle } = nodes
+
+  map
+    .set(
+      'kind',
+      selectSingle(
+        ['kind'],
+        'Condition',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            {
+              code: 'TARGET_HIT_POINTS_AT_MOST',
+              label: 'Target Hit Points At Most',
+              description: "The target's current hit points are at most the amount."
+            }
+          ]
+        },
+        { requiredIf: true }
+      )
+    )
+    .set(
+      'amount',
+      number(['amount'], 'Hit Points', { constraints: { minimum: 1 }, requiredIf: true })
+    )
+})
+
+const HIT_POINT_TIER_ROW_NODE_MAP: NodeMap<PathHitPointTierRowAuthored> = hitPointTierRow.define(
+  'hitPointTierRow',
+  ({ map, nodes }) => {
+    const { text, number, groupObject } = nodes
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order', { requiredIf: true }))
+      .set(
+        'atMost',
+        number(['atMost'], 'Hit Points At Most', { constraints: { minimum: 1 }, requiredIf: true })
+      )
+      .set(
+        'resultBlock',
+        groupObject(['resultBlock'], 'Result', () => RESULT_BLOCK_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+  }
+)
+
+const NON_MANIFEST_HIT_POINT_TIER_ROW_NODE_MAP: NodeMap<
+  PathHitPointTierRowAuthored<NonManifestOutcomeAuthored>
+> = nonManifestHitPointTierRow.define('nonManifestHitPointTierRow', ({ map, nodes }) => {
+  const { text, number, groupObject } = nodes
+
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('order', number(['order'], 'Order', { requiredIf: true }))
+    .set(
+      'atMost',
+      number(['atMost'], 'Hit Points At Most', { constraints: { minimum: 1 }, requiredIf: true })
+    )
+    .set(
+      'resultBlock',
+      groupObject(['resultBlock'], 'Result', () => NON_MANIFEST_RESULT_BLOCK_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true
+      })
+    )
+})
 
 const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.define(
   'choiceOption',
@@ -3920,6 +4014,13 @@ export const PATH_NODE_MAP: NodeMap<EffectPathAuthored> = effectPath.define(
           showIf: local.field(['selectionKind']).eq('ROLL_TABLE')
         })
       )
+      .set(
+        'hitPointTierRows',
+        groupArray(['rows'], 'Tiers', () => HIT_POINT_TIER_ROW_NODE_MAP, {
+          presentation: 'table',
+          showIf: local.field(['selectionKind']).eq('HIT_POINT_TIERS')
+        })
+      )
   },
   {
     collection: {
@@ -4068,6 +4169,13 @@ export const MANIFEST_BEHAVIOR_PATH_NODE_MAP: NodeMap<
         groupArray(['rows'], 'Rows', () => NON_MANIFEST_ROLL_TABLE_ROW_NODE_MAP, {
           presentation: 'table',
           showIf: local.field(['selectionKind']).eq('ROLL_TABLE')
+        })
+      )
+      .set(
+        'hitPointTierRows',
+        groupArray(['rows'], 'Tiers', () => NON_MANIFEST_HIT_POINT_TIER_ROW_NODE_MAP, {
+          presentation: 'table',
+          showIf: local.field(['selectionKind']).eq('HIT_POINT_TIERS')
         })
       )
   },

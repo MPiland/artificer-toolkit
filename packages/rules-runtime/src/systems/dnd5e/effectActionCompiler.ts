@@ -169,6 +169,7 @@ export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
 const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
 const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-points-proposal'
 export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
+export const DND5E_KILL_PROPOSAL_OPERATION_KEY = 'dnd5e.kill-proposal'
 export const DND5E_DEPART_PROPOSAL_OPERATION_KEY = 'dnd5e.depart-proposal'
 const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
@@ -206,6 +207,11 @@ export const DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY = 'dnd5e.attack-critical-t
 const DND5E_CRITICAL_EXTRA_DICE_FACT_KEY = 'dnd5e.critical-extra-dice'
 export const DND5E_TARGET_STATE_CHECKSUM_FACT_KEY = 'dnd5e.target-state-checksum'
 export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-immune'
+/**
+ * The target's current hit points when the action resolves. A result block's hit-point gate reads
+ * it; the gated proposal compares it with the gate's `hitPointsAtMost` literal.
+ */
+export const DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY = 'dnd5e.target-current-hit-points'
 const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
   ON_USE: 'dnd5e.target-condition-immune.on-use',
   ON_HIT: 'dnd5e.target-condition-immune.on-hit',
@@ -322,6 +328,7 @@ type Outcome =
   | { kind: 'DAMAGE'; amount: number; damageTypeId: string }
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }
+  | { kind: 'KILL' }
   | { kind: 'DEPART' }
   | { kind: 'MODIFIER_GRANT' }
   | { kind: 'ACTOR_LINK' }
@@ -377,6 +384,7 @@ function entryDamagePrefix(pathCode: string): string {
 /** The outcomes that carry no amount: their proposal takes only the target and its state checksum. */
 const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
   STABILIZE: DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+  KILL: DND5E_KILL_PROPOSAL_OPERATION_KEY,
   DEPART: DND5E_DEPART_PROPOSAL_OPERATION_KEY,
   MODIFIER_GRANT: DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   ACTOR_LINK: DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
@@ -4785,6 +4793,7 @@ function supported(
     return notOnAList({ kind: 'CONDITION_APPLY', conditionId: outcome.conditionId })
   }
   if (outcome.effectKind === 'STABILIZE') return notOnAList({ kind: 'STABILIZE' })
+  if (outcome.effectKind === 'KILL') return notOnAList({ kind: 'KILL' })
   // The targets leave the Scene for a place the table does not model; the commit marks each as
   // departed (D128) and a Scene-bound destination waits for the movement service.
   if (
@@ -4932,6 +4941,51 @@ function targetOnlyProposalOperation(
 export const dnd5eStabilizeProposalOperation = targetOnlyProposalOperation(
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   'stabilize'
+)
+export const dnd5eKillProposalOperation = targetOnlyProposalOperation(
+  DND5E_KILL_PROPOSAL_OPERATION_KEY,
+  'kill'
+)
+/**
+ * Version 2 of a target-only proposal also reads the target's current hit points and the gate's
+ * ceiling, and is authorized only while the target is at or under it.
+ */
+function hitPointGatedTargetOnlyProposalOperation(
+  key: string,
+  label: string
+): ProposalRuleOperationContract {
+  const base = targetOnlyProposalOperation(key, label)
+  return {
+    ...base,
+    contractVersion: 2,
+    inputs: {
+      ...base.inputs,
+      targetCurrentHitPoints: RULE_VALUE_KIND.NUMBER,
+      hitPointsAtMost: RULE_VALUE_KIND.NUMBER
+    },
+    execute(inputs) {
+      const { targetCurrentHitPoints, hitPointsAtMost } = inputs
+      if (
+        typeof targetCurrentHitPoints !== 'number' ||
+        !Number.isSafeInteger(targetCurrentHitPoints) ||
+        targetCurrentHitPoints < 0 ||
+        typeof hitPointsAtMost !== 'number' ||
+        !Number.isSafeInteger(hitPointsAtMost) ||
+        hitPointsAtMost < 1
+      )
+        throw new Error(
+          `D&D ${label} proposal requires the target's hit points and a hit-point gate.`
+        )
+      return {
+        ...base.execute(inputs),
+        authorized: targetCurrentHitPoints <= hitPointsAtMost
+      }
+    }
+  }
+}
+export const dnd5eHitPointGatedKillProposalOperation = hitPointGatedTargetOnlyProposalOperation(
+  DND5E_KILL_PROPOSAL_OPERATION_KEY,
+  'kill'
 )
 export const dnd5eDepartProposalOperation = targetOnlyProposalOperation(
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
@@ -5857,6 +5911,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       key: DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
       valueKind: RULE_VALUE_KIND.BOOLEAN
     },
+    { key: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
     ...Object.keys(DND5E_CONDITION_IMMUNE_FACT_KEYS).flatMap((pathCode) =>
       Array.from({ length: MAX_CONDITIONS_PER_PATH }, (_, index) => ({
         key: conditionImmuneFactKey(pathCode, index + 1)!,
@@ -5918,6 +5973,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+    DND5E_KILL_PROPOSAL_OPERATION_KEY,
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
@@ -5958,7 +6014,8 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       [
         dnd5eAttackTestOperation,
         dnd5eSaveTestOperation,
-        dnd5eTestMarginConditionProposalOperation
+        dnd5eTestMarginConditionProposalOperation,
+        dnd5eHitPointGatedKillProposalOperation
       ].map(({ key, contractVersion }) => ({ key, contractVersion }))
     )
 }
@@ -5978,6 +6035,8 @@ function testProposalOperationKey(outcome: Outcome | EntryDiceDamageOutcome): st
 function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcome, suffix = '') {
   if (outcome.kind === 'STABILIZE')
     unsupported('D&D stabilize outcomes cannot follow an attack or saving throw.')
+  if (outcome.kind === 'KILL')
+    unsupported('D&D kill outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'DEPART')
     unsupported('D&D depart outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'MODIFIER_GRANT')
@@ -7961,6 +8020,12 @@ function compileDnd5eEffectAction({
   })
 }
 
+/** The hit-point ceiling the action's one direct entry gates its outcome on, when it has one. */
+function directHitPointGateAtMost(action: Dnd5eCompiledEffectActionSource): number | undefined {
+  const entry = action.compiledEffect.entries[0]
+  return entry && 'gate' in entry ? entry.gate?.amount : undefined
+}
+
 function compileEffectActionGraph(
   action: Dnd5eCompiledEffectActionSource
 ): ServerPublishedRuleDefinitionDto {
@@ -7978,20 +8043,32 @@ function compileEffectActionGraph(
     )
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
+  // Only a direct outcome honours a hit-point gate; every other plan refuses one rather than skip it.
+  const gateAtMost = directHitPointGateAtMost(action)
+  const refuseGate = () => {
+    if (gateAtMost !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
+  }
   const composition = sequentialComposition(action)
-  if (composition) return compileSequentialComposition(action, composition)
+  if (composition) {
+    refuseGate()
+    return compileSequentialComposition(action, composition)
+  }
   if (isExactImmediateFollowUpSaveAction(action) || repeatingDirectFollowUpSavePlan(action)) {
+    refuseGate()
     return compileDnd5eEffectActionTestTemplate({ action }).published
   }
   const recurringPlan = supportedRecurringPlan(action) ?? concealmentPlan(action)
   const plan = testPlan(action)
   if (plan) {
+    refuseGate()
     return bindMovementInterruptionOutput({
       action,
       published: compileTestDefinition(action, plan, recurringPlan)
     })
   }
   const outcome = supported(action)
+  if (gateAtMost !== undefined && outcome.kind !== 'KILL')
+    unsupported('D&D hit-point gate belongs to a kill outcome.')
   if (outcome.kind === 'DICE_HEAL') {
     const entry = action.compiledEffect.entries[0]
     if (
@@ -8079,13 +8156,22 @@ function compileEffectActionGraph(
     nodes: [
       {
         id: nodeId,
-        operation: { key: operation, contractVersion: 1 },
+        operation: { key: operation, contractVersion: gateAtMost === undefined ? 1 : 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           targetStateChecksum: {
             kind: 'FACT',
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
+          ...(gateAtMost === undefined
+            ? {}
+            : {
+                targetCurrentHitPoints: {
+                  kind: 'FACT',
+                  factKey: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY
+                },
+                hitPointsAtMost: { kind: 'LITERAL', value: gateAtMost }
+              }),
           ...(isTargetOnlyOutcome(outcome)
             ? targetOnlyOutcomeInputs(outcome)
             : outcome.kind === 'CONDITION_APPLY'
@@ -8619,11 +8705,14 @@ function testApplications(
         application.kind === 'DEPART'
       )
         continue
-      input = {
-        ...input,
-        currentHitPoints: application.afterCurrentHitPoints,
-        temporaryHitPoints: application.afterTemporaryHitPoints
-      }
+      input =
+        application.kind === 'KILL'
+          ? { ...input, currentHitPoints: 0, temporaryHitPoints: 0 }
+          : {
+              ...input,
+              currentHitPoints: application.afterCurrentHitPoints,
+              temporaryHitPoints: application.afterTemporaryHitPoints
+            }
     }
   }
   return applications
@@ -8746,6 +8835,14 @@ type DirectInterpretationInput = Pick<
   | 'conditionImmunityIds'
 >
 
+function graphReadsFact(graph: Pick<CompiledRuleGraph, 'nodes'>, factKey: string): boolean {
+  return graph.nodes.some((node) =>
+    Object.values(node.inputs).some(
+      (binding) => binding.kind === 'FACT' && binding.factKey === factKey
+    )
+  )
+}
+
 function conditionImmunityFacts(
   graph: Pick<CompiledRuleGraph, 'nodes'>,
   conditionImmunityIds: readonly string[] | undefined
@@ -8813,6 +8910,31 @@ function conditionImmunityFacts(
       )
   }
   return facts
+}
+
+/**
+ * Whether a proposal's authorization follows from the target's hit points on its evidence: an
+ * ungated proposal always authorizes; a gated one binds the target's current hit points fact and
+ * authorizes exactly while they are at most the gate's literal ceiling.
+ */
+function hitPointGateEvidenceIsValid(
+  input: Pick<DirectInterpretationInput, 'execution' | 'currentHitPoints'>,
+  publishedNode: Pick<CompiledRuleGraph['nodes'][number], 'inputs'>,
+  trace: { operation: { contractVersion: number }; outputs: Record<string, unknown> }
+): boolean {
+  const hitPoints = publishedNode.inputs.targetCurrentHitPoints
+  const ceiling = publishedNode.inputs.hitPointsAtMost
+  if (trace.operation.contractVersion === 1)
+    return !hitPoints && !ceiling && trace.outputs.authorized === true
+  return (
+    hitPoints?.kind === 'FACT' &&
+    hitPoints.factKey === DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY &&
+    ceiling?.kind === 'LITERAL' &&
+    typeof ceiling.value === 'number' &&
+    input.execution.evidence.facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] ===
+      input.currentHitPoints &&
+    trace.outputs.authorized === input.currentHitPoints <= ceiling.value
+  )
 }
 
 function interpretDirectProposal(
@@ -8913,6 +9035,26 @@ function interpretDirectProposal(
       {
         kind: 'CONDITION_APPLY',
         conditionId: outputs.conditionId,
+        targetActorId: input.targetActorId,
+        sourceNodeId: trace.nodeId,
+        sourceOperationKey: trace.operation.key,
+        authoredPath: null,
+        resolvedPath: null
+      }
+    ]
+  }
+  if (trace.operation.key === DND5E_KILL_PROPOSAL_OPERATION_KEY) {
+    if (trace.outputs.targetActorId !== input.targetActorId)
+      throw new Dnd5eEffectActionCompilerError('The committed D&D kill proposal trace is invalid.')
+    if (!hitPointGateEvidenceIsValid(input, publishedNode, trace))
+      throw new Dnd5eEffectActionCompilerError(
+        'The committed D&D kill proposal hit-point gate evidence is invalid.'
+      )
+    // A target above the gate's ceiling is left as it was.
+    if (trace.outputs.authorized === false) return []
+    return [
+      {
+        kind: 'KILL',
         targetActorId: input.targetActorId,
         sourceNodeId: trace.nodeId,
         sourceOperationKey: trace.operation.key,
@@ -9119,6 +9261,7 @@ function interpretDirect(
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+    DND5E_KILL_PROPOSAL_OPERATION_KEY,
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
@@ -9374,11 +9517,14 @@ function interpretDirect(
         application.kind === 'DEPART'
       )
         continue
-      input = {
-        ...input,
-        currentHitPoints: application.afterCurrentHitPoints,
-        temporaryHitPoints: application.afterTemporaryHitPoints
-      }
+      input =
+        application.kind === 'KILL'
+          ? { ...input, currentHitPoints: 0, temporaryHitPoints: 0 }
+          : {
+              ...input,
+              currentHitPoints: application.afterCurrentHitPoints,
+              temporaryHitPoints: application.afterTemporaryHitPoints
+            }
     }
   }
   const reductions = input.execution.evidence.trace.filter(
@@ -10272,6 +10418,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         conditionIds: targetConditionIds
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
+      ...(graphReadsFact(published.definition, DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY)
+        ? { [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints }
+        : {}),
       ...resolvedDamageExpressionFacts,
       ...weaponDamageDieFacts,
       ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0

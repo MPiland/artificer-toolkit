@@ -582,6 +582,17 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { turns: 1, modifiers: [] }
     case 'pathLifecycleTurnAnchor':
       return { actor: 'TARGET', boundary: 'END_OF_TURN' }
+    case 'pathHitPointTierRow':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        atMost: 1,
+        resultBlock: {
+          id: crypto.randomUUID(),
+          resultKind: 'SINGLE',
+          outcomes: []
+        }
+      }
     case 'pathRollTableRow':
       return {
         id: crypto.randomUUID(),
@@ -603,6 +614,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       }
     case 'rollTableRepeat':
       return { count: 2, rerollValues: [] }
+    case 'resultBlockGate':
+      return { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 1 }
     case 'perTargetLockout':
       return { until: 'SOURCE_LONG_REST' }
     case 'proficiencyGrant':

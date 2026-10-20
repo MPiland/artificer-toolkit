@@ -246,7 +246,9 @@ function checkFailureMarginRiders(
         ? [path.resultBlock]
         : path.selectionKind === 'CHOICE'
           ? path.options.map((option) => option.resultBlock)
-          : path.rows.flatMap((row) => (row.resolutionKind === 'RESULT' ? [row.resultBlock] : []))
+          : path.selectionKind === 'HIT_POINT_TIERS'
+            ? path.rows.map((row) => row.resultBlock)
+            : path.rows.flatMap((row) => (row.resolutionKind === 'RESULT' ? [row.resultBlock] : []))
     const allowed =
       path.selectionKind === 'FIXED' &&
       path.pathCode === 'ON_SAVE_FAIL' &&

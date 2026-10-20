@@ -333,6 +333,7 @@ export const effectKindSchema = lazySchema(() =>
     'MOVEMENT_RULE',
     'ACTION_ECONOMY_RULE',
     'STABILIZE',
+    'KILL',
     'MANUAL_ADJUDICATION'
   ])
 )

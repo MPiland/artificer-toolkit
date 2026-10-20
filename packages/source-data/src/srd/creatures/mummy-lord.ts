@@ -90,58 +90,27 @@ export const mummyLord: CreatureAuthored = {
       label: 'Spellcasting',
       description:
         'Spellcasting. The mummy lord is a 10th-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 17, +9 to hit with spell attacks). The mummy lord has the following cleric spells prepared: Cantrips (at will): sacred flame, thaumaturgy 1st level (4 slots): command, guiding bolt, shield of faith 2nd level (3 slots): hold person, silence, spiritual weapon 3rd level (3 slots): animate dead, dispel magic 4th level (3 slots): divination, guardian of faith 5th level (2 slots): contagion, insect plague 6th level (1 slot): harm',
-      grants: {
-        spells: [
+      grants: S.slottedSpellcastingGrants(
+        202,
+        S.ABILITY_CODE.WISDOM,
+        [S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
+        [
           {
-            id: S.actionId(202, 701),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
-            castingAbility: S.ABILITY_CODE.WISDOM,
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
-            order: 0
+            level: 1,
+            slots: 4,
+            spellIds: [S.SPELL_IDS.COMMAND, S.SPELL_IDS.GUIDING_BOLT, S.SPELL_IDS.SHIELD_OF_FAITH]
           },
           {
-            id: S.actionId(202, 702),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [
-              S.SPELL_IDS.COMMAND,
-              S.SPELL_IDS.GUIDING_BOLT,
-              S.SPELL_IDS.SHIELD_OF_FAITH,
-              S.SPELL_IDS.HOLD_PERSON,
-              S.SPELL_IDS.SILENCE,
-              S.SPELL_IDS.SPIRITUAL_WEAPON,
-              S.SPELL_IDS.ANIMATE_DEAD,
-              S.SPELL_IDS.DISPEL_MAGIC,
-              S.SPELL_IDS.DIVINATION,
-              S.SPELL_IDS.GUARDIAN_OF_FAITH,
-              S.SPELL_IDS.CONTAGION,
-              S.SPELL_IDS.INSECT_PLAGUE,
-              S.SPELL_IDS.HARM
-            ],
-            castingAbility: S.ABILITY_CODE.WISDOM,
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED],
-            order: 1
-          }
+            level: 2,
+            slots: 3,
+            spellIds: [S.SPELL_IDS.HOLD_PERSON, S.SPELL_IDS.SILENCE, S.SPELL_IDS.SPIRITUAL_WEAPON]
+          },
+          { level: 3, slots: 3, spellIds: [S.SPELL_IDS.ANIMATE_DEAD, S.SPELL_IDS.DISPEL_MAGIC] },
+          { level: 4, slots: 3, spellIds: [S.SPELL_IDS.DIVINATION, S.SPELL_IDS.GUARDIAN_OF_FAITH] },
+          { level: 5, slots: 2, spellIds: [S.SPELL_IDS.CONTAGION, S.SPELL_IDS.INSECT_PLAGUE] },
+          { level: 6, slots: 1, spellIds: [S.SPELL_IDS.HARM] }
         ]
-      },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(202, 703),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(202, 704), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MUMMY_LORD_SPELLCASTING
-        })
-      ],
+      ),
       order: 3
     },
     {

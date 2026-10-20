@@ -884,3 +884,75 @@ describe('a condition that flees its source (SPELLS-29.T2)', () => {
     ])
   })
 })
+
+describe('hit-point gate and tiers (SPELLS-4.T2i)', () => {
+  const invocation = {
+    triggerCode: TRIGGER.ACTIVATED,
+    activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+    range: { id: 'tier-range', rangeKind: RANGE_KIND.SELF }
+  } as const
+  const kill = { id: 'kill', effectKind: EFFECT_KIND.KILL } as const
+
+  it('carries a result block gate onto each compiled entry', () => {
+    const result = compileEffectResult({
+      id: 'gated-effect',
+      order: 1,
+      invocation,
+      paths: [
+        {
+          id: 'gated-path',
+          order: 1,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'gated-result',
+            resultKind: 'SINGLE',
+            gate: { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 100 },
+            outcomes: [kill]
+          }
+        }
+      ]
+    })
+    if (!result.ok) throw new Error('Expected compileEffectResult to succeed')
+    expect(result.value.entries).toMatchObject([
+      { gate: { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 100 }, outcome: kill }
+    ])
+  })
+
+  it('compiles each tier row to its own entry carrying the row ceiling', () => {
+    const result = compileEffectResult({
+      id: 'tier-effect',
+      order: 1,
+      invocation,
+      paths: [
+        {
+          id: 'tier-path',
+          order: 1,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          selectionKind: 'HIT_POINT_TIERS',
+          rows: [
+            {
+              id: 'low',
+              order: 1,
+              atMost: 20,
+              resultBlock: { id: 'low-result', resultKind: 'SINGLE', outcomes: [kill] }
+            },
+            {
+              id: 'high',
+              order: 2,
+              atMost: 30,
+              resultBlock: { id: 'high-result', resultKind: 'SINGLE', outcomes: [kill] }
+            }
+          ]
+        }
+      ]
+    })
+    if (!result.ok) throw new Error('Expected compileEffectResult to succeed')
+    expect(result.value.entries).toMatchObject([
+      { hitPointTier: { atMost: 20 }, outcome: kill },
+      { hitPointTier: { atMost: 30 }, outcome: kill }
+    ])
+  })
+})

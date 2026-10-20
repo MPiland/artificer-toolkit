@@ -109,6 +109,15 @@ const depart: CharacterRuleActionApplication = {
   targetActorId: ACTOR_ID
 }
 
+const kill: CharacterRuleActionApplication = {
+  sourceNodeId: origin.sourceNodeId,
+  sourceOperationKey: 'dnd5e.kill-proposal',
+  authoredPath: null,
+  resolvedPath: null,
+  kind: 'KILL',
+  targetActorId: ACTOR_ID
+}
+
 function conditionApply(conditionIdValue: string): CharacterRuleActionApplication {
   return {
     ...origin,
@@ -326,6 +335,30 @@ describe('Creature mechanics batch plan', () => {
       }
     ])
     expect(plan.stateChanged).toBe(false)
+  })
+
+  it('kills a Run creature: no hit points of either kind, defeated, and a receipt of what it lost (SPELLS-4.T2i)', () => {
+    const actor = creature({ current: 7, temporary: 3, max: 11 })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([kill]),
+      actor,
+      userId: USER_ID
+    })
+    expect(plan.targetTransition.after).toMatchObject({
+      currentHitPoints: 0,
+      temporaryHitPoints: 0
+    })
+    expect(plan.updatedActor).toMatchObject({ currentHitPoints: 0, tempHitPoints: 0 })
+    expect(plan.receiptApplications).toEqual([
+      expect.objectContaining({
+        ordinal: 0,
+        kind: 'KILL',
+        beforeCurrentHitPoints: 7,
+        afterCurrentHitPoints: 0,
+        beforeTemporaryHitPoints: 3,
+        afterTemporaryHitPoints: 0
+      })
+    ])
   })
 
   it('marks the actor departed and leaves its hit points, conditions and place in the Run alone (D128)', () => {
@@ -1515,6 +1548,41 @@ describe('0 hit points (D63)', () => {
             failures: 1,
             stable: false
           })
+        })
+      })
+
+      describe('killing (SPELLS-4.T2i)', () => {
+        const kill: CharacterRuleActionApplication = {
+          ...origin,
+          sourceOperationKey: 'dnd5e.kill-proposal',
+          kind: 'KILL',
+          targetActorId: ACTOR_ID
+        }
+
+        it.each([
+          ['a healthy Character', 9, NO_DEATH_SAVES],
+          ['a dying Character', 0, dying],
+          ['a stable Character', 0, stable]
+        ])('leaves %s dead at 0 hit points', (_label, current, saves) => {
+          const plan = run(kill, current, saves)
+          expect(savesOf(plan)).toEqual(dead)
+          expect(plan.characterUpdate?.character.state.hitpoints).toMatchObject({
+            current: 0,
+            temp: 0
+          })
+          expect(plan.targetTransition.after).toMatchObject({
+            currentHitPoints: 0,
+            temporaryHitPoints: 0,
+            deathSaves: dead
+          })
+          expect(plan.receiptApplications).toEqual([
+            expect.objectContaining({
+              kind: 'KILL',
+              beforeCurrentHitPoints: current,
+              afterCurrentHitPoints: 0,
+              afterTemporaryHitPoints: 0
+            })
+          ])
         })
       })
 
