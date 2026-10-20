@@ -15815,13 +15815,14 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 5,
                 "after": [
                   "SPELLS-33.T1",
                   "SPELLS-31.T5n"
                 ]
               },
-              "text": "straight-line Charge gates (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "straight-line Charge gates (4 kinds) on a new generic MOVED_TOWARD_TARGET {minFeet} hit-path gate (D164). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6a1",
