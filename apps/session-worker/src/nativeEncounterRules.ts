@@ -879,6 +879,7 @@ export async function planNativeLiveEncounterAction(
             actionEconomy
           }),
           actionEconomy,
+          attackAction,
           runtime: executionOptions.runtime,
           random: executionOptions.random ?? nextRollInt,
           revisions

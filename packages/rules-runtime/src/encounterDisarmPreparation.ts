@@ -1,4 +1,5 @@
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import {
   encounterRunActorStateSchema,
   type EncounterRunActorState,
@@ -631,6 +632,8 @@ export function contestApplicationOutputs(input: {
   rolls: ContestRolls
   stateTransition: ContestStateTransition
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
+  /** The Attack action a contest that replaces one attack fills (Grapple, Shove). */
+  attackAction?: EncounterAttackActionTransitionDto | null
   /** What the initiator's ended effects released from the initiator; receipted with the contest. */
   sourceApplications: ReceiptApplications
 }) {
@@ -657,6 +660,7 @@ export function contestApplicationOutputs(input: {
     outcome: contestSourceWins(rolls) ? 'SOURCE_WIN' : 'TARGET_WIN_OR_TIE',
     stateTransition: input.stateTransition,
     actionEconomyTransition: input.actionEconomy,
+    ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
     sourceApplications: input.sourceApplications
   })
 }
