@@ -823,7 +823,9 @@ function buildCharacterBuilderView(
     ? presentation.backgrounds[selectedBackground.id]
     : undefined
   if (selectedBackground && !backgroundProse)
-    throw new Error(`Character Builder background presentation is missing: ${selectedBackground.id}`)
+    throw new Error(
+      `Character Builder background presentation is missing: ${selectedBackground.id}`
+    )
   const backgroundStartingEquipmentRequired = resolution.outstandingChoices.some(
     (choice) => choice.code === 'BACKGROUND_STARTING_EQUIPMENT_REQUIRED'
   )
@@ -1107,17 +1109,21 @@ function toCharacterBuilderReferences(
                 description: raceProse?.ancestry?.options.find(({ id }) => id === option.id)
                   ?.description,
                 features: (option.features ?? []).map((feature) =>
-                  withGrantProse(presentation, {
-                    id: feature.id,
-                    label: feature.label,
-                    attributes: feature.attributes,
-                    sourceLabel: option.label,
-                    source: {
-                      kind: 'ANCESTRY',
-                      ancestryId: resolvedRace.ancestry!.id,
-                      optionId: option.id
-                    }
-                  }, 'FEATURE')
+                  withGrantProse(
+                    presentation,
+                    {
+                      id: feature.id,
+                      label: feature.label,
+                      attributes: feature.attributes,
+                      sourceLabel: option.label,
+                      source: {
+                        kind: 'ANCESTRY',
+                        ancestryId: resolvedRace.ancestry!.id,
+                        optionId: option.id
+                      }
+                    },
+                    'FEATURE'
+                  )
                 )
               }))
             }

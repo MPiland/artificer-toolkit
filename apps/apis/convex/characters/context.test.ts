@@ -28,7 +28,7 @@ import { fixture, input } from '../../tests/fixtures/characters'
 
 async function serializableContext(...args: Parameters<typeof loadCharacterRuleContext>) {
   const {
-    spellDocumentsById,
+    spellsById,
     currentSpellDocumentsById,
     creaturesById,
     vehiclesById,
@@ -42,7 +42,7 @@ async function serializableContext(...args: Parameters<typeof loadCharacterRuleC
       ...context.registry,
       acquiredEquipmentByItemId: Object.fromEntries(context.registry.acquiredEquipmentByItemId)
     },
-    spellDocumentsById: Object.fromEntries(spellDocumentsById),
+    spellsById: Object.fromEntries(spellsById),
     currentSpellDocumentsById: Object.fromEntries(currentSpellDocumentsById),
     creaturesById: Object.fromEntries(creaturesById),
     vehiclesById: Object.fromEntries(vehiclesById),
@@ -416,12 +416,12 @@ describe('native current Character rule context', () => {
     ]
     const context = await t.run((ctx) => serializableContext(ctx, character, owner.userId))
     expect(context.catalog.spells.map((row) => row.id).sort()).toEqual([light.id, own.id].sort())
-    expect(Object.keys(context.spellDocumentsById)).toEqual([light.id])
+    expect(Object.keys(context.spellsById)).toEqual([light.id])
     expect(context.spellCatalogueEntries.map((row) => row.id).sort()).toEqual(
       [light.id, own.id].sort()
     )
-    expect(context.spellDocumentsById[foreign.id]).toBeUndefined()
-    expect(context.spellDocumentsById[light.id]?.classIds).toEqual(light.classIds)
+    expect(context.spellsById[foreign.id]).toBeUndefined()
+    expect(context.spellsById[light.id]?.classIds).toEqual(light.classIds)
     expect(context.sourceIdentities[own.id]?.checksum).toBeDefined()
     await t.run((ctx) => corruptPublishedVersionPayload(ctx, own.id))
     // Unused mechanics are not parsed; complete checksum-bound selection facts remain available.

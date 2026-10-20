@@ -40,7 +40,7 @@ export async function prepareCharacterBuilderFromContext<
           ...options,
           character: nextCharacter,
           context,
-          spellDocumentsById: context.spellDocumentsById
+          spellsById: context.spellsById
         },
         sourcePreparation
       )
@@ -60,7 +60,7 @@ export async function prepareCharacterBuilderFromContext<
                 character: nextCharacter,
                 context,
                 eligibilityFacets,
-                spellDocumentsById: context.spellDocumentsById
+                spellsById: context.spellsById
               },
               sourcePreparation
             )

@@ -51,7 +51,7 @@ export async function resolveCharacterBuilderPayload(
             character,
             context,
             eligibilityFacets,
-            spellDocumentsById: context.spellDocumentsById
+            spellsById: context.spellsById
           })
       })
   })

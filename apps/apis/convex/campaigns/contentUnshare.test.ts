@@ -7,7 +7,6 @@ import type {
   UnshareCampaignContentInput
 } from '@artificer-toolkit/schema/api/campaignCore'
 import { acquiredEquipmentRulesSchema } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
-import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -240,9 +239,16 @@ describe('native Campaign content-unshare reconciliation', () => {
         (source) => source.subjectKind === 'EQUIPMENT' && source.subjectId === item.equipmentId
       )
       if (!leaf) throw new Error('Missing acquired Equipment pin.')
-      expect(equipmentAuthoredDtoSchema.parse(JSON.parse(leaf.documentJson)).userId).toBe(
-        base.other.userId
+      // The pin is the version the other user's owned root published.
+      const root = await base.t.run((ctx) =>
+        ctx.db
+          .query('authoredRoots')
+          .withIndex('by_publicId', (q) => q.eq('id', item.equipmentId))
+          .unique()
       )
+      expect(root?.ownerUserId).toBe(base.other.userId)
+      expect(leaf.versionId).toBe(root?.currentVersionPublicId)
+      expect(leaf.compilation.authoredChecksum).toBe(root?.checksum)
     }
     const sheet = await base.owner.caller.query(api.characters.sheet.get, {
       id: base.character.id

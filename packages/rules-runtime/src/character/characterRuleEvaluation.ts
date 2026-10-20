@@ -1,4 +1,4 @@
-import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { evaluateInstalledCharacterPolicy } from '../platformCharacterPolicy.js'
 import {
@@ -23,7 +23,7 @@ export interface CharacterRuleEvaluationResult extends CharacterRulePolicyFactsR
 /** Evaluates trusted current sources; the calling backend owns source visibility and persistence. */
 export function evaluateCharacterRules(
   input: Omit<CharacterRulePolicyFactsInput, 'spellsWithEffects'> & {
-    spellDocumentsById?: ReadonlyMap<string, SpellAuthored>
+    spellsById?: ReadonlyMap<string, CompiledSpell>
     referenceSpellIds?: readonly string[]
   },
   sources?: ReturnType<typeof prepareCharacterRuleSources>
@@ -36,8 +36,8 @@ export function evaluateCharacterRules(
     spellSources: assembled.snapshot.spellSources
   })
   const spellsWithEffects = [...spellIds].map((id) => {
-    const spell = input.spellDocumentsById?.get(id)
-    if (!spell || spell.id !== id || spell.systemId !== input.character.systemId)
+    const spell = input.spellsById?.get(id)
+    if (!spell || spell.id !== id)
       throw new Error(`Character rule evaluation could not hydrate spell "${id}".`)
     return spell
   })

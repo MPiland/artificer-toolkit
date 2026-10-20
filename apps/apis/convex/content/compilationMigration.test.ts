@@ -9,7 +9,10 @@ import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index
 import { dwarf, hillDwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SUBJECT_COMPILER_VERSION } from '@artificer-toolkit/schema/api/authoredPublication'
+import { acquiredEquipmentRulesSchema } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
+import { characterCollectionRecord } from '@artificer-toolkit/schema/projections/characterOperationalState'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
+import { equipmentPresentation } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
 import {
   resolveEquipmentAuthored,
   resolveRaceAuthored
@@ -17,7 +20,7 @@ import {
 import { collectReferenceIds } from '@artificer-toolkit/shared/utils'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
 import type { MutationCtx } from '../_generated/server'
-import { readAuthoredVersionCompilationRow } from './documents'
+import { readAuthoredVersionCompilation, readAuthoredVersionCompilationRow } from './documents'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
 
 const runMigration = makeFunctionReference<'mutation', Record<string, never>, unknown>(
@@ -141,4 +144,100 @@ it('recompiles every superseded stored compilation at the current compiler versi
     )
   )
   expect(migrated).toEqual(current)
+})
+
+it('repins legacy retained rules to the stored compilation of the same version, with its prose', async ({
+  onTestFinished
+}) => {
+  const { t } = await publicationFixture(
+    import.meta.glob('/apps/apis/convex/**/*.*s'),
+    import.meta.glob('../betterAuth/**/*.*s'),
+    [
+      [arrows, arrowsPlus1].map((document) =>
+        importedSubject({ subjectKind: 'EQUIPMENT', ...document, document })
+      )
+    ]
+  )
+  vi.useFakeTimers()
+  onTestFinished(() => {
+    vi.useRealTimers()
+  })
+  migrations.register(t)
+  const characterId = crypto.randomUUID()
+  const itemId = crypto.randomUUID()
+
+  const { leaf, legacyJson } = await t.run(async (ctx) => {
+    const pinned = await Promise.all(
+      [arrowsPlus1, arrows].map(async (document) => {
+        const version = await readVersion(ctx, document.id)
+        const compilation = await readAuthoredVersionCompilation(ctx, version)
+        if (!compilation) throw new Error(`${document.id} has no stored compilation.`)
+        return {
+          identity: {
+            subjectKind: 'EQUIPMENT' as const,
+            subjectId: document.id,
+            versionId: version.versionId,
+            version: version.version,
+            checksum: compilation.authoredChecksum
+          },
+          compilation,
+          document,
+          systemId: version.systemId
+        }
+      })
+    )
+    const legacyJson = JSON.stringify({
+      equipmentId: arrowsPlus1.id,
+      systemId: pinned[0]!.systemId,
+      sources: pinned.map(({ identity, document }) => ({
+        ...identity,
+        documentJson: JSON.stringify(document)
+      }))
+    })
+    await ctx.db.insert(
+      'characterInventoryItems',
+      characterCollectionRecord(characterId, itemId, 0, {
+        id: itemId,
+        equipmentId: arrowsPlus1.id,
+        quantity: 1,
+        retainedRulesJson: legacyJson
+      })
+    )
+    return { leaf: pinned[0]!, legacyJson }
+  })
+  expect(acquiredEquipmentRulesSchema.safeParse(JSON.parse(legacyJson)).success).toBe(false)
+
+  await t.mutation(runMigration, {})
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  const readRow = () =>
+    t.run((ctx) =>
+      ctx.db
+        .query('characterInventoryItems')
+        .withIndex('by_characterId_id', (query) =>
+          query.eq('characterId', characterId).eq('id', itemId)
+        )
+        .unique()
+    )
+  const row = await readRow()
+  if (!row?.value.retainedRulesJson) throw new Error('Retained rules were lost.')
+  // The variant's parent is folded into the leaf's resolved compilation, so only the leaf stays.
+  expect(acquiredEquipmentRulesSchema.parse(JSON.parse(row.value.retainedRulesJson))).toEqual({
+    equipmentId: arrowsPlus1.id,
+    systemId: leaf.systemId,
+    sources: [
+      {
+        ...leaf.identity,
+        compilation: leaf.compilation,
+        presentation: equipmentPresentation(arrowsPlus1)
+      }
+    ]
+  })
+  expect(row.checksum).toBe(
+    characterCollectionRecord(row.characterId, row.id, row.position, row.value).checksum
+  )
+
+  // A second pass leaves pinned rows alone.
+  await t.mutation(runMigration, {})
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  expect(await readRow()).toEqual(row)
 })

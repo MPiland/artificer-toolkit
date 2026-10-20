@@ -1,6 +1,5 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
-import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
-import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 
 import {
   effectReadsSpellCastLevel,
@@ -9,7 +8,7 @@ import {
 
 export function buildCharacterSpellActionRuleFacts(params: {
   spellIds: readonly string[]
-  spells: readonly SpellAuthored[]
+  spells: readonly CompiledSpell[]
 }): Pick<CharacterRulePolicyInput, 'spellActionFacts'> {
   const spellsById = new Map(params.spells.map((spell) => [spell.id, spell]))
   const spellIds = [...new Set(params.spellIds)]
@@ -20,9 +19,7 @@ export function buildCharacterSpellActionRuleFacts(params: {
       if (!spell) {
         throw new Error(`Character spell action facts are missing spell "${spellId}".`)
       }
-      const effects = (compileSpell(spell).effects ?? []).filter(
-        (effect) => effect.invocation.kind !== 'PASSIVE'
-      )
+      const effects = (spell.effects ?? []).filter((effect) => effect.invocation.kind !== 'PASSIVE')
       return {
         spellId,
         readsCastLevel: effects.some(effectReadsSpellCastLevel),

@@ -549,7 +549,7 @@ function getProficiencyOptions(
 }
 
 export function matchesSpellFilter(
-  spell: CharacterBuilderSpellCatalogRecord,
+  spell: Pick<CharacterBuilderSpellCatalogRecord, 'id' | 'magicSchoolId' | 'level' | 'attributes'>,
   filter: FacetAuthored<'SPELL'> | undefined
 ): boolean {
   if (!filter || filter.groups.length === 0) return true

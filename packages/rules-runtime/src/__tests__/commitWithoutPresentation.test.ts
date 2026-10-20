@@ -5,10 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { prepareCharacterBuilderFromContext } from '../character/builderPreparation.js'
 import { resolveCharacterRecordStats } from '../character/characterRecordStats.js'
 import { evaluateCharacterRules } from '../character/characterRuleEvaluation.js'
-import {
-  prepareFixtureContext,
-  readyFighterFixture
-} from '../testing/characterContextFixtures.js'
+import { prepareFixtureContext, readyFighterFixture } from '../testing/characterContextFixtures.js'
 
 /** What commit reads back and writes: readiness, the activated Character and its stored stats. */
 async function commitFacts(
@@ -26,7 +23,7 @@ async function commitFacts(
     {
       character: prepared.character,
       context: prepared.context,
-      spellDocumentsById: prepared.context.spellDocumentsById
+      spellsById: prepared.context.spellsById
     },
     prepared.sourcePreparation
   )

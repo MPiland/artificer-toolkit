@@ -1,4 +1,5 @@
 import type { CharacterBuilderGrantSummaryItemDto } from '@artificer-toolkit/schema/api/characterBuilder'
+import type { AcquiredPresentation } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 import type {
@@ -46,7 +47,8 @@ export interface CharacterPresentationLookup {
   backgrounds: Readonly<Record<string, BackgroundAuthored>>
   feats: Readonly<Record<string, FeatAuthored>>
   features: Readonly<Record<string, FeatureAuthored>>
-  equipment: Readonly<Record<string, ResolvedEquipment>>
+  /** Current resolved Equipment, or the prose a held item pinned when it was acquired. */
+  equipment: Readonly<Record<string, ResolvedEquipment | AcquiredPresentation>>
 }
 
 export interface CharacterRuleContext {

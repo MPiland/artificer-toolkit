@@ -7,6 +7,8 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
@@ -91,12 +93,14 @@ export async function prepareEncounterInitiativeDeclarationSources<
       facts.ruleEvaluation.facts.spellCastCandidates.map((candidate) => candidate.spellId)
     )) {
       const { publication, version } = await input.readPublishedSpell(spellId, facts)
-      const evaluatedSpell = facts.evaluationInput.spellDocumentsById?.get(spellId)
+      const evaluatedSpell = facts.evaluationInput.spellsById?.get(spellId)
+      // The rules evaluated the compiled form of exactly the pinned publication.
       if (
-        !publication ||
+        publication?.subjectKind !== 'SPELL' ||
         !evaluatedSpell ||
-        checksumRuleDocument(evaluatedSpell) !== version.checksum ||
-        checksumRuleDocument(publication.document) !== version.checksum
+        checksumRuleDocument(publication.document) !== version.checksum ||
+        checksumRuleDocument(compileSpell(publication.document as SpellAuthored)) !==
+          checksumRuleDocument(evaluatedSpell)
       )
         throw new Error('The declared spell source is stale.')
       spellVersions.set(spellId, {

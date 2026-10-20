@@ -786,8 +786,15 @@ and fail closed on corrupt published data. Unshare is one active-Campaign, expec
 actor-bound command fingerprint: it removes the share and dependent children, prunes lost selections from assigned
 Characters and drafts (an Active Character that can no longer be prepared becomes a repair DRAFT), and evacuates
 Vehicle cargo to party custody. Deleting an authored root runs the same per-Campaign finalization. Acquired
-Equipment keeps working through server-owned `retainedRulesJson` (raw ancestry and Spell documents with identity
-and checksum pins) on held items, so source loss never removes held items; new copies need current access.
+Equipment keeps working through server-owned `retainedRulesJson` on held items, so source loss never removes held items;
+new copies need current access. It is a pinned record (D163 ruling C, `acquiredEquipmentRulesSchema`): one
+EQUIPMENT source for the held leaf and up to 500 SPELL sources its grants name or open, each with its version
+identity, a copy of that version's stored compilation (resolved Equipment with no variant chain, or a `CompiledSpell`)
+and a small `presentation` block (label, description, quote, materialDescription). The engine hydrates the
+compilations as they are, with no compile call, after checking both checksums; views read the pinned prose, so a
+held item keeps its description after its source is deleted. Equipment Feature prose is not pinned.
+`content/compilationMigration` repins rows stored in the earlier raw-document shape from the stored compilation of
+the same pinned version.
 Parsed retained rules and parsed published Equipment are memoized per module (`createContentMemo`, shared
 `contentMemo`) keyed by their exact stored JSON, so only immutable content is memoized; every authorization,
 catalogue-binding and scope check still runs on each read, and correctness never depends on a hit.

@@ -60,7 +60,9 @@ describe('subject-compiler-v2 Builder fields over the SRD', () => {
 
   it('carries race, ancestry, option and inherited-feature fields', () => {
     const byId = new Map<string, RaceAuthored>(SRD.races.map((race) => [race.id, race]))
-    const resolved = nonEmpty(SRD.races).map((race) => resolveRaceAuthored(race, (id) => byId.get(id)))
+    const resolved = nonEmpty(SRD.races).map((race) =>
+      resolveRaceAuthored(race, (id) => byId.get(id))
+    )
     for (const race of resolved) {
       const compiled = compileRace(race)
       expect(compiled.label).toBe(race.label)
@@ -77,16 +79,20 @@ describe('subject-compiler-v2 Builder fields over the SRD', () => {
     }
     expect(resolved.some((race) => race.ancestry)).toBe(true)
     expect(
-      resolved.some((race) => race.category === 'SUBRACE' && race.subrace.inherited.features?.length)
+      resolved.some(
+        (race) => race.category === 'SUBRACE' && race.subrace.inherited.features?.length
+      )
     ).toBe(true)
   })
 
   it('carries background, feat and feature labels', () => {
     for (const authored of nonEmpty(SRD.backgrounds))
       expect(compileBackground(authored).label).toBe(authored.label)
-    for (const authored of nonEmpty(SRD.feats)) expect(compileFeat(authored).label).toBe(authored.label)
+    for (const authored of nonEmpty(SRD.feats))
+      expect(compileFeat(authored).label).toBe(authored.label)
     const features = SRD.classes.flatMap((row) => row.features ?? [])
-    for (const authored of nonEmpty(features)) expect(compileFeature(authored).label).toBe(authored.label)
+    for (const authored of nonEmpty(features))
+      expect(compileFeature(authored).label).toBe(authored.label)
   })
 
   it('stores Equipment in its resolved shape, with variant parents applied', () => {

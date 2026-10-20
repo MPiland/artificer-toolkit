@@ -13,13 +13,13 @@ Publication and import already compile once and store the result in `authoredVer
 projectionChecksum, projectionJson}`. A compile error already throws inside the publish mutation.
 Nothing reads that projection for evaluation. Every evaluation recompiles from authored records:
 
-| Call site | Compiles | Reached from |
-| --- | --- | --- |
+| Call site                                                                   | Compiles                                                       | Reached from                                                                                         |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `rules-runtime/character/characterRuleSnapshot.ts` `createAssemblyRegistry` | background, class, feat, every nested feature, race, equipment | Convex commit and Sheet, browser Builder Web Worker, Session Worker room (`nativeCharacterRules.ts`) |
-| same file, `assembleCharacterRuleSnapshot` / `assembleCompanions` | acquired-revision equipment, companion loadout equipment | same |
-| `characterSpellCastActions.ts`, `characterSpellActionRuleFacts.ts` | spell | Sheet and room actions |
-| `builderEligibility.ts` | feature | Builder |
-| `encounterCreatureEquipmentSources.ts`, `content/creatureLoadoutHands.ts` | creature loadout equipment | Encounter / room |
+| same file, `assembleCharacterRuleSnapshot` / `assembleCompanions`           | acquired-revision equipment, companion loadout equipment       | same                                                                                                 |
+| `characterSpellCastActions.ts`, `characterSpellActionRuleFacts.ts`          | spell                                                          | Sheet and room actions                                                                               |
+| `builderEligibility.ts`                                                     | feature                                                        | Builder                                                                                              |
+| `encounterCreatureEquipmentSources.ts`, `content/creatureLoadoutHands.ts`   | creature loadout equipment                                     | Encounter / room                                                                                     |
 
 All three evaluators reach the registry through `prepareCharacterRuleContext` and its injected
 readers (Convex `characters/context.ts` readers; `createSnapshotReaders` over R2 snapshot objects for
@@ -100,11 +100,11 @@ the stored projection".
   rows attached as the seed does; uncommitted harness, logs in `local-validation/platform-21-t1/`).
   KB of commit read plus write:
 
-  | Case | Today | + compilation rows | Full swap (compilation instead of every payload) | Full swap + slimmed projection | Budget |
-  | --- | --- | --- | --- | --- | --- |
-  | Fighter 5 / Champion | 361.6 | 527.1 | 324.1 | ~319 | 450 |
-  | Wizard 5 / Evocation | 416.3 | 616.5 | 404.5 | ~399 | 450 |
-  | Fighter 3 / Wizard 2 | 580.9 | 875.7 | 524.8 | ~519 | 650 |
+  | Case                 | Today | + compilation rows | Full swap (compilation instead of every payload) | Full swap + slimmed projection | Budget |
+  | -------------------- | ----- | ------------------ | ------------------------------------------------ | ------------------------------ | ------ |
+  | Fighter 5 / Champion | 361.6 | 527.1              | 324.1                                            | ~319                           | 450    |
+  | Wizard 5 / Evocation | 416.3 | 616.5              | 404.5                                            | ~399                           | 450    |
+  | Fighter 3 / Wizard 2 | 580.9 | 875.7              | 524.8                                            | ~519                           | 650    |
 
   Compiled projections carry almost no presentation text: labels, descriptions and instructions are
   about 5 KB per case; the bulk is structure (ids and grant fields). Spell compilations are larger
@@ -116,6 +116,7 @@ the stored projection".
   a spell-source alias, the authored feature checksum identity guard). The full swap needs those in
   the v2 projection and the Builder reads moved to compiled shapes. Spell, Race, Equipment and
   Background payload use was not audited. Coding paused for the orchestrator's ruling.
+
 - 2026-10-19: ruling D163: option 1, the full swap, no budget change. Split in the ledger:
   **PLATFORM-21.T1a** (this session, closes PLATFORM-21.2): `subject-compiler-v2` carries every field
   the Builder reads (the Class list above plus whatever the Spell, Race, Equipment and Background
@@ -170,3 +171,15 @@ the stored projection".
   `compiledBuilderFields.test.ts` (each moved v2 field over the SRD) and
   `commitWithoutPresentation.test.ts` (commit with and without the lookup: same readiness, Character
   and stored stats).
+- 2026-10-20: ruling C landed in the tree. `acquiredEquipmentRulesSchema` pins one EQUIPMENT leaf and its SPELL
+  sources, each with a copy of the version's stored compilation (`authoredStoredCompilationSchema`) and a
+  `presentation` block; `readAcquiredEquipmentRules` verifies both checksums and hydrates `CompiledEquipment` /
+  `CompiledSpell` with no compile call. Engine spell maps are `CompiledSpell` (`spellsById`); current authored
+  Spells stay in `currentSpellDocumentsById` and compile once at the context boundary
+  (`compileCharacterRuleSpell`). `compilePublicationDocument` moved to `rules-runtime/authoredPublicationCompile`
+  so fixtures pin real compiler output (`testing/pinnedRetainedRules.ts`). `content/compilationMigration` adds
+  `repinCharacterRetainedRules` and `repinPartyRetainedRules` after the recompile step. Proofs:
+  `retainedRulesWithoutCompile.test.ts` (compilers spied, none called) and `equipmentSourceLoss.test.ts` (Sheet
+  keeps the pinned description after the source is deleted). Known gaps: Equipment Feature prose is not pinned,
+  so a retained-only item's feature descriptions render empty; retained Spell prose is stored but no view reads it
+  yet (Sheet spell lists read the catalogue index, so a retained-only Spell was absent before too).

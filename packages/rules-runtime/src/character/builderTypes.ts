@@ -4,6 +4,7 @@ import {
   type CharacterProvenance,
   type SpellAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
@@ -22,8 +23,8 @@ export interface CharacterBuilderContext {
   registry: CharacterBuilderRegistry
   /** Prose by id for Builder views; commit runs without it (D163). */
   presentation?: CharacterPresentationLookup
-  /** Exact current Spell documents authorized for this Character context. */
-  spellDocumentsById?: ReadonlyMap<string, SpellAuthored>
+  /** Compiled Spells the rules read: the current authorized ones, then pinned acquired ones. */
+  spellsById?: ReadonlyMap<string, CompiledSpell>
   currentSpellDocumentsById?: ReadonlyMap<string, SpellAuthored>
   spellCatalogueEntries?: readonly ContentSnapshotIndexEntry<'SPELL'>[]
   /** Exact server-loaded vocabulary snapshot that produced this registry. */

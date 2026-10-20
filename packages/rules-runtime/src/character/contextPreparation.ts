@@ -32,8 +32,10 @@ import {
   compileResolvedEquipment,
   resolveEquipmentAuthored,
   resolveRaceAuthored,
+  compileSpell,
   type CompiledClass,
   type CompiledEquipment,
+  type CompiledSpell,
   type ResolvedEquipment,
   type ResolvedRace
 } from '@artificer-toolkit/shared/subjects/compilers'
@@ -44,10 +46,7 @@ import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/co
 import { toContentSnapshotIndexEntry } from '../contentSnapshots.js'
 import { readAcquiredEquipmentRules } from './acquiredEquipmentRules.js'
 import { collectContextSpellIds, needsCharacterSpellCatalog } from './characterContextSpells.js'
-import type {
-  CharacterPresentationLookup,
-  CharacterRuleContext
-} from './characterRuleContext.js'
+import type { CharacterPresentationLookup, CharacterRuleContext } from './characterRuleContext.js'
 import { getCharacterChosenGrantOwners } from './builderEligibility.js'
 import {
   collectCharacterBuilderFeatures,
@@ -196,6 +195,16 @@ export function compileCharacterRuleSources(roots: {
   }
 }
 
+/** A current authorized Spell compiled for the rules; a Spell of another System never joins. */
+export function compileCharacterRuleSpell(
+  character: Pick<CharacterAuthored, 'systemId'>,
+  spell: SpellAuthored
+) {
+  if (spell.systemId !== character.systemId)
+    throw new Error(`Character rule evaluation could not hydrate spell "${spell.id}".`)
+  return compileSpell(spell)
+}
+
 /** Prepare current mechanics; catalogue reuse is limited to the same authorized transaction. */
 export async function prepareCharacterRuleContext(
   character: CharacterAuthored,
@@ -234,7 +243,11 @@ export async function prepareCharacterRuleContext(
         : []
     )
   )
-  const retainedSpellsById = new Map<string, SpellAuthored>()
+  const retainedEquipmentById = new Map<
+    string,
+    Pick<ReturnType<typeof readAcquiredEquipmentRules>, 'equipment' | 'presentation'>
+  >()
+  const retainedSpellsById = new Map<string, CompiledSpell>()
   const feats: FeatAuthored[] = []
   const creaturesById = new Map<string, CreatureAuthored>()
   const vehiclesById = new Map<string, VehicleAuthored>()
@@ -252,10 +265,10 @@ export async function prepareCharacterRuleContext(
           )
           if (!leaf) throw new Error('Acquired Equipment root identity is missing.')
           acquiredEquipmentByItemId.set(item.id, {
-            equipment: compileResolvedEquipment(retained.equipment),
+            equipment: retained.equipment,
             versionId: leaf.versionId
           })
-          if (!equipment.some((record) => record.id === id)) equipment.push(retained.equipment)
+          if (!retainedEquipmentById.has(id)) retainedEquipmentById.set(id, retained)
           for (const [spellId, spell] of retained.spellsById) retainedSpellsById.set(spellId, spell)
         }
       }
@@ -347,8 +360,17 @@ export async function prepareCharacterRuleContext(
   for (const race of races)
     addFeatures(race.ancestry?.options.flatMap((option) => option.features ?? []) ?? [])
 
+  // Pinned acquired Equipment carries its Features compiled; they hydrate as they are (D163).
+  const retainedFeatures = [...retainedEquipmentById.values()]
+    .flatMap(({ equipment }) => equipment.features ?? [])
+    .filter((feature) => wantedFeatures.has(feature.id))
   const missingFeatures = new Set(
-    [...wantedFeatures].filter((id) => !features.has(id) && !feats.some((feat) => feat.id === id))
+    [...wantedFeatures].filter(
+      (id) =>
+        !features.has(id) &&
+        !feats.some((feat) => feat.id === id) &&
+        !retainedFeatures.some((feature) => feature.id === id)
+    )
   )
   if (missingFeatures.size) {
     for (const published of await readers.readFeatureSources(missingFeatures)) {
@@ -370,6 +392,16 @@ export async function prepareCharacterRuleContext(
     feats,
     features: [...features.values()]
   })
+  const pinnedEquipment = [...retainedEquipmentById.values()].filter(
+    ({ equipment }) => !compiled.equipment.some((record) => record.id === equipment.id)
+  )
+  compiled.equipment.push(...pinnedEquipment.map(({ equipment }) => equipment))
+  for (const feature of retainedFeatures) {
+    const previous = compiled.features.find((record) => record.id === feature.id)
+    if (previous && checksumRuleDocument(previous) !== checksumRuleDocument(feature))
+      throw new Error('Current Character feature identity is ambiguous.')
+    if (!previous) compiled.features.push(feature)
+  }
   const context = {
     registry: {
       system,
@@ -377,12 +409,20 @@ export async function prepareCharacterRuleContext(
       acquiredEquipmentByItemId,
       creatureLoadoutEquipmentById
     },
-    presentation,
+    presentation: {
+      ...presentation,
+      equipment: {
+        ...presentation.equipment,
+        ...Object.fromEntries(
+          pinnedEquipment.map((pinned) => [pinned.equipment.id, pinned.presentation])
+        )
+      }
+    },
     catalog: { spells: [] as CharacterRuleContext['catalog']['spells'] },
     vocabularySnapshot: { document: system }
   } satisfies CharacterRuleContext
   const needsSpellCatalog = needsCharacterSpellCatalog(character, context.registry)
-  const spellDocumentsById =
+  const currentSpellDocumentsById =
     needsSpellCatalog && previousSpellCatalogue
       ? new Map(previousSpellCatalogue.currentSpellDocumentsById)
       : new Map<string, SpellAuthored>()
@@ -393,13 +433,13 @@ export async function prepareCharacterRuleContext(
     if (
       !previousSpellCatalogue ||
       spellCatalogueEntries.some(
-        (entry) => referencedSpellIds.has(entry.id) && !spellDocumentsById.has(entry.id)
+        (entry) => referencedSpellIds.has(entry.id) && !currentSpellDocumentsById.has(entry.id)
       )
     ) {
       const catalogue = await readers.readSpellCatalogue(referencedSpellIds)
       spellCatalogueEntries = catalogue.entries
       for (const spell of catalogue.documents)
-        spellDocumentsById.set(spell.id, spell as SpellAuthored)
+        currentSpellDocumentsById.set(spell.id, spell as SpellAuthored)
     }
     context.catalog.spells = [...spellCatalogueEntries]
       .map(({ id, label, level, classIds }) => ({ id, label, level, classIds }))
@@ -407,12 +447,15 @@ export async function prepareCharacterRuleContext(
         (left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id)
       )
   }
-  const currentSpellDocumentsById = new Map(spellDocumentsById)
-  for (const [id, spell] of retainedSpellsById)
-    if (!spellDocumentsById.has(id)) spellDocumentsById.set(id, spell)
+  const spellsById = new Map(
+    [...currentSpellDocumentsById].map(
+      ([id, spell]) => [id, compileCharacterRuleSpell(character, spell)] as const
+    )
+  )
+  for (const [id, spell] of retainedSpellsById) if (!spellsById.has(id)) spellsById.set(id, spell)
   return {
     ...context,
-    spellDocumentsById,
+    spellsById,
     currentSpellDocumentsById,
     spellCatalogueEntries,
     creaturesById,
@@ -462,10 +505,7 @@ const toBackgroundSource = (document: BackgroundAuthored) =>
   })
 
 /** The Class pool matters only once a selected Class reaches its subclass level. */
-function isSubclassSelectionDue(
-  character: CharacterAuthored,
-  classes: readonly CompiledClass[]
-) {
+function isSubclassSelectionDue(character: CharacterAuthored, classes: readonly CompiledClass[]) {
   return character.intent.classes.some((selection) =>
     classes.some(
       (record) =>

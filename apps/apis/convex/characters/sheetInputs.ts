@@ -16,7 +16,10 @@ import {
 } from './documents'
 import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
 import { loadCharacterBuilderContext } from './builderContext'
-import { collectCharacterReferencedSpellIds } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
+import {
+  collectCharacterReferencedSpellIds,
+  compileCharacterRuleSpell
+} from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import { readCharacterPublication, readReferencedRoot } from './context'
 
 /** Reuse only within one transaction while source-backed record membership is unchanged. */
@@ -91,7 +94,7 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
     if (missingSpellIds.length > 0) {
       const context = sourceContext.context
       const currentSpellDocumentsById = new Map(context.currentSpellDocumentsById)
-      const spellDocumentsById = new Map(context.spellDocumentsById)
+      const spellsById = new Map(context.spellsById)
       const publications = new Map(context.publications)
       const sourceIdentities = new Map(context.sourceIdentities)
       for (const spellId of missingSpellIds) {
@@ -109,7 +112,7 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
           throw new Error('Referenced Character Spell is unavailable.')
         const spell = published.document as SpellAuthored
         currentSpellDocumentsById.set(spellId, spell)
-        spellDocumentsById.set(spellId, spell)
+        spellsById.set(spellId, compileCharacterRuleSpell(character, spell))
         publications.set(spellId, published)
       }
       reusableSources = {
@@ -118,7 +121,7 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
         context: {
           ...context,
           currentSpellDocumentsById,
-          spellDocumentsById,
+          spellsById,
           publications,
           sourceIdentities
         }

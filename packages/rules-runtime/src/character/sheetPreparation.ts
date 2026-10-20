@@ -52,7 +52,7 @@ export async function prepareCharacterSheetFromContext<
   const evaluationInput = {
     character: prepared.character,
     context: prepared.context,
-    spellDocumentsById: prepared.context.spellDocumentsById,
+    spellsById: prepared.context.spellsById,
     creaturesById: prepared.context.creaturesById,
     adjustments,
     attunementSlotOverride: campaignContext.attunementSlotOverride,
