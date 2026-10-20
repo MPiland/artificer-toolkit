@@ -1698,6 +1698,18 @@ export declare const api: {
         { ok: true }
       >;
     };
+    characterControllers: {
+      setControllers: FunctionReference<
+        "mutation",
+        "public",
+        {
+          campaignId: string;
+          characterId: string;
+          controllerUserIds: Array<string>;
+        },
+        { ok: true }
+      >;
+    };
     characterSheet: {
       basics: FunctionReference<
         "query",

@@ -1,3 +1,8 @@
+import {
+  controlsAssignedCharacter,
+  controlsUnboundSceneToken,
+  type CharacterControlAssignment
+} from '@artificer-toolkit/shared/campaign/characterControl'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -16,22 +21,56 @@ type ControlInput = {
 /** `GM` for the Campaign owner, `CONTROLLER` for a player who controls the actor. */
 type EncounterActorControl = 'GM' | 'CONTROLLER'
 
+/** What a player's control of Character actors rests on besides the Run's own controllers. */
+type CharacterControl = {
+  assignedCharacterId: string | null
+  /** The Campaign assignments of those actors' Characters, with the GM's grants (D162). */
+  assignments: readonly CharacterControlAssignment[]
+}
+
 function actorControl(
   membership: EncounterDocument<'campaignMemberships'>,
-  assignedCharacterId: string | null,
+  control: CharacterControl,
   actor: ControlledActor
 ): EncounterActorControl | null {
   if (membership.role === 'OWNER') return 'GM'
   return actor.controllerUserIds.includes(membership.userId) ||
-    (actor.kind === 'CHARACTER' && actor.sourceId === assignedCharacterId)
+    (actor.kind === 'CHARACTER' &&
+      (actor.sourceId === control.assignedCharacterId ||
+        controlsAssignedCharacter(
+          control.assignments.find((assignment) => assignment.characterId === actor.sourceId),
+          membership.userId
+        )))
     ? 'CONTROLLER'
     : null
 }
 
-async function readAssignedCharacterId(ctx: EncounterReadTransaction, input: ControlInput) {
-  return input.membership.role === 'PLAYER'
-    ? ((await ctx.ports.readAssignedCharacter(input.campaign, input.membership))?.id ?? null)
-    : null
+/** The member's assigned Character and the Campaign assignments (with grants) of `actors`' Characters. */
+async function readCharacterControl(
+  ctx: EncounterReadTransaction,
+  input: ControlInput & { actors: readonly ControlledActor[] }
+): Promise<CharacterControl> {
+  if (input.membership.role !== 'PLAYER') return { assignedCharacterId: null, assignments: [] }
+  const characterIds = new Set(
+    input.actors.flatMap((actor) =>
+      actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []
+    )
+  )
+  const [assigned, rows] = await Promise.all([
+    ctx.ports.readAssignedCharacter(input.campaign, input.membership),
+    Promise.all(
+      [...characterIds].map((characterId) =>
+        ctx.db
+          .query('campaignCharacterAssignments')
+          .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+          .unique()
+      )
+    )
+  ])
+  return {
+    assignedCharacterId: assigned?.id ?? null,
+    assignments: rows.flatMap((row) => (row?.campaignId === input.campaign.id ? [row] : []))
+  }
 }
 
 /**
@@ -43,7 +82,11 @@ export async function readEncounterActorControl(
   ctx: EncounterReadTransaction,
   input: ControlInput & { actor: ControlledActor }
 ): Promise<EncounterActorControl | null> {
-  return actorControl(input.membership, await readAssignedCharacterId(ctx, input), input.actor)
+  return actorControl(
+    input.membership,
+    await readCharacterControl(ctx, { ...input, actors: [input.actor] }),
+    input.actor
+  )
 }
 
 /** Refuses a member who does not control the actor with a user-safe domain rejection. */
@@ -59,10 +102,10 @@ export async function readEncounterControlledActorIds(
   ctx: EncounterReadTransaction,
   input: ControlInput & { actors: readonly ControlledActor[] }
 ): Promise<ReadonlySet<string>> {
-  const assignedCharacterId = await readAssignedCharacterId(ctx, input)
+  const control = await readCharacterControl(ctx, input)
   return new Set(
     input.actors
-      .filter((actor) => actorControl(input.membership, assignedCharacterId, actor) !== null)
+      .filter((actor) => actorControl(input.membership, control, actor) !== null)
       .map((actor) => actor.id)
   )
 }
@@ -169,6 +212,41 @@ export async function requireBoundTokenMoveControl(
   const actor = await readRunActor(ctx, readRunState(row), binding.actorId)
   if (!(await readEncounterActorControl(ctx, { ...input, actor })))
     rejectDomain('NOT_ACTOR_CONTROLLER')
+}
+
+/**
+ * An unbound token moves for the GM, the players the GM listed on it and the controllers of the
+ * Character it represents (assigned player and GM grantees, D162). A locked token never moves.
+ */
+export async function requireUnboundTokenMoveControl(
+  ctx: EncounterReadTransaction,
+  input: ControlInput & {
+    token: {
+      characterId?: string | undefined
+      controlledByUserIds: readonly string[]
+      locked: boolean
+    } | null
+  }
+): Promise<void> {
+  const { token, membership } = input
+  if (!token || token.locked)
+    throw new Error('Members may only move an unlocked token they control.')
+  if (membership.role === 'OWNER') return
+  const { characterId } = token
+  const assignment = characterId
+    ? await ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+        .unique()
+    : null
+  if (
+    !controlsUnboundSceneToken(
+      token,
+      membership.userId,
+      assignment?.campaignId === input.campaign.id ? [assignment] : []
+    )
+  )
+    throw new Error('Members may only move an unlocked token they control.')
 }
 
 /** GM-granted controllers must be current players of the Campaign. */

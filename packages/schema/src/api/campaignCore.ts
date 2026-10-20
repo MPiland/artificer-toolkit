@@ -20,6 +20,7 @@ const campaignToneDetailsSchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))
 )
 export const MAX_CAMPAIGN_RULES_CATALOGUES = 32
+const CAMPAIGN_CHARACTER_CONTROLLER_LIMIT = 32
 const additionalRulesCatalogueIdsSchema = lazySchema(() =>
   z
     .array(postgresUuidSchema)
@@ -131,7 +132,9 @@ export const campaignMembershipDtoSchema = lazySchema(() =>
     role: campaignRoleDtoSchema,
     accessStartedAt: timestampSchema,
     acceptedAt: timestampSchema,
-    assignedCharacter: z.nullable(campaignCharacterSummaryDtoSchema)
+    assignedCharacter: z.nullable(campaignCharacterSummaryDtoSchema),
+    /** The members the GM granted control of the assigned Character (D162); empty without one. */
+    characterControllerUserIds: campaignCharacterControllerUserIdsSchema
   })
 )
 const campaignBaseDtoSchema = lazySchema(() =>
@@ -261,6 +264,24 @@ export const unassignCampaignCharacterInputSchema = lazySchema(() =>
   z.strictObject({
     campaignId: uuidSchema,
     characterId: z.optional(uuidSchema)
+  })
+)
+/** Players the GM gave control of an assigned Character; the assigned player is never listed (D162). */
+export const campaignCharacterControllerUserIdsSchema = lazySchema(() =>
+  z
+    .array(uuidSchema)
+    .check(z.maxLength(CAMPAIGN_CHARACTER_CONTROLLER_LIMIT))
+    .check(
+      z.refine((ids) => new Set(ids).size === ids.length, {
+        message: 'Character controllers must be unique.'
+      })
+    )
+)
+export const setCampaignCharacterControllersInputSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema,
+    characterId: uuidSchema,
+    controllerUserIds: campaignCharacterControllerUserIdsSchema
   })
 )
 export const campaignAssignmentResultSchema = lazySchema(() =>

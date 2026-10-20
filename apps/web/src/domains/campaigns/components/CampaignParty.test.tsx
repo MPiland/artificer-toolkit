@@ -33,6 +33,7 @@ const mocks = vi.hoisted(() => ({
   uuid: vi.fn<() => ReturnType<typeof crypto.randomUUID>>(),
   assign: vi.fn(),
   unassign: vi.fn(),
+  setControllers: vi.fn(),
   leave: vi.fn(),
   remove: vi.fn(),
   personalSheet: vi.fn(),
@@ -53,6 +54,8 @@ vi.mock('convex/react', async (importOriginal) => ({
         return mocks.assign
       case getFunctionName(convexApi.campaigns.assignments.unassign):
         return mocks.unassign
+      case getFunctionName(convexApi.campaigns.characterControllers.setControllers):
+        return mocks.setControllers
       case getFunctionName(convexApi.campaigns.membershipDeparture.leave):
         return mocks.leave
       case getFunctionName(convexApi.campaigns.membershipDeparture.removeMember):
@@ -110,7 +113,8 @@ const playerMembership = {
   role: 'PLAYER' as const,
   accessStartedAt,
   acceptedAt: accessStartedAt,
-  assignedCharacter: null
+  assignedCharacter: null,
+  characterControllerUserIds: [] as string[]
 }
 const playerCampaign = createCampaignDetail({ role: 'PLAYER', memberships: [playerMembership] })
 
@@ -124,6 +128,7 @@ describe('CampaignParty native transport', () => {
     mocks.characters.isLoading = false
     mocks.assign.mockResolvedValue({ ok: true })
     mocks.unassign.mockResolvedValue({ ok: true })
+    mocks.setControllers.mockResolvedValue({ ok: true })
     mocks.uuid.mockReturnValue('77777777-7777-4777-8777-777777777777')
     vi.spyOn(crypto, 'randomUUID').mockImplementation(mocks.uuid)
   })
@@ -491,5 +496,37 @@ describe('CampaignParty native transport', () => {
     expect(screen.getByRole('button', { name: 'Change Character' })).toBeEnabled()
     await user.click(within(card).getByRole('button', { name: 'Remove Character' }))
     await waitFor(() => expect(mocks.unassign).toHaveBeenCalledWith({ campaignId: campaign.id }))
+  })
+
+  it('lets only the GM grant and revoke control of an assigned Character (SCENE-5.1)', async () => {
+    const user = userEvent.setup()
+    const aria = {
+      id: 'character-1',
+      publicId: 'aria',
+      label: 'Aria',
+      systemId: campaign.gameSystemId
+    }
+    const borinId = '33333333-3333-4333-8333-333333333333'
+    const memberships = [
+      { ...playerMembership, assignedCharacter: aria, characterControllerUserIds: [] },
+      { ...playerMembership, userId: borinId, username: 'borin' }
+    ]
+    const view = renderWithAppProviders(
+      <CampaignParty campaign={{ ...playerCampaign, memberships }} currentUserId={playerId} />
+    )
+    expect(screen.queryByLabelText(/Who else controls/)).not.toBeInTheDocument()
+
+    view.rerender(<CampaignParty campaign={{ ...campaign, memberships }} currentUserId='owner-1' />)
+    // The assigned player is never offered, only the other players.
+    await user.click(screen.getByLabelText('Who else controls Aria'))
+    expect(screen.queryByRole('option', { name: 'aria' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('option', { name: 'borin' }))
+    await waitFor(() =>
+      expect(mocks.setControllers).toHaveBeenCalledWith({
+        campaignId: campaign.id,
+        characterId: aria.id,
+        controllerUserIds: [borinId]
+      })
+    )
   })
 })

@@ -328,6 +328,7 @@ export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetail
         acceptedAt: '2026-08-01T12:00:00.000Z',
         accessStartedAt: '2026-08-01T12:00:00.000Z',
         assignedCharacter,
+        characterControllerUserIds: [],
         role: 'PLAYER',
         userId: tabletopCurrentUserId,
         username: 'ember'

@@ -2004,6 +2004,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     const plan = planLiveSceneCommand({
       actor: admission,
+      assignments: authorization.campaign.assignments,
       command,
       encounterId: cached.encounterId,
       scene
@@ -4239,6 +4240,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       originAdmission,
       candidates,
       boundTokenControl,
+      authorization.campaign.assignments,
       scene,
       envelope
     )
@@ -4503,6 +4505,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     originAdmission: Admission,
     candidates: readonly { admission: Admission; socket: WebSocket }[],
     boundTokenControl: BoundTokenControl | null,
+    assignments: LiveSessionRoomAuthorization['campaign']['assignments'],
     scene: CampaignSceneStateDto,
     envelope: SceneTransientEnvelopeDto
   ): void {
@@ -4533,7 +4536,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           token,
           role: originAdmission.role,
           userId: originAdmission.userId,
-          originBoundTokenControl: boundTokenControl
+          originBoundTokenControl: boundTokenControl,
+          assignments
         })
       )
         return

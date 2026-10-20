@@ -757,7 +757,11 @@ PARTY additionally needs player conversation membership. There is no edit or del
 ### Assignment, departure and ownership
 
 `campaignCharacterAssignments` enforces one Character per player and one Campaign per Character through indexed
-reads. Departure (`characterDeparture`, one atomic mutation) returns Campaign coins to loose party custody with an
+reads. The row also stores the GM's Character control grants as an optional `controllerUserIds` (SCENE-5.1, D162): other
+active Campaign players the GM lets act for the assigned Character. The grants are the only source for Campaign
+grants, read live (never copied into a Run actor), and the assigned player always keeps control. Grant and revoke are
+GM-only (`campaigns/characterControllers:setControllers`), bump the CAMPAIGN and PLAY revisions and take effect in
+open rooms with the next authorization read; a departing member is stripped from every grant. Departure (`characterDeparture`, one atomic mutation) returns Campaign coins to loose party custody with an
 OWNER audit, deletes the assignment and the `campaignCharacterStates` overlay, reconciles personal source access,
 repairs a saved draft and clamps HP. D81: departure also ends everything the Campaign or its Runs own on the
 Character (`settleDepartedCharacters`: effects, emptied maintained states in Runs the room does not hold,
