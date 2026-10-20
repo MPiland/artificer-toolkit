@@ -12567,7 +12567,7 @@
               "text": "Feature-level spell slot table (split from T3c, ruled 2026-10-20): grants.spellSlots { id, resetKind, levels[{ level, amount }] } through schema, shared authoring, compiler, node map and web defaults; T3b casters become one table plus SPELL_SLOT-mode spell grants; parity proof keeps the GM description and slot counts. No runtime change."
             },
             {
-              "id": "SPELLS-33.T3c2",
+              "id": "SPELLS-33.T3c2a",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12577,7 +12577,33 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3c1"]
               },
-              "text": "Creature spell grants cast in the room (split from T3c, ruled 2026-10-20): one holder-agnostic cast candidate builder for Characters and creatures (no Character assertion changes); creature fold; a cast spends a slot at or above the spell level, preferring the exact level, through actor.resources.featureCharges; undo and rest refresh proofs; room journey: the SRD Mage casts a levelled spell, including a low spell from a higher slot."
+              "text": "Creature spell discovery (split from T3c2, ruled 2026-10-20): load compiled spell definitions for creature actors in Convex and the session worker; creature spell-cast discovery through the shared holder-agnostic candidate builder (Character-parity extraction); slot rows keyed by spellSlots levels[].id with the real feature as owner (no synthetic features)."
+            },
+            {
+              "id": "SPELLS-33.T3c2b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T3c2a"]
+              },
+              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey."
+            },
+            {
+              "id": "SPELLS-33.T3c3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T3c1"]
+              },
+              "text": "Creature rest (split from T3c2, ruled 2026-10-20): a creature-rest room command (schema, persistence, undo) that resets actor featureCharges and spell slot rows by resetKind."
             },
             {
               "id": "SPELLS-33.T4c",
