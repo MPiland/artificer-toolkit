@@ -109,7 +109,13 @@ export async function setConcealmentObservers(
         lifecycle: concealmentLifecycleFor(effect, after)
       })
     ).version
-  else await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+  else
+    await store.deleteCas({
+      id: effect.id,
+      owner,
+      expectedVersion: effect.version,
+      removal: 'ENDED'
+    })
   const now = new Date().toISOString()
   const version = run.version + 1
   const nextState = encounterRunStateSchema.parse({ ...state, version, updatedAt: now })

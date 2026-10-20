@@ -1083,7 +1083,8 @@ function unsupportedModifierKindError(issue: { input?: unknown }): string | unde
  * and import reject them rather than store a mechanic that silently does nothing.
  * `REACTION_COUNT SET_VALUE` stays authorable: SRD Shocking Grasp applies it through a granted
  * effect, which Phase 8.3 applies. So does `ACTION_COUNT SET_VALUE`: SRD Fighter Action Surge sets the
- * holder's Action maximum for the turn, which the action economy reads.
+ * holder's Action maximum for the turn, which the action economy reads. `BONUS_ACTION_COUNT SET_VALUE`
+ * stays authorable too: SRD Haste's lethargy zeroes the Bonus Action the same way.
  */
 const UNSUPPORTED_MODIFIERS = new Set([
   'SAVE_DC SET_VALUE',
@@ -1104,7 +1105,6 @@ const UNSUPPORTED_MODIFIERS = new Set([
   'SPELLS_PREPARED SET_VALUE',
   'ACTION_COUNT BONUS',
   'BONUS_ACTION_COUNT BONUS',
-  'BONUS_ACTION_COUNT SET_VALUE',
   'REACTION_COUNT BONUS'
 ])
 

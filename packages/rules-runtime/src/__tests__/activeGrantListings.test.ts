@@ -353,7 +353,9 @@ describe('grant polarity (VTT_UI-1.2)', () => {
     expect(polarityOf([set('REACTION_COUNT', 0)])).toBe('HARMFUL')
     expect(polarityOf([set('REACTION_COUNT', 2)])).toBe('NEUTRAL')
     expect(polarityOf([set('ACTION_COUNT', 2)])).toBe('BENEFICIAL')
-    expect(polarityOf([set('ACTION_COUNT', 0)])).toBe('NEUTRAL')
+    // A zeroed Action is Haste's lethargy, which the action economy now applies (SPELLS-4.T2l-a).
+    expect(polarityOf([set('ACTION_COUNT', 0)])).toBe('HARMFUL')
+    expect(polarityOf([set('BONUS_ACTION_COUNT', 0)])).toBe('HARMFUL')
     expect(polarityOf([set('HIT_POINTS_MAX', 0)])).toBe('NEUTRAL')
     expect(polarityOf([set('HIT_POINTS_MAX', 30)])).toBe('NEUTRAL')
   })

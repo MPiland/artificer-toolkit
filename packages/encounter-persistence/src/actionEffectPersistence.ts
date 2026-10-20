@@ -297,7 +297,12 @@ export async function applyMaintenanceReplacement(
 ) {
   const store = createActiveRuleEffectStore(ctx)
   for (const effect of input.maintenance.removed)
-    await store.deleteCas({ id: effect.id, owner: effect.owner, expectedVersion: effect.version })
+    await store.deleteCas({
+      id: effect.id,
+      owner: effect.owner,
+      expectedVersion: effect.version,
+      removal: 'ENDED'
+    })
   if (input.maintenance.prior) {
     // The replaced Concentration's zones end with it (D135).
     await deleteStateZones(
@@ -311,7 +316,8 @@ export async function applyMaintenanceReplacement(
       id: input.maintenance.prior.id,
       encounterId: input.state.id,
       ownerActorId: input.actorId,
-      expectedVersion: input.maintenance.prior.version
+      expectedVersion: input.maintenance.prior.version,
+      removal: 'ENDED'
     })
   }
   const created = await store.createMaintainedState({

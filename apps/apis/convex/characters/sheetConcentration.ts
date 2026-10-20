@@ -37,7 +37,9 @@ export async function endCarriedConcentration(
       await store.deleteCas({
         id: effect.id,
         owner: effect.owner,
-        expectedVersion: effect.version
+        expectedVersion: effect.version,
+        // Outside a Run no turn counts down, so nothing an effect would leave behind is left.
+        removal: 'REMOVED'
       })
   await endCarriedGrantsOfConcentratingCasters(transaction, {
     encounterId: null,

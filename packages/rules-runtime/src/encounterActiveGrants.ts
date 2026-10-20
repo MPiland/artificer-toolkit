@@ -37,6 +37,8 @@ import type { EncounterRelationshipD20Contributor } from './encounterRelationshi
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
+  DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
+  DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
   DND5E_REACTION_ALLOWANCE_DEFINITION_ID
 } from './systems/dnd5e/identity.js'
 import { dnd5eSaveRequiresSourceSight } from './systems/dnd5e/modifierApplicability.js'
@@ -44,32 +46,40 @@ import { dnd5eSaveRequiresSourceSight } from './systems/dnd5e/modifierApplicabil
 // Namespaces the per-instance identity of an active grant's suppression contribution.
 const grantSuppressionNamespace = '5b0c4e0a-7a52-4d2b-9a0e-3c1f6d8b2e47'
 
+const allowanceByCountDomain: Partial<Record<ValueDomainCode, string>> = {
+  ACTION_COUNT: DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
+  BONUS_ACTION_COUNT: DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
+  REACTION_COUNT: DND5E_REACTION_ALLOWANCE_DEFINITION_ID
+}
+
 /**
- * The capabilities a holder's active grants switch off: a `REACTION_COUNT SET_VALUE 0` grant
- * (Shocking Grasp's "can't take reactions") suppresses its reaction allowance, so it is offered no
- * reaction while the grant lasts (D99). A suppression is keyed by the grant instance, the active
- * effect and its authored grant, because several effects of one authored grant (or a grant id that
- * is no UUID) would otherwise collide in the availability resolver.
+ * The capabilities a holder's active grants switch off: an `ACTION_COUNT`, `BONUS_ACTION_COUNT` or
+ * `REACTION_COUNT` `SET_VALUE 0` grant (Shocking Grasp's "can't take reactions", Haste's lethargy)
+ * suppresses that allowance, so the holder is offered none of that kind while the grant lasts (D99).
+ * A suppression is keyed by the grant instance, the active effect and its authored grant, because
+ * several effects of one authored grant (or a grant id that is no UUID) would otherwise collide in
+ * the availability resolver.
  */
 export function encounterActiveGrantCapabilitySuppressions(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ) {
   return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
-    modifiers.flatMap((modifier) =>
-      modifier.valueDomainCode === 'REACTION_COUNT' &&
-      modifier.modifierKind === 'SET_VALUE' &&
-      modifier.payload !== undefined &&
-      'amount' in modifier.payload &&
-      modifier.payload.amount === 0
+    modifiers.flatMap((modifier) => {
+      const allowanceId = allowanceByCountDomain[modifier.valueDomainCode]
+      return allowanceId !== undefined &&
+        modifier.modifierKind === 'SET_VALUE' &&
+        modifier.payload !== undefined &&
+        'amount' in modifier.payload &&
+        modifier.payload.amount === 0
         ? [
             {
               activeEffectId: effectId,
               contributionId: uuidv5(`${effectId}:${modifier.grantId}`, grantSuppressionNamespace),
-              capabilityDefinitionIds: [DND5E_REACTION_ALLOWANCE_DEFINITION_ID]
+              capabilityDefinitionIds: [allowanceId]
             }
           ]
         : []
-    )
+    })
   )
 }
 

@@ -475,7 +475,13 @@ export async function executeCharacterSheetCommand(
     const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     for (const effect of initial.activeEffects)
       if (activeEffectEndsOnRest(effect, command.restKind))
-        await effectStore.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+        await effectStore.deleteCas({
+          id: effect.id,
+          owner,
+          expectedVersion: effect.version,
+          // A rest happens outside a Run: no turn counts down a follow-on grant.
+          removal: 'REMOVED'
+        })
   }
 
   if (

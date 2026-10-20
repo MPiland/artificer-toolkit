@@ -373,7 +373,8 @@ describe('native active Rule Effect store', () => {
         createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).deleteCas({
           id,
           owner: characterOwner,
-          expectedVersion: 1
+          expectedVersion: 1,
+          removal: 'REMOVED'
         })
       )
     ).rejects.toThrow()
@@ -508,7 +509,8 @@ describe('native active Rule Effect store', () => {
         id: actorStateId,
         encounterId: run.id,
         ownerActorId: customActor.id,
-        expectedVersion: 1
+        expectedVersion: 1,
+        removal: 'REMOVED'
       })
       expect(await store.findById(actorOwner, actorEffectId)).toBeNull()
       await store.createMaintainedState({
@@ -533,7 +535,8 @@ describe('native active Rule Effect store', () => {
           id: characterStateId,
           encounterId: run.id,
           ownerActorId: customActor.id,
-          expectedVersion: 1
+          expectedVersion: 1,
+          removal: 'REMOVED'
         })
       )
     ).rejects.toThrow()

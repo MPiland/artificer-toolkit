@@ -35,7 +35,12 @@ export async function endCharacterRunEffects(
   const row = await ctx.ports.readCharacterRow(input.characterId)
   if (!row) throw new Error('Departing Character is unavailable.')
   for (const effect of removed)
-    await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+    await store.deleteCas({
+      id: effect.id,
+      owner,
+      expectedVersion: effect.version,
+      removal: 'REMOVED'
+    })
 
   const emptiedStates = new Map<string, string>()
   for (const effect of removed)
@@ -56,7 +61,8 @@ export async function endCharacterRunEffects(
         id: state.id,
         encounterId,
         ownerActorId: state.ownerActorId,
-        expectedVersion: state.version
+        expectedVersion: state.version,
+        removal: 'REMOVED'
       })
   }
 
@@ -113,7 +119,12 @@ export async function endCarriedGrantsOfConcentratingCasters(
     const row = await ctx.ports.readCharacterRow(characterId)
     if (!row) throw new Error('Carried-grant Character is unavailable.')
     for (const effect of removed)
-      await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+      await store.deleteCas({
+        id: effect.id,
+        owner,
+        expectedVersion: effect.version,
+        removal: 'ENDED'
+      })
     await reconcileNativeMaintenanceOwners(ctx, {
       encounterId: input.encounterId,
       maintenance: {
@@ -184,8 +195,14 @@ export async function endCompletedRunCharacterEffects(
       characterId: actor.sourceId,
       beforeStreamVersion: row.play.streamVersion
     })
+    // The Run is over, so nothing an effect would leave behind has a turn left to count down on.
     for (const effect of ended)
-      await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+      await store.deleteCas({
+        id: effect.id,
+        owner,
+        expectedVersion: effect.version,
+        removal: 'REMOVED'
+      })
     removed.push(...ended)
   }
   if (removed.length === 0) return

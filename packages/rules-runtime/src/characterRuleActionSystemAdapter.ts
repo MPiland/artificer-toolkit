@@ -118,6 +118,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     activeOnlyOnFinalAnchorTurn?: true
     /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
     uses?: number
+    /** The grant the holder keeps for `turns` of its turns when the effect ends, however it ends. */
+    onEnd?: { turns: number; modifiers: readonly CharacterGrantFoldModifier[] }
   }
   /**
    * The item the action is used on, chosen at use from what its target holds or wears; null for

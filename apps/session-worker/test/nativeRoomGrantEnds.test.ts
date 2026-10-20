@@ -2,7 +2,9 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import {
   SRD_CONDITION_TYPES,
   srdSystemRecord
@@ -159,7 +161,7 @@ describe('a reaction attack uses up the attacker’s one-roll grants (SPELLS-5.4
 })
 
 describe('a grant anchored to a source that is gone (SPELLS-5.4)', () => {
-  function sourceGrantRoom(sourceDefeated: boolean) {
+  function sourceGrantRoom(sourceDefeated: boolean, effect?: EffectAuthored) {
     // Initiative reads the Character's frozen identity, which a turn change checks.
     const mover = {
       ...characterActor({ id: MOVER_ID, characterId: CHARACTER_ID }),
@@ -181,7 +183,8 @@ describe('a grant anchored to a source that is gone (SPELLS-5.4)', () => {
       seed: seedModifierGrant({
         sourceActorId: REACTOR_ID,
         holderActorId: HOLDER_ID,
-        lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } }
+        lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } },
+        effect
       })
     })
   }
@@ -202,5 +205,35 @@ describe('a grant anchored to a source that is gone (SPELLS-5.4)', () => {
     await sendEncounterCommand(room, { type: 'ADVANCE_TURN' })
 
     expect(await activeEffects(room)).toEqual([])
+  })
+
+  describe('Haste’s lethargy (SPELLS-4.T2l)', () => {
+    const [hasteEffect] = haste.effects ?? []
+
+    /** Haste is gone and its holder keeps the one-turn lethargy that ends nothing further. */
+    function expectLethargyOnly(effects: Awaited<ReturnType<typeof activeEffects>>) {
+      expect(effects).toHaveLength(1)
+      expect(effects[0]).toMatchObject({
+        targetActorId: HOLDER_ID,
+        lifecycle: { remainingTicks: 1 }
+      })
+    }
+
+    it('follows an end by the source’s removal from the Run', async () => {
+      const room = await sourceGrantRoom(false, hasteEffect)
+      expect(await activeEffects(room)).toMatchObject([{ targetActorId: HOLDER_ID }])
+
+      await sendEncounterCommand(room, { type: 'REMOVE_ACTOR', actorId: REACTOR_ID })
+
+      expectLethargyOnly(await activeEffects(room))
+    })
+
+    it('follows an expiry', async () => {
+      const room = await sourceGrantRoom(true, hasteEffect)
+
+      await sendEncounterCommand(room, { type: 'ADVANCE_TURN' })
+
+      expectLethargyOnly(await activeEffects(room))
+    })
   })
 })

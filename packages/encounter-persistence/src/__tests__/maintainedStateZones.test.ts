@@ -130,7 +130,8 @@ describe('a Concentration zone is a dependent of its maintained state (D135)', (
         id: prior.id,
         encounterId: ENCOUNTER_ID,
         ownerActorId: ACTOR_ID,
-        expectedVersion: prior.version
+        expectedVersion: prior.version,
+        removal: 'ENDED'
       })
     ).rejects.toThrow('Maintained effect state still has zone dependents.')
     expect(memory.documents('encounterMaintainedEffectStates')).toHaveLength(1)

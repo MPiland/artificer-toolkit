@@ -2676,6 +2676,7 @@ function modifierGrantEntryPlan(input: {
     fromSourceOnly = false,
     activeOnlyOnFinalAnchorTurn = false,
     uses,
+    onEnd,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
@@ -2705,6 +2706,11 @@ function modifierGrantEntryPlan(input: {
         (typeof payload === 'object' && payload !== null && 'countPerCastLevelAbove' in payload)
     ) ||
     grants.proficiencies?.length ||
+    onEnd?.modifiers.some(
+      ({ payload }) =>
+        isSlotLevelAmount(payload) ||
+        (typeof payload === 'object' && payload !== null && 'countPerCastLevelAbove' in payload)
+    ) ||
     (untilEndEvent
       ? entry.duration !== undefined ||
         endEvents.length === 0 ||
@@ -2740,7 +2746,13 @@ function modifierGrantEntryPlan(input: {
       holderEnd,
       ...(fromSourceOnly && { fromSourceOnly: true }),
       ...(activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
-      ...(uses !== undefined && { uses })
+      ...(uses !== undefined && { uses }),
+      ...(onEnd && {
+        onEnd: {
+          turns: onEnd.turns,
+          modifiers: buildCharacterGrantFoldModifierFacts(onEnd.modifiers.map(compileModifierGrant))
+        }
+      })
     },
     adapterFacts: resultGated ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],

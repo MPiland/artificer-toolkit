@@ -12,6 +12,7 @@ import { enlargeReduce } from '@artificer-toolkit/source-data/srd/spells/enlarge
 import { foresight } from '@artificer-toolkit/source-data/srd/spells/foresight.js'
 import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
+import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { slow } from '@artificer-toolkit/source-data/srd/spells/slow.js'
@@ -36,7 +37,9 @@ describe('a spell authored from core Modifier Grants through the effect node map
     ['Branding Smite', brandingSmite],
     ["Hunter's Mark", huntersMark],
     ['Enlarge/Reduce', enlargeReduce],
-    ['Bestow Curse', bestowCurse]
+    ['Bestow Curse', bestowCurse],
+    // SPELLS-4.T2l-a: the follow-on grant (`lifecycle.onEnd`) Haste's lethargy authors.
+    ['Haste', haste]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }

@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 
+import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { applyGrantDtoSchema } from './applyGrant.js'
 import { commandManifestDtoSchema } from './commandManifest.js'
 import { conditionDtoSchema } from './condition.js'
@@ -162,6 +163,13 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
         activation: activationDtoSchema,
         checks: checkChoiceDtoSchema,
         dc: heldEscapeDcDtoSchema
+      })
+    ),
+    /** What the holder is left with when the effect ends; see `PathLifecycleAuthored.onEnd`. */
+    onEnd: z.optional(
+      z.object({
+        turns: z.number().check(z.int()).check(z.gte(1)).check(z.lte(255)),
+        modifiers: authoredNestedCollectionSchema(modifierGrantDtoSchema)
       })
     )
   })

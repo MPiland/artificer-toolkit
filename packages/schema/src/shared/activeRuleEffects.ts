@@ -3,6 +3,7 @@ import { z, lazySchema } from '../zod.js'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import {
+  type CharacterGrantFoldModifier,
   equipmentInstanceMechanicSourceSchema,
   modifierOperationSchema,
   senseOperationSchema
@@ -15,6 +16,7 @@ import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointM
 import {
   activeRuleEffectLifecycleDtoSchema,
   MAX_ACTIVE_EFFECT_STORED_TICKS,
+  MAX_ACTIVE_EFFECT_TURNS,
   activeEffectUsesSchema
 } from './activeRuleEffectLifecycle.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
@@ -336,6 +338,23 @@ const activeRuleEffectActorRelationshipContributionDtoSchema = lazySchema(() =>
   })
 )
 
+export interface ActiveEffectOnEnd {
+  turns: number
+  modifiers: CharacterGrantFoldModifier[]
+}
+
+/**
+ * The follow-on grant an ended effect leaves its holder. Typed explicitly because inlining its
+ * modifier operations into the contribution and the compiled plan overflows the compiler's
+ * inferred-type serialization of the Character mechanics projection.
+ */
+export const activeEffectOnEndSchema: z.ZodMiniType<ActiveEffectOnEnd> = lazySchema(() =>
+  z.strictObject({
+    turns: positiveIntegerSchema.check(z.lte(MAX_ACTIVE_EFFECT_TURNS)),
+    modifiers: z.array(modifierOperationSchema).check(z.minLength(1)).check(z.maxLength(200))
+  })
+)
+
 const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -358,7 +377,13 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
        * Only on the template a placed zone carries: the events that end the grant the zone leaves
        * on a creature. A created grant reads them from its own `recurrence.endOnEvents`.
        */
-      endOnEvents: z.optional(activeEffectEndEventsSchema)
+      endOnEvents: z.optional(activeEffectEndEventsSchema),
+      /**
+       * The grant the holder keeps when this effect ends, however it ends (Haste's lethargy): the
+       * modifiers are frozen at creation and held for `turns` of the holder's own turns. The effect
+       * store creates it where the ended effect is removed; a created follow-on carries none.
+       */
+      onEnd: z.optional(activeEffectOnEndSchema)
     })
     .check(
       z.refine(

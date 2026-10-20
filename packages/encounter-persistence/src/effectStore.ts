@@ -31,6 +31,10 @@ import {
   requireDefinitionOwner,
   sourceEncounterIdForDefinition
 } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import {
+  onEndGrantEffect,
+  onEndGrantEffectId
+} from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
 import { z } from 'zod'
 import {
   endActorFormHeldBy,
@@ -42,6 +46,15 @@ import { listStateZones } from './maintainedStateZones.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 const positiveIntegerSchema = z.number().int().positive()
+
+/**
+ * Why an effect leaves the store. `ENDED` is the effect running its course (expiry, Concentration
+ * dropping, an early-end trigger, a Dispel, damage): the effect's authored `onEnd` grant is left
+ * on its holder, for the rest of the Run. `REMOVED` leaves nothing behind: bookkeeping (an undo, an
+ * actor or account going away) or an end where no turn can count a follow-on down (outside a Run, a
+ * Run completing, a lapse on the Campaign clock).
+ */
+export type ActiveRuleEffectRemoval = 'ENDED' | 'REMOVED'
 
 function parseJson(value: string, message: string): unknown {
   try {
@@ -355,7 +368,48 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
     return count
   }
 
-  return {
+  async function removeEffectRow(current: ActiveRuleEffectRecord, owner: ActiveRuleEffectOwner) {
+    const { id, version } = current
+    if (owner.kind === 'CHARACTER') {
+      const row = await ctx.db
+        .query('characterActiveRuleEffects')
+        .withIndex('by_characterId_id', (q) => q.eq('characterId', owner.characterId).eq('id', id))
+        .unique()
+      if (!row || row.version !== version)
+        throw new Error('Active rule effect changed before deletion.')
+      await ctx.db.delete(row._id)
+      if (holdsActorForm(current.definition) && current.sourceEncounterId !== null)
+        await endCharacterFormHeldBy(ctx, {
+          encounterId: current.sourceEncounterId,
+          characterId: owner.characterId,
+          effectId: id
+        })
+      return
+    }
+    const row = await ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_encounterId_targetActorId_id', (q) =>
+        q.eq('encounterId', owner.encounterId).eq('targetActorId', owner.targetActorId).eq('id', id)
+      )
+      .unique()
+    if (!row || row.version !== version)
+      throw new Error('Active rule effect changed before deletion.')
+    await ctx.db.delete(row._id)
+    if (holdsActorForm(current.definition))
+      await endActorFormHeldBy(ctx, {
+        encounterId: owner.encounterId,
+        actorId: owner.targetActorId,
+        effectId: id
+      })
+  }
+
+  /** The one place an effect that ended leaves its authored `onEnd` grant behind (Haste's lethargy). */
+  async function createOnEndGrant(ended: ActiveRuleEffectRecord): Promise<void> {
+    const grant = onEndGrantEffect(ended)
+    if (grant) await store.create(grant)
+  }
+
+  const store = {
     async list(inputOwner: ActiveRuleEffectOwner): Promise<ActiveRuleEffectRecord[]> {
       return listActiveRuleEffects(ctx, inputOwner)
     },
@@ -484,6 +538,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       encounterId: string
       ownerActorId: string
       expectedVersion: number
+      removal: ActiveRuleEffectRemoval
     }): Promise<void> {
       const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
       const ownerActorId = serverUuidIdentityDtoSchema.parse(input.ownerActorId)
@@ -523,6 +578,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
             actorId: actorRow.targetActorId,
             effectId: effect.id
           })
+        if (input.removal === 'ENDED') await createOnEndGrant(effect)
       }
       await ctx.db.delete(row._id)
     },
@@ -545,6 +601,11 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       }).lifecycle
       requireDefinitionOwner(owner, definition)
       await requireOwner(ctx, owner)
+      if (input.restoredFrom) {
+        // An undo that gives an effect back also takes back the grant its ending left behind.
+        const left = await findEffectById(owner, onEndGrantEffectId(id))
+        if (left) await removeEffectRow(left, owner)
+      }
       const maintainedEffectStateId =
         input.maintainedEffectStateId == null
           ? null
@@ -793,49 +854,21 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       if (!updated) throw new Error('Active rule effect changed before relinking to its caster.')
       return readCharacterEffect(updated)
     },
-    async deleteCas(input: { id: string; owner: ActiveRuleEffectOwner; expectedVersion: number }) {
+    async deleteCas(input: {
+      id: string
+      owner: ActiveRuleEffectOwner
+      expectedVersion: number
+      removal: ActiveRuleEffectRemoval
+    }) {
       const owner = ownerFor(input.owner)
       const id = serverUuidIdentityDtoSchema.parse(input.id)
       const expectedVersion = positiveIntegerSchema.parse(input.expectedVersion)
       const current = await findEffectById(owner, id)
       if (!current || current.version !== expectedVersion)
         throw new Error('Active rule effect changed before deletion.')
-      if (owner.kind === 'CHARACTER') {
-        const row = await ctx.db
-          .query('characterActiveRuleEffects')
-          .withIndex('by_characterId_id', (q) =>
-            q.eq('characterId', owner.characterId).eq('id', id)
-          )
-          .unique()
-        if (!row || row.version !== expectedVersion)
-          throw new Error('Active rule effect changed before deletion.')
-        await ctx.db.delete(row._id)
-        if (holdsActorForm(current.definition) && current.sourceEncounterId !== null)
-          await endCharacterFormHeldBy(ctx, {
-            encounterId: current.sourceEncounterId,
-            characterId: owner.characterId,
-            effectId: id
-          })
-        return
-      }
-      const row = await ctx.db
-        .query('encounterActiveRuleEffects')
-        .withIndex('by_encounterId_targetActorId_id', (q) =>
-          q
-            .eq('encounterId', owner.encounterId)
-            .eq('targetActorId', owner.targetActorId)
-            .eq('id', id)
-        )
-        .unique()
-      if (!row || row.version !== expectedVersion)
-        throw new Error('Active rule effect changed before deletion.')
-      await ctx.db.delete(row._id)
-      if (holdsActorForm(current.definition))
-        await endActorFormHeldBy(ctx, {
-          encounterId: owner.encounterId,
-          actorId: owner.targetActorId,
-          effectId: id
-        })
+      await removeEffectRow(current, owner)
+      if (input.removal === 'ENDED') await createOnEndGrant(current)
     }
   }
+  return store
 }
