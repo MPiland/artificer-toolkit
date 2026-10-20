@@ -1,6 +1,6 @@
 # SCENE-5 plan: the shared table screen
 
-Status: **in planning with the product owner (2026-10-19).** The model below is agreed; the AC wording and the open questions at the end are not. SCENE-5's ledger tasks are provisional until the owner confirms.
+Status: **confirmed by the product owner (2026-10-19)**, model, tasks and AC wording included. Sent to the orchestrator to register.
 
 ## What in-person groups actually do
 
@@ -54,13 +54,14 @@ SCENE-5:
 
 T3 needs a server change: room admission (`roomBoundTokenControl` and the Encounter action admission) must accept the table role's commands for covered Characters it does not own.
 
-## AC wording (proposed, not confirmed; the owner asked to hold registration)
+## AC wording (confirmed 2026-10-19)
 
 - **5.1:** the table mode is no longer chosen at launch: "During an ACTIVE Session the GM can give one member the table role, covering chosen player Characters with one as the main Character. That member's tabletop window shows the Scene through the main Character's senses …" (the vision sentences stay).
 - **5.2:** the table no longer answers roll prompts: "The table acts for every covered Character: it moves their tokens (outside an Encounter or in a Manual Run any of them; in an Assisted Encounter the one whose turn it is) and chooses their actions; their roll prompts go to each Character's controller; every other client converges as for any player command."
 - **5.3:** unchanged, but it now holds for every Character, the holder's own included.
 - **New 5.4:** "Every tabletop viewer can set the zoom by typing a percentage or stepping it. The table window keeps its zoom on that device across reloads, reconnects and view switches, so squares stay sized to physical minis."
-- **New PBI:** ACs for the global prompt modal (any page, cleared everywhere on answer, never in a table window) and the turn notification.
+- **New PBI, AC 1:** "A pending roll prompt for a member's Character shows in a modal over whatever signed-in page they have open while its Session is ACTIVE. Every open tab or device shows it, answering it in one clears it everywhere, and a table window never shows it."
+- **New PBI, AC 2:** "When one of a member's Characters starts its turn, a 'your turn' notification shows on any signed-in page they have open, except a table window."
 
 ## Later, not in SCENE-5 (future enhancements)
 
@@ -71,6 +72,6 @@ T3 needs a server change: room admission (`roomBoundTokenControl` and the Encoun
 
 No Lock View or calibration. Grids are fixed to the map, and the person at the TV zooms until squares fit the minis, by wheel or by typing a percentage (T4). The table window keeps that zoom across reloads (T1) and view switches (T2). An accidental wheel bump is not guarded against; re-zooming fixes it.
 
-## Open question for the product owner
+## Closing the main app window
 
-- **The AC wording above:** confirm when ready to register. This includes the new 5.4.
+The table window is its own page with its own room connection (the opener link is cut on open), so closing the main app window does not disconnect the table. No auto-close and no leave warning: auto-close would blank the TV when the holder closes their laptop tab, and a warning would claim a loss that does not happen.
