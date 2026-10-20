@@ -58,6 +58,8 @@ export type NativeEncounterActionMechanicsInput = {
   forceTargetVersionAdvance?: boolean
   /** The item a hand of the target holds that it drops with this outcome (Heat Metal). */
   releaseTargetItemInstanceId?: string
+  /** The worn item the target's outcome corrodes (Dissolving Pseudopod, Rust Monster Antennae). */
+  degradeTargetItem?: EncounterMechanicsBatchInput['degradeItem']
   /** The form the target takes with this outcome (D130), when the action created the effect holding it. */
   enterForm?: EncounterMechanicsBatchInput['enterForm']
   eventPhases?: {
@@ -202,6 +204,7 @@ function prepareNativeActionMechanicsBatches(
     ...(input.releaseTargetItemInstanceId
       ? { releaseHeldItemInstanceId: input.releaseTargetItemInstanceId }
       : {}),
+    ...(input.degradeTargetItem ? { degradeItem: input.degradeTargetItem } : {}),
     ...(onTargetBatch
       ? source.kind === 'CHARACTER_ACTION'
         ? sourceMutation
@@ -220,6 +223,7 @@ type SettledMechanicsPlan = Pick<
   | 'itemUseStateTransition'
   | 'itemReleaseTransition'
   | 'itemDrawTransition'
+  | 'itemDegradationTransition'
 >
 
 /** The receipts of the source's one spend, read from what the action prepared. */
@@ -348,6 +352,7 @@ export function finishNativeActionMechanicsSettlement(
     sourceItemUseStateTransition,
     sourceItemDraw,
     targetItemUseStateTransition: mechanics.itemReleaseTransition,
+    targetItemDegradation: mechanics.itemDegradationTransition,
     sourceApplications: settledSourceApplications,
     ...(spendsSource
       ? nativeSourceSpendReceipts(prepared)

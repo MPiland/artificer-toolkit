@@ -421,6 +421,39 @@ export const characterItemConsumptionReceiptDtoSchema: z.ZodMiniType<CharacterIt
     )
   )
 
+/** One worn item an outcome corroded: its penalty rises, and it is used up when destroyed. */
+export type CharacterItemDegradationReceiptDto = {
+  characterId: string
+  itemInstanceId: string
+  beforePenalty: number
+  afterPenalty: number
+  beforeUsed: number
+  afterUsed: number
+}
+export const characterItemDegradationReceiptDtoSchema: z.ZodMiniType<CharacterItemDegradationReceiptDto> =
+  lazySchema(() =>
+    z
+      .strictObject({
+        characterId: uuidSchema,
+        itemInstanceId: uuidSchema,
+        beforePenalty: nonNegativeIntegerSchema,
+        afterPenalty: positiveIntegerSchema,
+        beforeUsed: nonNegativeIntegerSchema,
+        afterUsed: nonNegativeIntegerSchema
+      })
+      .check(
+        z.superRefine((value, context) => {
+          if (value.afterPenalty <= value.beforePenalty)
+            context.addIssue({ code: 'custom', message: 'Corrosion raises the penalty.' })
+          if (value.afterUsed !== value.beforeUsed && value.afterUsed !== value.beforeUsed + 1)
+            context.addIssue({
+              code: 'custom',
+              message: 'Corrosion destroys at most one item.'
+            })
+        })
+      )
+  )
+
 /** One spell slot (or the pact slot) a cast spent: the slot's used count rises by one. */
 export type CharacterSpellSlotConsumptionReceiptDto = {
   characterId: string

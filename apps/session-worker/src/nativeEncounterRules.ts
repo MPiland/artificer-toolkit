@@ -1576,6 +1576,11 @@ export async function planNativeLiveEncounterAction(
       targetReleases: reactionEnded?.sourceReleases,
       damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
       releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
+      degradeTargetItem: preparedEffects.degradedItem && {
+        itemInstanceId: preparedEffects.degradedItem.itemInstanceId,
+        afterPenalty: preparedEffects.degradedItem.afterPenalty,
+        destroyed: preparedEffects.degradedItem.destroyed
+      },
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||

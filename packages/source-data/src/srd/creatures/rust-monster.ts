@@ -51,8 +51,9 @@ export const rustMonster: CreatureAuthored = {
       description:
         "Antennae. The rust monster corrodes a nonmagical ferrous metal object it can see within 5 feet of it. If the object isn't being worn or carried, the touch destroys a 1-foot cube of it. If the object is being worn or carried by a creature, the creature can make a DC 11 Dexterity saving throw to avoid the rust monster's touch. If the object touched is either metal armor or a metal shield being worn or carried, its takes a permanent and cumulative -1 penalty to the AC it offers. Armor reduced to an AC of 10 or a shield that drops to a +0 bonus is destroyed. If the object touched is a held metal weapon, it rusts as described in the Rust Metal trait.",
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(241, 501),
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -74,9 +75,50 @@ export const rustMonster: CreatureAuthored = {
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RUST_MONSTER_ANTENNAE
-        })
+          paths: [
+            {
+              id: S.actionId(241, 700),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(241, 700) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(241, 701),
+                    effectKind: S.EFFECT_KIND.DEGRADE_EQUIPMENT,
+                    category: 'ARMOR' as const,
+                    nonmagical: true,
+                    materials: ['METAL' as const],
+                    step: 1,
+                    destroyWhen: { kind: 'ARMOR_CLASS_OFFERED_AT_MOST' as const, value: 10 }
+                  },
+                  {
+                    id: S.actionId(241, 702),
+                    effectKind: S.EFFECT_KIND.DEGRADE_EQUIPMENT,
+                    category: 'SHIELD' as const,
+                    nonmagical: true,
+                    materials: ['METAL' as const],
+                    step: 1,
+                    destroyWhen: { kind: 'ARMOR_CLASS_OFFERED_AT_MOST' as const, value: 0 }
+                  },
+                  {
+                    id: S.actionId(241, 703),
+                    effectKind: S.EFFECT_KIND.DEGRADE_EQUIPMENT,
+                    category: 'WEAPON' as const,
+                    nonmagical: true,
+                    materials: ['METAL' as const],
+                    step: 1,
+                    destroyWhen: { kind: 'PENALTY_REACHES' as const, value: 5 }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 2
     },

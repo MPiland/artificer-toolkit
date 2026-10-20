@@ -16,6 +16,7 @@ import type { IncomingDamageGrantTrigger } from './encounterEndedEffectRelease.j
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
 import { readEncounterChosenItem } from './encounterChosenItem.js'
+import { planEncounterEquipmentDegradation } from './encounterEquipmentDegradation.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -234,6 +235,16 @@ export function prepareNativeActionEffectsPlan<
     plan?.chosenItem?.releasedOn != null &&
     plan.chosenItem.releasedOn === execution.d20?.resultPath
   )
+  // A Creature's attack wears down the target's gear; a Character's own action authors none.
+  const degradation =
+    'capability' in prepared.source
+      ? planEncounterEquipmentDegradation({
+          capability: prepared.source.capability,
+          resultPath: execution.d20?.resultPath,
+          items: target.characterFacts?.ruleEvaluation.snapshot.equipmentItems ?? null,
+          chosenItemInstanceId: input.chosenItemInstanceId
+        })
+      : null
   const effects = prepareEncounterActionEffectPlans({
     encounterId: prepared.state.id,
     occurrenceId: input.occurrenceId,
@@ -336,6 +347,8 @@ export function prepareNativeActionEffectsPlan<
     riderEffect,
     /** The target's item the outcome drops; absent when it drops none. */
     releasedItemInstanceId: released ? chosen?.item.itemInstanceId : undefined,
+    /** The worn item the outcome corrodes; absent when it corrodes none. */
+    degradedItem: degradation?.kind === 'DEGRADE' ? degradation : undefined,
     // A source immunity outlasts the Concentration its action's effect depends on.
     riderMaintained: !immune,
     maintenance: recurringEffect

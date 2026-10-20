@@ -34,6 +34,7 @@ import {
 import {
   basicActionCheckApplicationOutputDtoSchema,
   characterItemConsumptionReceiptDtoSchema,
+  characterItemDegradationReceiptDtoSchema,
   characterItemUseStateTransitionDtoSchema,
   characterSpellSlotConsumptionReceiptDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
@@ -107,6 +108,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         z.nullable(characterItemUseStateTransitionDtoSchema),
         null
       ),
+      /** The worn item the target's outcome corroded; undo restores its penalty and use. */
+      targetItemDegradation: z._default(z.nullable(characterItemDegradationReceiptDtoSchema), null),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
@@ -523,10 +526,22 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             path: ['targetItemUseStateTransition'],
             message: 'Target item state transition must match the target Character version.'
           })
+        const degradation = value.targetItemDegradation
+        if (
+          degradation &&
+          (degradation.characterId !== value.targetActorId ||
+            value.targetCharacterStreamVersion === null)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['targetItemDegradation'],
+            message: 'Target item degradation must match the target Character.'
+          })
         const hasReactionMutation =
           reaction?.spellCastConsumption != null ||
           value.targetFailedCounterSpend ||
-          release !== null
+          release !== null ||
+          degradation !== null
         if (
           reaction &&
           (reaction.reaction.reactorActorId !== value.targetActorId ||
