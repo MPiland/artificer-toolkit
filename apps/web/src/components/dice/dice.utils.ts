@@ -27,6 +27,17 @@ export type DicePresentationRoll = RollResultDto & { ruleCheck?: RollRuleCheckDt
 
 export type D20ModeAdjustmentDto = Extract<RollRuleCheckDto, { kind: 'D20_MODE_ADJUSTED' }>
 
+const MODE_LABELS = {
+  NORMAL: 'Normal',
+  ADVANTAGE: 'Advantage',
+  DISADVANTAGE: 'Disadvantage'
+} as const
+
+/** "Advantage → Normal": the mode the roller rolled for and the mode the server settled. */
+export function formatModeChange(adjustment: D20ModeAdjustmentDto) {
+  return `${MODE_LABELS[adjustment.rolledMode]} → ${MODE_LABELS[adjustment.appliedMode]}`
+}
+
 export function formatRollEvidence(evidence: RollEvidenceDto, adjustment?: D20ModeAdjustmentDto) {
   const termModifierTotal = evidence.terms.reduce((total, term) => total + (term.modifier ?? 0), 0)
   // A d20 mode adjustment names the d20's rolls, the first term; added dice (D156) follow it.
@@ -70,8 +81,9 @@ export function formatRollEvidence(evidence: RollEvidenceDto, adjustment?: D20Mo
         : evidence.transform.kind === 'DOUBLE'
           ? ' · doubled'
           : ` · × ${evidence.transform.value}`
-  const mode =
-    evidence.mode === 'NORMAL'
+  const mode = adjustment
+    ? ` · ${formatModeChange(adjustment)}`
+    : evidence.mode === 'NORMAL'
       ? ''
       : ` · ${evidence.mode === 'ADVANTAGE' ? 'advantage' : 'disadvantage'}`
 
