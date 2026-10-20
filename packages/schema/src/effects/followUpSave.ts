@@ -3,11 +3,13 @@ import { lazySchema, z } from '../zod.js'
 
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { combatPerceptionRequirementDtoSchema } from '../shared/combatPerception.js'
-import { pathLifecycleEndTriggersDtoSchema } from '../shared/reaction.js'
+import { damageTypeFilterDtoSchema, pathLifecycleEndTriggersDtoSchema } from '../shared/reaction.js'
+import { pathLifecycleEndTriggerBySchema } from '../shared/enums.js'
 import { conditionDtoSchema } from './condition.js'
 import {
   authoredIdentifierSchema,
-  authoredNestedCollectionSchema
+  authoredNestedCollectionSchema,
+  authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
 
 const followUpSaveTimings = Object.values(FOLLOW_UP_SAVE_TIMING) as [
@@ -69,6 +71,16 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
           when: repeatPerceptionDtoSchema
         })
       ),
+      repeatTriggers: z.optional(
+        authoredReferenceCollectionSchema(
+          z.strictObject({
+            kind: z.literal('DAMAGE_TAKEN'),
+            by: pathLifecycleEndTriggerBySchema,
+            damageTypeIds: z.optional(damageTypeFilterDtoSchema),
+            rollInfluence: z.optional(z.enum(['ADVANTAGE', 'DISADVANTAGE']))
+          })
+        ).check(z.minLength(1))
+      ),
       savingThrow: savingThrowDtoSchema,
       attempts: z.discriminatedUnion('kind', [
         z.object({ kind: z.literal('ONCE'), repeatOnFailure: z.optional(z.boolean()) }),
@@ -106,6 +118,16 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
             code: 'custom',
             path: ['repeatTiming'],
             message: 'Repeat timing requires a repeated one-time saving throw.'
+          })
+        }
+        if (
+          value.repeatTriggers !== undefined &&
+          !(value.attempts.kind === 'ONCE' && value.attempts.repeatOnFailure === true)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['repeatTriggers'],
+            message: 'Repeat triggers require a repeated one-time saving throw.'
           })
         }
         const repeatsAtTargetTurnEnd =

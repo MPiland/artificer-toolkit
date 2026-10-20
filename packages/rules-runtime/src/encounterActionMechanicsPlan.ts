@@ -171,6 +171,7 @@ function prepareNativeActionMechanicsBatches(
               ? source.characterStreamVersion
               : (sourceFacts.characterFacts?.active.play.streamVersion ?? null),
           effectiveMaximumHitPoints: sourceFacts.effectiveMaximumHitPoints,
+          damageInterceptions: sourceFacts.damageInterceptions,
           sheetMaximumHitPoints: sourceFacts.sheetMaximumHitPoints,
           effectiveScalarValues: sourceFacts.effectiveScalarValues,
           forceVersionAdvance: false,
@@ -202,6 +203,7 @@ function prepareNativeActionMechanicsBatches(
     ],
     expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
+    damageInterceptions: targetFacts.damageInterceptions,
     sheetMaximumHitPoints: targetFacts.sheetMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,

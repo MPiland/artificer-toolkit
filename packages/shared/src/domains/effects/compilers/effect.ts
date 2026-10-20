@@ -506,7 +506,6 @@ export function compileEffectResult<
         for (const row of path.rows) {
           rules.push(
             ...compileResultBlock(path, row.resultBlock, {
-              entryId: row.id,
               entryOrderBase: row.order * 1000,
               hitPointTier: { atMost: row.atMost }
             })

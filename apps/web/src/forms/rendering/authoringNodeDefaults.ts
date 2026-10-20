@@ -523,6 +523,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         allow: 'WHEN_UNMET',
         when: createFollowUpSaveRepeatPerception()
       }
+    case 'followUpSaveRepeatTrigger':
+      return { kind: 'DAMAGE_TAKEN', by: 'ANYONE' }
     case 'followUpSaveRepeatPerception':
       return createFollowUpSaveRepeatPerception()
     case 'degradeEquipmentDestroyWhen':

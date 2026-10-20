@@ -31,9 +31,9 @@ import { prepareNativeCharacterActionState } from '../character/characterNativeA
 import { activeEffectEndsOnRest } from '../character/sheetRest.js'
 import {
   buildCharacterSpellCastActions,
-  readSpellCastSlot,
-  spellCastActionId
+  readSpellCastSlot
 } from '../character/characterSpellCastActions.js'
+import { spellCastActionId } from '../spellCastCandidates.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
 import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
@@ -240,6 +240,22 @@ const WATCHFUL_MIASMA: SpellAuthored = (() => {
     label: 'Watchful Miasma',
     attributes: []
   }
+})()
+/**
+ * Hold Person's core options with its repeat save also repeated when the holder takes damage: the
+ * triggers are authored out of order and with a repeated damage type, to prove the plan stores them
+ * canonically.
+ */
+const DAMAGE_REPEATED_HOLD: SpellAuthored = (() => {
+  const authored = structuredClone(HOLD_PERSON)
+  const path = authored.effects?.[0]?.paths?.[0]
+  const save = path && 'resultBlock' in path ? path.resultBlock.outcomes?.[1] : undefined
+  if (save?.effectKind !== 'FOLLOW_UP_SAVE') throw new Error('Hold Person repeats a save.')
+  save.repeatTriggers = [
+    { kind: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID, FIRE_TYPE_ID] },
+    { kind: 'DAMAGE_TAKEN', by: 'ANYONE', rollInfluence: 'ADVANTAGE' }
+  ]
+  return { ...authored, id: '00000000-0000-4000-8000-00000000c005', label: 'Damage Repeated Hold' }
 })()
 const srdEffect = HYPNOTIC_PATTERN.effects?.[0]
 if (!srdEffect) throw new Error('Hypnotic Pattern has no effect.')
@@ -847,6 +863,21 @@ describe('the Concentration a cast starts', () => {
     expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.conditionContributions).toMatchObject([
       { fleesSource: false }
     ])
+  })
+
+  it('stores a repeat save’s damage triggers canonically on the plan, and none when the save authors none', () => {
+    expect(compiledCast(DAMAGE_REPEATED_HOLD)?.activeEffectPlan?.lifecycle?.repeatTriggers).toEqual(
+      [
+        { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null, rollInfluence: 'ADVANTAGE' },
+        {
+          event: 'DAMAGE_TAKEN',
+          by: 'SOURCE_SIDE',
+          damageTypeIds: [FIRE_TYPE_ID],
+          rollInfluence: null
+        }
+      ]
+    )
+    expect(compiledCast(HOLD_PERSON)?.activeEffectPlan?.lifecycle?.repeatTriggers).toBeUndefined()
   })
 
   it('starts no Concentration for a spell that is not a Concentration spell', () => {

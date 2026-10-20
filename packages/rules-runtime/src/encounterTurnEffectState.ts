@@ -7,6 +7,10 @@ import type {
   EncounterMaintainedEffectStateRecord
 } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
+import type {
+  ActiveEffectSaveTally,
+  ActiveEffectSaveThresholds
+} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
@@ -41,6 +45,26 @@ export function isEffectLiveInEncounter(
     ? effect.sourceEncounterId === encounterId
     : effect.definition.origin.kind === 'ENCOUNTER' &&
         effect.definition.origin.sourceAggregateId === encounterId
+}
+
+/**
+ * A turn's save counts exactly one success or one failure. A consecutive tally zeroes the other
+ * count; any other keeps it. An absent `after` leaves the stored tally as it is, and an effect with
+ * no thresholds keeps no tally.
+ */
+export function isSaveTallyStep(
+  before: ActiveEffectSaveTally | undefined,
+  after: ActiveEffectSaveTally | undefined,
+  thresholds: ActiveEffectSaveThresholds | undefined
+) {
+  if (!after) return true
+  if (!thresholds) return false
+  const prior = before ?? { successes: 0, failures: 0 }
+  const kept = thresholds.consecutive ? 0 : undefined
+  return (
+    (after.successes === prior.successes + 1 && after.failures === (kept ?? prior.failures)) ||
+    (after.failures === prior.failures + 1 && after.successes === (kept ?? prior.successes))
+  )
 }
 
 /** A carried-over effect counts on the Campaign clock, so no turn boundary selects it (D99). */

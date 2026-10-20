@@ -27,7 +27,7 @@ import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { selectHitPointTierPlan } from './hitPointTiers.js'
+import { hitPointTierCeilings, selectHitPointTierPlan } from './hitPointTiers.js'
 
 type CharacterActionMovementFacts = CharacterMovementFacts & {
   sheetState: Pick<CharacterSheetState, 'resourceUsage' | 'itemUsage'>
@@ -165,10 +165,14 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
           action: prepared.source.capability,
           published
         }) ?? [])
-  if (plans.some((plan) => plan.hitPointTier)) {
+  const tiers =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? (prepared.source.entry.compilation.hitPointTiers ?? [])
+      : hitPointTierCeilings(prepared.source.capability.compiledEffect.entries)
+  if (tiers.length > 0) {
     const target = prepared.movementTargets.get(prepared.target.id)
     if (!target) throw new Error('Encounter action effect target is stale.')
-    return selectHitPointTierPlan(plans, target.state.current)
+    return selectHitPointTierPlan(tiers, plans, target.state.current)
   }
   if (prepared.source.kind === 'CHARACTER_ACTION')
     return prepared.source.entry.compilation.activeEffectPlan

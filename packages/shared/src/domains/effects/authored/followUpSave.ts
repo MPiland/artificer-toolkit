@@ -46,6 +46,21 @@ export type FollowUpSaveRepeatAttemptGateAuthored = {
   when: FollowUpSaveRepeatPerceptionAuthored
 }
 
+/**
+ * An event that makes the holder repeat this save outside its own turn. The held effect's runtime
+ * raises it (a room funnel hook); damage is the only event so far. Closed to the holder's own
+ * actions: those are an escape (`lifecycle.escape`), not a repeat trigger.
+ */
+export type FollowUpSaveRepeatTriggerAuthored = {
+  kind: 'DAMAGE_TAKEN'
+  /** Whose damage triggers it, the same vocabulary as the `DAMAGE_TAKEN` end trigger. */
+  by: 'ANYONE' | 'SOURCE_SIDE'
+  /** Any damage type when absent. */
+  damageTypeIds?: string[]
+  /** How the triggered roll differs from the turn-end one ("advantage if triggered by damage"). */
+  rollInfluence?: 'ADVANTAGE' | 'DISADVANTAGE'
+}
+
 export type FollowUpSaveBranchAuthored =
   | {
       kind: Exclude<FollowUpSaveBranchKind, 'OUTCOMES'>
@@ -66,6 +81,8 @@ export type FollowUpSaveAuthored = {
   /** System-authored policy for a repeated save; runtime evaluation stays outside this contract. */
   repeatRollInfluence?: FollowUpSaveRepeatRollInfluenceAuthored
   repeatAttemptGate?: FollowUpSaveRepeatAttemptGateAuthored
+  /** Events that repeat the save besides its timing; only the turn-end repeat has a consumer today. */
+  repeatTriggers?: FollowUpSaveRepeatTriggerAuthored[]
   savingThrow: SavingThrowAuthored
   attempts:
     | {

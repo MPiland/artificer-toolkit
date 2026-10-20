@@ -540,11 +540,13 @@ export function prepareRecurringActiveEffect(
       ),
       endOnEvents: sortedUnion(grantContribution?.endOnEvents, endLifecycle?.endOnEvents),
       endOnTriggers: endLifecycle?.endOnTriggers ?? [],
+      ...(endLifecycle?.repeatTriggers?.length && { repeatTriggers: endLifecycle.repeatTriggers }),
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
       ...(grantContribution?.fromSourceOnly && { fromSourceOnly: true }),
       ...(grantContribution?.activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
       ...(grantContribution?.uses !== undefined && { uses: grantContribution.uses }),
+      ...(plan.saveThresholds && { saveThresholds: plan.saveThresholds }),
       // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
       // Concentration effect keeps its maintenance link while the Run lasts and is detached from it
       // at COMPLETE.

@@ -190,6 +190,7 @@ export async function planNativeLiveBasicActionResponse(
             expectedCharacterStreamVersion:
               target.characterFacts?.active.play.streamVersion ?? null,
             effectiveMaximumHitPoints: target.effectiveMaximumHitPoints,
+            damageInterceptions: target.damageInterceptions,
             effectiveScalarValues: target.effectiveScalarValues,
             forceVersionAdvance: false
           },

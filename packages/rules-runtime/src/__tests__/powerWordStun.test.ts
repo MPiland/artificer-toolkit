@@ -118,7 +118,10 @@ describe('the SRD Power Word Stun (a hit-point gate, a condition and a repeated 
     const [node] = executionPlan.published.definition.nodes
     expect(node).toMatchObject({
       operation: { key: 'dnd5e.condition-apply-proposal', contractVersion: 2 },
-      inputs: { hitPointsAtMost: { kind: 'LITERAL', value: 150 } }
+      inputs: {
+        hitPointsAbove: { kind: 'LITERAL', value: -1 },
+        hitPointsAtMost: { kind: 'LITERAL', value: 150 }
+      }
     })
   })
 
