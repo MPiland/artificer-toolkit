@@ -4,6 +4,7 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
@@ -15,7 +16,31 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+/** One hit point tier: the conditions a failed save leaves on a target at most `atMost` hit points. */
+function divineWordTier(order: number, atMost: number, minutes: number, conditionCodes: string[]) {
+  return {
+    id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x218, order),
+    order,
+    atMost,
+    resultBlock: {
+      id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x219, order),
+      resultKind: 'SEQUENCE' as const,
+      duration: {
+        id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x21a, order),
+        durationKind: DURATION_KIND.MINUTE,
+        amount: minutes
+      },
+      outcomes: conditionCodes.map((code, index) => ({
+        id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x21b, order * 10 + index),
+        order: index + 1,
+        effectKind: EFFECT_KIND.CONDITION,
+        conditionId: conditionTypeId(code)
+      }))
+    }
+  }
+}
+
 export const divineWord: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.DIVINE_WORD,
@@ -61,18 +86,27 @@ export const divineWord: SpellAuthored = {
           pathCode: PATH_CODE.ON_SAVE_FAIL,
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'DIVINE_WORD' as const
+          selectionKind: 'HIT_POINT_TIERS' as const,
+          rows: [
+            divineWordTier(1, 50, 1, ['DEAFENED']),
+            divineWordTier(2, 40, 10, ['DEAFENED', 'BLINDED']),
+            divineWordTier(3, 30, 60, ['BLINDED', 'DEAFENED', 'STUNNED']),
+            {
+              id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x218, 4),
+              order: 4,
+              atMost: 20,
+              resultBlock: {
+                id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x219, 4),
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x21b, 40),
+                    effectKind: EFFECT_KIND.KILL
+                  }
+                ]
               }
-            ]
-          }
+            }
+          ]
         }
       ]
     }

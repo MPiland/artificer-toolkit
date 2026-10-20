@@ -438,12 +438,9 @@ T2i4b split: T2i4b1 (this) is the generic tiered save; T2i4b2 is the Divine Word
 - Tier rows no longer set `entryId`: each outcome keeps its own entry id so each application has its own evidence id (source-entry bindings are one-to-one with nodes).
 - Proof: `hitPointTierSave.test.ts` (fixture spell, hp 20/21/30/31/40/41/50/51 through the real compile and graph), `hitPointTiers.test.ts`, `powerWordStun.test.ts`.
 
-### T2i4b2 resume (Divine Word data; fresh session)
+### T2i4b2 (Divine Word, done; `ci/spells-4-t2i4b2`)
 
-Not started. Convert DIVINE_WORD and delete the kind. Push to `ci/spells-4-t2i4b2`.
-
-- Data (`packages/source-data/src/srd/spells/divine-word.ts`): `selectionKind: 'HIT_POINT_TIERS'` rows 50 (deafened, 1 minute), 40 (deafened and blinded, 10 minutes), 30 (blinded, deafened and stunned, 1 hour), 20 (KILL). Planar banishment stays description-only (no plane model); add it to future-enhancements if absent.
-- Proof: authoring-parity proof, a room journey, delete DIVINE_WORD from `closedRuleKind.ts`, drop the published-graph stand-in in `hitPointTierPlans.test.ts` (`compiledTieredCast`) for the real compile, and drop `compiledTestSpellCast`'s optional `registry` arg if unused.
+Divine Word is data: a `HIT_POINT_TIERS` failed-save path with rows 50 (deafened, 1 minute), 40 (deafened and blinded, 10 minutes), 30 (blinded, deafened and stunned, 1 hour) and 20 (generic KILL); the `DIVINE_WORD` closed-rule kind is deleted. Planar banishment stays description-only (future-enhancements, plane model). Proofs: the Divine Word block in `coreOptionSpells.test.ts` (authoring parity), `hitPointTierSave.test.ts` and `hitPointTierPlans.test.ts` now run the real spell (the published-graph stand-in and the fixture tier spell are gone; `compiledTestSpellCast`'s `registry` stays, used by the plan-override refusals), and the room journey `apps/session-worker/test/nativeRoomDivineWord.test.ts`.
 
 ### T2m1 (Animal Friendship; repeat-save design ruled 2026-10-20)
 
