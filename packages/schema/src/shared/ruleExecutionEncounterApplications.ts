@@ -576,6 +576,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       ),
       /** The carried weapon the source's attack drew into a hand; undo puts it back. */
       sourceItemDraw: z._default(z.nullable(sourceItemDrawDtoSchema), null),
+      /** The weapon that hit the source's holder and corroded; undo restores it. */
+      sourceItemDegradation: z._default(z.nullable(characterItemDegradationReceiptDtoSchema), null),
       sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
       /** The item the target dropped with this outcome (Heat Metal); undo puts it back in hand. */
       targetItemUseStateTransition: z._default(
@@ -955,6 +957,16 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             code: 'custom',
             path: ['sourceItemDraw'],
             message: 'Source item draw must match the source and its version.'
+          })
+        const degradation = value.sourceItemDegradation
+        if (
+          degradation &&
+          (value.sourceCharacterId == null || degradation.characterId !== value.sourceCharacterId)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceItemDegradation'],
+            message: 'Item degradation must match the source Character.'
           })
         const consumption = value.sourceItemConsumption
         if (
