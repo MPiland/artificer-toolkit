@@ -36,13 +36,15 @@ function degradeOutcomes(creature: CreatureAuthored, label: string) {
 }
 
 describe.each([
-  ['Black Pudding', blackPudding, 1],
+  ['Black Pudding', blackPudding, 2],
   ['Rust Monster', rustMonster, 3]
 ])(
   '%s equipment corrosion through the creature node map (SPELLS-33 T6i)',
   (label, creature, count) => {
     it('keeps the corrosion exactly as authored, with no closed rule for it', async () => {
-      expect(JSON.stringify(creature)).not.toMatch(/DISSOLVING_PSEUDOPOD|RUST_MONSTER_ANTENNAE/)
+      expect(JSON.stringify(creature)).not.toMatch(
+        /DISSOLVING_PSEUDOPOD|RUST_MONSTER_ANTENNAE|BLACK_PUDDING_CORROSIVE_FORM/
+      )
       expect(degradeOutcomes(creature, label)).toHaveLength(count)
       const result = await normalize(creature)
       expect(result.clearedPaths).toEqual([])
@@ -61,3 +63,32 @@ describe.each([
     })
   }
 )
+
+/**
+ * SPELLS-33 T6i2: Corrosive Form is a melee-retaliation zone (1d8 acid on a melee hit, as the Balor's
+ * Fire Aura) plus a weapon-hit passive that degrades the attacker's weapon. Touch is not modeled, and
+ * ammunition is not degraded: a hit with tracked ammunition already spends the piece (ATTACK-19), and
+ * untracked ammunition is not counted by design (D4).
+ */
+describe('Black Pudding Corrosive Form authoring parity (SPELLS-33 T6i2)', () => {
+  it('authors the weapon-hit degradation on the attacker weapon through the generic option', () => {
+    const outcomes = degradeOutcomes(blackPudding, 'Black Pudding').filter(
+      (outcome) => outcome.subject === 'ATTACKER_WEAPON'
+    )
+    expect(outcomes).toEqual([
+      expect.objectContaining({
+        category: 'WEAPON',
+        nonmagical: true,
+        materials: ['METAL', 'WOOD'],
+        step: 1,
+        destroyWhen: { kind: 'PENALTY_REACHES', value: 5 }
+      })
+    ])
+  })
+
+  it('authors the 1d8 acid as a melee-hit retaliation zone on the pudding', () => {
+    const json = JSON.stringify(blackPudding.features)
+    expect(json).toContain('MELEE_HIT_ON_SOURCE')
+    expect(json).toContain('"diceConfig":"1d8"')
+  })
+})

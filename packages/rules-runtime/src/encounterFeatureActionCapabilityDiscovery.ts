@@ -76,6 +76,7 @@ export interface EncounterFeatureActionDiscovery {
   passiveDamageGrantCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   /** The passive features that fire when their holder is reduced to 0 hit points, never offered as actions. */
   passiveHpZeroCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  passiveWeaponHitCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
 }
 
 type FeatureOption = NonNullable<FeatureDto['options']>[number]
@@ -613,7 +614,8 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           unavailable: [],
           passiveZoneCapabilities: [],
           passiveDamageGrantCapabilities: [],
-          passiveHpZeroCapabilities: []
+          passiveHpZeroCapabilities: [],
+          passiveWeaponHitCapabilities: []
         }
       const provenance = snapshotProvenance(input.actor)
       const gameSystemId = requireCanonicalUuid(
@@ -627,13 +629,15 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           unavailable: [],
           passiveZoneCapabilities: [],
           passiveDamageGrantCapabilities: [],
-          passiveHpZeroCapabilities: []
+          passiveHpZeroCapabilities: [],
+          passiveWeaponHitCapabilities: []
         }
       const available: EncounterFeatureActionCapabilityDescriptor[] = []
       const unavailable: EncounterFeatureActionUnavailable[] = []
       const passiveZoneCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const passiveDamageGrantCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const passiveHpZeroCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+      const passiveWeaponHitCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const actionIds = new Set<string>()
       const features = snapshotFeatures(input.actor)
       for (const feature of features) {
@@ -663,10 +667,12 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
             const damageGrant =
               passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
             const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
+            const weaponHit = passive && effect.invocation.triggerCode === 'INCOMING_WEAPON_HIT'
             if (
               passive &&
               !damageGrant &&
               !hpZero &&
+              !weaponHit &&
               !placedSpaceManifest(compiledEffect) &&
               !passiveMeleeRetaliationZone(compiledEffect, label)
             )
@@ -683,9 +689,11 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               ? passiveDamageGrantCapabilities
               : hpZero
                 ? passiveHpZeroCapabilities
-                : passive
-                  ? passiveZoneCapabilities
-                  : available
+                : weaponHit
+                  ? passiveWeaponHitCapabilities
+                  : passive
+                    ? passiveZoneCapabilities
+                    : available
             ).push({
               kind: 'ENCOUNTER_FEATURE',
               gameSystemId,
@@ -731,7 +739,8 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
         unavailable,
         passiveZoneCapabilities,
         passiveDamageGrantCapabilities,
-        passiveHpZeroCapabilities
+        passiveHpZeroCapabilities,
+        passiveWeaponHitCapabilities
       }
     }
   }

@@ -13,7 +13,8 @@ export const TRIGGER = {
   CHECK: 'CHECK',
   ENTER_AREA: 'ENTER_AREA',
   INCOMING_DAMAGE: 'INCOMING_DAMAGE',
-  HP_ZERO: 'HP_ZERO'
+  HP_ZERO: 'HP_ZERO',
+  INCOMING_WEAPON_HIT: 'INCOMING_WEAPON_HIT'
 } as const
 
 export type Trigger = keyof typeof TRIGGER
@@ -91,6 +92,12 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
     code: TRIGGER.HP_ZERO,
     label: 'Reduced to 0 hit points',
     description: 'Triggers when the holder is reduced to 0 hit points.'
+  },
+
+  INCOMING_WEAPON_HIT: {
+    code: TRIGGER.INCOMING_WEAPON_HIT,
+    label: 'Hit by a weapon',
+    description: 'Triggers when a weapon attack hits the holder; acts on the weapon that hit.'
   }
 }
 

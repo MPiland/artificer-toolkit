@@ -27,6 +27,7 @@ type SourceSpendReceipts = Pick<
   | 'actionEconomyTransition'
   | 'attackActionTransition'
   | 'sourceItemDraw'
+  | 'sourceItemDegradation'
 >
 
 /**
@@ -45,7 +46,7 @@ export function sourceSpendMutation(input: {
     'resourceConsumption' | 'sourceItemConsumption' | 'spellCastConsumption'
   > &
     /** Only a directly resolved attack draws its weapon (D107). */
-    Partial<Pick<SourceSpendReceipts, 'sourceItemDraw'>>
+    Partial<Pick<SourceSpendReceipts, 'sourceItemDraw' | 'sourceItemDegradation'>>
 }) {
   const { source, resource, item, spell, receipts } = input
   if (resource) {
@@ -97,14 +98,26 @@ export function sourceSpendMutation(input: {
       : source.kind !== 'CREATURE' || source.id !== draw.actorId)
   )
     throw new Error('Live Session weapon hand move scope mismatch.')
+  const degradation = receipts.sourceItemDegradation
+  if (degradation && (source.kind !== 'CHARACTER' || source.sourceId !== degradation.characterId))
+    throw new Error('Live Session weapon degradation scope mismatch.')
   return {
-    spends: Boolean(resource || item || spell || stow || draw),
+    spends: Boolean(resource || item || spell || stow || draw || degradation),
     mutation: {
       ...(resource ? { characterResourceConsumption: resource } : {}),
       ...(item ? { characterItemConsumption: item } : {}),
       ...(spell ? { characterSpellConsumptions: [spell] } : {}),
       ...(stow ? { stowEquippedItemInstanceId: encounterStowedItemInstanceId(stow) } : {}),
-      ...(draw ? handMoveMutation(draw) : {})
+      ...(draw ? handMoveMutation(draw) : {}),
+      ...(degradation
+        ? {
+            degradeItem: {
+              itemInstanceId: degradation.itemInstanceId,
+              afterPenalty: degradation.afterPenalty,
+              destroyed: degradation.afterUsed > degradation.beforeUsed
+            }
+          }
+        : {})
     }
   }
 }

@@ -1937,6 +1937,7 @@ type ImmediateFollowUpSaveShape =
   | 'CONDITION_ON_FAILURE'
   | 'DAMAGE_ON_FAILURE'
   | 'REPEATING_CONDITION'
+  | 'ESCALATING_CONDITION'
 
 type ImmediatePrimaryDamageEntry = CompiledEffectGroup['entries'][number] & {
   resultBlockId: string
@@ -1953,18 +1954,71 @@ type ImmediateSaveEntry = CompiledEffectGroup['entries'][number] & {
   >
 }
 
+type FollowUpSaveOutcome = ImmediateSaveEntry['outcome']
+type FollowUpSaveConditionOutcome = Extract<
+  Extract<FollowUpSaveOutcome['onFailure'], { kind: 'OUTCOMES' }>['outcomes'][number],
+  { effectKind: 'CONDITION' }
+>
+
+/**
+ * The second condition a repeated save leaves in place of the held one when it fails ("restrained,
+ * then petrified"): its only failure outcome, ending the held effect. Null for any other repeat.
+ */
+function escalationCondition(repeat: FollowUpSaveOutcome): FollowUpSaveConditionOutcome | null {
+  const { onFailure } = repeat
+  const [outcome] = onFailure.kind === 'OUTCOMES' ? onFailure.outcomes : []
+  return onFailure.kind === 'OUTCOMES' &&
+    onFailure.endCurrent &&
+    onFailure.outcomes.length === 1 &&
+    outcome?.effectKind === 'CONDITION' &&
+    UUID.test(outcome.conditionId)
+    ? outcome
+    : null
+}
+
+/**
+ * An immediate save whose failure holds a condition and a one-time repeat at the end of the
+ * target's next turn that escalates it (Cockatrice Bite). The conditions are not yet checked
+ * against the System vocabulary; the plan does.
+ */
+function escalatingImmediateSave(save: FollowUpSaveOutcome): {
+  condition: FollowUpSaveConditionOutcome
+  repeat: FollowUpSaveOutcome
+  escalation: FollowUpSaveConditionOutcome
+} | null {
+  const { onFailure } = save
+  if (onFailure.kind !== 'OUTCOMES' || onFailure.outcomes.length !== 2) return null
+  const [condition, repeat] = onFailure.outcomes
+  if (condition?.effectKind !== 'CONDITION' || repeat?.effectKind !== 'FOLLOW_UP_SAVE') return null
+  const escalation = escalationCondition(repeat)
+  return escalation &&
+    save.attempts.kind === 'ONCE' &&
+    save.attempts.repeatOnFailure !== true &&
+    repeat.timing === 'TARGET_TURN_END' &&
+    repeat.attempts.kind === 'ONCE' &&
+    repeat.attempts.repeatOnFailure !== true &&
+    repeat.onSuccess.kind === 'END' &&
+    !repeat.repeatAttemptGate &&
+    !repeat.repeatRollInfluence &&
+    (repeat.onDurationComplete === undefined || repeat.onDurationComplete.kind === 'END')
+    ? { condition, repeat, escalation }
+    : null
+}
+
 function immediateFollowUpSaveEntries(entries: readonly CompiledEffectGroup['entries'][number][]): {
   primaryDamageEntries: readonly ImmediatePrimaryDamageEntry[]
   saveEntry: ImmediateSaveEntry
 } | null {
   const saveEntry = entries.at(-1)
   const primaryDamageEntries = entries.slice(0, -1)
-  if (!saveEntry || primaryDamageEntries.length === 0) return null
+  if (!saveEntry) return null
   if (!('resultBlockId' in saveEntry) || !('outcome' in saveEntry)) return null
   const resultBlockId = saveEntry.resultBlockId
   if (
     saveEntry.resolutionKind !== 'DIRECT' ||
-    saveEntry.groupKind !== 'SEQUENTIAL' ||
+    // A hit with no damage before its save (Spit Poison) is a SINGLE group of that one save.
+    (saveEntry.groupKind !== 'SEQUENTIAL' &&
+      !(primaryDamageEntries.length === 0 && saveEntry.groupKind === 'SINGLE')) ||
     saveEntry.pathCode !== 'ON_HIT' ||
     saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE'
   ) {
@@ -2006,19 +2060,29 @@ function repeatingImmediateFollowUpSavePlan(
   const saveEntry = resolved?.saveEntry
   if (!saveEntry || saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE') return null
   const save = saveEntry.outcome
-  const pinnedDc = pinnedSaveDc(save.savingThrow)
+  // An escalating save repeats through its nested follow-up (one turn, whatever the condition's
+  // duration); a plain one repeats itself until it succeeds.
+  const escalating = escalatingImmediateSave(save)
+  if (
+    escalating &&
+    !(action.conditionDefinitionIds ?? []).includes(escalating.escalation.conditionId)
+  )
+    return null
+  const repeat = escalating?.repeat ?? save
+  const pinnedDc = pinnedSaveDc(repeat.savingThrow)
   if (
     save.timing !== 'IMMEDIATE' ||
-    save.repeatTiming !== 'TARGET_TURN_END' ||
-    save.attempts.kind !== 'ONCE' ||
-    save.attempts.repeatOnFailure !== true ||
-    !pinnedDc ||
-    !UUID.test(save.savingThrow.abilityDefinitionId) ||
     save.onSuccess.kind !== 'END' ||
     save.onFailure.kind !== 'OUTCOMES' ||
-    (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
-    // A gate left uncompiled would let the target repeat a save the author forbade.
-    save.repeatAttemptGate
+    !pinnedDc ||
+    !UUID.test(repeat.savingThrow.abilityDefinitionId) ||
+    (!escalating &&
+      (save.repeatTiming !== 'TARGET_TURN_END' ||
+        save.attempts.kind !== 'ONCE' ||
+        save.attempts.repeatOnFailure !== true ||
+        (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
+        // A gate left uncompiled would let the target repeat a save the author forbade.
+        save.repeatAttemptGate))
   ) {
     return null
   }
@@ -2037,7 +2101,8 @@ function repeatingImmediateFollowUpSavePlan(
     return null
   }
   const duration = immediateFollowUpSaveDuration(action)
-  const initialRemaining = duration ? conditionDurationTurns(duration) : null
+  if (escalating && duration) return null
+  const initialRemaining = escalating ? 1 : duration ? conditionDurationTurns(duration) : null
   if (duration && initialRemaining === null) return null
   return {
     authoredEffectId: action.effectId,
@@ -2054,10 +2119,17 @@ function repeatingImmediateFollowUpSavePlan(
       }
     ],
     adapterFacts: {
-      [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
+      [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]:
+        repeat.savingThrow.abilityDefinitionId,
       ...pinnedDc.adapterFacts,
       [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'repeat-save-d20',
-      [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: condition.conditionId
+      [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: condition.conditionId,
+      ...(escalating
+        ? {
+            [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]:
+              escalating.escalation.conditionId
+          }
+        : {})
     },
     castSaveDcFactKey: pinnedDc.castSaveDcFactKey,
     perceptionContributions: [],
@@ -3623,16 +3695,9 @@ function repeatingDirectFollowUpSavePlan(
   // A failed repeat that ends the effect by leaving a second condition in place of the held one
   // ("restrained, then petrified") counts one turn, whatever the held condition's duration.
   const escalation =
-    lead.effectKind === 'CONDITION' &&
-    !leadEntry.duration &&
-    save.onFailure.kind === 'OUTCOMES' &&
-    save.onFailure.endCurrent &&
-    save.onFailure.outcomes.length === 1 &&
-    save.onFailure.outcomes[0]?.effectKind === 'CONDITION' &&
-    UUID.test(save.onFailure.outcomes[0].conditionId) &&
-    (action.conditionDefinitionIds ?? []).includes(save.onFailure.outcomes[0].conditionId)
-      ? save.onFailure.outcomes[0]
-      : null
+    lead.effectKind === 'CONDITION' && !leadEntry.duration ? escalationCondition(save) : null
+  if (escalation && !(action.conditionDefinitionIds ?? []).includes(escalation.conditionId))
+    return null
   const initialRemaining = escalation
     ? 1
     : leadEntry.duration
@@ -3844,7 +3909,7 @@ function exactImmediateFollowUpSaveShape(
   const resolved = immediateFollowUpSaveEntries(entries)
   if (!resolved) return null
   const { primaryDamageEntries, saveEntry } = resolved
-  const damageEntry = primaryDamageEntries[0]!
+  const damageEntry = primaryDamageEntries[0]
   const save = saveEntry.outcome
   const failed = save.onFailure
   const succeeded = save.onSuccess
@@ -3881,6 +3946,8 @@ function exactImmediateFollowUpSaveShape(
       exactFailureMarginRider(save.failureMarginRider)
       ? 'CONDITION_ON_FAILURE'
       : null
+  if (escalatingImmediateSave(save) && succeeded.kind === 'END' && commonBoundedSave)
+    return 'ESCALATING_CONDITION'
   const repeatingCondition =
     failed.outcomes.length === 1 && failed.outcomes[0]?.effectKind === 'CONDITION'
       ? failed.outcomes[0]
@@ -3946,7 +4013,7 @@ function exactImmediateFollowUpSaveShape(
     failure?.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
     UUID.test(failure.id) &&
     failure.amountSource.kind === 'DAMAGE_TAKEN' &&
-    failure.amountSource.damageOutcomeId === damageEntry.outcome.id &&
+    failure.amountSource.damageOutcomeId === damageEntry?.outcome.id &&
     UUID.test(failure.amountSource.damageOutcomeId) &&
     hitPointMaximumReductionRecoveryTagsSchema.safeParse(failure.recoveryTags).success &&
     commonBoundedSave
@@ -3998,7 +4065,7 @@ function exactImmediateFollowUpSaveShape(
       (reduction.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
         UUID.test(reduction.id) &&
         reduction.amountSource.kind === 'DAMAGE_TAKEN' &&
-        reduction.amountSource.damageOutcomeId === damageEntry.outcome.id &&
+        reduction.amountSource.damageOutcomeId === damageEntry?.outcome.id &&
         UUID.test(reduction.amountSource.damageOutcomeId) &&
         hitPointMaximumReductionRecoveryTagsSchema.safeParse(reduction.recoveryTags).success)) &&
     commonBoundedSave &&
@@ -4100,6 +4167,7 @@ function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSou
     testPhaseKindOrNull(action) === 'ATTACK' &&
     ((shape !== null &&
       shape !== 'REPEATING_CONDITION' &&
+      shape !== 'ESCALATING_CONDITION' &&
       !lifecycle &&
       (!timed || timedImmediateConditionPlan(action) !== null)) ||
       repeatingImmediateFollowUpSavePlan(action) !== null) &&
@@ -6739,7 +6807,9 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
       : null
   const rider = shape === 'CONDITION_ON_FAILURE' ? (save.failureMarginRider ?? null) : null
   const failureCondition =
-    shape === 'REPEATING_CONDITION' || shape === 'CONDITION_ON_FAILURE'
+    shape === 'REPEATING_CONDITION' ||
+    shape === 'ESCALATING_CONDITION' ||
+    shape === 'CONDITION_ON_FAILURE'
       ? save.onFailure.outcomes.find(
           (outcome): outcome is Extract<typeof outcome, { effectKind: 'CONDITION' }> =>
             outcome.effectKind === 'CONDITION'

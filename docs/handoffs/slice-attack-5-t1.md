@@ -30,13 +30,18 @@ A Creature Feature now acts through its held Equipment when both are the same ki
 
 Replacement (orchestrator ruling A): `replaceActorEquipment` still refuses a replacement that changes the damage types of the Equipment a Feature action is bound to (`equipmentReplacementKeepsDamageTypes`), so the print governs the bound attack but the loadout cannot drift to another weapon type. Proofs: `nativeRoomEquipmentReplacement.test.ts` (Ogre Zombie accepts a Shortsword, refuses a Mace); the two existing refusal tests are unchanged.
 
-## Resume here: ATTACK-5.T4b–e (fresh session, each on its own `ci/attack-5-t4<x>` branch from the phase tip)
+## ATTACK-5.T4b (Cockatrice Bite, Guardian Naga Spit Poison)
+
+Two generic follow-up-save shapes in `effectActionCompiler.ts`, both authored as data: (1) an immediate save with no damage before it (Spit Poison: `immediateFollowUpSaveEntries` no longer requires a primary damage entry); (2) `ESCALATING_CONDITION`, an immediate save whose failure applies one condition and then a once-only `TARGET_TURN_END` save that, on a failure, ends the current effect with another condition (`escalatingImmediateSave`). It reuses the Gorgon's `DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY` through the shared `escalationCondition` helper in `repeatingDirectFollowUpSavePlan`; the effect lasts one turn tick, and an authored duration on the escalating form is refused. The Cockatrice print changed only its result-block id (a UUID, as in the Quasit Scare fix). Both entries left the allowlist. Proofs: `srdCreatureHitRiders.test.ts` and `nativeRoomHitRiders.test.ts`; the Gorgon's `nativeRoomSrdBreathEscalation.test.ts` already proves the end-of-turn escalation through the same fact.
+
+Couatl Bite is NOT done and keeps its `FOLLOW_UP_SAVE` entry. Its poison rider carries a CLOSED_RULE (`CREATURE_COUATL_BITE_POISON`, the wake-on-damage action), which SPELLS-33.T6m2 converts; D156 forbids partially executing an Effect with an unconverted closed rule. It also needs a save whose failure applies several conditions. Defer it to T6m2 unless the orchestrator rules otherwise.
+
+## Resume here: ATTACK-5.T4c–e (fresh session, each on its own `ci/attack-5-t4<x>` branch from the phase tip)
 
 Remaining allowlist entries (`packages/rules-runtime/src/__tests__/srdCreatureAttackSweepAllowlist.ts`): remove each attack's entry in the slice that makes it run; the sweep fails if a listed attack starts working or an unlisted one fails.
 
 | Slice | Attacks                                                                 | Allowlist reason | Size |
 | ----- | ----------------------------------------------------------------------- | ---------------- | ---- |
-| T4b   | Cockatrice Bite escalation, Couatl Bite, Guardian Naga Spit Poison      | `FOLLOW_UP_SAVE` | 5    |
 | T4c   | Dragon Turtle Tail (push and prone), Horned Devil Tail (Infernal Wound) | `FOLLOW_UP_SAVE` | 5    |
 | T4d   | Giant Centipede Bite, Purple Worm Bite (investigate, then build)        | `OUTCOME_KIND`   | 3    |
 | T4e   | Solar Longbow slay                                                      | `OUTCOME_KIND`   | 3    |
@@ -58,4 +63,6 @@ Pitfalls:
 - Tests import workspace packages from `dist`: pass `-BuildFor <test files>` to the light lane.
 - A new generic option needing a contract shape goes to the orchestrator before coding.
 
-Next step: start T4b (Cockatrice, Couatl, Guardian Naga): probe why each fails in the sweep, then build the generic follow-up-save shape with a rules-runtime test plus a room journey, remove the three entries, lint, push to `ci/attack-5-t4b`, run `scripts/watchCi.ps1`.
+Couatl Bite (see T4b) is held for SPELLS-33.T6m2 pending the orchestrator's ruling; T4 close-out must cover it.
+
+Next step: start T4c (Dragon Turtle Tail, Horned Devil Tail): probe why each fails in the sweep, then build the generic follow-up-save shape with a rules-runtime test plus a room journey, remove the entries, lint, push to `ci/attack-5-t4c`, run `scripts/watchCi.ps1`.
