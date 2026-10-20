@@ -10,6 +10,7 @@ import { lich } from '@artificer-toolkit/source-data/srd/creatures/lich.js'
 import { mage } from '@artificer-toolkit/source-data/srd/creatures/mage.js'
 import { mummyLord } from '@artificer-toolkit/source-data/srd/creatures/mummy-lord.js'
 import { priest } from '@artificer-toolkit/source-data/srd/creatures/priest.js'
+import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -83,9 +84,15 @@ describe.each(casters)(
       )
       const slotted = spellGrants(creature).slice(1)
       expect(slotted.length).toBe(table?.levels.length)
-      for (const grant of slotted) {
+      const spellLevelById = new Map(srdSpells.map((spell) => [spell.id, spell.level]))
+      for (const [index, grant] of slotted.entries()) {
         expect(grant.attributes).toEqual(['PREPARED'])
         expect(grant.charges).toBeUndefined()
+        // A grant records no level of its own: a cast reads the spell's catalog level and spends a
+        // slot of that level or higher, so each listed spell must sit at its table row's level.
+        expect(grant.spellIds.map((id) => spellLevelById.get(id))).toEqual(
+          grant.spellIds.map(() => table?.levels[index].level)
+        )
       }
     })
 

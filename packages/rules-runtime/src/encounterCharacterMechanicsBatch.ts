@@ -25,6 +25,11 @@ import { z } from 'zod'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import {
+  applyDamageInterceptions,
+  hitPointsAfterDamage,
+  type HeldDamageInterception
+} from './encounterDamageInterception.js'
 import { EncounterValidationError } from './encounterErrors.js'
 
 export type ReceiptApplications = Extract<
@@ -144,6 +149,12 @@ export function foldCharacterMechanicsApplications<
   layers?: { ownConditionIds: readonly string[]; campaignConditionIds: readonly string[] }
   applications: readonly CharacterRuleActionApplication[]
   /**
+   * The holder's unspent damage interceptions, in spend order. The first lethal damage or kill
+   * spends the first one it fits (`applyDamageInterceptions`), and the receipt names it
+   * (`interceptedBy`, `negatedBy`); the fold re-derives each result from its own running state.
+   */
+  damageInterceptions?: readonly HeldDamageInterception[]
+  /**
    * A dying Character's turn-start death save (D96), applied after the applications: its kept d20
    * and the signed total of its added dice (D156).
    */
@@ -212,7 +223,15 @@ export function foldCharacterMechanicsApplications<
   const retainedConditions = new Set(input.retainedConditionIds ?? [])
   let absence = input.absence ?? null
   const receipt: ReceiptApplications = []
-  for (const [ordinal, application] of input.applications.entries()) {
+  const unspentInterceptions = [...(input.damageInterceptions ?? [])]
+  const applications = applyDamageInterceptions({
+    applications: input.applications,
+    currentHitPoints: current,
+    temporaryHitPoints: temporary,
+    maximumHitPoints: maximum,
+    interceptions: unspentInterceptions
+  })
+  for (const [ordinal, application] of applications.entries()) {
     if (application.targetActorId !== input.targetActorId)
       throw new EncounterValidationError('The Character rule action target is invalid.')
     if (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE') {
@@ -301,7 +320,28 @@ export function foldCharacterMechanicsApplications<
       })
       continue
     }
+    if (application.kind === 'KILL_NEGATED') {
+      const index = unspentInterceptions.findIndex(
+        (interception) =>
+          interception.effectId === application.negatedBy && interception.negatesKill
+      )
+      if (index < 0 || unspentInterceptions.findIndex((entry) => entry.negatesKill) !== index)
+        throw new EncounterValidationError('The Character kill negation is invalid.')
+      unspentInterceptions.splice(index, 1)
+      receipt.push({
+        ordinal,
+        kind: 'KILL_NEGATED',
+        negatedBy: application.negatedBy,
+        sourceNodeId: application.sourceNodeId,
+        sourceOperationKey: application.sourceOperationKey,
+        authoredPath: application.authoredPath,
+        resolvedPath: application.resolvedPath
+      })
+      continue
+    }
     if (application.kind === 'KILL') {
+      if (unspentInterceptions.some((interception) => interception.negatesKill))
+        throw new EncounterValidationError('The Character kill skipped a damage interception.')
       receipt.push({
         ordinal,
         kind: 'KILL',
@@ -490,14 +530,21 @@ export function foldCharacterMechanicsApplications<
         temporaryLost
       ).sourceEffectId
       const currentLost = Math.min(current, resolvedAmount - temporaryLost)
+      const interception = unspentInterceptions[0]
+      const afterCurrent = hitPointsAfterDamage({ current, currentLost, maximum, interception })
+      const intercepted = afterCurrent !== current - currentLost
+      if (intercepted !== (application.interceptedBy !== undefined))
+        throw new EncounterValidationError('The Character damage interception is invalid.')
+      if (intercepted) unspentInterceptions.shift()
       if (
         application.resolvedAmount !== resolvedAmount ||
-        application.appliedAmount !== temporaryLost + currentLost ||
-        application.afterCurrentHitPoints !== current - currentLost ||
+        application.appliedAmount !== temporaryLost + current - afterCurrent ||
+        application.afterCurrentHitPoints !== afterCurrent ||
+        (intercepted && application.interceptedBy !== interception?.effectId) ||
         application.afterTemporaryHitPoints !== temporary - temporaryLost
       )
         throw new EncounterValidationError('The Character damage application is invalid.')
-      if (deathSaves !== null)
+      if (deathSaves !== null && !intercepted)
         deathSaves = deathSavesAfterDamage({
           deathSaves,
           currentHitPoints: current,

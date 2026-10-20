@@ -281,6 +281,14 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
   })
 )
 
+/** Damage that would drop the holder to 0 hit points leaves it at `dropToHitPoints` instead. */
+export const damageInterceptionPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    dropToHitPoints: z.number().check(z.int()).check(z.gte(1)).check(z.lte(1000)),
+    negatesKill: z.boolean()
+  })
+)
+
 /**
  * The save an attacker makes against the holder's source before a single-target attack or harmful spell lands.
  * `attackerCreatureTypeIds` narrows the ward to attackers of those Creature types; `successImmunity` frees an
@@ -443,6 +451,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     amountPayloadDtoSchema,
     armorClassFormulaPayloadDtoSchema,
     attackDecoysPayloadDtoSchema,
+    damageInterceptionPayloadDtoSchema,
     incomingAttackGatePayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
@@ -696,6 +705,12 @@ const buildModifierGrantVariants = () =>
       'ENABLE',
       emptyDomainDtoSchema,
       attackDecoysPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'DAMAGE_INTERCEPTION',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      damageInterceptionPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'INCOMING_ATTACK_GATE',
