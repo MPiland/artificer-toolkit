@@ -47,6 +47,11 @@ export interface EncounterPassiveHpZeroEffect {
   plan: CharacterRuleActionExecutionPlan
 }
 
+/** A passive feature that wears down the weapon of whoever hits its Creature with one. */
+export interface EncounterPassiveWeaponHit {
+  capability: EncounterFeatureActionCapabilityDescriptor
+}
+
 /**
  * Every action of a Creature: the ones it can take, and the unavailable ones with their reason,
  * with the zones its passive features keep around it. An action or passive zone whose shape its
@@ -56,17 +61,22 @@ export function discoverEncounterFeatureActions(
   input: Parameters<typeof registry.discover>[0]
 ): Omit<
   EncounterFeatureActionDiscovery,
-  'passiveZoneCapabilities' | 'passiveDamageGrantCapabilities' | 'passiveHpZeroCapabilities'
+  | 'passiveZoneCapabilities'
+  | 'passiveDamageGrantCapabilities'
+  | 'passiveHpZeroCapabilities'
+  | 'passiveWeaponHitCapabilities'
 > & {
   passiveZones: readonly EncounterPassiveZone[]
   passiveDamageGrants: readonly EncounterPassiveDamageGrant[]
   passiveHpZeroEffects: readonly EncounterPassiveHpZeroEffect[]
+  passiveWeaponHits: readonly EncounterPassiveWeaponHit[]
 } {
   const discovered = registry.discover(input)
   const available: EncounterFeatureActionCapabilityDescriptor[] = []
   const passiveZones: EncounterPassiveZone[] = []
   const passiveDamageGrants: EncounterPassiveDamageGrant[] = []
   const passiveHpZeroEffects: EncounterPassiveHpZeroEffect[] = []
+  const passiveWeaponHits: EncounterPassiveWeaponHit[] = []
   const unavailable = [...discovered.unavailable]
   const compiles = (
     capability: EncounterFeatureActionCapabilityDescriptor,
@@ -109,7 +119,19 @@ export function discoverEncounterFeatureActions(
         plan: compileEncounterFeatureActionPlan(adapter, capability)
       })
     })
-  return { available, unavailable, passiveZones, passiveDamageGrants, passiveHpZeroEffects }
+  for (const capability of discovered.passiveWeaponHitCapabilities)
+    compiles(capability, () => {
+      assertWeaponHitDegradationOnly(capability)
+      passiveWeaponHits.push({ capability })
+    })
+  return {
+    available,
+    unavailable,
+    passiveZones,
+    passiveDamageGrants,
+    passiveHpZeroEffects,
+    passiveWeaponHits
+  }
 }
 
 /**
@@ -143,6 +165,24 @@ export function compilePassiveDamageGrant(
       'A passive damage trigger gives one timed grant for named damage types.'
     )
   return { capability, damageTypeIds: invocation.damageTypeIds, plan }
+}
+
+/** A weapon-hit passive answers with equipment degradation alone; any other outcome is unsupported. */
+function assertWeaponHitDegradationOnly(capability: EffectActionCapabilityDescriptor) {
+  const { entries } = capability.compiledEffect
+  if (
+    entries.length === 0 ||
+    !entries.every(
+      (entry) =>
+        'outcome' in entry &&
+        entry.pathCode === 'PASSIVE' &&
+        entry.outcome.effectKind === 'DEGRADE_EQUIPMENT' &&
+        entry.outcome.subject === 'ATTACKER_WEAPON'
+    )
+  )
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A weapon-hit trigger degrades the attacker weapon and does nothing else.'
+    )
 }
 
 /** The System bindings of one compiled Effect, shared by every action source; null without an adapter. */

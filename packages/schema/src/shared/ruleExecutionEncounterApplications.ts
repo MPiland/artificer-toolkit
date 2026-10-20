@@ -1301,6 +1301,8 @@ export const sourceSpendReceiptShape = () => ({
   featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
   sourceItemUseStateTransition: z.nullable(characterItemUseStateTransitionDtoSchema),
   sourceItemDraw: z._default(z.nullable(sourceItemDrawDtoSchema), null),
+  /** The weapon the source hit with, corroded by what it struck; undo restores its penalty and use. */
+  sourceItemDegradation: z._default(z.nullable(characterItemDegradationReceiptDtoSchema), null),
   sourceItemConsumption: z.nullable(characterItemConsumptionReceiptDtoSchema),
   spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
   actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
@@ -1313,6 +1315,7 @@ export type SourceSpendReceipts = Pick<
   | 'featureResourceConsumption'
   | 'sourceItemUseStateTransition'
   | 'sourceItemDraw'
+  | 'sourceItemDegradation'
   | 'sourceItemConsumption'
   | 'spellCastConsumption'
   | 'actionEconomyTransition'
@@ -1340,6 +1343,7 @@ export function validateSourceSpendReceipts(
     })
   const stow = value.sourceItemUseStateTransition
   const draw = value.sourceItemDraw
+  const degradation = value.sourceItemDegradation
   const consumption = value.sourceItemConsumption
   const spell = value.spellCastConsumption
   if (
@@ -1350,6 +1354,7 @@ export function validateSourceSpendReceipts(
       (draw.characterId !== value.sourceCharacterId ||
         draw.afterStreamVersion !== value.sourceCharacterStreamVersion)) ||
     (draw?.kind === 'ENCOUNTER_ACTOR_ITEM_DRAW' && draw.actorId !== value.sourceActorId) ||
+    (degradation && degradation.characterId !== value.sourceCharacterId) ||
     (consumption && consumption.characterId !== value.sourceCharacterId) ||
     (spell && spell.characterId !== value.sourceCharacterId)
   )
@@ -1378,6 +1383,7 @@ export function validateSourceSpendReceipts(
       resource !== null ||
       stow !== null ||
       draw?.kind === 'CHARACTER_ITEM_DRAW' ||
+      degradation !== null ||
       consumption !== null ||
       spell !== null ||
       sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)

@@ -2,8 +2,10 @@ import { compileEffect, compileEquipment } from '@artificer-toolkit/shared/compi
 import { rustMonster } from '@artificer-toolkit/source-data/srd/creatures/rust-monster.js'
 import { blackPudding } from '@artificer-toolkit/source-data/srd/creatures/black-pudding.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
+import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { leatherArmor } from '@artificer-toolkit/source-data/srd/equipment/leather-armor.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
+import { longbow } from '@artificer-toolkit/source-data/srd/equipment/longbow.js'
 import { shieldMetal } from '@artificer-toolkit/source-data/srd/equipment/shield-metal.js'
 import { describe, expect, it } from 'vitest'
 
@@ -18,6 +20,14 @@ const featureEffect = (
   return effect
 }
 const antennae = { compiledEffect: compileEffect(featureEffect(rustMonster, 'Antennae')) }
+const corrosion = {
+  compiledEffect: compileEffect(
+    blackPudding.features?.find((feature) => feature.label === 'Corrosive Form')?.effects?.[1] ??
+      (() => {
+        throw new Error('Corrosive Form has no weapon-hit Effect.')
+      })()
+  )
+}
 const pseudopod = { compiledEffect: compileEffect(featureEffect(blackPudding, 'Pseudopod')) }
 
 function worn(
@@ -71,7 +81,7 @@ describe('planEncounterEquipmentDegradation (SPELLS-33 T6i)', () => {
         resultPath: 'ON_HIT',
         items: null
       })
-    ).toEqual({ kind: 'NONE', reason: 'TARGET_NOT_CHARACTER' })
+    ).toEqual({ kind: 'NONE', reason: 'NOT_CHARACTER' })
   })
 
   it('skips unequipped, magic and wrong-material items', () => {
@@ -129,5 +139,66 @@ describe('planEncounterEquipmentDegradation (SPELLS-33 T6i)', () => {
         chosenItemInstanceId: 'w'
       })
     ).toMatchObject({ itemInstanceId: 'w', afterPenalty: 1 })
+  })
+
+  describe('Corrosive Form: the weapon that hit (SPELLS-33 T6i2)', () => {
+    const corrode = (items: ReturnType<typeof worn>[], chosenItemInstanceId?: string) =>
+      planEncounterEquipmentDegradation({
+        capability: corrosion,
+        resultPath: 'PASSIVE',
+        subject: 'ATTACKER_WEAPON',
+        items,
+        chosenItemInstanceId
+      })
+
+    it('degrades the chosen metal or wood weapon and destroys it at -5', () => {
+      expect(corrode([worn('w', longsword, { degradation: 1 })], 'w')).toEqual({
+        kind: 'DEGRADE',
+        itemInstanceId: 'w',
+        afterPenalty: 2,
+        destroyed: false
+      })
+      expect(corrode([worn('c', club, { degradation: 4 })], 'c')).toMatchObject({
+        afterPenalty: 5,
+        destroyed: true
+      })
+    })
+
+    it('does not touch a launcher, whose ammunition is spent by the shot', () => {
+      expect(corrode([worn('b', longbow)], 'b')).toEqual({
+        kind: 'NONE',
+        reason: 'NO_ELIGIBLE_ITEM'
+      })
+    })
+
+    it('ignores entries of the other subject, in both directions', () => {
+      expect(
+        planEncounterEquipmentDegradation({
+          capability: corrosion,
+          resultPath: 'PASSIVE',
+          items: [worn('w', longsword)]
+        })
+      ).toEqual({ kind: 'NONE', reason: 'NO_DEGRADATION' })
+      expect(
+        planEncounterEquipmentDegradation({
+          capability: pseudopod,
+          resultPath: 'ON_HIT',
+          subject: 'ATTACKER_WEAPON',
+          items: [worn('a', chainMail)]
+        })
+      ).toEqual({ kind: 'NONE', reason: 'NO_DEGRADATION' })
+    })
+
+    it('is a no-op for a Creature attacker, with the reason', () => {
+      expect(corrode([] as ReturnType<typeof worn>[]).kind).toBe('NONE')
+      expect(
+        planEncounterEquipmentDegradation({
+          capability: corrosion,
+          resultPath: 'PASSIVE',
+          subject: 'ATTACKER_WEAPON',
+          items: null
+        })
+      ).toEqual({ kind: 'NONE', reason: 'NOT_CHARACTER' })
+    })
   })
 })

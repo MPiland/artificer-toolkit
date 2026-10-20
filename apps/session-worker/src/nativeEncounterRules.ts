@@ -22,8 +22,10 @@ import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encou
 import {
   encounterActionSourceLabel,
   resolveEncounterActionSource,
+  systemAbilityDefinitions,
   type EncounterActionSourceRequest
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated,
@@ -1395,7 +1397,15 @@ export async function planNativeLiveEncounterAction(
     commandId: command.commandId,
     activeEffectsByActorId,
     attackAction,
-    chosenItemInstanceId
+    chosenItemInstanceId,
+    weaponHits:
+      prepared.source.kind === 'CHARACTER_ACTION' && prepared.target.kind === 'CREATURE'
+        ? discoverEncounterFeatureActions({
+            actor: prepared.target,
+            conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+            abilityDefinitions: systemAbilityDefinitions(system)
+          }).passiveWeaponHits
+        : []
   })
   const reactionUse =
     reaction?.audit.selection === 'USE' && reaction.applied
@@ -1582,6 +1592,11 @@ export async function planNativeLiveEncounterAction(
         itemInstanceId: preparedEffects.degradedItem.itemInstanceId,
         afterPenalty: preparedEffects.degradedItem.afterPenalty,
         destroyed: preparedEffects.degradedItem.destroyed
+      },
+      degradeSourceItem: preparedEffects.sourceDegradedItem && {
+        itemInstanceId: preparedEffects.sourceDegradedItem.itemInstanceId,
+        afterPenalty: preparedEffects.sourceDegradedItem.afterPenalty,
+        destroyed: preparedEffects.sourceDegradedItem.destroyed
       },
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&

@@ -107,8 +107,8 @@ type CharacterInverse = {
   /** The weapon this action's attack drew or threw (D107); undo takes a drawn one back to carried and a thrown one back to its hand. */
   drawn: Extract<ActionBatch['sourceItemDraw'], { kind: 'CHARACTER_ITEM_DRAW' }> | null
   item: ActionBatch['sourceItemConsumption']
-  /** The worn item the action corroded; undo restores its penalty and, if destroyed, its use. */
-  degradation: Extract<ActionBatch, { kind: 'CHARACTER_MECHANICS_BATCH' }>['targetItemDegradation']
+  /** The item the action corroded (a worn one, or the weapon the source struck with); undo restores its penalty and, if destroyed, its use. */
+  degradation: ActionBatch['sourceItemDegradation']
   /** Slot spends in the order they committed; one batch can carry several (the cast, then its counter). */
   spells: NonNullable<ActionBatch['spellCastConsumption']>[]
   expectedStreamVersion: number
@@ -636,6 +636,7 @@ export async function revertLastEncounterAction(
 
     // The weapon the source's attack drew or threw: a Creature's goes back where it was here.
     const sourceDraw = batch?.sourceItemDraw ?? null
+    const sourceDegradation = batch?.sourceItemDegradation ?? null
     if (sourceDraw?.kind === 'ENCOUNTER_ACTOR_ITEM_DRAW') {
       const actor = actorsById.get(sourceDraw.actorId)!
       const restored =
@@ -656,6 +657,7 @@ export async function revertLastEncounterAction(
       (spend.resourceConsumption ||
         spend.sourceItemUseStateTransition ||
         sourceDraw?.kind === 'CHARACTER_ITEM_DRAW' ||
+        sourceDegradation ||
         spend.sourceItemConsumption ||
         spend.spellCastConsumption) &&
       sourceCharacterId
@@ -667,6 +669,7 @@ export async function revertLastEncounterAction(
       if (spend.sourceItemUseStateTransition)
         inverse.unequipped = spend.sourceItemUseStateTransition
       if (sourceDraw?.kind === 'CHARACTER_ITEM_DRAW') inverse.drawn = sourceDraw
+      inverse.degradation = sourceDegradation
       inverse.item = spend.sourceItemConsumption
       if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
     }

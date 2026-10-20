@@ -2642,6 +2642,21 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'degradeSubject',
+      selectSingle(
+        ['subject'],
+        'Whose Item',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'TARGET_ITEM', label: "The target's item" },
+            { code: 'ATTACKER_WEAPON', label: 'The weapon that hit' }
+          ]
+        },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.DEGRADE_EQUIPMENT) }
+      )
+    )
+    .set(
       'degradeCategory',
       selectSingle(
         ['category'],

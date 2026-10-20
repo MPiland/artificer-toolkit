@@ -9,6 +9,11 @@ export type DegradeEquipmentDestroyWhenAuthored = {
 export type DegradeEquipmentAuthored = {
   id: string
   effectKind: typeof EFFECT_KIND.DEGRADE_EQUIPMENT
+  /**
+   * Whose item it degrades: the target's worn item (default), or, on a passive triggered by a weapon
+   * hit, the weapon the attacker hit with.
+   */
+  subject?: 'TARGET_ITEM' | 'ATTACKER_WEAPON'
   /** The one kind of item it degrades: armor and shields lose armor class, weapons lose damage. */
   category: 'ARMOR' | 'SHIELD' | 'WEAPON'
   /** Degrades only an item without the MAGIC property. */
