@@ -74,11 +74,7 @@ export async function persistEncounterMoveHeldEffect(
   if (
     offer.holderActorId === target.id ||
     (await readEncounterActorDefeated(ctx, target)) ||
-    !activationAllowanceMatches(
-      state,
-      { code: offer.activation, amount: 1 },
-      input.actionEconomy
-    )
+    !activationAllowanceMatches(state, { code: offer.activation, amount: 1 }, input.actionEconomy)
   )
     throw new Error(MOVE_HELD_EFFECT_MISMATCH)
   const holder = actors.find((entry) => entry.id === offer.holderActorId)

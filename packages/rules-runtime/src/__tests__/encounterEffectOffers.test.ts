@@ -102,7 +102,10 @@ describe('the effect offers a held effect makes', () => {
       effectId: EFFECT_ID,
       offerIndex: 0
     }
-    expect(resolveEffectOffer(live)).toMatchObject({ effectId: EFFECT_ID, holderActorId: HOLDER_ID })
+    expect(resolveEffectOffer(live)).toMatchObject({
+      effectId: EFFECT_ID,
+      holderActorId: HOLDER_ID
+    })
     expect(() => resolveEffectOffer({ ...live, offerIndex: 1 })).toThrow('stale')
     expect(() => resolveEffectOffer({ ...live, zeroHitPointActorIds: new Set() })).toThrow('stale')
     expect(() => resolveEffectOffer({ ...live, effectId: testUuid(0xf7ff) })).toThrow('stale')
@@ -135,15 +138,15 @@ describe('the effect offers a held effect makes', () => {
       lifecycle: planned.lifecycle,
       createdOrdinal: 1
     }
-    expect(
-      effectOffersFor({ actorId: SOURCE_ID, effectsByHolder: byHolder(held) })
-    ).toHaveLength(1)
+    expect(effectOffersFor({ actorId: SOURCE_ID, effectsByHolder: byHolder(held) })).toHaveLength(1)
     const follow = onEndGrantEffect(held)
     expect(follow).not.toBeNull()
     expect(
       effectOffersFor({
         actorId: SOURCE_ID,
-        effectsByHolder: new Map([[HOLDER_ID, [{ id: follow!.id, definition: follow!.definition }]]])
+        effectsByHolder: new Map([
+          [HOLDER_ID, [{ id: follow!.id, definition: follow!.definition }]]
+        ])
       })
     ).toEqual([])
   })

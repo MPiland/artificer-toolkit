@@ -837,11 +837,7 @@ type RevertScope = {
   root: Extract<
     StoredCommand,
     {
-      commandType:
-        | 'RESOLVE_ACTION'
-        | 'ESCAPE'
-        | 'SET_CONCEALMENT_OBSERVERS'
-        | 'MOVE_HELD_EFFECT'
+      commandType: 'RESOLVE_ACTION' | 'ESCAPE' | 'SET_CONCEALMENT_OBSERVERS' | 'MOVE_HELD_EFFECT'
     }
   >
 }

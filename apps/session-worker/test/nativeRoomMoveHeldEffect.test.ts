@@ -1,4 +1,7 @@
-import { creatureFeature, srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import {
+  creatureFeature,
+  srdCreatureActor
+} from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'

@@ -34,7 +34,9 @@ const owners = {
 }
 
 /** A Run whose concentrating source marked `FROM_ID` with `spell`'s effect for ten rounds. */
-async function markedRun(spell: { effects?: Parameters<typeof plannedModifierGrant>[0]['effect'][] }) {
+async function markedRun(spell: {
+  effects?: Parameters<typeof plannedModifierGrant>[0]['effect'][]
+}) {
   const memory = createMemoryEncounterStore()
   memory.load(
     'encounterRuns',

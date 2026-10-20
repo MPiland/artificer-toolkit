@@ -496,27 +496,21 @@ const PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP: NodeMap<
 
 const PATH_LIFECYCLE_EFFECT_OFFER_RANGE_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['effectOffers']>[number]['range']
-> = pathLifecycleEffectOfferRange.define(
-  'pathLifecycleEffectOfferRange',
-  ({ map, nodes }) => {
-    const { number, selectSingle } = nodes
+> = pathLifecycleEffectOfferRange.define('pathLifecycleEffectOfferRange', ({ map, nodes }) => {
+  const { number, selectSingle } = nodes
 
-    map
-      .set(
-        'amount',
-        number(['amount'], 'Range', { requiredIf: true, constraints: { minimum: 1 } })
+  map
+    .set('amount', number(['amount'], 'Range', { requiredIf: true, constraints: { minimum: 1 } }))
+    .set(
+      'unit',
+      selectSingle(
+        ['unit'],
+        'Unit',
+        { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
+        { requiredIf: true }
       )
-      .set(
-        'unit',
-        selectSingle(
-          ['unit'],
-          'Unit',
-          { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
-          { requiredIf: true }
-        )
-      )
-  }
-)
+    )
+})
 
 const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['effectOffers']>[number]

@@ -63,11 +63,10 @@ export function liveEffectOffers(input: {
   effectsByHolder: EffectsByHolder
   zeroHitPointActorIds: ReadonlySet<string>
 }): LiveEffectOffer[] {
-  return effectOffersFor(input).flatMap(
-    ({ offeredTo: _offeredTo, when, ...choice }) =>
-      when === 'HOLDER_AT_ZERO_HP' && input.zeroHitPointActorIds.has(choice.holderActorId)
-        ? [choice]
-        : []
+  return effectOffersFor(input).flatMap(({ offeredTo: _offeredTo, when, ...choice }) =>
+    when === 'HOLDER_AT_ZERO_HP' && input.zeroHitPointActorIds.has(choice.holderActorId)
+      ? [choice]
+      : []
   )
 }
 
