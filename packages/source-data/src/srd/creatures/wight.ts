@@ -124,18 +124,18 @@ export const wight: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The wight makes two longsword attacks or two longbow attacks. It can use its Life Drain in place of one longsword attack.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(293, 208),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(293, 209), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(293, 4) }] }] },
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(293, 5) }] }] },
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(293, 4) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(293, 2) }] }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

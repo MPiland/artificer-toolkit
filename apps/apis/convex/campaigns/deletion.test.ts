@@ -12,7 +12,6 @@ import type {
   SceneDefinitionSaveProgress
 } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { acquiredEquipmentRulesSchema } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -21,7 +20,10 @@ import { api } from '../_generated/api'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { readCharacterDraft } from '../characters/documents'
 import { readCharacterRecord } from '../characters/stateDocuments'
-import { readStoredAuthoredVersionDocument } from '../content/documents'
+import {
+  readAuthoredVersionCompilation,
+  readStoredAuthoredVersionDocument
+} from '../content/documents'
 import type { Id, TableNames } from '../_generated/dataModel'
 import schema from '../schema'
 import * as accountUsage from '../lib/accountUsage'
@@ -696,17 +698,18 @@ describe('native Campaign deletion', () => {
           systemId: repaired.systemId
         })
         for (const source of retained.sources) {
-          const raw: unknown = JSON.parse(source.documentJson)
-          expect(checksumRuleDocument(raw)).toBe(source.checksum)
+          expect(source.compilation.authoredChecksum).toBe(source.checksum)
           const root = protectedRoots.roots.find(
             (row) => row.id === source.subjectId && row.subjectKind === source.subjectKind
           )
           const version = protectedRoots.versions.find((row) => row._id === root?.currentVersionId)
           if (!version) throw new Error('Missing retained publication.')
-          const published = await base.t.run((ctx) =>
-            readStoredAuthoredVersionDocument(ctx, version)
-          )
-          expect(raw).toEqual(published)
+          const [published, compilation] = await base.t.run(async (ctx) => [
+            await readStoredAuthoredVersionDocument(ctx, version),
+            await readAuthoredVersionCompilation(ctx, { versionId: version.versionId })
+          ])
+          expect(source.compilation).toEqual(compilation)
+          expect(published).toMatchObject({ label: source.presentation.label })
         }
       }
       const draft = await base.t.run((ctx) =>

@@ -3,12 +3,14 @@ import {
   SRD_SYSTEM_ID,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { shamblingMound } from '@artificer-toolkit/source-data/srd/creatures/shambling-mound.js'
 import { describe, expect, it } from 'vitest'
 
 import type { ProjectableCharacterFacts } from '../encounterActionProjection.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { featureChargeUsed } from '../encounterActorState.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { EncounterValidationError } from '../encounterErrors.js'
 import { buildEncounterMovementReactionFacts } from '../encounterMovementReactionFacts.js'
 import {
   QUILL_VOLLEY_CHARGE_ID,
@@ -203,5 +205,23 @@ describe('encounter action discovery: attack rolls', () => {
     })
 
     expect(featureActionId(actor, QUILL_VOLLEY_ID)).toEqual(expect.any(String))
+  })
+})
+
+describe('encounter action mechanics preparation: held-only targeting (ATTACK-7.2)', () => {
+  it('refuses a target the user does not hold', async () => {
+    const engulf = shamblingMound.features.find(({ label }) => label === 'Engulf')
+    if (!engulf) throw new Error('The Shambling Mound authors no Engulf.')
+    const actor = creatureActor({
+      id: SOURCE_ID,
+      label: 'Shambling Mound',
+      statBlock: shamblingMound,
+      features: shamblingMound.features
+    })
+    const target = creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] })
+
+    await expect(
+      prepareCreatureAction({ actor, target, featureId: engulf.id, overridable: true })
+    ).rejects.toThrow(EncounterValidationError)
   })
 })

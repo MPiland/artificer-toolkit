@@ -62,6 +62,7 @@ import {
 } from '../shared/activeRuleEffectLifecycle.js'
 import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
+import { attackSlotConditionDtoSchema } from '../features/attackSlots.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
 
 const nonNegativeStreamVersionSchema = lazySchema(() => z.number().check(z.int()).check(z.gte(0)))
@@ -254,6 +255,7 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
         z.strictObject({
           relationshipOutcomeId: serverUuidIdentityDtoSchema,
           heldAtOnce: z.number().check(z.int()).check(z.gte(1)),
+          appliesWhen: z.optional(attackSlotConditionDtoSchema),
           modules: z
             .array(actorRelationshipModuleDtoSchema)
             .check(z.minLength(1))

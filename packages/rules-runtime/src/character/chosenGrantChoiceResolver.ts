@@ -14,14 +14,14 @@ import {
   type CharacterAuthored,
   type CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
+import type { FacetAuthored } from '@artificer-toolkit/shared/authored'
 import type {
-  FacetAuthored,
-  FeatGrantAuthored,
-  FeatureAuthored,
-  ProficiencyGrantAuthored,
-  SenseGrantAuthored,
-  SpellGrantAuthored
-} from '@artificer-toolkit/shared/authored'
+  CompiledFeatGrant,
+  CompiledFeature,
+  CompiledProficiencyGrant,
+  CompiledSenseGrant,
+  CompiledSpellGrant
+} from '@artificer-toolkit/shared/compilers'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type {
   CharacterBuilderEquipmentCatalogRecord,
@@ -31,10 +31,10 @@ import type {
 import { findCurrentCharacterFeatureAcquisition } from './characterBuilderSelections.js'
 
 type ChoiceGrant =
-  | ProficiencyGrantAuthored
-  | SpellGrantAuthored
-  | FeatGrantAuthored
-  | SenseGrantAuthored
+  | CompiledProficiencyGrant
+  | CompiledSpellGrant
+  | CompiledFeatGrant
+  | CompiledSenseGrant
 
 /** One selection a chosen grant asks for: the grant itself, or one of its progression levels. */
 type ChoiceSlot = {
@@ -56,11 +56,12 @@ export type CharacterChosenGrantOwner = {
   source: CharacterProvenance
   timing: CharacterAcquisitionTiming
   activeLevel: number
+  /** The owning record's choice grants; a record without any asks for none. */
   grants: {
-    proficiencies?: ProficiencyGrantAuthored[]
-    spells?: SpellGrantAuthored[]
-    feats?: FeatGrantAuthored[]
-    senses?: SenseGrantAuthored[]
+    proficiencies?: readonly CompiledProficiencyGrant[]
+    spells?: readonly CompiledSpellGrant[]
+    feats?: readonly CompiledFeatGrant[]
+    senses?: readonly CompiledSenseGrant[]
   }
 }
 
@@ -223,11 +224,18 @@ function flattenOwnerGrants(owner: CharacterChosenGrantOwner): ChoiceGrant[] {
 /** The selections a chosen grant asks for at the owner's active level; a granted grant asks none. */
 function choiceSlots(grant: ChoiceGrant, activeLevel: number): ChoiceSlot[] {
   if (grant.selectionKind !== AUTHORING_SELECTION_KIND.CHOSEN) return []
+  // Proficiency grants compile without scaling.
+  if (grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT)
+    return [
+      {
+        count: grant.count,
+        duplicatePolicy: grant.selectionDuplicatePolicy,
+        candidateIds: proficiencyCandidateIds(grant)
+      }
+    ]
   if (grant.scalingKind === SCALING.NONE) {
     const slot = { count: grant.count, duplicatePolicy: grant.selectionDuplicatePolicy }
     switch (grant.grantKind) {
-      case GRANT_KIND.PROFICIENCY_GRANT:
-        return [{ ...slot, candidateIds: proficiencyCandidateIds(grant) }]
       case GRANT_KIND.SPELL_GRANT:
         return [{ ...slot, candidateIds: listedIds(grant, 'spellIds') }]
       case GRANT_KIND.FEAT_GRANT:
@@ -238,11 +246,11 @@ function choiceSlots(grant: ChoiceGrant, activeLevel: number): ChoiceSlot[] {
   }
   switch (grant.grantKind) {
     case GRANT_KIND.SPELL_GRANT:
-      return levelSlots(grant.progression.levels, 'spellIds', activeLevel)
+      return levelSlots(grant.levels, 'spellIds', activeLevel)
     case GRANT_KIND.FEAT_GRANT:
-      return levelSlots(grant.progression.levels, 'featIds', activeLevel)
+      return levelSlots(grant.levels, 'featIds', activeLevel)
     case GRANT_KIND.SENSE_GRANT:
-      return levelSlots(grant.progression.levels, 'senseIds', activeLevel)
+      return levelSlots(grant.levels, 'senseIds', activeLevel)
   }
 }
 
@@ -271,7 +279,7 @@ function listedIds<K extends string>(target: ListedTarget<K>, key: K): readonly 
   return target.authoringModeKind === AUTHORING_MODE_KIND.ALL ? null : target[key]
 }
 
-function proficiencyCandidateIds(grant: ProficiencyGrantAuthored): readonly string[] | null {
+function proficiencyCandidateIds(grant: CompiledProficiencyGrant): readonly string[] | null {
   switch (grant.proficiencyKind) {
     case PROFICIENCY_KIND.SKILL:
       return listedIds(grant, 'skillIds')
@@ -383,7 +391,7 @@ type ProficiencyLevels = {
 function addProficiencyLevel(
   levelsByTarget: Map<string, ProficiencyLevels>,
   key: string,
-  level: ProficiencyGrantAuthored['level'],
+  level: CompiledProficiencyGrant['level'],
   sourceLabel: string
 ) {
   const levels = levelsByTarget.get(key) ?? { half: false, full: false, double: false }
@@ -476,7 +484,7 @@ function getGrantOptions(
 }
 
 function getProficiencyOptions(
-  grant: ProficiencyGrantAuthored,
+  grant: CompiledProficiencyGrant,
   candidateIds: readonly string[] | null,
   registry: CharacterChosenGrantChoiceRegistry
 ): Array<{ id: string; label: string }> {
@@ -541,7 +549,7 @@ function getProficiencyOptions(
 }
 
 export function matchesSpellFilter(
-  spell: CharacterBuilderSpellCatalogRecord,
+  spell: Pick<CharacterBuilderSpellCatalogRecord, 'id' | 'magicSchoolId' | 'level' | 'attributes'>,
   filter: FacetAuthored<'SPELL'> | undefined
 ): boolean {
   if (!filter || filter.groups.length === 0) return true
@@ -607,7 +615,7 @@ function formatCode(value: string): string {
 }
 
 export function getSelectedFeatureOptionIds(
-  feature: FeatureAuthored,
+  feature: CompiledFeature,
   character: CharacterAuthored,
   source: CharacterProvenance
 ): string[] {

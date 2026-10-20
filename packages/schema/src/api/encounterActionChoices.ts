@@ -195,7 +195,9 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         self: targetingSelfDtoSchema,
         /** The options the caster picks one of at cast (D148); absent for an action with none. */
         choiceOptions: choiceOptionsSchema,
-        choosesItem: choosesItemSchema
+        choosesItem: choosesItemSchema,
+        /** Only the creatures the user holds (`releases`) may be named (Engulf); the commit refuses any other. */
+        heldBySource: z.optional(z.literal(true))
       }),
       /**
        * Up to `maxTargets` creatures the client lists and the user picks (Mass Healing Word), or
@@ -380,6 +382,8 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
       z.strictObject({
         made: z.number().check(z.int()).check(z.gte(1)),
         total: z.number().check(z.int()).check(z.gte(1)),
+        /** No required slot is left; whatever `actions` still offers with an `attackSlot` is optional. */
+        complete: z.boolean(),
         lastActionId: characterSheetActionDtoSchema.shape.id,
         lastTargetIds: z.array(postgresUuidSchema)
       })

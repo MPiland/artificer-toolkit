@@ -53,6 +53,16 @@ export const youngBronzeDragon: CreatureAuthored = {
       id: S.featureId(304, 2),
       label: 'Multiattack',
       description: 'The dragon makes three attacks: one with its bite and two with its claws.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(304, 3) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(304, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

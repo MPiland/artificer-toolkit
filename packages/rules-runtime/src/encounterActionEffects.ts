@@ -8,6 +8,8 @@ import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionS
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
 import { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
+import { encounterAttackActionAttacks } from './encounterAttackAction.js'
+import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import type { IncomingDamageGrantTrigger } from './encounterEndedEffectRelease.js'
@@ -195,6 +197,8 @@ export function prepareNativeActionEffectsPlan<
   occurrenceId: string
   commandId: string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  /** The attack's transition on its actor's Attack action, which a gated hold reads. */
+  attackAction?: EncounterAttackActionTransitionDto | null
   concealment?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['concealment']
   link?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['link']
   form?: Parameters<typeof prepareEncounterActionEffectPlans>[0]['form']
@@ -245,6 +249,7 @@ export function prepareNativeActionEffectsPlan<
     sealedReachFeet: plan?.actorRelationshipContribution
       ? encounterActionReachFeet(prepared.targetPolicy)
       : undefined,
+    attacks: input.attackAction ? encounterAttackActionAttacks(input.attackAction) : null,
     concealment: input.concealment,
     link: input.link,
     form: input.form,

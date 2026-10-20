@@ -139,12 +139,18 @@ export async function prepareActionEconomy<TFacts extends CharacterTurnFacts>(
  */
 export async function evaluateActionAttackAction<TFacts extends CharacterTurnFacts>(
   tx: EncounterTurnReadTransaction<TFacts>,
-  input: ActionEconomyInput<TFacts> & { triggerCode: string; replacesAttack?: boolean }
+  input: ActionEconomyInput<TFacts> & {
+    triggerCode: string
+    replacesAttack?: boolean
+    /** The Creature Feature the action belongs to, when a slot may name it. */
+    featureId?: string
+  }
 ) {
   return evaluateEncounterAttackAction({
     ...economyInput(tx, input),
     triggerCode: input.triggerCode,
-    replacesAttack: input.replacesAttack
+    replacesAttack: input.replacesAttack,
+    featureId: input.featureId
   })
 }
 

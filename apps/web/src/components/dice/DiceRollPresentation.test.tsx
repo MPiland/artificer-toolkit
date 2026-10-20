@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { addedAdvantageRoll, cancelledAdvantageRoll } from './adjustedRoll.fixtures'
+import { MODE_CHANGE_ANIMATION_MS } from './dice.utils'
 import { DiceRollPresentation } from './DiceRollPresentation'
 
 const testState = vi.hoisted(() => ({
@@ -201,6 +202,7 @@ describe('DiceRollPresentation', () => {
     expect(screen.getAllByRole('img', { name: 'cancelled' })).toHaveLength(1)
     expect(screen.getByText('Advantage cancelled: the target can sense you')).toBeInTheDocument()
     expect(screen.queryByText('added')).not.toBeInTheDocument()
+    expect(screen.getByText('Advantage → Normal')).toBeInTheDocument()
   })
 
   it('marks an added die as added and keeps the kept die', async () => {
@@ -212,6 +214,52 @@ describe('DiceRollPresentation', () => {
     expect(screen.getByText('added')).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: 'cancelled' })).not.toBeInTheDocument()
     expect(screen.getByText("Advantage: the target can't see you")).toBeInTheDocument()
+    expect(screen.getByText('Normal → Advantage')).toBeInTheDocument()
+  })
+
+  describe('mode change animation (ENCOUNTER-8.1)', () => {
+    const overlay = () => screen.getByText(/^Rolled /).closest('[data-mode-change], [aria-live]')
+
+    beforeEach(() => {
+      testState.animate3d = false
+      vi.useFakeTimers()
+    })
+
+    it('plays once when the card arrives, then settles to the static result', () => {
+      const roll = cancelledAdvantageRoll('arriving-roll')
+      render(<DiceRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
+
+      expect(overlay()).toHaveAttribute('data-mode-change', 'playing')
+      act(() => vi.advanceTimersByTime(MODE_CHANGE_ANIMATION_MS))
+      expect(overlay()).not.toHaveAttribute('data-mode-change')
+      expect(screen.getAllByRole('img', { name: 'cancelled' })).toHaveLength(1)
+    })
+
+    it('does not replay when the same card is opened again', () => {
+      const roll = addedAdvantageRoll('reopened-roll')
+      const first = render(<DiceRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
+      expect(overlay()).toHaveAttribute('data-mode-change', 'playing')
+      act(() => vi.advanceTimersByTime(MODE_CHANGE_ANIMATION_MS))
+      first.unmount()
+
+      render(<DiceRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
+      expect(overlay()).not.toHaveAttribute('data-mode-change')
+      expect(screen.getByText('added')).toBeInTheDocument()
+    })
+
+    it('shows the static result with no animation under reduced motion', () => {
+      testState.reducedMotion = true
+      render(
+        <DiceRollPresentation
+          onRollRevealed={rollRevealed}
+          roll={cancelledAdvantageRoll('reduced-motion-roll')}
+        />
+      )
+
+      expect(overlay()).not.toHaveAttribute('data-mode-change')
+      expect(screen.getAllByRole('img', { name: 'cancelled' })).toHaveLength(1)
+      expect(screen.getByText('Advantage → Normal')).toBeInTheDocument()
+    })
   })
 
   it('keeps an existing canvas idle when a later roll needs the static fallback', async () => {

@@ -49,6 +49,16 @@ export const owlbear: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The owlbear makes two attacks: one with its beak and one with its claws.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(215, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(215, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

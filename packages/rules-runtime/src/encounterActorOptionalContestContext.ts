@@ -229,6 +229,45 @@ export function applyEncounterActorItemDraw<
   }
 }
 
+/** Moves a held loadout item to carried: the throw an attack makes (D107), the inverse of a draw. */
+export function applyEncounterActorItemThrow<
+  TActor extends EncounterActorOptionalContestActor
+>(input: {
+  actor: TActor
+  loadoutEntryId: string
+}): {
+  readonly actor: TActor
+  readonly equipmentId: string
+  readonly beforeStateChecksum: string
+  readonly afterStateChecksum: string
+} {
+  const { actor, loadoutEntryId } = input
+  const snapshot = snapshotRecord(actor)
+  if (!snapshot) throw new EncounterConflictError('Creature weapon to throw is unavailable.')
+  const held = readEncounterActorOptionalContestContext({ actor, loadoutEntryId })
+  if (!held) throw new EncounterConflictError('Creature weapon to throw is no longer held.')
+  const nextActor = {
+    ...actor,
+    snapshot: {
+      ...snapshot,
+      equipmentLoadoutOverride: snapshotCreatureEquipmentLoadout(actor).map((entry) =>
+        entry.id === loadoutEntryId ? { ...entry, useState: 'CARRIED' as const } : entry
+      )
+    }
+  }
+  return {
+    actor: nextActor,
+    equipmentId: held.equipment.equipmentId,
+    beforeStateChecksum: held.stateChecksum,
+    afterStateChecksum: checksumRuleDocument({
+      actorId: held.actorId,
+      equipment: { ...held.equipment, state: 'CARRIED' },
+      ruleFacts: held.ruleFacts,
+      size: held.size
+    })
+  }
+}
+
 /**
  * Puts a drawn item back to carried (the undo of a draw), or null when the loadout entry no
  * longer reproduces the held state the transition recorded.

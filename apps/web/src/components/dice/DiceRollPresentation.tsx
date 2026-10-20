@@ -2,9 +2,11 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import {
+  formatModeChange,
   formatRollEvidence,
   getVisualDiceCount,
   MAX_3D_DICE,
+  MODE_CHANGE_ANIMATION_MS,
   supportsWebGL,
   type DicePresentationRoll
 } from './dice.utils'
@@ -13,11 +15,32 @@ import * as diceStyles from './dice.css'
 
 const DiceCanvas = lazy(() => import('./DiceCanvas'))
 const DICE_LOAD_TIMEOUT_MS = 10_000
+/** Rolls whose mode change already played here, so a card shown again does not replay it. */
+const animatedModeChangeRollIds = new Set<string>()
 
-function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
+function StaticDiceResult({
+  reducedMotion,
+  roll
+}: {
+  reducedMotion: boolean
+  roll: DicePresentationRoll
+}) {
   const adjustment = roll.ruleCheck?.kind === 'D20_MODE_ADJUSTED' ? roll.ruleCheck : undefined
+  const [playing, setPlaying] = useState(
+    () => Boolean(adjustment) && !reducedMotion && !animatedModeChangeRollIds.has(roll.id)
+  )
+  useEffect(() => {
+    if (!playing) return
+    animatedModeChangeRollIds.add(roll.id)
+    const timeout = window.setTimeout(() => setPlaying(false), MODE_CHANGE_ANIMATION_MS)
+    return () => window.clearTimeout(timeout)
+  }, [playing, roll.id])
   return (
-    <div className={diceStyles.staticDiceOverlay} aria-live='polite'>
+    <div
+      className={diceStyles.staticDiceOverlay}
+      aria-live='polite'
+      data-mode-change={playing ? 'playing' : undefined}
+    >
       <div className={diceStyles.staticDiceList}>
         {roll.evidence.terms.flatMap((term, termIndex) =>
           term.rolls.map((value, rollIndex) => {
@@ -31,6 +54,7 @@ function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
             return (
               <span
                 className={diceStyles.staticDie}
+                data-added={added ? 'true' : undefined}
                 data-cancelled={cancelled ? 'true' : undefined}
                 data-kept={kept && !cancelled ? 'true' : undefined}
                 key={`${termIndex}:${rollIndex}`}
@@ -58,6 +82,11 @@ function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
           })
         )}
       </div>
+      {adjustment ? (
+        <span className={diceStyles.staticDiceCaption}>
+          <strong>{formatModeChange(adjustment)}</strong>
+        </span>
+      ) : null}
       {adjustment?.caption ? (
         <span className={diceStyles.staticDiceCaption}>{adjustment.caption}</span>
       ) : null}
@@ -126,7 +155,7 @@ export function DiceRollPresentation({
     }
   }, [animatedRoll, revealRoll, revealedRollId, roll, waitingForWebGL])
 
-  const fallback = roll ? <StaticDiceResult roll={roll} /> : null
+  const fallback = roll ? <StaticDiceResult reducedMotion={reducedMotion} roll={roll} /> : null
   if (waitingForWebGL) return null
   if (rendererFailed) return fallback
   if (!canvasMounted && !animatedRoll) return fallback

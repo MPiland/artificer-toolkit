@@ -2,10 +2,10 @@ import { GRANT_KIND } from '@artificer-toolkit/shared/core'
 import {
   isSameCharacterProvenanceIdentity,
   type CharacterAuthored,
-  type ClassAuthored,
   type CharacterProvenance,
   type CharacterSpellSelectionRecord
 } from '@artificer-toolkit/shared/subjects/authored'
+import type { CompiledSpellcasting } from '@artificer-toolkit/shared/subjects/compilers'
 import type { CharacterBuilderChosenGrantChoice } from './chosenGrantChoiceResolver.js'
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
 import type { ResolvedClassSelection } from './characterBuilderSelections.js'
@@ -23,9 +23,9 @@ interface CharacterSpellChoiceRequirement {
 }
 
 function getActiveSpellLimit(
-  spellcasting: ClassAuthored['spellcasting'],
+  spellcasting: CompiledSpellcasting | undefined,
   classLevel: number
-): NonNullable<ClassAuthored['spellcasting']>['spellLimits'][number] | undefined {
+): CompiledSpellcasting['spellLimits'][number] | undefined {
   return spellcasting?.spellLimits
     .filter((limit) => limit.classLevel <= classLevel)
     .sort((left, right) => right.classLevel - left.classLevel)[0]

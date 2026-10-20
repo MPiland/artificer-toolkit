@@ -31,6 +31,7 @@ import { useCampaignLiveSummary } from '../vtt/useCampaignLiveSummary'
 import * as sharedStyles from '../campaigns.css'
 import * as partyStyles from './party.css'
 import { CampaignRosterPortrait } from './CampaignRosterPortrait'
+import { CharacterControllersField } from './CharacterControllersField'
 
 export function CampaignParty({
   campaign,
@@ -238,6 +239,15 @@ export function CampaignParty({
                     >
                       View Sheet
                     </Button>
+                  ) : null}
+                  {campaign.role === 'OWNER' && character && member.role === 'PLAYER' ? (
+                    <CharacterControllersField
+                      campaignId={campaign.id}
+                      character={character}
+                      controllerUserIds={member.characterControllerUserIds}
+                      memberships={campaign.memberships}
+                      assignedUserId={member.userId}
+                    />
                   ) : null}
                   {campaign.capabilities.manageMembers && member.role === 'PLAYER' ? (
                     <Group gap='xs'>

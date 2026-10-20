@@ -146,18 +146,13 @@ export const weretiger: CreatureAuthored = {
       label: 'Multiattack (Humanoid or Hybrid Form Only)',
       description:
         'Multiattack (Humanoid or Hybrid Form Only). In humanoid form, the weretiger makes two scimitar attacks or two longbow attacks. In hybrid form, it can attack like a humanoid or make two claw attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(290, 209),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(290, 210), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(290, 8) }] }] },
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(290, 9) }] }] },
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(290, 7) }] }] }
+        ]
+      },
       order: 5
     },
     {

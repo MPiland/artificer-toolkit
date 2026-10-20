@@ -175,19 +175,11 @@ export const planetar: CreatureAuthored = {
       id: S.featureId(220, 7),
       label: 'Multiattack',
       description: 'Multiattack. The planetar makes two melee attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(220, 504),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(220, 604), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PLANETAR_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(220, 8) }] }] }
+        ]
+      },
       order: 7
     },
     {

@@ -138,19 +138,11 @@ export const rakshasa: CreatureAuthored = {
       id: S.featureId(230, 3),
       label: 'Multiattack',
       description: 'The rakshasa makes two claw attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(230, 502),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(230, 602), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RAKSHASA_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(230, 4) }] }] }
+        ]
+      },
       order: 3
     },
     {

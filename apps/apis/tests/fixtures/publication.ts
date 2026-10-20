@@ -25,6 +25,8 @@ import {
   compilePublicationDocument,
   parsePublicationDocument
 } from '../../convex/content/publicationDocument'
+import { compileCurrentEquipment } from '../../convex/content/equipmentRelationships'
+import { compileCurrentRace } from '../../convex/content/raceRelationships'
 import schema from '../../convex/schema'
 
 process.env.SITE_URL = 'http://localhost:3000'
@@ -104,6 +106,15 @@ export async function makePublishedRootOwned(
     status: 'ACTIVE' as const
   }
   const checksum = checksumRuleDocument(document)
+  // The owned copy is a different document, so it gets its own compilation, as publication writes.
+  const publication = parsePublicationDocument(version.subjectKind, document)
+  const ownedCompilation =
+    compilation &&
+    (publication.subjectKind === 'EQUIPMENT'
+      ? (await compileCurrentEquipment(ctx, publication.document, ownerUserId)).compilation
+      : publication.subjectKind === 'RACE'
+        ? (await compileCurrentRace(ctx, publication.document, ownerUserId)).compilation
+        : compilePublicationDocument(publication))
   const currentVersionId = await insertAuthoredVersion(
     ctx,
     {
@@ -118,7 +129,7 @@ export async function makePublishedRootOwned(
       documentSchemaVersion: version.documentSchemaVersion
     },
     canonicalizeRuleDocument(document),
-    compilation
+    ownedCompilation
   )
   await ctx.db.patch(root._id, {
     ownerUserId,

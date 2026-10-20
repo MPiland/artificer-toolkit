@@ -16,15 +16,14 @@ import type { Doc } from '../_generated/dataModel'
 import { internalMutation } from '../lib/mutations'
 import {
   canReadAuthoredRoot,
-  insertAuthoredVersionCompilation,
   readAuthoredVersion,
-  readAuthoredVersionCompilation,
   replaceAuthoredVersionCompilation,
-  readPublishedDocument
+  readPublishedDocument,
+  syncCanonicalCompilation
 } from './documents'
 import { compilePublicationDocument } from './publicationDocument'
 import { backfillCatalogueFamily } from './catalogueFamilies'
-import { requireRaceParent } from './relationshipReads'
+import { readRecompiledDependent, requireRaceParent } from './relationshipReads'
 import { isImportRowVisible } from '../imports/visibility'
 
 export { requireRaceParent } from './relationshipReads'
@@ -89,7 +88,8 @@ export async function assertNoRaceChildren(ctx: QueryCtx, systemId: string, race
 export async function recompileRaceChildren(
   ctx: MutationCtx,
   parent: ResolvedBaseRace,
-  userId: string | null
+  userId: string | null,
+  reimportedIds: ReadonlySet<string> = new Set()
 ) {
   const children = await ctx.db
     .query('authoredRoots')
@@ -105,8 +105,9 @@ export async function recompileRaceChildren(
       !(await canReadAuthoredRoot(ctx, root, userId))
     )
       throw new Error('Race dependent ownership mismatch.')
-    const version = await readAuthoredVersion(ctx, root)
-    const document = raceAuthoredDtoSchema.parse(await readPublishedDocument(ctx, root, version))
+    const dependent = await readRecompiledDependent(ctx, root, raceAuthoredDtoSchema, reimportedIds)
+    if (!dependent) continue
+    const { version, document } = dependent
     if (
       document.category !== 'SUBRACE' ||
       document.parentRaceId !== parent.id ||
@@ -150,15 +151,13 @@ export const syncDerived = internalMutation({
     if (root.parentRaceId !== undefined && root.parentRaceId !== parentRaceId)
       throw new Error('Canonical content conflict.')
     const { compilation } = await compileCurrentRace(ctx, document, null)
-    const storedCompilation = await readAuthoredVersionCompilation(ctx, version)
+    const storedCompilation = await syncCanonicalCompilation(ctx, root, version, compilation)
     if (
       storedCompilation !== undefined &&
       checksumRuleDocument(storedCompilation) !== checksumRuleDocument(compilation)
     )
       throw new Error('Canonical content conflict.')
     if (root.parentRaceId === undefined) await ctx.db.patch(root._id, { parentRaceId })
-    if (storedCompilation === undefined)
-      await insertAuthoredVersionCompilation(ctx, version, compilation)
     const current = await ctx.db.get(root._id)
     if (!current) throw new Error('Canonical Race root is missing.')
     await backfillCatalogueFamily(ctx, current)

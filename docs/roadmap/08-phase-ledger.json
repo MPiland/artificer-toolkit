@@ -1266,7 +1266,7 @@
             "bv": 8,
             "tc": 5,
             "rr": 8,
-            "size": 8
+            "size": 13
           },
           "acs": [
             {
@@ -1278,24 +1278,58 @@
             },
             {
               "id": "PLATFORM-21.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated."
+              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated.",
+              "proof": [
+                "apps/apis/convex/content/compilationMigration.test.ts",
+                "apps/apis/convex/content/import.test.ts",
+                "apps/apis/convex/authoring/nodeRuntime.test.ts",
+                "packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts"
+              ]
             }
           ],
           "tasks": [
             {
-              "id": "PLATFORM-21.T1",
-              "status": "TODO",
-              "closes": ["PLATFORM-21.1", "PLATFORM-21.2"],
-              "text": "Hydrate the character engine and room registries from the stored compiled projection; remove runtime recompilation; projection version and migration; measure evaluation cost before and after.",
+              "id": "PLATFORM-21.T1a",
+              "status": "DONE",
+              "closes": ["PLATFORM-21.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 8,
-                "size": 8,
+                "size": 5,
                 "after": ["PLATFORM-20.T1"]
-              }
+              },
+              "text": "Compiled projection v2 (D163; split 2026-10-19): the projection carries every field the Builder reads from authored payloads (Class subclass selection level, spellcasting availability, proficiency scaling and restrictions, chosen-grant shapes, subclass label, feature checksum, plus any found in Spell, Race, Equipment and Background), with Equipment in the resolved shape; Builder and rules-runtime reads move to the compiled shapes while compilation is still at runtime; a migration recompiles stale rows, run on development data.",
+              "note": "Merged m216 (67c9bdb51). Local dev-data migration moved to T1a2."
+            },
+            {
+              "id": "PLATFORM-21.T1a2",
+              "status": "DONE",
+              "closes": ["PLATFORM-21.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 2,
+                "after": ["PLATFORM-21.T1a"]
+              },
+              "text": "Local development data recompiles (found in T1a, 2026-10-20): the local seed refuses the unchanged SRD Sorcerer with \"Canonical content conflict\", the first chunked document in the run, so the T1a migration cannot run on review data. Find the stored-versus-parsed difference with the real parser, fix its root cause in import or chunking with a regression test, then seed and migrate the local container with no reset.",
+              "note": "Merged m219 (92560662b). Local seed and migrate succeeded without a reset."
+            },
+            {
+              "id": "PLATFORM-21.T1b",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-21.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 5,
+                "after": ["PLATFORM-21.T1a2"]
+              },
+              "text": "Hydrate Builder commit, the browser Builder and the room from the stored compiled projection and remove runtime recompilation (D163); snapshot documents format 3 (ADR 0036 amendment); a compile failure blocks the publish; before-and-after measurements, including commitReadBudget within D84 (measured full swap: Fighter 5 324 KB, Wizard 5 405 KB, Fighter 3/Wizard 2 525 KB). Also show the retained Spell presentation that T1a pins (view only)."
             }
           ]
         },
@@ -4704,64 +4738,6 @@
               "id": "ROOM-7.1"
             }
           ]
-        },
-        {
-          "id": "ROOM-8",
-          "title": "Prompts and turn notices follow the player to any page",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
-          "origin": [],
-          "note": "Registered 2026-10-19 from the SCENE-5 plan (docs/handoffs/scene-5-plan.md), confirmed by the product owner. Helps every remote player; comes before SCENE-5, whose table window never shows prompts.",
-          "acs": [
-            {
-              "text": "A pending roll prompt for a member’s Character shows in a modal over whatever signed-in page they have open while its Session is ACTIVE. Every open tab or device shows it, answering it in one clears it everywhere, and a table window never shows it.",
-              "status": "TODO",
-              "proof": [],
-              "origin": [],
-              "id": "ROOM-8.1"
-            },
-            {
-              "text": "When one of a member’s Characters starts its turn, a ‘your turn’ notification shows on any signed-in page they have open, except a table window.",
-              "status": "TODO",
-              "proof": [],
-              "origin": [],
-              "id": "ROOM-8.2"
-            }
-          ],
-          "wsjf": {
-            "bv": 8,
-            "tc": 3,
-            "rr": 3,
-            "size": 5
-          },
-          "tasks": [
-            {
-              "id": "ROOM-8.T1",
-              "text": "A global prompt modal on any signed-in page while the Session is ACTIVE; answering in one tab or device clears it everywhere; not shown in table windows. Holds one room socket per tab, only while one of the member’s Campaigns has an ACTIVE Session.",
-              "status": "TODO",
-              "closes": ["ROOM-8.1"],
-              "wsjf": {
-                "bv": 8,
-                "tc": 3,
-                "rr": 3,
-                "size": 5
-              }
-            },
-            {
-              "id": "ROOM-8.T2",
-              "text": "The ‘your turn’ notification (Mantine notifications) on any signed-in page, except a table window.",
-              "status": "TODO",
-              "closes": ["ROOM-8.2"],
-              "wsjf": {
-                "bv": 8,
-                "tc": 3,
-                "rr": 3,
-                "size": 2,
-                "after": ["ROOM-8.T1"]
-              }
-            }
-          ]
         }
       ]
     },
@@ -4974,98 +4950,94 @@
         {
           "id": "SCENE-5",
           "title": "One shared table screen for players in the same room",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeLiveSessionRoom.test.ts",
+            "apps/web/src/domains/campaigns/vtt/CampaignVttStage.mainCharacter.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
-          "note": "Registered 2026-10-12 by the product owner: players at one physical table share a TV running the VTT, and one person moves every party token. Foundry has no dedicated mode (a shared player account owns all party tokens and sees their combined vision). Q5 and Q6 resolved 2026-10-12 (phase-08-2-decisions.md#resolved): table mode chosen at Session launch, shared screen acts for covered Characters, main-Character vision with single-token selection override. Depends on VTT_UI-3.4 for per-Character senses. 2026-10-19: replanned with the product owner (docs/handoffs/scene-5-plan.md): the table is a role on the holder’s tabletop window, granted during an ACTIVE Session; prompts follow the controller (ROOM-8); SCENE-5.4 added for zoom.",
+          "note": "Registered 2026-10-12 by the product owner. Replanned 2026-10-19 with the product owner (docs/handoffs/scene-5-plan.md) to a Foundry-style MVP: the GM grants Campaign-level control of other players’ Characters, and the controlling member opens the tabletop on the TV. No table role or projection. The old AC 5.3 (private information off the shared screen) is removed and documented as a limitation. Depends on VTT_UI-3.4 for per-Character senses.",
           "acs": [
             {
-              "text": "During an ACTIVE Session the GM can give one member the table role, covering chosen player Characters with one of them as the main Character. That member’s tabletop window shows the Scene through the main Character’s senses; selecting a single covered token switches the view to that token’s senses, and clearing or multi-selecting returns to the main Character. It never sees what the Character it is viewing through cannot see.",
-              "status": "TODO",
-              "proof": [],
+              "text": "The GM can give a Campaign member control of other players’ Characters and take it back at any time; the owners keep control. A member moves a controlled Character’s token on the tabletop as its owner can, and in every Encounter they are one of its controllers.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/liveSessions/roomSceneCommands.test.ts",
+                "apps/apis/convex/campaigns/characterControllers.test.ts",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts"
+              ],
               "origin": [],
               "id": "SCENE-5.1"
             },
             {
-              "text": "The table acts for every covered Character: it moves their tokens (outside an Encounter or in a Manual Run any of them; in an Assisted Encounter the one whose turn it is) and chooses their actions; their roll prompts go to each Character’s controller; every other client converges as for any player command.",
-              "status": "TODO",
-              "proof": [],
+              "text": "A member who controls several Characters sees the Scene through one main Character’s senses, which they pick on the tabletop and which defaults to their own Character. Selecting a single token they control switches the view to that token’s senses; clearing or multi-selecting returns to the main Character. They never see what the viewed Character cannot see.",
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.mainCharacter.test.tsx",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts"
+              ],
               "origin": [],
               "id": "SCENE-5.2"
             },
             {
-              "text": "Private information for one covered Character (its own hidden rolls, whispers, GM notes to that player) is not shown on the table screen; the owning player still sees it on their own device.",
-              "status": "TODO",
-              "proof": [],
+              "text": "Every tabletop viewer can set the zoom by typing a percentage or stepping it, and their tabletop window keeps that zoom on that device across reloads, reconnects and view switches. The tabletop opens in a window sized to the screen and offers a Full screen button.",
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.zoom.test.tsx",
+                "apps/web/src/domains/campaigns/vtt/vttZoom.model.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopFullscreenButton.test.tsx"
+              ],
               "origin": [],
               "id": "SCENE-5.3"
-            },
-            {
-              "text": "Every tabletop viewer can set the zoom by typing a percentage or stepping it. The table window keeps its zoom on that device across reloads, reconnects and view switches, so squares stay sized to physical minis.",
-              "status": "TODO",
-              "proof": [],
-              "origin": [],
-              "id": "SCENE-5.4"
             }
           ],
           "wsjf": {
             "bv": 8,
             "tc": 3,
             "rr": 3,
-            "size": 8
+            "size": 5
           },
           "tasks": [
             {
               "id": "SCENE-5.T1",
-              "text": "The GM gives the table role (covered and main Characters); the holder’s tabletop window is server-projected as the table (main Character’s vision; no chat, prompts, private rolls or GM data); it remembers its zoom on that device across reloads and reconnects.",
-              "status": "TODO",
-              "closes": ["SCENE-5.1", "SCENE-5.3", "SCENE-5.4"],
+              "text": "The GM grants and revokes Campaign-level control of a Character; granted members move its tokens outside Encounters and are its controllers in every Run. One source of truth with the existing per-Run controllerUserIds (ADR 0034, max 8, assigned player always a controller).",
+              "status": "DONE",
+              "closes": ["SCENE-5.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
-                "size": 5,
-                "after": ["ROOM-8.T1"]
-              }
+                "size": 5
+              },
+              "note": "Merged m209 (19f2ec13e); D162."
             },
             {
               "id": "SCENE-5.T2",
-              "text": "View switching by a single selected covered token; clearing or a multi-select returns to the main Character; a switch may pan but never changes zoom.",
-              "status": "TODO",
-              "closes": ["SCENE-5.1", "SCENE-5.4"],
+              "text": "Main-Character picker on the tabletop and view switching by a single selected controlled token; clearing or a multi-select returns to the main Character.",
+              "status": "DONE",
+              "closes": ["SCENE-5.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 3,
                 "after": ["SCENE-5.T1"]
-              }
+              },
+              "note": "Merged m211 (9045d49db)."
             },
             {
               "id": "SCENE-5.T3",
-              "text": "The table acts for covered Characters: moves (any outside an Encounter or in a Manual Run; the turn’s one in an Assisted Encounter) and the action drawer for the turn’s covered Character; other clients converge. Room admission (roomBoundTokenControl and Encounter action admission) accepts the table role for covered Characters it does not own.",
-              "status": "TODO",
-              "closes": ["SCENE-5.2"],
+              "text": "Zoom control (percentage field and steps) with per-device zoom for every viewer, a screen-sized tabletop popup and a Full screen button.",
+              "status": "DONE",
+              "closes": ["SCENE-5.3"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
-                "size": 5,
-                "after": ["SCENE-5.T1"]
-              }
-            },
-            {
-              "id": "SCENE-5.T4",
-              "text": "A Chrome-style zoom control on the tabletop for every viewer (zoom icon, percentage field, minus/plus).",
-              "status": "TODO",
-              "closes": ["SCENE-5.4"],
-              "wsjf": {
-                "bv": 8,
-                "tc": 3,
-                "rr": 3,
-                "size": 2
-              }
+                "size": 3
+              },
+              "note": "Merged m208 (6585a457f)."
             }
           ]
         }
@@ -5742,15 +5714,15 @@
         {
           "id": "ENCOUNTER-8",
           "title": "Roll cards show a roll mode that changed at commit",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/components/dice/DiceRollPresentation.test.tsx"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "A roll card whose mode changed at commit animates the change, with an ✕ over a cancelled die and a newly added die rolling in, and shows the same result statically when reduced motion is on.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/web/src/components/dice/DiceRollPresentation.test.tsx"],
               "origin": [],
               "note": "Registered 2026-10-09 from the user's ATTACK-10.1 ruling; User ruling 2026-10-14: built to DESIGN.md now; the design review is RELEASE-8, after all code is green. Depends on ATTACK-10.1, which supplies the cancelled and added die data and a static rendering.",
               "id": "ENCOUNTER-8.1"
@@ -5766,19 +5738,20 @@
             {
               "id": "ENCOUNTER-8.T1",
               "text": "Static mode-change roll card: the added die and the settled mode are shown beside the cancelled ✕ from modeAdjustment; this is also the reduced-motion presentation.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ENCOUNTER-8.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 2,
                 "size": 2
-              }
+              },
+              "note": "Merged m206 (3120bcf0d)."
             },
             {
               "id": "ENCOUNTER-8.T2",
               "text": "Animated mode change: the ✕ draws over the cancelled die, then the added die rolls in, for everyone who sees the card when it arrives (no replay on reopen); reduced motion shows the T1 result. A DESIGN.md motion entry records timing and style.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ENCOUNTER-8.1"],
               "wsjf": {
                 "bv": 2,
@@ -5786,7 +5759,8 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ENCOUNTER-8.T1"]
-              }
+              },
+              "note": "Merged m215 (a9b35a398). Table-wide roll presentation deferred to future-enhancements."
             }
           ]
         },
@@ -6092,7 +6066,7 @@
             {
               "id": "ATTACK-4.T1",
               "text": "Prove the shipped Cleaving (scoped 2026-10-19): a rules-runtime test resolves the authored CLEAVING definition and the schema refuses non-MELEE or non-undamaged parameters (4.1, authored as typed SRD data); the excess-damage chain proof cites encounterCleaving.test.ts and the cleaving.test.ts journey, with a 2+ hop chain asserted (4.2). Reach stays the D48 measure.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-4.1", "ATTACK-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -6106,7 +6080,7 @@
         {
           "id": "ATTACK-5",
           "title": "Every SRD monster attack runs",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
             "apps/apis/convex/encounters/srdLegendaryAction.test.ts"
@@ -6247,7 +6221,7 @@
             {
               "id": "ATTACK-5.T1",
               "text": "Marquee monster attacks: Balor Whip, Kraken Lightning Storm and Purple Worm Tail Stinger.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-5.2", "ATTACK-5.8", "ATTACK-5.9"],
               "wsjf": {
                 "bv": 5,
@@ -6361,13 +6335,14 @@
         {
           "id": "ATTACK-7",
           "title": "Grapple and shove",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
-            "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
-            "apps/session-worker/test/nativeRoomGrappleContest.test.ts",
-            "apps/session-worker/test/nativeRoomReleaseRelationship.test.ts"
+            "apps/session-worker/test/nativeRoomShamblingMoundGrapple.test.ts",
+            "apps/session-worker/test/nativeRoomShoveContest.test.ts",
+            "apps/session-worker/test/nativeRoomGrappleDrag.test.ts",
+            "apps/session-worker/test/nativeRoomEscapeRescue.test.ts"
           ],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -6399,24 +6374,37 @@
             },
             {
               "text": "A grappler that moves drags the creatures it grapples, at half speed unless each is two or more sizes smaller; dragged creatures provoke no opportunity attacks.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterMovementDrag.test.ts",
+                "apps/session-worker/test/nativeRoomGrappleDrag.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice G.",
               "id": "ATTACK-7.5"
             },
             {
               "text": "Shove replaces one attack of the Attack action against a creature within reach and no more than one size larger, with the same contest; on a win the shover knocks it prone or pushes it 5 feet away.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomShoveContest.test.ts",
+                "apps/session-worker/test/nativeRoomAttackAction.test.ts",
+                "packages/rules-runtime/src/__tests__/checkActionCompile.test.ts",
+                "packages/authoring/src/nodeRuntime/contestOutcomeAuthoringParity.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice F.",
               "id": "ATTACK-7.6"
             },
             {
               "text": "Forced movement is authored with a direction (away, toward, aside within the source's reach, or any) and an exact or up-to distance; away and toward follow the straight line from the source through the target (the mover chooses only how far, for an up-to distance), any lets the mover pick a legal unoccupied square, and it provokes no opportunity attacks. A homebrew Crusher feat (any direction, 5 feet, on a bludgeoning hit) proves the any-direction case.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomForcedMovement.test.ts",
+                "apps/session-worker/test/nativeRoomAreaForcedMovementPick.test.ts",
+                "apps/session-worker/test/nativeRoomCrusher.test.ts",
+                "packages/shared/src/__tests__/optionalCombatGeometry.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice E.",
               "id": "ATTACK-7.7"
@@ -6438,16 +6426,24 @@
             },
             {
               "text": "Grapple riders (\"on hit, the target is grappled, escape DC N\") and \"grappled by this creature\" targeting are authorable effects; the full Shambling Mound turn grapples a Medium or smaller target hit by both slams and then offers Engulf on it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomShamblingMoundGrapple.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackSlots.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterHeldActorIds.test.ts",
+                "packages/source-data/src/srd/creatureGrappleRiders.test.ts"
+              ],
               "origin": [],
               "note": "D93. After ATTACK-11 (conditional slot).",
               "id": "ATTACK-7.2"
             },
             {
               "text": "When a grapple's escape allows it (the Cloaker), another creature within reach of the grappled creature can use its Action to make the escape check and free it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterRescues.test.ts",
+                "apps/session-worker/test/nativeRoomEscapeRescue.test.ts"
+              ],
               "origin": [],
               "note": "D105. Registered 2026-10-11 in slice B: the SRD Cloaker authors `CREATURE_WITHIN_REACH` and no play path existed. Reuses the slice B escape command with the rescuer as the actor.",
               "id": "ATTACK-7.9"
@@ -6613,8 +6609,9 @@
             {
               "id": "ATTACK-7.T8",
               "text": "Engulf and \"grappled by this creature\" targeting, after ATTACK-11.",
-              "status": "TODO",
-              "closes": ["ATTACK-7.2"]
+              "status": "DONE",
+              "closes": ["ATTACK-7.2"],
+              "note": "Merged m218 (0d3dfe505). Engulf rebuilt as a generic held relationship; its start-of-turn save moved to SPELLS-33.T6n."
             },
             {
               "id": "ATTACK-7.T9",
@@ -6622,6 +6619,19 @@
               "status": "DONE",
               "closes": ["ATTACK-7.9"],
               "note": "Merged m200 (a0a21ae5d)."
+            },
+            {
+              "id": "ATTACK-7.T10",
+              "status": "DONE",
+              "closes": ["ATTACK-7.5", "ATTACK-7.6", "ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "text": "Close the proof gaps the 2026-10-20 audit found in merged work: a drag with mixed-size holds prices each creature (7.5); Shove refused outside reach and against a target more than one size larger, and Shove filling one attack of the Attack action (7.6); room-level ASIDE and single-target UP_TO forced movement, and no opportunity attacks on a picked forced move (7.7). Tests run real code; a failing test is a bug to fix in this task, with the test as its regression proof.",
+              "note": "Merged m217 (f2e325779). Found and fixed: a Shove or Grapple spent the Action without opening the Attack action (D152 amendment)."
             }
           ],
           "wsjf": {
@@ -7171,39 +7181,54 @@
         {
           "id": "ATTACK-11",
           "title": "Authored Multiattack with auto-sequence",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomMultiattackSlots.test.ts",
+            "apps/web/src/forms/tests/AttackSlotAuthoring.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "An author can author a Multiattack in the Creature editor as alternatives of attack slots (count, the actions that fill it, optional, comes first), with swaps and slot conditions (earlier slots in this action hit the same target; target size at most X), and publication refuses an invalid one.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/creature-attack-slots.test.ts",
+                "packages/shared/src/__tests__/creature-feature-node-maps.test.ts",
+                "apps/web/src/forms/tests/AttackSlotAuthoring.test.tsx"
+              ],
               "origin": [],
               "note": "D93. After ATTACK-8 (shared slot model).",
               "id": "ATTACK-11.1"
             },
             {
               "text": "All 142 SRD Multiattacks are authored as slot sets, and the stat-block audit refuses a description-only Multiattack.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["packages/source-data/src/srd/creatureStatBlocks.test.ts"],
               "origin": [],
               "note": "D93. Shambling Mound's conditional Engulf slot is authored here; Engulf itself is offered once ATTACK-7 lands.",
               "id": "ATTACK-11.2"
             },
             {
               "text": "During a Multiattack only actions that fill a remaining slot of a still-feasible alternative are offered: a Brown Bear can't bite twice, a Drider's Bite swap is offered once, Frightful Presence only comes first, a Recharge that isn't ready isn't offered, and a conditional slot is offered only while its condition holds.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterAttackSlots.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts",
+                "apps/session-worker/test/nativeRoomMultiattackSlots.test.ts"
+              ],
               "origin": [],
               "note": "D93.",
               "id": "ATTACK-11.3"
             },
             {
               "text": "Auto-sequence: the GM's action drawer shows what is left of the Multiattack, preselects the only possible next attack and keeps the last target; the GM confirms each attack and can end the Multiattack early.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx",
+                "apps/session-worker/test/nativeRoomMultiattackSlots.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts"
+              ],
               "origin": [],
               "note": "D93. Assisted means assisted: nothing resolves without the controller's confirmation.",
               "id": "ATTACK-11.4"
@@ -7219,19 +7244,20 @@
             {
               "id": "ATTACK-11.T1",
               "text": "Multiattack offering end to end (D93): the slot-set contract (alternatives of slots with count, fillers, optional, comes first; swaps; same-target and target-size predicates), the ATTACK_ACTION state replaced by slot tracking (pre-launch, no migration), and the action drawer offering only fillers of a still-feasible alternative. Authored for the D93 examples (Brown Bear, Drider, an adult dragon with Frightful Presence, a Recharge creature) with their closed rules deleted.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-11.3"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 2,
                 "size": 5
-              }
+              },
+              "note": "Merged m210 (fea80ba05). Brown Bear, Drider, Adult Red Dragon and Chimera authored; the rest in T4."
             },
             {
               "id": "ATTACK-11.T2",
               "text": "Multiattack auto-sequence in the GM action drawer: what is left, the only possible next attack preselected, the last target kept, GM confirms each attack and can end the Multiattack early.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-11.4"],
               "wsjf": {
                 "bv": 5,
@@ -7239,12 +7265,13 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ATTACK-11.T1"]
-              }
+              },
+              "note": "Merged m212 (8469475ab). Fixed a T1 bug: only a filler that spends the Action fills a slot."
             },
             {
               "id": "ATTACK-11.T3",
               "text": "Creature editor authoring of Multiattack slot sets (alternatives, slots, swaps, conditions), with publication refusing an invalid one.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-11.1"],
               "wsjf": {
                 "bv": 5,
@@ -7252,12 +7279,13 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ATTACK-11.T1"]
-              }
+              },
+              "note": "Merged m213 (08d6aadd5)."
             },
             {
               "id": "ATTACK-11.T4",
               "text": "Author every remaining SRD Multiattack as a slot set, delete the remaining CREATURE_*_MULTIATTACK closed rules and the description-only allowlist entries, and make the stat-block audit refuse a description-only Multiattack. Split by creature family if it exceeds one slice. A conditional Engulf slot is authored now and offered once ATTACK-7.T8 lands.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-11.2"],
               "wsjf": {
                 "bv": 5,
@@ -7265,7 +7293,8 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["ATTACK-11.T1"]
-              }
+              },
+              "note": "Merged m214 (05cce2fef). Contract limits recorded in D93 and future-enhancements."
             }
           ]
         },
@@ -7779,12 +7808,13 @@
             {
               "id": "ATTACK-19.T3",
               "text": "Thrown and Disarm hand transitions (extend the existing held-item transition).",
-              "status": "TODO",
-              "closes": ["ATTACK-19.3"]
+              "status": "DONE",
+              "closes": ["ATTACK-19.3"],
+              "note": "Merged m207 (0c3ac23e2)."
             },
             {
               "id": "ATTACK-19.T4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-19.4"],
               "wsjf": {
                 "bv": 5,
@@ -8642,7 +8672,7 @@
             },
             {
               "id": "SPELLS-4.T2lb",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8651,7 +8681,21 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2l"]
               },
-              "text": "Granted-action offers (D160, split from T2l): a later action offered while an effect is held, which converts EXPEDITIOUS_RETREAT, the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e) and Eyebite’s per-turn retarget, with parity proofs; each fully converted kind deleted."
+              "text": "Granted basic-action offers (D160; split 2026-10-19 into T2lb and T2lb2): a held effect offers its holder an extra restricted action (allowed basic actions with an attack limit, uses per turn) through a generic grantedActions result block. Converts EXPEDITIOUS_RETREAT (kind deleted) and replaces Haste’s extra-action manual adjudication, with parity proofs.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2lb2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2lb"]
+              },
+              "text": "Repeat-source-path offers (D160, split from T2lb): a held effect offers its holder or source a repeat of a source path, using the stored cast context (DC, slot level), a fresh target pick and an already-saved exclusion. Converts the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e) and Eyebite’s per-turn retarget, with parity proofs; the EYEBITE kind is deleted in T2l2."
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -12912,6 +12956,18 @@
               },
               "text": "Generic option: failureMarginRider on direct-save timed conditions (compiler and planner, red-first test), then convert MUMMY_DREADFUL_GLARE and MUMMY_LORD_DREADFUL_GLARE with their SOURCE_IMMUNITY (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (2026-10-18 ruling on the T7a split; workbook slice-spells-33.md).",
               "note": "Merged m160 (5d8288291)."
+            },
+            {
+              "id": "SPELLS-33.T6n",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "text": "new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md)."
             }
           ]
         }

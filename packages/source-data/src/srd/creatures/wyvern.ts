@@ -42,6 +42,28 @@ export const wyvern: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The wyvern makes two attacks: one with its bite and one with its stinger. While flying, it can use its claws in place of one other attack.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(299, 2) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(299, 4) }] }
+            ]
+          },
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(299, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(299, 4) }] }
+            ]
+          },
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(299, 2) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(299, 3) }] }
+            ]
+          }
+        ]
+      },
       order: 1
     },
     {

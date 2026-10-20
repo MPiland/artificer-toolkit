@@ -141,6 +141,8 @@ export interface SceneTokenLight {
 
 export interface SceneToken {
   assetId: string | null
+  /** The assigned Campaign Character this token represents; its controllers move it outside an Encounter (D162). */
+  characterId?: string
   controlledByUserIds: string[]
   height: number
   hidden: boolean

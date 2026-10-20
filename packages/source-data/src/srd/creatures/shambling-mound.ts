@@ -1,6 +1,4 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const shamblingMound: CreatureAuthored = {
   id: S.CREATURE_IDS.SHAMBLING_MOUND,
@@ -79,7 +77,8 @@ export const shamblingMound: CreatureAuthored = {
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              heldBySource: true as const
             }
           },
           paths: [
@@ -87,108 +86,22 @@ export const shamblingMound: CreatureAuthored = {
               id: S.actionId(251, 802),
               order: 1,
               pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(251, 802) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(251, 920),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('BLINDED')
-                  },
-                  {
-                    id: S.actionId(251, 921),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('RESTRAINED')
-                  },
-                  {
-                    id: S.actionId(251, 928),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHAMBLING_MOUND_ENGULF
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.actionId(251, 512),
-          order: 2,
-          invocation: {
-            kind: 'PASSIVE' as const,
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(251, 612),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-              baseDc: 14
-            },
-            range: {
-              id: S.actionId(251, 613),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(251, 812),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(251, 812) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(251, 930),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d8',
-                    bonuses: [
-                      {
-                        id: S.actionId(251, 931),
-                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                        ability: S.ABILITY_CODE.STRENGTH,
-                        order: 1
-                      }
-                    ]
-                  },
-                  {
-                    id: S.actionId(251, 938),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHAMBLING_MOUND_ENGULF
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(251, 813),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
               groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(251, 813) + '__result',
+                id: S.actionId(251, 802) + '__result',
                 resultKind: 'SINGLE' as const,
                 outcomes: [
-                  {
-                    id: S.actionId(251, 948),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHAMBLING_MOUND_ENGULF
-                  }
+                  // Layered on the Slam's grapple: the engulfed target is held by the same source, one at a time.
+                  S.grappledOutcome(251, {
+                    localIndex: 10,
+                    escapeDc: 14,
+                    heldAtOnce: 1,
+                    largestTarget: S.SIZE_CODE.MEDIUM,
+                    omitGrappled: true,
+                    untilEnds: ['BLINDED', 'RESTRAINED']
+                  })
                 ]
               }
             }
@@ -229,12 +142,12 @@ export const shamblingMound: CreatureAuthored = {
               id: S.actionId(4581, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(4581, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(4581, 3),
@@ -243,7 +156,16 @@ export const shamblingMound: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d8+4'
-                  }
+                  },
+                  // "If both attacks hit a Medium or smaller target, the target is grappled": the print's
+                  // rule rides the Slam, gated on the open Attack action (D93).
+                  S.grappledOutcome(251, {
+                    localIndex: 1,
+                    escapeDc: 14,
+                    heldAtOnce: 1,
+                    largestTarget: S.SIZE_CODE.MEDIUM,
+                    appliesWhen: { kind: 'EARLIER_SLOTS_HIT_SAME_TARGET' }
+                  })
                 ]
               }
             }
@@ -257,6 +179,21 @@ export const shamblingMound: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The shambling mound makes two slam attacks. If both attacks hit a Medium or smaller target, the target is grappled (escape DC 14), and the shambling mound uses its Engulf on it.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(251, 4) }] },
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(251, 3) }],
+                optional: true,
+                condition: { kind: 'EARLIER_SLOTS_HIT_SAME_TARGET' }
+              }
+            ]
+          }
+        ]
+      },
       order: 5
     }
   ]

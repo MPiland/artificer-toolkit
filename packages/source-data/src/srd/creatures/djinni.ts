@@ -126,18 +126,11 @@ export const djinni: CreatureAuthored = {
       id: S.featureId(82, 3),
       label: 'Multiattack',
       description: 'Multiattack. The djinni makes three scimitar attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(82, 203),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(82, 1203), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DJINNI_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 3, fillers: [{ kind: 'FEATURE', featureId: S.featureId(82, 4) }] }] }
+        ]
+      },
       order: 3
     },
     {

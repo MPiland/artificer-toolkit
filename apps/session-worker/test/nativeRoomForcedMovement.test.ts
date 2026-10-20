@@ -38,15 +38,20 @@ function pushRoom(
   {
     feet = 10,
     direction = 'AWAY_FROM_SOURCE',
+    distanceMode = 'EXACT',
+    reachFeet,
     rolls = []
   }: {
     feet?: number
+    distanceMode?: 'EXACT' | 'UP_TO'
+    /** The Bite's reach, which an aside move stays within; omitted, it has any range. */
+    reachFeet?: number
     direction?: Parameters<typeof forceOnFailedSave>[1]
     /** The zero-based results the platform's random source serves before it falls back to real ones. */
     rolls?: number[]
   } = {}
 ) {
-  const creature = forceOnFailedSave(biteWolf('SAVE'), direction, feet)
+  const creature = forceOnFailedSave(biteWolf('SAVE', { reachFeet }), direction, feet, distanceMode)
   return actionRoom({
     rolls,
     actors: [
@@ -244,6 +249,85 @@ async function recordedLandings(room: Room) {
   )
   return resolved.at(-1)?.forcedMovementLandings
 }
+
+describe('a forced movement the mover picks, in the room (AC 7.7)', () => {
+  /** The Wolf bites and its target fails the save; the room holds the move for the pick. */
+  async function pickedBite(room: Room) {
+    const { answer } = await room.startAction(NEAR_ID, ['TARGET_RANGE_UNCHECKED'])
+    committed(answer)
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the save prompt.')
+    const { request } = decision.pending
+    committed(
+      await room.resolve(decision, {
+        kind: 'ENTER_DICE',
+        requestId: request.requestId,
+        rawFaces: request.rollMode === 'NORMAL' ? [1] : [1, 1],
+        rollMode: request.rollMode
+      })
+    )
+    const picked = await room.pendingDecision()
+    if (picked.pending.kind !== 'FORCED_MOVEMENT_DESTINATION')
+      throw new Error(`Expected the destination pick, got ${picked.pending.kind}.`)
+    return { decision: picked, pending: picked.pending }
+  }
+  const byPosition = (left: ScenePoint, right: ScenePoint) => left.x - right.x || left.y - right.y
+
+  it('lets the mover pick how far along the straight line an up-to push goes, from none to the most', async () => {
+    const room = await pushRoom([{ id: NEAR_ID, at: NEAR_AT }], {
+      feet: 15,
+      distanceMode: 'UP_TO'
+    })
+    const { decision, pending } = await pickedBite(room)
+
+    expect([...pending.positions].sort(byPosition)).toEqual([
+      NEAR_AT,
+      { x: 350, y: 150 },
+      { x: 450, y: 150 },
+      { x: 550, y: 150 }
+    ])
+    expect(tokenPositions(room)(NEAR_ID)).toEqual(NEAR_AT)
+
+    committed(
+      await room.resolve(decision, {
+        kind: 'FORCED_MOVEMENT',
+        requestId: pending.requestId,
+        position: { x: 450, y: 150 }
+      })
+    )
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 450, y: 150 })
+  })
+
+  it('offers an aside move only the squares within the source’s reach, and a watcher gets no opportunity attack on the pick', async () => {
+    const room = await pushRoom(
+      [
+        { id: NEAR_ID, at: NEAR_AT },
+        { id: WATCHER_ID, at: { x: 350, y: 250 }, creature: reactionWolf }
+      ],
+      { feet: 5, direction: 'ASIDE', reachFeet: 5 }
+    )
+    const { decision, pending } = await pickedBite(room)
+
+    // The Wolf at x 150 reaches 5 feet; the squares 5 feet from the target inside that reach flank it.
+    expect([...pending.positions].sort(byPosition)).toEqual([
+      { x: 150, y: 50 },
+      { x: 150, y: 250 },
+      { x: 250, y: 50 },
+      { x: 250, y: 250 }
+    ])
+
+    committed(
+      await room.resolve(decision, {
+        kind: 'FORCED_MOVEMENT',
+        requestId: pending.requestId,
+        position: { x: 250, y: 50 }
+      })
+    )
+    expect(tokenPositions(room)(NEAR_ID)).toEqual({ x: 250, y: 50 })
+    // The watcher at (350, 250) touches the target's square and not the one it was moved to.
+    expect(await room.room.pending()).toBeNull()
+  })
+})
 
 describe('a random forced movement in the room (SPELLS-33.T6k2a, D159)', () => {
   it('rolls its direction once, moves the target along it and records the ray in the commit', async () => {

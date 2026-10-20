@@ -114,6 +114,12 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
      - The player's roll prompt shows only what their Character believes about sight (D100). The GM
        sees the true reason.
 
+## Amendment (SCENE-5.1, D162)
+
+- The GM can grant other active players control of an assigned Character, stored on the Character's Campaign
+  assignment and derived at read time. The Run actor's own `controllerUserIds` stays per-Run and survives a revoke.
+- The 8-controller cap applies only to the per-Run list; Campaign grants allow up to 32 players.
+
 ## Consequences
 
 - Phase 8.2 core includes the stale-mirror fix, player control, soft enforcement with GM undo/void,

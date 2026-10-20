@@ -11,6 +11,10 @@ import {
   type SceneLiveCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
+  controlsUnboundSceneToken,
+  type CharacterControlAssignment
+} from '@artificer-toolkit/shared/campaign/characterControl'
+import {
   isSceneEntityVisibleToViewer,
   sceneDerivesExploration,
   sceneDoorChangeFailure,
@@ -22,20 +26,23 @@ import type { BoundTokenControl } from './roomAuthorization.js'
 /**
  * Whether a member may drag-preview a token: the GM always; a player never for hidden tokens; an
  * Encounter-bound token follows its bound actor's controllers (the same rule as the Convex commit
- * and the web), and an unbound token its Scene `controlledByUserIds`.
+ * and the web), and an unbound token its Scene `controlledByUserIds` or its Character's controllers (D162).
  */
 export function canPreviewSceneTokenDrag(input: {
   token: CampaignSceneStateDto['tokens'][number]
   role: 'OWNER' | 'PLAYER'
   userId: string
   originBoundTokenControl: BoundTokenControl | null
+  assignments: readonly CharacterControlAssignment[]
 }): boolean {
   const { token } = input
   if (token.locked) return false
   if (input.role === 'OWNER') return true
   if (token.hidden) return false
   const bound = input.originBoundTokenControl?.find((entry) => entry.tokenId === token.id)
-  return bound ? bound.controlled : token.controlledByUserIds.includes(input.userId)
+  return bound
+    ? bound.controlled
+    : controlsUnboundSceneToken(token, input.userId, input.assignments)
 }
 
 /**
@@ -124,6 +131,7 @@ export function planLiveSceneCommand(input: {
   scene: CampaignSceneStateDto
   encounterId: string | null
   actor: { role: 'OWNER' | 'PLAYER'; userId: string }
+  assignments: readonly CharacterControlAssignment[]
 }): SceneCommandPlan {
   const { command, scene, actor } = input
   const staged = isStagedSceneCommand(command, scene, input.encounterId)
@@ -158,7 +166,7 @@ export function planLiveSceneCommand(input: {
   if (
     command.expectedEncounterVersion === null &&
     actor.role !== 'OWNER' &&
-    (!token || !token.controlledByUserIds.includes(actor.userId))
+    (!token || !controlsUnboundSceneToken(token, actor.userId, input.assignments))
   )
     return reject('FORBIDDEN', 'The current user does not control this Scene token.', false)
   const position = command.path.at(-1)!

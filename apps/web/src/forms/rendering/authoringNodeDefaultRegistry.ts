@@ -27,6 +27,11 @@ type AuthoringDefaultKind =
   | 'classSpellSlot'
   | 'classStartingGold'
   | 'contains'
+  | 'attackSlot'
+  | 'attackSlotAlternative'
+  | 'attackSlotCondition'
+  | 'attackSlotFiller'
+  | 'attackSlotSet'
   | 'cost'
   | 'creatureAction'
   | 'creatureCompanionProfile'
@@ -192,6 +197,11 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   creatureMountProfile: ['creatureMountProfile'],
   creatureNpcProfile: ['creatureNpcProfile'],
   creatureQualifiedDamageDefense: ['creatureQualifiedDamageDefense'],
+  attackSlot: ['attackSlot'],
+  attackSlotAlternative: ['attackSlotAlternative'],
+  attackSlotCondition: ['attackSlotCondition'],
+  attackSlotFiller: ['attackSlotFiller'],
+  attackSlotSet: ['attackSlotSet'],
   creatureSense: ['creatureSense'],
   duration: ['duration'],
   durationScalingBreakpoint: ['durationScalingBreakpoint', 'targetCountScalingBreakpoint'],

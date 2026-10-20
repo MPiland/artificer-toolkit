@@ -247,7 +247,7 @@ export async function reconcileCharacterSourceLoss(input: {
       const evaluation = evaluateCharacterRules({
         character: prepared.character,
         context: prepared.context,
-        spellDocumentsById: prepared.context.spellDocumentsById,
+        spellsById: prepared.context.spellsById,
         creaturesById: prepared.context.creaturesById,
         adjustments,
         attunementSlotOverride:

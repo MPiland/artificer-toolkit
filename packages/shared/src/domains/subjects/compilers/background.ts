@@ -4,12 +4,13 @@ import { compileProficiencyGrant, type CompiledProficiencyGrant } from '#compile
 
 export type CompiledBackground = {
   id: string
+  label: string
   proficiencies?: CompiledProficiencyGrant[]
   features?: CompiledFeature[]
   startingEquipment?: StartingEquipmentAuthored
 }
 
-export function compileBackground(authored: BackgroundAuthored) {
+export function compileBackground(authored: BackgroundAuthored): CompiledBackground {
   const proficiencies =
     authored.proficiencies && authored.proficiencies.length
       ? authored.proficiencies.map(compileProficiencyGrant)
@@ -22,6 +23,7 @@ export function compileBackground(authored: BackgroundAuthored) {
 
   return {
     id: authored.id,
+    label: authored.label,
     features,
     proficiencies,
     startingEquipment: authored.startingEquipment

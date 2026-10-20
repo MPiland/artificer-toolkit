@@ -79,11 +79,19 @@ export function isNodeRuntimeSourceColumn(table: NodeRuntimeSourceTable, column:
   return (nodeRuntimeSourceManifest[table] as readonly string[]).includes(column)
 }
 
+/**
+ * The derivation that produced stored source facts. Bump it whenever `authoredSourceFacts` derives
+ * different rows from the same document; an older or absent version is re-derived by the seed
+ * (canonical rows) and `content/sourceMigrations` (all rows), never treated as a conflict.
+ */
+export const AUTHORED_SOURCE_FACTS_VERSION = 1
+
 // Server-derived, checksum-bound option metadata on a cohesive authored root. These
 // source keys adapt the existing resolver, not independent editable SQL-style tables.
 export const authoredNodeRuntimeSourceFactsSchema = lazySchema(() =>
   z.strictObject({
     checksum: projectionChecksumSchema,
+    factsVersion: z.optional(z.number().check(z.int()).check(z.positive())),
     rows: z
       .partialRecord(
         z.enum(Object.keys(nodeRuntimeSourceManifest) as NodeRuntimeSourceTable[]),

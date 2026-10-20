@@ -55,6 +55,11 @@ export const earthElemental: CreatureAuthored = {
       id: S.featureId(94, 3),
       label: 'Multiattack',
       description: 'Multiattack. The elemental makes two slam attacks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(94, 4) }] }] }
+        ]
+      },
       order: 3
     },
     {

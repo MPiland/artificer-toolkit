@@ -49,6 +49,19 @@ export const violetFungus: CreatureAuthored = {
       id: S.featureId(280, 2),
       label: 'Multiattack',
       description: 'Multiattack. The fungus makes 1d4 Rotting Touch attacks.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 4,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(280, 3) }],
+                optional: true
+              }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

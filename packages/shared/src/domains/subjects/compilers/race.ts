@@ -20,11 +20,13 @@ export interface CompiledRaceCharacteristics {
 
 export interface CompiledRaceAncestry {
   id: string
+  label: string
   options: CompiledRaceAncestryOption[]
 }
 
 export interface CompiledRaceAncestryOption {
   id: string
+  label: string
   order: number // int
   features?: CompiledFeature[]
 }
@@ -60,6 +62,7 @@ export type ResolvedRace = ResolvedBaseRace | ResolvedSubrace
 
 export type CompiledRaceBase = {
   id: string
+  label: string
   heritageIds?: string[]
   features?: CompiledFeature[]
 }
@@ -75,6 +78,8 @@ export type CompiledRace = (
   | {
       category: typeof RACE_CATEGORY_CODE.SUBRACE
       parentRaceId: string
+      /** Features inherited from the parent race; they keep RACE provenance. */
+      inheritedFeatureIds?: string[]
       ancestry?: CompiledRaceAncestry
       size: SizeCode
       speeds: SpeedAuthored[]
@@ -149,6 +154,7 @@ export function compileAncestryOption(
 
   return {
     id: authored.id,
+    label: authored.label,
     order: authored.order,
     features
   }
@@ -157,6 +163,7 @@ export function compileAncestryOption(
 export function compileAncestry(authored: RaceAncestryAuthored): CompiledRaceAncestry {
   return {
     id: authored.id,
+    label: authored.label,
     options: authored.options.map((option) => compileAncestryOption(option))
   }
 }
@@ -234,6 +241,7 @@ export function compileRace(authored: ResolvedRace): CompiledRace {
 
   const base: CompiledRaceBase = {
     id: authored.id,
+    label: authored.label,
     heritageIds: authored.heritageIds?.length ? mergeUniqueValues(authored.heritageIds) : undefined,
     features
   }
@@ -259,6 +267,7 @@ export function compileRace(authored: ResolvedRace): CompiledRace {
         ...base,
         category: authored.category,
         parentRaceId: authored.parentRaceId,
+        inheritedFeatureIds: authored.subrace.inherited.features?.map((feature) => feature.id),
         ancestry,
         size: authored.size,
         speeds: authored.speeds

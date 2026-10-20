@@ -7,6 +7,11 @@ import {
   withEncounterRuleUsageUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { club as srdClub } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -28,6 +33,9 @@ const extraAttack = (() => {
   if (!feature) throw new Error('The SRD Fighter has no Extra Attack Feature.')
   return feature
 })()
+
+/** The slots of a Fighter 5's Attack action: two attacks of any kind. */
+const TWO_ATTACKS = [{ slots: [{ count: 2, fillers: [{ kind: 'ANY_ATTACK' as const }] }] }]
 
 /** No Scene measures the Club's reach (D11); every attack acknowledges that. */
 const RANGE: ['TARGET_RANGE_UNCHECKED'] = ['TARGET_RANGE_UNCHECKED']
@@ -104,11 +112,14 @@ describe('a Fighter’s Attack action in the room', () => {
       after: {
         kind: 'ATTACK_ACTION',
         turnSequence: expect.any(Number),
-        total: 2,
+        alternatives: TWO_ATTACKS,
         attacks: [
           {
             actionId: room.actionId,
+            attack: true,
             targetIds: [WOLF_ID],
+            targetSize: expect.any(String),
+            hit: true,
             // The record names the Club it was made with, for the off-hand requirement.
             item: { itemInstanceId: expect.any(String), properties: srdClub.properties }
           }
@@ -121,6 +132,7 @@ describe('a Fighter’s Attack action in the room', () => {
     expect(afterFirst.openAttackAction).toEqual({
       made: 1,
       total: 2,
+      complete: false,
       lastActionId: room.actionId,
       lastTargetIds: [WOLF_ID]
     })
@@ -137,7 +149,7 @@ describe('a Fighter’s Attack action in the room', () => {
     expect(secondOutputs.attackActionTransition).toMatchObject({
       before: { attacks: [{ actionId: room.actionId, item: clubItem }] },
       after: {
-        total: 2,
+        alternatives: TWO_ATTACKS,
         attacks: [
           { actionId: room.actionId, item: clubItem },
           { actionId: room.actionId, item: clubItem }
@@ -172,11 +184,69 @@ describe('a Fighter’s Attack action in the room', () => {
           { actionId: room.actionId, item: clubItem }
         ]
       },
-      after: { total: 2, attacks: [{ actionId: room.actionId, item: clubItem }] }
+      after: { alternatives: TWO_ATTACKS, attacks: [{ actionId: room.actionId, item: clubItem }] }
     })
     await undo(room)
     expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 2, total: 2 })
   })
+})
+
+describe('a Fighter’s contest in place of one attack of its Attack action (ATTACK-7 ACs 7.6, 7.2)', () => {
+  const basicAction = (id: string) => {
+    const definition = SRD_BASIC_ACTION_DEFINITIONS.find((candidate) => candidate.id === id)
+    if (definition?.document.kind !== 'BASIC_ACTION')
+      throw new Error('Missing basic action fixture.')
+    return encounterBasicActionId(FIGHTER_ACTOR_ID, id, definition.document.effects[0]!.id)
+  }
+
+  it.each([
+    { name: 'Shove', actionId: basicAction(SRD_BASIC_ACTION_IDS.SHOVE), pick: 'Knock prone' },
+    { name: 'Grapple', actionId: basicAction(SRD_BASIC_ACTION_IDS.GRAPPLE), pick: null }
+  ])(
+    'fills the first of two attacks with a $name, so the Fighter attacks again without spending another Action',
+    async ({ actionId, pick }) => {
+      const room = await fighterRoom()
+      const choices = await room.actionChoices()
+      const choice = choices.basicActionChoices.find(({ id }) => id === actionId)
+      expect(choice?.attackSlot).toEqual({ number: 1, total: 2 })
+      const options =
+        choice?.target && 'choiceOptions' in choice.target ? choice.target.choiceOptions : []
+      const option = pick ? options?.find(({ label }) => label === pick) : undefined
+      if (pick && !option) throw new Error(`The room offers no ${pick} option.`)
+
+      const { command, answer } = await room.startAction(
+        WOLF_ID,
+        RANGE,
+        null,
+        null,
+        actionId,
+        FIGHTER_ACTOR_ID,
+        option?.id
+      )
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 1, total: 2 })
+      const { receipts } = await readRoomHistory(room.room.base.stub)
+      const contest = receipts.find(
+        (receipt) =>
+          receipt.commandId === command.commandId && receipt.commandType === 'RESOLVE_ACTION'
+      )
+      if (!contest) throw new Error('The contest left no receipt.')
+      expect(parseReceiptExecution(contest)).toMatchObject({
+        status: 'COMPLETE',
+        applicationOutputs: {
+          kind: 'CONTESTED_ACTION',
+          actionEconomyTransition: { beforeUsed: 0, afterUsed: 1 },
+          attackActionTransition: { before: null, after: { kind: 'ATTACK_ACTION' } }
+        }
+      })
+
+      // The Club attack takes the second slot of the same Attack action: no Action, no warning.
+      const second = await attack(room)
+      expect(second.answer.type, JSON.stringify(second.answer)).toBe('COMMAND_COMMITTED')
+      expect((await settledAttack(room, second.commandId)).actionEconomyTransition).toBeNull()
+      expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 2, total: 2 })
+    }
+  )
 })
 
 describe('an incapacitated Fighter finishing its Attack action in the room', () => {
@@ -196,8 +266,8 @@ describe('an incapacitated Fighter finishing its Attack action in the room', () 
       resources: withEncounterAttackActionState(spent, {
         kind: 'ATTACK_ACTION',
         turnSequence: 1,
-        total: 2,
-        attacks: [{ actionId: testUuid(0xd10), targetIds: [WOLF_ID] }]
+        alternatives: TWO_ATTACKS,
+        attacks: [{ actionId: testUuid(0xd10), attack: true, targetIds: [WOLF_ID] }]
       })
     })
     const room = await actionRoom({
@@ -228,7 +298,7 @@ describe('an incapacitated Fighter finishing its Attack action in the room', () 
     expect(outputs.actionEconomyTransition).toBeNull()
     expect(outputs.attackActionTransition).toMatchObject({
       before: { attacks: [{}] },
-      after: { total: 2, attacks: [{}, { actionId: room.actionId }] }
+      after: { alternatives: TWO_ATTACKS, attacks: [{}, { actionId: room.actionId }] }
     })
   })
 })

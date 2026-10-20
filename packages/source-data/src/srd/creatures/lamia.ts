@@ -116,19 +116,22 @@ export const lamia: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The lamia makes two attacks: one with its claws and one with its dagger or Intoxicating Touch.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(181, 501),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(181, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LAMIA_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(181, 3) }] },
+              {
+                count: 1,
+                fillers: [
+                  { kind: 'FEATURE', featureId: S.featureId(181, 4) },
+                  { kind: 'FEATURE', featureId: S.featureId(181, 5) }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

@@ -81,18 +81,16 @@ export const boneDevil: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The devil makes three attacks: two with its claws and one with its sting.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(52, 103),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(52, 104), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(52, 5) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(52, 6) }] }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

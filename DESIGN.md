@@ -313,6 +313,7 @@ Web shapes come from the shared radius scale. Native implementations map the sam
 - **Style:** Motion should be brief and stateful: reveal a next section, confirm a save, open a drawer, or acknowledge progress.
 - **Timing:** Most transitions stay in the `150ms-250ms` range with ease-out curves.
 - **Constraint:** No decorative page-load choreography. Users are here to create and play.
+- **Roll mode change:** A roll card whose mode changed at commit plays once when it arrives, for everyone who sees it: the ✕ draws left to right over the cancelled die in `200ms` ease-out, then the added die drops in and settles in `250ms` ease-out, `520ms` in all. It does not replay when the card is opened again. With reduced motion on, the card shows the settled result at once, with the ✕ and the added die in place.
 
 ### Authoring Workspace
 

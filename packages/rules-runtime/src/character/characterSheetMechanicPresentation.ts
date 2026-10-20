@@ -1,4 +1,5 @@
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import type { CharacterRuleActionPresentationReferences } from './characterRuleActionProjection.js'
 
 interface CharacterSheetMechanicOwner {
@@ -10,7 +11,6 @@ interface CharacterSheetMechanicOwner {
 
 interface FeaturePresentationSource {
   attributes?: readonly string[]
-  description?: string
   id: string
   label: string
   options?: readonly FeaturePresentationSource[]
@@ -27,7 +27,8 @@ interface CharacterSheetMechanicPresentationSources {
 }
 
 export function createCharacterSheetMechanicPresentationSources(
-  resolution: CharacterBuilderResolution
+  resolution: CharacterBuilderResolution,
+  presentation: CharacterPresentationLookup
 ): CharacterSheetMechanicPresentationSources {
   const ownersByKey = new Map<string, CharacterSheetMechanicOwner>()
   const hiddenOwnerKeys = new Set<string>()
@@ -45,12 +46,13 @@ export function createCharacterSheetMechanicPresentationSources(
   }
   const addFeatures = (features: readonly FeaturePresentationSource[] | undefined) => {
     for (const feature of features ?? []) {
+      const prose = presentation.features[feature.id]
       addOwner(
         {
           kind: 'FEATURE',
           id: feature.id,
           label: feature.label,
-          description: feature.description
+          description: prose?.description
         },
         feature.attributes
       )
@@ -60,7 +62,7 @@ export function createCharacterSheetMechanicPresentationSources(
             kind: 'FEATURE_OPTION',
             id: option.id,
             label: option.label,
-            description: option.description
+            description: prose?.options?.find(({ id }) => id === option.id)?.description
           },
           option.attributes
         )
@@ -76,7 +78,12 @@ export function createCharacterSheetMechanicPresentationSources(
   for (const classRecord of resolution.registry.classes) addFeatures(classRecord.features)
   for (const background of resolution.registry.backgrounds) addFeatures(background.features)
   for (const feat of resolution.registry.feats ?? []) {
-    addOwner({ kind: 'FEAT', id: feat.id, label: feat.label, description: feat.description })
+    addOwner({
+      kind: 'FEAT',
+      id: feat.id,
+      label: feat.label,
+      description: presentation.feats[feat.id]?.description
+    })
     addFeatures(feat.features)
   }
   for (const equipment of resolution.registry.equipment) {
@@ -85,7 +92,7 @@ export function createCharacterSheetMechanicPresentationSources(
         kind: 'EQUIPMENT',
         id: equipment.id,
         label: equipment.label,
-        description: equipment.description
+        description: presentation.equipment[equipment.id]?.description
       },
       equipment.attributes
     )

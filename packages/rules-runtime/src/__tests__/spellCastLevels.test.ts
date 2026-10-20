@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 
 import { buildCharacterSpellActionRuleFacts } from '../character/characterSpellActionRuleFacts.js'
@@ -21,7 +22,7 @@ const srdSpell = (label: string): SpellAuthored => {
 function readsCastLevel(spell: SpellAuthored): boolean {
   const [facts] = buildCharacterSpellActionRuleFacts({
     spellIds: [spell.id],
-    spells: [spell]
+    spells: [compileSpell(spell)]
   }).spellActionFacts
   return facts!.readsCastLevel
 }

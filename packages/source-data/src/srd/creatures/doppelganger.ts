@@ -68,6 +68,11 @@ export const doppelganger: CreatureAuthored = {
       id: S.featureId(83, 4),
       label: 'Multiattack',
       description: 'Multiattack. The doppelganger makes two melee attacks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(83, 5) }] }] }
+        ]
+      },
       order: 4
     },
     {
