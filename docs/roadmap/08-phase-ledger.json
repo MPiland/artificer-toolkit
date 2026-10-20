@@ -1286,7 +1286,7 @@
           "tasks": [
             {
               "id": "PLATFORM-21.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-21.1", "PLATFORM-21.2"],
               "text": "Hydrate the character engine and room registries from the stored compiled projection; remove runtime recompilation; projection version and migration; measure evaluation cost before and after.",
               "wsjf": {
@@ -7701,9 +7701,9 @@
             {
               "id": "ATTACK-19.T3",
               "text": "Thrown and Disarm hand transitions (extend the existing held-item transition).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-19.3"],
-              "activeWorkbook": "docs/handoffs/slice-attack-19.md"
+              "note": "Merged m207 (0c3ac23e2)."
             },
             {
               "id": "ATTACK-19.T4",
