@@ -3,6 +3,7 @@ import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encount
 import { grantedActionId } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import {
   characterActor,
+  creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -18,6 +19,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
@@ -88,15 +90,24 @@ async function takeDash(room: Room, actionId: string, actorId: string) {
 }
 
 describe('room Haste’s additional action (SPELLS-4.T2lb)', () => {
+  /** The acting Wolf holds the real planned Haste its hostile neighbour cast. */
   async function hastedAlly() {
-    const room = await spellRoom(haste)
-    const cast = await room.startAction(ALLY_ID, RANGE)
-    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
-    const [held] = (await readRoomHistory(room.room.base.stub)).activeEffects.filter(
-      ({ targetActorId }) => targetActorId === ALLY_ID
-    )
+    const wolf = biteWolf('ATTACK')
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: ALLY_ID, creature: wolf, disposition: 'FRIENDLY' }),
+        srdCreatureActor({ id: WOLF_ID, creature: wolf })
+      ],
+      ownerFeatureId: creatureFeature(wolf, 'Bite').id,
+      seed: seedModifierGrant({
+        sourceActorId: WOLF_ID,
+        holderActorId: ALLY_ID,
+        lifecycle: {},
+        effect: haste.effects?.[0]
+      })
+    })
+    const [held] = (await readRoomHistory(room.room.base.stub)).activeEffects
     if (!held) throw new Error('The ally holds no Haste.')
-    await room.advanceTurn()
     return { room, hasteId: held.id }
   }
 
