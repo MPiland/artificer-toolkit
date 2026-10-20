@@ -308,10 +308,19 @@ export function actsAgainstEnemy(input: {
   )
 }
 
+/** Each creature's effects that last until it moves (`ON_MOVE`), which a voluntary move ends. */
+export function moveEndHolds(
+  targets: Iterable<{ actor: { id: string }; activeEffects: readonly ActiveRuleEffectRecord[] }>
+) {
+  return [...targets].flatMap(({ actor, activeEffects }) =>
+    effectsEndedBy(activeEffects, 'ON_MOVE').map(({ id }) => ({ actorId: actor.id, effectId: id }))
+  )
+}
+
 /**
- * What an action ends on its holder: the effects that last until an attack roll or a spell cast, and
- * those that end when it is aimed at an enemy (Sanctuary), with the conditions only they held. An
- * action that is neither ends nothing.
+ * What an action ends on its holder: the effects that last until its holder takes any action, bonus
+ * action or reaction, until an attack roll or a spell cast, and those that end when it is aimed at an
+ * enemy (Sanctuary), with the conditions only they held.
  */
 export function actionEndedEffects(input: {
   holderActorId: string
@@ -324,6 +333,7 @@ export function actionEndedEffects(input: {
   const ended = new Set(
     effectsEndedBy(
       input.held,
+      'ON_TAKE_ACTION',
       ...(input.makesAttackRoll ? (['ON_ATTACK_ROLL'] as const) : []),
       ...(input.castsSpell ? (['ON_CAST_SPELL'] as const) : [])
     ).map(({ id }) => id)
