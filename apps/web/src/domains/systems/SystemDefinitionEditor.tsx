@@ -11,7 +11,7 @@ import {
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMutation as useConvexMutation } from 'convex/react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { reusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { getSystemDefinition } from '#app/data/systems/queries'
@@ -35,9 +35,7 @@ export function SystemDefinitionEditor({ definitionId }: { definitionId: string 
 
   // Subscription updates must not replace local edits or advance their version
   // preconditions. A newly selected definition mounts a fresh keyed editor.
-  useEffect(() => {
-    if (!editor && workspace.data) setEditor(createDefinitionEditorState(workspace.data))
-  }, [editor, workspace.data])
+  if (!editor && workspace.data) setEditor(createDefinitionEditorState(workspace.data))
 
   const save = useMutation({
     mutationFn: async () => {

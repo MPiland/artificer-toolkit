@@ -304,11 +304,16 @@ export default function DiceCanvas({
         ? 1024
         : 512
 
+  const [seenRollId, setSeenRollId] = useState(roll?.id)
+  if (seenRollId !== roll?.id) {
+    setSeenRollId(roll?.id)
+    setStageIndex(0)
+    setSettledRollId(undefined)
+  }
+
   useEffect(() => {
     activeRollId.current = roll?.id
     settledDice.current.clear()
-    setStageIndex(0)
-    setSettledRollId(undefined)
   }, [roll?.id])
 
   const handleDieSettled = useCallback(

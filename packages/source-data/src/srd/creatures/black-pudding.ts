@@ -197,8 +197,12 @@ export const blackPudding: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(5665, 5),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.BLACK_PUDDING_DISSOLVING_PSEUDOPOD
+                    effectKind: S.EFFECT_KIND.DEGRADE_EQUIPMENT,
+                    category: 'ARMOR' as const,
+                    nonmagical: true,
+                    materials: [],
+                    step: 1,
+                    destroyWhen: { kind: 'ARMOR_CLASS_OFFERED_AT_MOST' as const, value: 10 }
                   }
                 ]
               }

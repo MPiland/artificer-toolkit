@@ -15,7 +15,7 @@ import {
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation as useConvexMutation } from 'convex/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { getSystemDefinition, getSystemDefinitions } from '#app/data/systems/queries'
@@ -40,9 +40,7 @@ export function SystemDefinitionWorkspace({
   const [description, setDescription] = useState('')
   const [familyKey, setFamilyKey] = useState(definitionFamilyKeys[0] ?? '')
 
-  useEffect(() => {
-    if (!selectedId && definitions.data?.page[0]) setSelectedId(definitions.data.page[0].id)
-  }, [definitions.data, selectedId])
+  if (!selectedId && definitions.data?.page[0]) setSelectedId(definitions.data.page[0].id)
 
   const create = useMutation({
     mutationFn: () =>

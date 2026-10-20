@@ -8,7 +8,8 @@ import type {
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { usePaginatedQuery as useCandidatePaginatedQuery } from 'convex-helpers/react'
 import { useMutation as useConvexMutation } from 'convex/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useLoadAllPages } from '#app/data/useLoadAllPages'
 import { Trash2 } from 'lucide-react'
 import * as sharedStyles from '../campaigns.css'
 import * as inventoryStyles from './inventory.css'
@@ -76,12 +77,8 @@ export function CampaignPartyInventoryActions({
   const [currencyAmountToAdd, setCurrencyAmountToAdd] = useState(1)
   const [currencyError, setCurrencyError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (equipment.status === 'CanLoadMore') equipment.loadMore(48)
-  }, [equipment.loadMore, equipment.status])
-  useEffect(() => {
-    if (sharedEquipment.status === 'CanLoadMore') sharedEquipment.loadMore(48)
-  }, [sharedEquipment.loadMore, sharedEquipment.status])
+  useLoadAllPages(equipment, 48)
+  useLoadAllPages(sharedEquipment, 48)
 
   const mutation = useMutation({
     mutationFn: (input: CampaignPartyInventoryMutationInput) => mutatePartyInventory({ input })
@@ -316,8 +313,12 @@ function PartyItemActions({
   onMutate: (input: PartyInventoryCommand) => void
 }) {
   const [quantity, setQuantity] = useState(item.quantity)
+  const [shownQuantity, setShownQuantity] = useState(item.quantity)
   const [confirmRemoval, setConfirmRemoval] = useState(false)
-  useEffect(() => setQuantity(item.quantity), [item.quantity])
+  if (shownQuantity !== item.quantity) {
+    setShownQuantity(item.quantity)
+    setQuantity(item.quantity)
+  }
 
   return (
     <>

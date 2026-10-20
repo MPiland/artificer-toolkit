@@ -669,6 +669,7 @@ export function buildCharacterActionRuleFacts(params: {
       attuned: item.attuned,
       requiresAttunement: folded.requiresAttunement,
       consumedOnUse: item.compiledItem.attributes?.includes('CONSUMED_ON_USE') ?? false,
+      ...(item.degradation === undefined ? {} : { degradation: item.degradation }),
       ...ammunitionState(item.compiledItem.ammunitionEquipmentId, snapshot.equipmentItems),
       otherWeaponEquipped: snapshot.equipmentItems.some(
         (other) =>

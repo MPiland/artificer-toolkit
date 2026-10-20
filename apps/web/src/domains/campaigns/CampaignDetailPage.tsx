@@ -1,5 +1,5 @@
 import { Alert, Badge, Group, Loader, Select, Stack, Tabs, Title } from '@mantine/core'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useCampaignDetailOrNull } from '#app/data/campaigns/queries'
 import { getCampaignTabs, type CampaignTab } from './campaignAccess'
@@ -16,6 +16,24 @@ import { CampaignAnnouncements } from './components/CampaignAnnouncements/Campai
 import { CampaignTableSettings } from './components/CampaignTableSettings/CampaignTableSettings'
 import { CampaignVehicles } from './components/CampaignVehicles/CampaignVehicles'
 import * as sharedStyles from './campaigns.css'
+
+function subscribeToNothing() {
+  return () => undefined
+}
+
+function readLocationSearch() {
+  return window.location.search
+}
+
+function readDeepLink(locationSearch: string) {
+  const search = new URLSearchParams(locationSearch)
+
+  return {
+    announcementPublicId: search.get('announcementPublicId'),
+    assignCharacter: search.get('action') === 'assign-character',
+    requestedTab: search.get('tab')
+  }
+}
 
 const tabLabels: Record<CampaignTab, string> = {
   sessions: 'Sessions',
@@ -52,21 +70,26 @@ export function CampaignDetailPage({
       })
   }, [campaign, campaignId, navigate])
 
-  useEffect(() => {
-    const search = new URLSearchParams(window.location.search)
-    const requestedTab = search.get('tab')
-    const announcementPublicId = search.get('announcementPublicId')
-    if (requestedTab && tabs.includes(requestedTab as CampaignTab))
-      setActiveTab(requestedTab as CampaignTab)
-    if (announcementPublicId) {
-      setRequestedAnnouncementId(announcementPublicId)
+  const locationSearch = useSyncExternalStore(subscribeToNothing, readLocationSearch, () => '')
+  const [appliedSearch, setAppliedSearch] = useState('')
+  const deepLink = readDeepLink(locationSearch)
+  if (appliedSearch !== locationSearch) {
+    setAppliedSearch(locationSearch)
+    if (deepLink.requestedTab && tabs.includes(deepLink.requestedTab as CampaignTab))
+      setActiveTab(deepLink.requestedTab as CampaignTab)
+    if (deepLink.announcementPublicId) {
+      setRequestedAnnouncementId(deepLink.announcementPublicId)
       if (tabs.includes('announcements')) setActiveTab('announcements')
     }
-    if (search.get('action') === 'assign-character') setOpenCharacterPicker(true)
-    if (!requestedTab && !announcementPublicId && search.get('action') !== 'assign-character')
-      return
-    window.history.replaceState({}, '', window.location.pathname)
-  }, [tabs])
+    if (deepLink.assignCharacter) setOpenCharacterPicker(true)
+  }
+  const hasDeepLink = Boolean(
+    deepLink.requestedTab || deepLink.announcementPublicId || deepLink.assignCharacter
+  )
+
+  useEffect(() => {
+    if (hasDeepLink) window.history.replaceState({}, '', window.location.pathname)
+  }, [hasDeepLink])
 
   if (!campaign) return <Loader aria-label='Returning to Campaigns' />
 

@@ -87,6 +87,7 @@ const characterPlay = (): RoomDocument => ({
       attuned: [],
       resourceUsage: [],
       itemUsage: [],
+      itemDegradation: [],
       partyVisibility: { sheet: false, health: 'HIDDEN' }
     },
     checksum: sha256Hex('play'),
@@ -755,6 +756,7 @@ describe('room checkpoint records', () => {
       attuned: [],
       resourceUsage: [],
       itemUsage: [],
+      itemDegradation: [],
       partyVisibility: { sheet: false, health: 'HIDDEN' }
     }
     const result = build([document], [[patch(document.id, { streamVersion: 9, state })]])
@@ -973,6 +975,7 @@ describe('room checkpoint records', () => {
         attuned: [],
         resourceUsage: [],
         itemUsage: [],
+        itemDegradation: [],
         partyVisibility: { sheet: false, health: 'HIDDEN' as const }
       }
       await room.transact(async (transaction) => {

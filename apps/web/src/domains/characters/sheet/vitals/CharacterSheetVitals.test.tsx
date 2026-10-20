@@ -262,4 +262,43 @@ describe('Character Sheet vitals', () => {
     expect(screen.getByRole('button', { name: /^damage$/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /^heal$/i })).toBeDisabled()
   })
+
+  it('keeps in-progress HP edits until the overlay epoch changes', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+
+    const { rerender } = renderWithAppProviders(
+      <CharacterSheetOverviewVitals
+        overlayEpoch={0}
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await openHpControls(user)
+    await user.clear(screen.getByLabelText(/temp hp/i))
+    await user.type(screen.getByLabelText(/temp hp/i), '9')
+
+    rerender(
+      <CharacterSheetOverviewVitals
+        overlayEpoch={0}
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+    expect(screen.getByLabelText(/temp hp/i)).toHaveValue('9')
+
+    rerender(
+      <CharacterSheetOverviewVitals
+        overlayEpoch={1}
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+    await waitFor(() => expect(screen.queryByLabelText(/temp hp/i)).not.toBeInTheDocument())
+  })
 })

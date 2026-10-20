@@ -16,7 +16,6 @@ export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   Record<string, SrdCreatureAttackUnsupportedReason>
 > = {
   // OUTCOME_KIND
-  '00000000-0002-0001-0070-162100000000': 'OUTCOME_KIND', // Black Pudding: Dissolving Pseudopod
   '00000000-0002-0069-0070-003d00000000': 'OUTCOME_KIND', // Chain Devil: Chain
   '00000000-0002-0001-0070-007500000000': 'OUTCOME_KIND', // Giant Centipede: Bite
   '00000000-0002-01f9-0070-00b400000000': 'OUTCOME_KIND', // Kraken: Bite

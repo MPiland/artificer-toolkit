@@ -990,6 +990,14 @@ function buildItemPanel(
     ...(item.armorClass !== undefined
       ? [{ label: 'Armor class', value: String(item.armorClass) }]
       : []),
+    ...(item.degradation !== undefined
+      ? [
+          {
+            label: 'Corrosion',
+            value: `-${item.degradation} ${item.armorClass !== undefined ? 'armor class' : 'damage rolls'}`
+          }
+        ]
+      : []),
     ...(item.properties?.length
       ? [
           {

@@ -107,6 +107,8 @@ type CharacterInverse = {
   /** The weapon this action's attack drew or threw (D107); undo takes a drawn one back to carried and a thrown one back to its hand. */
   drawn: Extract<ActionBatch['sourceItemDraw'], { kind: 'CHARACTER_ITEM_DRAW' }> | null
   item: ActionBatch['sourceItemConsumption']
+  /** The worn item the action corroded; undo restores its penalty and, if destroyed, its use. */
+  degradation: Extract<ActionBatch, { kind: 'CHARACTER_MECHANICS_BATCH' }>['targetItemDegradation']
   /** Slot spends in the order they committed; one batch can carry several (the cast, then its counter). */
   spells: NonNullable<ActionBatch['spellCastConsumption']>[]
   expectedStreamVersion: number
@@ -351,6 +353,7 @@ export async function revertLastEncounterAction(
           unequipped: null,
           drawn: null,
           item: null,
+          degradation: null,
           spells: [],
           expectedStreamVersion: streamVersion
         }
@@ -509,6 +512,7 @@ export async function revertLastEncounterAction(
           if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
           if (action.targetItemUseStateTransition)
             inverse.unequipped = action.targetItemUseStateTransition
+          inverse.degradation = action.targetItemDegradation
         }
       } else {
         if (target.kind === 'CHARACTER')
@@ -1081,6 +1085,7 @@ async function revertCheckAction(
         unequipped: null,
         drawn: null,
         item: null,
+        degradation: null,
         spells: [],
         expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
       },
@@ -1388,6 +1393,35 @@ async function restoreCharacter(
         ...base.itemUsage.filter((usage) => usage.itemInstanceId !== item.itemInstanceId),
         ...(item.beforeUsed > 0
           ? [{ itemInstanceId: item.itemInstanceId, used: item.beforeUsed }]
+          : [])
+      ]
+    }
+  }
+  const degradation = inverse.degradation
+  if (degradation) {
+    const base = restoredSheetState ?? sheetState
+    const usedNow =
+      base.itemUsage.find((usage) => usage.itemInstanceId === degradation.itemInstanceId)?.used ?? 0
+    if (
+      base.itemDegradation.find((entry) => entry.itemInstanceId === degradation.itemInstanceId)
+        ?.penalty !== degradation.afterPenalty ||
+      usedNow !== degradation.afterUsed
+    )
+      unavailable(`${row.label}'s items changed after this action; adjust manually.`)
+    restoredSheetState = {
+      ...base,
+      itemDegradation: [
+        ...base.itemDegradation.filter(
+          (entry) => entry.itemInstanceId !== degradation.itemInstanceId
+        ),
+        ...(degradation.beforePenalty > 0
+          ? [{ itemInstanceId: degradation.itemInstanceId, penalty: degradation.beforePenalty }]
+          : [])
+      ],
+      itemUsage: [
+        ...base.itemUsage.filter((usage) => usage.itemInstanceId !== degradation.itemInstanceId),
+        ...(degradation.beforeUsed > 0
+          ? [{ itemInstanceId: degradation.itemInstanceId, used: degradation.beforeUsed }]
           : [])
       ]
     }

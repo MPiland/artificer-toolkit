@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react'
-import { useState, type ComponentProps } from 'react'
+import { useCallback, useRef, useState, type ComponentProps } from 'react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type {
@@ -13,6 +13,7 @@ import type {
 import {
   encounterActionChoiceDtoSchema,
   encounterActionChoicesDtoSchema,
+  encounterOptionalActionChoicesDtoSchema,
   type EncounterActionChoiceDto,
   type EncounterActionChoicesDto,
   type EncounterEscapeChoiceDto
@@ -78,21 +79,29 @@ const resolved: EncounterCommandResultDto = {
 }
 
 /** The stage owns the picked target, so the drawer is rendered under a holder of it. */
-function TargetedDrawer(
-  props: Omit<
-    ComponentProps<typeof CampaignTabletopActionDrawer>,
-    'onPickTargetOnMap' | 'onTargetPick' | 'pickedTargetActorId'
-  >
-) {
+function TargetedDrawer({
+  onTargetPickSpy,
+  ...props
+}: Omit<
+  ComponentProps<typeof CampaignTabletopActionDrawer>,
+  'onPickTargetOnMap' | 'onTargetPick' | 'pickedTargetActorId'
+> & { onTargetPickSpy?: (actorId: string | null | undefined) => void }) {
   const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
     undefined
   )
+  // Stable, as the stage's own setter is: the drawer re-runs its reset effect on a new identity.
+  const spy = useRef(onTargetPickSpy)
+  spy.current = onTargetPickSpy
+  const pickTarget = useCallback((actorId: string | null | undefined) => {
+    spy.current?.(actorId)
+    setPickedTargetActorId(actorId)
+  }, [])
   return (
     <CampaignTabletopActionDrawer
       {...props}
       pickedTargetActorId={pickedTargetActorId}
       onPickTargetOnMap={vi.fn()}
-      onTargetPick={setPickedTargetActorId}
+      onTargetPick={pickTarget}
     />
   )
 }
@@ -121,7 +130,11 @@ function drawerElement(
     onAreaSizeChange = vi.fn(),
     onActionPreviewChange = vi.fn(),
     actorIdByTokenId = new Map(),
-    onPickAreaOrigin = vi.fn()
+    onPickAreaOrigin = vi.fn(),
+    opened = true,
+    optionalRules = [],
+    onLoadOptionalChoices = vi.fn(),
+    onTargetPickSpy
   }: {
     choices?: EncounterActionChoiceDto[]
     unavailableActions?: EncounterActionChoicesDto['unavailableActions']
@@ -146,6 +159,12 @@ function drawerElement(
     onActionPreviewChange?: (preview: VttActionPreview | null) => void
     actorIdByTokenId?: ReadonlyMap<string, string>
     onPickAreaOrigin?: () => void
+    opened?: boolean
+    optionalRules?: EncounterActionChoicesDto['optionalRules']
+    onLoadOptionalChoices?: ComponentProps<
+      typeof CampaignTabletopActionDrawer
+    >['onLoadOptionalChoices']
+    onTargetPickSpy?: (actorId: string | null | undefined) => void
   } = {}
 ) {
   return (
@@ -163,8 +182,9 @@ function drawerElement(
       connected
       encounter={encounter}
       isGm={isGm}
-      opened
-      optionalRules={[]}
+      opened={opened}
+      optionalRules={optionalRules}
+      onTargetPickSpy={onTargetPickSpy}
       pending={false}
       unavailableActions={unavailableActions}
       scene={scene}
@@ -175,7 +195,7 @@ function drawerElement(
       onActionPreviewChange={onActionPreviewChange}
       onPickAreaOrigin={onPickAreaOrigin}
       onClose={vi.fn()}
-      onLoadOptionalChoices={vi.fn()}
+      onLoadOptionalChoices={onLoadOptionalChoices}
       onLoadItemChoices={vi.fn()}
       onOpen={vi.fn()}
       onResolve={async (command) => {
@@ -1550,6 +1570,19 @@ describe('CampaignTabletopActionDrawer chosen creatures (SPELLS-8, D118)', () =>
     )
   })
 
+  it('forgets the creatures chosen for one action when another action is selected', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), { choices: [healingWord, passWithoutTrace] })
+
+    await chooseTargets(user)
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeEnabled()
+
+    await user.click(screen.getByRole('combobox', { name: 'Action' }))
+    await user.click(screen.getByRole('option', { name: /Pass without Trace/ }))
+    expect(screen.getByRole('combobox', { name: 'Targets' })).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+  })
+
   it('shows no cap for a list that names each chosen creature once (SPELLS-4.T2a3)', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
@@ -2048,5 +2081,254 @@ describe('CampaignTabletopActionDrawer range and target preview (VTT_UI-3.1)', (
     await chooseAction(user, 'Longbow')
     view.unmount()
     expect(onActionPreviewChange).toHaveBeenLastCalledWith(null)
+  })
+})
+
+const optionalRule = { definitionId: '00000000-0000-4000-8000-0000000000c1', label: 'Flanking' }
+const optionalChoicesFor = validated(encounterOptionalActionChoicesDtoSchema)
+const optionalChoicesNamed = (fieldLabel: string) =>
+  optionalChoicesFor({
+    definitionId: optionalRule.definitionId,
+    optionId: 'a'.repeat(64),
+    selectionContract: 'b'.repeat(64),
+    label: optionalRule.label,
+    fields: [
+      {
+        fieldId: 'c'.repeat(64),
+        kind: 'ENTITY',
+        label: fieldLabel,
+        options: [{ id: '00000000-0000-4000-8000-0000000000d1', label: 'Ally' }]
+      }
+    ]
+  })
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+type OptionalChoices = ReturnType<typeof optionalChoicesNamed>
+type OptionalLoader = ComponentProps<typeof CampaignTabletopActionDrawer>['onLoadOptionalChoices']
+
+describe('CampaignTabletopActionDrawer optional rule choices', () => {
+  const resolveButton = () => screen.getByRole('button', { name: 'Resolve action' })
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  async function pickActionTargetAndRule(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('combobox', { name: 'Optional rule' }))
+    await user.click(screen.getByRole('option', { name: optionalRule.label }))
+  }
+
+  const withLoader = (onLoadOptionalChoices: OptionalLoader, encounterVersion = 12) => ({
+    optionalRules: [optionalRule],
+    onLoadOptionalChoices,
+    encounter: { ...tabletopGmEncounter, version: encounterVersion }
+  })
+
+  it('holds resolving while the choices load, then sends the selections once they are chosen', async () => {
+    const user = userEvent.setup()
+    const loading = deferred<OptionalChoices>()
+    const onLoadOptionalChoices = vi.fn(() => loading.promise)
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, withLoader(onLoadOptionalChoices))
+    await pickActionTargetAndRule(user)
+
+    await waitFor(() => expect(onLoadOptionalChoices).toHaveBeenCalledTimes(1))
+    expect(resolveButton()).toBeDisabled()
+    expect(screen.queryByRole('combobox', { name: 'Chosen ally' })).not.toBeInTheDocument()
+
+    loading.resolve(optionalChoicesNamed('Chosen ally'))
+    const field = await screen.findByRole('combobox', { name: 'Chosen ally' })
+    expect(resolveButton()).toBeDisabled()
+    await user.click(field)
+    await user.click(screen.getByRole('option', { name: 'Ally' }))
+    expect(resolveButton()).toBeEnabled()
+    await user.click(resolveButton())
+
+    expect(onResolve.mock.calls[0]![0]).toMatchObject({
+      optionalCombatIntent: {
+        definitionId: optionalRule.definitionId,
+        selections: [
+          { value: { kind: 'ENTITY', entityId: '00000000-0000-4000-8000-0000000000d1' } }
+        ]
+      }
+    })
+  })
+
+  it('does not stay held once the optional rule is cleared while its choices are loading', async () => {
+    const user = userEvent.setup()
+    const onLoadOptionalChoices = vi.fn(() => new Promise<OptionalChoices>(() => {}))
+    renderDrawer(vi.fn(), withLoader(onLoadOptionalChoices))
+    await pickActionTargetAndRule(user)
+    expect(resolveButton()).toBeDisabled()
+
+    await user.click(screen.getByRole('combobox', { name: 'Optional rule' }))
+    await user.click(screen.getByRole('option', { name: optionalRule.label }))
+    await waitFor(() => expect(resolveButton()).toBeEnabled())
+  })
+
+  it('shows the failure and keeps resolving blocked when the choices cannot load', async () => {
+    const user = userEvent.setup()
+    const onLoadOptionalChoices = vi.fn().mockRejectedValue(new Error('Choices are unavailable.'))
+    renderDrawer(vi.fn(), withLoader(onLoadOptionalChoices))
+    await pickActionTargetAndRule(user)
+
+    expect(await screen.findByText('Choices are unavailable.')).toBeVisible()
+    expect(resolveButton()).toBeDisabled()
+  })
+
+  it('replaces a failure with the choices when the same request loads again, and the reverse', async () => {
+    const user = userEvent.setup()
+    const failing = vi.fn().mockRejectedValue(new Error('Choices are unavailable.'))
+    const options = withLoader(failing)
+    const view = renderDrawer(vi.fn(), options)
+    await pickActionTargetAndRule(user)
+    expect(await screen.findByText('Choices are unavailable.')).toBeVisible()
+
+    // A new loader function re-runs the effect for the very same request identity.
+    const succeeding = vi.fn().mockResolvedValue(optionalChoicesNamed('Chosen ally'))
+    view.rerender(drawerElement(vi.fn(), { ...options, onLoadOptionalChoices: succeeding }))
+    expect(await screen.findByRole('combobox', { name: 'Chosen ally' })).toBeVisible()
+    expect(screen.queryByText('Choices are unavailable.')).not.toBeInTheDocument()
+
+    const failingAgain = vi.fn().mockRejectedValue(new Error('Choices are unavailable again.'))
+    view.rerender(drawerElement(vi.fn(), { ...options, onLoadOptionalChoices: failingAgain }))
+    expect(await screen.findByText('Choices are unavailable again.')).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Chosen ally' })).not.toBeInTheDocument()
+  })
+
+  it('ignores a failure that arrives late for a request that was superseded', async () => {
+    const user = userEvent.setup()
+    const first = deferred<OptionalChoices>()
+    const onLoadOptionalChoices = vi
+      .fn<NonNullable<OptionalLoader>>()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue(optionalChoicesNamed('Chosen ally'))
+    const view = renderDrawer(vi.fn(), withLoader(onLoadOptionalChoices))
+    await pickActionTargetAndRule(user)
+    await waitFor(() => expect(onLoadOptionalChoices).toHaveBeenCalledTimes(1))
+
+    view.rerender(drawerElement(vi.fn(), withLoader(onLoadOptionalChoices, 13)))
+    expect(await screen.findByRole('combobox', { name: 'Chosen ally' })).toBeVisible()
+
+    first.reject(new Error('Stale failure.'))
+    await settle()
+    expect(screen.getByRole('combobox', { name: 'Chosen ally' })).toBeVisible()
+    expect(screen.queryByText('Stale failure.')).not.toBeInTheDocument()
+  })
+
+  it('ignores choices that arrive late for a request that was superseded', async () => {
+    const user = userEvent.setup()
+    const first = deferred<OptionalChoices>()
+    const onLoadOptionalChoices = vi
+      .fn<NonNullable<OptionalLoader>>()
+      .mockReturnValueOnce(first.promise)
+      .mockRejectedValue(new Error('Newest request failed.'))
+    const view = renderDrawer(vi.fn(), withLoader(onLoadOptionalChoices))
+    await pickActionTargetAndRule(user)
+    await waitFor(() => expect(onLoadOptionalChoices).toHaveBeenCalledTimes(1))
+
+    view.rerender(drawerElement(vi.fn(), withLoader(onLoadOptionalChoices, 13)))
+    expect(await screen.findByText('Newest request failed.')).toBeVisible()
+
+    first.resolve(optionalChoicesNamed('Stale ally'))
+    await settle()
+    expect(screen.getByText('Newest request failed.')).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Stale ally' })).not.toBeInTheDocument()
+  })
+
+  it('clears the chosen values when the request changes, and when the drawer is reopened', async () => {
+    const user = userEvent.setup()
+    const onLoadOptionalChoices = vi.fn().mockResolvedValue(optionalChoicesNamed('Chosen ally'))
+    const view = renderDrawer(vi.fn(), withLoader(onLoadOptionalChoices))
+    await pickActionTargetAndRule(user)
+    const choose = async () => {
+      await user.click(await screen.findByRole('combobox', { name: 'Chosen ally' }))
+      await user.click(screen.getByRole('option', { name: 'Ally' }))
+      expect(screen.getByRole('combobox', { name: 'Chosen ally' })).toHaveValue('Ally')
+    }
+    await choose()
+
+    view.rerender(drawerElement(vi.fn(), withLoader(onLoadOptionalChoices, 13)))
+    await waitFor(() => expect(onLoadOptionalChoices).toHaveBeenCalledTimes(2))
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Chosen ally' })).toHaveValue('')
+    )
+    expect(resolveButton()).toBeDisabled()
+
+    await choose()
+    view.rerender(
+      drawerElement(vi.fn(), { ...withLoader(onLoadOptionalChoices, 13), opened: false })
+    )
+    view.rerender(drawerElement(vi.fn(), withLoader(onLoadOptionalChoices, 13)))
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Chosen ally' })).toHaveValue('')
+    )
+  })
+})
+
+describe('CampaignTabletopActionDrawer resets', () => {
+  const secondActor = tabletopGmEncounter.actors[1]!
+
+  it('forgets the picked action, its feedback and the map target when the turn passes to another creature', async () => {
+    const user = userEvent.setup()
+    const onTargetPickSpy = vi.fn()
+    const onResolve = vi.fn()
+    const view = renderDrawer(onResolve, { onTargetPickSpy })
+    await chooseActionAndTarget(user)
+    expect(await screen.findByText('Action resolved.')).toBeVisible()
+    onTargetPickSpy.mockClear()
+
+    view.rerender(
+      drawerElement(onResolve, {
+        onTargetPickSpy,
+        encounter: { ...tabletopGmEncounter, currentActorId: secondActor.id }
+      })
+    )
+    await waitFor(() => expect(onTargetPickSpy).toHaveBeenLastCalledWith(undefined))
+    expect(screen.queryByText('Action resolved.')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Action' })).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: 'Target' })).toHaveValue('')
+  })
+
+  it('keeps the feedback and the map target on a rerender that leaves the same creature acting', async () => {
+    const user = userEvent.setup()
+    const onTargetPickSpy = vi.fn()
+    const onResolve = vi.fn()
+    const view = renderDrawer(onResolve, { onTargetPickSpy })
+    await chooseActionAndTarget(user)
+    await screen.findByText('Action resolved.')
+    onTargetPickSpy.mockClear()
+
+    view.rerender(
+      drawerElement(onResolve, {
+        onTargetPickSpy,
+        encounter: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 }
+      })
+    )
+    expect(onTargetPickSpy).not.toHaveBeenCalled()
+    expect(screen.getByText('Action resolved.')).toBeVisible()
+  })
+
+  it('opens the Attack panel again on the next turn after "Done attacking" at the same count', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn()
+    const attack = { choices: [slotted(2)], defaultActionId: actions[0]!.id }
+    const view = renderDrawer(onResolve, { ...attack, openAttackAction: openAction(1) })
+    await user.click(await screen.findByRole('button', { name: 'Done attacking' }))
+    expect(screen.queryByText('Attack action: 1 of 2 made')).not.toBeInTheDocument()
+
+    view.rerender(drawerElement(onResolve, { ...attack, openAttackAction: null }))
+    view.rerender(drawerElement(onResolve, { ...attack, openAttackAction: openAction(1) }))
+    expect(await screen.findByText('Attack action: 1 of 2 made')).toBeVisible()
   })
 })

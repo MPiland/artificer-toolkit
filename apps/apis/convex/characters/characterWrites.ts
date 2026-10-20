@@ -104,6 +104,7 @@ export async function writeCharacterRecord(
                     partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY,
                     resourceUsage: [],
                     itemUsage: [],
+                    itemDegradation: [],
                     spellCustomizations: []
                   })
           },

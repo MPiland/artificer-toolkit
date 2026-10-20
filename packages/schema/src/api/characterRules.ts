@@ -212,7 +212,9 @@ const characterArmorClassFactsSchema = lazySchema(() =>
           source: equipmentInstanceMechanicSourceSchema,
           category: z.enum(['ARMOR', 'SHIELD']),
           equippedSlot: z.enum(EQUIPPED_SLOT_CODES),
-          armorClass: z.nullable(finiteNumberSchema)
+          armorClass: z.nullable(finiteNumberSchema),
+          /** Corrosion that lowers the armor class this item offers. */
+          degradation: z.optional(integerSchema.check(z.gte(1)))
         })
       )
       .check(z.maxLength(500))

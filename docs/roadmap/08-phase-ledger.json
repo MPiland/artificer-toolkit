@@ -6484,7 +6484,9 @@
               "status": "DONE",
               "proof": [
                 "apps/session-worker/test/nativeRoomReleaseRelationship.test.ts",
-                "packages/rules-runtime/src/__tests__/encounterRelationshipEnds.test.ts"
+                "packages/rules-runtime/src/__tests__/encounterRelationshipEnds.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.stories.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx"
               ],
               "origin": [],
               "note": "D105 slice D.",
@@ -6750,6 +6752,19 @@
               },
               "text": "Close the proof gaps the 2026-10-20 audit found in merged work: a drag with mixed-size holds prices each creature (7.5); Shove refused outside reach and against a target more than one size larger, and Shove filling one attack of the Attack action (7.6); room-level ASIDE and single-target UP_TO forced movement, and no opportunity attacks on a picked forced move (7.7). Tests run real code; a failing test is a bug to fix in this task, with the test as its regression proof.",
               "note": "Merged m217 (f2e325779). Found and fixed: a Shove or Grapple spent the Action without opening the Attack action (D152 amendment)."
+            },
+            {
+              "id": "ATTACK-7.T11",
+              "status": "DONE",
+              "closes": ["ATTACK-7.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1
+              },
+              "text": "Bug (found in RELIABILITY-9.T2, 2026-10-20, fails on the phase tip): the CampaignTabletopEncounterDrawer story \"Player Releases Off Turn\" never shows the \"Released.\" alert. Find whether the product (CampaignTabletopReleases, useWarnedCommand) or the story is wrong, fix it, and add a component test that fails before the fix.",
+              "note": "Merged m228 (d219cc19f): the story fixture waited on the drawer fade; product was correct."
             }
           ],
           "wsjf": {
@@ -12926,7 +12941,7 @@
             },
             {
               "id": "SPELLS-33.T6i",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -12935,11 +12950,12 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6e"]
               },
-              "text": "new: equipment degradation (corrode) (2 kinds: Black Pudding Dissolving Pseudopod and Rust Monster Antennae; Corrosive Form moved to T6i2). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
+              "text": "new: equipment degradation (corrode) (2 kinds: Black Pudding Dissolving Pseudopod and Rust Monster Antennae; Corrosive Form moved to T6i2). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "note": "Merged m227 (177fb8080). degradeEquipment option; Dissolving Pseudopod and Rust Monster Antennae converted, kinds deleted, Pseudopod off the attack allowlist."
             },
             {
               "id": "SPELLS-33.T6i2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -14599,7 +14615,8 @@
                 "apps/web/src/domains/characters/builder/selection/CharacterSelectionModal.test.tsx",
                 "apps/web/src/domains/characters/builder/steps/equipment/CharacterStartingEquipmentChoices.component.test.tsx",
                 "apps/web/src/domains/characters/builder/core/CharacterBuilderAuthoringRuntime.test.tsx",
-                "apps/web/src/settings/ProfileSettingsPage.test.tsx"
+                "apps/web/src/settings/ProfileSettingsPage.test.tsx",
+                "apps/web/src/domains/campaigns/components/CampaignTableSettings/CampaignTableSettings.test.tsx"
               ],
               "origin": [],
               "note": "Closed by RELIABILITY-9.T1 (merge 036b8f7d6): shared useServerDraft keeps per-field edits with the server value seen, surfaces conflicts with Use latest / Keep mine, and editors are keyed by record. Post-merge run: 16 web test files, 111 tests green; typecheck green. Storybook runs for the touched surfaces are owed (RELIABILITY-9.T2 note). Original finding: Data loss. EncounterActorCard.tsx:80-86 resets initiative, HP, temp HP, visibility and notes on every `actor` change; CampaignClockEditor.tsx:42-48 resets day, time, dawn and dusk on every `clock` change. About 15 further prop-to-state reset effects follow the same pattern; each gets a `key` instead. Second pass: SocialListingFormPage.tsx:81-85, CharacterSelectionModal.tsx:28-30, CharacterStartingEquipmentChoices.tsx:227, ProfileSettingsPage.tsx:68-107 (derivable availability states), CharacterBuilderAuthoringRuntime.tsx:35-38.",
@@ -14607,16 +14624,23 @@
             },
             {
               "text": "Lists that need every page get them from one query contract (or one shared hook), not a hand-written drain-all-pages effect per screen.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/data/useLoadAllPages.test.tsx",
+                "apps/web/src/lib/renderPurityGuards.test.ts"
+              ],
               "origin": [],
               "note": "18 effects of the form `if (status === 'CanLoadMore') loadMore(...)`; about 30 copies of the load-more button block.",
               "id": "RELIABILITY-9.2"
             },
             {
               "text": "No component writes a ref during render or corrects its own state in an effect after render; derived values are computed during render and latest-value refs are set in effects or event handlers.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/lib/renderPurityGuards.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.stageState.test.tsx",
+                ".oxlintrc.jsonc"
+              ],
               "origin": [],
               "note": "Ref writes in render: Shell.tsx:125-126, AuthoringFormProvider.tsx:102-103, data/media.ts:173, CampaignSceneEditor:60/85, CampaignVttStage:142/151/370/555/619/668/876. Post-render state correction: CampaignSessionWorkspace:45-47, CampaignSceneObjectInspector useSelection, GuidedClass/Spell step, useSystemList cursors, AuthoringLayoutProvider isWideDesktop. Second pass: CharacterAbilitiesStep.tsx:63-75 writes derived hitpoint rows into the form from an effect (autosave churn); CharacterStartingEquipmentChoices.tsx:49-72 persists derived defaults through onChange in an effect and replaces an invalid decision silently; ref writes in render at CharacterBuilderRenderer.tsx:68-69 and useCharacterBuilderEvaluation.ts:69-70.",
               "id": "RELIABILITY-9.3"
@@ -14639,8 +14663,8 @@
             },
             {
               "text": "Rendering is pure and SSR-stable: no Date.now() or new Date() during render, and no locale- or time-zone-dependent values computed at module load.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/web/src/lib/renderPurityGuards.test.ts"],
               "origin": [],
               "note": "SocialInvitationsView.tsx:154 Date.now() in render; `useState(() => new Date().toISOString())` asOf in SocialInvitationsView and SocialListingInvitations; socialModels.ts:97-102 weekdayOptions from a locale-less Intl.DateTimeFormat at module load; socialFormModel default timeZone from resolvedOptions(). Hydration impact not yet runtime-verified.",
               "id": "RELIABILITY-9.7"
@@ -14676,14 +14700,15 @@
             {
               "id": "RELIABILITY-9.T2",
               "text": "One all-pages query contract, pure render and SSR-stable values. Also re-check CharacterSheetOverviewVitals: its overlay-epoch reset must not discard in-progress edits (carry-over from T1), and run the Storybook stories T1 could not run in its worktree: EncounterActorCard, CampaignClockEditor, CharacterSheetTextEditor, CharacterSheetInspector, CharacterSelectionModal, CharacterStartingEquipmentChoices, SocialListingFormPage, ProfileSettingsPage, CharacterBuilderAuthoringRuntime.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-9.2", "RELIABILITY-9.3", "RELIABILITY-9.7"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 5,
                 "size": 5
-              }
+              },
+              "note": "Merged m226 (3ede7e53e). Lint now errors on react/refs, react/purity and react/set-state-in-effect."
             },
             {
               "id": "RELIABILITY-9.T3",
@@ -14696,6 +14721,19 @@
                 "rr": 3,
                 "size": 5
               }
+            },
+            {
+              "id": "RELIABILITY-9.T2b",
+              "status": "DONE",
+              "closes": ["RELIABILITY-9.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1
+              },
+              "text": "Suspected gap (found in RELIABILITY-9.T2, 2026-10-20): CampaignTableSettings parses its settings on every render, so a re-render of its parent may reset an unsaved draft. Prove it with a component test; if it fails, key the draft by the record and surface incoming changes as RELIABILITY-9.1 requires.",
+              "note": "Merged m228 (d219cc19f): real bug; the Table Settings draft now resets only when settings.version changes."
             }
           ]
         },

@@ -75,6 +75,7 @@ type AuthoringDefaultKind =
   | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
   | 'higherLevelCheck'
+  | 'degradeEquipmentDestroyWhen'
   | 'hitPointMaximumReductionAmountSource'
   | 'invocation'
   | 'manifestBehavior'
@@ -237,6 +238,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
   higherLevelCheck: ['higherLevelCheck'],
+  degradeEquipmentDestroyWhen: ['degradeEquipmentDestroyWhen'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],

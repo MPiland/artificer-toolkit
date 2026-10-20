@@ -10,7 +10,7 @@ import {
   Tooltip
 } from '@mantine/core'
 import { Dices, Plus, RotateCcw, Settings, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import clsx from 'clsx'
 import { DiceSettingsControls } from '#app/settings/DiceSettingsControls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
@@ -37,9 +37,7 @@ export function CharacterSheetManualRoll({ className }: { className?: string }) 
   const totalDice = rows.reduce((sum, row) => sum + row.count, 0)
   const supportsD20Mode = rows.length === 1 && rows[0]?.count === 1 && rows[0].die === 20
 
-  useEffect(() => {
-    if (!supportsD20Mode) setRollMode('NORMAL')
-  }, [supportsD20Mode])
+  if (!supportsD20Mode && rollMode !== 'NORMAL') setRollMode('NORMAL')
 
   function reset() {
     setRows(initialRows())

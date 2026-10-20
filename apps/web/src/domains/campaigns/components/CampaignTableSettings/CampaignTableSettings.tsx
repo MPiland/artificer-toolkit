@@ -13,7 +13,7 @@ import {
 } from '@mantine/core'
 import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import {
   campaignPlaySettingsDtoSchema,
@@ -76,7 +76,11 @@ function CampaignTableSettingsForm({
   const selectedInitiativePolicy = options.initiativePolicies.find(
     (policy) => policy.definitionId === draft.initiativePolicyDefinitionId
   )
-  useEffect(() => setDraft(toDraft(settings)), [settings])
+  const [syncedVersion, setSyncedVersion] = useState(settings.version)
+  if (syncedVersion !== settings.version) {
+    setSyncedVersion(settings.version)
+    setDraft(toDraft(settings))
+  }
 
   const save = useMutation({
     mutationFn: () =>

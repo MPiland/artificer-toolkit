@@ -48,23 +48,17 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
     [activeStep]
   )
 
-  useEffect(() => {
+  const [syncedWideDesktop, setSyncedWideDesktop] = useState<boolean>()
+  if (syncedWideDesktop !== isWideDesktop) {
+    setSyncedWideDesktop(isWideDesktop)
     if (isWideDesktop) {
       openStepsNavigation()
-      return
-    }
-
-    closeStepsNavigation()
-  }, [closeStepsNavigation, isWideDesktop, openStepsNavigation])
-
-  useEffect(() => {
-    if (isWideDesktop) {
       openPreview()
-      return
+    } else {
+      closeStepsNavigation()
+      closePreview()
     }
-
-    closePreview()
-  }, [closePreview, isWideDesktop, openPreview])
+  }
 
   useEffect(() => {
     if (!characterSession || visibleSteps.length === 0) return
