@@ -454,6 +454,8 @@ Irresistible Dance and the generic holder-action save. Ruled seam: extend `lifec
 
 #### Resume: T2m1b (split into T2m1b1, T2m1b1b, T2m1b2)
 
+**T2m1b1b done:** the repeat plan, OUTCOME graph and removal take a condition list (fact `dnd5e.active-effect-repeat-save-condition-ids`, comma-joined; single-condition plans unchanged). Hideous Laughter is data (Prone + Incapacitated, 1 minute, Wis save at turn end, `repeatTriggers` ADVANTAGE stored only) and `HIDEOUS_LAUGHTER` is deleted. "Can't stand up" and the Int <= 4 gate stay description-only. Proof: `hideousLaughter.test.ts`. T2m1b2 owns the damage-triggered repeat.
+
 Split (orchestrator ruling): **T2m1b1 (done, size 3)** adds `FollowUpSave.repeatTriggers` (DAMAGE_TAKEN only) to the authored type, Zod schema, node map and web defaults, the stored `recurrence.repeatTriggers` and the compiler output on the active-effect plan (proof on a Hold Person homebrew; no spell converted). **`repeatTriggers` has no consumer until T2m1b2: it is stored data, not live behaviour.** **T2m1b1b (size 3)** extends the repeat plan to multiple conditions (plan, graph, a fact list instead of the single-string `dnd5e.active-effect-repeat-save-condition-id`, removal) and converts Hideous Laughter data, deleting the `HIDEOUS_LAUGHTER` kind. **T2m1b2 (size 5)** is the funnel hook below, a shared seam for T2m3, SPELLS-33.T6e2 and SPELLS-33.T4m. Parity note for b2: "can't stand up" is out of scope and a recorded gap against Hideous Laughter's rules text.
 
 Original T2m1b design (now b2):

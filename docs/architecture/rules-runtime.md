@@ -1994,6 +1994,13 @@ graph's threshold reads the fact either way. Hold Person and Hold Monster author
 `FOLLOW_UP_SAVE` after their Paralyzed condition, and the condition lasts the `conditionDurationTurns` of its
 duration.
 
+A `CONDITION` lead may be several conditions in one result block (Hideous Laughter: Prone and Incapacitated, then
+one `FOLLOW_UP_SAVE`): each lead is a `conditionContributions` entry and its own proposal in the OUTCOME graph
+(`nodePrefix` and `conditionOrdinal`, as in `timedConditionPlan`), and the plan's
+`dnd5e.active-effect-repeat-save-condition-ids` fact is the comma-joined list that the terminal tick removes in
+order. A grant lead or an escalation takes a single condition lead only. The follow-up's `repeatTriggers` (advantage
+on a damage-triggered repeat) are stored on the plan's lifecycle; the Funnel hook that consumes them is T2m1b2.
+
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it
 (Guardian Naga Spit Poison) and one whose failure applies a condition and then a once-only `TARGET_TURN_END`
 save that ends the effect with a second condition (Cockatrice Bite) compile as `ESCALATING_CONDITION`.
