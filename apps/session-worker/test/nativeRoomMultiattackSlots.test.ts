@@ -1,5 +1,6 @@
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
+import { brownBear as authoredBrownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
+import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -12,6 +13,13 @@ const WOLF_ID = testUuid(0xe01)
 
 /** No Scene measures the attacks' reach (D11); every attack acknowledges that. */
 const RANGE: ['TARGET_RANGE_UNCHECKED'] = ['TARGET_RANGE_UNCHECKED']
+
+/** The Brown Bear as the corpus seeds it, with its attack rolls. */
+const brownBear = (() => {
+  const record = srdCreatureRecords.find(({ id }) => id === authoredBrownBear.id)
+  if (!record) throw new Error('The SRD Brown Bear is missing.')
+  return record
+})()
 
 const bite = (() => {
   const feature = brownBear.features.find(({ label }) => label === 'Bite')
