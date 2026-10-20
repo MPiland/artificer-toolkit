@@ -33,8 +33,10 @@ export type EncounterMechanicsBatchResult = {
   itemUseStateTransition: EncounterMechanicsBatchPlan['itemUseStateTransition']
   /** The item the target dropped (`releaseHeldItemInstanceId`); null when it dropped none. */
   itemReleaseTransition: EncounterMechanicsBatchPlan['itemReleaseTransition']
-  /** The carried weapon the actor drew (`drawHeldItem`); null when it drew none. */
+  /** The weapon the actor drew or threw (`drawHeldItem`, `throwHeldItem`); null when it moved none. */
   itemDrawTransition: EncounterMechanicsBatchPlan['itemDrawTransition']
+  /** The worn item the outcome corroded (`degradeItem`); null when it corroded none. */
+  itemDegradationTransition: EncounterMechanicsBatchPlan['itemDegradationTransition']
   /** The "until healed" grants a heal in this batch ended: the action's undo gives them back. */
   endedGrants: ActiveRuleEffectRecord[]
 }
@@ -193,6 +195,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       itemUseStateTransition: null,
       itemReleaseTransition: plan.itemReleaseTransition,
       itemDrawTransition: plan.itemDrawTransition,
+      itemDegradationTransition: null,
       endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
     }
   }
@@ -257,6 +260,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     itemUseStateTransition: plan.itemUseStateTransition,
     itemReleaseTransition: plan.itemReleaseTransition,
     itemDrawTransition: plan.itemDrawTransition,
+    itemDegradationTransition: plan.itemDegradationTransition,
     endedGrants: await endGrantsOnRegain(ctx, target, plan.targetTransition)
   }
 }

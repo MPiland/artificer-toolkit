@@ -51,18 +51,20 @@ export const veteran: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The veteran makes two longsword attacks. If it has a shortsword drawn, it can also make a shortsword attack.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(279, 200),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(279, 201), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(279, 3) }] },
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(279, 4) }],
+                optional: true
+              }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

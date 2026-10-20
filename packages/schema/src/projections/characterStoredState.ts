@@ -109,7 +109,11 @@ export function readCharacterRecord(row: StoredCharacter): CharacterDocument {
     throw new Error('Stored Character identity mismatch.')
   const play = readCharacterPlay(row.play)
   const state = mergeCharacterStatePlay(structure, play)
-  const inventory = effectiveInventory(state.equipment.inventory, play.itemUsage)
+  const inventory = effectiveInventory(
+    state.equipment.inventory,
+    play.itemUsage,
+    play.itemDegradation
+  )
   return {
     ...character,
     state: {

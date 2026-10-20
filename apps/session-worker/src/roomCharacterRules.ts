@@ -105,7 +105,10 @@ export async function prepareRoomLiveCharacterSheet(
       resourceUsage: state.resourceUsage.filter((usage) =>
         resourcePools.has(createCharacterResourceOwnerKey(usage.owner))
       ),
-      itemUsage: state.itemUsage.filter((usage) => inventoryIds.has(usage.itemInstanceId))
+      itemUsage: state.itemUsage.filter((usage) => inventoryIds.has(usage.itemInstanceId)),
+      itemDegradation: state.itemDegradation.filter((entry) =>
+        inventoryIds.has(entry.itemInstanceId)
+      )
     }
     const checksum = checksumRuleDocument(nextState)
     const stateChanged = checksum !== play.checksum

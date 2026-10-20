@@ -60,8 +60,6 @@ interface AttackUnit {
   owner: Feature
   option: Feature | null
   attackBonus: number
-  /** The owner Feature acts through a held Equipment loadout entry. */
-  equipmentBound: boolean
 }
 
 const damageTypeCodes = new Map(SRD_DAMAGE_TYPES.map(({ id, code }) => [id, code]))
@@ -144,10 +142,7 @@ function attackUnits(creature: CreatureAuthored): AttackUnit[] {
             label,
             owner,
             option,
-            attackBonus: attackRoll.expression.modifier,
-            equipmentBound: (creature.equipmentLoadout ?? []).some((entry) =>
-              entry.actionFeatureIds.includes(owner.id)
-            )
+            attackBonus: attackRoll.expression.modifier
           }
         })
     })
@@ -155,14 +150,12 @@ function attackUnits(creature: CreatureAuthored): AttackUnit[] {
 }
 
 function unsupportedReason(
-  unit: AttackUnit,
   stage: 'DISCOVERY' | 'PREPARE' | 'EXECUTE' | 'PLAN',
   error: unknown
 ): SrdCreatureAttackUnsupportedReason | `UNEXPECTED ${string}` {
   const message = error instanceof Error ? error.message : String(error)
   if (/unsupported bounded shape/.test(message)) return 'FOLLOW_UP_SAVE'
   if (/outcome is not supported/.test(message)) return 'OUTCOME_KIND'
-  if (stage === 'DISCOVERY' && unit.equipmentBound) return 'EQUIPMENT_DAMAGE_TYPE'
   return `UNEXPECTED ${stage}: ${message}`
 }
 
@@ -228,7 +221,7 @@ describe('SRD Creature attack sweep', () => {
             entry.actionId.endsWith(`:EFFECT:${unit.effectId}`)
           )
           failures[unit.effectId] = unavailable
-            ? unsupportedReason(unit, 'DISCOVERY', new Error(unavailable.reason))
+            ? unsupportedReason('DISCOVERY', new Error(unavailable.reason))
             : `UNEXPECTED DISCOVERY: ${unit.label} is not an action.`
           continue
         }
@@ -283,7 +276,7 @@ describe('SRD Creature attack sweep', () => {
           criticalDice[unit.effectId] = outcomeDice(critical).hit.sort()
           expectedCriticalDice[unit.effectId] = printedCriticalDice(unit)
         } catch (error) {
-          failures[unit.effectId] = unsupportedReason(unit, stage, error)
+          failures[unit.effectId] = unsupportedReason(stage, error)
         }
       }
     }

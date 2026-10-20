@@ -53,6 +53,22 @@ export const dragonTurtle: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The dragon turtle makes three attacks: one with its bite and two with its claws. It can make one tail attack in place of its two claw attacks.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(85, 3) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(85, 4) }] }
+            ]
+          },
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(85, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(85, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

@@ -14,7 +14,7 @@ import {
   Tooltip
 } from '@mantine/core'
 import { Swords } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
@@ -213,6 +213,8 @@ export function CampaignTabletopActionDrawer({
 }) {
   // `undefined` is untouched (the server's default action and the open Attack action's last target apply); `null` is cleared.
   const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
+  // The attacks made when the viewer chose "Done attacking"; the next attack opens the panel again.
+  const [endedAttackActionAfter, setEndedAttackActionAfter] = useState<number | null>(null)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
   const [unaffectedActorIds, setUnaffectedActorIds] = useState<string[]>([])
   const [pickedChoiceOptionId, setPickedChoiceOptionId] = useState<string | null>(null)
@@ -225,12 +227,14 @@ export function CampaignTabletopActionDrawer({
     value: EncounterOptionalActionChoicesDto
   } | null>(null)
   const [optionalValues, setOptionalValues] = useState<Record<string, string>>({})
-  const [optionalChoicesLoading, setOptionalChoicesLoading] = useState(false)
   const [itemChoices, setItemChoices] = useState<{
     requestIdentity: string
     value: EncounterActionItemChoicesDto['items'] | string
   } | null>(null)
   const [pickedItemId, setPickedItemId] = useState<string | null>(null)
+  // The last ammunition stack picked stays preselected across actions while it still fits; it is
+  // this panel's state only, never saved (ATTACK-19.4).
+  const [pickedAmmunitionId, setPickedAmmunitionId] = useState<string | null>(null)
   const [optionalChoicesError, setOptionalChoicesError] = useState<{
     requestIdentity: string
     value: string
@@ -254,9 +258,24 @@ export function CampaignTabletopActionDrawer({
   const currentActor =
     encounter.actors.find((actor) => actor.id === encounter.currentActorId) ?? null
   const currentActorId = currentActor?.id ?? null
-  const preselectedActionId = actions.find((action) => action.id === defaultActionId)?.id ?? null
+  // "Done attacking" is the viewer's own: it ends the panel and the preselection, while the server's
+  // Attack action stays open until the turn ends.
+  const attackActionEnded =
+    openAttackAction !== null && endedAttackActionAfter === openAttackAction.made
+  const liveAttackAction = attackActionEnded ? null : openAttackAction
+  const noAttackActionOpen = openAttackAction === null
+  if (noAttackActionOpen && endedAttackActionAfter !== null) setEndedAttackActionAfter(null)
+  const offeredAttackLabels = [
+    ...new Set(actions.flatMap((action) => (action.attackSlot ? [action.label] : [])))
+  ]
+  const attackActionLeft = offeredAttackLabels.length
+    ? `${liveAttackAction?.complete ? 'Optional' : 'Left'}: ${offeredAttackLabels.join(', ')}`
+    : 'No attack left in this action.'
+  const preselectedActionId = attackActionEnded
+    ? null
+    : (actions.find((action) => action.id === defaultActionId)?.id ?? null)
   const preselectedTargetActorId =
-    openAttackAction?.lastTargetIds.find((id) =>
+    liveAttackAction?.lastTargetIds.find((id) =>
       encounter.actors.some((actor) => actor.id === id && !actor.defeated)
     ) ?? null
   const actionId = pickedActionId === undefined ? preselectedActionId : pickedActionId
@@ -265,7 +284,16 @@ export function CampaignTabletopActionDrawer({
   // A defeated creature isn't a target (D63; the server still warns if one is named), and neither is
   // the acting creature when the action refuses itself (Help, First Aid).
   const selfRefused = choiceTarget?.kind === 'ACTOR' && choiceTarget.self === 'REFUSED'
-  const targetableActors = targetableEncounterActors(encounter.actors, currentActorId, selfRefused)
+  const onlyActorIds =
+    choiceTarget?.kind === 'ACTOR' && choiceTarget.heldBySource
+      ? releases.map(({ heldActorId }) => heldActorId)
+      : undefined
+  const targetableActors = targetableEncounterActors(
+    encounter.actors,
+    currentActorId,
+    selfRefused,
+    onlyActorIds
+  )
   const pickedOrPreselectedTargetActorId =
     pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
   const targetActorId = targetableActors.some(
@@ -316,6 +344,14 @@ export function CampaignTabletopActionDrawer({
   const chosenItemId =
     itemOptions?.find((item) => item.id === pickedItemId)?.id ?? itemOptions?.[0]?.id ?? null
   const itemChoice = chosenItemId ? { boundItemInstanceId: chosenItemId } : {}
+  const ammunitionOptions = selectedAction?.ammunition ?? []
+  const chosenAmmunition =
+    ammunitionOptions.find((stack) => stack.itemInstanceId === pickedAmmunitionId) ??
+    ammunitionOptions[0] ??
+    null
+  const ammunitionChoice = chosenAmmunition
+    ? { ammunitionItemInstanceId: chosenAmmunition.itemInstanceId }
+    : {}
   const aimedTarget = chosenZoneOption?.target ?? choiceTarget
   const areaTarget =
     aimedTarget?.kind === 'POINT' || aimedTarget?.kind === 'DIRECTED'
@@ -442,6 +478,7 @@ export function CampaignTabletopActionDrawer({
           kind: 'ACTORS',
           actorIds: pickedActorIds,
           ...castChoice,
+          ...ammunitionChoice,
           ...(chosenForm ? { formId: chosenForm.id } : {}),
           ...(actorsTarget.choosesCreatureForm && pickedFormCreatureId
             ? { creatureId: pickedFormCreatureId }
@@ -465,7 +502,13 @@ export function CampaignTabletopActionDrawer({
               }
             : null
           : targetActorId && (!choosesItem || chosenItemId)
-            ? { kind: 'ACTOR', actorId: targetActorId, ...castChoice, ...itemChoice }
+            ? {
+                kind: 'ACTOR',
+                actorId: targetActorId,
+                ...castChoice,
+                ...itemChoice,
+                ...ammunitionChoice
+              }
             : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
@@ -529,7 +572,6 @@ export function CampaignTabletopActionDrawer({
     optionalChoicesError?.requestIdentity === choiceRequestIdentity
       ? optionalChoicesError.value
       : null
-  const choiceRequestSequence = useRef(0)
   const selectionControlsDisabled =
     !connected ||
     pending ||
@@ -537,6 +579,14 @@ export function CampaignTabletopActionDrawer({
     waitingOn !== null ||
     actionsLoading ||
     actionChoicesError !== null
+  const optionalChoicesLoading =
+    opened &&
+    currentActorId !== null &&
+    selectedActionId !== null &&
+    targetActorId !== null &&
+    selectedOptionalRuleId !== null &&
+    currentOptionalChoices === null &&
+    currentOptionalChoicesError === null
   const dependentControlsDisabled = selectionControlsDisabled || optionalChoicesLoading
   // A held-weapon stow is offered only on a basic action (D152).
   const wieldConflict =
@@ -561,31 +611,41 @@ export function CampaignTabletopActionDrawer({
       !currentOptionalChoices ||
       currentOptionalChoices.fields.some((field) => !optionalValues[field.fieldId]))
 
-  useEffect(() => {
+  const [trackedTurnActorId, setTrackedTurnActorId] = useState(encounter.currentActorId)
+  if (trackedTurnActorId !== encounter.currentActorId) {
+    setTrackedTurnActorId(encounter.currentActorId)
     setPickedActionId(undefined)
-    onTargetPick(undefined)
     setPickedActorIds([])
     setOptionalRuleId(null)
     setFeedback(null)
     setError(null)
+  }
+  useEffect(() => {
+    onTargetPick(undefined)
   }, [encounter.currentActorId, onTargetPick])
 
-  useEffect(() => {
-    const sequence = ++choiceRequestSequence.current
-    setOptionalChoices(null)
-    setOptionalChoicesError(null)
+  const [trackedChoiceRequest, setTrackedChoiceRequest] = useState({
+    identity: choiceRequestIdentity,
+    opened
+  })
+  if (
+    trackedChoiceRequest.identity !== choiceRequestIdentity ||
+    trackedChoiceRequest.opened !== opened
+  ) {
+    setTrackedChoiceRequest({ identity: choiceRequestIdentity, opened })
     setOptionalValues({})
+  }
+
+  useEffect(() => {
     if (
       !opened ||
       !currentActorId ||
       !selectedActionId ||
       !targetActorId ||
       !selectedOptionalRuleId
-    ) {
-      setOptionalChoicesLoading(false)
+    )
       return
-    }
-    setOptionalChoicesLoading(true)
+    let current = true
     void onLoadOptionalChoices({
       encounterId: encounter.id,
       expectedVersion: encounter.version,
@@ -596,22 +656,21 @@ export function CampaignTabletopActionDrawer({
       definitionId: selectedOptionalRuleId
     })
       .then((nextChoices) => {
-        if (choiceRequestSequence.current !== sequence) return
+        if (!current) return
         setOptionalChoices({ requestIdentity: choiceRequestIdentity, value: nextChoices })
+        setOptionalChoicesError(null)
       })
       .catch((nextError: unknown) => {
-        if (choiceRequestSequence.current !== sequence) return
+        if (!current) return
+        setOptionalChoices(null)
         setOptionalChoicesError({
           requestIdentity: choiceRequestIdentity,
           value:
             nextError instanceof Error ? nextError.message : 'Optional choices could not be loaded.'
         })
       })
-      .finally(() => {
-        if (choiceRequestSequence.current === sequence) setOptionalChoicesLoading(false)
-      })
     return () => {
-      if (choiceRequestSequence.current === sequence) choiceRequestSequence.current += 1
+      current = false
     }
   }, [
     choiceRequestIdentity,
@@ -672,14 +731,16 @@ export function CampaignTabletopActionDrawer({
   }, [onAreaAimChange, selectedActionId, chosenZoneOptionId])
 
   // So do the creatures chosen.
-  useEffect(() => {
+  const [trackedActionId, setTrackedActionId] = useState(selectedActionId)
+  if (trackedActionId !== selectedActionId) {
+    setTrackedActionId(selectedActionId)
     setPickedActorIds([])
     setUnaffectedActorIds([])
     setPickedChoiceOptionId(null)
     setPickedFormId(null)
     setPickedBandSide(null)
     setPickedItemId(null)
-  }, [selectedActionId])
+  }
 
   useEffect(() => {
     onAreaSizeChange(areaSize)
@@ -849,6 +910,25 @@ export function CampaignTabletopActionDrawer({
           !actionChoicesError &&
           (actions.length || unavailableActions.length) ? (
             <>
+              {liveAttackAction ? (
+                <Group align='center' justify='space-between' wrap='nowrap'>
+                  <Stack gap={0}>
+                    <Text fw={600} size='sm'>
+                      {`Attack action: ${liveAttackAction.made} of ${liveAttackAction.total} made`}
+                    </Text>
+                    <Text c='dimmed' size='sm'>
+                      {attackActionLeft}
+                    </Text>
+                  </Stack>
+                  <Button
+                    size='compact-sm'
+                    variant='subtle'
+                    onClick={() => setEndedAttackActionAfter(liveAttackAction.made)}
+                  >
+                    Done attacking
+                  </Button>
+                </Group>
+              ) : null}
               <Select
                 comboboxProps={{ withinPortal: false }}
                 data={[
@@ -996,6 +1076,20 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedItemId}
                 />
               ) : null}
+              {ammunitionOptions.length ? (
+                <Select
+                  allowDeselect={false}
+                  comboboxProps={{ withinPortal: false }}
+                  data={ammunitionOptions.map((stack) => ({
+                    label: `${stack.label} (${stack.quantity})`,
+                    value: stack.itemInstanceId
+                  }))}
+                  disabled={selectionControlsDisabled}
+                  label='Ammunition'
+                  value={chosenAmmunition?.itemInstanceId ?? null}
+                  onChange={setPickedAmmunitionId}
+                />
+              ) : null}
               {sparesCreatures ? (
                 <MultiSelect
                   comboboxProps={{ withinPortal: false }}
@@ -1123,7 +1217,11 @@ export function CampaignTabletopActionDrawer({
                       disabled={selectionControlsDisabled}
                       variant='default'
                       onClick={() =>
-                        onPickTargetOnMap({ actionId: selectedAction.id, selfRefused })
+                        onPickTargetOnMap({
+                          actionId: selectedAction.id,
+                          selfRefused,
+                          onlyActorIds
+                        })
                       }
                     >
                       Pick on map

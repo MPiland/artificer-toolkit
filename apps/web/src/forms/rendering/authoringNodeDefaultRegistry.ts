@@ -27,6 +27,11 @@ type AuthoringDefaultKind =
   | 'classSpellSlot'
   | 'classStartingGold'
   | 'contains'
+  | 'attackSlot'
+  | 'attackSlotAlternative'
+  | 'attackSlotCondition'
+  | 'attackSlotFiller'
+  | 'attackSlotSet'
   | 'cost'
   | 'creatureAction'
   | 'creatureCompanionProfile'
@@ -70,6 +75,7 @@ type AuthoringDefaultKind =
   | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
   | 'higherLevelCheck'
+  | 'degradeEquipmentDestroyWhen'
   | 'hitPointMaximumReductionAmountSource'
   | 'invocation'
   | 'manifestBehavior'
@@ -192,6 +198,11 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   creatureMountProfile: ['creatureMountProfile'],
   creatureNpcProfile: ['creatureNpcProfile'],
   creatureQualifiedDamageDefense: ['creatureQualifiedDamageDefense'],
+  attackSlot: ['attackSlot'],
+  attackSlotAlternative: ['attackSlotAlternative'],
+  attackSlotCondition: ['attackSlotCondition'],
+  attackSlotFiller: ['attackSlotFiller'],
+  attackSlotSet: ['attackSlotSet'],
   creatureSense: ['creatureSense'],
   duration: ['duration'],
   durationScalingBreakpoint: ['durationScalingBreakpoint', 'targetCountScalingBreakpoint'],
@@ -227,6 +238,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
   higherLevelCheck: ['higherLevelCheck'],
+  degradeEquipmentDestroyWhen: ['degradeEquipmentDestroyWhen'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],

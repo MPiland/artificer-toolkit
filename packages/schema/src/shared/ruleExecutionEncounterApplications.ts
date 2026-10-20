@@ -321,13 +321,21 @@ export type CharacterItemUseStateTransitionDto = z.infer<
 >
 
 /**
- * A Character's carried weapon an attack drew into a hand (D107): the Character version that
- * equipped it, with the equipment checksums either side. Undo takes the weapon back to carried.
+ * Which way an attack moved its weapon between carried and a hand (D107): `DRAW` into the hand
+ * `slot`, or `THROW` out of it. The checksums either side are those of the equipment before and
+ * after the move, whichever way it went.
+ */
+const itemHandMovementSchema = lazySchema(() => z.enum(['DRAW', 'THROW']))
+
+/**
+ * A Character's weapon an attack moved between carried and a hand (D107): the Character version
+ * that changed its equipment, with the equipment checksums either side. Undo moves it back.
  */
 export const characterItemDrawTransitionDtoSchema = lazySchema(() =>
   z
     .strictObject({
       kind: z.literal('CHARACTER_ITEM_DRAW'),
+      movement: z._default(itemHandMovementSchema, 'DRAW'),
       characterId: uuidSchema,
       itemInstanceId: uuidSchema,
       slot: z.enum(['MAIN_HAND', 'OFF_HAND']),
@@ -342,16 +350,17 @@ export const characterItemDrawTransitionDtoSchema = lazySchema(() =>
           value.afterStreamVersion !== value.beforeStreamVersion + 1 ||
           value.beforeStateChecksum === value.afterStateChecksum
         )
-          context.addIssue({ code: 'custom', message: 'Character item draw is invalid.' })
+          context.addIssue({ code: 'custom', message: 'Character item hand move is invalid.' })
       })
     )
 )
 
-/** A Creature's carried loadout weapon an attack drew into a hand (D107). */
+/** A Creature's loadout weapon an attack moved between carried and a hand (D107). */
 export const encounterActorItemDrawTransitionDtoSchema = lazySchema(() =>
   z
     .strictObject({
       kind: z.literal('ENCOUNTER_ACTOR_ITEM_DRAW'),
+      movement: z._default(itemHandMovementSchema, 'DRAW'),
       actorId: uuidSchema,
       loadoutEntryId: uuidSchema,
       equipmentId: uuidSchema,
@@ -362,12 +371,12 @@ export const encounterActorItemDrawTransitionDtoSchema = lazySchema(() =>
     .check(
       z.superRefine((value, context) => {
         if (value.beforeStateChecksum === value.afterStateChecksum)
-          context.addIssue({ code: 'custom', message: 'Creature item draw is invalid.' })
+          context.addIssue({ code: 'custom', message: 'Creature item hand move is invalid.' })
       })
     )
 )
 
-/** The weapon the source's attack drew into a hand: a Character's equip, or a Creature's loadout. */
+/** The weapon the source's attack drew into a hand or threw out of it: a Character's equipment, or a Creature's loadout. */
 export const sourceItemDrawDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     characterItemDrawTransitionDtoSchema,
@@ -395,21 +404,63 @@ export const characterItemConsumptionFieldsSchema = lazySchema(() =>
     afterQuantity: nonNegativeIntegerSchema
   })
 )
+/** An item consumption uses one or more pieces: its used count rises as its quantity falls. */
+export function characterItemConsumptionPiecesMatch(value: {
+  beforeUsed: number
+  afterUsed: number
+  beforeQuantity: number
+  afterQuantity: number
+}) {
+  return (
+    value.afterUsed > value.beforeUsed &&
+    value.afterUsed - value.beforeUsed === value.beforeQuantity - value.afterQuantity
+  )
+}
 // Named so the receipt unions that embed it stay under the compiler's declaration size limit.
 export const characterItemConsumptionReceiptDtoSchema: z.ZodMiniType<CharacterItemConsumptionReceiptDto> =
   lazySchema(() =>
     characterItemConsumptionFieldsSchema.check(
       z.superRefine((value, context) => {
-        if (
-          value.afterUsed !== value.beforeUsed + 1 ||
-          value.afterQuantity !== value.beforeQuantity - 1
-        )
+        if (!characterItemConsumptionPiecesMatch(value))
           context.addIssue({
             code: 'custom',
-            message: 'An item consumption uses exactly one item.'
+            message: 'An item consumption uses as many pieces as its quantity falls.'
           })
       })
     )
+  )
+
+/** One worn item an outcome corroded: its penalty rises, and it is used up when destroyed. */
+export type CharacterItemDegradationReceiptDto = {
+  characterId: string
+  itemInstanceId: string
+  beforePenalty: number
+  afterPenalty: number
+  beforeUsed: number
+  afterUsed: number
+}
+export const characterItemDegradationReceiptDtoSchema: z.ZodMiniType<CharacterItemDegradationReceiptDto> =
+  lazySchema(() =>
+    z
+      .strictObject({
+        characterId: uuidSchema,
+        itemInstanceId: uuidSchema,
+        beforePenalty: nonNegativeIntegerSchema,
+        afterPenalty: positiveIntegerSchema,
+        beforeUsed: nonNegativeIntegerSchema,
+        afterUsed: nonNegativeIntegerSchema
+      })
+      .check(
+        z.superRefine((value, context) => {
+          if (value.afterPenalty <= value.beforePenalty)
+            context.addIssue({ code: 'custom', message: 'Corrosion raises the penalty.' })
+          if (value.afterUsed !== value.beforeUsed && value.afterUsed !== value.beforeUsed + 1)
+            context.addIssue({
+              code: 'custom',
+              message: 'Corrosion destroys at most one item.'
+            })
+        })
+      )
   )
 
 /** One spell slot (or the pact slot) a cast spent: the slot's used count rises by one. */
@@ -1167,6 +1218,8 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
         })
       ]),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      /** The Attack action a contest that replaces one attack (Grapple, Shove) fills; absent otherwise. */
+      attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
       /** The source's own conditions released by effects its attack roll ended; empty when none. */
       sourceApplications: sourceApplicationsDtoSchema
     })

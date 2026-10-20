@@ -46,6 +46,20 @@ export const halfRedDragonVeteran: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The veteran makes two longsword attacks. If it has a shortsword drawn, it can also make a shortsword attack.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(158, 2) }] },
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(158, 3) }],
+                optional: true
+              }
+            ]
+          }
+        ]
+      },
       order: 1
     },
     {

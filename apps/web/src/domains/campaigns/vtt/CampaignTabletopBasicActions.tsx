@@ -1,5 +1,5 @@
 import { Button, Select, Stack, Text, Title, Tooltip } from '@mantine/core'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ACTIVATION_REGISTRY } from '@artificer-toolkit/shared/core'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
@@ -51,10 +51,12 @@ export function CampaignTabletopBasicActions({
   const { submittingId, confirming, feedback, error, run, cancelConfirmation } =
     useWarnedCommand(actorId)
 
-  useEffect(() => {
+  const [trackedActorId, setTrackedActorId] = useState(actorId)
+  if (trackedActorId !== actorId) {
+    setTrackedActorId(actorId)
     setTargetByAction({})
     setStowingId(null)
-  }, [actorId])
+  }
 
   function resolve(
     choice: EncounterActionChoiceDto,

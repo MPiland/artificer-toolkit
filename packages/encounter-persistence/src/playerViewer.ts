@@ -64,10 +64,25 @@ export async function readEncounterPlayerViewer(
     )
   ]
   // Party visibility lives on the small play record, so this never loads a Character document.
-  const [plays, unseenActorIds] = await Promise.all([
+  const [plays, assignments, unseenActorIds] = await Promise.all([
     Promise.all(characterIds.map((id) => readEncounterCharacterPlay(ctx, id))),
+    Promise.all(
+      characterIds.map((characterId) =>
+        ctx.db
+          .query('campaignCharacterAssignments')
+          .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+          .unique()
+      )
+    ),
     readUnseenActorIds(ctx, projection.id, projection.actors, viewer)
   ])
+  const grantsByCharacterId = new Map(
+    assignments.flatMap((assignment) =>
+      assignment?.controllerUserIds
+        ? [[assignment.characterId, assignment.controllerUserIds] as const]
+        : []
+    )
+  )
   return {
     userId: viewer.userId,
     unseenActorIds,
@@ -79,6 +94,7 @@ export async function readEncounterPlayerViewer(
                 play.characterId,
                 {
                   ownerUserId: play.userId,
+                  controllerUserIds: grantsByCharacterId.get(play.characterId) ?? [],
                   health: ctx.ports.readCharacterPlay(play).partyVisibility.health
                 }
               ] as const

@@ -225,7 +225,8 @@ describe('native Equipment publication', () => {
       )
       const expected = compileSubjectWithMechanicsIndex({
         subjectKind: 'EQUIPMENT',
-        authored: effective
+        authored: document as EquipmentAuthored,
+        effectiveAuthored: effective
       }).compiled
       const {
         id: _id,

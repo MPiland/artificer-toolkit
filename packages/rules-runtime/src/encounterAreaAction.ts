@@ -347,8 +347,14 @@ export function encounterActionChoiceTarget(
   const directedArea = policy ? authoredDirectedArea(policy) : null
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
   if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
-  const self = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.self : undefined
-  return { kind: 'ACTOR', self: self ?? 'ALLOWED', ...choiceOptions, ...itemChoice }
+  const single = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting : undefined
+  return {
+    kind: 'ACTOR',
+    self: single?.self ?? 'ALLOWED',
+    ...choiceOptions,
+    ...itemChoice,
+    ...(single?.heldBySource ? { heldBySource: true as const } : {})
+  }
 }
 
 /**

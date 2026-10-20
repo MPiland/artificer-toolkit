@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { SourceImportSubjectDto } from '@artificer-toolkit/schema/api/sourceImport'
-import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { CompiledFeature } from '@artificer-toolkit/shared/compilers'
 import type { CharacterBuilderResolution } from '@artificer-toolkit/rules-runtime/character/builderTypes'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
@@ -127,7 +127,7 @@ async function makeReady(t: Test, character: CharacterAuthored) {
         }
       ]
     })
-    const definitions = new Map<string, FeatureAuthored>(
+    const definitions = new Map<string, CompiledFeature>(
       [
         ...resolution.registry.features,
         ...[
@@ -135,7 +135,7 @@ async function makeReady(t: Test, character: CharacterAuthored) {
           ...resolution.registry.races,
           ...resolution.registry.backgrounds,
           ...(resolution.registry.feats ?? [])
-        ].flatMap((root) => (root.features ?? []) as FeatureAuthored[])
+        ].flatMap((root) => root.features ?? [])
       ].map((feature) => [feature.id, feature])
     )
     const levelOf = (source: (typeof resolution.grants.features)[number]['source']) =>

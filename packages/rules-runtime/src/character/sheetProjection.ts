@@ -37,6 +37,7 @@ import type {
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { listActiveGrantListings } from '../activeGrantListings.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
@@ -806,6 +807,7 @@ function toCreatureHitDice(
 interface ProjectCharacterSheetBundleParams {
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
+  presentation: CharacterPresentationLookup
   streamVersion: number
   hasBuilderDraft?: boolean
   adjustments?: readonly CharacterSheetAdjustment[]
@@ -838,6 +840,7 @@ export function projectCharacterSheetBundle(
   const {
     character,
     resolution,
+    presentation,
     streamVersion,
     hasBuilderDraft,
     creaturesById,
@@ -1107,7 +1110,10 @@ export function projectCharacterSheetBundle(
     resolution.registry.system?.speeds
   )
   const sheetReferenceFeatures = resolution.grants.features.filter(isSheetVisibleFeature)
-  const mechanicPresentation = createCharacterSheetMechanicPresentationSources(resolution)
+  const mechanicPresentation = createCharacterSheetMechanicPresentationSources(
+    resolution,
+    presentation
+  )
   const spellReferenceMechanicsBySpellId = new Map(
     ruleEvaluation.output.spellReferenceMechanics.map((spell) => [spell.spellId, spell])
   )
@@ -1171,12 +1177,13 @@ export function projectCharacterSheetBundle(
       (candidate) => candidate.id === use.featureId
     )
     if (!feature || feature.attributes?.includes(FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET)) return []
+    const description = presentation.features[feature.id]?.description
 
     return [
       {
         id: `${feature.id}:${use.itemInstanceId}`,
         label: feature.label,
-        ...(feature.description ? { description: feature.description } : {}),
+        ...(description ? { description } : {}),
         ...(feature.attributes ? { attributes: feature.attributes } : {}),
         sourceLabel: equipmentChargeSourceLabelsByItemId.get(use.itemInstanceId) ?? feature.label,
         source: {
@@ -1268,7 +1275,7 @@ export function projectCharacterSheetBundle(
         equipmentId: item.equipmentId,
         label: item.customName ?? equipment?.label ?? 'Unknown item',
         equipmentLabel: equipment?.label,
-        description: equipment?.description,
+        description: equipment ? presentation.equipment[equipment.id]?.description : undefined,
         category: equipment?.category,
         properties: equipment?.properties.map((code) => ({
           code,
@@ -1289,6 +1296,7 @@ export function projectCharacterSheetBundle(
           : undefined,
         weight: mechanics?.weight,
         armorClass: equipment?.armorClass,
+        degradation: item.degradation,
         customName: item.customName,
         quantity: item.quantity,
         equippedSlot:
@@ -1367,6 +1375,7 @@ export function projectCharacterSheetBundle(
     grantFoldFacts: ruleEvaluation.facts.grantFoldFacts,
     character,
     resolution,
+    presentation,
     creaturesById
   })
   const visibleActionItems = actionItems

@@ -88,9 +88,11 @@ export function useCampaignLiveSession({
   const [rejection, setRejection] = useState<LiveSessionCommandRejection | null>(null)
   const [sequence, setSequence] = useState<number | null>(null)
   const [status, setStatus] = useState<LiveSessionConnectionStatus>('DISCONNECTED')
-  onTransientRef.current = onTransient
-  onCampaignChatEntryRef.current = onCampaignChatEntry
-  onPrivateRollRef.current = onPrivateRoll
+  useEffect(() => {
+    onTransientRef.current = onTransient
+    onCampaignChatEntryRef.current = onCampaignChatEntry
+    onPrivateRollRef.current = onPrivateRoll
+  })
 
   useEffect(() => {
     if (!enabled) {

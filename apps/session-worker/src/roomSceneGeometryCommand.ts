@@ -193,6 +193,7 @@ export async function executeRoomSceneGeometry(input: {
   }
   const prepared = await prepareStagedSceneCommit({
     actor,
+    assignments: authorization.campaign.assignments,
     command,
     context,
     runtime: input.runtime,

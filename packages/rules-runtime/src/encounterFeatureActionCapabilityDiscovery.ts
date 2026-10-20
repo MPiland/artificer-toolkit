@@ -11,6 +11,7 @@ import { passiveMeleeRetaliationZone, placedSpaceManifest } from './encounterZon
 import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
 import { reduceEffectRestrictions } from './systems/dnd5e/attackRestrictions.js'
 import {
+  type EncounterCreatureEquipmentSource,
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
 } from './encounterCreatureEquipmentSources.js'
@@ -267,20 +268,37 @@ function hitDamageTypeIds(effect: CompiledEffectGroup): ReadonlySet<string> {
 }
 
 /**
- * A Creature Feature acts through the Equipment it holds when both are the same kind of attack and
- * the Feature deals every damage type the Equipment does. The Feature authors its own printed hit
- * damage (an SRD monster's weapon dice scale with its size, and traits such as Brute add dice);
- * the Equipment gives the action its identity and properties (D62, M9).
+ * A replacement of Equipment that Feature actions act through keeps the damage types of the Equipment it replaces: the print governs the bound
+ * attack, so the swap must not change what kind of weapon the loadout holds (a Greatclub for a
+ * Dagger is refused).
+ */
+export function equipmentReplacementKeepsDamageTypes(
+  replaced: EncounterCreatureEquipmentSource,
+  replacement: EncounterCreatureEquipmentSource
+): boolean {
+  const types = (source: EncounterCreatureEquipmentSource) =>
+    new Set(
+      (source.compiled.effects ?? []).flatMap((effect) =>
+        effect.invocation.kind === 'ACTION' ? [...hitDamageTypeIds(effect)] : []
+      )
+    )
+  const before = types(replaced)
+  const after = types(replacement)
+  return before.size === after.size && [...before].every((type) => after.has(type))
+}
+
+/**
+ * A Creature Feature acts through the Equipment it holds when both are the same kind of attack.
+ * The Feature authors its own printed hit damage, damage type included (an SRD monster's weapon
+ * dice scale with its size, traits such as Brute add dice, and a print may name a type its
+ * Equipment's default does not); the Equipment gives the action its identity and properties
+ * (D62, M9).
  */
 function actsThroughEquipment(input: {
   equipmentEffect: CompiledEffectGroup
   featureEffect: CompiledEffectGroup
 }): boolean {
-  if (input.equipmentEffect.invocation.triggerCode !== input.featureEffect.invocation.triggerCode)
-    return false
-  const equipmentTypes = hitDamageTypeIds(input.equipmentEffect)
-  const featureTypes = hitDamageTypeIds(input.featureEffect)
-  return equipmentTypes.size > 0 && [...equipmentTypes].every((type) => featureTypes.has(type))
+  return input.equipmentEffect.invocation.triggerCode === input.featureEffect.invocation.triggerCode
 }
 
 /** The Equipment an entry's action Feature acts through, if its loadout binds one. */
@@ -327,7 +345,7 @@ function entryEquipmentBinding(
         })
     )
   ) {
-    throw new Error('Creature Feature action does not deal its Equipment damage types.')
+    throw new Error('Creature Feature action is not the same kind of attack as its Equipment.')
   }
   return {
     loadoutEntryId: source.loadoutEntryId,

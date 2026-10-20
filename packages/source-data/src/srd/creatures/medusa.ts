@@ -106,19 +106,17 @@ export const medusa: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The medusa makes either three melee attacks-one with its snake hair and two with its shortsword-or two ranged attacks with its longbow.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(194, 502),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(194, 606), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(194, 3) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(194, 4) }] }
+            ]
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MEDUSA_MULTIATTACK
-        })
-      ],
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(194, 5) }] }] }
+        ]
+      },
       order: 2
     },
     {

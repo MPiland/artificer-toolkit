@@ -1658,6 +1658,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -1695,6 +1696,18 @@ export declare const api: {
         "mutation",
         "public",
         { campaignId: string; characterId?: string },
+        { ok: true }
+      >;
+    };
+    characterControllers: {
+      setControllers: FunctionReference<
+        "mutation",
+        "public",
+        {
+          campaignId: string;
+          characterId: string;
+          controllerUserIds: Array<string>;
+        },
         { ok: true }
       >;
     };
@@ -3473,6 +3486,7 @@ export declare const api: {
               cost?: { amount: number; currencyId: string };
               costLabel?: string;
               customName?: string;
+              degradation?: number;
               description?: string | null;
               displayAsAttack?: boolean;
               equipmentId: string;
@@ -8006,6 +8020,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -8088,6 +8103,7 @@ export declare const api: {
                 publicId: string;
                 systemId: string;
               } | null;
+              characterControllerUserIds: Array<string>;
               role: "OWNER" | "PLAYER";
               userId: string;
               username: string;
@@ -8170,6 +8186,7 @@ export declare const api: {
                 publicId: string;
                 systemId: string;
               } | null;
+              characterControllerUserIds: Array<string>;
               role: "OWNER" | "PLAYER";
               userId: string;
               username: string;
@@ -8262,6 +8279,7 @@ export declare const api: {
                   publicId: string;
                   systemId: string;
                 } | null;
+                characterControllerUserIds: Array<string>;
                 role: "OWNER" | "PLAYER";
                 userId: string;
                 username: string;
@@ -8348,6 +8366,7 @@ export declare const api: {
                 publicId: string;
                 systemId: string;
               } | null;
+              characterControllerUserIds: Array<string>;
               role: "OWNER" | "PLAYER";
               userId: string;
               username: string;
@@ -8447,6 +8466,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -9723,6 +9743,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -9990,6 +10011,7 @@ export declare const api: {
             | "OTHER"
           >;
           tableConduct: string | null;
+          trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
         }
@@ -10053,6 +10075,7 @@ export declare const api: {
             | "OTHER"
           >;
           tableConduct: string | null;
+          trackAmmunition?: boolean;
         },
         {
           absentCharacterPolicy: string | null;
@@ -10077,6 +10100,7 @@ export declare const api: {
             | "OTHER"
           >;
           tableConduct: string | null;
+          trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
         }
@@ -10138,6 +10162,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -10289,6 +10314,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -11180,6 +11206,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -11743,6 +11770,7 @@ export declare const api: {
               inventory: Array<{
                 containerId?: string;
                 customName?: string;
+                degradation?: number;
                 equipmentId: string;
                 id: string;
                 notes?: string;
@@ -12124,6 +12152,7 @@ export declare const api: {
                 inventory: Array<{
                   containerId?: string;
                   customName?: string;
+                  degradation?: number;
                   equipmentId: string;
                   id: string;
                   notes?: string;
@@ -12504,6 +12533,7 @@ export declare const api: {
                 inventory: Array<{
                   containerId?: string;
                   customName?: string;
+                  degradation?: number;
                   equipmentId: string;
                   id: string;
                   notes?: string;
@@ -13210,6 +13240,7 @@ export declare const api: {
                   inventory: Array<{
                     containerId?: string;
                     customName?: string;
+                    degradation?: number;
                     equipmentId: string;
                     id: string;
                     notes?: string;
@@ -13924,6 +13955,7 @@ export declare const api: {
                   inventory: Array<{
                     containerId?: string;
                     customName?: string;
+                    degradation?: number;
                     equipmentId: string;
                     id: string;
                     notes?: string;
@@ -14650,6 +14682,7 @@ export declare const api: {
                 inventory: Array<{
                   containerId?: string;
                   customName?: string;
+                  degradation?: number;
                   equipmentId: string;
                   id: string;
                   notes?: string;
@@ -15350,6 +15383,7 @@ export declare const api: {
                   inventory: Array<{
                     containerId?: string;
                     customName?: string;
+                    degradation?: number;
                     equipmentId: string;
                     id: string;
                     notes?: string;
@@ -18635,6 +18669,7 @@ export declare const api: {
               cost?: { amount: number; currencyId: string };
               costLabel?: string;
               customName?: string;
+              degradation?: number;
               description?: string | null;
               displayAsAttack?: boolean;
               equipmentId: string;
@@ -22175,6 +22210,7 @@ export declare const api: {
                   cost?: { amount: number; currencyId: string };
                   costLabel?: string;
                   customName?: string;
+                  degradation?: number;
                   description?: string | null;
                   displayAsAttack?: boolean;
                   equipmentId: string;
@@ -25622,6 +25658,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -26747,6 +26784,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -27881,6 +27919,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -29061,6 +29100,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -30293,6 +30333,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -31440,6 +31481,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -32570,6 +32612,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -33760,6 +33803,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -36631,6 +36675,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -37756,6 +37801,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -38890,6 +38936,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -40070,6 +40117,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -41302,6 +41350,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -42449,6 +42498,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -43579,6 +43629,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -44769,6 +44820,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -47649,6 +47701,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -48774,6 +48827,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -49908,6 +49962,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -51088,6 +51143,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -52320,6 +52376,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -53467,6 +53524,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -54597,6 +54655,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -55787,6 +55846,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -58658,6 +58718,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -59783,6 +59844,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -60917,6 +60979,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -62097,6 +62160,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -63329,6 +63393,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -64476,6 +64541,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -65606,6 +65672,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -66796,6 +66863,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -69702,6 +69770,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -70827,6 +70896,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -71961,6 +72031,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -73141,6 +73212,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -74373,6 +74445,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -75520,6 +75593,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -76650,6 +76724,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -77840,6 +77915,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -80711,6 +80787,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -81836,6 +81913,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -82970,6 +83048,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -84150,6 +84229,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -85382,6 +85462,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -86529,6 +86610,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -87659,6 +87741,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -88849,6 +88932,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -91689,6 +91773,7 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              heldBySource?: true;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
@@ -92802,6 +92887,7 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              heldBySource?: true;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
@@ -93924,6 +94010,7 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              heldBySource?: true;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
@@ -95086,6 +95173,7 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              heldBySource?: true;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
@@ -96296,6 +96384,7 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              heldBySource?: true;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
@@ -97431,6 +97520,7 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              heldBySource?: true;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
@@ -98549,6 +98639,7 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              heldBySource?: true;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
@@ -99723,6 +99814,7 @@ export declare const api: {
                               allowedCreatureTypeIds?: Array<string>;
                               dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                               excludedCreatureTypeIds?: Array<string>;
+                              heldBySource?: true;
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
@@ -102589,6 +102681,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -103714,6 +103807,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -104848,6 +104942,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -106028,6 +106123,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -107260,6 +107356,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -108407,6 +108504,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -109537,6 +109635,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -110727,6 +110826,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -113598,6 +113698,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -114723,6 +114824,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -115857,6 +115959,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -117037,6 +117140,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -118269,6 +118373,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -119416,6 +119521,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -120546,6 +120652,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -121736,6 +121843,7 @@ export declare const api: {
                                 allowedCreatureTypeIds?: Array<string>;
                                 dispositionKind?: "ANY" | "WILLING" | "HOSTILE";
                                 excludedCreatureTypeIds?: Array<string>;
+                                heldBySource?: true;
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
@@ -122980,6 +123088,11 @@ export declare const api: {
         {
           actions: Array<{
             actionCost?: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+            ammunition?: Array<{
+              itemInstanceId: string;
+              label: string;
+              quantity: number;
+            }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
@@ -123183,6 +123296,7 @@ export declare const api: {
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;
                   choosesItem?: true;
+                  heldBySource?: true;
                   kind: "ACTOR";
                   self: "ALLOWED" | "WARN" | "REFUSED";
                 }
@@ -124727,6 +124841,11 @@ export declare const api: {
           actorId: string;
           basicActionChoices: Array<{
             actionCost?: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+            ammunition?: Array<{
+              itemInstanceId: string;
+              label: string;
+              quantity: number;
+            }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
@@ -124930,6 +125049,7 @@ export declare const api: {
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;
                   choosesItem?: true;
+                  heldBySource?: true;
                   kind: "ACTOR";
                   self: "ALLOWED" | "WARN" | "REFUSED";
                 }
@@ -126524,6 +126644,7 @@ export declare const api: {
             }>;
           }>;
           openAttackAction: {
+            complete: boolean;
             lastActionId: string;
             lastTargetIds: Array<string>;
             made: number;
@@ -126811,6 +126932,7 @@ export declare const api: {
                 }>;
                 round: number;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
               }
@@ -127780,6 +127902,7 @@ export declare const api: {
                 }>;
                 round: number;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
               }
@@ -128670,6 +128793,7 @@ export declare const api: {
             }>;
             round: number;
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
+            trackAmmunition?: boolean;
             updatedAt: string;
             version: number;
           }
@@ -128971,6 +129095,7 @@ export declare const api: {
                 }>;
                 round: number;
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
+                trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
               }
@@ -129535,6 +129660,7 @@ export declare const api: {
           }>;
           round: number;
           status: "PREPARED" | "ACTIVE" | "COMPLETED";
+          trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
         }
@@ -130963,6 +131089,7 @@ export declare const api: {
                   collection: "tokens";
                   entity: {
                     assetId: string | null;
+                    characterId?: string;
                     controlledByUserIds: Array<string>;
                     height: number;
                     hidden: boolean;
@@ -131259,6 +131386,7 @@ export declare const api: {
                 collection: "tokens";
                 entities: Array<{
                   assetId: string | null;
+                  characterId?: string;
                   controlledByUserIds: Array<string>;
                   height: number;
                   hidden: boolean;
@@ -131598,6 +131726,7 @@ export declare const api: {
                   collection: "tokens";
                   entity: {
                     assetId: string | null;
+                    characterId?: string;
                     controlledByUserIds: Array<string>;
                     height: number;
                     hidden: boolean;
@@ -131896,6 +132025,7 @@ export declare const api: {
                   collection: "tokens";
                   entity: {
                     assetId: string | null;
+                    characterId?: string;
                     controlledByUserIds: Array<string>;
                     height: number;
                     hidden: boolean;
@@ -132128,6 +132258,7 @@ export declare const api: {
             name: string;
             tokens: Array<{
               assetId: string | null;
+              characterId?: string;
               controlledByUserIds: Array<string>;
               height: number;
               hidden: boolean;
@@ -132981,6 +133112,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -135918,6 +136050,7 @@ export declare const internal: {
         {
           authoringSources: {
             checksum: string;
+            factsVersion?: number;
             rows: {
               ability_definitions?: Array<
                 Record<string, string | number | boolean | null>
@@ -136073,7 +136206,7 @@ export declare const internal: {
           };
           compilation: {
             authoredChecksum: string;
-            compilerVersion: "subject-compiler-v1";
+            compilerVersion: "subject-compiler-v2";
             projectionChecksum: string;
             projectionJson: string;
             projectionSchemaVersion: 1;
@@ -136177,6 +136310,78 @@ export declare const internal: {
         "internal",
         { systemId: string; table: string },
         string
+      >;
+    };
+    compilationMigration: {
+      recompileStaleCompilations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      repinCharacterDraftRetainedRules: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      repinCharacterRetainedRules: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      repinPartyRetainedRules: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
       >;
     };
     development: {
@@ -136495,6 +136700,7 @@ export declare const internal: {
         "internal",
         {
           contentSourceId: string;
+          reimportedSubjectIds?: Array<string>;
           subjects: Array<{
             checksum: string;
             document:
@@ -136572,7 +136778,7 @@ export declare const internal: {
         {
           compilation: {
             authoredChecksum: string;
-            compilerVersion: "subject-compiler-v1";
+            compilerVersion: "subject-compiler-v2";
             projectionChecksum: string;
             projectionJson: string;
             projectionSchemaVersion: 1;
@@ -136667,7 +136873,7 @@ export declare const internal: {
           checksum: string;
           compilation: {
             authoredChecksum: string;
-            compilerVersion: "subject-compiler-v1";
+            compilerVersion: "subject-compiler-v2";
             projectionChecksum: string;
             projectionJson: string;
             projectionSchemaVersion: 1;
@@ -138416,7 +138622,11 @@ export declare const internal: {
         },
         {
           campaign?: {
-            assignments: Array<{ characterId: string; userId: string }>;
+            assignments: Array<{
+              characterId: string;
+              controllerUserIds?: Array<string>;
+              userId: string;
+            }>;
             members: Array<{
               membershipEpoch: string;
               role: "OWNER" | "PLAYER";
@@ -140538,6 +140748,7 @@ export declare const internal: {
                   collection: "tokens";
                   entity: {
                     assetId: string | null;
+                    characterId?: string;
                     controlledByUserIds: Array<string>;
                     height: number;
                     hidden: boolean;

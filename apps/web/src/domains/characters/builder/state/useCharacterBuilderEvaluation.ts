@@ -67,7 +67,9 @@ export function useCharacterBuilderEvaluation(
   const previousCharacter = mode === 'edit' ? active.data : null
   const getToken = useContentSnapshotToken()
   const getTokenRef = useRef(getToken)
-  getTokenRef.current = getToken
+  useEffect(() => {
+    getTokenRef.current = getToken
+  }, [getToken])
   const [client, setClient] = useState<BuilderEvaluationClient | null>(null)
   const [loadingKinds, setLoadingKinds] = useState<readonly ContentSnapshotKind[]>([])
   const [failedKind, setFailedKind] = useState<ContentSnapshotKind | null | undefined>()

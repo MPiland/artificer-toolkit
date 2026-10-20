@@ -34,9 +34,31 @@ describe('Creature spellCast authoring (REACTION-4.T3h)', () => {
   it('authors a cast level from core nodes, only in Creature editors', () => {
     const creatureEffect = childMap(CREATURE_FEATURE_NODE_MAP.nodes.effects).nodes
     expect(Object.keys(childMap(creatureEffect.spellCast).nodes)).toEqual(['castLevel'])
-    expect(childMap(childMap(CREATURE_OPTION_NODE_MAP.nodes.effects).nodes.spellCast).nodes).toBeDefined()
+    expect(
+      childMap(childMap(CREATURE_OPTION_NODE_MAP.nodes.effects).nodes.spellCast).nodes
+    ).toBeDefined()
 
     expect(childMap(FEATURE_NODE_MAP.nodes.effects).nodes.spellCast).toBeUndefined()
     expect(childMap(OPTION_NODE_MAP.nodes.effects).nodes.spellCast).toBeUndefined()
+  })
+})
+
+describe('Creature attack slot authoring (ATTACK-11.3)', () => {
+  it('authors alternatives of slots with fillers, flags and a condition, only in Creature editors', () => {
+    const set = childMap(CREATURE_FEATURE_NODE_MAP.nodes.attackSlots)
+    expect(Object.keys(set.nodes)).toEqual(['alternatives'])
+    const slot = childMap(childMap(set.nodes.alternatives).nodes.slots)
+    expect(Object.keys(slot.nodes)).toEqual([
+      'count',
+      'fillers',
+      'optional',
+      'comesFirst',
+      'condition'
+    ])
+    expect(Object.keys(childMap(slot.nodes.fillers).nodes)).toEqual(['kind', 'featureId'])
+    expect(Object.keys(childMap(slot.nodes.condition).nodes)).toEqual(['kind', 'size'])
+
+    expect(FEATURE_NODE_MAP.nodes.attackSlots).toBeUndefined()
+    expect(OPTION_NODE_MAP.nodes.attackSlots).toBeUndefined()
   })
 })

@@ -49,6 +49,17 @@ export const manticore: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The manticore makes three attacks: one with its bite and two with its claws or three with its tail spikes.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(191, 3) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(191, 4) }] }
+            ]
+          },
+          { slots: [{ count: 3, fillers: [{ kind: 'FEATURE', featureId: S.featureId(191, 5) }] }] }
+        ]
+      },
       order: 2
     },
     {

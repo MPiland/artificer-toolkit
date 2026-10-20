@@ -103,6 +103,8 @@ export function smiterWeaponAttack(
     expectedStreamVersion: 0,
     classLevels: character.facts.grantFoldFacts.base.classes,
     automationMode: 'ASSISTED',
+    trackAmmunition: false,
+    ammunition: null,
     overridable: false
   })
   return { plan, actionMechanic, compilerSource, decision }

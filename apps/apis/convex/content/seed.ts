@@ -260,10 +260,15 @@ export const seed = internalAction({
       ),
       new Map(manifest.definitions.map((definition) => [definition.id, definition]))
     )
+    // A replaced parent leaves the dependents a later batch replaces to that batch, whose import
+    // compiles them against the current parent: their stored documents may predate its schema.
+    const reimported = new Set(changed)
     for (const subjects of sourceImportBatches(manifest.subjects, ({ id }) => changed.has(id))) {
+      for (const { id } of subjects) reimported.delete(id)
       const batch = await ctx.runMutation(internal.content.import.importSubjects, {
         contentSourceId: manifest.contentSource.id,
-        subjects
+        subjects,
+        reimportedSubjectIds: [...reimported]
       })
       counts.inserted += batch.inserted
       counts.reused += batch.reused

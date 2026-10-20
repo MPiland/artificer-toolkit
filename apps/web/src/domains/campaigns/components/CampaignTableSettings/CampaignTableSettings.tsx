@@ -13,7 +13,7 @@ import {
 } from '@mantine/core'
 import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import {
   campaignPlaySettingsDtoSchema,
@@ -76,7 +76,11 @@ function CampaignTableSettingsForm({
   const selectedInitiativePolicy = options.initiativePolicies.find(
     (policy) => policy.definitionId === draft.initiativePolicyDefinitionId
   )
-  useEffect(() => setDraft(toDraft(settings)), [settings])
+  const [syncedVersion, setSyncedVersion] = useState(settings.version)
+  if (syncedVersion !== settings.version) {
+    setSyncedVersion(settings.version)
+    setDraft(toDraft(settings))
+  }
 
   const save = useMutation({
     mutationFn: () =>
@@ -148,6 +152,13 @@ function CampaignTableSettingsForm({
             if (value === 'ASSISTED' || value === 'MANUAL') set('automationMode', value)
           }}
           value={draft.automationMode}
+        />
+        <Checkbox
+          checked={draft.trackAmmunition}
+          description='Each ammunition attack draws a piece from the chosen stack and is refused when none is left. Off, the chosen ammunition still applies its bonuses and nothing is counted.'
+          disabled={!editable}
+          label='Track ammunition'
+          onChange={(event) => set('trackAmmunition', event.currentTarget.checked)}
         />
         <Select
           clearable

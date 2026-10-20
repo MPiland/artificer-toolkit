@@ -218,6 +218,17 @@ export const wereboar: CreatureAuthored = {
       label: 'Multiattack (Humanoid or Hybrid Form Only)',
       description:
         'Multiattack (Humanoid or Hybrid Form Only). The wereboar makes two attacks, only one of which can be with its tusks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(288, 5) }] }] },
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(288, 5) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(288, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 6
     }
   ]

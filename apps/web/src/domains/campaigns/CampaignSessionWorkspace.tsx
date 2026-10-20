@@ -1,6 +1,6 @@
 import { Select, Tabs } from '@mantine/core'
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { getCampaignSession, useCampaignDetail } from '#app/data/campaigns/queries'
 import { getCampaignEncounters } from '#app/data/encounters/queries'
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
@@ -38,16 +38,24 @@ export function CampaignSessionWorkspace({
     () => getSessionWorkspaceViews(campaign.role, session.status),
     [campaign.role, session.status]
   )
-  const [activeView, setActiveView] = useState<SessionWorkspaceView>(views[0])
-
-  useEffect(() => {
-    if (!views.includes(activeView)) setActiveView(views[0])
-  }, [activeView, views])
-  useEffect(() => {
-    if (campaign.role !== 'OWNER' || session.status !== 'OPEN') return
-    const active = encounters.data?.some((encounter) => encounter.status === 'ACTIVE')
-    if (active) setActiveView((current) => (current === 'PREPARE' ? 'RUN' : current))
-  }, [campaign.role, encounters.data, session.status])
+  const [selectedView, setActiveView] = useState<SessionWorkspaceView>(views[0])
+  const hasActiveEncounter =
+    campaign.role === 'OWNER' &&
+    session.status === 'OPEN' &&
+    Boolean(encounters.data?.some((encounter) => encounter.status === 'ACTIVE'))
+  const [sawActiveEncounter, setSawActiveEncounter] = useState(false)
+  let activeView = selectedView
+  if (!views.includes(activeView)) {
+    activeView = views[0]
+    setActiveView(activeView)
+  }
+  if (hasActiveEncounter !== sawActiveEncounter) {
+    setSawActiveEncounter(hasActiveEncounter)
+    if (hasActiveEncounter && activeView === 'PREPARE') {
+      activeView = 'RUN'
+      setActiveView(activeView)
+    }
+  }
 
   function updateSession(updated: CampaignSessionDto) {
     queryClient.setQueryData(getCampaignSession(campaign.id, sessionNumber).queryKey, updated)

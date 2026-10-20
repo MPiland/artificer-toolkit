@@ -291,6 +291,8 @@ export async function persistEncounterActionCommit(
       : null
   // The item the outcome made the target drop (Heat Metal), applied again from the room's receipt.
   const targetRelease = batch.targetItemUseStateTransition
+  const targetDegradation =
+    batch.kind === 'CHARACTER_MECHANICS_BATCH' ? batch.targetItemDegradation : null
   const mechanics = await callbacks.applyMechanics({
     ...common,
     targetActorId: target.id,
@@ -301,6 +303,15 @@ export async function persistEncounterActionCommit(
             targetRelease.kind === 'CHARACTER_ITEM_USE_STATE'
               ? targetRelease.itemInstanceId
               : targetRelease.loadoutEntryId
+        }
+      : {}),
+    ...(targetDegradation
+      ? {
+          degradeItem: {
+            itemInstanceId: targetDegradation.itemInstanceId,
+            afterPenalty: targetDegradation.afterPenalty,
+            destroyed: targetDegradation.afterUsed > targetDegradation.beforeUsed
+          }
         }
       : {}),
     applications: batch.applications.map((application) => ({
@@ -331,6 +342,8 @@ export async function persistEncounterActionCommit(
       checksumCanonicalJson(batch.targetTransition) ||
     checksumCanonicalJson(mechanics.itemReleaseTransition) !==
       checksumCanonicalJson(targetRelease) ||
+    checksumCanonicalJson(mechanics.itemDegradationTransition) !==
+      checksumCanonicalJson(targetDegradation) ||
     checksumCanonicalJson(sourceMechanics?.receiptApplications ?? []) !==
       checksumCanonicalJson(batch.sourceApplications) ||
     (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&

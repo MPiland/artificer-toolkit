@@ -1865,6 +1865,55 @@ it('commits each fog owner with native geometry before acknowledgement and resyn
   })
 })
 
+it('explores and projects a granted Character token for its grantee, who is not the token listed controller (D162)', async () => {
+  const value = movementScene(crypto.randomUUID())
+  value.scene.fogMode = 'PER_PLAYER'
+  const characterId = crypto.randomUUID()
+  const token = value.scene.tokens[0]!
+  token.vision = { ...token.vision!, dimRange: 30, enabled: true }
+  const base = await fixture(value.scene)
+  // The GM lists only themself on the token; the assigned player and grantee come from the Character.
+  token.characterId = characterId
+  token.controlledByUserIds = [base.userId]
+  base.authorization.assignments = [
+    { characterId, controllerUserIds: [base.playerId], userId: base.otherPlayerId }
+  ]
+  await synchronizeScene(base, value.scene)
+  const grantee = await connectPlayer(base)
+  const fogOwners = () =>
+    runInDurableObject(base.stub, (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .records('SCENE_CHECKPOINT_ROW')
+        .filter(({ key }) => JSON.parse(key)[0] === 'sceneFogLayers')
+        .map(({ json }) => sceneStoredFogLayerSchema.parse(JSON.parse(json)).ownerUserId)
+        .sort()
+    )
+  const commandId = crypto.randomUUID()
+  base.socket.send(
+    JSON.stringify(tokenMoveCommand(value.scene, value.tokenId, commandId, { x: 20, y: 10 }))
+  )
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({ commandId, type: 'COMMAND_COMMITTED' })
+    )
+  )
+  expect(await fogOwners()).toEqual([base.userId, base.otherPlayerId, base.playerId].sort())
+  grantee.socket.send(JSON.stringify({ lastAppliedSequence: 0, type: 'RESUME' }))
+  await vi.waitFor(() =>
+    expect(grantee.messages).toContainEqual(
+      expect.objectContaining({
+        state: expect.objectContaining({
+          scene: expect.objectContaining({
+            fogLayers: [expect.objectContaining({ ownerUserId: base.playerId })],
+            tokens: [expect.objectContaining({ id: value.tokenId })]
+          })
+        }),
+        type: 'STATE_SYNC'
+      })
+    )
+  )
+})
+
 it('undoes a fog-deriving move through the room and removes the fog it explored', async () => {
   const value = movementScene(crypto.randomUUID())
   value.scene.fogMode = 'PER_PLAYER'
@@ -6600,7 +6649,9 @@ it('sends an expected domain rejection and keeps an unexpected failure generic',
       expect(localEncounterEvidence(context.storage)).toEqual(before)
       // The cause the member never sees reaches the test harness (PLATFORM-22.2).
       expect(roomFailureLog().flat()).toContainEqual(
-        expect.objectContaining({ message: expect.stringContaining('Encounter actor was not found') })
+        expect.objectContaining({
+          message: expect.stringContaining('Encounter actor was not found')
+        })
       )
     } finally {
       sent.mockRestore()
@@ -7108,6 +7159,7 @@ function planDoorChange(input: {
   state: 'OPEN' | 'CLOSED' | 'LOCKED'
 }) {
   return planLiveSceneCommand({
+    assignments: [],
     command: {
       barrierId: input.doorId,
       commandId: crypto.randomUUID(),
@@ -7177,6 +7229,7 @@ it('plans live token movement with vision and kept fog only while fog is OFF', (
   }
   const plan = (fogMode: CampaignSceneStateDto['fogMode']) =>
     planLiveSceneCommand({
+      assignments: [],
       command: {
         commandId: crypto.randomUUID(),
         correlationId: null,
@@ -7214,6 +7267,7 @@ it('walks a teleport that no Encounter allowance admits, so it cannot cross a cl
   }
   const plan = (expectedEncounterVersion: number | null) =>
     planLiveSceneCommand({
+      assignments: [],
       command: {
         commandId: crypto.randomUUID(),
         correlationId: null,
@@ -7244,6 +7298,7 @@ it('plans bound moves and moves on a bound Scene through room geometry', () => {
     role: 'OWNER' | 'PLAYER'
   }) =>
     planLiveSceneCommand({
+      assignments: [],
       command: {
         commandId: crypto.randomUUID(),
         correlationId: null,
@@ -7273,6 +7328,42 @@ it('plans bound moves and moves on a bound Scene through room geometry', () => {
   expect(plan({ expectedEncounterVersion: null, encounterId, role: 'PLAYER' })).toMatchObject({
     code: 'FORBIDDEN'
   })
+})
+
+it('plans an unbound move for a member granted control of the token Character, until revoked (D162)', () => {
+  const { scene, tokenId } = movementScene(crypto.randomUUID())
+  const characterId = crypto.randomUUID()
+  const grantee = crypto.randomUUID()
+  const plan = (controllerUserIds: string[]) =>
+    planLiveSceneCommand({
+      assignments: [{ characterId, userId: crypto.randomUUID(), controllerUserIds }],
+      command: {
+        commandId: crypto.randomUUID(),
+        correlationId: null,
+        expectedEncounterVersion: null,
+        expectedSceneVersion: scene.version,
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 10, y: 10 },
+          { x: 20, y: 10 }
+        ],
+        sceneId: scene.id,
+        tokenId,
+        type: 'MOVE_SCENE_TOKEN'
+      },
+      scene: {
+        ...scene,
+        fogMode: 'OFF',
+        tokens: scene.tokens.map((token) => ({ ...token, characterId, controlledByUserIds: [] }))
+      },
+      encounterId: null,
+      actor: { role: 'PLAYER', userId: grantee }
+    })
+  expect(plan([grantee])).toEqual({
+    kind: 'ACCEPTED',
+    delta: { kind: 'TOKEN_MOVED', position: { x: 20, y: 10 }, tokenId }
+  })
+  expect(plan([])).toMatchObject({ code: 'FORBIDDEN' })
 })
 
 it('fans out every non-hidden token and door to a player in a fog-OFF Scene', async () => {

@@ -52,6 +52,7 @@ const playSettings = campaignPlaySettingsDtoSchema.parse({
   safetyPractices: ['SESSION_ZERO'],
   liveSafetyMethod: null,
   automationMode: 'ASSISTED',
+  trackAmmunition: false,
   initiativePolicyDefinitionId: initiativePolicyId,
   initiativeTieDefinitionId: initiativeTieId,
   optionalCombatRuleDefinitionIds: [optionalRuleId],

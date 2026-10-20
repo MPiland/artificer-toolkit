@@ -34,6 +34,33 @@ type HealOutcome = Extract<ActionMechanicOutcome, { kind: 'HEAL' }>
 type ActionEquipment = NonNullable<ActionCandidate['equipment']>
 type ItemEquipmentState = Omit<ActionEquipment, 'grip' | 'requirements'>
 
+/**
+ * The ammunition an ammunition weapon fires: every item of the Character descending from the equipment
+ * the weapon names fits, so a variant (+1 Arrows) fits through its parent chain.
+ */
+function ammunitionState(
+  ammunitionEquipmentId: string | undefined,
+  items: CharacterBuildSnapshot['equipmentItems']
+): Pick<ItemEquipmentState, 'ammunitionEquipmentId' | 'ammunitionStacks'> {
+  if (!ammunitionEquipmentId) return {}
+  return {
+    ammunitionEquipmentId,
+    ammunitionStacks: items.flatMap(({ instanceId, contentRef, compiledItem }) =>
+      [contentRef.definitionId, ...compiledEquipmentParentIds(compiledItem)].includes(
+        ammunitionEquipmentId
+      )
+        ? [
+            {
+              itemInstanceId: instanceId,
+              equipmentId: contentRef.definitionId,
+              label: compiledItem.label ?? 'Ammunition'
+            }
+          ]
+        : []
+    )
+  }
+}
+
 /** One weapon attack an item makes, which a Feature attack with the wielded weapons uses (D156). */
 interface ItemWeaponAttack {
   equipment: ItemEquipmentState
@@ -642,6 +669,8 @@ export function buildCharacterActionRuleFacts(params: {
       attuned: item.attuned,
       requiresAttunement: folded.requiresAttunement,
       consumedOnUse: item.compiledItem.attributes?.includes('CONSUMED_ON_USE') ?? false,
+      ...(item.degradation === undefined ? {} : { degradation: item.degradation }),
+      ...ammunitionState(item.compiledItem.ammunitionEquipmentId, snapshot.equipmentItems),
       otherWeaponEquipped: snapshot.equipmentItems.some(
         (other) =>
           other.instanceId !== item.instanceId &&

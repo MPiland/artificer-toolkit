@@ -1,6 +1,7 @@
 import { campaignSceneStateDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { describe, expect, it } from 'vitest'
 
+import { withCharacterControllers } from '@artificer-toolkit/shared/campaign/characterControl'
 import {
   createNativeLiveSessionState,
   projectNativeLiveSessionState
@@ -130,6 +131,34 @@ describe('Scene token senses in the recipient projection', () => {
           ({ senses }) => senses
         )
       ).toEqual(Array(5).fill([darkvision]))
+    })
+  })
+
+  describe('for a Character the GM granted (D162)', () => {
+    // 0x40 is linked to a Character assigned to OWNER and granted to PLAYER; 0x41 to another Character.
+    const characterId = uuid(0x60)
+    const linked = (id: number, linkedCharacterId: string) => ({
+      ...token(id, []),
+      characterId: linkedCharacterId
+    })
+    const grantScene = sceneWith([linked(0x40, characterId), linked(0x41, uuid(0x61))])
+    const projectFor = (userId: string, controllerUserIds: string[]) =>
+      sensesByToken(
+        { role: 'PLAYER', userId },
+        new Map(),
+        withCharacterControllers(grantScene, [{ characterId, controllerUserIds, userId: OWNER }])
+      )
+
+    it('gives the grantee the senses of that Character token alone', () => {
+      expect(projectFor(PLAYER, [PLAYER])).toEqual([
+        { id: uuid(0x40), senses: [darkvision] },
+        { id: uuid(0x41), senses: [] }
+      ])
+    })
+
+    it('shows a stranger nothing of it, and a revoked grantee loses it', () => {
+      expect(projectFor(OTHER_PLAYER, [PLAYER])?.map(({ senses }) => senses)).toEqual([[], []])
+      expect(projectFor(PLAYER, [])?.map(({ senses }) => senses)).toEqual([[], []])
     })
   })
 })

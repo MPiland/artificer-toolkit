@@ -17,7 +17,11 @@ import { CampaignChatHistory } from './CampaignChatHistory'
 import { CampaignChatNavigation } from './CampaignChatNavigation'
 import * as chatStyles from './CampaignChat.css'
 import type { CampaignChatRoom, CampaignRollView } from './campaignChat.types'
-import { mergeRoomChatEntries, mergeRoomPrivateRolls } from './campaignChat.utils'
+import {
+  mergeRoomChatEntries,
+  mergeRoomPrivateRolls,
+  readSavedChatMode
+} from './campaignChat.utils'
 
 export function CampaignChat({
   campaign,
@@ -42,13 +46,23 @@ export function CampaignChat({
   const markConversationRead = useConvexMutation(convexApi.campaigns.conversations.markRead)
   const [room, setRoom] = useState<CampaignChatRoom>('TABLE')
   const [directUserId, setDirectUserId] = useState<string>()
-  const [mode, setMode] = useState<'OOC' | 'ROLEPLAY'>('OOC')
   const [body, setBody] = useState('')
   const reduceMotion = useReducedMotion()
   const lastMarkedRead = useRef<string | undefined>(undefined)
   const chatLog = useRef<HTMLDivElement>(null)
   const currentMember = campaign.memberships.find((member) => member.userId === currentUserId)
   const assignedCharacter = currentMember?.assignedCharacter ?? null
+  const chatModeKey = `campaign:${campaign.id}:chat-mode`
+  const [mode, setMode] = useState<'OOC' | 'ROLEPLAY'>(
+    () => readSavedChatMode(chatModeKey, Boolean(assignedCharacter)) ?? 'OOC'
+  )
+  const savedModeScope = `${chatModeKey}:${assignedCharacter?.id ?? ''}`
+  const [appliedModeScope, setAppliedModeScope] = useState(savedModeScope)
+  if (appliedModeScope !== savedModeScope) {
+    setAppliedModeScope(savedModeScope)
+    const savedMode = readSavedChatMode(chatModeKey, Boolean(assignedCharacter))
+    if (savedMode) setMode(savedMode)
+  }
   const conversations = useQuery(getCampaignConversations(campaign.id))
   // The room's Run while it holds the Run; Convex's stored one otherwise. The timeline is the
   // room's alone: with no room there is none to show.
@@ -93,17 +107,6 @@ export function CampaignChat({
     }))
   const selectedDirectMember = directMembers.find((member) => member.userId === directUserId)
   const newestEntryId = entries.at(-1)?.id
-
-  useEffect(() => {
-    const savedMode = window.localStorage.getItem(`campaign:${campaign.id}:chat-mode`)
-    if (savedMode === 'OOC' || (savedMode === 'ROLEPLAY' && assignedCharacter)) {
-      setMode(savedMode)
-    }
-  }, [assignedCharacter, campaign.id])
-
-  useEffect(() => {
-    window.localStorage.setItem(`campaign:${campaign.id}:chat-mode`, mode)
-  }, [campaign.id, mode])
 
   useEffect(() => {
     if (!newestEntryId) return
@@ -277,7 +280,11 @@ export function CampaignChat({
               ]}
               size='xs'
               value={mode}
-              onChange={(value) => setMode((value as typeof mode) ?? 'OOC')}
+              onChange={(value) => {
+                const nextMode = (value as typeof mode) ?? 'OOC'
+                setMode(nextMode)
+                window.localStorage.setItem(chatModeKey, nextMode)
+              }}
             />
             <Button
               disabled={!body.trim()}

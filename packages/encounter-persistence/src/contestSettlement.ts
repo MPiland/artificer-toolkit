@@ -318,7 +318,8 @@ export async function settleContest(
     ? await consumeNativeActionEconomy(ctx, {
         actor: input.actor,
         consumption: input.actionEconomy,
-        overridden: false
+        overridden: false,
+        attackAction: input.attackAction ?? null
       })
     : input.actor
   // The contest is the initiator's action against the target: against a hostile creature it

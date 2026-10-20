@@ -14,6 +14,7 @@ type RelationshipModule = Extract<
 
 const MOVER = { actorId: testUuid(0xd701), tokenId: testUuid(0xd711) }
 const HELD = { actorId: testUuid(0xd702), tokenId: testUuid(0xd712) }
+const HELD_TWO = { actorId: testUuid(0xd704), tokenId: testUuid(0xd714) }
 const OTHER = { actorId: testUuid(0xd703), tokenId: testUuid(0xd713) }
 const dragged: RelationshipModule = { id: testUuid(0xd720), order: 0, kind: 'TARGET_DRAGGED' }
 const occupiesHand: RelationshipModule = {
@@ -22,18 +23,18 @@ const occupiesHand: RelationshipModule = {
   kind: 'SOURCE_OCCUPIES_HAND'
 }
 
-/** `sourceActorId` holds `HELD` through a relationship carrying `modules`. */
-function holds(sourceActorId: string, modules: RelationshipModule[]) {
+/** `sourceActorId` holds `held` through a relationship carrying `modules`. */
+function holds(sourceActorId: string, modules: RelationshipModule[], held = HELD) {
   return new Map([
     [
-      HELD.actorId,
+      held.actorId,
       [
         activeEffect({
-          id: testUuid(0xd730),
+          id: testUuid(0xd730 + (held === HELD ? 0 : 0x100)),
           owner: {
             kind: 'ENCOUNTER_ACTOR',
             encounterId: ENCOUNTER_ID,
-            targetActorId: HELD.actorId
+            targetActorId: held.actorId
           },
           createdOrdinal: 1,
           sourceActorId,
@@ -88,7 +89,7 @@ const scene: Parameters<typeof encounterMovementDrag>[0]['scene'] = {
   doorStates: {}
 }
 const actorIdByTokenId = new Map(
-  [MOVER, HELD, OTHER].map((entry) => [entry.tokenId, entry.actorId])
+  [MOVER, HELD, HELD_TWO, OTHER].map((entry) => [entry.tokenId, entry.actorId])
 )
 const walk = (toX: number) => [
   { x: 150, y: 50 },
@@ -196,5 +197,33 @@ describe('a grappler drags the creatures it holds (ATTACK-7.T7, D105)', () => {
       }
     })
     expect(drag({ effects: [aura], path: walk(550) }).kind).toBe('DRAG')
+  })
+  it('prices a mixed-size pair of holds together: one creature that is not small enough doubles the move', () => {
+    const both = new Map([
+      ...holds(MOVER.actorId, [occupiesHand, dragged]),
+      ...holds(MOVER.actorId, [occupiesHand, dragged], HELD_TWO)
+    ])
+    const planned = (mover: string, held: string, heldTwo: string) =>
+      drag({
+        scene: {
+          ...scene,
+          tokens: [...scene.tokens, zoneToken(HELD_TWO.tokenId, 'Held two', 350)]
+        },
+        activeEffectsByActorId: both,
+        path: walk(200),
+        sizes: { [MOVER.actorId]: mover, [HELD.actorId]: held, [HELD_TWO.actorId]: heldTwo }
+      })
+    expect(planned('LARGE', 'TINY', 'MEDIUM')).toEqual({
+      kind: 'DRAG',
+      tokens: [
+        { tokenId: HELD.tokenId, actorId: HELD.actorId },
+        { tokenId: HELD_TWO.tokenId, actorId: HELD_TWO.actorId }
+      ],
+      doublesCost: true
+    })
+    // Each creature is judged on its own size: with both two sizes smaller the move is full speed.
+    expect(planned('LARGE', 'TINY', 'SMALL')).toMatchObject({ doublesCost: false })
+    // The order of the holds does not matter.
+    expect(planned('LARGE', 'MEDIUM', 'TINY')).toMatchObject({ doublesCost: true })
   })
 })

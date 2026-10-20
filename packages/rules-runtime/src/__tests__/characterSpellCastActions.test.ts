@@ -424,6 +424,11 @@ const authoredById = new Map(
   ].map((entry) => [entry.id, entry])
 )
 
+/** The rules read compiled Spells; the fixtures author them. */
+function compiledById(spells: ReadonlyMap<string, SpellAuthored>) {
+  return new Map([...spells].map(([id, spell]) => [id, compileSpell(spell)]))
+}
+
 function build(
   candidates: readonly SpellCastCandidate[],
   overrides: Partial<BuildInput> = {},
@@ -433,7 +438,7 @@ function build(
     spellCastCandidates: candidates,
     spellAccessCandidates: [],
     castableCandidateIds: new Set(candidates.map((cast) => cast.candidateId)),
-    spellDocumentsById: authoredById,
+    spellsById: compiledById(authoredById),
     firstSequence: 10,
     characterLevel: 1,
     ...overrides,
@@ -448,7 +453,7 @@ function compiledCastEntry(authored: SpellAuthored, castLevel = authored.level) 
   const documents = new Map([...authoredById, [authored.id, authored]])
   const built = build([cast], {
     policyOutput: policyFor([cast], documents),
-    spellDocumentsById: documents
+    spellsById: compiledById(documents)
   })
   const compiled = compileCharacterActionEntryPoints({
     gameSystemId: SRD_SYSTEM_ID,
@@ -494,7 +499,7 @@ describe('the cast choices an Encounter offers a Character', () => {
   it('titles a cantrip by its name alone', () => {
     const cantrip = { ...FIREBALL, level: 0 }
     const built = build([candidate(cantrip, 0)], {
-      spellDocumentsById: new Map([[cantrip.id, cantrip]])
+      spellsById: new Map([[cantrip.id, compileSpell(cantrip)]])
     })
     expect(built.candidates.map((entry) => entry.label)).toEqual(['Fireball'])
   })
@@ -530,7 +535,7 @@ describe('the cast choices an Encounter offers a Character', () => {
     expect(
       build(levels, { policyOutput: unavailable }).candidates.map((entry) => entry.sourceId)
     ).toEqual([levels[1]!.candidateId])
-    expect(build(levels, { spellDocumentsById: new Map() }).candidates).toEqual([])
+    expect(build(levels, { spellsById: new Map() }).candidates).toEqual([])
   })
 })
 
@@ -579,6 +584,8 @@ describe('what a leveled cast carries into the Encounter action', () => {
       expectedStreamVersion: STREAM_VERSION,
       classLevels: character.facts.grantFoldFacts.base.classes,
       automationMode,
+      trackAmmunition: false,
+      ammunition: null,
       overridable: true
     })
   }
@@ -737,6 +744,8 @@ describe('a cast paid from a spell-source pool', () => {
         expectedStreamVersion: STREAM_VERSION,
         classLevels: character.facts.grantFoldFacts.base.classes,
         automationMode,
+        trackAmmunition: false,
+        ammunition: null,
         overridable: false
       })
     }
@@ -785,7 +794,7 @@ describe('a cast paid from a spell-source pool', () => {
       source
     })
     const [offered] = build([cast], {
-      spellDocumentsById: new Map([[cantrip.id, cantrip]])
+      spellsById: new Map([[cantrip.id, compileSpell(cantrip)]])
     }).candidates
     expect(offered?.resourceUse).toBeNull()
   })

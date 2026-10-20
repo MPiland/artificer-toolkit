@@ -1,18 +1,16 @@
 import type { CampaignSummaryDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { usePaginatedQuery } from 'convex/react'
-import { useEffect } from 'react'
 import { convexQuery } from '@convex-dev/react-query'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useLoadAllPages } from '#app/data/useLoadAllPages'
 
 export function useGetCampaignList(enabled = true) {
   const campaigns = usePaginatedQuery(convexApi.campaigns.queries.list, enabled ? {} : 'skip', {
     initialNumItems: 8
   })
 
-  useEffect(() => {
-    if (enabled && campaigns.status === 'CanLoadMore') campaigns.loadMore(8)
-  }, [campaigns.loadMore, campaigns.status, enabled])
+  useLoadAllPages(campaigns, 8, enabled)
 
   const isLoading = enabled && campaigns.status !== 'Exhausted'
   const data: CampaignSummaryDto[] | undefined =

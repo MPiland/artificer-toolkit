@@ -82,6 +82,11 @@ export type BaseEquipmentAuthored = BaseEquipmentCategoryAuthored & {
   capacity?: CapacityAuthored
   modifiers?: ModifierGrantAuthored[]
   maxStack?: number
+  /**
+   * The ammunition a weapon fires, as the equipment its pieces descend from: Arrows for a Longbow.
+   * A variant of that equipment (Arrows +1) fits too. Set it on weapons with the Ammunition property.
+   */
+  ammunitionEquipmentId?: string
   rarityId: string
   contains?: ContainsAuthored[]
   features?: FeatureAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>[]

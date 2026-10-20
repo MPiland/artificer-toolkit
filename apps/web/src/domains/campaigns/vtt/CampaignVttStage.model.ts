@@ -26,6 +26,10 @@ import type {
   SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import {
+  controlsAssignedCharacter,
+  type CharacterControlAssignment
+} from '@artificer-toolkit/shared/campaign/characterControl'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignVttTool } from './vttSceneRenderer'
 import { isEncounterActorMine } from './encounterActorControl'
@@ -218,7 +222,56 @@ export function createSceneToken(
   }
 }
 
-/** The Scene token bound to the Character actor of the viewer's main (assigned) Character. */
+type CampaignMembership = CampaignDetailDto['memberships'][number]
+
+/** Every member's Character assignment with its GM grants, as the room and Convex read them (D162). */
+export function characterControlAssignments(
+  memberships: readonly CampaignMembership[]
+): CharacterControlAssignment[] {
+  return memberships.flatMap((membership) =>
+    membership.assignedCharacter
+      ? [
+          {
+            characterId: membership.assignedCharacter.id,
+            controllerUserIds: membership.characterControllerUserIds,
+            userId: membership.userId
+          }
+        ]
+      : []
+  )
+}
+
+/** The Characters a member controls, their own first, so the first is the default main Character. */
+export function controlledCharacters(
+  memberships: readonly CampaignMembership[],
+  userId: string
+): NonNullable<CampaignMembership['assignedCharacter']>[] {
+  const controlled = memberships.flatMap((membership) =>
+    membership.assignedCharacter &&
+    controlsAssignedCharacter(
+      { controllerUserIds: membership.characterControllerUserIds, userId: membership.userId },
+      userId
+    )
+      ? [{ character: membership.assignedCharacter, own: membership.userId === userId }]
+      : []
+  )
+  return [...controlled.filter(({ own }) => own), ...controlled.filter(({ own }) => !own)].map(
+    ({ character }) => character
+  )
+}
+
+/** The picked main Character while it is still controlled, else the member's default. */
+export function resolveMainCharacterId(
+  controlled: readonly { id: string }[],
+  pickedId: string | null
+): string | null {
+  return controlled.find(({ id }) => id === pickedId)?.id ?? controlled[0]?.id ?? null
+}
+
+/**
+ * The Scene token of a Character: the token bound to its Encounter actor, else an unbound token
+ * linked to it by `characterId` (D162).
+ */
 export function assignedCharacterTokenId(input: {
   actorIdByTokenId: ReadonlyMap<string, string>
   actors: readonly Pick<
@@ -226,18 +279,19 @@ export function assignedCharacterTokenId(input: {
     'id' | 'kind' | 'sourceId'
   >[]
   assignedCharacterId: string | null
+  tokens: readonly Pick<SceneToken, 'characterId' | 'id'>[]
 }): string | null {
+  const { assignedCharacterId } = input
+  if (assignedCharacterId === null) return null
   const actor = input.actors.find(
-    (candidate) =>
-      candidate.kind === 'CHARACTER' &&
-      candidate.sourceId !== null &&
-      candidate.sourceId === input.assignedCharacterId
+    (candidate) => candidate.kind === 'CHARACTER' && candidate.sourceId === assignedCharacterId
   )
-  if (!actor) return null
-  for (const [tokenId, actorId] of input.actorIdByTokenId) {
-    if (actorId === actor.id) return tokenId
+  if (actor) {
+    for (const [tokenId, actorId] of input.actorIdByTokenId) {
+      if (actorId === actor.id) return tokenId
+    }
   }
-  return null
+  return input.tokens.find((token) => token.characterId === assignedCharacterId)?.id ?? null
 }
 
 /**

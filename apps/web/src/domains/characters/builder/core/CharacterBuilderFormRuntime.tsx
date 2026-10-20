@@ -77,9 +77,9 @@ export function CharacterBuilderFormRuntime({
     [previewMutation]
   )
 
-  const defaultValuesRef = useRef(session.initialValues)
+  const [baselineValues, setBaselineValues] = useState(session.initialValues)
   const form = useAppForm({
-    defaultValues: defaultValuesRef.current,
+    defaultValues: baselineValues,
     onSubmit: async ({ value }) => {
       await handlePreviewFinalize(value)
     }
@@ -106,7 +106,7 @@ export function CharacterBuilderFormRuntime({
         }
         // Saved values become the form's baseline unless the user edited meanwhile.
         if (form.state.values === values) {
-          defaultValuesRef.current = values
+          setBaselineValues(values)
           form.reset(values)
         }
         return 'saved'

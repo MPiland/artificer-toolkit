@@ -442,6 +442,16 @@ export function rangedMagicWeaponModifiers(childId: EquipmentChildId, bonus: num
     }
   ]
 }
+/**
+ * A magic ammunition stack's attack and damage bonus. It carries no equipped restriction because
+ * ammunition is never wielded: the stack a weapon attack draws is evaluated as a source of that one
+ * attack, so the bonus reaches only the attack that fires it.
+ */
+export function magicAmmunitionModifiers(childId: EquipmentChildId, bonus: number) {
+  return rangedMagicWeaponModifiers(childId, bonus).map(
+    ({ restrictions: _restrictions, ...grant }) => grant
+  )
+}
 export function thrownMagicWeaponModifiers(childId: EquipmentChildId, bonus: number) {
   return [
     {

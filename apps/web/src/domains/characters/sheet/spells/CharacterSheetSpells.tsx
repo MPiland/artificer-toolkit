@@ -1,7 +1,7 @@
 import type { CharacterSheetSpellsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Button, Text, TextInput } from '@mantine/core'
 import { IconAdjustments, IconSearch } from '@tabler/icons-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
@@ -58,13 +58,11 @@ export function CharacterSheetSpells({
     [sheet.spells.activeGroups]
   )
 
-  useEffect(() => {
-    if (
-      activeActionType !== 'ALL' &&
-      !availableActionFilters.some((filter) => filter.id === activeActionType)
-    )
-      setActiveActionType('ALL')
-  }, [activeActionType, availableActionFilters])
+  if (
+    activeActionType !== 'ALL' &&
+    !availableActionFilters.some((filter) => filter.id === activeActionType)
+  )
+    setActiveActionType('ALL')
 
   const filteredGroups = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase()

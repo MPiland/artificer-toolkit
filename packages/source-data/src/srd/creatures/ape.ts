@@ -42,6 +42,11 @@ export const ape: CreatureAuthored = {
       id: S.featureId(27, 1),
       label: 'Multiattack',
       description: 'Multiattack. The ape makes two fist attacks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(27, 2) }] }] }
+        ]
+      },
       order: 1
     },
     {

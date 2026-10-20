@@ -59,6 +59,25 @@ describe('Shell', () => {
     )
   })
 
+  it('follows the current URL across non-authoring routes', () => {
+    const { rerender } = renderWithAppProviders(shellAt('/spells', '/spells'))
+    expect(screen.getByTestId('return-href')).toHaveTextContent('/spells')
+
+    rerender(shellAt('/classes?page=2', '/classes'))
+    expect(screen.getByTestId('return-href')).toHaveTextContent('/classes?page=2')
+  })
+
+  it('has no return URL when the first route is an authoring route, then keeps the last page after leaving it', () => {
+    const { rerender } = renderWithAppProviders(shellAt('/spells/new', '/spells/new'))
+    expect(screen.getByTestId('return-href')).toBeEmptyDOMElement()
+
+    rerender(shellAt('/home', '/home'))
+    expect(screen.getByTestId('return-href')).toHaveTextContent('/home')
+
+    rerender(shellAt('/spells/new?step=basics', '/spells/new'))
+    expect(screen.getByTestId('return-href')).toHaveTextContent('/home')
+  })
+
   it('hides public registration from signed-out actions unless enabled', () => {
     const { rerender } = renderWithAppProviders(
       <Shell currentPath='/' isAuthenticated={false} navigation={[]}>
@@ -188,4 +207,12 @@ function renderShell(currentPath: string) {
 
 function ReturnHrefProbe() {
   return <output data-testid='return-href'>{useShellReturnHref()}</output>
+}
+
+function shellAt(currentHref: string, currentPath: string) {
+  return (
+    <Shell currentHref={currentHref} currentPath={currentPath} isAuthenticated navigation={[]}>
+      <ReturnHrefProbe />
+    </Shell>
+  )
 }

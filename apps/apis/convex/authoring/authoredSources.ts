@@ -3,6 +3,7 @@ import {
   sortAuthoredSourceRows
 } from '@artificer-toolkit/authoring/nodeRuntime'
 import {
+  AUTHORED_SOURCE_FACTS_VERSION,
   authoredNodeRuntimeSourceFactsSchema,
   type AuthoredNodeRuntimeSourceFacts,
   type NodeRuntimeSourceTable
@@ -44,6 +45,10 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
         const projected = authoredNodeRuntimeSourceFactsSchema.parse(root.authoringSources)
         if (projected.checksum !== root.checksum)
           throw new Error('Stored authoring source checksum mismatch.')
+        if (projected.factsVersion !== AUTHORED_SOURCE_FACTS_VERSION)
+          throw new Error(
+            'Stored authoring source facts are superseded; run content/sourceMigrations.'
+          )
         facts.push(projected)
       }
     }

@@ -136,6 +136,10 @@
       "types": "./dist/domains/campaign/campaignTextPolicy.d.ts",
       "default": "./dist/domains/campaign/campaignTextPolicy.js"
     },
+    "./campaign/characterControl": {
+      "types": "./dist/domains/campaign/characterControl.d.ts",
+      "default": "./dist/domains/campaign/characterControl.js"
+    },
     "./campaign/capabilities": {
       "types": "./dist/domains/campaign/campaignCapabilities.d.ts",
       "default": "./dist/domains/campaign/campaignCapabilities.js"

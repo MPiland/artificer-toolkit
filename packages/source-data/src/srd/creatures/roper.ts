@@ -90,19 +90,17 @@ export const roper: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The roper makes four attacks with its tendrils, uses Reel, and makes one attack with its bite.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(239, 504),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(239, 604), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ROPER_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 4, fillers: [{ kind: 'FEATURE', featureId: S.featureId(239, 6) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(239, 7) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(239, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

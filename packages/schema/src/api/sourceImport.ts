@@ -117,7 +117,9 @@ export const sourceImportBootstrapInputSchema = lazySchema(() =>
 export const sourceImportSubjectsInputSchema = lazySchema(() =>
   z.strictObject({
     contentSourceId: canonicalUuidSchema,
-    subjects: z.array(sourceImportSubjectDtoSchema).check(z.minLength(1)).check(z.maxLength(10))
+    subjects: z.array(sourceImportSubjectDtoSchema).check(z.minLength(1)).check(z.maxLength(10)),
+    /** Subjects the seed replaces in a later batch; a parent's recompile leaves them to that import. */
+    reimportedSubjectIds: z.optional(z.array(canonicalUuidSchema))
   })
 )
 

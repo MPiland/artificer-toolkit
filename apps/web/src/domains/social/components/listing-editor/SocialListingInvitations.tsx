@@ -121,7 +121,8 @@ function SocialListingInvitationsList({
                   {formatSocialTimestamp(invitation.expiresAt)}
                 </Text>
               </div>
-              {invitation.status === 'PENDING' && Date.parse(invitation.expiresAt) > Date.now() ? (
+              {invitation.status === 'PENDING' &&
+              Date.parse(invitation.expiresAt) > Date.parse(asOf) ? (
                 <div className={styles.rowActions}>
                   <Button
                     color='red'

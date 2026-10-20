@@ -1,5 +1,6 @@
 import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import {
   creatureFeature,
@@ -170,5 +171,128 @@ describe('an attack draws its carried weapon into a free hand (D107, ATTACK-19.2
     const answer = await attackTarget()
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await clubState()).toBe('MAIN_HAND')
+  })
+})
+
+describe('a thrown weapon leaves its hand (D107, ATTACK-19.3), in the room', () => {
+  it('throws the held Javelin into the carried state and undo puts it back in the hand', async () => {
+    const bugbear = seededSrdCreature('Bugbear')
+    const javelinFeatureId = creatureFeature(bugbear, 'Javelin').id
+    const holding = {
+      ...bugbear,
+      equipmentLoadout: bugbear.equipmentLoadout?.map((entry) => ({
+        ...entry,
+        useState: entry.actionFeatureIds.includes(javelinFeatureId)
+          ? ('MAIN_HAND' as const)
+          : entry.useState === 'MAIN_HAND'
+            ? ('CARRIED' as const)
+            : entry.useState
+      }))
+    }
+    const bugbearActor = srdCreatureActor({ id: OGRE_ID, creature: holding })
+    const [, thrownJavelin] = discoverEncounterFeatureActions({
+      actor: bugbearActor,
+      conditionDefinitionIds: [],
+      abilityDefinitions: []
+    }).available.filter((entry) => entry.ownerFeatureId === javelinFeatureId)
+    if (!thrownJavelin) throw new Error('The Bugbear offers no thrown Javelin action.')
+    const room = await actionRoom({
+      actors: [bugbearActor, srdCreatureActor({ id: TARGET_ID, creature: plainWolf })],
+      ownerFeatureId: javelinFeatureId
+    })
+    const stub = room.room.base.stub
+    const javelinEntryId = snapshotCreatureEquipmentLoadout(bugbearActor).find((entry) =>
+      entry.actionFeatureIds.includes(javelinFeatureId)
+    )?.id
+    const javelinState = async () => {
+      const { actors } = await readRoomHistory(stub)
+      const row = actors.find(({ id }) => id === OGRE_ID)
+      if (!row) throw new Error('The stored Run holds no Bugbear.')
+      const actor = readStoredRunActor(row)
+      if (actor.kind !== 'CREATURE') throw new Error('Expected a Creature actor.')
+      const snapshotRow = await runInDurableObject(stub, async (_instance, context) =>
+        new RoomEncounterStore(context.storage)
+          .documents('encounterActorSnapshots')
+          .find(({ checksum }) => checksum === actor.snapshotChecksum)
+      )
+      if (!snapshotRow) throw new Error('The Bugbear snapshot is not stored.')
+      return snapshotCreatureEquipmentLoadout({
+        ...actor,
+        snapshot: readStoredActorSnapshot(snapshotRow)
+      }).find((entry) => entry.id === javelinEntryId)?.useState
+    }
+    expect(await javelinState()).toBe('MAIN_HAND')
+
+    const { answer } = await room.startAction(
+      TARGET_ID,
+      ['TARGET_RANGE_UNCHECKED'],
+      null,
+      null,
+      thrownJavelin.actionId
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the attack roll.')
+    const resolved = await room.resolve(decision, {
+      kind: 'ENTER_DICE',
+      requestId: decision.pending.request.requestId,
+      rawFaces: [1],
+      rollMode: decision.pending.request.rollMode
+    })
+    expect(resolved.type, JSON.stringify(resolved)).toBe('COMMAND_COMMITTED')
+    expect(await javelinState()).toBe('CARRIED')
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await javelinState()).toBe('MAIN_HAND')
+  })
+})
+
+describe('a weapon swap spends no action economy (D107, ATTACK-19.3), in the room', () => {
+  it('draws the carried Shortsword beside the held Longsword and still makes the whole Multiattack', async () => {
+    const veteran = seededSrdCreature('Veteran')
+    const longsword = creatureFeature(veteran, 'Longsword')
+    const shortsword = creatureFeature(veteran, 'Shortsword')
+    const swapping = {
+      ...veteran,
+      equipmentLoadout: veteran.equipmentLoadout?.map((entry) => ({
+        ...entry,
+        useState: entry.actionFeatureIds.includes(longsword.id)
+          ? ('MAIN_HAND' as const)
+          : entry.actionFeatureIds.includes(shortsword.id)
+            ? ('CARRIED' as const)
+            : entry.useState
+      }))
+    }
+    const room = await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: Array.from({ length: 12 }, (_, index) => (index % 2 === 0 ? 14 : 1)),
+      actors: [
+        srdCreatureActor({ id: OGRE_ID, creature: swapping }),
+        srdCreatureActor({ id: TARGET_ID, creature: plainWolf })
+      ],
+      ownerFeatureId: longsword.id,
+      grip: 'ONE_HANDED'
+    })
+    const choices = async () => room.actionChoices()
+    const swap = (await choices()).actions.find(({ label }) => label.includes('Shortsword'))
+    if (!swap) throw new Error('The Veteran offers no Shortsword attack.')
+    const range: ['TARGET_RANGE_UNCHECKED'] = ['TARGET_RANGE_UNCHECKED']
+
+    const first = await room.startAction(TARGET_ID, range)
+    expect(first.answer.type, JSON.stringify(first.answer)).toBe('COMMAND_COMMITTED')
+    // The swap: the Shortsword is drawn beside the Longsword and fills the Multiattack's optional slot.
+    const drawn = await room.startAction(TARGET_ID, range, null, null, swap.id)
+    expect(drawn.answer.type, JSON.stringify(drawn.answer)).toBe('COMMAND_COMMITTED')
+    expect((await choices()).openAttackAction).toMatchObject({ made: 2, complete: false })
+    // The swap took no slot and no action: the second Longsword attack is still the Multiattack's.
+    const last = await room.startAction(TARGET_ID, range)
+    expect(last.answer.type, JSON.stringify(last.answer)).toBe('COMMAND_COMMITTED')
+    expect((await choices()).openAttackAction).toMatchObject({ made: 3, total: 3, complete: true })
   })
 })

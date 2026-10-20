@@ -20,7 +20,7 @@ export type CharacterTurnFacts = CharacterMovementFacts &
     sheetState: Pick<CharacterSheetState, 'resourceUsage' | 'itemUsage' | 'spellCustomizations'>
     campaignContext: CharacterSheetCampaignContext
     prepared: Pick<PreparedSheet['prepared'], 'character' | 'resolution'> & {
-      context: Pick<PreparedSheet['prepared']['context'], 'creaturesById'> & {
+      context: Pick<PreparedSheet['prepared']['context'], 'creaturesById' | 'presentation'> & {
         vehiclesById: ReadonlyMap<string, VehicleAuthored>
       }
     }
@@ -45,6 +45,7 @@ export function projectCharacterTurnActions(
     additionalCurrencyOptions: facts.campaignContext.currencyOptions,
     creaturesById: facts.prepared.context.creaturesById,
     vehiclesById: facts.prepared.context.vehiclesById,
+    presentation: facts.prepared.context.presentation,
     spellCustomizations: facts.sheetState.spellCustomizations,
     ruleEvaluation: {
       ...facts.ruleEvaluation,

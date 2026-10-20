@@ -139,12 +139,18 @@ export async function prepareActionEconomy<TFacts extends CharacterTurnFacts>(
  */
 export async function evaluateActionAttackAction<TFacts extends CharacterTurnFacts>(
   tx: EncounterTurnReadTransaction<TFacts>,
-  input: ActionEconomyInput<TFacts> & { triggerCode: string; replacesAttack?: boolean }
+  input: ActionEconomyInput<TFacts> & {
+    triggerCode: string
+    replacesAttack?: boolean
+    /** The Creature Feature the action belongs to, when a slot may name it. */
+    featureId?: string
+  }
 ) {
   return evaluateEncounterAttackAction({
     ...economyInput(tx, input),
     triggerCode: input.triggerCode,
-    replacesAttack: input.replacesAttack
+    replacesAttack: input.replacesAttack,
+    featureId: input.featureId
   })
 }
 
@@ -256,6 +262,7 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     wieldConflictAcceptance: EncounterWieldConflictAcceptance
     overridable: boolean
     readsSharedTest?: boolean
+    ammunition?: { itemInstanceId?: string; attacks: number }
     movementTargets?: ReadonlyMap<string, MovementTarget<TFacts>>
     sceneContext?: Awaited<ReturnType<typeof readActionSceneContext>>
     loadAttackPerception?: Parameters<
@@ -281,6 +288,7 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     wieldConflictAcceptance: input.wieldConflictAcceptance,
     overridable: input.overridable,
     readsSharedTest: input.readsSharedTest,
+    ammunition: input.ammunition,
     movementTargets,
     sceneContext: input.sceneContext,
     loadAttackPerception: input.loadAttackPerception,

@@ -14,6 +14,7 @@ import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/en
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
+import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { greatsword } from '@artificer-toolkit/source-data/srd/equipment/greatsword.js'
 import { longbow } from '@artificer-toolkit/source-data/srd/equipment/longbow.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
@@ -203,7 +204,12 @@ async function setup({
       .map((candidate) => candidate.actionId)
     const actionId = actionIds[0]
     if (!actionId) throw new Error('Missing weapon action.')
-    return { state, actionId, actionIds }
+    const rangedActionId = (mechanics?.rulePolicyInput.actionCandidates ?? []).find(
+      (candidate) =>
+        actionIds.includes(candidate.actionId) &&
+        candidate.mechanicFacts.invocation.triggerCode === 'RANGED_WEAPON_ATTACK'
+    )?.actionId
+    return { state, actionId, actionIds, rangedActionId }
   })
   const command = (
     acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict'],
@@ -641,4 +647,35 @@ describe('drawn weapons', () => {
     expect(carried.rolledModifier).toBe(carried.attackBonus)
     expect(carried).toEqual(equipped)
   }, 90000)
+})
+
+describe('thrown weapons (D107, ATTACK-19.3)', () => {
+  const heldItems = async (base: Awaited<ReturnType<typeof setup>>) =>
+    readCharacterRecord((await base.characterRow())!).state.equipment.equipped
+
+  it('throws the wielded dagger out of the hand and undo puts it back', async () => {
+    const base = await setup({ weapon: dagger, weaponEquipped: true, shieldEquipped: false })
+    expect(await heldItems(base)).toContainEqual({ itemId: base.weaponItemId, slot: 'MAIN_HAND' })
+    if (!base.rangedActionId) throw new Error('Expected a thrown dagger action.')
+    await executeInRoom(base.owner.caller, { command: base.command(null, base.rangedActionId) })
+    expect(await heldItems(base)).not.toContainEqual(
+      expect.objectContaining({ itemId: base.weaponItemId })
+    )
+    await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'REVERT_LAST_ACTION',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.state.version + 1
+      }
+    })
+    expect(await heldItems(base)).toContainEqual({ itemId: base.weaponItemId, slot: 'MAIN_HAND' })
+  }, 60000)
+
+  it('keeps the dagger in hand for a melee stab', async () => {
+    const base = await setup({ weapon: dagger, weaponEquipped: true, shieldEquipped: false })
+    const before = await heldItems(base)
+    await executeInRoom(base.owner.caller, { command: base.command(null) })
+    expect(await heldItems(base)).toEqual(before)
+  }, 60000)
 })

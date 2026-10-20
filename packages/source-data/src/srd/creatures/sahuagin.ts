@@ -67,6 +67,22 @@ export const sahuagin: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The sahuagin makes two melee attacks: one with its bite and one with its claws or spear.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(243, 5) }] },
+              {
+                count: 1,
+                fillers: [
+                  { kind: 'FEATURE', featureId: S.featureId(243, 6) },
+                  { kind: 'FEATURE', featureId: S.featureId(243, 7) }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

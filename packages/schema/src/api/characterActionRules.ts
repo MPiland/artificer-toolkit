@@ -100,7 +100,23 @@ const actionEquipmentStateSchema = lazySchema(() =>
     /** Another weapon is equipped: attacking with this item is not wielding it alone (Dueling). */
     otherWeaponEquipped: booleanSchema,
     /** Using this item's action uses one up (the item's `CONSUMED_ON_USE` attribute). */
-    consumedOnUse: booleanSchema
+    consumedOnUse: booleanSchema,
+    /** Corrosion on this item: its damage rolls lose this much. */
+    degradation: z.optional(integerSchema.check(z.gte(1))),
+    /** The equipment this weapon's ammunition descends from (an ammunition weapon only). */
+    ammunitionEquipmentId: z.optional(z.nullable(identitySchema)),
+    /** The Character's items that fit `ammunitionEquipmentId`, whatever their remaining quantity. */
+    ammunitionStacks: z.optional(
+      z
+        .array(
+          z.strictObject({
+            itemInstanceId: identitySchema,
+            equipmentId: identitySchema,
+            label: z.string().check(z.maxLength(200))
+          })
+        )
+        .check(z.maxLength(100))
+    )
   })
 )
 
@@ -516,7 +532,18 @@ export const characterActionDecisionsSchema = lazySchema(() =>
         reasonCode: z.nullable(characterActionReasonCodeSchema),
         resourcePoolId: z.nullable(characterResourcePoolIdentitySchema),
         resourceCost: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(2_147_483_647))),
-        mechanic: characterResolvedActionMechanicSchema
+        mechanic: characterResolvedActionMechanicSchema,
+        /** An ammunition weapon's mechanic as each stack that fits would make it (ATTACK-19.4). */
+        ammunitionMechanics: z.optional(
+          z
+            .array(
+              z.strictObject({
+                itemInstanceId: identitySchema,
+                mechanic: characterResolvedActionMechanicSchema
+              })
+            )
+            .check(z.maxLength(100))
+        )
       })
     )
     .check(z.maxLength(1_000))

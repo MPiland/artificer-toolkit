@@ -11,7 +11,7 @@ import {
 } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { Link, useHydrated } from '@tanstack/react-router'
-import { Fragment, type ReactNode, useMemo, useRef, useState } from 'react'
+import { Fragment, type ReactNode, useMemo, useState } from 'react'
 import {
   BookOpen,
   LogOut,
@@ -122,8 +122,10 @@ export function Shell({
   )
   const hasMobileFooter = usesOverlayRail && hasLibraryNavigation
   const authoring = isAuthoringPath(currentPath)
-  const returnHrefRef = useRef<string | undefined>(authoring ? undefined : currentHref)
-  if (!authoring) returnHrefRef.current = currentHref
+  const [returnHref, setReturnHref] = useState<string | undefined>(
+    authoring ? undefined : currentHref
+  )
+  if (!authoring && returnHref !== currentHref) setReturnHref(currentHref)
   const usesWideContent = isCharacterSheetPath(currentPath)
   const appNavigationActions = hasLibraryNavigation ? (
     <AppNavigationMenus
@@ -162,7 +164,7 @@ export function Shell({
     ) : undefined
 
   return (
-    <ShellReturnHrefContext value={returnHrefRef.current}>
+    <ShellReturnHrefContext value={returnHref}>
       <ShellHeaderSupplementContext value={headerSupplementContext}>
         <div className={styles.canvas} data-testid='app-shell'>
           <Header

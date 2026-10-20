@@ -245,20 +245,36 @@ Action choices carry the warnings that already apply before a target is chosen.
 An Assisted weapon or unarmed attack made with one Action is part of the actor's Attack action
 (`isAttackActionAttack`, owned by the System's action-economy adapter; spell attacks are not).
 `evaluateEncounterAttackAction` wraps the Action evaluation: the first such attack of a turn spends the
-Action and opens the Attack action, stored at actor `resources.attackAction` with the turn sequence, the
-`total` attacks and the attacks made. The next attacks of that turn fill it without spending an Action or
-warning. A Character's total is the dnd5e policy output `attacksPerAttackAction` (value domain
-`ATTACKS_PER_ATTACK_ACTION`, SET_VALUE only, highest source wins, base 1; every class Extra Attack and
-Thirsting Blade is a grant of it) and a Creature's is 1, because a Creature's Multiattack is its own
-action. An attack that does not fit (full, stale turn) spends a new Action, warns when none is left, and
-opens a new Attack action. Settlement commits the `attackActionTransition` `{ before, after }` in the
+Action and opens the Attack action, stored at actor `resources.attackAction` with the turn sequence, its
+slot `alternatives` and the attacks made (each with its Feature, target ids, target size and, once
+settled, whether it hit). The next attacks of that turn fill it without spending an Action or warning.
+The alternatives are the implicit one slot of `ANY_ATTACK` times the dnd5e policy output
+`attacksPerAttackAction` (value domain `ATTACKS_PER_ATTACK_ACTION`, SET_VALUE only, highest source wins,
+base 1; every class Extra Attack and Thirsting Blade is a grant of it), plus every alternative a
+Creature's Features author as `attackSlots` (`packages/schema/src/features/attackSlots.ts`, authored in the Creature editor from the Creature-only `attackSlots` group of `CREATURE_FEATURE_NODE_MAP`, ATTACK-11.3): slots with a
+`count`, `fillers` (a Feature or `ANY_ATTACK`), `optional`, `comesFirst` and one generic `condition`
+(`EARLIER_SLOTS_HIT_SAME_TARGET`, `TARGET_SIZE_AT_MOST`; an unknown size passes). A Feature that fills a
+slot is tracked in the Attack action; a swap ("instead of its bite") is a further alternative. An active
+`ATTACKS_PER_ATTACK_ACTION` cap limits the attacks of any alternative. `evaluateAttackSlots`
+(`encounterAttackSlots.ts`) decides in order whether the attacks so far still fit an alternative and
+whether a required slot is left (`incomplete`). The action drawer drops a slot-filling action that fits
+no alternative while the open Attack action is incomplete (`blocked`) and a Recharge filler with no
+charge left; nothing names a Creature. An attack that does not fit (full, stale turn) spends a new
+Action, warns when none is left, and opens a new Attack action. Settlement finalizes the transition with
+the attack's `hit` (`settleEncounterAttackActionHit`) before it is committed and receipted. Settlement commits the `attackActionTransition` `{ before, after }` in the
 action's mechanics batch with the same compare-and-set as the allowance; `REVERT_LAST_ACTION` restores
 `before` only while the actor still holds `after`, else it refuses with `REVERT_UNAVAILABLE`. Action
-choices report `attackSlot` per action and the actor's `openAttackAction`. A filler attack spends nothing
+choices report `attackSlot` per action and the actor's `openAttackAction` (`made`, `total`, `complete`:
+no required slot left, so every offer with an `attackSlot` is optional). A slot filler is tracked and
+blocked only when it spends the Action (`spendsAttackAction` on the adapter); the same Feature used as a
+Bonus Action, Reaction or Legendary Action is unaffected by the open Attack action. The drawer's "Done
+attacking" is client-only: it collapses the remaining-slots panel and drops the preselection while the
+server keeps the action open until the turn ends. A filler attack spends nothing
 but still honors suppression: `isActionEconomySuppressed` reuses the allowance capability resolution of
 `evaluateEncounterActionEconomy`, and an actor that can't act (Incapacitated, a suppressing effect) gets
 the overridable `ACTION_ECONOMY_UNAVAILABLE` warning and no `attackSlot`; a spent Action is not
 suppression. Manual mode tracks nothing.
+Every SRD Multiattack authors its slots as data (D93); the stat-block audit (`creatureStatBlockAudit.ts`) fails a Multiattack with none.
 
 The command proceeds only when `acknowledgedWarnings` (part of its fingerprint) covers every current
 code; otherwise it is refused with `RULE_WARNINGS`. An override spends only what remains and
@@ -268,7 +284,7 @@ actor, Manual mode and completed Encounters are hard checks, never warnings. Rea
 Actions, Disarm and movement call preparation with `overridable: false` and keep refusing.
 
 `REVERT_LAST_ACTION` (GM-only) undoes the Run's last `RESOLVE_ACTION` and its committed child receipts,
-inverting only recorded before-states (hit points, conditions, resource usage, a stowed shield, a used-up single-use item (given back by lowering its `itemUsage`), charges,
+inverting only recorded before-states (hit points, conditions, resource usage, a stowed shield, a used-up single-use item (given back by lowering its `itemUsage`), item corrosion (`CharacterInverse.degradation`, restoring the `itemDegradation` penalty and any destroyed-item `itemUsage`), charges,
 the action allowance, created effects and maintained states). It refuses, naming the kind, removed
 conditions, replaced maintained effects, lost Concentration, Cleaving damage to a Character, Disarm and
 other contested actions (a contested `ESCAPE` too); a second undo is refused. Its implementation is
@@ -1431,6 +1447,8 @@ calculation (best of worn armor, unarmored, or an authored formula; a shield and
 Creature `qualifiedDamageDefenses` apply only to attacks lacking every bypassing trait. Modifier kinds
 without a consumer are rejected at grant validation (see [authoring schema](authoring-schema.md)).
 
+**Creature loadout replacement and the printed attack.** A Creature Feature action binds to its loadout Equipment by attack kind (`triggerCode`) alone: the Feature's own print governs the bound attack's damage and damage type, so a Creature printed with a different damage type than its Equipment's default (the Ogre Zombie's bludgeoning Morningstar) still runs. `replaceActorEquipment` keeps that binding honest: the replacement must keep the attack kind the Feature acts through and, for an entry a Feature action is bound to, the damage types of the Equipment it replaces (`equipmentReplacementKeepsDamageTypes`), so a piercing weapon swaps for another piercing one and a bludgeoning weapon is refused.
+
 **Creature equipment hands (D107).** A Creature's authored `equipmentLoadout` places each item in
 `MAIN_HAND`, `OFF_HAND`, `CARRIED` or `WORN` (`EQUIPMENT_SLOT_CODES`, `packages/shared` core). One
 function, `resolveHandOccupancy`, decides hand legality for the schema (two items in one hand), the
@@ -1489,6 +1507,17 @@ action-choices read marks the action `handRelease: { holds }` (the releasable ha
 flow asks "release which?", sends the existing `RELEASE_RELATIONSHIP`, then the attack; a released hold
 is not restored by undo. The read cannot see target-dependent refusals, so it offers the release
 whenever the listed action would need one; the planner refusal stays as the backstop.
+
+**Thrown weapon (ATTACK-19.T3, D107).** A ranged attack through a `THROWN` weapon that is in a hand
+leaves that hand: `evaluateEncounterWeaponDraw` returns `THROW { itemId, slot }` (the weapon's
+`thrown` flag is `attackKind === 'RANGED'` and the `THROWN` property, read from the authored data, never
+a named weapon). A carried thrown weapon is `NONE` (no hand is needed, so never `RELEASE_REQUIRED`), and
+a melee attack with the same weapon moves nothing. The throw reuses the draw seam end to end:
+`throwHeldItem` on the source's equipment mutation and the same `sourceItemDraw` receipt transition
+with `movement: 'THROW'` (default `'DRAW'`). A Character's throw unequips the item (after any shield
+stow); a Creature's moves the loadout entry hand -> `CARRIED`. Undo re-equips it to the hand it left,
+refusing when the equipment moved on. Disarm already empties the disarmed item's hand
+(`itemReleaseTransition`), and swapping weapons stays free (`encounterWieldConflict`).
 
 **Action phases.** An authored action compiles to an immutable template; after the owner locks and
 authorizes facts, at most two ordered phases specialize from it: `TEST` (one d20 stage selecting the hit,
@@ -1781,6 +1810,13 @@ conditions from its frozen `relationship-state` graph, which is not part of the 
 Character target's `CHARACTER_MECHANICS_BATCH` binds each of those `CONDITION_APPLY` applications to the
 batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's result path rather than to a
 kernel trace.
+
+**Gated holds and held-only actions (D93, ATTACK-7.T8).** An `ACTOR_RELATIONSHIP` outcome's optional `appliesWhen`
+(an attack-slot condition) gates the hold on the open Attack action: the planner evaluates it with
+`attackSlotConditionHolds` over the attacks of `encounterAttackActionAttacks`, and outside an open Attack action it is
+false. A `SINGLE_TARGET` selection with `heldBySource` is offered only on creatures the source holds
+(`encounterHeldActorIds`); `prepareEncounterActionMechanics` refuses any other target. An `ON_USE` relationship needs
+no roll and applies on use.
 
 **Drag (D105, ATTACK-7.T7).** An outcome's `TARGET_DRAGGED` module makes its hold drag: the SRD Grapple and
 the creature grapple riders author it. `encounterMovementDrag` finds the actors the mover itself holds through

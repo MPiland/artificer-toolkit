@@ -48,18 +48,17 @@ export const banditCaptain: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The captain makes three melee attacks: two with its scimitar and one with its dagger. Or the captain makes two ranged attacks with its daggers.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(38, 101),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(38, 102), rangeKind: S.RANGE_KIND.SPECIAL }
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(38, 2) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(38, 3) }] }
+            ]
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(38, 3) }] }] }
+        ]
+      },
       order: 1
     },
     {

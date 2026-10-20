@@ -126,18 +126,11 @@ export const gynosphinx: CreatureAuthored = {
       id: S.featureId(157, 4),
       label: 'Multiattack',
       description: 'Multiattack. The sphinx makes two claw attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(157, 204),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(157, 1204), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GYNOSPHINX_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(157, 5) }] }] }
+        ]
+      },
       order: 4
     },
     {

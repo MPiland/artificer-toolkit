@@ -615,6 +615,7 @@ export const SecondAttackPreselected: Story = {
     openAttackAction: {
       made: 1,
       total: 2,
+      complete: false,
       lastActionId: actions[0].id,
       lastTargetIds: [targetActor.id]
     },

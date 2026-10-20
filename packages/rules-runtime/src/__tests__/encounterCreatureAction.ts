@@ -283,13 +283,24 @@ export function creatureActor(input: {
   })
 }
 
-/** The exact discovered action id of a Creature actor's Feature. */
-export function featureActionId(actor: EncounterRunActorState, featureId: string) {
+/**
+ * The exact discovered action id of a Creature actor's Feature; `effectId` picks one of its options
+ * (a Dryad's Shillelagh club), which the GM selects rather than the runtime inferring it.
+ */
+export function featureActionId(
+  actor: EncounterRunActorState,
+  featureId: string,
+  effectId?: string
+) {
   const capability = discoverEncounterFeatureActionCapabilities({
     actor,
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
-  }).find((candidate) => candidate.ownerFeatureId === featureId)
+  }).find(
+    (candidate) =>
+      candidate.ownerFeatureId === featureId &&
+      (effectId === undefined || candidate.effectId === effectId)
+  )
   if (!capability) throw new Error('The Feature has no discovered action.')
   return capability.actionId
 }
@@ -371,6 +382,8 @@ export async function prepareCreatureAction(input: {
   actor: EncounterRunActorState
   target: EncounterRunActorState
   featureId: string
+  /** The Effect of the feature option the GM picks, when the feature has several. */
+  effectId?: string
   overridable: boolean
   targetActiveEffects?: readonly ActiveRuleEffectRecord[]
   actorActiveEffects?: readonly ActiveRuleEffectRecord[]
@@ -420,7 +433,7 @@ export async function prepareCreatureAction(input: {
     actor: input.actor,
     target: input.target,
     actors,
-    actionId: featureActionId(input.actor, input.featureId),
+    actionId: featureActionId(input.actor, input.featureId, input.effectId),
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     overridable: input.overridable,
     movementTargets,

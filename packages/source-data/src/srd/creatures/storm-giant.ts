@@ -97,18 +97,11 @@ export const stormGiant: CreatureAuthored = {
       id: S.featureId(266, 3),
       label: 'Multiattack',
       description: 'The giant makes two greatsword attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(266, 204),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(266, 205), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(266, 4) }] }] }
+        ]
+      },
       order: 3
     },
     {

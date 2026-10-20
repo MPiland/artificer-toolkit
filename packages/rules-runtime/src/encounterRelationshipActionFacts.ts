@@ -49,6 +49,18 @@ export function encounterSourceRelationships(
   )
 }
 
+/** The actors the source currently holds through a relationship it applied (`heldBySource` targeting reads them). */
+export function encounterHeldActorIds(
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,
+  sourceActorId: string
+): ReadonlySet<string> {
+  return new Set(
+    encounterSourceRelationships(activeEffectsByActorId, sourceActorId).map(
+      ({ actorId }) => actorId
+    )
+  )
+}
+
 /** The creatures the source holds by hand, each filling one of its hands (`SOURCE_OCCUPIES_HAND`, D152). */
 export function encounterSourceHandHoldRelationships(
   activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,

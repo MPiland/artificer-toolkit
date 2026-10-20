@@ -3,6 +3,7 @@ import {
   type EncounterGmProjectionDto,
   type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounterData'
+import { controlsAssignedCharacter } from '@artificer-toolkit/shared/campaign/characterControl'
 import {
   HEALTH_BAR_RATIO_STEP,
   type HealthDescriptiveStateDto,
@@ -57,8 +58,11 @@ export function playerActorHealth(
 /** What the viewer sees of the Encounter; see `projectPlayerEncounterProjection`. */
 export type EncounterPlayerViewer = {
   userId: string
-  /** Keyed by Character ID: its player and "Show my health to the party". */
-  characters: ReadonlyMap<string, { ownerUserId: string; health: HealthDisplayLevelDto }>
+  /** Keyed by Character ID: its player, the members the GM granted control (D162) and "Show my health to the party". */
+  characters: ReadonlyMap<
+    string,
+    { ownerUserId: string; health: HealthDisplayLevelDto; controllerUserIds?: readonly string[] }
+  >
   /**
    * Public actors this viewer cannot see (token hidden or in fog, or a creature with no token on the
    * Encounter's Scene), from `unseenEncounterActorIds` (ATTACK-17.3, D121).
@@ -133,11 +137,19 @@ export function unseenEncounterActorIds(input: {
 
 /** Whether the viewer controls the actor: a listed controller, or the player of a Character actor. */
 export function playerControlsActor(actor: ViewedActor, viewer: EncounterPlayerViewer): boolean {
+  const character =
+    actor.kind === 'CHARACTER' && actor.sourceId !== null
+      ? viewer.characters.get(actor.sourceId)
+      : undefined
   return (
     actor.controllerUserIds.includes(viewer.userId) ||
-    (actor.kind === 'CHARACTER' &&
-      actor.sourceId !== null &&
-      viewer.characters.get(actor.sourceId)?.ownerUserId === viewer.userId)
+    controlsAssignedCharacter(
+      character && {
+        userId: character.ownerUserId,
+        controllerUserIds: character.controllerUserIds
+      },
+      viewer.userId
+    )
   )
 }
 
