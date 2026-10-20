@@ -30,7 +30,7 @@ const extraAttack = (() => {
 })()
 
 /** The slots of a Fighter 5's Attack action: two attacks of any kind. */
-const TWO_ATTACKS = [{ slots: [{ count: 2, fillers: [{ kind: 'ANY_ATTACK' }] }] }]
+const TWO_ATTACKS = [{ slots: [{ count: 2, fillers: [{ kind: 'ANY_ATTACK' as const }] }] }]
 
 /** No Scene measures the Club's reach (D11); every attack acknowledges that. */
 const RANGE: ['TARGET_RANGE_UNCHECKED'] = ['TARGET_RANGE_UNCHECKED']

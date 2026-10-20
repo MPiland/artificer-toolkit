@@ -245,13 +245,23 @@ Action choices carry the warnings that already apply before a target is chosen.
 An Assisted weapon or unarmed attack made with one Action is part of the actor's Attack action
 (`isAttackActionAttack`, owned by the System's action-economy adapter; spell attacks are not).
 `evaluateEncounterAttackAction` wraps the Action evaluation: the first such attack of a turn spends the
-Action and opens the Attack action, stored at actor `resources.attackAction` with the turn sequence, the
-`total` attacks and the attacks made. The next attacks of that turn fill it without spending an Action or
-warning. A Character's total is the dnd5e policy output `attacksPerAttackAction` (value domain
-`ATTACKS_PER_ATTACK_ACTION`, SET_VALUE only, highest source wins, base 1; every class Extra Attack and
-Thirsting Blade is a grant of it) and a Creature's is 1, because a Creature's Multiattack is its own
-action. An attack that does not fit (full, stale turn) spends a new Action, warns when none is left, and
-opens a new Attack action. Settlement commits the `attackActionTransition` `{ before, after }` in the
+Action and opens the Attack action, stored at actor `resources.attackAction` with the turn sequence, its
+slot `alternatives` and the attacks made (each with its Feature, target ids, target size and, once
+settled, whether it hit). The next attacks of that turn fill it without spending an Action or warning.
+The alternatives are the implicit one slot of `ANY_ATTACK` times the dnd5e policy output
+`attacksPerAttackAction` (value domain `ATTACKS_PER_ATTACK_ACTION`, SET_VALUE only, highest source wins,
+base 1; every class Extra Attack and Thirsting Blade is a grant of it), plus every alternative a
+Creature's Features author as `attackSlots` (`packages/schema/src/features/attackSlots.ts`): slots with a
+`count`, `fillers` (a Feature or `ANY_ATTACK`), `optional`, `comesFirst` and one generic `condition`
+(`EARLIER_SLOTS_HIT_SAME_TARGET`, `TARGET_SIZE_AT_MOST`; an unknown size passes). A Feature that fills a
+slot is tracked in the Attack action; a swap ("instead of its bite") is a further alternative. An active
+`ATTACKS_PER_ATTACK_ACTION` cap limits the attacks of any alternative. `evaluateAttackSlots`
+(`encounterAttackSlots.ts`) decides in order whether the attacks so far still fit an alternative and
+whether a required slot is left (`incomplete`). The action drawer drops a slot-filling action that fits
+no alternative while the open Attack action is incomplete (`blocked`) and a Recharge filler with no
+charge left; nothing names a Creature. An attack that does not fit (full, stale turn) spends a new
+Action, warns when none is left, and opens a new Attack action. Settlement finalizes the transition with
+the attack's `hit` (`settleEncounterAttackActionHit`) before it is committed and receipted. Settlement commits the `attackActionTransition` `{ before, after }` in the
 action's mechanics batch with the same compare-and-set as the allowance; `REVERT_LAST_ACTION` restores
 `before` only while the actor still holds `after`, else it refuses with `REVERT_UNAVAILABLE`. Action
 choices report `attackSlot` per action and the actor's `openAttackAction`. A filler attack spends nothing
