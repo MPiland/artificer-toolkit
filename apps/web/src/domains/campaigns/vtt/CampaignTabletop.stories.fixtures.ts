@@ -267,7 +267,6 @@ const playerActors = [
 
 const encounterBase = {
   automationMode: 'ASSISTED',
-  trackAmmunition: false,
   campaignId: tabletopCampaignId,
   createdAt: '2026-08-15T22:05:00.000Z',
   currentActorId: actorBases[0].id,
@@ -292,6 +291,7 @@ export const tabletopPlayerEncounter = {
 
 export const tabletopGmEncounter = {
   ...encounterBase,
+  trackAmmunition: false,
   healthDisplayDefault: 'DESCRIPTIVE',
   actors: actorBases.map((actor, index) => ({
     ...actor,
