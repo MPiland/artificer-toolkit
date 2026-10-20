@@ -12626,7 +12626,7 @@
               "note": "Merged m243 (03ef52a00)."
             },
             {
-              "id": "SPELLS-33.T3c2a",
+              "id": "SPELLS-33.T3c2a1",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12636,8 +12636,23 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3c1"]
               },
-              "text": "Creature spell discovery (split from T3c2, ruled 2026-10-20): load compiled spell definitions for creature actors in Convex and the session worker; creature spell-cast discovery through the shared holder-agnostic candidate builder (Character-parity extraction); slot rows keyed by spellSlots levels[].id with the real feature as owner (no synthetic features).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "text": "Creature spell discovery rules: extract the holder-agnostic cast candidate builder from characterSpellCastRuleFacts.ts (Character assertions unchanged); creature path over grants.spells plus grants.spellSlots rows with a slot left; discover takes optional compiled spells and emits ENCOUNTER_FEATURE capabilities with spellCast. Rules-runtime proofs: Mage lists Fireball at 3-5, cantrips at will.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
+              "note": "Split from T3c2a 2026-10-20: discovery is sync with ~8 callers; creature spell definitions absent from Encounter path."
+            },
+            {
+              "id": "SPELLS-33.T3c2a2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T3c2a1"]
+              },
+              "text": "Pin compiled creature spells at run creation: readEncounterSource kind SPELL mirroring equipmentSources, each spell pinned once per run keyed by id and referenced by actors; discovery stays sync and replay-safe in Convex and the Session Worker; size proof for a Lich-class caster under the Convex document limit.",
+              "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port."
             },
             {
               "id": "SPELLS-33.T3c2b",
@@ -12648,7 +12663,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T3c2a"]
+                "after": ["SPELLS-33.T3c2a2"]
               },
               "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey."
             },
