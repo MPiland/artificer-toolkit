@@ -3,6 +3,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
+import { activeEffectSaveTallySchema } from './activeRuleEffectLifecycle.js'
 import {
   characterMechanicsApplicationDtoSchema,
   characterMechanicsTargetStateDtoSchema,
@@ -482,6 +483,8 @@ export const turnEffectExecutionDtoSchema = lazySchema(() =>
         afterVersion: aggregateVersionSchema,
         beforeRemainingTicks: z.nullable(positiveIntegerSchema),
         afterRemainingTicks: z.nullable(positiveIntegerSchema),
+        /** Only a threshold-counted effect: its save tally after this turn's save. */
+        afterSaveTally: z.optional(activeEffectSaveTallySchema),
         beforeLifecycleChecksum: checksumSchema,
         afterLifecycleChecksum: checksumSchema
       }),

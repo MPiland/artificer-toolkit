@@ -11,7 +11,10 @@ import {
   activeRuleEffectStateDtoSchema,
   type ActiveRuleEffectDefinitionDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import type { ActiveRuleEffectLifecycleDto } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import type {
+  ActiveEffectSaveTally,
+  ActiveRuleEffectLifecycleDto
+} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import {
   checksumRuleDocument,
@@ -97,6 +100,8 @@ export interface TargetBoundActiveRuleEffectExecutionResult {
   execution: ServerCompletedRuleExecutionDto
   applications: readonly CharacterRuleActionApplication[]
   terminal: boolean
+  /** Only a threshold-counted effect: its save tally once this turn's save is counted. */
+  saveTally?: ActiveEffectSaveTally
   d20: ServerRuleExecutionD20EvidenceDto | null
 }
 
@@ -557,6 +562,7 @@ function complete(input: {
       definition: prepared.definition
     }),
     terminal: interpreted.terminal,
+    ...(interpreted.saveTally ? { saveTally: interpreted.saveTally } : {}),
     d20: d20EvidenceForCompletion({
       policy: prepared.evidencePolicy,
       execution,

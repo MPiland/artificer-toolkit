@@ -476,6 +476,26 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('CREATURE_REST'),
+      /** The feature charges and spell slot rows each creature got back, so the GM's undo spends them again. */
+      receipt: z.strictObject({
+        restKind: z.enum(['SHORT', 'LONG']),
+        actors: z
+          .array(
+            z.strictObject({
+              actorId: postgresUuidSchema,
+              resets: z.array(
+                z.strictObject({
+                  key: z.string().check(z.trim()).check(z.minLength(1)),
+                  beforeUsed: z.number().check(z.int()).check(z.positive())
+                })
+              )
+            })
+          )
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('END_HELD_GRANT'),
       /** The timeline label: plain "End effect", which never names a source a player cannot see. */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),

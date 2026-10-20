@@ -1,5 +1,6 @@
 import {
   creatureActiveGrantCheckContributors,
+  encounterFeatureSkillCheckContributors,
   mergedRollContributors,
   withCreatureActiveGrantSkillTotal
 } from './encounterActiveGrants.js'
@@ -178,14 +179,30 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
             rollMode: skillId ? policy.rollModes.skillChecks[skillId] : undefined
           }
         : characterAbilityCheck(facts, policy, input.checkDefinitionId)
+    // A skill grant its holder state decides (Supreme Sneak) is judged here; the fold fails it closed.
+    const featureCheck =
+      input.checkKind === 'SKILL' && skillId && target.holderState
+        ? mergedRollContributors(
+            check.evidence ?? [],
+            encounterFeatureSkillCheckContributors({
+              holderActorId: target.actor.id,
+              grantFold: policy.grantFold,
+              holderState: target.holderState,
+              skillAliases:
+                facts.ruleEvaluation.facts.derivedBaseFacts.skills.find(
+                  (skill) => skill.skillId === skillId
+                )?.proficiencySubjectIds ?? []
+            })
+          )
+        : null
     return withConditions({
       controllerCharacterId: facts.active.id,
-      contributors: check.evidence ?? [],
+      contributors: featureCheck?.contributors ?? check.evidence ?? [],
       modifier:
         typeof check.modifier === 'number' && Number.isSafeInteger(check.modifier)
           ? check.modifier
           : null,
-      rollMode: check.rollMode ?? 'NORMAL',
+      rollMode: featureCheck?.rollMode ?? check.rollMode ?? 'NORMAL',
       size: initiative.effectiveSize
     })
   }

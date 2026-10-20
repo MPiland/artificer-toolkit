@@ -27,11 +27,27 @@ function baseCondition(
     secondaryRequiredIds: [],
     min: null,
     max: null,
+    speedFraction: null,
     proficiencyKind: null,
     minimumRank: null,
     category: null,
     requiredProperties: [],
     sourceState: null
+  }
+}
+
+function turnMovementCondition(
+  condition: Parameters<typeof baseCondition>[0] & {
+    readonly maxFeet?: number
+    readonly maxSpeedFraction?: number
+  }
+): RestrictionCondition {
+  if (condition.maxFeet === undefined && condition.maxSpeedFraction === undefined)
+    return baseCondition(condition, 'UNSUPPORTED')
+  return {
+    ...baseCondition(condition, 'TURN_MOVEMENT'),
+    max: condition.maxFeet ?? null,
+    speedFraction: condition.maxSpeedFraction ?? null
   }
 }
 
@@ -102,6 +118,8 @@ function normalizeCondition(
       return baseCondition(condition, 'SPEED_ABOVE_ZERO')
     case 'FREE_HAND':
       return baseCondition(condition, 'FREE_HAND')
+    case 'TURN_MOVEMENT':
+      return turnMovementCondition(condition)
     case 'ATTACK_ACTION_OTHER_WEAPON':
       return {
         ...baseCondition(condition, 'ATTACK_ACTION_OTHER_WEAPON'),
@@ -188,6 +206,8 @@ function normalizeCreatureCondition(
     case 'SPEED_ABOVE_ZERO':
     case 'FREE_HAND':
       return baseCondition(condition, condition.predicateCode)
+    case 'TURN_MOVEMENT':
+      return turnMovementCondition(condition)
     case 'CREATURE_TYPE':
       return {
         ...baseCondition(condition, 'CREATURE_TYPE'),

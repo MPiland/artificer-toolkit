@@ -428,6 +428,17 @@ const PARITY: Record<CommandType, Entry> = {
       amount: 1
     })
   },
+  CREATURE_REST: {
+    access: 'TABLE',
+    rule: TABLE_ADMIN,
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'CREATURE_REST',
+      restKind: 'SHORT',
+      actorIds: [probe.actorId]
+    })
+  },
   ROLL_ENEMY_ACTION: {
     access: 'TABLE',
     rule: TABLE_ADMIN,

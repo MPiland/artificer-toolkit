@@ -20,6 +20,7 @@ import { withEncounterHolderDefense } from '@artificer-toolkit/rules-runtime/enc
 import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
+import { readNativeLiveTurnMovedFeet } from './nativeTurnUses.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 
 export async function readNativeLiveActorsAndEffects(input: {
@@ -156,7 +157,8 @@ export async function prepareNativeLiveMovementTarget(input: {
     gameSystemId: state.gameSystemId,
     definitions,
     speedDefinitions: inputs.system.speeds,
-    runEffectsByActorId: input.activeEffectsByActorId
+    runEffectsByActorId: input.activeEffectsByActorId,
+    readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(capture, actor.id)
   })
   return {
     target: await withEncounterOccupantSaveBonus({

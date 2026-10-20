@@ -1,4 +1,9 @@
-import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import {
+  MAX_ACTIVE_EFFECT_TURNS,
+  type ActiveEffectSaveTally,
+  type ActiveEffectSaveThresholds,
+  type ActiveRuleEffectLifecycleDto
+} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -33,7 +38,8 @@ import type {
   OptionalOnHitAuthored,
   FailureMarginRiderAuthored,
   ForcedMovementCollisionAuthored,
-  PathLifecycleAuthored
+  PathLifecycleAuthored,
+  FollowUpSaveRepeatTriggerAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
   RULE_VALUE_KIND,
@@ -72,6 +78,7 @@ import type {
 } from '../../characterRuleActionSystemAdapter.js'
 import type {
   ActiveEffectEndTrigger,
+  ActiveEffectRepeatTrigger,
   GrantConsumeEvent,
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -2542,6 +2549,24 @@ function canonicalEndTriggers(
   return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }
 
+/** The authored repeat triggers as the stored effect carries them: filters explicit, canonical order. */
+function canonicalRepeatTriggers(
+  triggers: readonly FollowUpSaveRepeatTriggerAuthored[]
+): ActiveEffectRepeatTrigger[] {
+  const keyed = new Map(
+    triggers.map(({ kind, by, damageTypeIds, rollInfluence }) => {
+      const trigger: ActiveEffectRepeatTrigger = {
+        event: kind,
+        by,
+        damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null,
+        rollInfluence: rollInfluence ?? null
+      }
+      return [JSON.stringify(trigger), trigger]
+    })
+  )
+  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
+}
+
 function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {
   return pathLifecycleGrantConsumeEventSchema.safeParse(event).success
 }
@@ -2583,7 +2608,13 @@ function modifierGrantPlan(
     testPhaseKindOrNull(action) === 'SAVE'
       ? saveGrantPlan(action)
       : entry
-        ? modifierGrantEntryPlan({ action, entry, resultGated: attack, untilEndEvent: false })
+        ? // A grant with no duration lasts until one of its authored end events (Hide in Plain Sight).
+          modifierGrantEntryPlan({
+            action,
+            entry,
+            resultGated: attack,
+            untilEndEvent: !('duration' in entry) || entry.duration === undefined
+          })
         : null
   return plan && { ...plan, chosenItem: chosenItemPlan(action) }
 }
@@ -3781,8 +3812,11 @@ function repeatingDirectFollowUpSavePlan(
     !UUID.test(leadEntry.resultBlockId) ||
     initialRemaining === null ||
     save.timing !== 'TARGET_TURN_END' ||
-    save.attempts.kind !== 'ONCE' ||
-    (save.attempts.repeatOnFailure === true) === (escalation !== null) ||
+    (save.attempts.kind === 'ONCE'
+      ? (save.attempts.repeatOnFailure === true) === (escalation !== null)
+      : escalation !== null ||
+        !isTallyCount(save.attempts.successesToEnd) ||
+        !isTallyCount(save.attempts.failuresToResolve)) ||
     !pinnedDc ||
     !UUID.test(save.savingThrow.abilityDefinitionId) ||
     save.onSuccess.kind !== 'END' ||
@@ -3800,6 +3834,9 @@ function repeatingDirectFollowUpSavePlan(
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
     ...contribution,
+    ...(save.repeatTriggers?.length && {
+      lifecycle: { repeatTriggers: canonicalRepeatTriggers(save.repeatTriggers) }
+    }),
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
       ...pinnedDc.adapterFacts,
@@ -3828,6 +3865,13 @@ function repeatingDirectFollowUpSavePlan(
           }
         : {})
     },
+    ...(save.attempts.kind === 'THRESHOLDS' && {
+      saveThresholds: {
+        successesToEnd: save.attempts.successesToEnd,
+        failuresToResolve: save.attempts.failuresToResolve,
+        consecutive: save.attempts.consecutive
+      }
+    }),
     // A cast with no save of its own rolls no d20 to carry the DC, so the cast's own graph settles it.
     ...(triggerCode === 'ACTIVATED' ? { castFactKeys: [DND5E_SAVE_DC_FACT_KEY] } : {}),
     castSaveDcFactKey: triggerCode === 'ACTIVATED' ? null : pinnedDc.castSaveDcFactKey,
@@ -3835,6 +3879,32 @@ function repeatingDirectFollowUpSavePlan(
     maintenance: maintenancePlan(action, leadEntry),
     marginRider: null
   }
+}
+
+function isTallyCount(count: number) {
+  return Number.isSafeInteger(count) && count >= 1 && count <= 255
+}
+
+/** A thresholds effect that has counted its failures stops saving; its duration still runs out. */
+function repeatSaveSettled(
+  thresholds: ActiveEffectSaveThresholds | undefined,
+  lifecycle: ActiveRuleEffectLifecycleDto
+) {
+  return (
+    thresholds !== undefined && (lifecycle.saveTally?.failures ?? 0) >= thresholds.failuresToResolve
+  )
+}
+
+/** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
+function countRepeatSave(
+  thresholds: ActiveEffectSaveThresholds,
+  before: ActiveEffectSaveTally | undefined,
+  path: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
+): ActiveEffectSaveTally {
+  const { successes, failures } = before ?? { successes: 0, failures: 0 }
+  return path === 'ON_SAVE_SUCCESS'
+    ? { successes: successes + 1, failures: thresholds.consecutive ? 0 : failures }
+    : { successes: thresholds.consecutive ? 0 : successes, failures: failures + 1 }
 }
 
 function repeatingDirectFollowUpSaveLeadEntry(
@@ -3853,7 +3923,9 @@ function repeatFollowUpSavePublishedGraph(input: {
     throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
   }
   // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
-  const gated = DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.plan.adapterFacts
+  const gated =
+    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.plan.adapterFacts ||
+    input.plan.saveThresholds !== undefined
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -9000,7 +9072,8 @@ function repeatedFollowUpSaveResultPath(input: {
   }
   const [d20Trace, addedDiceTrace, saveTrace] = input.execution.evidence.trace
   const gated =
-    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts
+    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts ||
+    input.definition.recurrence.saveThresholds !== undefined
   const d20OperationKey = gated ? 'evidence.optional-integer-range' : 'evidence.integer-range'
   const attemptAllowed = gated
     ? input.execution.evidence.facts[DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]
@@ -11056,18 +11129,21 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const resolvedContributors = resolveD20Contributors(contributors)
     const contributorChecksum = checksumRuleDocument(resolvedContributors.contributors)
     const gate = perceptionRequirement?.kind === 'ATTEMPT_GATE' ? perceptionRequirement : null
+    const gated = gate !== null || definition.recurrence.saveThresholds !== undefined
     if (
       definition.frozenGraph.nodes.filter(
         (node) =>
           node.id === requestNodeId &&
           node.operation.key ===
-            (gate ? 'evidence.optional-integer-range' : 'evidence.integer-range') &&
+            (gated ? 'evidence.optional-integer-range' : 'evidence.integer-range') &&
           node.operation.contractVersion === 1
       ).length !== 1
     ) {
       throw new Dnd5eEffectActionCompilerError('D&D recurring save request binding is invalid.')
     }
-    const attemptAllowed = !gate || perception?.satisfied === (gate.allow === 'WHEN_MET')
+    const attemptAllowed =
+      !repeatSaveSettled(definition.recurrence.saveThresholds, lifecycle) &&
+      (!gate || perception?.satisfied === (gate.allow === 'WHEN_MET'))
     const successImmunity =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]
     // A zone that needs sight of its source is saved against unrolled by an occupant without it.
@@ -11084,7 +11160,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: succeedsUnrolled
         ? 'SAVE_AUTO_SUCCESS'
         : dnd5eSaveOutcomeRule(conditionOutcomeRules, abilityDefinitionId),
-      ...(gate ? { [DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]: attemptAllowed } : {})
+      ...(gated ? { [DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]: attemptAllowed } : {})
     }
     // A refused attempt settles its d20 without a request, so no roll is asked for.
     if (!attemptAllowed) return { facts, evidencePolicy: null }
@@ -11233,11 +11309,25 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (repeatedSavePath !== null) {
       const conditionId =
         definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]
-      // A failed or refused attempt on the last counted turn ends the effect with its duration.
-      const terminal = repeatedSavePath === 'ON_SAVE_SUCCESS' || lifecycle.remainingTicks === 1
+      const thresholds = definition.recurrence.saveThresholds
+      const saveTally =
+        thresholds && repeatedSavePath !== 'ATTEMPT_REFUSED'
+          ? countRepeatSave(thresholds, lifecycle.saveTally, repeatedSavePath)
+          : undefined
+      // A failed or refused attempt on the last counted turn ends the effect with its duration. A
+      // thresholds effect ends on its last success instead, and settles on its last failure.
+      const terminal =
+        (thresholds
+          ? saveTally !== undefined && saveTally.successes >= thresholds.successesToEnd
+          : repeatedSavePath === 'ON_SAVE_SUCCESS') || lifecycle.remainingTicks === 1
       // Grants held by the effect leave with it; only a held condition needs removing.
       if (conditionId === undefined)
-        return { applications: [], terminal, emptyApplicationAllowed: true }
+        return {
+          applications: [],
+          terminal,
+          emptyApplicationAllowed: true,
+          ...(saveTally ? { saveTally } : {})
+        }
       if (typeof conditionId !== 'string' || !UUID.test(conditionId)) {
         throw new Dnd5eEffectActionCompilerError(
           'D&D repeat-save condition identity is unavailable.'
@@ -11288,7 +11378,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         : {
             applications: [],
             terminal: false,
-            emptyApplicationAllowed: true
+            emptyApplicationAllowed: true,
+            ...(saveTally ? { saveTally } : {})
           }
     }
     const resolvedTest = testApplications({
