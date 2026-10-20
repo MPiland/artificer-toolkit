@@ -76,6 +76,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'SOURCE_SAVE_DC' }
     case 'spellCast':
       return { castLevel: 1 }
+    case 'featureGrantedSpellCast':
+      return { spellKind: 'CANTRIP' }
     case 'featureWeaponAttack':
       return {}
     case 'chargeBonus':
@@ -521,6 +523,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         allow: 'WHEN_UNMET',
         when: createFollowUpSaveRepeatPerception()
       }
+    case 'followUpSaveRepeatTrigger':
+      return { kind: 'DAMAGE_TAKEN', by: 'ANYONE' }
     case 'followUpSaveRepeatPerception':
       return createFollowUpSaveRepeatPerception()
     case 'degradeEquipmentDestroyWhen':

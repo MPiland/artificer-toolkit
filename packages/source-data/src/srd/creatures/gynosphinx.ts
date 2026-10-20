@@ -230,27 +230,8 @@ export const gynosphinx: CreatureAuthored = {
                 range: { id: '00000000-0002-04be-0070-009d00000000', rangeKind: 'SPECIAL' },
                 resourceUse: { chargeId: S.legendaryActionId(157, 208), cost: 3 }
               },
-              paths: [
-                {
-                  id: '37f3fd8f-3302-59c5-90b2-e91ff0998d73',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: 'b17ab546-0bdd-54a6-b419-7d883e981663',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '60a52704-47ad-5820-9fdf-3fa03decf3bb',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'CREATURE_GYNOSPHINX_LEGENDARY_ACTIONS'
-                      }
-                    ]
-                  }
-                }
-              ]
+              grantedSpellCast: { spellKind: 'LEVELED' },
+              paths: []
             }
           ]
         }

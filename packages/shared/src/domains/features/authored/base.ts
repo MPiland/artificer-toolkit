@@ -24,6 +24,15 @@ export interface FeatureSpellCastAuthored {
 }
 
 /**
+ * An action that casts one of the spells its holder is granted, chosen at the table (D156): a
+ * cantrip, or a levelled spell cast from a slot as normal. It authors no outcome paths of its own;
+ * the chosen spell's effect resolves.
+ */
+export interface FeatureGrantedSpellCastAuthored {
+  spellKind: 'CANTRIP' | 'LEVELED'
+}
+
+/**
  * A Feature weapon attack made with each weapon its Character wields (D156, Volley and Whirlwind
  * Attack): the action is offered once per wielded weapon that makes an attack of the effect's
  * trigger and has every listed property, with that weapon's attack and damage.
@@ -39,6 +48,7 @@ export interface FeatureWeaponAttackAuthored {
 export type FeatureEffectAuthored = EffectAuthored & {
   grip?: EquipmentGrip
   spellCast?: FeatureSpellCastAuthored
+  grantedSpellCast?: FeatureGrantedSpellCastAuthored
   weaponAttack?: FeatureWeaponAttackAuthored
 }
 

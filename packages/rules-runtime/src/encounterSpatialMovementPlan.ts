@@ -183,6 +183,7 @@ export function planNativeSpatialMovementPrefix<
       applications,
       expectedCharacterStreamVersion: target.characterFacts?.active.play.streamVersion ?? null,
       effectiveMaximumHitPoints: target.effectiveMaximumHitPoints,
+      damageInterceptions: target.damageInterceptions,
       sheetMaximumHitPoints: target.sheetMaximumHitPoints,
       effectiveScalarValues: target.effectiveScalarValues,
       forceVersionAdvance: target.actor.kind === 'CHARACTER'

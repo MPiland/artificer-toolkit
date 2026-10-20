@@ -119,6 +119,7 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     state: { current: 10, temporary: 0, conditions: [...conditions], deathSaves: null },
     initialConditionRows,
     effectiveMaximumHitPoints: 10,
+    damageInterceptions: [],
     baseScalarValues: {},
     effectiveScalarValues: {},
     baseRulePolicyOutput: null,

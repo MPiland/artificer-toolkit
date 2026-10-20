@@ -2,9 +2,18 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { damageInterceptionPayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 
-import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
+import {
+  temporaryHitPointsAfterGrant,
+  temporaryHitPointsAfterLoss,
+  temporaryHitPointsAfterRelease,
+  type TemporaryHitPointsPool
+} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
+
+import {
+  effectiveHitPointMaximum,
+  listActiveEffectGrants
+} from './character/activeEffectGrantTotals.js'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
-import { EncounterValidationError } from './encounterErrors.js'
 
 /**
  * A held `DAMAGE_INTERCEPTION` grant (Death Ward; Undead Fortitude and Relentless Endurance reuse
@@ -64,67 +73,90 @@ export function hitPointsAfterDamage(input: {
 /**
  * Applies a batch's interceptions in order, the first lethal damage or kill spending each one: the
  * damage ends at the interception's hit points and names it (`interceptedBy`), a kill is replaced by
- * a `KILL_NEGATED` the same ward negates. Damage later in the batch is rebased onto the hit points
- * the interception left, so a second blow meets the ward already spent. Pure, and shared by every
- * actor kind: a Character and a Run creature settle damage through the same planner and fold.
+ * a `KILL_NEGATED` the same ward negates. Every later hit point change in the batch (damage, healing,
+ * temporary hit points) is rebased onto the pools the interception left, so a second blow meets the
+ * ward already spent. This is the one place a batch's interceptions are decided: the planner calls it,
+ * and the fold only validates the result. Pure, and shared by every actor kind: a Character and a Run
+ * creature settle damage through the same planner and fold.
  */
 export function applyDamageInterceptions(input: {
   applications: readonly CharacterRuleActionApplication[]
   currentHitPoints: number
   temporaryHitPoints: number
-  maximumHitPoints: number
+  temporaryHitPointsSourceEffectId?: string | null
   interceptions: readonly HeldDamageInterception[]
 }): CharacterRuleActionApplication[] {
   if (input.interceptions.length === 0) return [...input.applications]
   const unspent = [...input.interceptions]
   let current = input.currentHitPoints
-  let temporary = input.temporaryHitPoints
+  let pool: TemporaryHitPointsPool = {
+    amount: input.temporaryHitPoints,
+    sourceEffectId: input.temporaryHitPointsSourceEffectId ?? null
+  }
   let rebased = false
   return input.applications.map((application) => {
     if (application.kind === 'KILL') {
       const index = unspent.findIndex((interception) => interception.negatesKill)
       if (index < 0) {
         current = 0
-        temporary = 0
+        pool = { amount: 0, sourceEffectId: null }
         return application
       }
       const [spent] = unspent.splice(index, 1)
       const { kind: _kind, ...trace } = application
       return { ...trace, kind: 'KILL_NEGATED', negatedBy: spent!.effectId }
     }
-    if (application.kind === 'HEAL' && rebased) {
-      const appliedAmount = Math.min(application.resolvedAmount, input.maximumHitPoints - current)
-      current += appliedAmount
-      return {
-        ...application,
-        appliedAmount,
-        beforeCurrentHitPoints: current - appliedAmount,
-        afterCurrentHitPoints: current,
-        beforeTemporaryHitPoints: temporary,
-        afterTemporaryHitPoints: temporary
-      }
-    }
-    if (application.kind !== 'DAMAGE') {
-      if (rebased && 'afterCurrentHitPoints' in application)
-        throw new EncounterValidationError(
-          'A damage interception cannot precede other hit point changes in one batch.'
-        )
-      current = 'afterCurrentHitPoints' in application ? application.afterCurrentHitPoints : current
-      temporary =
-        'afterTemporaryHitPoints' in application ? application.afterTemporaryHitPoints : temporary
+    if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {
+      pool = temporaryHitPointsAfterRelease(pool, application.sourceActiveEffectId)
       return application
     }
+    if (application.kind === 'HEAL') {
+      const appliedAmount = rebased
+        ? Math.min(application.resolvedAmount, application.maximumHitPoints - current)
+        : application.appliedAmount
+      const result = rebased
+        ? {
+            ...application,
+            appliedAmount,
+            beforeCurrentHitPoints: current,
+            afterCurrentHitPoints: current + appliedAmount,
+            beforeTemporaryHitPoints: pool.amount,
+            afterTemporaryHitPoints: pool.amount
+          }
+        : application
+      current = result.afterCurrentHitPoints
+      return result
+    }
+    if (application.kind === 'TEMPORARY_HIT_POINTS') {
+      const granted = temporaryHitPointsAfterGrant(pool, {
+        amount: application.resolvedAmount,
+        sourceEffectId: application.sourceActiveEffectId ?? null
+      })
+      const result = rebased
+        ? {
+            ...application,
+            appliedAmount: granted.amount - pool.amount,
+            beforeCurrentHitPoints: current,
+            afterCurrentHitPoints: current,
+            beforeTemporaryHitPoints: pool.amount,
+            afterTemporaryHitPoints: granted.amount
+          }
+        : application
+      pool = { amount: result.afterTemporaryHitPoints, sourceEffectId: granted.sourceEffectId }
+      return result
+    }
+    if (application.kind !== 'DAMAGE') return application
     const resolvedAmount = resolveDispositionDamage(
       application.damageDisposition,
       application.requestedAmount
     )
-    const temporaryLost = Math.min(temporary, resolvedAmount)
+    const temporaryLost = Math.min(pool.amount, resolvedAmount)
     const currentLost = Math.min(current, resolvedAmount - temporaryLost)
     const interception = unspent[0]
     const after = hitPointsAfterDamage({
       current,
       currentLost,
-      maximum: input.maximumHitPoints,
+      maximum: application.maximumHitPoints,
       interception
     })
     const intercepted = interception !== undefined && after !== current - currentLost
@@ -135,12 +167,27 @@ export function applyDamageInterceptions(input: {
       appliedAmount: temporaryLost + current - after,
       beforeCurrentHitPoints: current,
       afterCurrentHitPoints: after,
-      beforeTemporaryHitPoints: temporary,
-      afterTemporaryHitPoints: temporary - temporaryLost,
+      beforeTemporaryHitPoints: pool.amount,
+      afterTemporaryHitPoints: pool.amount - temporaryLost,
       ...(intercepted && { interceptedBy: interception.effectId })
     }
     current = after
-    temporary -= temporaryLost
+    pool = temporaryHitPointsAfterLoss(pool, temporaryLost)
     return result
   })
+}
+
+/**
+ * Every batch input a holder's held effects derive: its effective maximum hit points and its damage
+ * interceptions. Each mechanics batch builder calls this once for its target instead of computing
+ * the maximum inline, so a new held-effect input reaches every flow at once.
+ */
+export function heldBatchInputs(input: {
+  baseMaximumHitPoints: number
+  effects: readonly ActiveRuleEffectRecord[]
+}) {
+  return {
+    effectiveMaximumHitPoints: effectiveHitPointMaximum(input.baseMaximumHitPoints, input.effects),
+    damageInterceptions: heldDamageInterceptions(input.effects)
+  }
 }

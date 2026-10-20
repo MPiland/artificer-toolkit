@@ -7,6 +7,7 @@ import type { CharacterRuleActionApplication } from '../characterRuleActionSyste
 import { foldCharacterMechanicsApplications } from '../encounterCharacterMechanicsBatch.js'
 import {
   applyDamageInterceptions,
+  heldBatchInputs,
   heldDamageInterceptions,
   type HeldDamageInterception
 } from '../encounterDamageInterception.js'
@@ -118,6 +119,19 @@ describe('held damage interceptions', () => {
     ])
   })
 
+  it('derives the effective maximum and the interceptions from the same held effects', () => {
+    expect(
+      heldBatchInputs({ baseMaximumHitPoints: 11, effects: [heldWard({ idSeed: 0xe205 })] })
+    ).toEqual({
+      effectiveMaximumHitPoints: 11,
+      damageInterceptions: [{ effectId: testUuid(0xe205), dropToHitPoints: 1, negatesKill: true }]
+    })
+    expect(heldBatchInputs({ baseMaximumHitPoints: 11, effects: [] })).toEqual({
+      effectiveMaximumHitPoints: 11,
+      damageInterceptions: []
+    })
+  })
+
   it('holds none without a use left or a held interception', () => {
     const noUses = heldWard({ idSeed: 0xe204 })
     const { remainingUses: _remaining, ...lifecycle } = noUses.lifecycle
@@ -131,10 +145,11 @@ describe.each([
   ['a Character', NO_DEATH_SAVES],
   ['a Run creature', null]
 ] as const)('damage interception on %s', (_actor, deathSaves) => {
-  const fold = (
+  // The planner applies the interceptions and the fold validates them (`planEncounterMechanicsBatch`).
+  const foldApplied = (
     applications: CharacterRuleActionApplication[],
     interceptions: readonly HeldDamageInterception[],
-    state = { current: 10, temporary: 0 }
+    state: { current: number; temporary: number }
   ) =>
     foldCharacterMechanicsApplications({
       targetActorId: HOLDER_ID,
@@ -146,6 +161,21 @@ describe.each([
       applications,
       damageInterceptions: interceptions
     })
+  const fold = (
+    applications: CharacterRuleActionApplication[],
+    interceptions: readonly HeldDamageInterception[],
+    state = { current: 10, temporary: 0 }
+  ) =>
+    foldApplied(
+      applyDamageInterceptions({
+        applications,
+        currentHitPoints: state.current,
+        temporaryHitPoints: state.temporary,
+        interceptions
+      }),
+      interceptions,
+      state
+    )
 
   it('leaves lethal damage at the interception total and names the spent effect', () => {
     const folded = fold([damage(40, { current: 10, maximum: 30 })], [ward])
@@ -226,6 +256,58 @@ describe.each([
     const folded = fold([damage(40, { current: 10, maximum: 30 }), heal], [ward])
     expect(folded.after.currentHitPoints).toBe(5)
   })
+
+  it('rebases temporary hit points granted after an interception onto the pools it left', () => {
+    const grant: CharacterRuleActionApplication = {
+      ...trace,
+      kind: 'TEMPORARY_HIT_POINTS',
+      requestedAmount: 6,
+      resolvedAmount: 6,
+      appliedAmount: 6,
+      beforeCurrentHitPoints: 0,
+      afterCurrentHitPoints: 0,
+      beforeTemporaryHitPoints: 0,
+      afterTemporaryHitPoints: 6,
+      maximumHitPoints: 30
+    }
+    const folded = fold([damage(40, { current: 10, maximum: 30 }), grant], [ward])
+    expect(folded.after).toMatchObject({ currentHitPoints: 1, temporaryHitPoints: 6 })
+    expect(folded.applications[1]).toMatchObject({
+      kind: 'TEMPORARY_HIT_POINTS',
+      beforeCurrentHitPoints: 1,
+      afterCurrentHitPoints: 1,
+      appliedAmount: 6
+    })
+  })
+
+  it('refuses lethal damage the planner left unintercepted while a ward is held', () => {
+    const lethal = damage(40, { current: 10, maximum: 30 })
+    expect(() => foldApplied([lethal], [ward], { current: 10, temporary: 0 })).toThrow(
+      'The Character damage interception is invalid.'
+    )
+  })
+
+  it('refuses an interception the held wards do not name', () => {
+    const forged: CharacterRuleActionApplication = {
+      ...trace,
+      kind: 'DAMAGE',
+      requestedAmount: 40,
+      resolvedAmount: 40,
+      appliedAmount: 9,
+      beforeCurrentHitPoints: 10,
+      afterCurrentHitPoints: 1,
+      beforeTemporaryHitPoints: 0,
+      afterTemporaryHitPoints: 0,
+      maximumHitPoints: 30,
+      damageTypeId: DAMAGE_TYPE_ID,
+      damageDisposition: 'NORMAL',
+      critical: false,
+      interceptedBy: testUuid(0xe1ff)
+    }
+    expect(() => foldApplied([forged], [ward], { current: 10, temporary: 0 })).toThrow(
+      'The Character damage application is invalid.'
+    )
+  })
 })
 
 describe('applyDamageInterceptions', () => {
@@ -234,7 +316,6 @@ describe('applyDamageInterceptions', () => {
       applications: [damage(20, { current: 5, maximum: 2 })],
       currentHitPoints: 5,
       temporaryHitPoints: 0,
-      maximumHitPoints: 2,
       interceptions: [{ ...ward, dropToHitPoints: 8 }]
     })
     expect(intercepted).toMatchObject({ afterCurrentHitPoints: 2, interceptedBy: ward.effectId })
@@ -247,7 +328,6 @@ describe('applyDamageInterceptions', () => {
         applications,
         currentHitPoints: 10,
         temporaryHitPoints: 0,
-        maximumHitPoints: 30,
         interceptions: []
       })
     ).toEqual(applications)

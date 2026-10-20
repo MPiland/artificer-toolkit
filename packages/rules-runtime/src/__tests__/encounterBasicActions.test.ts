@@ -145,6 +145,7 @@ function target(
     state: { current: 10, temporary: 0, conditions: options.conditions ?? [], deathSaves: null },
     initialConditionRows: null,
     effectiveMaximumHitPoints: 10,
+    damageInterceptions: [],
     baseScalarValues: {},
     effectiveScalarValues: {},
     baseRulePolicyOutput: null,

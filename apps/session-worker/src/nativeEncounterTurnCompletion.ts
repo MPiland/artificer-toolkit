@@ -57,7 +57,11 @@ export async function prepareNativeLiveTurnCompletion(input: {
       {
         ...effect,
         version: lifecycle.afterVersion,
-        lifecycle: { schemaVersion: 1, remainingTicks: lifecycle.afterRemainingTicks },
+        lifecycle: {
+          ...effect.lifecycle,
+          remainingTicks: lifecycle.afterRemainingTicks,
+          ...(lifecycle.afterSaveTally ? { saveTally: lifecycle.afterSaveTally } : {})
+        },
         lifecycleChecksum: lifecycle.afterLifecycleChecksum
       }
     ]

@@ -191,6 +191,7 @@ function planNativeContestTargetMechanics(
       applications: [...applications],
       expectedCharacterStreamVersion: holder.characterFacts?.active.play.streamVersion ?? null,
       effectiveMaximumHitPoints: holder.effectiveMaximumHitPoints,
+      damageInterceptions: holder.damageInterceptions,
       effectiveScalarValues: holder.effectiveScalarValues,
       forceVersionAdvance: false
     },

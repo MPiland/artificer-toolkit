@@ -232,32 +232,14 @@ export const lich: CreatureAuthored = {
               id: '00000000-0005-01f5-0070-00b700000000',
               order: 1,
               invocation: {
-                kind: 'PASSIVE',
+                kind: 'ACTION',
                 triggerCode: 'ACTIVATED',
-                range: { id: '00000000-0005-0259-0070-00b700000000', rangeKind: 'SELF' },
-                targeting: { selectionKind: 'SELF' }
+                activation: { code: 'ACTION', amount: 1 },
+                range: { id: '00000000-0005-0259-0070-00b700000000', rangeKind: 'SPECIAL' },
+                resourceUse: { chargeId: S.legendaryActionId(2794, 21), cost: 1 }
               },
-              paths: [
-                {
-                  id: 'd99a4013-9722-5059-9fc4-f5d293916568',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '1589ba07-cdd9-5441-b353-c302a71a96e3',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: '94dbd78f-d8ea-5491-8c45-c131a3de303e',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'CREATURE_LICH_LEGENDARY_ACTIONS'
-                      }
-                    ]
-                  }
-                }
-              ]
+              grantedSpellCast: { spellKind: 'CANTRIP' },
+              paths: []
             }
           ]
         },

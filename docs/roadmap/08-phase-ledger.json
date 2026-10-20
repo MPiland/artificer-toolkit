@@ -8790,7 +8790,7 @@
             },
             {
               "id": "SPELLS-4.T2i4b1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8800,8 +8800,7 @@
                 "after": ["SPELLS-4.T2i4a"]
               },
               "text": "Hit-point tier bands: change the hit-point gate contract in place to a band (hitPointsAbove plus ceiling) with one comparator in hitPointTiers.ts, migrating Power Word Kill/Stun and T2i4a; tiered save graph (testPlan, refuseGate, per-tier proposal nodes and source-entry ids, gated KILL on the save-fail path); \"KILL tier selected, no plan\" as a real outcome; widened timed-condition-on-save admission; boundary test at 20/21/30/31/40/41/50/51 with a fixture spell.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": "Split from T2i4b 2026-10-20: tier gating needed a band contract and per-tier save graph."
+              "note": "Merged m252 (3de9f4b31)."
             },
             {
               "id": "SPELLS-4.T2i4b2",
@@ -8833,7 +8832,7 @@
             },
             {
               "id": "SPELLS-4.T2i2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8842,7 +8841,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2i2a"]
               },
-              "text": "Damage interception in the room (split from T2i2, 2026-10-20): one derivation point for held-effect batch inputs (effective max HP and damage interceptions) used by every mechanics batch builder; the ward ends in the same batch with undo. Converts DEATH_WARD with a parity proof (kind deleted) and a room journey: a warded Character takes lethal damage, stays at 1 HP, the ward ends, undo restores both. Also fixes the T2i2a review findings: one role for interception (planner applies, fold validates, or the reverse) with a regression test, and generic handling of heals/temporary HP after an interception in one batch."
+              "text": "Damage interception in the room (split from T2i2, 2026-10-20): one derivation point for held-effect batch inputs (effective max HP and damage interceptions) used by every mechanics batch builder; the ward ends in the same batch with undo. Converts DEATH_WARD with a parity proof (kind deleted) and a room journey: a warded Character takes lethal damage, stays at 1 HP, the ward ends, undo restores both. Also fixes the T2i2a review findings: one role for interception (planner applies, fold validates, or the reverse) with a regression test, and generic handling of heals/temporary HP after an interception in one batch.",
+              "note": "Merged m253 (1b5d65888)."
             },
             {
               "status": "TODO",
@@ -9038,7 +9038,7 @@
             },
             {
               "id": "SPELLS-4.T2m1c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9048,11 +9048,11 @@
                 "after": ["SPELLS-4.T2m1"]
               },
               "text": "THRESHOLDS repeat-save tally (split from T2m1, ruled 2026-10-20): a saveTally on the active effect lifecycle across the lifecycle schema, staged turn-execution validators (ruleExecutionTurnResults), turnEffectsPersistence checksum and CAS, and encounterTurnEffects; successes and failures reaching their thresholds end or settle the effect. Proves Contagion's save part (CONTAGION kind deleted in T2l2).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m251 (0b5abbd05)."
             },
             {
               "id": "SPELLS-4.T2m1b1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9062,8 +9062,7 @@
                 "after": ["SPELLS-4.T2m1"]
               },
               "text": "Repeat-save triggers as data: FollowUpSave.repeatTriggers (DAMAGE_TAKEN) in shared, schema, node maps and authoring defaults; compiler stores triggers on the active-effect plan via repeatingDirectFollowUpSavePlan; proved on a Hold Person homebrew. Triggers are inert until T2m1b2; no spell conversion.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": "Split from T2m1b 2026-10-20: D161 hook raises actions, not active-effect saves; off-turn SYSTEM root needed."
+              "note": "Merged m250 (31f041dec)."
             },
             {
               "id": "SPELLS-4.T2m1b1b",
@@ -9077,7 +9076,8 @@
                 "after": ["SPELLS-4.T2m1b1"]
               },
               "text": "Multi-condition repeat plan: repeatingDirectFollowUpSavePlan, the outcome graph, the repeat-save condition fact (list) and runtime removal take a condition list; Hideous Laughter authored as data (Prone + Incapacitated, 1-minute Wis save at turn end, advantage on damage).",
-              "note": "Split from T2m1b1 2026-10-20: plan, graph, fact and removal are single-condition."
+              "note": "Split from T2m1b1 2026-10-20: plan, graph, fact and removal are single-condition.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2m1b2",
@@ -12641,7 +12641,7 @@
             },
             {
               "id": "SPELLS-33.T3c2a1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 8,
@@ -12651,11 +12651,10 @@
                 "after": ["SPELLS-33.T3c1"]
               },
               "text": "Creature spell discovery rules: extract the holder-agnostic cast candidate builder from characterSpellCastRuleFacts.ts (Character assertions unchanged); creature path over grants.spells plus grants.spellSlots rows with a slot left; discover takes optional compiled spells and emits ENCOUNTER_FEATURE capabilities with spellCast. Rules-runtime proofs: Mage lists Fireball at 3-5, cantrips at will.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
-              "note": "Split from T3c2a 2026-10-20: discovery is sync with ~8 callers; creature spell definitions absent from Encounter path."
+              "note": "Merged m249 (349b2d7a5)."
             },
             {
-              "id": "SPELLS-33.T3c2a2",
+              "id": "SPELLS-33.T3c2a2a",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12665,7 +12664,22 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3c2a1"]
               },
-              "text": "Pin compiled creature spells at run creation: readEncounterSource kind SPELL mirroring equipmentSources, each spell pinned once per run keyed by id and referenced by actors; discovery stays sync and replay-safe in Convex and the Session Worker; size proof for a Lich-class caster under the Convex document limit.",
+              "text": "Pin compiled creature spells: a per-run pinned-spell table (on the encounterSourceProjectionFacts model, in every store, checkpoint, lifecycle and deletion path), readEncounterSource kind SPELL in Convex and the Worker, pinning at run creation, reinforcement and form, and a Lich-class size proof under the Convex document limit.",
+              "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T3c2a2b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T3c2a2a"]
+              },
+              "text": "Load the pinned spells in Convex and the Session Worker room and pass them to the 5 discover callers; replay-safety proof (a source spell edited or deleted after pinning gives the same discovery, no recompile).",
               "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port."
             },
             {
@@ -12677,9 +12691,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T3c2a2"]
+                "after": ["SPELLS-33.T3c2a2b"]
               },
-              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey. Also from T3c2a1: assertEncounterFeatureActionCapabilityCurrent must recognize spell-cast capabilities, and spell attacks need their attackMechanic (null today)."
+              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey. Also from T3c2a1: assertEncounterFeatureActionCapabilityCurrent must recognize spell-cast capabilities, and spell attacks need their attackMechanic (null today). Discovery also emits a capability for effect.grantedSpellCast (T6c: Lich Cantrip, Gynosphinx Cast a Spell legendary options)."
             },
             {
               "id": "SPELLS-33.T3c2c",
@@ -12989,7 +13003,21 @@
               "text": "per-target immunity after a save: frightful presences, glares, stench (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
             {
-              "id": "SPELLS-33.T5n",
+              "id": "SPELLS-33.T5n1",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-31.T5n"]
+              },
+              "text": "MOVED_TOWARD_TARGET {minFeet} hit-path gate: the turn lastMove record, its capture in Convex and the Session Worker, and the evaluator (D164). No creature conversion.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T5n2",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12997,10 +13025,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T1", "SPELLS-31.T5n"]
+                "after": ["SPELLS-33.T5n1"]
               },
-              "text": "straight-line Charge gates (4 kinds) on a new generic MOVED_TOWARD_TARGET {minFeet} hit-path gate (D164). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "text": "straight-line Charge gates (4 kinds): an ON_HIT rider scoped to a named Feature's attack, rider damage and follow-up save merged into that attack's result block, and the conversions. Each has an authoring-parity proof and deletes its kind (D156, D164 split; workbook slice-spells-33.md)."
             },
             {
               "id": "SPELLS-33.T6a1",
@@ -13082,7 +13109,7 @@
             },
             {
               "id": "SPELLS-33.T6c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13091,7 +13118,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T3b"]
               },
-              "text": "new: legendary option that casts a granted spell (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: legendary option that casts a granted spell (2 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "Merged m254 (d6d7b2a4e)."
             },
             {
               "id": "SPELLS-33.T6d1",
@@ -13144,7 +13172,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T6d3a"]
               },
-              "text": "Assassinate and Surprise Attack (2 kinds): new TARGET_HAS_NOT_TAKEN_TURN predicate derived from initiative for Assassinate advantage; surprise parts description-only (D165). Authoring-parity proof; deletes the kinds (D156; workbook slice-spells-33.md)."
+              "text": "Assassinate and Surprise Attack (2 kinds): new TARGET_HAS_NOT_TAKEN_TURN predicate derived from initiative for Assassinate advantage; surprise parts description-only (D165). Authoring-parity proof; deletes the kinds (D156; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6e",
@@ -13444,7 +13473,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T6k2b", "SPELLS-33.T5n"]
+                "after": ["SPELLS-33.T6k2b", "SPELLS-33.T5n2"]
               },
               "text": "new: Bulette Deadly Leap, a target-chosen saving-throw ability (players choose, creatures take the higher modifier) and landing in an occupied space through the T6k1 passage rule, with prone as the fallback (1 kind, D159 split). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md)."
             },
