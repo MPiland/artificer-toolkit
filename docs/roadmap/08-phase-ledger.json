@@ -7174,7 +7174,7 @@
             {
               "id": "ATTACK-11.T2",
               "text": "Multiattack auto-sequence in the GM action drawer: what is left, the only possible next attack preselected, the last target kept, GM confirms each attack and can end the Multiattack early.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-11.4"],
               "wsjf": {
                 "bv": 5,
