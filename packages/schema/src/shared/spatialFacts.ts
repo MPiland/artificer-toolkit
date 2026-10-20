@@ -49,7 +49,9 @@ export const spatialMovementCandidateDtoSchema = lazySchema(() =>
     sourceActorId: z.nullable(postgresUuidSchema),
     sourceMoved: z.boolean(),
     targetActorId: postgresUuidSchema,
-    trigger: spatialTriggerDtoSchema
+    trigger: spatialTriggerDtoSchema,
+    /** The 1-based whole step it completes, for a zone that catches per distance moved (D156). */
+    step: z.optional(z.number().check(z.int()).check(z.positive()))
   })
 )
 

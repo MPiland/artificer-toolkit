@@ -443,9 +443,10 @@ export async function persistEncounterAreaCommit(
       batch.targetActorId !== actor.id ||
       batch.activeEffectTransitions.length +
         batch.stateEffectTransitions.length +
+        batch.grantEffectTransitions.length +
         (batch.kind === 'CHARACTER_MECHANICS_BATCH'
           ? batch.reactionEffectTransitions.length
-          : batch.grantEffectTransitions.length) !==
+          : 0) !==
         createdEffects.length ||
       (input.maintainedState === null && batch.maintenanceTransition !== undefined) ||
       (batch.kind === 'CHARACTER_MECHANICS_BATCH' &&

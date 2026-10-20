@@ -44,6 +44,14 @@ export class UnavailableCreatureActionError extends Error {
   }
 }
 
+/** An attack's weapon needs a hand that only the creatures its actor holds occupy (D107, D152). */
+export class HandReleaseRequiredError extends Error {
+  constructor() {
+    super('Release a held creature first: your hands are full.')
+    this.name = 'HandReleaseRequiredError'
+  }
+}
+
 /** An issued movement reaction option no longer matches its source's current facts. */
 export class StaleMovementReactionError extends EncounterConflictError {
   constructor(message: string) {

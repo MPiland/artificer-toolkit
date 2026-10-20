@@ -44,7 +44,8 @@ import {
   encounterActionEconomyTransitionDtoSchema,
   encounterAreaActionApplicationOutputDtoSchema,
   encounterActorMechanicsBatchApplicationOutputDtoSchema,
-  escapeCheckApplicationOutputDtoSchema
+  escapeCheckApplicationOutputDtoSchema,
+  sourceItemDrawDtoSchema
 } from './ruleExecutionEncounterApplications.js'
 import {
   serverRuleExecutionD20EvidenceDtoSchema,
@@ -98,6 +99,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         z.nullable(characterItemUseStateTransitionDtoSchema),
         null
       ),
+      /** The carried weapon the source's attack drew into a hand; undo puts it back. */
+      sourceItemDraw: z._default(z.nullable(sourceItemDrawDtoSchema), null),
       sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
       /** The item the target dropped with this outcome (Heat Metal); undo puts it back in hand. */
       targetItemUseStateTransition: z._default(
@@ -118,6 +121,11 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       /** The effect of a reaction the target used on being chosen as this cast's target; it lands on the target. */
       reactionEffectTransitions: z._default(
         z.array(characterActiveEffectCreateReceiptDtoSchema).check(z.maxLength(1)),
+        []
+      ),
+      /** Timed effects the target's own rules created on it from this action (a successful attacker's immunity to its ward); undo deletes them. */
+      grantEffectTransitions: z._default(
+        z.array(characterActiveEffectCreateReceiptDtoSchema).check(z.maxLength(4)),
         []
       ),
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
@@ -471,11 +479,13 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           value.targetTransition.before.conditionIds.length !==
             value.targetTransition.after.conditionIds.length
         const stow = value.sourceItemUseStateTransition
+        const draw = value.sourceItemDraw
         const consumption = value.sourceItemConsumption
         const spell = value.spellCastConsumption
         const hasSourceMutation =
           value.resourceConsumption !== null ||
           stow !== null ||
+          draw?.kind === 'CHARACTER_ITEM_DRAW' ||
           consumption !== null ||
           spell !== null ||
           sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)
@@ -498,7 +508,9 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             message: 'Item consumption must match the source Character.'
           })
         const hasActiveEffectCreation =
-          value.activeEffectTransitions.length > 0 || value.reactionEffectTransitions.length > 0
+          value.activeEffectTransitions.length > 0 ||
+          value.reactionEffectTransitions.length > 0 ||
+          value.grantEffectTransitions.length > 0
         const reaction = value.reaction
         const release = value.targetItemUseStateTransition
         if (
@@ -539,6 +551,22 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['sourceItemUseStateTransition'],
             message: 'Source item state transition must match the source Character version.'
+          })
+        if (
+          draw &&
+          (draw.kind === 'CHARACTER_ITEM_DRAW'
+            ? value.sourceCharacterId === null ||
+              draw.characterId !== value.sourceCharacterId ||
+              draw.afterStreamVersion !==
+                (value.sourceActorId === value.targetActorId
+                  ? value.targetCharacterStreamVersion
+                  : value.sourceCharacterStreamVersion)
+            : draw.actorId !== value.sourceActorId)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceItemDraw'],
+            message: 'Source item draw must match the source and its version.'
           })
         if (
           value.targetCharacterStreamVersion !==

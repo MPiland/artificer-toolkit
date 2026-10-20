@@ -49,14 +49,22 @@ export function encounterSourceRelationships(
   )
 }
 
-/** How many of the source's hands the creatures it holds fill (`SOURCE_OCCUPIES_HAND`, D152). */
-export function encounterSourceHandHolds(
+/** The creatures the source holds by hand, each filling one of its hands (`SOURCE_OCCUPIES_HAND`, D152). */
+export function encounterSourceHandHoldRelationships(
   activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,
   sourceActorId: string
 ) {
   return encounterSourceRelationships(activeEffectsByActorId, sourceActorId).filter(
     ({ contribution }) => contribution.modules.some(({ kind }) => kind === 'SOURCE_OCCUPIES_HAND')
-  ).length
+  )
+}
+
+/** How many of the source's hands the creatures it holds fill. */
+export function encounterSourceHandHolds(
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,
+  sourceActorId: string
+) {
+  return encounterSourceHandHoldRelationships(activeEffectsByActorId, sourceActorId).length
 }
 
 /** Reads target-specific action facts from an authoritative active-effect set. */

@@ -38,6 +38,7 @@ import {
   prepareEncounterActionMechanics,
   prepareEncounterActionSource
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import {
   encounterActionSuppressedWarning,
@@ -471,6 +472,7 @@ export async function prepareAreaScene(
           origin,
           shape: area.shape,
           regions: 'regions' in area ? area.regions : [],
+          distanceStep: 'distanceStep' in area ? area.distanceStep : undefined,
           sourceToken: scene.sourceToken ?? null,
           unaffectedActorIds
         }
@@ -629,7 +631,8 @@ export function prepareCasterActionOnTarget(
     choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',
-      accepted: capability ? null : input.command.acceptedWieldConflict
+      accepted: capability ? null : input.command.acceptedWieldConflict,
+      handHolds: encounterSourceHandHolds(input.activeEffectsByActorId, action.caster.id)
     },
     overridable: true,
     movementTargets: action.movementTargets,
@@ -2506,6 +2509,7 @@ export async function completeAreaCommit(args: {
       point: placement.origin,
       area: placement.shape,
       sourceToken: placement.sourceToken,
+      distanceStep: placement.distanceStep,
       saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
       unaffectedActorIds: placement.unaffectedActorIds
     }

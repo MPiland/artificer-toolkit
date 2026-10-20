@@ -6,6 +6,7 @@ import {
   Group,
   List,
   MultiSelect,
+  Radio,
   SegmentedControl,
   Select,
   Stack,
@@ -237,6 +238,11 @@ export function CampaignTabletopActionDrawer({
   const { gmRollVisibility } = useGmRollVisibilityPreference()
   const [submitting, setSubmitting] = useState(false)
   const [stowConfirmationIdentity, setStowConfirmationIdentity] = useState<string | null>(null)
+  // The hold the attacker lets go of to free a hand, picked for this exact selection.
+  const [handRelease, setHandRelease] = useState<{
+    requestIdentity: string
+    activeEffectId: string | null
+  } | null>(null)
   // Warnings the server raised for this exact selection; "Do it anyway" resends acknowledging them.
   const [ruleWarnings, setRuleWarnings] = useState<{
     requestIdentity: string
@@ -539,6 +545,14 @@ export function CampaignTabletopActionDrawer({
       : null
   const confirmingStow =
     wieldConflict !== null && stowConfirmationIdentity === choiceRequestIdentity
+  // Releasing a held creature to free a hand for the attack is offered when it is the only blocker.
+  const handReleaseHolds = optionalRuleId === null ? (selectedAction?.handRelease?.holds ?? []) : []
+  const confirmingHandRelease =
+    handReleaseHolds.length > 0 && handRelease?.requestIdentity === choiceRequestIdentity
+  const handReleaseChoice = confirmingHandRelease
+    ? (handRelease.activeEffectId ??
+      (handReleaseHolds.length === 1 ? handReleaseHolds[0]!.activeEffectId : null))
+    : null
   const confirmingWarnings =
     ruleWarnings?.requestIdentity === choiceRequestIdentity ? ruleWarnings : null
   const incompleteOptionalChoices =
@@ -690,11 +704,42 @@ export function CampaignTabletopActionDrawer({
     return () => onActionPreviewChange(null)
   }, [actionPreview, onActionPreviewChange])
 
+  async function releaseThenResolve(
+    activeEffectId: string | null,
+    stow: typeof wieldConflict
+  ): Promise<void> {
+    const hold = releases.find((release) => release.activeEffectId === activeEffectId)
+    if (!currentActor || !hold) return
+    setError(null)
+    try {
+      const released = await onRelease({
+        type: 'RELEASE_RELATIONSHIP',
+        encounterId: encounter.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: encounter.version,
+        actorId: currentActor.id,
+        heldActorId: hold.heldActorId,
+        activeEffectId: hold.activeEffectId
+      })
+      await resolveAction(
+        stow ? { kind: stow.kind, shieldItemInstanceId: stow.shieldItemInstanceId } : null,
+        [],
+        released.projection.version
+      )
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error ? nextError.message : 'The creature could not be released.'
+      )
+    }
+  }
+
   async function resolveAction(
     acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict'],
-    acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings']
+    acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
+    expectedVersion = encounter.version
   ): Promise<void> {
     setStowConfirmationIdentity(null)
+    setHandRelease(null)
     setRuleWarnings(null)
     if (
       !currentActor ||
@@ -714,7 +759,7 @@ export function CampaignTabletopActionDrawer({
         type: 'RESOLVE_ACTION',
         encounterId: encounter.id,
         commandId: crypto.randomUUID(),
-        expectedVersion: encounter.version,
+        expectedVersion,
         actorId: currentActor.id,
         actionId: selectedAction.id,
         target,
@@ -1171,6 +1216,40 @@ export function CampaignTabletopActionDrawer({
                     The GM sees every override in the Encounter history.
                   </Text>
                 </CampaignTabletopActionConfirmation>
+              ) : confirmingHandRelease ? (
+                <CampaignTabletopActionConfirmation
+                  confirmIsPrimary
+                  confirmLabel='Release and attack'
+                  disabled={dependentControlsDisabled || handReleaseChoice === null}
+                  title='Free a hand?'
+                  onCancel={() => setHandRelease(null)}
+                  onConfirm={() => void releaseThenResolve(handReleaseChoice, wieldConflict)}
+                >
+                  <Radio.Group
+                    label='Release which creature?'
+                    value={handReleaseChoice}
+                    onChange={(activeEffectId) =>
+                      setHandRelease({ requestIdentity: choiceRequestIdentity, activeEffectId })
+                    }
+                  >
+                    <Stack gap='xs' mt='xs'>
+                      {handReleaseHolds.map(({ activeEffectId }) => (
+                        <Radio
+                          key={activeEffectId}
+                          label={
+                            releases.find((release) => release.activeEffectId === activeEffectId)
+                              ?.label ?? 'Held creature'
+                          }
+                          value={activeEffectId}
+                        />
+                      ))}
+                    </Stack>
+                  </Radio.Group>
+                  <Text c='dimmed' size='xs'>
+                    Releasing is free. The attack draws the weapon into the freed hand
+                    {wieldConflict ? ' and stows your shield' : ''}.
+                  </Text>
+                </CampaignTabletopActionConfirmation>
               ) : confirmingStow ? (
                 <CampaignTabletopActionConfirmation
                   confirmIsPrimary
@@ -1206,9 +1285,14 @@ export function CampaignTabletopActionDrawer({
                     }
                     loading={submitting}
                     onClick={() =>
-                      wieldConflict
-                        ? setStowConfirmationIdentity(choiceRequestIdentity)
-                        : void resolveAction(null, [])
+                      handReleaseHolds.length
+                        ? setHandRelease({
+                            requestIdentity: choiceRequestIdentity,
+                            activeEffectId: null
+                          })
+                        : wieldConflict
+                          ? setStowConfirmationIdentity(choiceRequestIdentity)
+                          : void resolveAction(null, [])
                     }
                   >
                     Resolve action

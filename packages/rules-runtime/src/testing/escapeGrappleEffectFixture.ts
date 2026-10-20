@@ -33,8 +33,12 @@ export function escapeGrappleEffectDefinition(input: {
   checks?: { skillIds: string[]; abilityDefinitionIds: string[] }
   /** Who may attempt the escape; the holder itself only when this includes `TARGET`. */
   actorKinds?: ('TARGET' | 'CREATURE_WITHIN_REACH')[]
+  /** The holder contests the escape with these checks instead of a fixed `dc` (D152). */
+  contestChecks?: { skillIds: string[]; abilityDefinitionIds: string[] }
   /** The grappler's moves drag the target (D105). */
   dragged?: boolean
+  /** The grappler holds the target by hand, which fills one of its hands (D152). */
+  occupiesHand?: boolean
 }): ActiveRuleEffectDefinitionDto {
   const definitionId = fixtureId(0)
   const entryId = fixtureId(1)
@@ -91,11 +95,16 @@ export function escapeGrappleEffectDefinition(input: {
               skillIds: [SRD_ATHLETICS_SKILL_ID],
               abilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.STRENGTH]
             },
-            dc: { kind: 'FIXED', value: input.dc ?? 13 },
+            dc: input.contestChecks
+              ? { kind: 'CONTEST', checks: input.contestChecks }
+              : { kind: 'FIXED', value: input.dc ?? 13 },
             actorKinds: input.actorKinds ?? ['TARGET']
           },
           ...(input.dragged
             ? [{ id: DRAG_GRAPPLE_MODULE_ID, order: 1, kind: 'TARGET_DRAGGED' as const }]
+            : []),
+          ...(input.occupiesHand
+            ? [{ id: fixtureId(7), order: 2, kind: 'SOURCE_OCCUPIES_HAND' as const }]
             : [])
         ],
         conditionIds: [...input.conditionIds],

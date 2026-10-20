@@ -290,6 +290,7 @@ export async function applyRoomForcedMovements(input: {
         effects,
         movementKind: 'FORCED',
         path,
+        grid: scene.grid,
         tokens: scene.tokens,
         movingTokenId: token.id,
         zoneApplications: state.zoneApplications,

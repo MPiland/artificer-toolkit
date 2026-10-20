@@ -105,6 +105,33 @@ export function nextEquipSlot(
   return conflict ? { conflict: conflict.code } : { slot }
 }
 
+export type HandDrawPlan =
+  | { readonly kind: 'DRAW'; readonly slot: HandSlotCode }
+  | { readonly kind: 'RELEASE_REQUIRED'; readonly slot: HandSlotCode }
+  | { readonly kind: 'NO_HAND' }
+
+/**
+ * How an attack draws its bound weapon (D107). `holds` counts the hands taken by held creatures,
+ * which fill an empty hand each. A free hand draws; when only the holds keep the weapon's hands
+ * occupied, the actor must release holds first (one at a time) before it can draw; when items fill
+ * the hands, nothing is drawn (swapping weapons stays free, `encounterWieldConflict`).
+ */
+export function planHandDraw(
+  item: { readonly id: string; readonly twoHanded: boolean },
+  items: readonly HandOccupancyItem[],
+  holds: number
+): HandDrawPlan {
+  const held = items.filter((entry): entry is HeldItem => isHandSlot(entry.slot))
+  const placed = nextEquipSlot({ ...item, category: EQUIPMENT_CATEGORY_CODE.WEAPON }, held)
+  const needed = item.twoHanded ? 2 : 1
+  const { emptyHands } = resolveHandOccupancy(held)
+  if ('conflict' in placed || placed.slot === 'WORN' || emptyHands < needed)
+    return { kind: 'NO_HAND' }
+  return needed <= emptyHands - holds
+    ? { kind: 'DRAW', slot: placed.slot }
+    : { kind: 'RELEASE_REQUIRED', slot: placed.slot }
+}
+
 /**
  * Emptying the main hand moves an off-hand weapon into it; an off-hand shield stays put (D107).
  * Only the Sheet unequip applies this; rule settlement (shield stow, Disarm) just empties the slot.

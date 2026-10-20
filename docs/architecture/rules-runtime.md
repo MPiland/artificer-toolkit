@@ -589,6 +589,11 @@ learns which fields offer the choice from `halfSpeedFields` on the Encounter ses
 placements only through the same predicate, read once by `readHalfSpeedFields` for both the Convex read and the room push); the stage's drag
 preview offers "Move carefully" and "Move normally" before sending. A zone's authored `movementCostMultiplier`
 (D154: more than 1, up to 100) and `blockingRules` (including the new `BLOCKS_SIGHT`) compile onto the placement.
+A zone's own component may author `perDistanceMoved` (D156, SPELLS-4.T1h): placement resolves it to the
+placement's `distanceStep` in Scene distance units, and `collectSpatialMovementCandidates` raises one `ENTER` candidate
+per whole step the footprint travels inside, measured by the Scene grid and carrying its `step` ordinal, so the loop runs
+the frozen entry once per step. A finished spatial execution that drops a voluntary mover to 0 Hit Points stops the move
+at its contact (`spatialExecutionStopsMovement`).
 The multiplier slows only a mover the zone catches (SPELLS-20 T4d, refining D154's "every mover"): `zoneMovementSegmentMultiplier` (shared/vtt) skips a mover that `spatialEffectAffects` spares (designated unaffected, or a defeated Creature's suppressed passive zone) and the token a `TOKEN` zone is anchored to, so Spirit Guardians never slows its caster while a wall the caster placed does. The room's movement charge (`encounterMovementPublication`) and the tabletop's drag-route label (`formatSceneRoute`) both price a walk through it, the label from `movementCostZones` on the Encounter session state (`readSessionMovementCostZones`: visible zones, token zones only when the viewer's projection lists the source, designations filtered to listed actors). A zone whose only component prices movement (Entangle's difficult terrain, D156) compiles from its appear save (`zonePlacementPlan`).
 A zone may author more than one component (D154 amendment): the first covers the zone's shape, and each later one
 authors `region: { kind: 'SIDE_BAND', distance }` and compiles to `zonePlacement.regionComponents` (at most one
@@ -1457,6 +1462,24 @@ Source-scoped `ATTACK_ROLL` and `DAMAGE` grants. Armor and shield still use real
 declarations, movement reactions, Legendary Actions, Cleaving and Disarm are `UNPROMPTED`. Player-driven
 action submission, which would move the prompt to the player, is not built.
 
+**Weapon draw (ATTACK-19.T2, D107).** A directly resolved attack (`PROMPTED`) whose bound weapon is
+carried draws it into a free hand for no action; declared, reactive and follow-up attacks never do.
+`evaluateEncounterWeaponDraw` (`encounterWeaponDraw`) decides from `planHandDraw` (`packages/shared`
+core): `DRAW` into the hand `nextEquipSlot` picks, `RELEASE_REQUIRED` when only held creatures
+(`SOURCE_OCCUPIES_HAND` holds, `handHolds` on the `PROMPTED` acceptance) keep both hands from the weapon,
+and `NONE` for a natural attack, a weapon already in hand, or hands full of items (swapping stays free).
+A Character's attack is bound by its action equipment; a Creature's only through a loadout binding, so
+natural attacks draw nothing. The draw composes with the shield stow in one Character stream version
+(stow first, then draw, each with its own equipment checksum) and travels as `drawHeldItem` on the
+source's equipment mutation, `sourceItemDraw` on the batch output and receipt
+(`CHARACTER_ITEM_DRAW` / `ENCOUNTER_ACTOR_ITEM_DRAW`, the Creature draw being the loadout `CARRIED`
+-> hand `useState` change). Undo reverses the draw before the stow and refuses when the hand moved on.
+With no free hand because of holds, `RELEASE_REQUIRED` raises `HandReleaseRequiredError`. The
+action-choices read marks the action `handRelease: { holds }` (the releasable hand holds) so the attack
+flow asks "release which?", sends the existing `RELEASE_RELATIONSHIP`, then the attack; a released hold
+is not restored by undo. The read cannot see target-dependent refusals, so it offers the release
+whenever the listed action would need one; the planner refusal stays as the backstop.
+
 **Action phases.** An authored action compiles to an immutable template; after the owner locks and
 authorizes facts, at most two ordered phases specialize from it: `TEST` (one d20 stage selecting the hit,
 miss, critical or save path) and `OUTCOME` (exact authored dice and scaling). Each phase is acyclic with
@@ -1787,6 +1810,22 @@ origin is `ESCAPE` (`activeEffectId`, `initiatorCheckDefinitionId`, `actionLabel
 the activation; an escaper win ends the held effect through `endEncounterEscapedEffect` and records
 `RELATIONSHIP_ENDED` (`endedEffectId`, `removedConditionIds`); a loss or tie keeps the hold. No hostile engagement
 applies. Undo refuses a contested escape like other contests.
+
+**Freeing another creature from a hold (ATTACK-7.9).** An `ESCAPE_CHECK` whose `actorKinds` include
+`CREATURE_WITHIN_REACH` lets a creature other than the held one attempt the escape. `ESCAPE` gains an optional
+`heldActorId` (the schema refuses `heldActorId === actorId`; absent, the actor escapes for itself), the escape
+choice DTO carries `heldActorId: string | null`, and the pending context and `ESCAPE_CHECK` output carry it when
+a rescuer rolls. `findEncounterRescues` lists the holds the actor may break: a `FIXED`-DC module allowing
+`CREATURE_WITHIN_REACH` on another creature that stands within the reach the hold sealed
+(`encounterActorsWithinReach`, the same footprint measure as `encounterEndedRelationships`, on the Run's bound
+Scene), excluding a hold the actor itself applied (letting go is a release) and a pair the Scene does not place.
+The planner resolves `activeEffectId` against the held creature's effects and refuses an effect not on
+`heldActorId`. The rescuer rolls its own check (`findEncounterHolderEscape(effect, 'CREATURE_WITHIN_REACH')`
+re-derives it at commit), spends its own activation, and a success ends the effect on the held creature through
+the one escape end path. A zone's `CONDITION_ESCAPE` is held-creature-only. A rescuer that is itself held may
+still free another creature. Undo follows the escape rule: a failure returns the activation, a success is refused.
+**Unsupported:** a `CONTEST` DC with `CREATURE_WITHIN_REACH` is not offered to a rescuer (the contest path is the
+held creature against its holder); `encounterRescues.test.ts` proves the omission.
 
 **Contest outcomes (D105, ATTACK-7.6).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is a
 condition or a forced movement (`isContestOutcomeAction`; Shove) compiles to `TEST_OUTCOME`: the test is the

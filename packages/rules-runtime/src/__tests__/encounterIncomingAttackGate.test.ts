@@ -2,12 +2,16 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { sanctuary } from '@artificer-toolkit/source-data/srd/spells/sanctuary.js'
 import { describe, expect, it } from 'vitest'
 
+import { sourceImmunityEffect } from '../encounterActionEffectPlans.js'
 import { heldIncomingGate, incomingGateSaveDc } from '../encounterIncomingAttackGate.js'
+import { incomingGateImmunityPlan } from '../systems/dnd5e/effectActionCompiler.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
 
 const CASTER_ID = testUuid(0xe001)
 const HOLDER_ID = testUuid(0xe002)
+const ATTACKER_ID = testUuid(0xe004)
+const attacker = { actorId: ATTACKER_ID, characterId: null }
 const [warding] = sanctuary.effects ?? []
 
 /** Sanctuary as the real planner stores it on its holder, under `id`. */
@@ -40,7 +44,8 @@ function heldBy(effects: readonly ActiveRuleEffectRecord[]) {
     holderActorId: HOLDER_ID,
     effects,
     grantFold: null,
-    attackerCreatureTypeId: null
+    attackerCreatureTypeId: null,
+    attacker
   })
 }
 
@@ -80,12 +85,18 @@ describe('holder-owned incoming attack gate', () => {
     abilityDefinitionId: testUuid(0xe031)
   }
   const BEAST = testUuid(0xe032)
-  const heldByFold = (payload: Record<string, unknown>, attackerCreatureTypeId: string | null) =>
+  const heldByFold = (
+    payload: Record<string, unknown>,
+    attackerCreatureTypeId: string | null,
+    effects: readonly ActiveRuleEffectRecord[] = [],
+    who = attacker
+  ) =>
     heldIncomingGate({
       holderActorId: HOLDER_ID,
-      effects: [],
+      effects,
       grantFold: holderFold(payload),
-      attackerCreatureTypeId
+      attackerCreatureTypeId,
+      attacker: who
     })
 
   it('makes the holder the owner of a feature grant, keyed by the grant', () => {
@@ -101,13 +112,54 @@ describe('holder-owned incoming attack gate', () => {
     expect(heldByFold(payload, null)).toBeNull()
   })
 
-  // Success immunity is authored but not enforced until T4k2c adds the Character-target SOURCE_IMMUNITY
-  // receipt; until then a ward that carries it is owed exactly as one that does not.
-  it('accepts a success immunity without yet acting on it (T4k2c)', () => {
-    const successImmunity = { duration: { id: 'immunity', durationKind: 'HOUR', amount: 24 } }
-    expect(heldByFold({ savingThrow, successImmunity }, null)).toEqual(
-      expect.objectContaining({ wardId: grantId, ownerActorId: HOLDER_ID })
+  // The immunity a creature that passed the ward leaves on its holder, as the planner stores it.
+  const successImmunity = { duration: { id: 'immunity', durationKind: 'HOUR', amount: 24 } }
+  const passedWard = (): ActiveRuleEffectRecord => {
+    const plan = incomingGateImmunityPlan({
+      wardId: grantId,
+      duration: { durationKind: 'HOUR', amount: 24 } as Parameters<
+        typeof incomingGateImmunityPlan
+      >[0]['duration']
+    })
+    if (!plan) throw new Error('A 24 hour success immunity must be countable.')
+    const { definition, lifecycle } = sourceImmunityEffect({
+      ...plan,
+      origin: {
+        encounterId: ENCOUNTER_ID,
+        occurrenceId: testUuid(0xe040),
+        commandId: testUuid(0xe041),
+        sourceActorId: ATTACKER_ID
+      },
+      sourceCharacterId: null,
+      sourceLabel: 'Ward',
+      lifetimeScope: 'OWNER'
+    })
+    return {
+      ...heldSanctuary(testUuid(0xe042)),
+      definition,
+      lifecycle
+    }
+  }
+
+  it('stops asking an attacker that passed the ward, for the length of the immunity', () => {
+    const payload = { savingThrow, successImmunity }
+    expect(heldByFold(payload, null)?.wardId).toBe(grantId)
+    expect(heldByFold(payload, null, [passedWard()])).toBeNull()
+  })
+
+  it('still asks every other attacker', () => {
+    const other = { actorId: testUuid(0xe043), characterId: null }
+    expect(heldByFold({ savingThrow, successImmunity }, null, [passedWard()], other)?.wardId).toBe(
+      grantId
     )
+  })
+
+  it('keeps the immunity to the attacker for 24 hours, counted on the holder’s turns', () => {
+    const { definition, lifecycle } = passedWard()
+    expect(definition.recurrence.expiration).toEqual(
+      expect.objectContaining({ kind: 'TICKS', initialRemaining: 14_400, anchor: 'HOLDER' })
+    )
+    expect(lifecycle.remainingTicks).toBe(14_400)
   })
 })
 

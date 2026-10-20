@@ -26,6 +26,7 @@ type SourceSpendReceipts = Pick<
   | 'featureResourceConsumption'
   | 'actionEconomyTransition'
   | 'attackActionTransition'
+  | 'sourceItemDraw'
 >
 
 /**
@@ -42,7 +43,9 @@ export function sourceSpendMutation(input: {
   receipts: Pick<
     SourceSpendReceipts,
     'resourceConsumption' | 'sourceItemConsumption' | 'spellCastConsumption'
-  >
+  > &
+    /** Only a directly resolved attack draws its weapon (D107). */
+    Partial<Pick<SourceSpendReceipts, 'sourceItemDraw'>>
 }) {
   const { source, resource, item, spell, receipts } = input
   if (resource) {
@@ -86,13 +89,30 @@ export function sourceSpendMutation(input: {
     throw new Error('Live Session action spell slot is missing.')
   const stow = input.command.acceptedWieldConflict
   if (stow && source.kind !== 'CHARACTER') throw new Error('Live Session stow scope mismatch.')
+  const draw = receipts.sourceItemDraw
+  if (
+    draw &&
+    (draw.kind === 'CHARACTER_ITEM_DRAW'
+      ? source.kind !== 'CHARACTER' || source.sourceId !== draw.characterId
+      : source.kind !== 'CREATURE' || source.id !== draw.actorId)
+  )
+    throw new Error('Live Session weapon draw scope mismatch.')
   return {
-    spends: Boolean(resource || item || spell || stow),
+    spends: Boolean(resource || item || spell || stow || draw),
     mutation: {
       ...(resource ? { characterResourceConsumption: resource } : {}),
       ...(item ? { characterItemConsumption: item } : {}),
       ...(spell ? { characterSpellConsumptions: [spell] } : {}),
-      ...(stow ? { stowEquippedItemInstanceId: encounterStowedItemInstanceId(stow) } : {})
+      ...(stow ? { stowEquippedItemInstanceId: encounterStowedItemInstanceId(stow) } : {}),
+      ...(draw
+        ? {
+            drawHeldItem: {
+              itemId:
+                draw.kind === 'CHARACTER_ITEM_DRAW' ? draw.itemInstanceId : draw.loadoutEntryId,
+              slot: draw.slot
+            }
+          }
+        : {})
     }
   }
 }

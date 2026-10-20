@@ -328,17 +328,27 @@ export type ActionSceneRequestDto = z.infer<typeof actionSceneRequestDtoSchema>
 /**
  * The current actor, held by an Encounter relationship effect, spends its escape activation to
  * attempt the module's fixed-DC check (D105). `checkDefinitionId` names one of the check choices
- * the module allows.
+ * the module allows. With `heldActorId`, the actor is a rescuer within reach of that held creature
+ * (a module that allows `CREATURE_WITHIN_REACH`) and `activeEffectId` names the effect the held
+ * creature carries; absent, the actor escapes for itself.
  */
 export const escapeRelationshipInputDtoSchema = lazySchema(() =>
-  z.extend(commandBaseDtoSchema, {
-    type: z.literal('ESCAPE'),
-    actorId: uuidSchema,
-    activeEffectId: postgresUuidSchema,
-    checkDefinitionId: postgresUuidSchema,
-    /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
-    acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
-  })
+  z
+    .extend(commandBaseDtoSchema, {
+      type: z.literal('ESCAPE'),
+      actorId: uuidSchema,
+      heldActorId: z.optional(uuidSchema),
+      activeEffectId: postgresUuidSchema,
+      checkDefinitionId: postgresUuidSchema,
+      /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
+      acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
+    })
+    .check(
+      z.refine(
+        ({ actorId, heldActorId }) => heldActorId !== actorId,
+        'A creature escapes for itself by omitting the held creature.'
+      )
+    )
 )
 
 /**

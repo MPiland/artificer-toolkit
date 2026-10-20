@@ -66,6 +66,13 @@ function actionOutputs(input: EffectCommitInput) {
   return outputs
 }
 
+function isSourceImmunityEffect(effect: ActiveRuleEffectRecord) {
+  return (
+    effect.definition.schemaVersion === 2 &&
+    effect.definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY')
+  )
+}
+
 function classifyCreatedEffects(input: EffectCommitInput) {
   const outputs = actionOutputs(input)
   const stateTransition = outputs.stateEffectTransitions
@@ -75,9 +82,9 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     outputs.kind === 'CHARACTER_MECHANICS_BATCH'
       ? [...(outputs.reaction?.activeEffectTransitions ?? []), ...outputs.reactionEffectTransitions]
       : []
-  // The target's own damage triggers create timed grants on it beside the action's effects.
-  const grantTransition =
-    outputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? outputs.grantEffectTransitions : []
+  // The target's own rules create timed effects on it beside the action's effects: its damage-trigger
+  // grants and the immunity a passed ward leaves on its holder.
+  const grantTransition = outputs.grantEffectTransitions
   // The action's recurring effect may carry a failure-margin rider's effect after it.
   if (
     input.createdEffects.length > 8 ||
@@ -360,9 +367,11 @@ export async function persistEncounterActionEffects(
       checksumCanonicalJson(effect.owner) !== checksumCanonicalJson(owner) ||
       origin.kind !== 'ENCOUNTER' ||
       origin.sourceAggregateId !== input.state.id ||
-      // A reaction's effect and a damage-trigger grant come from the target itself.
+      // A reaction's effect and a damage-trigger grant come from the target itself; the immunity a
+      // passed ward leaves on its holder names the attacker it frees.
       origin.sourceActorId !==
-        (effect.id === reaction?.id || grants.some((grant) => grant.id === effect.id)
+        (effect.id === reaction?.id ||
+        (grants.some((grant) => grant.id === effect.id) && !isSourceImmunityEffect(effect))
           ? target.id
           : input.command.actorId) ||
       origin.sourceOccurrenceId !== input.execution.occurrenceId ||
@@ -405,19 +414,20 @@ export async function persistEncounterActionEffects(
     }).activeEffectTransitions,
     null
   )
-  const grantReceipts = grants.flatMap(
-    (grant) =>
-      projectNativeActionEffectTransitions({
-        state: null,
-        recurring: grant,
-        targetActorId: target.id
-      }).activeEffectTransitions
+  const grantReceipts = characterReceipts(
+    grants.flatMap(
+      (grant) =>
+        projectNativeActionEffectTransitions({
+          state: null,
+          recurring: grant,
+          targetActorId: target.id
+        }).activeEffectTransitions
+    ),
+    null
   )
   if (
     checksumCanonicalJson(grantReceipts) !==
-      checksumCanonicalJson(
-        outputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? outputs.grantEffectTransitions : []
-      ) ||
+      checksumCanonicalJson(outputs.grantEffectTransitions) ||
     checksumCanonicalJson(projected.stateEffectTransitions) !==
       checksumCanonicalJson(outputs.stateEffectTransitions) ||
     checksumCanonicalJson(

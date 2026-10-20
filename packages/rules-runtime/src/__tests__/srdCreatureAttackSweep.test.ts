@@ -242,7 +242,7 @@ describe('SRD Creature attack sweep', () => {
             actionId: capability.actionId,
             // An attack that offers a pick (damage or grapple) runs the option its attacker picks.
             choiceOptionId: castChoiceOptions(capability.compiledEffect)?.[0]?.optionId,
-            wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null },
+            wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null, handHolds: 0 },
             overridable: true,
             movementTargets,
             loadSource: async (input) =>
