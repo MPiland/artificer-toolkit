@@ -38,7 +38,9 @@ describe('a Brown Bear’s Multiattack in the room (D93)', () => {
     const labels = async () => (await room.actionChoices()).actions.map(({ label }) => label)
     const claws = (await room.actionChoices()).actions.find(({ label }) => label.includes('Claws'))
     if (!claws)
-      throw new Error(`The Brown Bear offers no Claws: ${JSON.stringify(await labels())}.`)
+      throw new Error(
+        `The Brown Bear offers no Claws: ${JSON.stringify((await room.actionChoices()).unavailableActions)}.`
+      )
 
     // Before any attack both are offered, each the first of the Multiattack's two.
     expect(await labels()).toEqual(expect.arrayContaining(['Bite', claws.label]))
