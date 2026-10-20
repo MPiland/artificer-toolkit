@@ -6362,7 +6362,7 @@
             },
             {
               "id": "ATTACK-5.T4c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
@@ -6371,31 +6371,7 @@
                 "size": 5
               },
               "text": "Follow-up save shapes: Dragon Turtle Tail (push and prone) and Horned Devil Tail (Infernal Wound recurring damage until healed). Generic options only; removes their allowlist entries. (T4 split ruled 2026-10-20.)",
-              "activeWorkbook": "docs/handoffs/slice-attack-5-t1.md"
-            },
-            {
-              "id": "ATTACK-5.T4d",
-              "status": "TODO",
-              "closes": ["ATTACK-5.15"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 1,
-                "rr": 3,
-                "size": 3
-              },
-              "text": "Giant Centipede Bite (poisoned and paralyzed at 0 hit points) and Purple Worm Bite (investigate first; its swallow rides SPELLS-33.T6a1). Removes the allowlist entries that run. (T4 split ruled 2026-10-20.)"
-            },
-            {
-              "id": "ATTACK-5.T4e",
-              "status": "TODO",
-              "closes": ["ATTACK-5.15"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 1,
-                "rr": 3,
-                "size": 3
-              },
-              "text": "Solar Slaying Longbow: a hit-point-threshold save that kills on a failure, as a generic option. Removes its allowlist entry. (T4 split ruled 2026-10-20.)"
+              "note": "Merged m236 (d6236b319): Dragon Turtle Tail converted via generic FORCED_MOVEMENT_THEN_CONDITION; forced-movement proposal no longer demands a stored-state application (fixes pushes on Character targets). Horned Devil Tail deferred to SPELLS-33.T6m2 (Infernal Wound is a CLOSED_RULE; D156); T4 close-out covers it."
             },
             {
               "id": "ATTACK-5.T4",
@@ -6411,17 +6387,17 @@
                   "ATTACK-5.T4a",
                   "ATTACK-5.T4b",
                   "ATTACK-5.T4c",
-                  "ATTACK-5.T4d",
-                  "ATTACK-5.T4e",
                   "SPELLS-33.T6a1",
                   "SPELLS-33.T6a3",
                   "SPELLS-33.T6b2",
                   "SPELLS-33.T6b3",
                   "SPELLS-33.T6e2",
                   "SPELLS-33.T6i2",
-                  "SPELLS-33.T6m2"
+                  "SPELLS-33.T6m2",
+                  "SPELLS-33.T4i"
                 ]
-              }
+              },
+              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i."
             }
           ]
         },
@@ -8684,12 +8660,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 5,
                 "after": ["SPELLS-4.T2d", "SPELLS-4.T2l"]
               },
               "text": "Generic option: move a held effect to a new target as a granted action (Hunter’s Mark re-mark after its target drops to 0 HP), with a parity proof and a room journey. Split from SPELLS-4.T2d (2026-10-18 ruling).",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": "Ruling A (2026-10-20): authored lifecycle move-on-holder-0-HP compiled into the effect, offered through T2lb's grantedActions seam as MOVE_HELD_EFFECT; waits for T2lb to merge."
+              "note": "Ruling A (2026-10-20): authored lifecycle move-on-holder-0-HP compiled into the effect, offered through T2lb's grantedActions seam as MOVE_HELD_EFFECT; waits for T2lb to merge. 2026-10-20 ruling: T2lb offers only holder basic actions, so T2d2 builds the generic source-side offer seam (discovery by source or holder role, pick with range and LOS, re-home commit with undo); T2lb2 reuses it. Size 2 to 5."
             },
             {
               "status": "DONE",
@@ -8745,7 +8721,7 @@
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Removed-from-play state that returns at a boundary. Converts BANISHMENT, BLINK, ETHEREALNESS, MAZE, IMPRISONMENT, with parity proofs; each kind deleted."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2i",
               "wsjf": {
@@ -8755,7 +8731,21 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Hit point threshold gates and outcomes. Converts POWER_WORD_KILL, POWER_WORD_STUN, DIVINE_WORD, DEATH_WARD, FINGER_OF_DEATH_ZOMBIE, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled 2026-10-20: a hit-point gate on the result block (current HP threshold, and reduced to 0 by this damage), HIT_POINT_TIERS path selection and a generic KILL outcome. Converts POWER_WORD_KILL, POWER_WORD_STUN, DIVINE_WORD (planar banishment description-only, D156) and the Finger of Death kill, with parity proofs; each kind deleted. FINGER_OF_DEATH_ZOMBIE moves to SPELLS-33.T6a2; DEATH_WARD moves to T2i2.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2i2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2i"]
+              },
+              "text": "Generic damage interception (split from T2i, 2026-10-20): \"would drop to 0 HP, instead drop to N\", with uses, as an authored grant. Converts DEATH_WARD with a parity proof and deletes the kind. SPELLS-33.T4i (Undead Fortitude) and the race corpus (Relentless Endurance) reuse it."
             },
             {
               "status": "TODO",
@@ -8905,7 +8895,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-4.T2lb"]
+                "after": ["SPELLS-4.T2lb", "SPELLS-4.T2d2"]
               },
               "text": "Repeat-source-path offers (D160, split from T2lb): a held effect offers its holder or source a repeat of a source path, using the stored cast context (DC, slot level), a fresh target pick and an already-saved exclusion. Converts the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e) and Eyebite’s per-turn retarget, with parity proofs; the EYEBITE kind is deleted in T2l2."
             },
@@ -12470,9 +12460,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2i"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2"]
               },
-              "text": "regeneration, Undead Fortitude, hit point threshold riders (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "regeneration, Undead Fortitude, hit point threshold riders (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Also removes the Giant Centipede Bite and Solar Slaying Longbow SRD_CREATURE_ATTACK_UNSUPPORTED entries, with a room proof for each attack (from ATTACK-5.T4d/T4e, 2026-10-20)."
             },
             {
               "id": "SPELLS-33.T4j",
@@ -12709,7 +12699,7 @@
                 "size": 5,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
+              "text": "new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Includes Purple Worm Bite (from ATTACK-5.T4d, 2026-10-20)."
             },
             {
               "id": "SPELLS-33.T6a2",
@@ -12722,7 +12712,7 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6a1"]
               },
-              "text": "new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
+              "text": "new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Also converts FINGER_OF_DEATH_ZOMBIE (humanoid killed rises as a caster-commanded zombie; moved from SPELLS-4.T2i, 2026-10-20)."
             },
             {
               "id": "SPELLS-33.T6a3",

@@ -233,7 +233,7 @@ export const dragonTurtle: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(85, 14) + '__result',
+                id: S.actionId(85, 905),
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {

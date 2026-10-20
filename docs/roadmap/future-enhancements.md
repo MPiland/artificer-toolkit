@@ -483,6 +483,7 @@ Raised by the user on 2026-10-14 during the hazards and traps design; post-launc
 ## Other future enhancements (parked)
 
 - Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.
+- A plane model, so planar banishment (Divine Word's return of extraplanar creatures, and similar effects) can run instead of being description-only (SPELLS-4.T2i ruling, 2026-10-20).
 
 ### Adventure Module Packages
 

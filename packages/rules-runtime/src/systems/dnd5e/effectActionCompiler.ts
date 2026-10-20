@@ -1934,6 +1934,7 @@ type ImmediateFollowUpSaveShape =
   | 'FULL_OR_HALF_DAMAGE'
   | 'STATE_ONLY_REDUCTION'
   | 'FORCED_MOVEMENT_ONLY'
+  | 'FORCED_MOVEMENT_THEN_CONDITION'
   | 'CONDITION_ON_FAILURE'
   | 'DAMAGE_ON_FAILURE'
   | 'REPEATING_CONDITION'
@@ -4034,6 +4035,20 @@ function exactImmediateFollowUpSaveShape(
   ) {
     return 'FORCED_MOVEMENT_ONLY'
   }
+  const movedThenConditioned = failed.outcomes[1]
+  if (
+    succeeded.kind === 'END' &&
+    failed.outcomes.length === 2 &&
+    failure?.effectKind === 'FORCED_MOVEMENT' &&
+    UUID.test(failure.id) &&
+    settledForcedMovement(failure) &&
+    movedThenConditioned?.effectKind === 'CONDITION' &&
+    UUID.test(movedThenConditioned.id) &&
+    UUID.test(movedThenConditioned.conditionId) &&
+    commonBoundedSave
+  ) {
+    return 'FORCED_MOVEMENT_THEN_CONDITION'
+  }
   if (
     succeeded.kind !== 'OUTCOMES' ||
     succeeded.resultKind !== 'SINGLE' ||
@@ -5267,6 +5282,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
     collision: RULE_VALUE_KIND.TEXT,
     applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
     authorized: RULE_VALUE_KIND.BOOLEAN,
+    changesTargetState: RULE_VALUE_KIND.BOOLEAN,
     targetStateChecksum: RULE_VALUE_KIND.TEXT
   },
   execute(inputs) {
@@ -5310,6 +5326,7 @@ export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract
       collision,
       applicationCandidate: true,
       authorized: resultPath === authoredPath,
+      changesTargetState: false,
       targetStateChecksum
     }
   }
@@ -6794,7 +6811,8 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
   const failure = save.onFailure.outcomes[0]
   const reduction = immediateFollowUpSaveMaximumReduction(input.action)
   const forcedMovementOutcome =
-    shape === 'FORCED_MOVEMENT_ONLY' && failure?.effectKind === 'FORCED_MOVEMENT'
+    (shape === 'FORCED_MOVEMENT_ONLY' || shape === 'FORCED_MOVEMENT_THEN_CONDITION') &&
+    failure?.effectKind === 'FORCED_MOVEMENT'
       ? settledForcedMovement(failure)
       : null
   const forcedMovement =
@@ -6813,6 +6831,7 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
   const failureCondition =
     shape === 'REPEATING_CONDITION' ||
     shape === 'ESCALATING_CONDITION' ||
+    shape === 'FORCED_MOVEMENT_THEN_CONDITION' ||
     shape === 'CONDITION_ON_FAILURE'
       ? save.onFailure.outcomes.find(
           (outcome): outcome is Extract<typeof outcome, { effectKind: 'CONDITION' }> =>
