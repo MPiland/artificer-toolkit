@@ -543,9 +543,9 @@ Class A (acolyte pattern), data only. Cult Fanatic, Druid, Guardian Naga, Gynosp
 
 Folded in 2026-10-20 from ATTACK-5.T4d/T4e. Push to `ci/spells-33-t4i`. If the work is clearly larger than size 3, propose a split before building.
 
-- Convert nine kinds, including GIANT_CENTIPEDE_VENOM (`creatures/giant-centipede.ts:104`) and SOLAR_SLAYING_LONGBOW (`creatures/solar.ts:288`: hit with 100 hit points or fewer after the damage dies); the other seven are the T4i kinds the ledger lists. Remove the Centipede and Solar allowlist entries, each with a room proof.
+- Convert nine kinds, including GIANT_CENTIPEDE_VENOM (`creatures/giant-centipede.ts:104`) and SOLAR_SLAYING_LONGBOW (`creatures/solar.ts:288`: hit with 100 hit points or fewer after the damage dies); the ledger scopes the nine as regeneration kinds (ONI_REGENERATION, SHIELD_GUARDIAN_REGENERATION and peers), UNDEAD_FORTITUDE and the hit-point threshold riders; list them from the table above before starting. Remove the Centipede and Solar allowlist entries, each with a room proof.
 - Already built by SPELLS-4.T2i (reuse, do not rebuild): result-block `gate: { kind: 'TARGET_HIT_POINTS_AT_MOST', amount }`, `EFFECT_KIND.KILL`, hit-point tiers, the `dnd5e.target-current-hit-points` fact. Power Word Stun (T2i3) shows the gated CONDITION plus FOLLOW_UP_SAVE shape.
 - Build here: the `REDUCED_TO_ZERO_BY` gate (`{ kind: 'REDUCED_TO_ZERO_BY', damageOutcomeId }`, evaluated after that damage in the same path) with node-map, schema, web default factory and runtime evidence, plus a proof. Giant Centipede: reduced to 0 gives STABILIZE (`requiresZeroHitPoints`), poisoned 1 hour, paralyzed while poisoned.
-- Undead Fortitude needs the SPELLS-4.T2i2 interception seam; if T2i2 has not merged, leave it out and say so.
+- The ledger orders T4i after SPELLS-4.T2i2 (Undead Fortitude needs its interception seam); do not start before T2i2 merges.
 - Purple Worm Bite goes to SPELLS-33.T6a1 (not here).
 - Per D156 each conversion deletes its kind and carries an authoring-parity proof. Do not edit the ledger.
