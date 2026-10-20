@@ -1012,6 +1012,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Admission:** a `RESOLVE_ACTION` may be raised by the rules rather than a player when it carries `systemTrigger: { parentCommandId }`. It is self-verifying: a deterministic uuidv5 command id from (parent, holder, action), a `CASTER_CENTERED` target and a committed parent in the same Encounter. No new table and no persisted flag. It is the only admission that lets a defeated actor be the source.
   - **Trigger:** passive `HP_ZERO` effects are discovered generically (`passiveHpZeroEffects`) and raised by one hook at the room's command funnel. Nothing in code names a creature. A system-raised action does not raise further triggers.
   - **Undo and void:** the parent and the system root are one change and revert together. Undo is refused while the raised area's save is pending; the GM voids it first.
+* **D162** (2026-10-19) Campaign Character control grants (SCENE-5.T1; [scene-5-plan.md](scene-5-plan.md)). Orchestrator ruling.
+  - **Source of truth:** Campaign grants live only in a GM-managed grants table keyed by (Campaign, Character, grantee). Nothing is copied into Runs. A Character actor's effective controllers are the assigned player, the per-Run `controllerUserIds` and the grantees, merged by one shared helper that Convex and the room's authorization read both use. A revoke takes effect at once and leaves a deliberate per-Run grant in place. Granting or revoking advances the CAMPAIGN and PLAY revisions.
+  - **Cap:** ADR 0034's limit of 8 controllers applies to the per-Run list only, not to grantees.
+  - **Unbound tokens:** outside an Encounter, a grantee moves a Scene token only when that token is linked to a Character granted to them. Rejected: "the token's controllers include the owner", because it would give a grantee control of every token the owner controls, including the owner's other Characters.
 
 ## Approved implementation decisions
 
