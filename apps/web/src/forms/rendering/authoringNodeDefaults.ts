@@ -620,6 +620,16 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { chargeId: '', cost: 1 }
     case 'featureOptionActionReference':
       return { featureId: '', chargeCost: 1 }
+    case 'attackSlotFiller':
+      return { kind: 'ANY_ATTACK' }
+    case 'attackSlotCondition':
+      return { kind: 'EARLIER_SLOTS_HIT_SAME_TARGET' }
+    case 'attackSlot':
+      return { count: 1, fillers: [{ kind: 'ANY_ATTACK' }] }
+    case 'attackSlotAlternative':
+      return { slots: [{ count: 1, fillers: [{ kind: 'ANY_ATTACK' }] }] }
+    case 'attackSlotSet':
+      return { alternatives: [{ slots: [{ count: 1, fillers: [{ kind: 'ANY_ATTACK' }] }] }] }
     case 'scaling':
       return {
         scalingKind: 'BREAKPOINTS',

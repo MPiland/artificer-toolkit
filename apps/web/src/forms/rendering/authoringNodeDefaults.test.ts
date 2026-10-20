@@ -4,9 +4,28 @@ import type {
   NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { checkDcDtoSchema, checkDtoSchema } from '@artificer-toolkit/schema/effects/check'
+import { attackSlotSetDtoSchema } from '@artificer-toolkit/schema/features/attackSlots'
+import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { resolveFixtureNodeRuntime } from '#test/nodeRuntimeResolver'
 import { createDefaultAuthoringObjectItem } from './authoringNodeDefaults'
+
+describe('attack slot default factory', () => {
+  it('creates a slot set that the contract accepts, so adding one is publishable at once', async () => {
+    const set = createDefaultAuthoringObjectItem(
+      findObjectGroup(
+        await resolveFixtureNodeRuntime({
+          mapId: 'creatureFeature',
+          values: {},
+          ancestors: [brownBear as unknown as Record<string, unknown>]
+        }),
+        'attackSlots'
+      )
+    )
+
+    expect(attackSlotSetDtoSchema.safeParse(set).error?.issues).toBeUndefined()
+  })
+})
 
 describe('check default factories', () => {
   it('creates an invocation check whose DC parses and whose checks await the author', async () => {
