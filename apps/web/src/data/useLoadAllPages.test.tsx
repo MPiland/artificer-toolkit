@@ -27,6 +27,12 @@ describe('useLoadAllPages', () => {
     expect(loadMore).toHaveBeenCalledTimes(2)
   })
 
+  it('does not ask while disabled, even if a page could load', () => {
+    const loadMore = vi.fn()
+    renderHook(() => useLoadAllPages({ status: 'CanLoadMore', loadMore }, 48, false))
+    expect(loadMore).not.toHaveBeenCalled()
+  })
+
   it.each(['LoadingFirstPage', 'LoadingMore', 'Exhausted'] as const)(
     'does not ask while %s',
     (status) => {

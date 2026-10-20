@@ -43,7 +43,9 @@ describe('RELIABILITY-9.7: rendering is pure and SSR-stable', () => {
 
   it('computes no locale- or time-zone-dependent value at module load', () => {
     expect(
-      violations(/^(?:export )?const \w+ *= *(?:new )?Intl\.\w+\(\s*undefined|^(?:export )?const \w+ *=.*\.resolvedOptions\(\)/m)
+      violations(
+        /^(?:export )?const \w+ *= *(?:new )?Intl\.\w+\(\s*undefined|^(?:export )?const \w+ *=.*\.resolvedOptions\(\)/m
+      )
     ).toEqual([])
   })
 })

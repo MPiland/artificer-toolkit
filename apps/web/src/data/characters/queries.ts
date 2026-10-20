@@ -24,8 +24,8 @@ export function useGetCharacterList(enabled = true) {
     initialNumItems: 48
   })
 
-  useLoadAllPages(active, 8)
-  useLoadAllPages(drafts, 48)
+  useLoadAllPages(active, 8, enabled)
+  useLoadAllPages(drafts, 48, enabled)
 
   const isLoading = enabled && (active.status !== 'Exhausted' || drafts.status !== 'Exhausted')
   const activeIds = new Set(active.results.map((character) => character.id))

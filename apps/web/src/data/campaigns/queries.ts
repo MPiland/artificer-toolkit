@@ -10,7 +10,7 @@ export function useGetCampaignList(enabled = true) {
     initialNumItems: 8
   })
 
-  useLoadAllPages(campaigns, 8)
+  useLoadAllPages(campaigns, 8, enabled)
 
   const isLoading = enabled && campaigns.status !== 'Exhausted'
   const data: CampaignSummaryDto[] | undefined =

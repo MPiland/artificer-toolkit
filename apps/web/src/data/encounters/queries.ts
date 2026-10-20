@@ -21,7 +21,7 @@ export function useEncounterBlueprints(gameSystemId: string, enabled: boolean) {
     enabled ? { gameSystemId } : 'skip',
     { initialNumItems: 48 }
   )
-  useLoadAllPages(blueprints, 48)
+  useLoadAllPages(blueprints, 48, enabled)
   const isPending = enabled && blueprints.status !== 'Exhausted'
   return { data: enabled && !isPending ? blueprints.results : undefined, isPending }
 }
