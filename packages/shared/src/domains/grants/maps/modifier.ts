@@ -949,6 +949,20 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'dropToHitPoints',
+        number(['dropToHitPoints'], 'Hit Points It Drops To Instead', {
+          constraints: { minimum: 1 },
+          requiredIf: true,
+          showIf: parent.field(['valueDomainCode']).eq('DAMAGE_INTERCEPTION')
+        })
+      )
+      .set(
+        'negatesKill',
+        toggle(['negatesKill'], 'Also Negates Instant Death', {
+          showIf: parent.field(['valueDomainCode']).eq('DAMAGE_INTERCEPTION')
+        })
+      )
+      .set(
         'savingThrow',
         groupObject(['savingThrow'], 'Attacker Saving Throw', () => SAVING_THROW_NODE_MAP, {
           presentation: 'inline',

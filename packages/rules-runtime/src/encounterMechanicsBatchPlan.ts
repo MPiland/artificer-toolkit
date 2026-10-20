@@ -26,6 +26,7 @@ import type {
   SourceItemDrawDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import type { CharacterResourceRestore } from './encounterInitiativeRestores.js'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type {
   NativeCharacterActionResourceConsumption,
@@ -38,6 +39,7 @@ import {
   updateSpellSlotUsage
 } from './character/sheetCommandReducer.js'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
+import type { HeldDamageInterception } from './encounterDamageInterception.js'
 import {
   enterActorForm,
   enterCharacterForm,
@@ -73,6 +75,11 @@ export type EncounterMechanicsBatchInput = {
   commandId: string
   occurredAt: string
   applications: readonly CharacterRuleActionApplication[]
+  /**
+   * The target's unspent damage interceptions (`heldDamageInterceptions` over its held effects), in
+   * spend order. Omitted when none; whoever commits the plan spends the effects the receipt names.
+   */
+  damageInterceptions?: readonly HeldDamageInterception[]
   /** The Character stream version the applications were planned against; null for other actors. */
   expectedCharacterStreamVersion: number | null
   /** The maximum of the hit points the applications change: a Character in a form takes the form's. */
@@ -83,6 +90,8 @@ export type EncounterMechanicsBatchInput = {
   retainedConditionIds?: readonly string[]
   effectiveScalarValues?: Readonly<Record<string, number>>
   characterResourceConsumption?: NativeCharacterActionResourceConsumption
+  /** The empty pools this Character's initiative restores raise; applied after any spend. */
+  characterResourceRestores?: readonly CharacterResourceRestore[]
   /** A single-use item this Assisted action used up; recorded as play usage, never as a structure edit. */
   characterItemConsumption?: NativeCharacterItemConsumption
   /**
@@ -162,6 +171,8 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors have no Character stream version.')
     if (batch.characterResourceConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use Character resources.')
+    if (batch.characterResourceRestores !== undefined)
+      throw new Error('Encounter non-Character actors cannot restore Character resources.')
     if (batch.characterItemConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use up Character items.')
     if (batch.degradeItem !== undefined)
@@ -193,6 +204,7 @@ export function planEncounterMechanicsBatch(input: {
       scalarValues: batch.effectiveScalarValues,
       retainedConditionIds: batch.retainedConditionIds,
       applications: batch.applications,
+      ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
       absence: actor.absence
     })
     const nextConditions = [
@@ -364,6 +376,33 @@ export function planEncounterMechanicsBatch(input: {
         updatedAt: batch.occurredAt
       }
     ]
+  }
+
+  for (const restore of batch.characterResourceRestores ?? []) {
+    const ownerKey = createCharacterResourceOwnerKey(restore.owner)
+    const matchingUsage = nextResourceUsage.filter(
+      (usage) => createCharacterResourceOwnerKey(usage.owner) === ownerKey
+    )
+    const [existingUsage] = matchingUsage
+    if (
+      ownerKey !== restore.poolId ||
+      matchingUsage.length !== 1 ||
+      !existingUsage ||
+      existingUsage.used !== restore.beforeUsed ||
+      !Number.isSafeInteger(restore.afterUsed) ||
+      restore.afterUsed < 0 ||
+      restore.afterUsed >= restore.beforeUsed ||
+      !Number.isSafeInteger(restore.beforeRemaining) ||
+      restore.beforeRemaining < 0 ||
+      !Number.isSafeInteger(restore.afterRemaining) ||
+      restore.afterRemaining <= restore.beforeRemaining
+    )
+      throw new Error('Encounter Character resource restore is stale.')
+    nextResourceUsage = nextResourceUsage.map((usage) =>
+      usage === existingUsage
+        ? { ...usage, used: restore.afterUsed, updatedBy: userId, updatedAt: batch.occurredAt }
+        : usage
+    )
   }
 
   const itemConsumption = batch.characterItemConsumption
@@ -557,6 +596,7 @@ export function planEncounterMechanicsBatch(input: {
     JSON.stringify(nextSpellSlots) !== JSON.stringify(loaded.character.state.spellSlots ?? [])
   const sheetStateChanged =
     resourceConsumption !== undefined ||
+    batch.characterResourceRestores !== undefined ||
     itemConsumption !== undefined ||
     itemDegradationTransition !== null
   const sheetHitPointsChanged =
@@ -674,6 +714,7 @@ function foldCharacterBatch(input: {
       ...sheet,
       maximumHitPoints: batch.effectiveMaximumHitPoints,
       applications: batch.applications,
+      ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
       deathSaveRoll: batch.deathSave
     })
     return {
@@ -691,7 +732,8 @@ function foldCharacterBatch(input: {
     temporaryHitPointsSourceEffectId: form.tempHitPointsSourceEffectId,
     maximumHitPoints: batch.effectiveMaximumHitPoints,
     deathSaves: null,
-    applications: batch.applications
+    applications: batch.applications,
+    ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions })
   })
   if (inForm.after.currentHitPoints > 0)
     return {

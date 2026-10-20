@@ -39,7 +39,6 @@ type EndEventCover =
 const GM_ADJUDICATED: EndEventCover = { mechanism: 'GM_ADJUDICATED' }
 
 const COVERED_END_EVENTS: Record<string, EndEventCover> = {
-  'spells/Animal Friendship': GM_ADJUDICATED,
   'spells/Awaken': GM_ADJUDICATED,
   'spells/Calm Emotions': GM_ADJUDICATED,
   'spells/Eyebite': GM_ADJUDICATED,

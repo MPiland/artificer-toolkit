@@ -770,7 +770,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
             continue
           }
-          if (application.kind === 'DEPART') continue
+          if (application.kind === 'KILL_NEGATED' || application.kind === 'DEPART') continue
           if (application.kind === 'STABILIZE') {
             const dying = deathSaves !== null && isCharacterDying(deathSaves, current)
             if (application.applied !== dying)
@@ -871,11 +871,28 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
               application.beforeCurrentHitPoints,
               resolved - temporaryLost
             )
+            const intercepted = application.interceptedBy !== undefined
+            // An interception leaves a lethal blow's target at a total above 0 (Death Ward).
+            const expectedAfter = intercepted
+              ? application.afterCurrentHitPoints
+              : application.beforeCurrentHitPoints - currentLost
+            if (
+              intercepted &&
+              (application.beforeCurrentHitPoints - currentLost !== 0 ||
+                application.beforeCurrentHitPoints < 1 ||
+                application.afterCurrentHitPoints < 1 ||
+                application.afterCurrentHitPoints > application.maximumHitPoints)
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['applications', index],
+                message: 'Damage interception receipt is invalid.'
+              })
             if (
               application.resolvedAmount !== resolved ||
-              application.appliedAmount !== temporaryLost + currentLost ||
-              application.afterCurrentHitPoints !==
-                application.beforeCurrentHitPoints - currentLost ||
+              application.appliedAmount !==
+                temporaryLost + application.beforeCurrentHitPoints - expectedAfter ||
+              application.afterCurrentHitPoints !== expectedAfter ||
               application.afterTemporaryHitPoints !==
                 application.beforeTemporaryHitPoints - temporaryLost
             )
@@ -884,7 +901,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
                 path: ['applications', index],
                 message: 'Damage receipt arithmetic is invalid.'
               })
-            if (deathSaves !== null)
+            if (deathSaves !== null && !intercepted)
               deathSaves = deathSavesAfterDamage({
                 deathSaves,
                 currentHitPoints: application.beforeCurrentHitPoints,

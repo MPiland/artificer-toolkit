@@ -38,6 +38,10 @@ import {
   persistEncounterIdleTurnCheck
 } from './grantTickPersistence.js'
 import { persistEncounterInitiativeRollCards } from './initiativeRollCards.js'
+import {
+  persistEncounterInitiativeRestores,
+  type EncounterInitiativeRestoreCharacterRules
+} from './initiativeRestorePersistence.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import { persistEncounterTurnZoneEffects } from './turnZoneEffectsPersistence.js'
 import {
@@ -68,7 +72,13 @@ export async function persistEncounterTurnCommit(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
     readScene(sceneId: string): Promise<Pick<CampaignSceneState, 'grid' | 'tokens'>>
-    readCharacterRules: EncounterPassiveZoneReaders['readCharacterRules']
+    readCharacterRules(
+      ...args: Parameters<EncounterPassiveZoneReaders['readCharacterRules']>
+    ): Promise<
+      | (Awaited<ReturnType<EncounterPassiveZoneReaders['readCharacterRules']>> &
+          EncounterInitiativeRestoreCharacterRules)
+      | null
+    >
     readDefinition(id: string, userId: string): Promise<ReusableDefinitionCurrentDto | null>
     bindConcentrationApplications(
       state: EncounterRunState,
@@ -337,6 +347,21 @@ export async function persistEncounterTurnCommit(
     turnActorId: root.proposedTerminalTransition.currentActorId,
     occurredAt: input.occurredAt
   })
+  // After every stage that plans against a Character's stream version: the raise advances it.
+  if (root.initiative)
+    await persistEncounterInitiativeRestores(
+      ctx,
+      {
+        state,
+        campaign,
+        actors: durableActors,
+        orderedActorIds: root.initiative.orderedActorIds,
+        rootCommandId: root.rootCommandId,
+        occurrenceId: input.occurrenceId,
+        occurredAt: input.occurredAt
+      },
+      callbacks
+    )
   const nextState = encounterRunStateSchema.parse({
     ...state,
     ...root.proposedTerminalTransition,

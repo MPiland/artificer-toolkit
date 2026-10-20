@@ -3,7 +3,9 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import {
   characterRulePolicyInputSchema,
   characterRulePolicyOutputSchema,
-  characterRuleSenseRangeSchema
+  characterRuleSenseRangeSchema,
+  type CharacterRulePolicyInput,
+  type CharacterRulePolicyOutput
 } from '../api/characterRules.js'
 import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
 import { characterAuthoredDtoSchema, type CharacterAuthoredDto } from '../subjects/character.js'
@@ -188,6 +190,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
     ),
     tickAnchor: z._default(z.enum(['HOLDER', 'SOURCE']), 'HOLDER'),
+    /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
+    hitPointTier: z.optional(z.strictObject({ atMost: z.number().check(z.int()).check(z.gte(1)) })),
     adapterFacts: z.record(
       z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/)),
       ruleValueDtoSchema
@@ -673,6 +677,14 @@ export const compiledActionTargetPolicySchema = lazySchema(() =>
 )
 export type CompiledActionTargetPolicy = z.infer<typeof compiledActionTargetPolicySchema>
 
+/**
+ * The plans of an action whose result tiers on the target's hit points: one per tier, the target's
+ * hit points choosing among them at cast. Absent when `activeEffectPlan` serves every target.
+ */
+const compiledActionHitPointTierPlansSchema = lazySchema(() =>
+  z.optional(z.array(compiledActionActiveEffectPlanSchema).check(z.maxLength(8)))
+)
+
 const compiledActionEntryPointSchema = lazySchema(() =>
   z.union([
     z.strictObject({
@@ -706,6 +718,7 @@ const compiledActionEntryPointSchema = lazySchema(() =>
       compilation: z.strictObject({
         kind: z.literal('COMPILED'),
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
+        hitPointTierPlans: compiledActionHitPointTierPlansSchema,
         executionPlan: compiledActionExecutionPlanSchema
       })
     }),
@@ -719,6 +732,7 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         kind: z.literal('COMPILED'),
         resourceBinding: z.nullable(compiledActionResourceBindingSchema),
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
+        hitPointTierPlans: compiledActionHitPointTierPlansSchema,
         /**
          * Set for an action that places a zone; its `executionPlan` then runs only as the save each
          * creature in the zone's area makes as it appears (a TEST_OUTCOME, D154), else never.
@@ -801,6 +815,11 @@ export type CharacterMechanicsRuleSnapshot = z.infer<typeof characterMechanicsRu
 /** Named so the projection embedding the authored Character stays within the declaration size limit (TS7056). */
 const characterCommandStateSchema: z.ZodMiniType<CharacterAuthoredDto> = characterAuthoredDtoSchema
 
+/** Named so the projection embedding them stays within the declaration size limit (TS7056). */
+const characterRulePolicyInput: z.ZodMiniType<CharacterRulePolicyInput> =
+  characterRulePolicyInputSchema
+const characterRulePolicyOutput: z.ZodMiniType<CharacterRulePolicyOutput> =
+  characterRulePolicyOutputSchema
 const characterMechanicsProjectionObjectSchema = lazySchema(() =>
   z.strictObject({
     characterId: projectionIdentifierSchema,
@@ -819,8 +838,8 @@ const characterMechanicsProjectionObjectSchema = lazySchema(() =>
     evaluatorVersion: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
     modelContractVersion: z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000)),
     ruleSnapshot: characterMechanicsRuleSnapshotSchema,
-    rulePolicyInput: characterRulePolicyInputSchema,
-    rulePolicyOutput: characterRulePolicyOutputSchema,
+    rulePolicyInput: characterRulePolicyInput,
+    rulePolicyOutput: characterRulePolicyOutput,
     initiativeActorFacts: z._default(characterInitiativeActorFactsSchema, {
       effectiveSize: null,
       checkTotals: {},

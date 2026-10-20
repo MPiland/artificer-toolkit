@@ -8668,7 +8668,7 @@
             },
             {
               "id": "SPELLS-4.T2d3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8677,7 +8677,21 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2d2"]
               },
-              "text": "Effect offers in the web table (split from T2d2, 2026-10-20): the action choices response already carries effectOffers[]; show them in the actor drawer and stage, with a Scene token pick for the new holder, so a player can move a held effect (Hunter's Mark re-mark) in-app. Stories, component tests and a browser journey."
+              "text": "Effect offers in the web table (split from T2d2, 2026-10-20): the action choices response already carries effectOffers[]; show them in the actor drawer and stage, with a Scene token pick for the new holder, so a player can move a held effect (Hunter's Mark re-mark) in-app. Stories, component tests and a browser journey.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4-t2d2.md"
+            },
+            {
+              "id": "SPELLS-4.T2d4",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2d3"]
+              },
+              "text": "Effect offer browser journey (split from T2d3, ruled 2026-10-20): a held-effect-browser Playwright proof through scripts/runLocalConvexProof.ps1 against the local Convex container: an authored creature action with a move offer, holder at 0 HP, the drawer offer, map pick, move and undo. Needs the session-worker .dev.vars and local-validation env (ask the user to supply them for the worktree)."
             },
             {
               "status": "DONE",
@@ -8748,7 +8762,7 @@
             },
             {
               "id": "SPELLS-4.T2i3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8758,11 +8772,11 @@
                 "after": ["SPELLS-4.T2i"]
               },
               "text": "Power Word Stun (split from T2i, 2026-10-20): a gated condition apply and a repeating follow-up save on an activated action, honoured by active-effect creation. Converts POWER_WORD_STUN with a parity proof; kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m240 (47197271d)."
             },
             {
-              "id": "SPELLS-4.T2i4",
-              "status": "TODO",
+              "id": "SPELLS-4.T2i4a",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8771,11 +8785,41 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2i"]
               },
-              "text": "Divine Word (split from T2i, 2026-10-20): runtime HIT_POINT_TIERS selection with per-tier durations and entries. Converts DIVINE_WORD with a parity proof (planar banishment description-only, D156); kind deleted."
+              "text": "Hit-point tier selection seam (split from T2i4, ruled 2026-10-20): a generic tiered active-effect plan list chosen per target by current hit points through the T2i HIT_POINT_TIERS evaluation, carrying per-tier timed conditions and durations; lifts the one-plan refusal without changing single-plan actions. Boundary tests for the condition tiers.",
+              "note": "Merged m245 (d488f3343)."
             },
             {
-              "id": "SPELLS-4.T2i2",
+              "id": "SPELLS-4.T2i4b1",
               "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2i4a"]
+              },
+              "text": "Hit-point tier bands: change the hit-point gate contract in place to a band (hitPointsAbove plus ceiling) with one comparator in hitPointTiers.ts, migrating Power Word Kill/Stun and T2i4a; tiered save graph (testPlan, refuseGate, per-tier proposal nodes and source-entry ids, gated KILL on the save-fail path); \"KILL tier selected, no plan\" as a real outcome; widened timed-condition-on-save admission; boundary test at 20/21/30/31/40/41/50/51 with a fixture spell.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "Split from T2i4b 2026-10-20: tier gating needed a band contract and per-tier save graph."
+            },
+            {
+              "id": "SPELLS-4.T2i4b2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2i4b1"]
+              },
+              "text": "Divine Word: data, parity proof, room journey, delete DIVINE_WORD, docs; remove the compiledTieredCast test stand-in and compiledTestSpellCast registry argument.",
+              "note": "Split from T2i4b 2026-10-20."
+            },
+            {
+              "id": "SPELLS-4.T2i2a",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8784,7 +8828,21 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2i"]
               },
-              "text": "Generic damage interception (split from T2i, 2026-10-20): \"would drop to 0 HP, instead drop to N\", with uses, as an authored grant. Converts DEATH_WARD with a parity proof and deletes the kind. SPELLS-33.T4i (Undead Fortitude) and the race corpus (Relentless Endurance) reuse it."
+              "text": "Damage interception contract (split from T2i2, ruled 2026-10-20): authored damageInterception (drop to N, negates kill, uses EFFECT_ENDS; RESOURCE uses as a documented extension point), one shared pure interception for Characters and Run creatures in the mechanics planner, fold validation (interceptedBy, negatedBy), KILL negation, heldDamageInterceptions resolver; unit proofs for both actor kinds.",
+              "note": "Merged m241 (5593b12cc). Review findings carried into T2i2b: the fold validates its own interception rewrite (tautological check), and a non-damage HP change after an interception in one batch is refused."
+            },
+            {
+              "id": "SPELLS-4.T2i2b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2i2a"]
+              },
+              "text": "Damage interception in the room (split from T2i2, 2026-10-20): one derivation point for held-effect batch inputs (effective max HP and damage interceptions) used by every mechanics batch builder; the ward ends in the same batch with undo. Converts DEATH_WARD with a parity proof (kind deleted) and a room journey: a warded Character takes lethal damage, stays at 1 HP, the ward ends, undo restores both. Also fixes the T2i2a review findings: one role for interception (planner applies, fold validates, or the reverse) with a regression test, and generic handling of heals/temporary HP after an interception in one batch."
             },
             {
               "status": "TODO",
@@ -8965,17 +9023,120 @@
               "text": "Extra turns (D160, split from T2l): TIME_STOP with 1d4+1 consecutive caster turns, ending on any committed outcome that targets or affects another creature or an object the caster is not wearing or carrying, or on moving more than 1,000 ft (ambiguous objects to manual adjudication). The initiative-insertion design is ruled before coding. Parity proof; TIME_STOP deleted."
             },
             {
+              "id": "SPELLS-4.T2m1",
+              "status": "DONE",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2l", "SPELLS-4.T2lb"]
+              },
+              "text": "Repeat saves, increment 1 (split from T2m, re-ruled 2026-10-20): converts ANIMAL_FRIENDSHIP (kind deleted, parity proof), DAY counted in TURNS_PER_DURATION_UNIT; Int gates deferred as an edge case. Writes resume sections for T2m1b, T2m1c and T2m1d.",
+              "note": "Merged m244 (b4e2b6ac5)."
+            },
+            {
+              "id": "SPELLS-4.T2m1c",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
-              "id": "SPELLS-4.T2m",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2m1"]
+              },
+              "text": "THRESHOLDS repeat-save tally (split from T2m1, ruled 2026-10-20): a saveTally on the active effect lifecycle across the lifecycle schema, staged turn-execution validators (ruleExecutionTurnResults), turnEffectsPersistence checksum and CAS, and encounterTurnEffects; successes and failures reaching their thresholds end or settle the effect. Proves Contagion's save part (CONTAGION kind deleted in T2l2).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2m1b1",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2m1"]
+              },
+              "text": "Repeat-save triggers as data: FollowUpSave.repeatTriggers (DAMAGE_TAKEN) in shared, schema, node maps and authoring defaults; compiler stores triggers on the active-effect plan via repeatingDirectFollowUpSavePlan; proved on a Hold Person homebrew. Triggers are inert until T2m1b2; no spell conversion.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "Split from T2m1b 2026-10-20: D161 hook raises actions, not active-effect saves; off-turn SYSTEM root needed."
+            },
+            {
+              "id": "SPELLS-4.T2m1b1b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2m1b1"]
+              },
+              "text": "Multi-condition repeat plan: repeatingDirectFollowUpSavePlan, the outcome graph, the repeat-save condition fact (list) and runtime removal take a condition list; Hideous Laughter authored as data (Prone + Incapacitated, 1-minute Wis save at turn end, advantage on damage).",
+              "note": "Split from T2m1b1 2026-10-20: plan, graph, fact and removal are single-condition."
+            },
+            {
+              "id": "SPELLS-4.T2m1b2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2m1b1b"]
+              },
+              "text": "Damage repeat-save funnel: hook in roomEncounterCommands.ts (shared seam for T2m3, SPELLS-33.T6e2/T4m) reads receipt DAMAGE applications, raises one SYSTEM repeat-save root per matching holder with the trigger roll influence; success ends the effect; admission, undo bound to parent, parity proof, delete HIDEOUS_LAUGHTER; journeys for single-target and area hits.",
+              "note": "Split from T2m1b 2026-10-20."
+            },
+            {
+              "id": "SPELLS-4.T2m1d",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
                 "size": 8,
-                "after": ["SPELLS-4.T1", "SPELLS-4.T2l", "SPELLS-4.T2lb"]
+                "after": ["SPELLS-4.T2m1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Repeat saves on damage or as an action, and condition suppression. Converts HIDEOUS_LAUGHTER, IRRESISTIBLE_DANCE, CALM_EMOTIONS, ANIMAL_FRIENDSHIP, FREEDOM_OF_MOVEMENT, CONTAGION (Encounter compiler runs THRESHOLDS repeat saves; Slimy Doom stunned when damaged; Mindfire moved to T2l2 per D160; T2a1 ruling), with parity proofs; each kind deleted."
+              "text": "Holder-action repeat save (split from T2m1, ruled 2026-10-20): a save variant of the D105/D146 lifecycle.escape seam (prepare, verify, plan, offers, outputs) beside any held condition, not only spatial; DC pinned at cast through the T2i3 castFactKeys save-DC pin (no second pin path). Converts IRRESISTIBLE_DANCE with a parity proof and room journey; kind deleted. Propose a split at start if still size 8."
+            },
+            {
+              "id": "SPELLS-4.T2m2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2l", "SPELLS-4.T2lb", "SPELLS-4.T2m1"]
+              },
+              "text": "Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted."
+            },
+            {
+              "id": "SPELLS-4.T2m3",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-4.T1",
+                  "SPELLS-4.T2l",
+                  "SPELLS-4.T2lb",
+                  "SPELLS-4.T2m1",
+                  "SPELLS-4.T2m1b2"
+                ]
+              },
+              "text": "Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs."
             },
             {
               "status": "TODO",
@@ -11830,7 +11991,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2l", "SPELLS-4.T2m"]
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2l", "SPELLS-4.T2m1"]
               },
               "text": "Join SPELLS-4.T2m: Turn Undead (with its description text), Turn the Unholy (with resource use), Destroy Undead. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
@@ -11980,7 +12141,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2l", "SPELLS-4.T2m"]
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2l", "SPELLS-4.T2m1"]
               },
               "text": "New option (ruling at start): options bound to another active effect; Persistent, Relentless and Mindless Rage, Frenzy, Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
@@ -12091,8 +12252,21 @@
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
+              "id": "SPELLS-31.T5n2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-31.T5n"]
+              },
+              "text": "Scene-light activation gate (split from T5n, ruled 2026-10-20): ACTION_SCENE reads the holder cell's illumination (scene lights, zones, barriers) so an activation can require dim light or darkness; One with Shadows gains the gate (converted ungated in T5n). Generic predicate, no feature-specific code."
+            },
+            {
               "id": "SPELLS-31.T5o",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12102,7 +12276,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "New option, ruled 2026-10-20: a ROLL_INITIATIVE trigger (fires once per actor when initiative settles) and a RESTORE_RESOURCE outcome (feature charge restored to a floor when at 0). Perfect Self, Superior Inspiration (Bardic Inspiration as a feature charge). Thief's Reflexes split to T5o2. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m242 (4d88ea7b3)."
             },
             {
               "id": "SPELLS-31.T5o2",
@@ -12452,7 +12626,21 @@
               "note": "2026-10-20 ruling: data conversion with parity proofs (spell list, DC and slots stay visible to the GM); the room cast proof moves to T3c because creature SPELL_GRANTs are not castable in a room yet. Merged m238 (7f5b03598): 8 casters author per-level slot charges; 8 spellcasting kinds deleted; parity proof creatureSpellSlotsAuthoringParity.test.ts."
             },
             {
-              "id": "SPELLS-33.T3c",
+              "id": "SPELLS-33.T3c1",
+              "status": "DONE",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T3b"]
+              },
+              "text": "Feature-level spell slot table (split from T3c, ruled 2026-10-20): grants.spellSlots { id, resetKind, levels[{ level, amount }] } through schema, shared authoring, compiler, node map and web defaults; T3b casters become one table plus SPELL_SLOT-mode spell grants; parity proof keeps the GM description and slot counts. No runtime change.",
+              "note": "Merged m243 (03ef52a00)."
+            },
+            {
+              "id": "SPELLS-33.T3c2a1",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12460,9 +12648,52 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T3b"]
+                "after": ["SPELLS-33.T3c1"]
               },
-              "text": "Creature spell grants cast in the room (found by T3b, 2026-10-20): creatureFeatureGrantFold folds creature SPELL_GRANTs to no spells, and grant handling (cast at level, limited use, slot charges) is Character-only. A creature with authored spell grants offers those spells, casts them through the existing cast path, spends its slot or use with undo, and refreshes on its rest. Room journey: a converted SRD caster casts a levelled spell and spends the slot. Slots are authored per spell level today (one charge pool per level), so a creature cannot spend a higher slot on a lower-level spell; T3c makes the slot pool spendable at or above the spell level (upcast) or records why not."
+              "text": "Creature spell discovery rules: extract the holder-agnostic cast candidate builder from characterSpellCastRuleFacts.ts (Character assertions unchanged); creature path over grants.spells plus grants.spellSlots rows with a slot left; discover takes optional compiled spells and emits ENCOUNTER_FEATURE capabilities with spellCast. Rules-runtime proofs: Mage lists Fireball at 3-5, cantrips at will.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
+              "note": "Split from T3c2a 2026-10-20: discovery is sync with ~8 callers; creature spell definitions absent from Encounter path."
+            },
+            {
+              "id": "SPELLS-33.T3c2a2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T3c2a1"]
+              },
+              "text": "Pin compiled creature spells at run creation: readEncounterSource kind SPELL mirroring equipmentSources, each spell pinned once per run keyed by id and referenced by actors; discovery stays sync and replay-safe in Convex and the Session Worker; size proof for a Lich-class caster under the Convex document limit.",
+              "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port."
+            },
+            {
+              "id": "SPELLS-33.T3c2b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T3c2a2"]
+              },
+              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey."
+            },
+            {
+              "id": "SPELLS-33.T3c3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T3c1"]
+              },
+              "text": "Creature rest (split from T3c2, ruled 2026-10-20): a creature-rest room command (schema, persistence, undo) that resets actor featureCharges and spell slot rows by resetKind.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4c",
@@ -12528,7 +12759,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
               "text": "regeneration, Undead Fortitude, hit point threshold riders (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Also removes the Giant Centipede Bite and Solar Slaying Longbow SRD_CREATURE_ATTACK_UNSUPPORTED entries, with a room proof for each attack (from ATTACK-5.T4d/T4e, 2026-10-20)."
             },
@@ -12608,7 +12839,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2m"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2m1", "SPELLS-4.T2m2", "SPELLS-4.T2m1b2"]
               },
               "text": "Horrifying Visage, Petrifying Gaze, Vrock Spores, Freedom of Movement (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
@@ -12992,7 +13223,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 1,
-                "after": ["SPELLS-33.T6e", "SPELLS-4.T2m"]
+                "after": ["SPELLS-33.T6e", "SPELLS-4.T2m1", "SPELLS-4.T2m1b2"]
               },
               "text": "Vampire Charm: repeat save when harmed by the source side through the SPELLS-4.T2m on-damage repeat timing (1 kind). Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
             },

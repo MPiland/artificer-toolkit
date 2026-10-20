@@ -5,6 +5,7 @@ import { MODIFIER_GRANT_NODE_MAP } from './modifier.js'
 import { PROFICIENCY_NODE_MAP } from './proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from './sense.js'
 import { SPELL_GRANT_NODE_MAP } from './spell.js'
+import { SPELL_SLOT_TABLE_NODE_MAP } from './spellSlots.js'
 
 type FeatureGrantsAuthored = NonNullable<FeatureBaseAuthored['grants']>
 
@@ -15,11 +16,12 @@ const FEATURE_GRANT_SECTIONS = {
   modifiers: { id: 'modifiers', label: 'Modifiers', order: 20 },
   proficiencies: { id: 'proficiencies', label: 'Proficiencies', order: 30 },
   senses: { id: 'senses', label: 'Senses', order: 40 },
-  spells: { id: 'spells', label: 'Spells', order: 50 }
+  spells: { id: 'spells', label: 'Spells', order: 50 },
+  spellSlots: { id: 'spellSlots', label: 'Spell Slots', order: 60 }
 } as const
 
 export const FEATURE_GRANTS_NODE_MAP = featureGrants.define('featureGrants', ({ map, nodes }) => {
-  const { groupArray } = nodes
+  const { groupArray, groupObject } = nodes
 
   map
     .set(
@@ -55,6 +57,13 @@ export const FEATURE_GRANTS_NODE_MAP = featureGrants.define('featureGrants', ({ 
       groupArray(['spells'], 'Spell Grants', () => SPELL_GRANT_NODE_MAP, {
         presentation: 'focused',
         section: FEATURE_GRANT_SECTIONS.spells
+      })
+    )
+    .set(
+      'spellSlots',
+      groupObject(['spellSlots'], 'Spell Slots', () => SPELL_SLOT_TABLE_NODE_MAP, {
+        presentation: 'inline',
+        section: FEATURE_GRANT_SECTIONS.spellSlots
       })
     )
 })
