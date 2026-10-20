@@ -48,6 +48,7 @@ async function itemFacts(itemInstanceId: string) {
     target: { kind: 'ITEM', itemInstanceId },
     editable: true
   })
+  if (panel.kind !== 'ITEM') throw new Error('Expected an item panel.')
   return panel.facts
 }
 
