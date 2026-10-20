@@ -74,6 +74,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
         actorBindings,
         projectionFacts,
         sourceProjectionFacts,
+        spellPins,
         snapshotParts
       ] = await Promise.all([
         ctx.db
@@ -125,6 +126,10 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
           .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', run.id))
           .take(12),
         ctx.db
+          .query('encounterSpellPins')
+          .withIndex('by_encounterId_spellId', (q) => q.eq('encounterId', run.id))
+          .take(44),
+        ctx.db
           .query('encounterPendingSnapshotParts')
           .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
           .take(129)
@@ -150,6 +155,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
         actorBindings,
         projectionFacts,
         sourceProjectionFacts,
+        spellPins,
         snapshotParts
       }
     })
@@ -264,6 +270,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
       ...child.actors,
       ...child.projectionFacts,
       ...child.sourceProjectionFacts,
+      ...child.spellPins,
       ...child.snapshotParts
     ])
       await ctx.db.delete(row._id)

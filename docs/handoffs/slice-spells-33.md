@@ -557,6 +557,15 @@ Branch `ci/spells-33-t3c2a`, base the phase branch. Size ~5. Do not edit the led
 - `encounterFeatureActionCapabilityDiscovery.ts` `discover` gains the loaded spells and emits `ENCOUNTER_FEATURE` capabilities (`spellCast: { castLevel }`, the spell's compiled effect group) through `bindEffect`. One cast action runs one effect group; follow `buildCharacterSpellCastActions` (several groups only when each is a reaction).
 - Out of scope: spending (T3c2b), rest (T3c3). Proof: rules-runtime tests that Mage lists Fireball at levels 3-5 and cantrips at will, and Character cast lists unchanged.
 
+## T3c2a2b resume: load Spell pins into discovery (fresh session, after T3c2a2a)
+
+Branch `ci/spells-33-t3c2a2b`. Size ~3. Do not edit the ledger. T3c2a2a (D163 pinning) landed the table, the pin writers and the lifecycle; nothing reads the pins yet.
+
+- Landed by T3c2a2a: `encounterSpellPins` (`(encounterId, spellId)`, stored compilation, whole-Run lifetime, deleted on completion, Campaign deletion and development removal), `readEncounterSource` kind `SPELL`, and `ensureEncounterSpellPins` at run creation, reinforcement and form entry. Helpers: `packages/encounter-persistence/src/spellPins.ts` (`readEncounterSpellPins` hydrates a Run's pins and fails closed).
+- Load the pins in the Convex read path and in the Session Worker room (`roomInputs.ts` already loads the rows; hydrate them with `readEncounterSpellPins` or `readStoredSpellPin`), and pass `spells` (`ReadonlyMap<string, CompiledSpell>`) into the five synchronous `discoverEncounterFeatureActionCapabilities` callers: `encounterProjection`, legendary discovery, initiative declaration, movement reaction facts and the creature action fixtures.
+- Replay safety proofs: a Spell edited or deleted after the pin gives the same discovery (no recompile, no source read); a missing pin for a named Spell fails closed rather than dropping the cast.
+- Character-kind actors that enter a Creature form are not pinned (they use their own Spells); pins are not released per actor.
+
 ## T3c2b resume: creature cast, slot spend and undo in the room (fresh session, after T3c2a)
 
 Branch `ci/spells-33-t3c2b`. Size ~5. Do not edit the ledger.
@@ -583,3 +592,10 @@ Folded in 2026-10-20 from ATTACK-5.T4d/T4e. Push to `ci/spells-33-t4i`. If the w
 - The ledger orders T4i after SPELLS-4.T2i2 (Undead Fortitude needs its interception seam); do not start before T2i2 merges.
 - Purple Worm Bite goes to SPELLS-33.T6a1 (not here).
 - Per D156 each conversion deletes its kind and carries an authoring-parity proof. Do not edit the ledger.
+
+## T6c: legendary options that cast a granted spell (done, `ci/spells-33-t6c`)
+
+Class B, new generic option (D156). A Feature or option effect may carry `grantedSpellCast: { spellKind: 'CANTRIP' | 'LEVELED' }` (schema `featureEffectDtoSchema`, authored `FeatureGrantedSpellCastAuthored`, node map `featureGrantedSpellCast`): an ACTION that casts one of its holder's granted spells, chosen at the table. It authors no paths of its own, is refused on a passive effect or beside `spellCast`, and spends the legendary pool through the usual `resourceUse`. The Lich's Cantrip (`CANTRIP`, cost 1; its option had no cost or action invocation before) and the Gynosphinx's Cast a Spell (`LEVELED`, cost 3) use it, and `CREATURE_LICH_LEGENDARY_ACTIONS` and `CREATURE_GYNOSPHINX_LEGENDARY_ACTIONS` are deleted.
+
+- Proofs: `creatureGrantedSpellCastAuthoringParity.test.ts` (node map unchanged, no closed rule, pool spend), `feature-granted-spell-cast-contracts.test.ts` (schema rules).
+- Data and schema only: discovery does not yet emit a capability for it. The runtime path (list the holder's granted spells of the kind, spend the slot) belongs to T3c2a/T3c2b, which should read `effect.grantedSpellCast` in `encounterFeatureActionCapabilityDiscovery.ts`.

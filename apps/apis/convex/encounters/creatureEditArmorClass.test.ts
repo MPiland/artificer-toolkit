@@ -14,7 +14,7 @@ import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publ
 import {
   importSeededSrdCreatureSenses,
   seededSrdCreature,
-  seededSrdLoadoutEquipment,
+  seededSrdPinnedSources,
   srdPrintedArmorClass
 } from '../../tests/fixtures/srdCreatures'
 import { readTestActor } from '../../tests/fixtures/storedActors'
@@ -29,7 +29,7 @@ async function setup() {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...goblin, subjectKind: 'CREATURE', document: goblin }),
-      ...seededSrdLoadoutEquipment(goblin).map(importedSubject),
+      ...seededSrdPinnedSources(goblin).map(importedSubject),
       importedSubject({ ...greatclub, subjectKind: 'EQUIPMENT', document: greatclub })
     ]
   })

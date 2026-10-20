@@ -43,18 +43,7 @@ export const thug: CreatureAuthored = {
       label: 'Pack Tactics',
       description:
         "Pack Tactics. The thug has advantage on an attack roll against a creature if at least one of the thug's allies is within 5 feet of the creature and the ally isn't incapacitated.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(269, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(269, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PACK_TACTICS
-        })
-      ],
+      grants: S.packTacticsGrants(269, 1),
       order: 1
     },
     {

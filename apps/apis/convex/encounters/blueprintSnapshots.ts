@@ -15,7 +15,7 @@ export async function readEncounterSource(
   userId: string,
   systemId: string,
   id: string,
-  kind: 'CREATURE' | 'EQUIPMENT'
+  kind: 'CREATURE' | 'EQUIPMENT' | 'SPELL'
 ) {
   const root = await ctx.db
     .query('authoredRoots')

@@ -31,7 +31,7 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
   importSeededSrdCreatureSenses,
   seededSrdCreature,
-  seededSrdLoadoutEquipment
+  seededSrdPinnedSources
 } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
 import { readCharacterRow } from '../characters/stateDocuments'
@@ -67,7 +67,7 @@ async function setup(input: { gmAutoRoll: boolean; playerAutoRoll: boolean; crea
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...dragon, subjectKind: 'CREATURE', document: dragon }),
-      ...seededSrdLoadoutEquipment(dragon).map(importedSubject)
+      ...seededSrdPinnedSources(dragon).map(importedSubject)
     ]
   })
   // A second player, who owns no Character: the controller a GM can grant the dragon.

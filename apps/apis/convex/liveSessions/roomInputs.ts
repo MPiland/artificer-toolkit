@@ -139,6 +139,13 @@ export const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTa
         .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', encounterId))
   },
   {
+    table: 'encounterSpellPins',
+    query: (ctx, encounterId) =>
+      ctx.db
+        .query('encounterSpellPins')
+        .withIndex('by_encounterId_spellId', (q) => q.eq('encounterId', encounterId))
+  },
+  {
     table: 'encounterSceneBindings',
     query: (ctx, encounterId) =>
       ctx.db

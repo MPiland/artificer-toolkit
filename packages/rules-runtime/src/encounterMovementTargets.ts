@@ -7,6 +7,7 @@ import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/chara
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import { heldBatchInputs, type HeldDamageInterception } from './encounterDamageInterception.js'
@@ -124,6 +125,8 @@ export type MovementTarget<
   innateConditionIds: readonly string[]
   /** The actor's accepted grant-fold modifiers: a Character's fold, a Creature's feature grants. */
   attackTraitGrants: readonly Dnd5eAttackTraitGrant[]
+  /** A Creature's folded feature grants, whose attack roll modes its attacks read; empty for a Character, whose policy output carries its own. */
+  featureModifiers: CharacterGrantFoldOutput['modifiers']
   /** Magic schools whose spells have no effect on the actor. */
   spellSchoolImmunityIds: readonly string[]
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
@@ -497,6 +500,7 @@ export function buildMovementTarget<
         dnd5eAcceptedModifierApplicability
       ),
       innateConditionIds: innateConditionIds(effectiveRulePolicyOutput.grantFold.modifiers),
+      featureModifiers: [],
       spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds,
       attackAgainstContributors: [],
       sourceSightSaves: [],
@@ -580,6 +584,7 @@ export function buildMovementTarget<
       dnd5eAcceptedModifierApplicability
     ),
     innateConditionIds: creatureInnateConditionIds(activeEffects, creatureFacts?.modifiers ?? []),
+    featureModifiers: creatureFacts?.modifiers ?? [],
     spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,
     attackAgainstContributors: [],
     sourceSightSaves: [],

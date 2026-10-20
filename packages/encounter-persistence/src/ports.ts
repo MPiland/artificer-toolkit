@@ -37,7 +37,7 @@ export type CampaignAuthority = {
   membership: EncounterDocument<'campaignMemberships'>
 }
 
-/** A published Creature or Equipment source an Encounter snapshot pins, with its stored compilation. */
+/** A published Creature, Equipment or Spell source an Encounter snapshot pins, with its stored compilation. */
 export type EncounterAuthoredSource = {
   document: unknown
   checksum: string
@@ -71,7 +71,7 @@ export interface EncounterReadPorts {
     userId: string,
     systemId: string,
     id: string,
-    kind: 'CREATURE' | 'EQUIPMENT'
+    kind: 'CREATURE' | 'EQUIPMENT' | 'SPELL'
   ): Promise<EncounterAuthoredSource>
   readCharacterRecord(row: EncounterCharacterRow): EncounterCharacterDocument
   /** Complete Character assembly belongs to the Character domain, outside the Encounter store. */
