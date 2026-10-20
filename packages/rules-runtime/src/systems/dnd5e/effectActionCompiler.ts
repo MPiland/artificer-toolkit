@@ -9757,11 +9757,14 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
   }
   // A TEST whose every outcome its active-effect plan carries (a creature form, or a timed grant
   // after a failed save or on an attack's hit) selects no OUTCOME graph: the plan runs from the
-  // TEST's result path.
+  // TEST's result path. An equipment degradation is likewise the resolver's, off the result path.
   if (
     outcomes.length === 0 &&
     creatureFormPlan(action) === null &&
-    modifierGrantPlan(action) === null
+    modifierGrantPlan(action) === null &&
+    !action.compiledEffect.entries.some(
+      (entry) => 'outcome' in entry && entry.outcome.effectKind === 'DEGRADE_EQUIPMENT'
+    )
   )
     unsupported('D&D test action has no specialized outcome path.')
   return outcomes

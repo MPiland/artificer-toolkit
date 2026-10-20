@@ -527,11 +527,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             message: 'Target item state transition must match the target Character version.'
           })
         const degradation = value.targetItemDegradation
-        if (
-          degradation &&
-          (degradation.characterId !== value.targetActorId ||
-            value.targetCharacterStreamVersion === null)
-        )
+        if (degradation && value.targetCharacterStreamVersion === null)
           context.addIssue({
             code: 'custom',
             path: ['targetItemDegradation'],
