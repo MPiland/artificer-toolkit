@@ -4980,7 +4980,7 @@
             {
               "id": "SCENE-5.T2",
               "text": "Main-Character picker on the tabletop and view switching by a single selected controlled token; clearing or a multi-select returns to the main Character.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SCENE-5.2"],
               "wsjf": {
                 "bv": 8,
@@ -4988,7 +4988,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SCENE-5.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-scene-5.md"
             },
             {
               "id": "SCENE-5.T3",
