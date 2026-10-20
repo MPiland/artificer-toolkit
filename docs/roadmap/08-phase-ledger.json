@@ -4937,22 +4937,33 @@
           "acs": [
             {
               "text": "The GM can give a Campaign member control of other players’ Characters and take it back at any time; the owners keep control. A member moves a controlled Character’s token on the tabletop as its owner can, and in every Encounter they are one of its controllers.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/liveSessions/roomSceneCommands.test.ts",
+                "apps/apis/convex/campaigns/characterControllers.test.ts",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts"
+              ],
               "origin": [],
               "id": "SCENE-5.1"
             },
             {
               "text": "A member who controls several Characters sees the Scene through one main Character’s senses, which they pick on the tabletop and which defaults to their own Character. Selecting a single token they control switches the view to that token’s senses; clearing or multi-selecting returns to the main Character. They never see what the viewed Character cannot see.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.mainCharacter.test.tsx",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts"
+              ],
               "origin": [],
               "id": "SCENE-5.2"
             },
             {
               "text": "Every tabletop viewer can set the zoom by typing a percentage or stepping it, and their tabletop window keeps that zoom on that device across reloads, reconnects and view switches. The tabletop opens in a window sized to the screen and offers a Full screen button.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.zoom.test.tsx",
+                "apps/web/src/domains/campaigns/vtt/vttZoom.model.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopFullscreenButton.test.tsx"
+              ],
               "origin": [],
               "id": "SCENE-5.3"
             }
@@ -4980,7 +4991,7 @@
             {
               "id": "SCENE-5.T2",
               "text": "Main-Character picker on the tabletop and view switching by a single selected controlled token; clearing or a multi-select returns to the main Character.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SCENE-5.2"],
               "wsjf": {
                 "bv": 8,
@@ -4989,7 +5000,7 @@
                 "size": 3,
                 "after": ["SCENE-5.T1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-scene-5.md"
+              "note": "Merged m211 (9045d49db)."
             },
             {
               "id": "SCENE-5.T3",
