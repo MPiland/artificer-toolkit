@@ -65,6 +65,31 @@ describe('effect node maps', () => {
     ).toBe(false)
   })
 
+  it('offers a resource restore outcome only for the restore kind, with its three fields', () => {
+    const resultNode = PATH_NODE_MAP.nodes.resultBlock
+    if (resultNode?.kind !== 'GROUP')
+      throw new Error('Expected the result block to be a group node')
+    const resultMap = typeof resultNode.nodes === 'function' ? resultNode.nodes() : resultNode.nodes
+    const outcomesNode = resultMap.nodes.outcomes
+    if (outcomesNode?.kind !== 'GROUP') throw new Error('Expected outcomes to be a group node')
+    const outcomeMap =
+      typeof outcomesNode.nodes === 'function' ? outcomesNode.nodes() : outcomesNode.nodes
+    const fields = ['restoreChargeId', 'restoreFloor', 'restoreWhenAtOrBelow'].map((key) => {
+      const node = outcomeMap.nodes[key]
+      if (!node?.showIf) throw new Error(`Expected ${key} to be conditional`)
+      return node.showIf
+    })
+
+    for (const showIf of fields) {
+      expect(
+        evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.RESTORE_RESOURCE } })
+      ).toBe(true)
+      expect(
+        evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.ARMOR_CLASS_FLOOR } })
+      ).toBe(false)
+    }
+  })
+
   it('declares explicit authoring presentation for effect groups', () => {
     const effectsNode = SPELL_NODE_MAP.nodes.effects
     const invocationNode = EFFECT_NODE_MAP.nodes.invocation

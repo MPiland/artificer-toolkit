@@ -278,7 +278,8 @@ describe('node map sections', () => {
       'modifiers',
       'proficiencies',
       'senses',
-      'spells'
+      'spells',
+      'spellSlots'
     ])
     expect(resolveNodeMapSteps(MODIFIER_GRANT_NODE_MAP).map((step) => step.id)).toEqual([
       'modifier',

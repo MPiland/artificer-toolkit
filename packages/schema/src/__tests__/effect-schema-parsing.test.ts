@@ -121,7 +121,7 @@ describe('effect schema parsing', () => {
       {
         id: 'closed-rule-outcome',
         effectKind: 'CLOSED_RULE',
-        ruleKind: CLOSED_RULE_KIND.ANIMAL_FRIENDSHIP
+        ruleKind: CLOSED_RULE_KIND.CONTAGION
       },
       {
         id: 'manual-adjudication-outcome',

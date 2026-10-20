@@ -2160,7 +2160,8 @@ const TURNS_PER_DURATION_UNIT: Partial<Record<CompiledDuration['durationKind'], 
   TURN: 1,
   ROUND: 1,
   MINUTE: 10,
-  HOUR: 600
+  HOUR: 600,
+  DAY: 14_400
 }
 
 /**
@@ -8891,6 +8892,7 @@ function testApplications(
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
+        application.kind === 'KILL_NEGATED' ||
         application.kind === 'DEPART'
       )
         continue
@@ -9715,6 +9717,7 @@ function interpretDirect(
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
+        application.kind === 'KILL_NEGATED' ||
         application.kind === 'DEPART'
       )
         continue

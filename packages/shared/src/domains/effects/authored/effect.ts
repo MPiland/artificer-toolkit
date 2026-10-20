@@ -130,7 +130,12 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
           kind?: typeof EFFECT_INVOCATION_KIND.ACTION
           triggerCode: Exclude<
             TTrigger,
-            'SAVING_THROW' | 'CHECK' | 'INCOMING_DAMAGE' | 'HP_ZERO' | 'INCOMING_WEAPON_HIT'
+            | 'SAVING_THROW'
+            | 'CHECK'
+            | 'INCOMING_DAMAGE'
+            | 'HP_ZERO'
+            | 'INCOMING_WEAPON_HIT'
+            | 'ROLL_INITIATIVE'
           >
           activation: ActivationAuthored
           resourceUse?: ResourceUseAuthored
