@@ -7115,12 +7115,8 @@
             },
             {
               "text": "During a Multiattack only actions that fill a remaining slot of a still-feasible alternative are offered: a Brown Bear can't bite twice, a Drider's Bite swap is offered once, Frightful Presence only comes first, a Recharge that isn't ready isn't offered, and a conditional slot is offered only while its condition holds.",
-              "status": "DONE",
-              "proof": [
-                "packages/rules-runtime/src/__tests__/encounterAttackSlots.test.ts",
-                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts",
-                "apps/session-worker/test/nativeRoomMultiattackSlots.test.ts"
-              ],
+              "status": "TODO",
+              "proof": [],
               "origin": [],
               "note": "D93.",
               "id": "ATTACK-11.3"
