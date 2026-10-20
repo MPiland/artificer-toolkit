@@ -6349,7 +6349,7 @@
             },
             {
               "id": "ATTACK-5.T4b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
@@ -6358,11 +6358,11 @@
                 "size": 5
               },
               "text": "Follow-up save shapes: Cockatrice Bite (restrained escalating to petrified), Couatl Bite (poisoned, unconscious) and Guardian Naga Spit Poison. Generic options only; removes their allowlist entries. (T4 split ruled 2026-10-20.)",
-              "activeWorkbook": "docs/handoffs/slice-attack-5-t1.md"
+              "note": "Merged m233 (db15e440b): Cockatrice Bite and Guardian Naga Spit Poison converted. Couatl Bite deferred to SPELLS-33.T6m2 (its poison rider is a CLOSED_RULE; D156)."
             },
             {
               "id": "ATTACK-5.T4c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
@@ -6370,7 +6370,8 @@
                 "rr": 3,
                 "size": 5
               },
-              "text": "Follow-up save shapes: Dragon Turtle Tail (push and prone) and Horned Devil Tail (Infernal Wound recurring damage until healed). Generic options only; removes their allowlist entries. (T4 split ruled 2026-10-20.)"
+              "text": "Follow-up save shapes: Dragon Turtle Tail (push and prone) and Horned Devil Tail (Infernal Wound recurring damage until healed). Generic options only; removes their allowlist entries. (T4 split ruled 2026-10-20.)",
+              "activeWorkbook": "docs/handoffs/slice-attack-5-t1.md"
             },
             {
               "id": "ATTACK-5.T4d",
@@ -6417,7 +6418,8 @@
                   "SPELLS-33.T6b2",
                   "SPELLS-33.T6b3",
                   "SPELLS-33.T6e2",
-                  "SPELLS-33.T6i2"
+                  "SPELLS-33.T6i2",
+                  "SPELLS-33.T6m2"
                 ]
               }
             }
