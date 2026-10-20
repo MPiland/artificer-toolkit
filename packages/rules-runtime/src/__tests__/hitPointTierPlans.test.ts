@@ -78,7 +78,19 @@ const tieredEffect: EffectAuthored = {
   ]
 }
 
-const published = { id: ACTION_EFFECT_ID, checksum: 'a'.repeat(64) }
+/** A published graph the adapter compiles today (Power Word Stun's); stands in for the tiered one. */
+const stunAction = {
+  ...characterActionDescriptor(compileEffect({ ...stunEffect, id: ACTION_EFFECT_ID })),
+  conditionDefinitionIds: SRD_CONDITION_TYPES.map(({ id }) => id)
+}
+const stunPlan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+  action: stunAction,
+  compilerSource: buildCompiledActionCompilerSource(stunAction)
+})
+if (stunPlan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected a single-graph plan.')
+const untieredPublished = stunPlan.published
+
+const published = { ...untieredPublished, id: ACTION_EFFECT_ID }
 
 function plans() {
   return (
@@ -97,21 +109,9 @@ function plans() {
  * is not built yet (SPELLS-4.T2i4b), so the adapter's graph compile is stood in by the published
  * identity; the plans the adapter derives and the compiler's tier rules are the real ones.
  */
-/** A published graph the adapter compiles today (Power Word Stun's); stands in for the tiered one. */
-const stunAction = {
-  ...characterActionDescriptor(compileEffect({ ...stunEffect, id: ACTION_EFFECT_ID })),
-  conditionDefinitionIds: SRD_CONDITION_TYPES.map(({ id }) => id)
-}
-const stunPlan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
-  action: stunAction,
-  compilerSource: buildCompiledActionCompilerSource(stunAction)
-})
-if (stunPlan?.kind !== 'SINGLE_GRAPH') throw new Error('Expected a single-graph plan.')
-const untieredPublished = stunPlan.published
-
 function compiledTieredCast(
   planOverride?: (
-    plans: CharacterRuleActionActiveEffectPlan[]
+    plans: readonly CharacterRuleActionActiveEffectPlan[]
   ) => CharacterRuleActionActiveEffectPlan[]
 ) {
   const spell = { ...powerWordStun, effects: [tieredEffect] }

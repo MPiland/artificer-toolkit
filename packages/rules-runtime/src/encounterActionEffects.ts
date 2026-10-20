@@ -158,7 +158,7 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   prepared: PreparedMechanics<TCharacterFacts>,
   published: CompleteExecution['published']
 ) {
-  const plans =
+  const plans: readonly CharacterRuleActionActiveEffectPlan[] =
     prepared.source.kind === 'CHARACTER_ACTION'
       ? (prepared.source.entry.compilation.hitPointTierPlans ?? [])
       : (prepared.adapter.activeEffectPlans?.({

@@ -310,12 +310,11 @@ export function compileCastChoicePlans(
     throw new CharacterRuleActionUnsupportedCompilationError(
       'The options a cast picks between share their test and their Concentration.'
     )
-  const { activeEffectPlan, hitPointTierPlans, executionPlan } =
-    options?.[0] ?? compileActionPlans(adapter, descriptor)
+  const plans = options?.[0] ?? compileActionPlans(adapter, descriptor)
   return {
-    activeEffectPlan,
-    ...(hitPointTierPlans && { hitPointTierPlans }),
-    executionPlan,
+    activeEffectPlan: plans.activeEffectPlan,
+    ...('hitPointTierPlans' in plans && { hitPointTierPlans: plans.hitPointTierPlans }),
+    executionPlan: plans.executionPlan,
     choice: options ? { options } : null
   }
 }
