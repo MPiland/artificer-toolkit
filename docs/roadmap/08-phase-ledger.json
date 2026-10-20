@@ -12692,7 +12692,7 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3c2a2b"]
               },
-              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey. Also from T3c2a1: assertEncounterFeatureActionCapabilityCurrent must recognize spell-cast capabilities, and spell attacks need their attackMechanic (null today)."
+              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey. Also from T3c2a1: assertEncounterFeatureActionCapabilityCurrent must recognize spell-cast capabilities, and spell attacks need their attackMechanic (null today). Discovery also emits a capability for effect.grantedSpellCast (T6c: Lich Cantrip, Gynosphinx Cast a Spell legendary options)."
             },
             {
               "id": "SPELLS-33.T3c2c",
