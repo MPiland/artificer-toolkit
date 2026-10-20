@@ -18,10 +18,19 @@ import {
   resolveRaceAuthored
 } from '@artificer-toolkit/shared/subjects/compilers'
 import { collectReferenceIds } from '@artificer-toolkit/shared/utils'
-import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  classDerivedArgs,
+  importedSubject,
+  makePublishedRootOwned,
+  publicationFixture
+} from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
 import type { MutationCtx } from '../_generated/server'
-import { readAuthoredVersionCompilation, readAuthoredVersionCompilationRow } from './documents'
+import {
+  readAuthoredVersionCompilation,
+  readAuthoredVersionCompilationRow,
+  syncCanonicalCompilation
+} from './documents'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
 
 const runMigration = makeFunctionReference<'mutation', Record<string, never>, unknown>(
@@ -84,20 +93,105 @@ async function readVersion(ctx: MutationCtx, id: string) {
   return version
 }
 
+/** Rewrites each source's stored compilation as an older compiler left it. */
+async function supersede(ctx: MutationCtx, current: ReturnType<typeof currentCompilation>[]) {
+  for (const [index, { document }] of sources.entries()) {
+    const version = await readVersion(ctx, document.id)
+    const superseded = {
+      ...current[index]!,
+      compilerVersion: 'subject-compiler-v1' as const,
+      projectionJson: '{}'
+    }
+    const row = await readAuthoredVersionCompilationRow(ctx, version)
+    if (row) await ctx.db.patch(row._id, { compilation: superseded })
+    else
+      await ctx.db.insert('authoredVersionCompilations', {
+        subjectId: version.id,
+        systemId: version.systemId,
+        versionId: version.versionId,
+        compilation: superseded
+      })
+  }
+}
+
+function sourceImportBatches() {
+  return [
+    sources.map((source) =>
+      importedSubject({ ...source, ...source.document, document: source.document })
+    ),
+    ...Array.from({ length: Math.ceil(referenced.length / 10) }, (_, index) =>
+      referenced.slice(index * 10, index * 10 + 10)
+    )
+  ]
+}
+
+it('re-seeds superseded canonical compilations and refuses to re-seed authored content', async () => {
+  const { t } = await publicationFixture(
+    import.meta.glob('/apps/apis/convex/**/*.*s'),
+    import.meta.glob('../betterAuth/**/*.*s'),
+    sourceImportBatches()
+  )
+  const current = sources.map(currentCompilation)
+  const ownerUserId = crypto.randomUUID()
+  await t.run(async (ctx) => {
+    await makePublishedRootOwned(ctx, acolyte.id, ownerUserId)
+    await supersede(ctx, current)
+  })
+
+  // The seed's derived syncs, in its order.
+  await t.mutation(
+    internal.content.import.syncClassDerived,
+    classDerivedArgs(importedSubject({ subjectKind: 'CLASS', ...fighter, document: fighter }))
+  )
+  for (const race of [dwarf, hillDwarf])
+    await t.mutation(internal.content.raceRelationships.syncDerived, {
+      id: race.id,
+      checksum: (await t.run((ctx) => readVersion(ctx, race.id))).checksum
+    })
+  for (const equipment of [arrows, arrowsPlus1])
+    await t.mutation(internal.content.import.syncEquipmentDerived, {
+      id: equipment.id,
+      checksum: (await t.run((ctx) => readVersion(ctx, equipment.id))).checksum
+    })
+
+  const reseeded = await t.run(async (ctx) =>
+    Promise.all(
+      sources.map(async ({ document }) =>
+        readAuthoredVersionCompilationRow(ctx, await readVersion(ctx, document.id)).then(
+          (row) => row?.compilation
+        )
+      )
+    )
+  )
+  // The seed re-syncs no Background; the owned Acolyte keeps the compilation an older compiler left.
+  expect(reseeded).toEqual([
+    expect.objectContaining({ compilerVersion: 'subject-compiler-v1' }),
+    ...current.slice(1)
+  ])
+
+  await t.run(async (ctx) => {
+    const root = await ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (query) => query.eq('id', acolyte.id))
+      .unique()
+    if (!root) throw new Error('Acolyte was not imported.')
+    const version = await readVersion(ctx, acolyte.id)
+    await expect(syncCanonicalCompilation(ctx, root, version, current[0]!)).rejects.toThrow(
+      'Only canonical content re-seeds its compilation.'
+    )
+    await expect(readAuthoredVersionCompilation(ctx, version)).rejects.toThrow(
+      'Stored compilation is superseded; run content/compilationMigration.'
+    )
+  })
+})
+
 it('recompiles every superseded stored compilation at the current compiler version', async ({
   onTestFinished
 }) => {
   const { t } = await publicationFixture(
     import.meta.glob('/apps/apis/convex/**/*.*s'),
     import.meta.glob('../betterAuth/**/*.*s'),
-    [
-      sources.map((source) =>
-        importedSubject({ ...source, ...source.document, document: source.document })
-      ),
-      ...Array.from({ length: Math.ceil(referenced.length / 10) }, (_, index) =>
-        referenced.slice(index * 10, index * 10 + 10)
-      )
-    ]
+    sourceImportBatches()
   )
   vi.useFakeTimers()
   onTestFinished(() => {
@@ -109,25 +203,7 @@ it('recompiles every superseded stored compilation at the current compiler versi
   expect(current.map((compilation) => compilation.compilerVersion)).toEqual(
     sources.map(() => SUBJECT_COMPILER_VERSION)
   )
-  await t.run(async (ctx) => {
-    for (const [index, { document }] of sources.entries()) {
-      const version = await readVersion(ctx, document.id)
-      const superseded = {
-        ...current[index]!,
-        compilerVersion: 'subject-compiler-v1' as const,
-        projectionJson: '{}'
-      }
-      const row = await readAuthoredVersionCompilationRow(ctx, version)
-      if (row) await ctx.db.patch(row._id, { compilation: superseded })
-      else
-        await ctx.db.insert('authoredVersionCompilations', {
-          subjectId: version.id,
-          systemId: version.systemId,
-          versionId: version.versionId,
-          compilation: superseded
-        })
-    }
-  })
+  await t.run((ctx) => supersede(ctx, current))
 
   await t.mutation(runMigration, {})
   await t.finishAllScheduledFunctions(vi.runAllTimers)

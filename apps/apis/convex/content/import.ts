@@ -66,7 +66,8 @@ import {
   readAuthoredVersionCompilation,
   readAuthoredVersion,
   readPublishedDocument,
-  readStoredAuthoredVersionDocument
+  readStoredAuthoredVersionDocument,
+  syncCanonicalCompilation
 } from './documents'
 import { backfillCatalogueFamily, readCatalogueParent } from './catalogueFamilies'
 import {
@@ -836,10 +837,8 @@ export const syncEquipmentDerived = internalMutation({
       document.category === 'VARIANT' ? document.parentEquipmentId : null
     )
     const { compilation, effective } = await compileCurrentEquipment(ctx, document, null)
-    const storedCompilation = await readAuthoredVersionCompilation(ctx, version)
-    if (storedCompilation === undefined)
-      await insertAuthoredVersionCompilation(ctx, version, compilation)
-    else exact(storedCompilation, compilation)
+    const storedCompilation = await syncCanonicalCompilation(ctx, root, version, compilation)
+    if (storedCompilation) exact(storedCompilation, compilation)
     const rawFacts = equipmentOptionFacts(document, root.checksum)
     const expectedFacts = equipmentOptionFacts(document, root.checksum, effective)
     if (root.equipmentOptions === undefined) {
@@ -895,10 +894,13 @@ export const syncClassDerived = internalMutation({
     else exact(current.root.parentClassId, args.parentClassId)
     if (current.parentClassId !== args.parentClassId)
       throw new Error('Canonical Class parent mismatch.')
-    const storedCompilation = await readAuthoredVersionCompilation(ctx, current.version)
-    if (storedCompilation === undefined)
-      await insertAuthoredVersionCompilation(ctx, current.version, compilation)
-    else exact(storedCompilation, compilation)
+    const storedCompilation = await syncCanonicalCompilation(
+      ctx,
+      current.root,
+      current.version,
+      compilation
+    )
+    if (storedCompilation) exact(storedCompilation, compilation)
     const root = await ctx.db.get(current.root._id)
     if (!root) throw new Error('Canonical Class root is missing.')
     await backfillCatalogueFamily(ctx, root)
