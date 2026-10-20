@@ -108,7 +108,13 @@ export async function evaluateEncounterAttackAction(
   const tracked =
     state.automationMode !== 'MANUAL' &&
     (attack ||
-      (input.featureId !== undefined && isAttackSlotFiller(creatureAlternatives, input.featureId)))
+      (input.featureId !== undefined &&
+        isAttackSlotFiller(creatureAlternatives, input.featureId) &&
+        actionEconomyCapabilityRegistry.spendsAttackAction({
+          gameSystemId: state.gameSystemId,
+          activationKind: input.activation.code,
+          activationAmount: input.activation.amount
+        })))
   if (!tracked)
     return {
       economy: await evaluateEncounterActionEconomy(input),

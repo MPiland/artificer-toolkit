@@ -27,6 +27,40 @@ const bite = (() => {
   return feature
 })()
 
+/** The Bite again as a Bonus Action attack ("Nip"): the fixtures have no non-Action attack to hold beside the Multiattack. */
+const bearWithNip = (() => {
+  const ids = new Map<string, string>()
+  const remapped = JSON.stringify(bite).replace(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g,
+    (id) => {
+      if (!ids.has(id)) ids.set(id, testUuid(0xe10 + ids.size))
+      return ids.get(id) as string
+    }
+  )
+  const nip: typeof bite = JSON.parse(remapped)
+  return {
+    ...brownBear,
+    features: [
+      ...brownBear.features,
+      {
+        ...nip,
+        label: 'Nip',
+        effects: nip.effects?.map((effect) =>
+          effect.invocation.kind === 'ACTION'
+            ? {
+                ...effect,
+                invocation: {
+                  ...effect.invocation,
+                  activation: { code: 'BONUS_ACTION', amount: 1 }
+                }
+              }
+            : effect
+        )
+      }
+    ]
+  } as typeof brownBear
+})()
+
 afterEach(() => {
   closeTrackedSockets()
   vi.restoreAllMocks()
@@ -74,5 +108,44 @@ describe('a Brown Bear’s Multiattack in the room (D93)', () => {
     expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 1, total: 2 })
     expect(await labels()).not.toContain('Bite')
     expect(await labels()).toContain(claws.label)
+  })
+
+  it('keeps a Bonus Action attack offered and undoable while the Multiattack is left open (ended early in the drawer)', async () => {
+    const room = await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: Array.from({ length: 12 }, (_, index) => (index % 2 === 0 ? 14 : 1)),
+      actors: [
+        srdCreatureActor({ id: BEAR_ID, creature: bearWithNip }),
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      ],
+      ownerFeatureId: bite.id
+    })
+    const choices = async () => (await room.actionChoices()).actions
+    const nip = (await choices()).find(({ label }) => label === 'Nip')
+    if (!nip) throw new Error('The Brown Bear offers no Nip.')
+    expect(nip.attackSlot).toBeNull()
+
+    expect((await room.startAction(WOLF_ID, RANGE)).answer.type).toBe('COMMAND_COMMITTED')
+    // One of two attacks made. Ending the Multiattack is the drawer's own "Done": the server still has it open.
+    expect((await room.actionChoices()).openAttackAction).toMatchObject({
+      made: 1,
+      total: 2,
+      complete: false
+    })
+    // The Bonus Action attack spends no slot, so the open Attack action does not hide it.
+    expect((await choices()).map(({ label }) => label)).toContain('Nip')
+
+    const nipped = await room.startAction(WOLF_ID, RANGE, null, null, nip.id)
+    expect(nipped.answer.type, JSON.stringify(nipped.answer)).toBe('COMMAND_COMMITTED')
+    expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 1, total: 2 })
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 1, total: 2 })
   })
 })

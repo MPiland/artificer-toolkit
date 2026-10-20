@@ -127,6 +127,7 @@ describe('a Fighter’s Attack action in the room', () => {
     expect(afterFirst.openAttackAction).toEqual({
       made: 1,
       total: 2,
+      complete: false,
       lastActionId: room.actionId,
       lastTargetIds: [WOLF_ID]
     })

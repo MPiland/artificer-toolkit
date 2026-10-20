@@ -8,6 +8,7 @@ import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
@@ -108,6 +109,7 @@ function evaluate(input: {
   character?: boolean
   activeEffects?: ActiveRuleEffectRecord[]
   replacesAttack?: boolean
+  featureId?: string
 }) {
   const { state, movementTargets } = creatureEncounter([input.actor], input.automationMode)
   const creatureTarget = movementTargets.get(input.actor.id)
@@ -125,6 +127,7 @@ function evaluate(input: {
     activation: input.activation ?? ACTION,
     triggerCode: input.triggerCode ?? MELEE,
     replacesAttack: input.replacesAttack,
+    featureId: input.featureId,
     target,
     loadTarget: async () => target,
     definitions: srdDefinitions
@@ -198,6 +201,48 @@ describe('an attack in the Attack action', () => {
     const result = await evaluate({ actor: actorWith({}), automationMode: 'MANUAL' })
     expect(result.attackAction).toBeNull()
     expect(result.slot).toBeNull()
+  })
+})
+
+describe('a Multiattack slot filler used with another activation (D93)', () => {
+  const bite = brownBear.features.find(({ label }) => label === 'Bite')!
+  const multiattack = brownBear.features.find(({ label }) => label === 'Multiattack')!
+  const bear = creatureActor({
+    id: ACTOR_ID,
+    label: 'Bear',
+    statBlock: brownBear,
+    features: brownBear.features
+  })
+  const spent = encounterRunActorStateSchema.parse({
+    ...bear,
+    resources: withEncounterRuleUsageUsed(bear, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 1)
+  })
+  const biting = encounterRunActorStateSchema.parse({
+    ...spent,
+    resources: withEncounterAttackActionState(spent, {
+      kind: 'ATTACK_ACTION',
+      turnSequence: 1,
+      alternatives: multiattack.attackSlots!.alternatives,
+      attacks: [{ actionId: ACTION_ID, featureId: bite.id, attack: true, targetIds: [WOLF_ID] }]
+    })
+  })
+
+  it('is blocked as a second Bite with the Action, which no slot of the open Multiattack takes', async () => {
+    const result = await evaluate({ actor: biting, featureId: bite.id, character: false })
+    expect(result.blocked).toBe(true)
+  })
+
+  it('is neither tracked nor blocked as a bonus, reaction or legendary action', async () => {
+    for (const code of ['BONUS_ACTION', 'REACTION', 'LEGENDARY_ACTION']) {
+      const result = await evaluate({
+        actor: biting,
+        featureId: bite.id,
+        character: false,
+        activation: { code, amount: 1 }
+      })
+      expect(result.blocked, code).toBe(false)
+      expect(result.attackAction, code).toBeNull()
+    }
   })
 })
 
