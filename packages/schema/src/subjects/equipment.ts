@@ -44,6 +44,7 @@ const baseEquipmentAuthoredDtoSchemaBase = lazySchema(() =>
     capacity: z.optional(capacityDtoSchema),
     modifiers: z.optional(authoredNestedCollectionSchema(modifierGrantDtoSchema)),
     maxStack: z.optional(z.number().check(z.int())),
+    ammunitionEquipmentId: z.optional(authoredIdentifierSchema),
     armorClass: z.optional(z.number().check(z.int())),
     contains: z.optional(authoredNestedCollectionSchema(containsDtoSchema)),
     features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),

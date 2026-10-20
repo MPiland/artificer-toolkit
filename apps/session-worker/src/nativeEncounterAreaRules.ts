@@ -2,6 +2,7 @@ import {
   areaActionTargetOrigin,
   type AreaActionTargetDto,
   type RemoveAreaTargetInputDto,
+  ammunitionCommandChoice,
   castChoiceOptionId,
   type ResolveEncounterActionInputDto,
   type ResolveEncounterActionTargetDto,
@@ -629,6 +630,7 @@ export function prepareCasterActionOnTarget(
     actors: input.actors,
     actionId: capability?.actionId ?? input.command.actionId,
     choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
+    ammunition: ammunitionCommandChoice(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',
       accepted: capability ? null : input.command.acceptedWieldConflict,

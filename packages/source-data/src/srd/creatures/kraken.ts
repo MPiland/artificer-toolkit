@@ -292,8 +292,9 @@ export const kraken: CreatureAuthored = {
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              maxTargets: 3
             }
           },
           paths: [

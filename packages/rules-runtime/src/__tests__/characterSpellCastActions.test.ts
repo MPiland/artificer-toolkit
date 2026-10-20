@@ -584,6 +584,8 @@ describe('what a leveled cast carries into the Encounter action', () => {
       expectedStreamVersion: STREAM_VERSION,
       classLevels: character.facts.grantFoldFacts.base.classes,
       automationMode,
+      trackAmmunition: false,
+      ammunition: null,
       overridable: true
     })
   }
@@ -742,6 +744,8 @@ describe('a cast paid from a spell-source pool', () => {
         expectedStreamVersion: STREAM_VERSION,
         classLevels: character.facts.grantFoldFacts.base.classes,
         automationMode,
+        trackAmmunition: false,
+        ammunition: null,
         overridable: false
       })
     }

@@ -4,6 +4,11 @@ import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  DND5E_CLEAVING_DEFINITION_ID,
+  DND5E_CLEAVING_OPERATION_KEY,
+  dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema
+} from '@artificer-toolkit/schema/shared/optionalCombat'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
@@ -577,5 +582,41 @@ describe('Cleaving choice', () => {
         visitedTargetActorIds: overLimit
       })
     ).toBeNull()
+  })
+})
+
+describe('Cleaving authored definition', () => {
+  const { snapshot } = srdOptionalCombat(['CLEAVING'])
+  const [authored] = snapshot.definitions
+
+  it('is authored as typed SRD data: melee, undamaged initial target', () => {
+    expect(snapshot.definitions).toHaveLength(1)
+    expect(authored?.document).toMatchObject({
+      kind: 'CLEAVING',
+      id: DND5E_CLEAVING_DEFINITION_ID,
+      module: { policyModuleKey: DND5E_CLEAVING_OPERATION_KEY },
+      parameters: {
+        kind: 'CLEAVING',
+        qualifyingAttackKind: 'MELEE',
+        requiresUndamagedInitialTarget: true
+      }
+    })
+    expect(
+      dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse(authored?.document)
+    ).toEqual(authored?.document)
+  })
+
+  it.each([
+    ['a non-MELEE attack kind', { qualifyingAttackKind: 'RANGED' }],
+    ['an undamaged requirement of false', { requiresUndamagedInitialTarget: false }],
+    ['an unknown extra parameter', { reach: 10 }]
+  ])('refuses parameters with %s', (_label, override) => {
+    const parameters = { ...authored?.document.parameters, ...override }
+    expect(
+      dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.safeParse({
+        ...authored?.document,
+        parameters
+      }).success
+    ).toBe(false)
   })
 })

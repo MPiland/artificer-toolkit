@@ -347,6 +347,7 @@ export function srdEncounterState(input: {
   version?: number
   turnSequence?: number
   automationMode?: AutomationModeDto
+  trackAmmunition?: boolean
   initiativePolicy?: { snapshot: EncounterInitiativePolicySnapshotDto; checksum: string }
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
   sides?: readonly { id: string; label: string }[]
@@ -362,6 +363,7 @@ export function srdEncounterState(input: {
     name: 'Pure rules fixture',
     status: input.status ?? 'ACTIVE',
     automationMode: input.automationMode ?? 'ASSISTED',
+    trackAmmunition: input.trackAmmunition ?? false,
     healthDisplayDefault: 'HIDDEN',
     version: input.version ?? 7,
     round: input.round ?? 1,

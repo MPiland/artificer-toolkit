@@ -233,6 +233,9 @@ export function CampaignTabletopActionDrawer({
     value: EncounterActionItemChoicesDto['items'] | string
   } | null>(null)
   const [pickedItemId, setPickedItemId] = useState<string | null>(null)
+  // The last ammunition stack picked stays preselected across actions while it still fits; it is
+  // this panel's state only, never saved (ATTACK-19.4).
+  const [pickedAmmunitionId, setPickedAmmunitionId] = useState<string | null>(null)
   const [optionalChoicesError, setOptionalChoicesError] = useState<{
     requestIdentity: string
     value: string
@@ -344,6 +347,14 @@ export function CampaignTabletopActionDrawer({
   const chosenItemId =
     itemOptions?.find((item) => item.id === pickedItemId)?.id ?? itemOptions?.[0]?.id ?? null
   const itemChoice = chosenItemId ? { boundItemInstanceId: chosenItemId } : {}
+  const ammunitionOptions = selectedAction?.ammunition ?? []
+  const chosenAmmunition =
+    ammunitionOptions.find((stack) => stack.itemInstanceId === pickedAmmunitionId) ??
+    ammunitionOptions[0] ??
+    null
+  const ammunitionChoice = chosenAmmunition
+    ? { ammunitionItemInstanceId: chosenAmmunition.itemInstanceId }
+    : {}
   const aimedTarget = chosenZoneOption?.target ?? choiceTarget
   const areaTarget =
     aimedTarget?.kind === 'POINT' || aimedTarget?.kind === 'DIRECTED'
@@ -470,6 +481,7 @@ export function CampaignTabletopActionDrawer({
           kind: 'ACTORS',
           actorIds: pickedActorIds,
           ...castChoice,
+          ...ammunitionChoice,
           ...(chosenForm ? { formId: chosenForm.id } : {}),
           ...(actorsTarget.choosesCreatureForm && pickedFormCreatureId
             ? { creatureId: pickedFormCreatureId }
@@ -493,7 +505,13 @@ export function CampaignTabletopActionDrawer({
               }
             : null
           : targetActorId && (!choosesItem || chosenItemId)
-            ? { kind: 'ACTOR', actorId: targetActorId, ...castChoice, ...itemChoice }
+            ? {
+                kind: 'ACTOR',
+                actorId: targetActorId,
+                ...castChoice,
+                ...itemChoice,
+                ...ammunitionChoice
+              }
             : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
@@ -1041,6 +1059,20 @@ export function CampaignTabletopActionDrawer({
                   label='Item'
                   value={chosenItemId}
                   onChange={setPickedItemId}
+                />
+              ) : null}
+              {ammunitionOptions.length ? (
+                <Select
+                  allowDeselect={false}
+                  comboboxProps={{ withinPortal: false }}
+                  data={ammunitionOptions.map((stack) => ({
+                    label: `${stack.label} (${stack.quantity})`,
+                    value: stack.itemInstanceId
+                  }))}
+                  disabled={selectionControlsDisabled}
+                  label='Ammunition'
+                  value={chosenAmmunition?.itemInstanceId ?? null}
+                  onChange={setPickedAmmunitionId}
                 />
               ) : null}
               {sparesCreatures ? (

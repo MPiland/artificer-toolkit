@@ -1,4 +1,5 @@
 import type { EquipmentAuthored } from '@artificer-toolkit/shared'
+import { arrows } from './arrows.js'
 import * as S from './shared.js'
 
 export const longbow: EquipmentAuthored = {
@@ -22,6 +23,7 @@ export const longbow: EquipmentAuthored = {
     600,
     S.EQUIPMENT_GRIP.TWO_HANDED
   ),
+  ammunitionEquipmentId: arrows.id,
   cost: S.gp(50),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

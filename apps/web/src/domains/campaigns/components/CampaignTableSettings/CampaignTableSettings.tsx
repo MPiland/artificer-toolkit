@@ -149,6 +149,13 @@ function CampaignTableSettingsForm({
           }}
           value={draft.automationMode}
         />
+        <Checkbox
+          checked={draft.trackAmmunition}
+          description='Each ammunition attack draws a piece from the chosen stack and is refused when none is left. Off, the chosen ammunition still applies its bonuses and nothing is counted.'
+          disabled={!editable}
+          label='Track ammunition'
+          onChange={(event) => set('trackAmmunition', event.currentTarget.checked)}
+        />
         <Select
           clearable
           data={options.initiativePolicies.map((policy) => ({

@@ -3,6 +3,7 @@ import {
   encounterActionEconomyWarnings,
   encounterActionSuppressedWarning
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { ammunitionInStock } from '@artificer-toolkit/rules-runtime/character/characterAmmunition'
 import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
 import { encounterActionChoiceRange } from '@artificer-toolkit/rules-runtime/encounterActionRange'
 import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
@@ -334,6 +335,7 @@ export async function readEncounterActionChoices(
             : null,
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
           ...handReleaseChoice(draw),
+          ...ammunitionChoices(candidate?.equipment, facts.character.state.equipment.inventory),
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,
@@ -745,6 +747,23 @@ export async function readEncounterHeldRelationships(
         }
       : null
   }))
+}
+
+/** The ammunition in stock a weapon attack may fire, for the client to pick from; none for a weapon without ammunition. */
+function ammunitionChoices(
+  equipment: Parameters<typeof ammunitionInStock>[0] | undefined,
+  inventory: Parameters<typeof ammunitionInStock>[1]
+) {
+  if (!equipment?.ammunitionEquipmentId) return {}
+  return {
+    ammunition: ammunitionInStock(equipment, inventory).map(
+      ({ itemInstanceId, label, quantity }) => ({
+        itemInstanceId,
+        label,
+        quantity
+      })
+    )
+  }
 }
 
 /** The items of one target the Run's acting actor may use a chosen-item action on. */
