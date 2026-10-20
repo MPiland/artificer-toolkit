@@ -423,14 +423,22 @@ T2i4 was split: T2i4a is the generic tier-selection seam, T2i4b the tiered save 
 
 Maintenance readers (`encounterActionMaintenance.ts`, `encounterSourceImmunity.ts`, `actionChoiceReads.ts`, `nativeEncounterRules.ts`) read `compilation.activeEffectPlan`, which is null for a tiered action: a tier plan may author no maintenance or source immunity until one of them needs it.
 
-### T2i4b resume (Divine Word, size 2; fresh session)
+### T2i4b1 (tiered save graph, done; `ci/spells-4-t2i4b`)
 
-Converts DIVINE_WORD and deletes the kind. Not started. Branch from the phase branch with T2i4a merged; push to `ci/spells-4-t2i4b`.
+T2i4b split: T2i4b1 (this) is the generic tiered save; T2i4b2 is the Divine Word data and its proofs.
 
-- A tiered action does not compile end to end yet: `compileExecutionPlan`/`adapter.compile` refuse it (a tiered spell becomes MANUAL). Build the tiered **save** graph: `testPlan` refuses distinct result blocks on one path ("D&D test action branches must not merge distinct authored result blocks") and `refuseGate` blocks a gate beside a save/test; both need to admit tiers on the ON_SAVE_FAIL path. Divine Word saves once (Charisma, SOURCE_SAVE_DC, CHOSEN_CREATURES); the failed-save path then selects the tier by the target's hit points.
-- Each tier's entry has its own entry id, so its application has its own evidence id; the KILL tier (20 or fewer) is a generic `KILL` outcome inside the save-fail graph, negated by Death Ward (T2i2).
+- The hit-point gate contract changed in place to a band (no v3, no compat): the v2 gated proposal operations take `targetCurrentHitPoints`, `hitPointsAbove` and `hitPointsAtMost`, authorized by the one comparator `withinHitPointBand` in `hitPointTiers.ts` (`hitPointsAbove` is `NO_HIT_POINT_FLOOR`, -1, for Power Word Kill/Stun). A tier's floor is the nearest lower sibling ceiling (`hitPointTierFloor`); `selectHitPointTier(ceilings, hp)` picks the one band holding the hit points.
+- The tier is selected at outcome specialization (`specializeDnd5eEffectActionOutcomeBody`): only the selected tier's entries become graph nodes, each gated on its band. `bindFacts` always binds the target's current hit points. A target no band holds is owed nothing (`TEST_ONLY`, see `resolveEncounterActionPhaseExecution`).
+- A KILL tier has no plan and applies through the graph (`boundedTestOutcome` admits a tiered KILL). `compilation.hitPointTiers` persists the ceilings (schema `compiledActionHitPointTiersSchema`) so `selectHitPointTierPlan(ceilings, plans, hp)` gives a planless tier its band and its targets no plan. `ownsTimedSaveCondition` plans a tier's conditions from the tier-narrowed action.
+- Tier rows no longer set `entryId`: each outcome keeps its own entry id so each application has its own evidence id (source-entry bindings are one-to-one with nodes).
+- Proof: `hitPointTierSave.test.ts` (fixture spell, hp 20/21/30/31/40/41/50/51 through the real compile and graph), `hitPointTiers.test.ts`, `powerWordStun.test.ts`.
+
+### T2i4b2 resume (Divine Word data; fresh session)
+
+Not started. Convert DIVINE_WORD and delete the kind. Push to `ci/spells-4-t2i4b2`.
+
 - Data (`packages/source-data/src/srd/spells/divine-word.ts`): `selectionKind: 'HIT_POINT_TIERS'` rows 50 (deafened, 1 minute), 40 (deafened and blinded, 10 minutes), 30 (blinded, deafened and stunned, 1 hour), 20 (KILL). Planar banishment stays description-only (no plane model); add it to future-enhancements if absent.
-- Proof: rules-runtime test per tier boundary (20, 21, 30, 31, 40, 41, 50, 51) through the real compile and graph, a room journey, an authoring-parity proof, and delete DIVINE_WORD from `closedRuleKind.ts`. Then drop the published-graph stand-in in `hitPointTierPlans.test.ts` (`compiledTieredCast`): the real tiered graph replaces it.
+- Proof: authoring-parity proof, a room journey, delete DIVINE_WORD from `closedRuleKind.ts`, drop the published-graph stand-in in `hitPointTierPlans.test.ts` (`compiledTieredCast`) for the real compile, and drop `compiledTestSpellCast`'s optional `registry` arg if unused.
 
 ### T2m1 (Animal Friendship; repeat-save design ruled 2026-10-20)
 

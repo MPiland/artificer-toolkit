@@ -63,6 +63,7 @@ import {
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
 import {
   MAX_ACTIVE_EFFECT_TURNS,
+  activeEffectSaveThresholdsSchema,
   activeEffectUsesSchema
 } from '../shared/activeRuleEffectLifecycle.js'
 import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
@@ -193,6 +194,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     tickAnchor: z._default(z.enum(['HOLDER', 'SOURCE']), 'HOLDER'),
     /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
     hitPointTier: z.optional(z.strictObject({ atMost: z.number().check(z.int()).check(z.gte(1)) })),
+    /** Set on a repeat-save plan that counts saves: frozen into the effect's recurrence. */
+    saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
     adapterFacts: z.record(
       z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/)),
       ruleValueDtoSchema
@@ -680,11 +683,25 @@ export const compiledActionTargetPolicySchema = lazySchema(() =>
 export type CompiledActionTargetPolicy = z.infer<typeof compiledActionTargetPolicySchema>
 
 /**
- * The plans of an action whose result tiers on the target's hit points: one per tier, the target's
- * hit points choosing among them at cast. Absent when `activeEffectPlan` serves every target.
+ * The plans of an action whose result tiers on the target's hit points: one per tier that holds an
+ * effect, the target's hit points choosing among them at cast. Absent when `activeEffectPlan`
+ * serves every target.
  */
 const compiledActionHitPointTierPlansSchema = lazySchema(() =>
   z.optional(z.array(compiledActionActiveEffectPlanSchema).check(z.maxLength(8)))
+)
+
+/**
+ * The ceilings of every tier of an action whose result tiers on the target's hit points, including
+ * a tier that holds no plan (an instant kill). Present exactly when `hitPointTierPlans` is.
+ */
+const compiledActionHitPointTiersSchema = lazySchema(() =>
+  z.optional(
+    z
+      .array(z.number().check(z.int()).check(z.gte(1)))
+      .check(z.minLength(1))
+      .check(z.maxLength(8))
+  )
 )
 
 const compiledActionEntryPointSchema = lazySchema(() =>
@@ -721,6 +738,7 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         kind: z.literal('COMPILED'),
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
         hitPointTierPlans: compiledActionHitPointTierPlansSchema,
+        hitPointTiers: compiledActionHitPointTiersSchema,
         executionPlan: compiledActionExecutionPlanSchema
       })
     }),
@@ -735,6 +753,7 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         resourceBinding: z.nullable(compiledActionResourceBindingSchema),
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
         hitPointTierPlans: compiledActionHitPointTierPlansSchema,
+        hitPointTiers: compiledActionHitPointTiersSchema,
         /**
          * Set for an action that places a zone; its `executionPlan` then runs only as the save each
          * creature in the zone's area makes as it appears (a TEST_OUTCOME, D154), else never.
