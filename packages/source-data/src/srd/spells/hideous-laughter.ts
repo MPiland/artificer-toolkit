@@ -18,7 +18,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import { conditionTypeId, spellChildId } from './shared.js'
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry)
@@ -74,8 +74,8 @@ export const hideousLaughter: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x219, 1),
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x214, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -83,9 +83,35 @@ export const hideousLaughter: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'HIDEOUS_LAUGHTER' as const
+                id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x215, 1),
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('PRONE')
+              },
+              {
+                id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x216, 1),
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('INCAPACITATED')
+              },
+              {
+                id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x217, 1),
+                effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                timing: 'TARGET_TURN_END' as const,
+                // Stored for the damage-triggered repeat the funnel hook (T2m1b2) will run.
+                repeatTriggers: [
+                  {
+                    kind: 'DAMAGE_TAKEN' as const,
+                    by: 'ANYONE' as const,
+                    rollInfluence: 'ADVANTAGE' as const
+                  }
+                ],
+                savingThrow: {
+                  id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x218, 1),
+                  dcMethod: 'SOURCE_SAVE_DC' as const,
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+                },
+                attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                onSuccess: { kind: 'END' as const },
+                onFailure: { kind: 'CONTINUE' as const }
               }
             ]
           }

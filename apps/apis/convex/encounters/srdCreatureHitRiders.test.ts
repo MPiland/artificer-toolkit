@@ -42,7 +42,7 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
   seededSrdCreature,
   importSeededSrdCreatureSenses,
-  seededSrdLoadoutEquipment
+  seededSrdPinnedSources
 } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
 import { readCharacterRow } from '../characters/stateDocuments'
@@ -112,7 +112,7 @@ async function setup(input: {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature }),
-      ...seededSrdLoadoutEquipment(creature).map(importedSubject)
+      ...seededSrdPinnedSources(creature).map(importedSubject)
     ]
   })
   await seedRoomContentSnapshots(base.campaign.id)

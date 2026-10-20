@@ -88,6 +88,7 @@ async function current(value: Awaited<ReturnType<typeof setup>>) {
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
       .collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+    turnMovements: await ctx.db.query('encounterTurnMovements').collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     effects: await ctx.db.query('encounterSpatialRuleEffects').collect(),
@@ -113,8 +114,9 @@ it.each([
   async ({ mode, movementKind }) => {
     const value = await setup(mode)
     if (mode === 'MANUAL') await seedSpatialEffect(value.base)
-    // A player's teleport spends an allowance a cast granted this turn (SPELLS-28.2).
-    if (movementKind === 'TELEPORT')
+    // A player's teleport spends an allowance a cast granted this turn (SPELLS-28.2). A forced move
+    // or a teleport also ends the voluntary move the actor made earlier this turn (D164).
+    if (movementKind === 'TELEPORT' || movementKind === 'FORCED')
       await value.base.t.run(async (ctx) => {
         const run = await ctx.db
           .query('encounterRuns')
@@ -129,15 +131,19 @@ it.each([
           usedFeet: 0,
           speedBonuses: 0,
           speedId: null,
+          lastMove: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
           usedOncePerTurn: [],
-          teleportAllowances: [
-            {
-              castCommandId: crypto.randomUUID(),
-              maxFeet: 500,
-              destinationKind: 'SPECIFIED_POINT',
-              consumedByCommandId: null
-            }
-          ]
+          teleportAllowances:
+            movementKind === 'TELEPORT'
+              ? [
+                  {
+                    castCommandId: crypto.randomUUID(),
+                    maxFeet: 500,
+                    destinationKind: 'SPECIFIED_POINT',
+                    consumedByCommandId: null
+                  }
+                ]
+              : []
         })
       })
     await attachFixtureRoom(value.base.t, value.base.campaign.id)
@@ -176,6 +182,8 @@ it.each([
         destination
       )
     ).toBe(true)
+    if (movementKind !== 'VOLUNTARY')
+      expect(after.turnMovements.map((row) => row.lastMove)).toEqual([null])
     expect(after.run).toEqual(before.run)
     expect(after.actors).toEqual(before.actors)
     expect(after.occurrences).toEqual(before.occurrences)

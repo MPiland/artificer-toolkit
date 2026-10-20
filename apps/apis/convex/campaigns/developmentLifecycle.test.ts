@@ -183,12 +183,23 @@ describe('reserved native Campaign lifecycle proof', () => {
     })
     expect(result.projection.status).toBe('ACTIVE')
     // The room holds the Run (D85); Convex sees it once the room checkpoints.
+    await base.t.run((ctx) =>
+      ctx.db.insert('encounterSpellPins', {
+        encounterId: run.id,
+        spellId: crypto.randomUUID(),
+        sourceRevision: 1,
+        sourceVersionId: crypto.randomUUID(),
+        sourceChecksum: 'a'.repeat(64),
+        compilationJson: '{}'
+      })
+    )
     await checkpointRoom(base.campaign.id)
     const state = await base.t.query(inspect, base.target)
     const decoded: unknown = jsonToConvex(JSON.parse(state.campaignStateJson))
     expect(decoded).toMatchObject({
       encounterRuns: [expect.objectContaining({ id: run.id, status: 'ACTIVE' })],
-      encounterRunActors: run.actors.map((actor) => expect.objectContaining({ id: actor.id }))
+      encounterRunActors: run.actors.map((actor) => expect.objectContaining({ id: actor.id })),
+      encounterSpellPins: [expect.objectContaining({ encounterId: run.id })]
     })
   }, 30_000)
   it('retains every native notebook row when valid content exceeds the former 200 KB evidence limit', async () => {

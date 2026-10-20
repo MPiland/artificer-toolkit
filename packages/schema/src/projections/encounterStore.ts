@@ -12,6 +12,7 @@ import {
   encounterStoredRunActorSchema,
   encounterStoredRunCommandSchema,
   encounterStoredSourceProjectionFactsSchema,
+  encounterStoredSpellPinSchema,
   encounterStoredRunSchema,
   encounterStoredTurnMovementSchema
 } from './encounterRunPersistence.js'
@@ -53,6 +54,7 @@ export const encounterStoreSchemas = {
   encounterRunActors: encounterStoredRunActorSchema,
   encounterActorSnapshots: encounterStoredActorSnapshotSchema,
   encounterSourceProjectionFacts: encounterStoredSourceProjectionFactsSchema,
+  encounterSpellPins: encounterStoredSpellPinSchema,
   encounterSceneBindings: encounterSceneBindingSchema,
   encounterActorTokenBindings: encounterActorTokenBindingSchema,
   encounterInitiativeRounds: encounterInitiativeRoundDtoSchema,
@@ -105,6 +107,9 @@ export const encounterStoreIndexes = {
   },
   encounterSourceProjectionFacts: {
     by_encounterId_checksum: ['encounterId', 'checksum']
+  },
+  encounterSpellPins: {
+    by_encounterId_spellId: ['encounterId', 'spellId']
   },
   encounterSceneBindings: { by_encounterId: ['encounterId'] },
   encounterActorTokenBindings: {

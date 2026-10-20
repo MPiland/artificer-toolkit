@@ -42,7 +42,7 @@ export async function removeFinishedRunRows(ctx: MutationCtx, encounterId: strin
 
 /** Deletes one bounded page of a Run's child rows and reports whether none remained. */
 export async function removeEncounterRunChildren(ctx: MutationCtx, encounterId: string) {
-  const [finished, actors, sources] = await Promise.all([
+  const [finished, actors, sources, spellPins] = await Promise.all([
     removeFinishedRunPage(ctx, encounterId, 8),
     ctx.db
       .query('encounterRunActors')
@@ -51,10 +51,14 @@ export async function removeEncounterRunChildren(ctx: MutationCtx, encounterId: 
     ctx.db
       .query('encounterSourceProjectionFacts')
       .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', encounterId))
+      .take(8),
+    ctx.db
+      .query('encounterSpellPins')
+      .withIndex('by_encounterId_spellId', (q) => q.eq('encounterId', encounterId))
       .take(8)
   ])
-  for (const row of [...actors, ...sources]) await ctx.db.delete(row._id)
-  return finished && actors.length === 0 && sources.length === 0
+  for (const row of [...actors, ...sources, ...spellPins]) await ctx.db.delete(row._id)
+  return finished && actors.length === 0 && sources.length === 0 && spellPins.length === 0
 }
 
 export async function removeCampaignEncounterRuns(ctx: MutationCtx, campaignId: string) {

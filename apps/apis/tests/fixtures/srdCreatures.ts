@@ -7,6 +7,7 @@ import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
 import { SRD_CREATURE_STAT_BLOCKS } from '@artificer-toolkit/source-data/srd/creatures/stat-blocks.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { creatureSnapshotSpellIds } from '@artificer-toolkit/encounter-persistence/spellPins'
 import { internal } from '../../convex/_generated/api'
 import type schema from '../../convex/schema'
 
@@ -61,10 +62,16 @@ export async function importSeededSrdCreatureSenses(
   })
 }
 
-/** The seeded SRD Equipment a Creature's loadout names, which its Encounter snapshot pins. */
-export function seededSrdLoadoutEquipment(creature: CreatureAuthored) {
+/**
+ * The seeded SRD Equipment a Creature's loadout names and the Spells its grants name, which its
+ * Encounter snapshot and Run pin.
+ */
+export function seededSrdPinnedSources(creature: CreatureAuthored) {
   const equipmentIds = new Set((creature.equipmentLoadout ?? []).map((entry) => entry.equipmentId))
+  const spellIds = new Set(creatureSnapshotSpellIds({ payload: creature }))
   return seededSrdSubjects().filter(
-    (subject) => subject.subjectKind === 'EQUIPMENT' && equipmentIds.has(subject.id)
+    (subject) =>
+      (subject.subjectKind === 'EQUIPMENT' && equipmentIds.has(subject.id)) ||
+      (subject.subjectKind === 'SPELL' && spellIds.has(subject.id))
   )
 }

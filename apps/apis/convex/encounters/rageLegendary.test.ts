@@ -25,7 +25,7 @@ import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publ
 import {
   importSeededSrdCreatureSenses,
   seededSrdCreature,
-  seededSrdLoadoutEquipment
+  seededSrdPinnedSources
 } from '../../tests/fixtures/srdCreatures'
 import { executeOnRun } from '../../tests/fixtures/srdWolfRun'
 import { internal } from '../_generated/api'
@@ -61,7 +61,7 @@ const dragonEnemy = {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ ...dragon, subjectKind: 'CREATURE', document: dragon }),
-        ...seededSrdLoadoutEquipment(dragon).map(importedSubject)
+        ...seededSrdPinnedSources(dragon).map(importedSubject)
       ]
     })
   }

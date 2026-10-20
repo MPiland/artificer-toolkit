@@ -742,6 +742,11 @@ describe('effect schema parsing', () => {
     for (const feet of [0, -5, undefined]) {
       expect(parse(gate({ predicateCode: 'ENEMY_NEAR_TARGET', feet })).success).toBe(false)
     }
+
+    expect(parse(gate({ predicateCode: 'MOVED_TOWARD_TARGET', minFeet: 20 })).success).toBe(true)
+    for (const minFeet of [0, -5, undefined]) {
+      expect(parse(gate({ predicateCode: 'MOVED_TOWARD_TARGET', minFeet })).success).toBe(false)
+    }
   })
 
   it('lets only an ON_HIT or ON_CRIT path carry restrictions', () => {

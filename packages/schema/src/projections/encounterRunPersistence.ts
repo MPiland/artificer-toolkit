@@ -149,6 +149,22 @@ export const encounterStoredSourceProjectionFactsSchema = lazySchema(() =>
 )
 
 /**
+ * One Spell a Run's Creatures name, pinned once per Run by `spellId`: the stored compilation
+ * (`authoredStoredCompilationSchema` JSON) of the version read when the Run first needed it, as
+ * D163's Equipment pins hold theirs. Actors reference it by the Spell IDs in their Creature grants.
+ */
+export const encounterStoredSpellPinSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: postgresUuidSchema,
+    spellId: postgresUuidSchema,
+    sourceRevision: z.number().check(z.int()).check(z.positive()),
+    sourceVersionId: postgresUuidSchema,
+    sourceChecksum: projectionChecksumSchema,
+    compilationJson: z.string()
+  })
+)
+
+/**
  * One app roll for a pending evidence request ("Roll dice"). Rows are immutable: a settle by
  * `rollId` reads these faces, and every attempt stays for the roll log and audit.
  */
@@ -188,6 +204,12 @@ export const encounterTeleportAllowanceSchema = lazySchema(() =>
 )
 export type EncounterTeleportAllowance = z.infer<typeof encounterTeleportAllowanceSchema>
 
+/** The token positions an actor's latest voluntary move this turn began and ended at (D164). */
+export const encounterTurnLastMoveSchema = lazySchema(() =>
+  z.strictObject({ start: spatialPointDtoSchema, end: spatialPointDtoSchema })
+)
+export type EncounterTurnLastMove = z.infer<typeof encounterTurnLastMoveSchema>
+
 /**
  * What an actor did during one turn (D38, D119). The turn is the Run's round and current actor, so
  * a new turn reads a new key and starts empty. It sits outside the Run's version and checksum.
@@ -200,6 +222,9 @@ export type EncounterTeleportAllowance = z.infer<typeof encounterTeleportAllowan
  * one-shot teleports the actor's casts granted this turn (Misty Step, Dimension Door; SPELLS-28.2):
  * each names its cast, its range in feet and whether the destination must be seen, and the move
  * that spent it, if any. A player's TELEPORT move is refused without an unspent entry.
+ * `lastMove` is where the actor's latest voluntary move this turn began and ended (D164), which
+ * the Charge gate reads; each voluntary move replaces it, and forced movement or a teleport this
+ * turn clears it. Like the movement, it is never enforced.
  */
 export const encounterStoredTurnMovementSchema = lazySchema(() =>
   z.strictObject({
@@ -210,6 +235,7 @@ export const encounterStoredTurnMovementSchema = lazySchema(() =>
     usedFeet: z.number().check(z.nonnegative()),
     speedId: z.nullable(authoredIdentifierSchema),
     speedBonuses: z.number().check(z.int()).check(z.nonnegative()),
+    lastMove: z._default(z.nullable(encounterTurnLastMoveSchema), null),
     usedOncePerTurn: z._default(encounterTurnUseKeysSchema, []),
     teleportAllowances: z._default(
       z.array(encounterTeleportAllowanceSchema).check(z.maxLength(MAX_TURN_TELEPORT_ALLOWANCES)),
