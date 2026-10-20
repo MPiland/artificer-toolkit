@@ -76,9 +76,9 @@ function CampaignTableSettingsForm({
   const selectedInitiativePolicy = options.initiativePolicies.find(
     (policy) => policy.definitionId === draft.initiativePolicyDefinitionId
   )
-  const [syncedSettings, setSyncedSettings] = useState(settings)
-  if (syncedSettings !== settings) {
-    setSyncedSettings(settings)
+  const [syncedVersion, setSyncedVersion] = useState(settings.version)
+  if (syncedVersion !== settings.version) {
+    setSyncedVersion(settings.version)
     setDraft(toDraft(settings))
   }
 

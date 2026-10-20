@@ -100,4 +100,14 @@ describe('CampaignTableSettings draft', () => {
 
     await waitFor(() => expect(screen.getByLabelText('Normal cadence (days)')).toHaveValue('7'))
   })
+
+  it('keeps an unsaved edit when the parent re-renders with a new campaign object', async () => {
+    const view = renderWithAppProviders(<CampaignTableSettings campaign={campaign} />)
+    const cadence = await screen.findByLabelText('Normal cadence (days)')
+    fireEvent.change(cadence, { target: { value: '21' } })
+
+    view.rerender(<CampaignTableSettings campaign={{ ...campaign }} />)
+
+    expect(screen.getByLabelText('Normal cadence (days)')).toHaveValue('21')
+  })
 })
