@@ -9104,7 +9104,7 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2m1b1b"]
               },
-              "text": "Damage repeat-save funnel: hook in roomEncounterCommands.ts (shared seam for T2m3, SPELLS-33.T6e2/T4m) reads receipt DAMAGE applications, raises one SYSTEM repeat-save root per matching holder with the trigger roll influence; success ends the effect; admission, undo bound to parent, parity proof, delete HIDEOUS_LAUGHTER; journeys for single-target and area hits.",
+              "text": "Damage repeat-save (D167): a committed damage application on a holder whose follow-up save has a matching repeatTriggers entry resolves the repeat save inside the damaging command (shared in-command reader for T2m3, SPELLS-33.T6e2/T4m), one save per damaged holder to its controllers with the trigger roll influence; success ends the effect; parent undo covers it; parity proof; HIDEOUS_LAUGHTER remnant check; journeys for single-target and area hits.",
               "note": "Split from T2m1b 2026-10-20.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },

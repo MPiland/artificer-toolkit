@@ -1050,6 +1050,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Heat Metal:** it gains an item-bound effect that lasts its Concentration and carries the offer. The effect ends with Concentration through the shared effect-release seam. The 1-round disadvantage grant stays as it is.
   - **Rejected:** re-running the original spell action with overrides, because it couples to the Sheet's slot state and needs synthesized candidates.
   - **Size:** T2lb2a is re-sized from 3 to 5. The contract and its first conversion stay one vertical slice.
+* **D167** (2026-10-20) A damage-triggered repeat save resolves inside the damaging command (SPELLS-4.T2m1b2; [slice-spells-4.md](slice-spells-4.md)). Orchestrator ruling.
+  - **Rule:** when a committed damage application hits the holder of an active effect whose follow-up save lists a matching `repeatTriggers` entry, the save is part of that damage's outcome, as melee retaliation is. One save step per damaged holder (an area hit raises one each) goes to the holder's controllers (D19), with the trigger's roll influence. A success ends the effect through the shared effect-release seam. The parent command's undo and void cover it, with no separate root.
+  - **Why not a SYSTEM root:** D161 admits rule-raised actions. A repeat save belongs to an active effect, not an action, so a SYSTEM root would need a new effect-sourced action-source kind, action-economy exemptions and an alive-holder admission, which is new surface for no behavior gain.
+  - **Shared seam:** T2m3 and SPELLS-33.T6e2/T4m reuse this in-command damage-trigger reader.
+  - **Fallback:** if the parent command cannot hold a pending controller save without new machinery of similar size, the session reports back before building it.
 
 ## Approved implementation decisions
 
