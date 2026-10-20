@@ -754,6 +754,22 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             }
             continue
           }
+          if (application.kind === 'KILL') {
+            if (
+              application.beforeCurrentHitPoints !== current ||
+              application.beforeTemporaryHitPoints !== temporary
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['applications', index],
+                message: 'Kill receipt hit-point chain is invalid.'
+              })
+            current = 0
+            temporary = 0
+            temporarySource = null
+            if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
+            continue
+          }
           if (application.kind === 'DEPART') continue
           if (application.kind === 'STABILIZE') {
             const dying = deathSaves !== null && isCharacterDying(deathSaves, current)

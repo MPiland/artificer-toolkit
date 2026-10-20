@@ -59,11 +59,11 @@ export const powerWordKill: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.POWER_WORD_KILL, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            gate: { kind: 'TARGET_HIT_POINTS_AT_MOST' as const, amount: 100 },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.POWER_WORD_KILL, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'POWER_WORD_KILL' as const
+                effectKind: EFFECT_KIND.KILL
               }
             ]
           }

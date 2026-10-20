@@ -18,6 +18,7 @@ import { manualAdjudicationDtoSchema } from './manualAdjudication.js'
 import { movementRuleDtoSchema } from './movementRule.js'
 import { actionEconomyRuleDtoSchema } from './actionEconomyRule.js'
 import { stabilizeDtoSchema } from './stabilize.js'
+import { killDtoSchema } from './kill.js'
 import { armorClassFloorDtoSchema } from './armorClassFloor.js'
 import { telepathicLinkDtoSchema } from './telepathicLink.js'
 import { plantPortalDtoSchema } from './plantPortal.js'
@@ -87,6 +88,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             movementRuleDtoSchema,
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
+            killDtoSchema,
             armorClassFloorDtoSchema,
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
@@ -117,6 +119,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             movementRuleDtoSchema,
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
+            killDtoSchema,
             armorClassFloorDtoSchema,
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
@@ -206,6 +209,12 @@ const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
     duration: z.optional(durationDtoSchema),
     lifecycle: z.optional(pathLifecycleDtoSchema),
     failureMarginRider: z.optional(failureMarginRiderDtoSchema),
+    gate: z.optional(
+      z.object({
+        kind: z.literal('TARGET_HIT_POINTS_AT_MOST'),
+        amount: z.number().check(z.int()).check(z.gte(1))
+      })
+    ),
     outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)
   })
 
@@ -219,6 +228,13 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
     order: z.number().check(z.int()),
     groupType: z.optional(z.literal(pathGroupTypeSchema._zod.def.entries.CHOICE)),
     ...choiceOptionMetadataDtoSchema.shape,
+    resultBlock: resultBlockDtoSchema
+  })
+
+  const hitPointTierRowDtoSchema = z.object({
+    id: authoredIdentifierSchema,
+    order: z.number().check(z.int()),
+    atMost: z.number().check(z.int()).check(z.gte(1)),
     resultBlock: resultBlockDtoSchema
   })
 
@@ -281,6 +297,10 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
       z.object({
         selectionKind: z.literal('CHOICE'),
         options: authoredNestedCollectionSchema(choiceOptionDtoSchema)
+      }),
+      z.object({
+        selectionKind: z.literal('HIT_POINT_TIERS'),
+        rows: authoredNestedCollectionSchema(hitPointTierRowDtoSchema)
       }),
       z.object({
         selectionKind: z.literal('ROLL_TABLE'),

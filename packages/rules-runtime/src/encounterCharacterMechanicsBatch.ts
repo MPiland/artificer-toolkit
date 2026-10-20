@@ -301,6 +301,25 @@ export function foldCharacterMechanicsApplications<
       })
       continue
     }
+    if (application.kind === 'KILL') {
+      receipt.push({
+        ordinal,
+        kind: 'KILL',
+        beforeCurrentHitPoints: current,
+        afterCurrentHitPoints: 0,
+        beforeTemporaryHitPoints: temporary,
+        afterTemporaryHitPoints: 0,
+        sourceNodeId: application.sourceNodeId,
+        sourceOperationKey: application.sourceOperationKey,
+        authoredPath: application.authoredPath,
+        resolvedPath: application.resolvedPath
+      })
+      current = 0
+      temporary = 0
+      temporarySource = null
+      if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
+      continue
+    }
     if (application.kind === 'DEPART') {
       if (input.absence === undefined)
         throw new EncounterValidationError('Only a Run actor can depart.')

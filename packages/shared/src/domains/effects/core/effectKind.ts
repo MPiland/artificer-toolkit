@@ -18,6 +18,7 @@ export const EFFECT_KIND = {
   MOVEMENT_RULE: 'MOVEMENT_RULE',
   ACTION_ECONOMY_RULE: 'ACTION_ECONOMY_RULE',
   STABILIZE: 'STABILIZE',
+  KILL: 'KILL',
   ARMOR_CLASS_FLOOR: 'ARMOR_CLASS_FLOOR',
   TELEPATHIC_LINK: 'TELEPATHIC_LINK',
   PLANT_PORTAL: 'PLANT_PORTAL',
@@ -121,6 +122,11 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     code: EFFECT_KIND.STABILIZE,
     label: 'Stabilize',
     description: 'Stabilizes a creature at 0 hit points.'
+  },
+  [EFFECT_KIND.KILL]: {
+    code: EFFECT_KIND.KILL,
+    label: 'Kill',
+    description: 'The target dies at once.'
   },
   [EFFECT_KIND.ARMOR_CLASS_FLOOR]: {
     code: EFFECT_KIND.ARMOR_CLASS_FLOOR,

@@ -2080,6 +2080,69 @@ describe('rules runtime contracts', () => {
     expect(() => parse(envelope(false, dyingBefore, stableAfter))).toThrow(STABILIZE_ISSUE)
   })
 
+  it('replays a kill receipt as current and temporary hit points at 0 and the saves dead (SPELLS-4.T2i)', () => {
+    const before = {
+      currentHitPoints: 6,
+      temporaryHitPoints: 2,
+      maximumHitPoints: 10,
+      scalarValues: {},
+      conditionIds: [],
+      deathSaves: NO_DEATH_SAVES
+    }
+    const dead = { successes: 0, failures: 3, stable: false }
+    const killed = { ...before, currentHitPoints: 0, temporaryHitPoints: 0, deathSaves: dead }
+    const envelope = (
+      after: typeof before,
+      receipt: { beforeCurrentHitPoints: number; afterCurrentHitPoints: number }
+    ) => ({
+      kind: 'CHARACTER_MECHANICS_BATCH' as const,
+      sourceApplications: [],
+      actionEconomyTransition: null,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      sourceActorId: turnBatchIds.actor,
+      sourceCharacterId: turnBatchIds.character,
+      targetActorId: turnBatchIds.actor,
+      sourceCharacterStreamVersion: null,
+      targetCharacterStreamVersion: 1,
+      resourceConsumption: null,
+      activeEffectTransitions: [],
+      d20: null,
+      targetTransition: { checksum: 'a'.repeat(64), before, after },
+      applications: [
+        {
+          ordinal: 0,
+          kind: 'KILL' as const,
+          beforeTemporaryHitPoints: 2,
+          afterTemporaryHitPoints: 0,
+          sourceNodeId: 'effect-node',
+          sourceOperationKey: 'effect.apply',
+          authoredPath: null,
+          resolvedPath: null,
+          ...receipt
+        }
+      ]
+    })
+    const parse = (value: ReturnType<typeof envelope>) =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(value)
+    expect(() =>
+      parse(envelope(killed, { beforeCurrentHitPoints: 6, afterCurrentHitPoints: 0 }))
+    ).not.toThrow()
+    // The receipt must start from the target's real hit points.
+    expect(() =>
+      parse(envelope(killed, { beforeCurrentHitPoints: 5, afterCurrentHitPoints: 0 }))
+    ).toThrow()
+    // The target must end dead, not merely at 0.
+    expect(() =>
+      parse(
+        envelope(
+          { ...killed, deathSaves: NO_DEATH_SAVES },
+          { beforeCurrentHitPoints: 6, afterCurrentHitPoints: 0 }
+        )
+      )
+    ).toThrow()
+  })
+
   it('rejects malformed maintained Character receipt replacement invariants', () => {
     expect(
       serverRuleExecutionApplicationOutputsDtoSchema.parse(maintainedCharacterReceipt())
