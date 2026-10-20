@@ -33,7 +33,6 @@ function divineWordTier(order: number, atMost: number, minutes: number, conditio
       },
       outcomes: conditionCodes.map((code, index) => ({
         id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x21b, order * 10 + index),
-        order: index + 1,
         effectKind: EFFECT_KIND.CONDITION,
         conditionId: conditionTypeId(code)
       }))
