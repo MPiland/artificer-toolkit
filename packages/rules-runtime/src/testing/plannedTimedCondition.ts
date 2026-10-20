@@ -30,6 +30,8 @@ export function compiledTestSpellCast(input: {
   cast: SpellCastCandidate
   decision: Omit<CharacterRulePolicyOutput['spellCastDecisions'][number], 'candidateId'>
   spellAccessCandidates?: readonly SpellAccessCandidate[]
+  /** The System adapters the cast compiles through; the shared registry by default. */
+  registry?: Parameters<typeof compileCharacterActionEntryPoints>[1]
 }) {
   const { spell, cast } = input
   const built = buildCharacterSpellCastActions({
@@ -84,17 +86,20 @@ export function compiledTestSpellCast(input: {
     firstSequence: 10,
     characterLevel: 1
   })
-  const [entry] = compileCharacterActionEntryPoints({
-    gameSystemId: SRD_SYSTEM_ID,
-    candidates: built.candidates,
-    descriptors: discoverCharacterActionCapabilities({
+  const [entry] = compileCharacterActionEntryPoints(
+    {
       gameSystemId: SRD_SYSTEM_ID,
       candidates: built.candidates,
-      conditionDefinitionIds: SRD_CONDITION_TYPES.map(({ id }) => id).sort(),
-      abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
-      entryPoints: built.entryPoints
-    })
-  })
+      descriptors: discoverCharacterActionCapabilities({
+        gameSystemId: SRD_SYSTEM_ID,
+        candidates: built.candidates,
+        conditionDefinitionIds: SRD_CONDITION_TYPES.map(({ id }) => id).sort(),
+        abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+        entryPoints: built.entryPoints
+      })
+    },
+    input.registry
+  )
   if (
     entry?.kind !== 'CHARACTER_ACTION' ||
     entry.schemaVersion !== 4 ||

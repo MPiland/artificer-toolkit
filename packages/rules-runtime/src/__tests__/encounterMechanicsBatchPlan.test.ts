@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
-import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
+import {
+  createCharacterResourceOwnerKey,
+  createEmptyCharacterAuthored
+} from '@artificer-toolkit/shared/character'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -103,6 +106,15 @@ const depart: CharacterRuleActionApplication = {
   authoredPath: null,
   resolvedPath: null,
   kind: 'DEPART',
+  targetActorId: ACTOR_ID
+}
+
+const kill: CharacterRuleActionApplication = {
+  sourceNodeId: origin.sourceNodeId,
+  sourceOperationKey: 'dnd5e.kill-proposal',
+  authoredPath: null,
+  resolvedPath: null,
+  kind: 'KILL',
   targetActorId: ACTOR_ID
 }
 
@@ -325,6 +337,30 @@ describe('Creature mechanics batch plan', () => {
     expect(plan.stateChanged).toBe(false)
   })
 
+  it('kills a Run creature: no hit points of either kind, defeated, and a receipt of what it lost (SPELLS-4.T2i)', () => {
+    const actor = creature({ current: 7, temporary: 3, max: 11 })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([kill]),
+      actor,
+      userId: USER_ID
+    })
+    expect(plan.targetTransition.after).toMatchObject({
+      currentHitPoints: 0,
+      temporaryHitPoints: 0
+    })
+    expect(plan.updatedActor).toMatchObject({ currentHitPoints: 0, tempHitPoints: 0 })
+    expect(plan.receiptApplications).toEqual([
+      expect.objectContaining({
+        ordinal: 0,
+        kind: 'KILL',
+        beforeCurrentHitPoints: 7,
+        afterCurrentHitPoints: 0,
+        beforeTemporaryHitPoints: 3,
+        afterTemporaryHitPoints: 0
+      })
+    ])
+  })
+
   it('marks the actor departed and leaves its hit points, conditions and place in the Run alone (D128)', () => {
     const actor = creature({ current: 11, temporary: 0, max: 11, conditions: [POISONED] })
     const plan = planEncounterMechanicsBatch({
@@ -478,6 +514,23 @@ describe('Creature mechanics batch plan', () => {
         ]
       },
       message: 'Encounter non-Character actors cannot spend Character spell slots.'
+    },
+    {
+      name: 'a resource restore',
+      overrides: {
+        characterResourceRestores: [
+          {
+            poolId: 'AUTHORED_GRANT:ki',
+            chargeId: 'ki',
+            owner: { kind: 'AUTHORED_GRANT' as const, resourceGrantId: 'ki' },
+            beforeUsed: 20,
+            afterUsed: 16,
+            beforeRemaining: 0,
+            afterRemaining: 4
+          }
+        ]
+      },
+      message: 'Encounter non-Character actors cannot restore Character resources.'
     },
     {
       name: 'an item to stow',
@@ -1054,6 +1107,80 @@ describe('Character mechanics batch plan', () => {
     ).toThrow('Encounter Character changed after the outcome was planned.')
   })
 
+  describe('an initiative resource restore', () => {
+    const owner = { kind: 'AUTHORED_GRANT' as const, resourceGrantId: 'ki' }
+    const restore = {
+      poolId: createCharacterResourceOwnerKey(owner),
+      chargeId: 'ki',
+      owner,
+      beforeUsed: 20,
+      afterUsed: 16,
+      beforeRemaining: 0,
+      afterRemaining: 4
+    }
+    const withUsage = (used: number) => ({
+      ...characterFacts,
+      sheetState: {
+        ...characterFacts.sheetState,
+        resourceUsage: [
+          {
+            id: '00000000-0000-4000-8000-00000000e110',
+            characterId: CHARACTER_ID,
+            owner,
+            used,
+            createdBy: USER_ID,
+            updatedBy: USER_ID,
+            createdAt: TIMESTAMP,
+            updatedAt: TIMESTAMP
+          }
+        ]
+      }
+    })
+    const planRestore = (resourceRestore: typeof restore, facts: ReturnType<typeof withUsage>) =>
+      planEncounterMechanicsBatch({
+        batch: batch([], {
+          expectedCharacterStreamVersion: STREAM_VERSION,
+          effectiveMaximumHitPoints: 12,
+          characterResourceRestores: [resourceRestore]
+        }),
+        actor,
+        userId: USER_ID,
+        characterFacts: facts
+      })
+
+    it('lowers the pool usage in the next Character stream version', () => {
+      const plan = planRestore(restore, withUsage(20))
+      expect(plan.characterStreamVersion).toBe(STREAM_VERSION + 1)
+      expect(plan.characterUpdate?.sheetState?.resourceUsage).toMatchObject([
+        { owner, used: 16, updatedBy: USER_ID, updatedAt: TIMESTAMP }
+      ])
+    })
+
+    it.each([
+      { name: 'the usage is not what the restore read', restore, used: 19 },
+      {
+        name: 'the restore would not raise the pool',
+        restore: { ...restore, afterUsed: 20 },
+        used: 20
+      },
+      {
+        name: 'the restore names another pool',
+        restore: { ...restore, poolId: 'AUTHORED_GRANT:other' },
+        used: 20
+      }
+    ])('refuses a stale restore when $name', ({ restore: staleRestore, used }) => {
+      expect(() => planRestore(staleRestore, withUsage(used))).toThrow(
+        'Encounter Character resource restore is stale.'
+      )
+    })
+
+    it('refuses a restore for a pool the Character has no usage row for', () => {
+      expect(() => planRestore(restore, characterFacts as ReturnType<typeof withUsage>)).toThrow(
+        'Encounter Character resource restore is stale.'
+      )
+    })
+  })
+
   describe('a single-use item used up', () => {
     const ITEM_ID = '00000000-0000-4000-8000-00000000e109'
     const withItem = (quantity: number, used: number) => ({
@@ -1421,6 +1548,41 @@ describe('0 hit points (D63)', () => {
             failures: 1,
             stable: false
           })
+        })
+      })
+
+      describe('killing (SPELLS-4.T2i)', () => {
+        const kill: CharacterRuleActionApplication = {
+          ...origin,
+          sourceOperationKey: 'dnd5e.kill-proposal',
+          kind: 'KILL',
+          targetActorId: ACTOR_ID
+        }
+
+        it.each([
+          ['a healthy Character', 9, NO_DEATH_SAVES],
+          ['a dying Character', 0, dying],
+          ['a stable Character', 0, stable]
+        ])('leaves %s dead at 0 hit points', (_label, current, saves) => {
+          const plan = run(kill, current, saves)
+          expect(savesOf(plan)).toEqual(dead)
+          expect(plan.characterUpdate?.character.state.hitpoints).toMatchObject({
+            current: 0,
+            temp: 0
+          })
+          expect(plan.targetTransition.after).toMatchObject({
+            currentHitPoints: 0,
+            temporaryHitPoints: 0,
+            deathSaves: dead
+          })
+          expect(plan.receiptApplications).toEqual([
+            expect.objectContaining({
+              kind: 'KILL',
+              beforeCurrentHitPoints: current,
+              afterCurrentHitPoints: 0,
+              afterTemporaryHitPoints: 0
+            })
+          ])
         })
       })
 

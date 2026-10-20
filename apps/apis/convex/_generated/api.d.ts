@@ -26898,7 +26898,8 @@ export declare const api: {
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
-                            | "INCOMING_WEAPON_HIT";
+                            | "INCOMING_WEAPON_HIT"
+                            | "ROLL_INITIATIVE";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -37916,7 +37917,8 @@ export declare const api: {
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
-                            | "INCOMING_WEAPON_HIT";
+                            | "INCOMING_WEAPON_HIT"
+                            | "ROLL_INITIATIVE";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -48943,7 +48945,8 @@ export declare const api: {
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
-                            | "INCOMING_WEAPON_HIT";
+                            | "INCOMING_WEAPON_HIT"
+                            | "ROLL_INITIATIVE";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -59961,7 +59964,8 @@ export declare const api: {
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
-                            | "INCOMING_WEAPON_HIT";
+                            | "INCOMING_WEAPON_HIT"
+                            | "ROLL_INITIATIVE";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -71014,7 +71018,8 @@ export declare const api: {
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
-                            | "INCOMING_WEAPON_HIT";
+                            | "INCOMING_WEAPON_HIT"
+                            | "ROLL_INITIATIVE";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -82032,7 +82037,8 @@ export declare const api: {
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
-                            | "INCOMING_WEAPON_HIT";
+                            | "INCOMING_WEAPON_HIT"
+                            | "ROLL_INITIATIVE";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -93007,7 +93013,8 @@ export declare const api: {
                           | "RANGED_SPELL_ATTACK"
                           | "INCOMING_SAVING_THROW"
                           | "ENTER_AREA"
-                          | "INCOMING_WEAPON_HIT";
+                          | "INCOMING_WEAPON_HIT"
+                          | "ROLL_INITIATIVE";
                       }
                     | {
                         damageTypeIds: Array<string>;
@@ -103928,7 +103935,8 @@ export declare const api: {
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
-                            | "INCOMING_WEAPON_HIT";
+                            | "INCOMING_WEAPON_HIT"
+                            | "ROLL_INITIATIVE";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -114946,7 +114954,8 @@ export declare const api: {
                             | "RANGED_SPELL_ATTACK"
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
-                            | "INCOMING_WEAPON_HIT";
+                            | "INCOMING_WEAPON_HIT"
+                            | "ROLL_INITIATIVE";
                         }
                       | {
                           damageTypeIds: Array<string>;

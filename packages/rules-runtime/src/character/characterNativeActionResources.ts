@@ -108,7 +108,7 @@ function sameIdentity(left: ActionIdentity, right: ActionIdentity): boolean {
   )
 }
 
-function resourceOwner(
+export function resourceOwner(
   resource: CharacterRulePolicyOutput['resources'][number]
 ): CharacterResourceOwnerKey {
   switch (resource.ownerKind) {

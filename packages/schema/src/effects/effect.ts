@@ -95,7 +95,8 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
         triggerCodeSchema._zod.def.entries.RANGED_SPELL_ATTACK,
         triggerCodeSchema._zod.def.entries.INCOMING_SAVING_THROW,
         triggerCodeSchema._zod.def.entries.ENTER_AREA,
-        triggerCodeSchema._zod.def.entries.INCOMING_WEAPON_HIT
+        triggerCodeSchema._zod.def.entries.INCOMING_WEAPON_HIT,
+        triggerCodeSchema._zod.def.entries.ROLL_INITIATIVE
       ]),
       range: rangeDtoSchema,
       shape: z.optional(shapeDtoSchema),
@@ -245,7 +246,9 @@ function checkFailureMarginRiders(
         ? [path.resultBlock]
         : path.selectionKind === 'CHOICE'
           ? path.options.map((option) => option.resultBlock)
-          : path.rows.flatMap((row) => (row.resolutionKind === 'RESULT' ? [row.resultBlock] : []))
+          : path.selectionKind === 'HIT_POINT_TIERS'
+            ? path.rows.map((row) => row.resultBlock)
+            : path.rows.flatMap((row) => (row.resolutionKind === 'RESULT' ? [row.resultBlock] : []))
     const allowed =
       path.selectionKind === 'FIXED' &&
       path.pathCode === 'ON_SAVE_FAIL' &&

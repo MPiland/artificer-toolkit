@@ -124,6 +124,16 @@ export type PathLifecycleAuthored = {
   }[]
 }
 
+/**
+ * A condition on the target that the result block checks when the action resolves, before its own
+ * effects: while unmet, the block does nothing to that target.
+ */
+export type ResultBlockGateAuthored = {
+  kind: 'TARGET_HIT_POINTS_AT_MOST'
+  /** The target's current hit points must be at most this many. */
+  amount: number // int >= 1
+}
+
 export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> = {
   id: string
   resultKind: 'SINGLE' | 'SEQUENCE'
@@ -133,11 +143,19 @@ export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthor
   lifecycle?: PathLifecycleAuthored
   /** Only a direct saving throw's failed result block (ON_SAVE_FAIL) carries one. */
   failureMarginRider?: FailureMarginRiderAuthored
+  gate?: ResultBlockGateAuthored
   outcomes: TOutcome[]
 }
 
 export type PathChoiceOptionAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> =
   PathEntryWithMetadata & {
+    resultBlock: ResultBlockAuthored<TOutcome>
+  }
+
+/** One tier of a hit-point path: its block resolves when the target's hit points are at most `atMost`. */
+export type PathHitPointTierRowAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> =
+  PathEntryBase & {
+    atMost: number // int >= 1
     resultBlock: ResultBlockAuthored<TOutcome>
   }
 
@@ -209,5 +227,13 @@ export type EffectPathAuthored<
         dieConfig: string
         rollTableKind: K
         rows: PathRollTableRowAuthored<TOutcome>[]
+      }
+    | {
+        /**
+         * Exactly one tier applies, never several: the row with the lowest `atMost` that the target's
+         * current hit points satisfy. No satisfied row means no effect.
+         */
+        selectionKind: 'HIT_POINT_TIERS'
+        rows: PathHitPointTierRowAuthored<TOutcome>[]
       }
   )

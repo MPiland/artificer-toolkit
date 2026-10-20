@@ -121,7 +121,7 @@ describe('effect schema parsing', () => {
       {
         id: 'closed-rule-outcome',
         effectKind: 'CLOSED_RULE',
-        ruleKind: CLOSED_RULE_KIND.ANIMAL_FRIENDSHIP
+        ruleKind: CLOSED_RULE_KIND.CONTAGION
       },
       {
         id: 'manual-adjudication-outcome',
@@ -1468,5 +1468,66 @@ describe('single-target size limit (D152)', () => {
       expect(
         targetingDtoSchema.safeParse({ ...targeting, sizeLimit: { stepsAboveActor } }).success
       ).toBe(false)
+  })
+})
+
+describe('hit-point gate, hit-point tiers and kill (SPELLS-4.T2i)', () => {
+  const kill = { id: '00000000-0000-4000-8000-0000000001a1', effectKind: 'KILL' }
+  const gated = (gate: unknown) => ({
+    id: '00000000-0000-4000-8000-0000000001a2',
+    order: 1,
+    invocation: {
+      triggerCode: 'ACTIVATED',
+      activation: { code: 'ACTION', amount: 1 },
+      range: { id: 'gate-range', rangeKind: 'SELF' }
+    },
+    paths: [
+      fixedPath(
+        '00000000-0000-4000-8000-0000000001a3',
+        1,
+        'ON_USE',
+        singleResultBlock('00000000-0000-4000-8000-0000000001a4', kill, { gate })
+      )
+    ]
+  })
+
+  it('keeps a whole-number hit-point gate around a kill', () => {
+    const gate = { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 100 }
+    expect(effectDtoSchema.parse(gated(gate)).paths[0]).toMatchObject({
+      resultBlock: { gate, outcomes: [{ effectKind: 'KILL' }] }
+    })
+  })
+
+  it.each([
+    ['a zero amount', { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 0 }],
+    ['a fractional amount', { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 1.5 }],
+    ['an unknown kind', { kind: 'TARGET_IS_BLOODIED', amount: 10 }]
+  ])('refuses a gate with %s', (_label, gate) => {
+    expect(effectDtoSchema.safeParse(gated(gate)).success).toBe(false)
+  })
+
+  it('parses hit-point tiers whose rows each carry their own result block', () => {
+    const effect = gated({ kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 1 })
+    const parsed = effectDtoSchema.safeParse({
+      ...effect,
+      paths: [
+        {
+          id: '00000000-0000-4000-8000-0000000001a5',
+          order: 1,
+          pathCode: 'ON_USE',
+          groupType: 'SINGLE',
+          selectionKind: 'HIT_POINT_TIERS',
+          rows: [
+            {
+              id: '00000000-0000-4000-8000-0000000001a6',
+              order: 1,
+              atMost: 20,
+              resultBlock: singleResultBlock('00000000-0000-4000-8000-0000000001a7', kill)
+            }
+          ]
+        }
+      ]
+    })
+    expect(parsed.success, JSON.stringify(parsed)).toBe(true)
   })
 })

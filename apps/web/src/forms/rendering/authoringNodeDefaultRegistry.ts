@@ -113,6 +113,7 @@ type AuthoringDefaultKind =
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleOnEnd'
   | 'pathLifecycleTurnAnchor'
+  | 'pathHitPointTierRow'
   | 'pathRollTableRow'
   | 'perTargetLockout'
   | 'proficiencyGrant'
@@ -121,6 +122,7 @@ type AuthoringDefaultKind =
   | 'range'
   | 'reactionTrigger'
   | 'resourceUse'
+  | 'resultBlockGate'
   | 'scaling'
   | 'resultBlock'
   | 'rollTableRepeat'
@@ -137,6 +139,7 @@ type AuthoringDefaultKind =
   | 'spellGrant'
   | 'spellGrantLevel'
   | 'spellGrantProgression'
+  | 'spellSlotTable'
   | 'startingEquipment'
   | 'startingEquipmentCurrency'
   | 'startingEquipmentGroup'
@@ -167,7 +170,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   checkChoice: ['checkChoice'],
   checkDc: ['checkDc', 'escapeDc'],
   heldEscapeDc: ['heldEscapeDc'],
-  chargeLevelScaling: ['levels'],
+  chargeLevelScaling: ['levels', 'spellSlotLevels'],
   charges: ['charges'],
   classDetail: [
     'authoredDetail',
@@ -279,6 +282,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleOnEnd: ['pathLifecycleOnEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
+  pathHitPointTierRow: ['hitPointTierRow', 'nonManifestHitPointTierRow'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],
   perTargetLockout: ['perTargetLockout'],
   proficiencyGrant: ['proficiencyGrant'],
@@ -287,6 +291,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   range: ['range', 'senseRange'],
   reactionTrigger: ['reactionTrigger'],
   resourceUse: ['resourceUse'],
+  resultBlockGate: ['resultBlockGate'],
   scaling: [
     'durationScaling',
     'rangeScaling',
@@ -309,6 +314,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   spellGrant: ['spellGrant'],
   spellGrantLevel: ['spellGrantLevel'],
   spellGrantProgression: ['spellGrantProgression'],
+  spellSlotTable: ['spellSlotTable'],
   startingEquipment: ['startingEquipment'],
   startingEquipmentCurrency: ['startingEquipmentCurrency'],
   startingEquipmentGroup: ['startingEquipmentGroup'],

@@ -18,6 +18,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
+import { powerWordKill } from '@artificer-toolkit/source-data/srd/spells/power-word-kill.js'
 import { planeShift } from '@artificer-toolkit/source-data/srd/spells/plane-shift.js'
 import { wordOfRecall } from '@artificer-toolkit/source-data/srd/spells/word-of-recall.js'
 import {
@@ -570,6 +571,33 @@ describe('native phased action execution', () => {
       afterTest: async () => undefined
     })
     expect(result.applications).toMatchObject([{ kind: 'STABILIZE', targetActorId: TARGET_ID }])
+  })
+
+  describe('the SRD Power Word Kill (a hit-point gate and a kill outcome)', () => {
+    const killAction = () => {
+      const [spellEffect] = powerWordKill.effects ?? []
+      if (!spellEffect) throw new Error('The SRD Power Word Kill has no effect.')
+      return descriptor(compileEffect({ ...spellEffect, id: EFFECT_ID }))
+    }
+    const cast = (hitPoints: number) =>
+      executeNativeActionGraphs({
+        runtime: runtime(),
+        adapter: dnd5eCharacterRuleActionSystemAdapter,
+        plan: singlePlan(killAction()),
+        occurrenceId: OCCURRENCE_ID,
+        binding: binding({ hitPoints }),
+        afterTest: async () => undefined
+      })
+
+    it.each([1, 99, 100])('kills a target with %i hit points', async (hitPoints) => {
+      const result = await cast(hitPoints)
+      expect(result.applications).toMatchObject([{ kind: 'KILL', targetActorId: TARGET_ID }])
+    })
+
+    it('does nothing to a target with 101 hit points', async () => {
+      const result = await cast(101)
+      expect(result.applications).toEqual([])
+    })
   })
 
   it.each([

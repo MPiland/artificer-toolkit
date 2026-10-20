@@ -101,7 +101,8 @@ export const triggerCodeSchema = lazySchema(() =>
     'ENTER_AREA',
     'INCOMING_DAMAGE',
     'HP_ZERO',
-    'INCOMING_WEAPON_HIT'
+    'INCOMING_WEAPON_HIT',
+    'ROLL_INITIATIVE'
   ])
 )
 
@@ -333,6 +334,7 @@ export const effectKindSchema = lazySchema(() =>
     'MOVEMENT_RULE',
     'ACTION_ECONOMY_RULE',
     'STABILIZE',
+    'KILL',
     'MANUAL_ADJUDICATION'
   ])
 )

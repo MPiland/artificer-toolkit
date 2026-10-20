@@ -254,7 +254,9 @@ function collectPathResultBlocks(path: SpellPath): SpellResultBlock[] {
 
   if ('rows' in path && Array.isArray(path.rows)) {
     return path.rows.flatMap((row) =>
-      row.resolutionKind === 'RESULT' ? collectResultBlock(row.resultBlock) : []
+      !('resolutionKind' in row) || row.resolutionKind === 'RESULT'
+        ? collectResultBlock(row.resultBlock)
+        : []
     )
   }
 

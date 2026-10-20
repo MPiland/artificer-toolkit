@@ -5,6 +5,7 @@ import type {
   ProficiencyGrantAuthored,
   SenseGrantAuthored,
   SpellGrantAuthored,
+  SpellSlotTableAuthored,
   ChargeAuthored,
   DetailAuthored,
   FacetAuthored
@@ -67,6 +68,7 @@ export interface FeatureBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode
     proficiencies?: ProficiencyGrantAuthored<N>[]
     senses?: SenseGrantAuthored<N>[]
     spells?: SpellGrantAuthored<N>[]
+    spellSlots?: SpellSlotTableAuthored
   }
   restrictions?: FacetAuthored
   order: number // int

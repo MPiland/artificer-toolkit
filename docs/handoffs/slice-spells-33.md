@@ -524,3 +524,62 @@ Class B (core options), branch `spells-33-t4c`, pushed to `ci/spells-33-t4c`. Bo
 ### Decision candidate D161: SYSTEM admission kind
 
 A `RESOLVE_ACTION` may be raised by the rules rather than a player when it carries `systemTrigger: { parentCommandId }`. It is self-verifying: a deterministic uuidv5 command id from (parent, holder, action), a `CASTER_CENTERED` target and a committed parent in the same Encounter are all it needs; no new table, no persisted flag. It is the only admission that lets a defeated actor be the source. Undo and void treat the parent and the system root as one change. Written in [persistence](../architecture/persistence.md#rule-raised-system-action-admission-current-spells-33t6e1-d161-candidate).
+
+## T3b: slotted casters (done, `ci/spells-33-t3b`)
+
+Class A (acolyte pattern), data only. Cult Fanatic, Druid, Guardian Naga, Gynosphinx, Lich, Mage, Mummy Lord and Priest author an at-will cantrip grant plus one PREPARED / LIMITED_USE / CAST_AT_LEVEL SPELL_GRANT per spell level whose long-rest `charges` are that level's slots (`S.slottedSpellcastingGrants`, `creatures/shared.ts`). The eight `CREATURE_*_SPELLCASTING` kinds are deleted. The Spellcasting feature keeps its stat-block description, so the GM still reads save DC, attack bonus, spell list and slots.
+
+- Proof: `creatureSpellSlotsAuthoringParity.test.ts` (creature node map unchanged, charges equal the slots the stat block states, cantrips at will, one casting ability, unique ids, description shows DC, attack bonus and slots).
+- No room proof: creature spell grants have no runtime path (ruling: T3b stays data only; room proof moved to T3c).
+
+### T3c seam notes (creature SPELL_GRANT casting in the room)
+
+- `creatureFeatureGrantFold.ts:60` folds every creature feature to `spells: []`, so a creature's SPELL_GRANTs, `castAtLevel` and slot `charges` are inert at the table.
+- Spell-grant handling (access, cast rule facts, charge spend, cast-at-level choice) lives only under `packages/rules-runtime/src/character/` (`characterSpellAccess`, `characterSpellCastRuleFacts`, `characterResourceRuleFacts`, `sheetResourceUsage`) and is Character-only.
+- The one creature spell-cast path today is a capability `spellCast` (`{ castLevel }` on an action invocation), used by the Counterspell offer (`nativeRoomCounterspellCreatureCast.test.ts`); it spends no slot.
+- T3c needs: fold creature grants into cast actions, spend the level's charge on cast with undo, offer cast at level, then the room proof that a converted caster spends a slot when it casts.
+
+### T3c-1: feature spell-slot table (data shape, `ci/spells-33-t3c`)
+
+Orchestrator ruling (2026-10-20): T3b's per-level charge pools become one feature-level table, so a creature can later spend a higher slot on a lower spell. Any feature may author it: `grants.spellSlots = { id, resetKind, levels: [{ id, level, amount }] }` (schema `grants/spellSlots.ts`, authored `SpellSlotTableAuthored`, node map `spellSlotTable`). The feature's spell grants that carry no cast attribute (no `CAST_AT_WILL`, `LIMITED_USE`, `CAST_AT_LEVEL`) cast from it: a spell of level N spends the lowest slot of level N or higher with a slot left.
+
+- `S.slottedSpellcastingGrants` now authors the cantrip grant, one `PREPARED` grant per spell level (spell access only) and the table; `creatureSpellSlotsAuthoringParity.test.ts` asserts the table equals the stat-block slot clauses.
+- A grant records no level of its own. A cast reads the spell's catalog level and spends a slot of that level or higher (lowest with a slot left), so T3c2 finds the rows a spell may spend from the spell's level, not from the grant. The parity test asserts each per-level grant's spells sit at its table row's level.
+- Runtime is split (orchestrator ruling 2026-10-20): T3c2a, T3c2b and T3c3 below. None is wired yet.
+
+## T3c2a resume: spell definitions and discovery for creature actors (fresh session, not started)
+
+Branch `ci/spells-33-t3c2a`, base the phase branch. Size ~5. Do not edit the ledger.
+
+- Load compiled spell definitions for creature actors in both Convex (the way `apps/apis/convex/characters/sheetInputs.ts` builds `spellsById` for Characters) and the session worker, so creature action discovery can read them.
+- Extract the pure, holder-agnostic cast candidate builder from `character/characterSpellCastRuleFacts.ts` (`castMode`, `castLevels`, candidate id, `append`) and call it from both the Character path and a new creature path over the actor's feature `grants.spells` (always GRANTED, no class or preparation gating). No Character test assertion may change; state that in the report.
+- Slot-mode grants (no `CAST_AT_WILL`, `LIMITED_USE`, `CAST_AT_LEVEL`) offer casts at the spell's level and every higher row of the feature's `grants.spellSlots` table. Offer only rows with a slot left.
+- `encounterFeatureActionCapabilityDiscovery.ts` `discover` gains the loaded spells and emits `ENCOUNTER_FEATURE` capabilities (`spellCast: { castLevel }`, the spell's compiled effect group) through `bindEffect`. One cast action runs one effect group; follow `buildCharacterSpellCastActions` (several groups only when each is a reaction).
+- Out of scope: spending (T3c2b), rest (T3c3). Proof: rules-runtime tests that Mage lists Fireball at levels 3-5 and cantrips at will, and Character cast lists unchanged.
+
+## T3c2b resume: creature cast, slot spend and undo in the room (fresh session, after T3c2a)
+
+Branch `ci/spells-33-t3c2b`. Size ~5. Do not edit the ledger.
+
+- Spend a slot of the cast level from the feature's `spellSlots` table through the existing feature charge path (`featureResourceConsumption` receipt, `withFeatureChargeUsed`, `actionRevert`). Ruling: key each slot row by its `levels[].id`; the owner is the real Feature and the key is the slot row id. Widen the feature-resource entry type (`encounterActorRuleFacts` `featureResources`, `capability.ownerFeatureId` consumers, receipt schema) rather than creating a fake feature.
+- A cast of a level-N spell offers levels N..9 over rows that exist, each spending that row; the exact level is the default offer. An at-will cantrip spends nothing.
+- Undo restores the slot (the cast commit carries the receipt). A manual-roll or Counterspell interaction keeps its existing behavior.
+- Room journey (`apps/session-worker/test`): Mage casts a levelled spell, the slot is spent, undo restores it; also a low spell (Magic Missile) cast from a higher slot spends that row.
+
+## T3c3 resume: creature rest room command (fresh session, independent)
+
+Branch `ci/spells-33-t3c3`. Do not edit the ledger.
+
+- No creature rest exists today: nothing resets `actor.resources.featureCharges` (`encounterActorState.withFeatureChargeUsed`) for creatures. Add a creature-rest room command (schema, persistence, undo) that resets each charge and each spell-slot row by its `resetKind` (`SHORT_REST` resets short-rest charges; `LONG_REST` resets both).
+- Proof: a creature spends a charge and a slot, rests, both restored; undo of the rest restores the spent counts.
+
+## T4i resume: hit-point gates for creature actions (fresh session, not started)
+
+Folded in 2026-10-20 from ATTACK-5.T4d/T4e. Push to `ci/spells-33-t4i`. If the work is clearly larger than size 3, propose a split before building.
+
+- Convert nine kinds, including GIANT_CENTIPEDE_VENOM (`creatures/giant-centipede.ts:104`) and SOLAR_SLAYING_LONGBOW (`creatures/solar.ts:288`: hit with 100 hit points or fewer after the damage dies); the ledger scopes the nine as regeneration kinds (ONI_REGENERATION, SHIELD_GUARDIAN_REGENERATION and peers), UNDEAD_FORTITUDE and the hit-point threshold riders; list them from the table above before starting. Remove the Centipede and Solar allowlist entries, each with a room proof.
+- Already built by SPELLS-4.T2i (reuse, do not rebuild): result-block `gate: { kind: 'TARGET_HIT_POINTS_AT_MOST', amount }`, `EFFECT_KIND.KILL`, hit-point tiers, the `dnd5e.target-current-hit-points` fact. Power Word Stun (T2i3) shows the gated CONDITION plus FOLLOW_UP_SAVE shape.
+- Build here: the `REDUCED_TO_ZERO_BY` gate (`{ kind: 'REDUCED_TO_ZERO_BY', damageOutcomeId }`, evaluated after that damage in the same path) with node-map, schema, web default factory and runtime evidence, plus a proof. Giant Centipede: reduced to 0 gives STABILIZE (`requiresZeroHitPoints`), poisoned 1 hour, paralyzed while poisoned.
+- The ledger orders T4i after SPELLS-4.T2i2 (Undead Fortitude needs its interception seam); do not start before T2i2 merges.
+- Purple Worm Bite goes to SPELLS-33.T6a1 (not here).
+- Per D156 each conversion deletes its kind and carries an authoring-parity proof. Do not edit the ledger.

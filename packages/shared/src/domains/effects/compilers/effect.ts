@@ -16,6 +16,7 @@ import type {
   ManifestProximityRuleAuthored,
   OptionalOnHitAuthored,
   ArmorClassFloorAuthored,
+  RestoreResourceAuthored,
   HitPointMaximumReductionAuthored,
   ScalarReductionAuthored,
   TelepathicLinkAuthored,
@@ -27,6 +28,7 @@ import type {
   FailureMarginRiderAuthored,
   PathChosenItemAuthored,
   PathLifecycleAuthored,
+  ResultBlockGateAuthored,
   RangeAuthored,
   ResultBlockAuthored,
   TargetingAuthored
@@ -68,6 +70,10 @@ export type CompiledEffect = {
   lifecycle?: PathLifecycleAuthored
   /** The margin rider of the failed direct saving throw this entry belongs to. */
   failureMarginRider?: FailureMarginRiderAuthored
+  /** The target condition that must hold when the action resolves, else the entry does nothing to that target. */
+  gate?: ResultBlockGateAuthored
+  /** Set on a hit-point tier's entries: the tier resolves only while the target's hit points are at most this. */
+  hitPointTier?: { atMost: number }
   restrictions?: FacetAuthored
   usage?: PathUsage
   /**
@@ -217,7 +223,9 @@ export type CompiledEffectOutcome =
   | import('#authored').MovementRuleAuthored
   | import('#authored').ActionEconomyRuleAuthored
   | import('#authored').StabilizeAuthored
+  | import('#authored').KillAuthored
   | ArmorClassFloorAuthored
+  | RestoreResourceAuthored
   | TelepathicLinkAuthored
   | PlantPortalAuthored
   | TreeStrideAuthored
@@ -333,7 +341,9 @@ function compileOutcomePayload(
     case EFFECT_KIND.MOVEMENT_RULE:
     case EFFECT_KIND.ACTION_ECONOMY_RULE:
     case EFFECT_KIND.STABILIZE:
+    case EFFECT_KIND.KILL:
     case EFFECT_KIND.ARMOR_CLASS_FLOOR:
+    case EFFECT_KIND.RESTORE_RESOURCE:
     case EFFECT_KIND.TELEPATHIC_LINK:
     case EFFECT_KIND.PLANT_PORTAL:
     case EFFECT_KIND.TREE_STRIDE:
@@ -368,6 +378,7 @@ function compileResultBlock(
     entryOrderBase?: number
     label?: string
     description?: string
+    hitPointTier?: { atMost: number }
   },
   rollTableMeta?: {
     rollTableKind: PathRollTableKind
@@ -416,6 +427,8 @@ function compileResultBlock(
         ...(resultBlock.failureMarginRider
           ? { failureMarginRider: resultBlock.failureMarginRider }
           : {}),
+        ...(resultBlock.gate ? { gate: resultBlock.gate } : {}),
+        ...(meta?.hitPointTier ? { hitPointTier: meta.hitPointTier } : {}),
         ...(path.restrictions ? { restrictions: path.restrictions } : {}),
         ...(path.usage ? { usage: path.usage } : {}),
         ...(path.rangeOverride ? { rangeOverride: path.rangeOverride } : {}),
@@ -485,6 +498,17 @@ export function compileEffectResult<
               entryOrderBase: option.order * 1000,
               ...(option.label !== undefined ? { label: option.label } : {}),
               ...(option.description !== undefined ? { description: option.description } : {})
+            })
+          )
+        }
+        break
+      case 'HIT_POINT_TIERS':
+        for (const row of path.rows) {
+          rules.push(
+            ...compileResultBlock(path, row.resultBlock, {
+              entryId: row.id,
+              entryOrderBase: row.order * 1000,
+              hitPointTier: { atMost: row.atMost }
             })
           )
         }

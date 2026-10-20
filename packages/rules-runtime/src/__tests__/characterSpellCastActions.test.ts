@@ -72,6 +72,7 @@ const SHIELD = spell('Shield')
 const SHIELD_OF_FAITH = spell('Shield of Faith')
 const INVISIBILITY = spell('Invisibility')
 const CHARM_PERSON = spell('Charm Person')
+const ANIMAL_FRIENDSHIP = spell('Animal Friendship')
 const SLEEP = spell('Sleep')
 const HYPNOTIC_PATTERN = spell('Hypnotic Pattern')
 const CONTACT_OTHER_PLANE = spell('Contact Other Plane')
@@ -414,6 +415,7 @@ const authoredById = new Map(
     SHIELD_OF_FAITH,
     INVISIBILITY,
     CHARM_PERSON,
+    ANIMAL_FRIENDSHIP,
     FEAR,
     PROTECTION_FROM_ENERGY,
     PROTECTION_FROM_ENERGY_ON_SELF,
@@ -904,6 +906,15 @@ describe('the timed condition a save cast owns (SPELLS-27.T5)', () => {
     expect(compiledCast(CHARM_PERSON)?.activeEffectPlan).toMatchObject({
       initialRemaining: 600,
       conditionContributions: [{ conditionId: charmedId }],
+      lifecycle: {
+        endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
+      }
+    })
+  })
+  it('owns Animal Friendship’s day-long charmed condition and ends it on harm from the caster’s side', () => {
+    expect(compiledCast(ANIMAL_FRIENDSHIP)?.activeEffectPlan).toMatchObject({
+      initialRemaining: 14_400,
+      conditionContributions: [{ conditionId: conditionId('CHARMED') }],
       lifecycle: {
         endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
       }

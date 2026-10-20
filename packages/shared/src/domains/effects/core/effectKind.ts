@@ -18,7 +18,9 @@ export const EFFECT_KIND = {
   MOVEMENT_RULE: 'MOVEMENT_RULE',
   ACTION_ECONOMY_RULE: 'ACTION_ECONOMY_RULE',
   STABILIZE: 'STABILIZE',
+  KILL: 'KILL',
   ARMOR_CLASS_FLOOR: 'ARMOR_CLASS_FLOOR',
+  RESTORE_RESOURCE: 'RESTORE_RESOURCE',
   TELEPATHIC_LINK: 'TELEPATHIC_LINK',
   PLANT_PORTAL: 'PLANT_PORTAL',
   TREE_STRIDE: 'TREE_STRIDE',
@@ -122,10 +124,20 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Stabilize',
     description: 'Stabilizes a creature at 0 hit points.'
   },
+  [EFFECT_KIND.KILL]: {
+    code: EFFECT_KIND.KILL,
+    label: 'Kill',
+    description: 'The target dies at once.'
+  },
   [EFFECT_KIND.ARMOR_CLASS_FLOOR]: {
     code: EFFECT_KIND.ARMOR_CLASS_FLOOR,
     label: 'Armor Class Floor',
     description: 'Prevents Armor Class from falling below a fixed minimum.'
+  },
+  [EFFECT_KIND.RESTORE_RESOURCE]: {
+    code: EFFECT_KIND.RESTORE_RESOURCE,
+    label: 'Restore Resource',
+    description: 'Raises a feature charge to a minimum number of remaining uses when it is empty.'
   },
   [EFFECT_KIND.TELEPATHIC_LINK]: {
     code: EFFECT_KIND.TELEPATHIC_LINK,

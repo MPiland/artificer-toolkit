@@ -52,3 +52,54 @@ describe.each([
         expect(description).toContain(plainText(outcome.instructions))
   })
 })
+
+/**
+ * SPELLS-4.T2i: Power Word Kill runs from data. Its 100 hit point limit is the result block's
+ * hit-point gate and its death is the generic KILL outcome.
+ */
+describe('SRD Power Word Kill (SPELLS-4.T2i)', () => {
+  const spell = srdSpells.find((entry) => entry.label === 'Power Word Kill')
+  const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
+
+  it('authors a hit-point gate of 100 around a kill, with no closed rule left', () => {
+    if (path?.selectionKind !== 'FIXED') throw new Error('Expected one fixed path.')
+    expect(path.resultBlock.gate).toEqual({ kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 100 })
+    expect(path.resultBlock.outcomes.map(({ effectKind }) => effectKind)).toEqual(['KILL'])
+    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('POWER_WORD_KILL')
+  })
+
+  it('states the limit its gate carries in its description', () => {
+    expect(plainText(spell?.description ?? '')).toContain('100 hit points or fewer')
+  })
+})
+
+/**
+ * SPELLS-4.T2i3: Power Word Stun runs from data. Its 150 hit point limit is the result block's
+ * hit-point gate, its stun is the generic condition, and the Constitution save the target repeats
+ * at the end of each of its turns is the generic follow-up save.
+ */
+describe('SRD Power Word Stun (SPELLS-4.T2i3)', () => {
+  const spell = srdSpells.find((entry) => entry.label === 'Power Word Stun')
+  const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
+
+  it('authors a hit-point gate of 150 around a stun and its repeated save, with no closed rule left', () => {
+    if (path?.selectionKind !== 'FIXED') throw new Error('Expected one fixed path.')
+    expect(path.resultBlock.gate).toEqual({ kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 150 })
+    expect(path.resultBlock.duration).toMatchObject({ durationKind: 'MINUTE', amount: 1 })
+    expect(path.resultBlock.outcomes.map(({ effectKind }) => effectKind)).toEqual([
+      'CONDITION',
+      'FOLLOW_UP_SAVE'
+    ])
+    expect(path.resultBlock.outcomes[1]).toMatchObject({
+      timing: 'TARGET_TURN_END',
+      attempts: { kind: 'ONCE', repeatOnFailure: true },
+      onSuccess: { kind: 'END' },
+      onFailure: { kind: 'CONTINUE' }
+    })
+    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('POWER_WORD_STUN')
+  })
+
+  it('states the limit its gate carries in its description', () => {
+    expect(plainText(spell?.description ?? '')).toContain('150 hit points or fewer')
+  })
+})

@@ -105,6 +105,8 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       damageDisposition: damageDispositionDtoSchema,
       /** A critical hit: damage at 0 hit points adds two death save failures (D96). */
       critical: z.boolean(),
+      /** The held effect whose damage interception left the target above 0 hit points instead. */
+      interceptedBy: z.optional(uuidSchema),
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),
     z.strictObject({
@@ -132,6 +134,22 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       kind: z.literal('STABILIZE'),
       /** True when the target was dying and became stable (D96); false changes nothing. */
       applied: z.boolean(),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('KILL'),
+      beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
+      afterCurrentHitPoints: z.literal(0),
+      beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
+      afterTemporaryHitPoints: z.literal(0),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('KILL_NEGATED'),
+      /** The held effect whose damage interception negated the kill; it spent a use. */
+      negatedBy: uuidSchema,
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),
     z.strictObject({

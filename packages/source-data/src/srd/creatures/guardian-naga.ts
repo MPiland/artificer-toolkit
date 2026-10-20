@@ -73,60 +73,27 @@ export const guardianNaga: CreatureAuthored = {
       label: 'Spellcasting',
       description:
         'Spellcasting. The naga is an 11th-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 16, +8 to hit with spell attacks), and it needs only verbal components to cast its spells. It has the following cleric spells prepared: Cantrips (at will): mending, sacred flame, thaumaturgy 1st level (4 slots): command, cure wounds, shield of faith 2nd level (3 slots): calm emotions, hold person 3rd level (3 slots): bestow curse, clairvoyance 4th level (3 slots): banishment, freedom of movement 5th level (2 slots): flame strike, geas 6th level (1 slot): true seeing',
-      grants: {
-        spells: [
+      grants: S.slottedSpellcastingGrants(
+        156,
+        S.ABILITY_CODE.WISDOM,
+        [S.SPELL_IDS.MENDING, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
+        [
           {
-            id: S.actionId(156, 301),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [S.SPELL_IDS.MENDING, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
-            castingAbility: S.ABILITY_CODE.WISDOM,
-            order: 0
+            level: 1,
+            slots: 4,
+            spellIds: [S.SPELL_IDS.COMMAND, S.SPELL_IDS.CURE_WOUNDS, S.SPELL_IDS.SHIELD_OF_FAITH]
           },
+          { level: 2, slots: 3, spellIds: [S.SPELL_IDS.CALM_EMOTIONS, S.SPELL_IDS.HOLD_PERSON] },
+          { level: 3, slots: 3, spellIds: [S.SPELL_IDS.BESTOW_CURSE, S.SPELL_IDS.CLAIRVOYANCE] },
           {
-            id: S.actionId(156, 302),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [
-              S.SPELL_IDS.COMMAND,
-              S.SPELL_IDS.CURE_WOUNDS,
-              S.SPELL_IDS.SHIELD_OF_FAITH,
-              S.SPELL_IDS.CALM_EMOTIONS,
-              S.SPELL_IDS.HOLD_PERSON,
-              S.SPELL_IDS.BESTOW_CURSE,
-              S.SPELL_IDS.CLAIRVOYANCE,
-              S.SPELL_IDS.BANISHMENT,
-              S.SPELL_IDS.FREEDOM_OF_MOVEMENT,
-              S.SPELL_IDS.FLAME_STRIKE,
-              S.SPELL_IDS.GEAS,
-              S.SPELL_IDS.TRUE_SEEING
-            ],
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED],
-            castingAbility: S.ABILITY_CODE.WISDOM,
-            order: 1
-          }
+            level: 4,
+            slots: 3,
+            spellIds: [S.SPELL_IDS.BANISHMENT, S.SPELL_IDS.FREEDOM_OF_MOVEMENT]
+          },
+          { level: 5, slots: 2, spellIds: [S.SPELL_IDS.FLAME_STRIKE, S.SPELL_IDS.GEAS] },
+          { level: 6, slots: 1, spellIds: [S.SPELL_IDS.TRUE_SEEING] }
         ]
-      },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(156, 303),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: {
-              id: S.actionId(156, 1303),
-              rangeKind: S.RANGE_KIND.SELF
-            },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GUARDIAN_NAGA_SPELLCASTING
-        })
-      ],
+      ),
       order: 2
     },
     {
