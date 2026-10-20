@@ -1527,6 +1527,20 @@ function createFacetPredicateNodeMap(
         })
       )
       .set(
+        'maxFeet',
+        number(['maxFeet'], 'Max Feet Moved', {
+          order: 3,
+          showIf: local.field(['predicateCode']).eq('TURN_MOVEMENT')
+        })
+      )
+      .set(
+        'maxSpeedFraction',
+        number(['maxSpeedFraction'], 'Max Fraction of Speed', {
+          order: 3,
+          showIf: local.field(['predicateCode']).eq('TURN_MOVEMENT')
+        })
+      )
+      .set(
         'featureIds',
         selectMulti(
           ['featureIds'],

@@ -49,7 +49,8 @@ import { classSpellcastingDetails } from './spellcasting-details.js'
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
-  closedRuleEffect
+  closedRuleEffect,
+  selfActionEffect
 } from './mechanics.js'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -1483,8 +1484,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 18),
           label: 'One with Shadows',
           description:
-            'When you are in an area of dim light or darkness, you can use your action to become invisible until you move or take an action or a reaction.',
-          // Action-based ability — description-only.
+            'When you are in an area of dim light or darkness, you can use your action to become invisible until you move or take an action or a reaction. You activate it and the GM judges the dim light or darkness. A spell cast as a reaction ends it; other reactions do not yet.',
           // Requires warlock level 5
           restrictions: {
             id: classRowId(W, 6, 35),
@@ -1514,11 +1514,22 @@ export const warlock: ClassAuthored = {
             ]
           },
           effects: [
-            selfClassRuleEffect(
-              18,
-              CLOSED_RULE_KIND.CLASS_WARLOCK_ONE_WITH_SHADOWS,
-              ACTIVATION_CODE.ACTION
-            )
+            // The player activates it and the GM judges the dim light or darkness (SPELLS-31.T5n2 gates it).
+            selfActionEffect({
+              ids: {
+                effect: classRowId(W, 0x60, 18),
+                range: classRowId(W, 0x69, 18),
+                path: classRowId(W, 0x80, 18),
+                result: classRowId(W, 0x81, 18)
+              },
+              activation: ACTIVATION_CODE.ACTION,
+              lifecycle: { endOnEvents: ['ON_MOVE', 'ON_TAKE_ACTION'] },
+              outcome: {
+                id: classRowId(W, 0x82, 18),
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('INVISIBLE')
+              }
+            })
           ],
           order: 20
         },

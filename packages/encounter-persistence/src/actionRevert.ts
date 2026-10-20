@@ -238,6 +238,10 @@ export async function revertLastEncounterAction(
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertConcealmentObservers(ctx, { ...scope, root })
   }
+  if (root?.commandType === 'CREATURE_REST') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertCreatureRest(ctx, { ...scope, root })
+  }
   if (root?.commandType === 'MOVE_HELD_EFFECT') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertMoveHeldEffect(ctx, { ...scope, root })
@@ -837,7 +841,12 @@ type RevertScope = {
   root: Extract<
     StoredCommand,
     {
-      commandType: 'RESOLVE_ACTION' | 'ESCAPE' | 'SET_CONCEALMENT_OBSERVERS' | 'MOVE_HELD_EFFECT'
+      commandType:
+        | 'RESOLVE_ACTION'
+        | 'ESCAPE'
+        | 'SET_CONCEALMENT_OBSERVERS'
+        | 'CREATURE_REST'
+        | 'MOVE_HELD_EFFECT'
     }
   >
 }
@@ -1244,6 +1253,36 @@ async function revertConcealmentObservers(
     ...input,
     actors,
     nextActors: [...actors],
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/**
+ * Undoes the GM's creature rest: each recovered charge or slot row is spent again, only while the
+ * row is still at the zero the rest left it.
+ */
+async function revertCreatureRest(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'CREATURE_REST' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const actors = await readRunActors(ctx, state)
+  const restored = new Map<string, EncounterRunActorState>()
+  for (const { actorId, resets } of root.receipt.actors) {
+    const actor = actors.find((entry) => entry.id === actorId)
+    if (!actor) unavailable('A creature left the Encounter; adjust manually.')
+    let resources: unknown = actor.resources
+    for (const { key, beforeUsed } of resets) {
+      if (featureChargeUsed({ resources }, key) !== 0)
+        unavailable(`${actor.label}'s feature charges changed after this rest; adjust manually.`)
+      resources = withFeatureChargeUsed({ resources }, key, beforeUsed)
+    }
+    restored.set(actorId, encounterRunActorStateSchema.parse({ ...actor, resources }))
+  }
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: actors.map((entry) => restored.get(entry.id) ?? entry),
     updatedAt: new Date().toISOString()
   })
 }

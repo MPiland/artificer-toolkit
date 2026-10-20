@@ -78,11 +78,12 @@ authoring: {
 Invalid examples include `presentation: 'focused-drawer'`, manual ordering without `identityPath`, a scalar input with options, a select input without a source, duplicate action types, `tone: '#ff9900'`, and any platform class or token path.
 
 Grant lifecycle options on an effect (`path.ts`) are generic node-map options, not class rules: `endOnEvents`
-(`ON_INCAPACITATED`; `ON_IDLE_TURN`, the grant ends at the end of its holder's turn when the holder made no attack roll against a
+(`ON_INCAPACITATED`; `ON_MOVE`, the holder's voluntary movement; `ON_TAKE_ACTION`, any action, bonus action or reaction the holder takes; `ON_IDLE_TURN`, the grant ends at the end of its holder's turn when the holder made no attack roll against a
 hostile creature and took no damage since their previous turn), `endOnConditionIds` (a `condition_types` multi-select; the grant ends while its holder has any of them),
 `holderEnd` (`{ activation }`, the holder may end it at that cost), `consumeOnFirstEvents`, `fromSourceOnly` (only the
 effect's source meets its attacker grants and its attack consume) and `activeOnlyOnFinalAnchorTurn` (the timed effect is
 dormant until its tick anchor's final counted turn and active only during it; SPELLS-4.T2k1). Modifier facets include
+`TURN_MOVEMENT` (a facet predicate: the holder has moved at most `maxFeet`, or `maxSpeedFraction` of its speed, this turn; decided live from the Encounter's turn movement),
 `ATTACK_ABILITY` / `ITEM_ATTACK_ABILITY` (gate a modifier on the ability an attack used), `ATTACK_ACTIVATION` / `ITEM_ACTIVATION` (gate it on the
 activation the attack is made with, such as the bonus action of an off-hand attack; ATTACK-9.T5b) and the `SPELLCASTING_LOCK` `ENABLE`
 domain (bars every spell cast) and the `ATTACK_DECOYS` `ENABLE` domain (an armor class and a threshold per decoys-left count, counted by the path lifecycle `uses`, with optional `exemptAttackerSenseDefinitionIds` for attackers that are unaffected; Mirror Image, SPELLS-4.T2k2), the `INCOMING_ATTACK_GATE` `ENABLE` domain (an attacker saving throw a creature must pass before a single-target attack or harmful spell targets the holder; SPELLS-4.T2k3). Rage (ATTACK-9.T1) is authored with these and has parity with the authoring form.

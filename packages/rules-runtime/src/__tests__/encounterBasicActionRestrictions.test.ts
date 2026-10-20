@@ -121,7 +121,8 @@ const stateOf = (
     gameSystemId: SRD_SYSTEM_ID,
     definitions: srdDefinitions,
     speedDefinitions: SRD_SPEEDS,
-    runEffectsByActorId
+    runEffectsByActorId,
+    readTurnMovedFeet: async () => 0
   })
 
 type RelationshipModule = Extract<
