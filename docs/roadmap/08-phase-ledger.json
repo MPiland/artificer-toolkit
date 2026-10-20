@@ -8684,12 +8684,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 5,
                 "after": ["SPELLS-4.T2d", "SPELLS-4.T2l"]
               },
               "text": "Generic option: move a held effect to a new target as a granted action (Hunter’s Mark re-mark after its target drops to 0 HP), with a parity proof and a room journey. Split from SPELLS-4.T2d (2026-10-18 ruling).",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": "Ruling A (2026-10-20): authored lifecycle move-on-holder-0-HP compiled into the effect, offered through T2lb's grantedActions seam as MOVE_HELD_EFFECT; waits for T2lb to merge."
+              "note": "Ruling A (2026-10-20): authored lifecycle move-on-holder-0-HP compiled into the effect, offered through T2lb's grantedActions seam as MOVE_HELD_EFFECT; waits for T2lb to merge. 2026-10-20 ruling: T2lb offers only holder basic actions, so T2d2 builds the generic source-side offer seam (discovery by source or holder role, pick with range and LOS, re-home commit with undo); T2lb2 reuses it. Size 2 to 5."
             },
             {
               "status": "DONE",
@@ -8905,7 +8905,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-4.T2lb"]
+                "after": ["SPELLS-4.T2lb", "SPELLS-4.T2d2"]
               },
               "text": "Repeat-source-path offers (D160, split from T2lb): a held effect offers its holder or source a repeat of a source path, using the stored cast context (DC, slot level), a fresh target pick and an already-saved exclusion. Converts the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e) and Eyebite’s per-turn retarget, with parity proofs; the EYEBITE kind is deleted in T2l2."
             },
