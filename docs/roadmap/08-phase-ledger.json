@@ -12770,7 +12770,7 @@
             },
             {
               "id": "SPELLS-33.T6i",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
