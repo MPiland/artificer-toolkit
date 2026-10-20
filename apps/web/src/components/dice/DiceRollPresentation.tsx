@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import {
+  formatModeChange,
   formatRollEvidence,
   getVisualDiceCount,
   MAX_3D_DICE,
@@ -58,6 +59,11 @@ function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
           })
         )}
       </div>
+      {adjustment ? (
+        <span className={diceStyles.staticDiceCaption}>
+          <strong>{formatModeChange(adjustment)}</strong>
+        </span>
+      ) : null}
       {adjustment?.caption ? (
         <span className={diceStyles.staticDiceCaption}>{adjustment.caption}</span>
       ) : null}

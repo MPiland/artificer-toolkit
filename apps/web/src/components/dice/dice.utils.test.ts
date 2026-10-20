@@ -1,7 +1,7 @@
 import { InterleavedBuffer, InterleavedBufferAttribute } from 'three'
 import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import { addedAdvantageRoll, cancelledAdvantageRoll } from './adjustedRoll.fixtures'
-import { formatRollEvidence } from './dice.utils'
+import { formatModeChange, formatRollEvidence } from './dice.utils'
 import {
   getScaledColliderVertices,
   getTargetQuaternion,
@@ -51,7 +51,15 @@ describe('dice presentation utilities', () => {
 
       expect(text).toContain(dice)
       expect(text).toContain(roll.ruleCheck.caption)
+      expect(text).toContain(formatModeChange(roll.ruleCheck))
     }
+  })
+
+  it('labels the settled mode of an adjusted roll', () => {
+    const roll = cancelledAdvantageRoll()
+    if (roll.ruleCheck?.kind !== 'D20_MODE_ADJUSTED') throw new Error('expected an adjusted roll')
+
+    expect(formatModeChange(roll.ruleCheck)).toBe('Advantage → Normal')
   })
 
   it('writes added dice after the d20, subtracting a marked term, and adjusts only the d20', () => {
