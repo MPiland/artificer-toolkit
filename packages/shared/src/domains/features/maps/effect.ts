@@ -1,5 +1,6 @@
 import type {
   FeatureEffectAuthored,
+  FeatureGrantedSpellCastAuthored,
   FeatureSpellCastAuthored,
   FeatureWeaponAttackAuthored
 } from '#authored'
@@ -16,6 +17,33 @@ const SPELL_CAST_NODE_MAP = spellCast.define('spellCast', ({ map, nodes }) => {
     nodes.number(['castLevel'], 'Cast level', { constraints: { minimum: 1, maximum: 9 } })
   )
 })
+
+const grantedSpellCast = buildNodeMap<FeatureGrantedSpellCastAuthored>()
+
+/** The granted spell an action casts, chosen when it is used (D156). */
+const GRANTED_SPELL_CAST_NODE_MAP = grantedSpellCast.define(
+  'featureGrantedSpellCast',
+  ({ map, nodes }) => {
+    map.set(
+      'spellKind',
+      nodes.selectSingle(['spellKind'], 'Granted spell', {
+        kind: 'INLINE_OPTIONS',
+        options: [
+          {
+            code: 'CANTRIP',
+            label: 'A cantrip',
+            description: 'Casts one of the granted cantrips.'
+          },
+          {
+            code: 'LEVELED',
+            label: 'A levelled spell',
+            description: 'Casts one of the granted levelled spells from a spell slot as normal.'
+          }
+        ]
+      })
+    )
+  }
+)
 
 const weaponAttack = buildNodeMap<FeatureWeaponAttackAuthored>()
 
@@ -54,6 +82,15 @@ export const FEATURE_EFFECT_NODE_MAP = featureEffect.define(
         nodes.groupObject(['spellCast'], 'Casts a spell', () => SPELL_CAST_NODE_MAP, {
           presentation: 'inline'
         })
+      )
+      .set(
+        'grantedSpellCast',
+        nodes.groupObject(
+          ['grantedSpellCast'],
+          'Casts a granted spell',
+          () => GRANTED_SPELL_CAST_NODE_MAP,
+          { presentation: 'inline' }
+        )
       )
       .set(
         'weaponAttack',

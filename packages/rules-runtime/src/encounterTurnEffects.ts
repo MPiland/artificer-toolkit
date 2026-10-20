@@ -17,6 +17,7 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ActiveEffectSaveTally } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type {
   ActiveRuleEffectRecord,
   EncounterMaintainedEffectStateRecord
@@ -139,7 +140,11 @@ function executionState(target: MovementTarget) {
   }
 }
 
-function lifecycle(effect: ActiveRuleEffectRecord, terminal: boolean) {
+function lifecycle(
+  effect: ActiveRuleEffectRecord,
+  terminal: boolean,
+  saveTally?: ActiveEffectSaveTally
+) {
   const remaining = effect.lifecycle.remainingTicks
   if (terminal || remaining === 1)
     return {
@@ -156,10 +161,12 @@ function lifecycle(effect: ActiveRuleEffectRecord, terminal: boolean) {
     afterVersion: effect.version + 1,
     beforeRemainingTicks: remaining,
     afterRemainingTicks,
+    ...(saveTally ? { afterSaveTally: saveTally } : {}),
     beforeLifecycleChecksum: effect.lifecycleChecksum,
     afterLifecycleChecksum: checksumRuleDocument({
       ...effect.lifecycle,
-      remainingTicks: afterRemainingTicks
+      remainingTicks: afterRemainingTicks,
+      ...(saveTally ? { saveTally } : {})
     })
   }
 }
@@ -207,7 +214,13 @@ function overlayEffects(
       {
         ...effect,
         version: execution.lifecycle.afterVersion,
-        lifecycle: { ...effect.lifecycle, remainingTicks: execution.lifecycle.afterRemainingTicks },
+        lifecycle: {
+          ...effect.lifecycle,
+          remainingTicks: execution.lifecycle.afterRemainingTicks,
+          ...(execution.lifecycle.afterSaveTally
+            ? { saveTally: execution.lifecycle.afterSaveTally }
+            : {})
+        },
         lifecycleChecksum: execution.lifecycle.afterLifecycleChecksum
       }
     ]
@@ -270,7 +283,7 @@ function completeExecution(input: {
       after: folded.after
     },
     applications: folded.applications,
-    lifecycle: lifecycle(effect, result.terminal)
+    lifecycle: lifecycle(effect, result.terminal, result.saveTally)
   }
   return { execution, ownConditions: folded.afterOwnConditionIds }
 }
@@ -619,6 +632,7 @@ function turnEffectMechanicsBatch(input: {
     applications: input.applications,
     expectedCharacterStreamVersion: input.target.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: input.target.effectiveMaximumHitPoints,
+    damageInterceptions: input.target.damageInterceptions,
     sheetMaximumHitPoints: input.target.sheetMaximumHitPoints,
     effectiveScalarValues: input.target.effectiveScalarValues,
     retainedConditionIds: input.retainedConditionIds,

@@ -253,6 +253,7 @@ describe('Creature movement target', () => {
       state: { current: 7, temporary: 2, conditions: [prone], deathSaves: null },
       initialConditionRows: [{ conditionTypeId: prone, note: 'Shoved' }],
       effectiveMaximumHitPoints: 11,
+      damageInterceptions: [],
       baseScalarValues,
       effectiveScalarValues: { ...baseScalarValues, [DEXTERITY]: 7, [STRENGTH]: 9 },
       baseRulePolicyOutput: null,
@@ -264,6 +265,7 @@ describe('Creature movement target', () => {
       conditionDefinitions: [],
       conditionMechanics: [],
       attackTraitGrants: [],
+      featureModifiers: [],
       innateConditionIds: [],
       targetDerivedFacts: {
         actorId: CREATURE_ID,

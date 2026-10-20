@@ -7,9 +7,10 @@ import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/chara
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
-import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
+import { heldBatchInputs, type HeldDamageInterception } from './encounterDamageInterception.js'
 import {
   buildCharacterSpellCastActions,
   type CharacterSpellCastActions,
@@ -103,6 +104,8 @@ export type MovementTarget<
   initialConditionRows: readonly unknown[] | null
   /** The maximum of the hit points `state` holds: a Character in a form has the form's. */
   effectiveMaximumHitPoints: number
+  /** The actor's unspent damage interceptions (`heldBatchInputs`), passed to every batch planned for it. */
+  damageInterceptions: readonly HeldDamageInterception[]
   /** A Character's own effective maximum, which differs from `effectiveMaximumHitPoints` in a form. */
   sheetMaximumHitPoints?: number | undefined
   baseScalarValues: Readonly<Record<string, number>>
@@ -122,6 +125,8 @@ export type MovementTarget<
   innateConditionIds: readonly string[]
   /** The actor's accepted grant-fold modifiers: a Character's fold, a Creature's feature grants. */
   attackTraitGrants: readonly Dnd5eAttackTraitGrant[]
+  /** A Creature's folded feature grants, whose attack roll modes its attacks read; empty for a Character, whose policy output carries its own. */
+  featureModifiers: CharacterGrantFoldOutput['modifiers']
   /** Magic schools whose spells have no effect on the actor. */
   spellSchoolImmunityIds: readonly string[]
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
@@ -204,16 +209,16 @@ function withFormArmorClass(
   }
 }
 
-function nativeCharacterMaximumHitPoints(
+function nativeCharacterBatchInputs(
   characterFacts: CharacterMovementFacts,
   activeEffects: ActiveRuleEffectRecord[]
 ) {
-  return effectiveHitPointMaximum(
-    resolveCharacterEffectiveMaximumHitPoints(
+  return heldBatchInputs({
+    baseMaximumHitPoints: resolveCharacterEffectiveMaximumHitPoints(
       characterFacts.ruleEvaluation.output.derivedStats.maxHitPoints.effective
     ),
-    activeEffects
-  )
+    effects: activeEffects
+  })
 }
 
 /**
@@ -320,11 +325,12 @@ export function buildMovementTarget<
           formStatBlock.armorClass)
     const effectiveRulePolicyOutput =
       formArmorClass === null ? policyOutput : withFormArmorClass(policyOutput, formArmorClass)
-    const sheetMaximumHitPoints = nativeCharacterMaximumHitPoints(characterFacts, activeEffects)
-    const effectiveMaximumHitPoints =
+    const sheetInputs = nativeCharacterBatchInputs(characterFacts, activeEffects)
+    const { effectiveMaximumHitPoints, damageInterceptions } =
       form === null
-        ? sheetMaximumHitPoints
-        : effectiveHitPointMaximum(form.maxHitPoints, activeEffects)
+        ? sheetInputs
+        : heldBatchInputs({ baseMaximumHitPoints: form.maxHitPoints, effects: activeEffects })
+    const sheetMaximumHitPoints = sheetInputs.effectiveMaximumHitPoints
     const conditionDefinitionIds = [...systemConditions].sort()
     // A form that cannot cast offers no spells; Concentration on one already held stays (D130).
     const spellCast =
@@ -412,6 +418,7 @@ export function buildMovementTarget<
             },
       initialConditionRows: null,
       effectiveMaximumHitPoints,
+      damageInterceptions,
       sheetMaximumHitPoints,
       baseScalarValues: targetScalarValues,
       effectiveScalarValues,
@@ -493,6 +500,7 @@ export function buildMovementTarget<
         dnd5eAcceptedModifierApplicability
       ),
       innateConditionIds: innateConditionIds(effectiveRulePolicyOutput.grantFold.modifiers),
+      featureModifiers: [],
       spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds,
       attackAgainstContributors: [],
       sourceSightSaves: [],
@@ -542,7 +550,7 @@ export function buildMovementTarget<
       deathSaves: null
     },
     initialConditionRows: conditions.values,
-    effectiveMaximumHitPoints: effectiveHitPointMaximum(actor.maxHitPoints, activeEffects),
+    ...heldBatchInputs({ baseMaximumHitPoints: actor.maxHitPoints, effects: activeEffects }),
     baseScalarValues,
     effectiveScalarValues,
     baseRulePolicyOutput: null,
@@ -576,6 +584,7 @@ export function buildMovementTarget<
       dnd5eAcceptedModifierApplicability
     ),
     innateConditionIds: creatureInnateConditionIds(activeEffects, creatureFacts?.modifiers ?? []),
+    featureModifiers: creatureFacts?.modifiers ?? [],
     spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,
     attackAgainstContributors: [],
     sourceSightSaves: [],

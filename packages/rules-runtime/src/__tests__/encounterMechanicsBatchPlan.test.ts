@@ -45,6 +45,12 @@ const RESTRAINED = conditionId('RESTRAINED')
 const FRIGHTENED = conditionId('FRIGHTENED')
 const NECROTIC = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'NECROTIC')!.id
 
+const ward = {
+  effectId: '00000000-0000-4000-8000-00000000e106',
+  dropToHitPoints: 1,
+  negatesKill: true
+}
+
 const origin = {
   sourceNodeId: 'outcome',
   sourceOperationKey: 'dnd5e.damage',
@@ -225,6 +231,25 @@ describe('Creature mechanics batch plan', () => {
       shouldAdvance: false,
       characterUpdate: null
     })
+  })
+
+  it('applies a held interception to lethal damage in the plan, naming the ward (SPELLS-4.T2i2b)', () => {
+    const actor = creature({ current: 5, temporary: 0, max: 11 })
+    const lethal = damage({
+      requested: 9,
+      before: { current: 5, temporary: 0 },
+      after: { current: 0, temporary: 0 },
+      maximum: 11
+    })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([lethal], { damageInterceptions: [ward] }),
+      actor,
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toMatchObject({ currentHitPoints: 1 })
+    expect(plan.receiptApplications).toMatchObject([
+      { kind: 'DAMAGE', afterCurrentHitPoints: 1, appliedAmount: 4, interceptedBy: ward.effectId }
+    ])
   })
 
   it('refuses a damage application whose resolved amount ignores its disposition', () => {
@@ -735,6 +760,29 @@ describe('Character mechanics batch plan', () => {
     // The Campaign's own condition counts toward the target state but is not written to the Sheet.
     expect(plan.targetTransition.before.conditionIds).toEqual([PRONE, FRIGHTENED])
     expect(plan.targetTransition.after.conditionIds).toEqual([FRIGHTENED, RESTRAINED])
+  })
+
+  it('applies a held interception to lethal damage in the plan, leaving the Character at 1 hit point (SPELLS-4.T2i2b)', () => {
+    const lethal = damage({
+      requested: 14,
+      before: { current: 10, temporary: 0 },
+      after: { current: 0, temporary: 0 },
+      maximum: 12
+    })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([lethal], {
+        expectedCharacterStreamVersion: STREAM_VERSION,
+        effectiveMaximumHitPoints: 12,
+        damageInterceptions: [ward]
+      }),
+      actor,
+      userId: USER_ID,
+      characterFacts
+    })
+    expect(plan.characterUpdate?.character.state.hitpoints.current).toBe(1)
+    expect(plan.receiptApplications).toMatchObject([
+      { kind: 'DAMAGE', afterCurrentHitPoints: 1, interceptedBy: ward.effectId }
+    ])
   })
 
   it('clears the Sheet copy of a condition the Campaign also holds and reports it applied', () => {

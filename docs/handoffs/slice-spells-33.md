@@ -592,3 +592,10 @@ Folded in 2026-10-20 from ATTACK-5.T4d/T4e. Push to `ci/spells-33-t4i`. If the w
 - The ledger orders T4i after SPELLS-4.T2i2 (Undead Fortitude needs its interception seam); do not start before T2i2 merges.
 - Purple Worm Bite goes to SPELLS-33.T6a1 (not here).
 - Per D156 each conversion deletes its kind and carries an authoring-parity proof. Do not edit the ledger.
+
+## T6c: legendary options that cast a granted spell (done, `ci/spells-33-t6c`)
+
+Class B, new generic option (D156). A Feature or option effect may carry `grantedSpellCast: { spellKind: 'CANTRIP' | 'LEVELED' }` (schema `featureEffectDtoSchema`, authored `FeatureGrantedSpellCastAuthored`, node map `featureGrantedSpellCast`): an ACTION that casts one of its holder's granted spells, chosen at the table. It authors no paths of its own, is refused on a passive effect or beside `spellCast`, and spends the legendary pool through the usual `resourceUse`. The Lich's Cantrip (`CANTRIP`, cost 1; its option had no cost or action invocation before) and the Gynosphinx's Cast a Spell (`LEVELED`, cost 3) use it, and `CREATURE_LICH_LEGENDARY_ACTIONS` and `CREATURE_GYNOSPHINX_LEGENDARY_ACTIONS` are deleted.
+
+- Proofs: `creatureGrantedSpellCastAuthoringParity.test.ts` (node map unchanged, no closed rule, pool spend), `feature-granted-spell-cast-contracts.test.ts` (schema rules).
+- Data and schema only: discovery does not yet emit a capability for it. The runtime path (list the holder's granted spells of the kind, spend the slot) belongs to T3c2a/T3c2b, which should read `effect.grantedSpellCast` in `encounterFeatureActionCapabilityDiscovery.ts`.

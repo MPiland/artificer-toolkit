@@ -398,7 +398,7 @@ Converts POWER_WORD_KILL, POWER_WORD_STUN and DIVINE_WORD; each kind is deleted.
 - Rejected: a nested-outcome wrapper kind (nothing nests outcomes today) and a `FacetAuthored` predicate (facets are evaluated at authoring time against static subjects, not live hit points).
 - Where: `packages/shared/src/domains/effects/{authored,core,maps,compilers}`, `packages/schema/src/effects`, `effectActionCompiler.ts` (gate beside `conditionImmune`), `encounterCharacterMechanicsBatch.ts` (KILL application). Full packet: side-session notes `spells-4-t2i-design-packet.md`.
 
-#### T2i2 (damage interception contract; T2i2a built, T2i2b pending)
+#### T2i2 (damage interception contract; T2i2a and T2i2b built)
 
 Generic "damage that would drop the holder to 0 hit points leaves it at N instead, with uses". Consumers: Death Ward (T2i2b), Undead Fortitude (SPELLS-33.T4i), Relentless Endurance.
 
@@ -408,10 +408,15 @@ Generic "damage that would drop the holder to 0 hit points leaves it at N instea
   - `heldDamageInterceptions(effects)`: unspent interceptions, lowest effect id first (replay-stable); an effect with `remainingUses < 1` holds none.
   - `hitPointsAfterDamage`: damage taking the holder from above 0 to exactly 0 leaves `min(dropToHitPoints, maximum)`; anything else is plain subtraction.
   - `applyDamageInterceptions`: the first lethal damage application or `KILL` spends each interception in order; later damage is rebased on the hit points the interception left, so a second blow meets the ward spent. A `KILL` with an unspent `negatesKill` interception becomes `KILL_NEGATED`.
-- **Where it is applied**: inside `foldCharacterMechanicsApplications` (optional input `damageInterceptions`), so a Character, an in-form Character and a Run creature all get it from the one fold; `planEncounterMechanicsBatch` takes the same optional `damageInterceptions` and passes it to every fold. Applications are rewritten before the loop and the loop re-validates each result from its own running state.
+- **Where it is applied** (T2i2b: one role each): `planEncounterMechanicsBatch` applies the interceptions (`applyDamageInterceptions`, all three branches: Run creature, Character, Character in a form) from the pools the target starts from, and `foldCharacterMechanicsApplications` only validates the result (optional input `damageInterceptions`): each intercepted blow must match what the first unspent interception makes of it, a lethal blow or `KILL` a ward could have settled is refused, and a forged `interceptedBy` is refused. Healing and temporary hit points after an interception are rebased generically onto the running hit point and temporary pools (`temporaryHitPointsAfterGrant` / `AfterLoss` / `AfterRelease`), so any order of changes in one batch settles.
 - **Receipts** (`ruleExecutionMechanics.ts`): `DAMAGE.interceptedBy` (the spent effect id; the validators accept `1 <= after <= maximum` when set, and an intercepted blow does not touch death saves, nor trigger the massive-damage instant death) and `KILL_NEGATED { negatedBy }` (no state change). Both are validated in the fold and in the receipt chains.
 - **Proofs**: `encounterDamageInterception.test.ts` runs every case for a Character with death saves and a Run creature without, using an authored fixture effect.
-- **T2i2b (pending)**: one derivation function returning every held-effect-derived batch input (effective maximum hit points + damage interceptions) that each builder calls once instead of computing maximum hit points inline; persist-side spend/end with undo (precedent: `spendEffectUses` / `endEffects`, decoy `spentUseGrants` / `endedGrants`); Death Ward converted to `uses: 1` + `{ dropToHitPoints: 1, negatesKill: true }` and the `DEATH_WARD` closed-rule kind deleted; Death Ward in the grant-authoring parity tests; room journey (warded Character hit for lethal damage drops to 1, ward spent, undo restores both). Until it lands, builders pass no `damageInterceptions`, so nothing changes at runtime.
+- **T2i2b (built)**:
+  - `heldBatchInputs({ baseMaximumHitPoints, effects })` returns every batch input the held effects derive (`effectiveMaximumHitPoints`, `damageInterceptions`). `MovementTarget` facts carry `damageInterceptions` (required), and every planner caller (action plan, turn effects, spatial movement, native contest, cleaving, check and basic-action responses) passes the facts' value beside `effectiveMaximumHitPoints`.
+  - The room applies a committed action's receipt applications through `applyRoomEncounterMechanicsBatch`, which derives the target's `damageInterceptions` from its held effects (`turnEffectOwner`) for every caller. The persistence builders assemble those batches without held effects, so this is the one place the interceptions reach the commit.
+  - Persist-side spend/end in `persistEncounterMechanicsBatchPlan` (`spendDamageInterceptions`): each effect named by a receipt's `DAMAGE.interceptedBy` or `KILL_NEGATED.negatedBy` spends one use (`spendEffectUses`) or, with its last use, ends (`deleteGrants`). The original records go into `endedGrants`, so the action's receipt `consumedGrants` and `restoreConsumedGrants` give the use or the ward back on undo (precedent: Mirror Image decoys).
+  - Death Ward is data: `lifecycle: { uses: 1 }` and `{ dropToHitPoints: 1, negatesKill: true }`; the `DEATH_WARD` closed-rule kind is deleted and Death Ward is in the `coreOptionSpells.test.ts` parity table.
+  - Proofs: `encounterDamageInterception.test.ts` (fold-only regression: a lethal blow no interception settled now throws; the generic rebase; a forged `interceptedBy`; `heldBatchInputs`), `encounterMechanicsBatchPlan.test.ts` (the planner applies the ward for a Run creature and a Character), `coreOptionSpells.test.ts`, and the room journey `apps/session-worker/test/nativeRoomDeathWard.test.ts` (warded Character takes lethal damage, stays at 1 hit point, the ward ends; a two-use ward keeps one; undo restores hit points and ward).
 
 ### T2i3 (Power Word Stun, done; `ci/spells-4-t2i3`)
 
@@ -423,14 +428,22 @@ T2i4 was split: T2i4a is the generic tier-selection seam, T2i4b the tiered save 
 
 Maintenance readers (`encounterActionMaintenance.ts`, `encounterSourceImmunity.ts`, `actionChoiceReads.ts`, `nativeEncounterRules.ts`) read `compilation.activeEffectPlan`, which is null for a tiered action: a tier plan may author no maintenance or source immunity until one of them needs it.
 
-### T2i4b resume (Divine Word, size 2; fresh session)
+### T2i4b1 (tiered save graph, done; `ci/spells-4-t2i4b`)
 
-Converts DIVINE_WORD and deletes the kind. Not started. Branch from the phase branch with T2i4a merged; push to `ci/spells-4-t2i4b`.
+T2i4b split: T2i4b1 (this) is the generic tiered save; T2i4b2 is the Divine Word data and its proofs.
 
-- A tiered action does not compile end to end yet: `compileExecutionPlan`/`adapter.compile` refuse it (a tiered spell becomes MANUAL). Build the tiered **save** graph: `testPlan` refuses distinct result blocks on one path ("D&D test action branches must not merge distinct authored result blocks") and `refuseGate` blocks a gate beside a save/test; both need to admit tiers on the ON_SAVE_FAIL path. Divine Word saves once (Charisma, SOURCE_SAVE_DC, CHOSEN_CREATURES); the failed-save path then selects the tier by the target's hit points.
-- Each tier's entry has its own entry id, so its application has its own evidence id; the KILL tier (20 or fewer) is a generic `KILL` outcome inside the save-fail graph, negated by Death Ward (T2i2).
+- The hit-point gate contract changed in place to a band (no v3, no compat): the v2 gated proposal operations take `targetCurrentHitPoints`, `hitPointsAbove` and `hitPointsAtMost`, authorized by the one comparator `withinHitPointBand` in `hitPointTiers.ts` (`hitPointsAbove` is `NO_HIT_POINT_FLOOR`, -1, for Power Word Kill/Stun). A tier's floor is the nearest lower sibling ceiling (`hitPointTierFloor`); `selectHitPointTier(ceilings, hp)` picks the one band holding the hit points.
+- The tier is selected at outcome specialization (`specializeDnd5eEffectActionOutcomeBody`): only the selected tier's entries become graph nodes, each gated on its band. `bindFacts` always binds the target's current hit points. A target no band holds is owed nothing (`TEST_ONLY`, see `resolveEncounterActionPhaseExecution`).
+- A KILL tier has no plan and applies through the graph (`boundedTestOutcome` admits a tiered KILL). `compilation.hitPointTiers` persists the ceilings (schema `compiledActionHitPointTiersSchema`) so `selectHitPointTierPlan(ceilings, plans, hp)` gives a planless tier its band and its targets no plan. `ownsTimedSaveCondition` plans a tier's conditions from the tier-narrowed action.
+- Tier rows no longer set `entryId`: each outcome keeps its own entry id so each application has its own evidence id (source-entry bindings are one-to-one with nodes).
+- Proof: `hitPointTierSave.test.ts` (fixture spell, hp 20/21/30/31/40/41/50/51 through the real compile and graph), `hitPointTiers.test.ts`, `powerWordStun.test.ts`.
+
+### T2i4b2 resume (Divine Word data; fresh session)
+
+Not started. Convert DIVINE_WORD and delete the kind. Push to `ci/spells-4-t2i4b2`.
+
 - Data (`packages/source-data/src/srd/spells/divine-word.ts`): `selectionKind: 'HIT_POINT_TIERS'` rows 50 (deafened, 1 minute), 40 (deafened and blinded, 10 minutes), 30 (blinded, deafened and stunned, 1 hour), 20 (KILL). Planar banishment stays description-only (no plane model); add it to future-enhancements if absent.
-- Proof: rules-runtime test per tier boundary (20, 21, 30, 31, 40, 41, 50, 51) through the real compile and graph, a room journey, an authoring-parity proof, and delete DIVINE_WORD from `closedRuleKind.ts`. Then drop the published-graph stand-in in `hitPointTierPlans.test.ts` (`compiledTieredCast`): the real tiered graph replaces it.
+- Proof: authoring-parity proof, a room journey, delete DIVINE_WORD from `closedRuleKind.ts`, drop the published-graph stand-in in `hitPointTierPlans.test.ts` (`compiledTieredCast`) for the real compile, and drop `compiledTestSpellCast`'s optional `registry` arg if unused.
 
 ### T2m1 (Animal Friendship; repeat-save design ruled 2026-10-20)
 

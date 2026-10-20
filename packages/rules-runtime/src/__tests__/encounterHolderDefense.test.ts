@@ -154,6 +154,7 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       state: { current: 10, temporary: 0, conditions: [...conditionIds], deathSaves: null },
       initialConditionRows: null,
       effectiveMaximumHitPoints: 10,
+      damageInterceptions: [],
       baseScalarValues: {},
       effectiveScalarValues: {},
       baseRulePolicyOutput: null,
@@ -170,6 +171,7 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       conditionDefinitions: [],
       conditionMechanics: [],
       attackTraitGrants: [],
+      featureModifiers: [],
       innateConditionIds: []
     }
   }
