@@ -9136,7 +9136,7 @@
                   "SPELLS-4.T2m1b2"
                 ]
               },
-              "text": "Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs."
+              "text": "Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs. Contagion lasts 7 days, over MAX_ACTIVE_EFFECT_TURNS (14,400); it needs a longer-duration path or a Campaign-clock lifecycle before it compiles as an active effect (found in T2m1c)."
             },
             {
               "status": "TODO",
