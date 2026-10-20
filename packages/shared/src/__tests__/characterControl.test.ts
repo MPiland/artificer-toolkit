@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   controlsAssignedCharacter,
-  controlsUnboundSceneToken
+  controlsUnboundSceneToken,
+  withCharacterControllers
 } from '../domains/campaign/characterControl.js'
 
 const owner = '00000000-0000-4000-8000-000000000001'
@@ -51,5 +52,49 @@ describe('controlsUnboundSceneToken', () => {
       controlsUnboundSceneToken(token({ controlledByUserIds: [stranger] }), stranger, [])
     ).toBe(true)
     expect(controlsUnboundSceneToken(token({}), stranger, assignments)).toBe(false)
+  })
+})
+
+describe('withCharacterControllers', () => {
+  const token = (
+    id: string,
+    overrides: { characterId?: string; controlledByUserIds?: string[] }
+  ) => ({
+    controlledByUserIds: [] as string[],
+    id,
+    ...overrides
+  })
+
+  it('lists a Character player and grantees on its linked tokens beside the GM list', () => {
+    const scene = { tokens: [token('hero', { characterId, controlledByUserIds: [stranger] })] }
+    expect(withCharacterControllers(scene, assignments).tokens[0]?.controlledByUserIds).toEqual([
+      stranger,
+      owner,
+      grantee
+    ])
+  })
+
+  it('leaves unlinked tokens, other Characters and the stored Scene alone', () => {
+    const scene = {
+      tokens: [
+        token('npc', {}),
+        token('other', { characterId: otherCharacterId }),
+        token('unassigned', { characterId: crypto.randomUUID() })
+      ]
+    }
+    const derived = withCharacterControllers(scene, assignments)
+    expect(derived.tokens.map((entry) => entry.controlledByUserIds)).toEqual([[], [owner], []])
+    expect(scene.tokens.map((entry) => entry.controlledByUserIds)).toEqual([[], [], []])
+  })
+
+  it('returns the same Scene when no token is linked to a Character', () => {
+    const scene = { tokens: [token('npc', {})] }
+    expect(withCharacterControllers(scene, assignments)).toBe(scene)
+  })
+
+  it('stops listing a grantee once the grant is revoked', () => {
+    const scene = { tokens: [token('hero', { characterId })] }
+    const revoked = withCharacterControllers(scene, [{ characterId, userId: owner }])
+    expect(revoked.tokens[0]?.controlledByUserIds).toEqual([owner])
   })
 })

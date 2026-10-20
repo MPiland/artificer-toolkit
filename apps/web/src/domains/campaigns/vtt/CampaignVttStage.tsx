@@ -52,9 +52,12 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 import type { BindEncounterToPresentedSceneInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneEncounterBindingSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
+import { withCharacterControllers } from '@artificer-toolkit/shared/campaign/characterControl'
 import {
   assignedCharacterTokenId,
   canMoveSceneToken,
+  characterControlAssignments,
+  controlledCharacters,
   createSceneAnnotation,
   createSceneBarrier,
   createSceneDarknessZone,
@@ -66,6 +69,7 @@ import {
   nudgeSceneToken,
   playTools,
   readActiveTurn,
+  resolveMainCharacterId,
   type CampaignVttToolDefinition,
   type SceneTokenNudgeDirection
 } from './CampaignVttStage.model'
@@ -159,6 +163,7 @@ export function CampaignVttStage({
   const [chosenPreviewTokenId, setChosenPreviewTokenId] = useState<string | null>(null)
   const [inspectedTokenId, setInspectedTokenId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
+  const [pickedMainCharacterId, setPickedMainCharacterId] = useState<string | null>(null)
   // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
   const [sharePreviews, setSharePreviews] = useState(false)
   // The speed type the member chose for an actor's movement; it applies to that actor only.
@@ -562,19 +567,27 @@ export function CampaignVttStage({
       )
     }
   }, [scene, effectiveMode, activeEncounter, actorIdByTokenId])
+  // A Character's grantees control its linked tokens as its player does (D162).
+  const controlledScene = useMemo(
+    () =>
+      presentScene && (campaign.role !== 'OWNER' || gmPreviewUserId)
+        ? withCharacterControllers(presentScene, characterControlAssignments(campaign.memberships))
+        : presentScene,
+    [presentScene, campaign.role, campaign.memberships, gmPreviewUserId]
+  )
   const renderedScene = useMemo(
     () =>
-      presentScene && campaign.role === 'OWNER' && gmPreviewUserId
+      controlledScene && campaign.role === 'OWNER' && gmPreviewUserId
         ? projectSceneForViewer(
-            presentScene,
+            controlledScene,
             {
               role: 'PLAYER',
               userId: gmPreviewUserId
             },
             boundTokenControl
           )
-        : presentScene,
-    [presentScene, campaign.role, gmPreviewUserId, boundTokenControl]
+        : controlledScene,
+    [controlledScene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
   // A forced movement waiting on its source is picked on the board by whoever acts for it (D157).
   const destinationPending =
@@ -726,17 +739,19 @@ export function CampaignVttStage({
   const effectiveRole = gmPreviewUserId ? 'PLAYER' : campaign.role
   const effectivePreviewTokenId =
     campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null
+  // The tabletop is seen through one main Character's senses; selecting a controlled token overrides it.
+  const controlled = useMemo(
+    () => controlledCharacters(campaign.memberships, viewerUserId),
+    [campaign.memberships, viewerUserId]
+  )
+  const mainCharacterId = resolveMainCharacterId(controlled, pickedMainCharacterId)
   const viewTokenId = renderedScene
     ? resolveViewTokenId({
         assignedTokenId: assignedCharacterTokenId({
           actorIdByTokenId,
           actors: activeEncounter?.actors ?? [],
-          assignedCharacterId:
-            (gmPreviewUserId
-              ? campaign.memberships.find((membership) => membership.userId === gmPreviewUserId)
-                  ?.assignedCharacter
-              : campaign.assignedCharacter
-            )?.id ?? null
+          assignedCharacterId: mainCharacterId,
+          tokens: renderedScene.tokens
         }),
         boundTokenControl,
         currentUserId: viewerUserId,
@@ -1313,6 +1328,19 @@ export function CampaignVttStage({
         </div>
         <div className={styles.headerActions}>
           {scenePresentationControl}
+          {effectiveRole === 'PLAYER' && controlled.length > 1 ? (
+            <Select
+              aria-label='Main Character'
+              allowDeselect={false}
+              data={controlled.map((character) => ({
+                label: character.label,
+                value: character.id
+              }))}
+              size='xs'
+              value={mainCharacterId}
+              onChange={setPickedMainCharacterId}
+            />
+          ) : null}
           {campaign.role === 'OWNER' ? (
             <>
               <Select
