@@ -139,6 +139,14 @@ export type PredicatePayloadByCode = {
   SPEED_ABOVE_ZERO: EmptyObject
   FREE_HAND: EmptyObject
   /**
+   * The holder has moved no more than `maxFeet` this turn and/or no more than `maxSpeedFraction`
+   * of its speed (both when both are given). Decided live in an Encounter.
+   */
+  TURN_MOVEMENT: {
+    maxFeet?: number
+    maxSpeedFraction?: number
+  }
+  /**
    * The holder took the Attack action this turn with a weapon that has every listed property
    * (any weapon when not selected), other than the item the requirement belongs to.
    */
@@ -420,6 +428,14 @@ export const PREDICATE_REGISTRY = {
     code: 'FREE_HAND',
     label: 'Free Hand',
     description: 'Requires the holder to have a hand free.',
+    subjects: ['CHARACTER', 'CREATURE']
+  },
+
+  TURN_MOVEMENT: {
+    code: 'TURN_MOVEMENT',
+    label: 'Turn Movement',
+    description:
+      'Requires the holder to have moved no more than a number of feet, or a fraction of its speed, this turn.',
     subjects: ['CHARACTER', 'CREATURE']
   },
 

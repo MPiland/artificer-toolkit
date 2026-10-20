@@ -434,7 +434,9 @@ export const PATH_LIFECYCLE_END_EVENT = {
   ON_IDLE_TURN: 'ON_IDLE_TURN',
   ON_LEAVING_AREA: 'ON_LEAVING_AREA',
   ON_LONG_REST: 'ON_LONG_REST',
-  ON_CHOSEN_ITEM_RELEASED: 'ON_CHOSEN_ITEM_RELEASED'
+  ON_CHOSEN_ITEM_RELEASED: 'ON_CHOSEN_ITEM_RELEASED',
+  ON_MOVE: 'ON_MOVE',
+  ON_TAKE_ACTION: 'ON_TAKE_ACTION'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -485,6 +487,16 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     code: PATH_LIFECYCLE_END_EVENT.ON_CHOSEN_ITEM_RELEASED,
     label: 'On Chosen Item Released',
     description: 'Ends when the path’s chosen item leaves the holder’s hands or equipment.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_MOVE]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_MOVE,
+    label: 'On Move',
+    description: 'Ends when the holder moves voluntarily.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_TAKE_ACTION]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_TAKE_ACTION,
+    label: 'On Take Action',
+    description: 'Ends when the holder takes an action, a bonus action or a reaction.'
   }
 } as const
 

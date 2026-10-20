@@ -5,18 +5,68 @@ import {
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  RANGE_KIND,
+  TRIGGER,
   VALUE_DOMAIN_CODE,
+  type ActivationCode,
   type AuthoringConstraintCode,
   type EquipmentCategoryCode,
   type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
 import type {
+  EffectAuthored,
   FacetAuthored,
   ModifierGrantAuthored,
   OptionAuthored
 } from '@artificer-toolkit/shared/authored'
 
 export { closedRuleEffect } from '../closed-rule-effect.js'
+
+type FixedResultBlock = Extract<
+  EffectAuthored['paths'][number],
+  { selectionKind: 'FIXED' }
+>['resultBlock']
+
+/**
+ * A self-targeted action with one outcome that lasts until an authored lifecycle event ends it
+ * (Hide in Plain Sight, One with Shadows). The caller supplies every id so each feature keeps its own.
+ */
+export function selfActionEffect(input: {
+  ids: { effect: string; range: string; path: string; result: string }
+  activation: Exclude<ActivationCode, 'FREE'>
+  lifecycle: NonNullable<FixedResultBlock['lifecycle']>
+  outcome: FixedResultBlock['outcomes'][number]
+}): EffectAuthored {
+  return {
+    id: input.ids.effect,
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      activation: { code: input.activation, amount: 1 },
+      range: { id: input.ids.range, rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    },
+    paths: [
+      {
+        id: input.ids.path,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: input.ids.result,
+          resultKind: 'SINGLE',
+          lifecycle: input.lifecycle,
+          outcomes: [input.outcome]
+        }
+      }
+    ]
+  }
+}
 
 /** SRD equipment indexes of the artisan's tools (alchemist's supplies through woodcarver's tools). */
 export const ARTISAN_TOOL_EQUIPMENT_INDEXES = [

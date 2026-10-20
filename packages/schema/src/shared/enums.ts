@@ -170,6 +170,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'CAN_ACT',
     'SPEED_ABOVE_ZERO',
     'FREE_HAND',
+    'TURN_MOVEMENT',
     'ATTACK_ACTION_OTHER_WEAPON',
     'CHARACTER_LEVEL',
     'CLASS_LEVEL',
@@ -386,7 +387,9 @@ export const pathLifecycleEndEventSchema = lazySchema(() =>
     'ON_IDLE_TURN',
     'ON_LEAVING_AREA',
     'ON_LONG_REST',
-    'ON_CHOSEN_ITEM_RELEASED'
+    'ON_CHOSEN_ITEM_RELEASED',
+    'ON_MOVE',
+    'ON_TAKE_ACTION'
   ])
 )
 /** Whose damage ends an effect: anyone's, or only that of the effect source and its allies. */
@@ -416,7 +419,9 @@ export const pathLifecycleGrantEndEventSchema = lazySchema(() =>
     'ON_HIT_POINTS_REGAINED',
     'ON_INCAPACITATED',
     'ON_IDLE_TURN',
-    'ON_CHOSEN_ITEM_RELEASED'
+    'ON_CHOSEN_ITEM_RELEASED',
+    'ON_MOVE',
+    'ON_TAKE_ACTION'
   ] satisfies z.infer<typeof pathLifecycleEndEventSchema>[])
 )
 export const forcedMovementDirectionSchema = lazySchema(() => z.enum(FORCED_MOVEMENT_DIRECTION))
