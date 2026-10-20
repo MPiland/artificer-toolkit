@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   PATH_CODE,
@@ -15,7 +16,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const powerWordStun: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.POWER_WORD_STUN,
@@ -58,8 +59,9 @@ export const powerWordStun: SpellAuthored = {
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: spellChildId(SPELL_IDS.POWER_WORD_STUN, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            id: spellChildId(SPELL_IDS.POWER_WORD_STUN, 0x214, 1),
+            resultKind: 'SEQUENCE' as const,
+            gate: { kind: 'TARGET_HIT_POINTS_AT_MOST' as const, amount: 150 },
             duration: {
               id: spellChildId(SPELL_IDS.POWER_WORD_STUN, 0x213, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -68,8 +70,21 @@ export const powerWordStun: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.POWER_WORD_STUN, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'POWER_WORD_STUN' as const
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('STUNNED')
+              },
+              {
+                id: spellChildId(SPELL_IDS.POWER_WORD_STUN, 0x215, 1),
+                effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                timing: 'TARGET_TURN_END' as const,
+                savingThrow: {
+                  id: spellChildId(SPELL_IDS.POWER_WORD_STUN, 0x216, 1),
+                  dcMethod: 'SOURCE_SAVE_DC' as const,
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
+                },
+                attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                onSuccess: { kind: 'END' as const },
+                onFailure: { kind: 'CONTINUE' as const }
               }
             ]
           }
