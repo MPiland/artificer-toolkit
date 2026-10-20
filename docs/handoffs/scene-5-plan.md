@@ -45,11 +45,12 @@ New PBI, "Prompts and turn notices follow the player to any page":
 
 SCENE-5:
 
-| Task | Delivers                                                                                                                                                                                                           | Size | After      |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---------- |
-| T1   | The GM gives the table role and names the covered and main Characters; the holder's tabletop window is server-projected as the table (main Character's vision; no chat, prompts, private rolls or GM data)         | 5    | new PBI T1 |
-| T2   | View switching by a single selected covered token; clearing or a multi-select returns to the main Character                                                                                                        | 3    | T1         |
-| T3   | The table acts for covered Characters: moves (any outside an Encounter or in a Manual Run; the turn's one in an Assisted Encounter) and the action drawer for the turn's covered Character; other clients converge | 5    | T1         |
+| Task | Delivers                                                                                                                                                                                                                                                                       | Size | After      |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---------- |
+| T1   | The GM gives the table role and names the covered and main Characters; the holder's tabletop window is server-projected as the table (main Character's vision; no chat, prompts, private rolls or GM data); it remembers its zoom on that device across reloads and reconnects | 5    | new PBI T1 |
+| T2   | View switching by a single selected covered token; clearing or a multi-select returns to the main Character; a switch may pan but never changes the zoom                                                                                                                       | 3    | T1         |
+| T3   | The table acts for covered Characters: moves (any outside an Encounter or in a Manual Run; the turn's one in an Assisted Encounter) and the action drawer for the turn's covered Character; other clients converge                                                             | 5    | T1         |
+| T4   | A Chrome-style zoom control on the tabletop for every viewer: a zoom icon opens a percentage field with minus and plus, so a table can type the zoom that fits its minis                                                                                                       | 2    |            |
 
 T3 needs a server change: room admission (`roomBoundTokenControl` and the Encounter action admission) must accept the table role's commands for covered Characters it does not own.
 
@@ -58,6 +59,7 @@ T3 needs a server change: room admission (`roomBoundTokenControl` and the Encoun
 - **5.1:** the table mode is no longer chosen at launch: "During an ACTIVE Session the GM can give one member the table role, covering chosen player Characters with one as the main Character. That member's tabletop window shows the Scene through the main Character's senses …" (the vision sentences stay).
 - **5.2:** the table no longer answers roll prompts: "The table acts for every covered Character: it moves their tokens (outside an Encounter or in a Manual Run any of them; in an Assisted Encounter the one whose turn it is) and chooses their actions; their roll prompts go to each Character's controller; every other client converges as for any player command."
 - **5.3:** unchanged, but it now holds for every Character, the holder's own included.
+- **New 5.4:** "Every tabletop viewer can set the zoom by typing a percentage or stepping it. The table window keeps its zoom on that device across reloads, reconnects and view switches, so squares stay sized to physical minis."
 - **New PBI:** ACs for the global prompt modal (any page, cleared everywhere on answer, never in a table window) and the turn notification.
 
 ## Later, not in SCENE-5 (future enhancements)
@@ -65,7 +67,10 @@ T3 needs a server change: room admission (`roomBoundTokenControl` and the Encoun
 - Push notifications for a locked phone or a backgrounded app.
 - A vision-off "map board" mode, and touch gestures beyond tap and drag.
 
-## Open questions for the product owner
+## Physical minis
 
-1. **Fixed grid scale for physical minis (Lock View):** in SCENE-5 or post-launch? It matters for the owner's own minis-on-a-TV pattern. Recommended: post-launch unless the owner plans to play that way at launch.
-2. **The AC wording above:** confirm when ready to register.
+No Lock View or calibration. Grids are fixed to the map, and the person at the TV zooms until squares fit the minis, by wheel or by typing a percentage (T4). The table window keeps that zoom across reloads (T1) and view switches (T2). An accidental wheel bump is not guarded against; re-zooming fixes it.
+
+## Open question for the product owner
+
+- **The AC wording above:** confirm when ready to register. This includes the new 5.4.
