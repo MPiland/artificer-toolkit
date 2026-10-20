@@ -915,7 +915,7 @@ describe('internal canonical source import', () => {
   })
 
   // T1a2: a retired rule kind left stored canonical dependents that the current schema rejects.
-  async function storeRetiredShape(t: ReturnType<typeof convexTest>, id: string) {
+  async function storeRetiredShape(t: ReturnType<typeof convexTest<typeof schema>>, id: string) {
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
