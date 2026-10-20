@@ -45,6 +45,7 @@ export type EncounterCharacterMechanicsEventPhase =
   | 'SPATIAL_EFFECT'
   | 'TURN_ZONE_EFFECT'
   | 'TURN_DEATH_SAVE'
+  | 'INITIATIVE_RESTORE'
   | 'TURN_EFFECT'
 
 export function deriveEncounterCharacterMechanicsEventCommandId(input: {

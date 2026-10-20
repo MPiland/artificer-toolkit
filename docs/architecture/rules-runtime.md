@@ -1010,6 +1010,21 @@ rider's own end triggers, so waking (`DAMAGE_TAKEN`, `ACTION_USED_ON_HOLDER`) en
 parent condition. A receipt may therefore carry two active-effect transitions. The rider is not linked to
 the parent: ending the parent early leaves the rider for the GM to end. A follow-up save takes a rider, and so does the fixed `ON_SAVE_FAIL` result of a direct saving-throw action (SPELLS-33.T7b, D156): `failureMarginRider` on the result block ("fails by 5 or more, also paralyzed"). The TEST total is not in the OUTCOME graph, so the specializer derives `saveFailedBy` (DC minus total) from the TEST outputs (`testOutputs` on `specializeOutcomeTemplate`) and appends one result group per rider outcome only when the margin is met. `marginRiderPlan` builds the rider's second active effect for both the follow-up and the direct-save plans, and the rider applies only when one of its conditions lands. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author the follow-up form; the Mummy and Mummy Lord Dreadful Glare author the direct-save form with SOURCE_IMMUNITY. Limitation: that immunity is per source, so a save against one mummy does not make the target immune to other mummies (SRD text covers all mummies).
 
+**Initiative restores (current, SPELLS-31.T5o).** A PASSIVE effect with `triggerCode: ROLL_INITIATIVE` (path code
+`PASSIVE`) and a `RESTORE_RESOURCE { chargeId, floor, whenAtOrBelow }` outcome raises a feature charge when its
+holder's initiative settles: Perfect Self (`kiCharge`, floor 4) and Superior Inspiration (`bardicInspirationCharge`,
+floor 1), both at `whenAtOrBelow: 0`. It is a Character-only fact. `appendActions` (`characterActionRuleFacts.ts`)
+lists the restores of a feature, option or feat effect in `initiativeRestores` instead of the action sinks, and the
+rule evaluation carries them as `initiativeRestoreSources`. `planCharacterInitiativeRestores`
+(`encounterInitiativeRestores.ts`) reads the Character's resolved pools: a charge with no resolved pool restores
+nothing and one that names two pools throws. A pool with at most `whenAtOrBelow` uses remaining is raised to
+`floor`, never past its maximum; every source reads the pool as the roll found it, so two sources on one pool
+take the higher floor in any order. The plan is applied as the `characterResourceRestores` of a Character
+mechanics batch (the pool's `resourceUsage` row drops to the new `used`, refused as stale when the row is not what
+the plan read). Persistence runs it at settlement, see [persistence](persistence.md). Equipment, Creature features
+and a Reinforcement's own initiative roll are not discovered (T5o known gaps in
+`docs/handoffs/slice-spells-31.md`).
+
 **Source immunity (SPELLS-31.T5l, D156).** A creature can be immune to one source's use of one action.
 Two authored forms compile to the plan's `sourceImmunity` (`sourceImmunityPlan`). A `SOURCE_IMMUNITY` outcome
 on `ON_SAVE_SUCCESS` gives `appliesTo: SAVE_SUCCESS`, keyed by the action's effect id, lasting its result

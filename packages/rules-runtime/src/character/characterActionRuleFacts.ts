@@ -18,6 +18,10 @@ import {
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
 import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
+import {
+  initiativeRestoreSources,
+  type InitiativeRestoreSource
+} from '../encounterInitiativeRestores.js'
 import { placedSpaceEntries } from '../placedSpaceEntries.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
@@ -88,6 +92,8 @@ interface CharacterActionRuleFacts {
    * as candidates no one takes: an Encounter places them, and they are never policy facts.
    */
   passiveZones: CharacterActionSources
+  /** The charges the Character's passive features raise when it rolls initiative; never policy facts. */
+  initiativeRestores: InitiativeRestoreSource[]
 }
 
 /** Every action identity of one Character source starts with this prefix. */
@@ -476,6 +482,8 @@ function appendActions(params: {
   onHitRiders?: readonly OnHitRider[]
   /** Where this source's passive zones go; absent for a source that keeps none. */
   passiveZones?: CharacterActionSources
+  /** Where this source's initiative restores go; absent for a source that keeps none. */
+  initiativeRestores?: InitiativeRestoreSource[]
   /** The weapons a Feature attack with the wielded weapons is made with; absent for an item. */
   wieldedWeaponAttacks?: WieldedWeaponAttacks
 }): void {
@@ -554,6 +562,13 @@ function appendActions(params: {
 
   for (const authoredEffect of params.effects ?? []) {
     const passive = authoredEffect.invocation.kind === 'PASSIVE'
+    if (params.initiativeRestores) {
+      const restores = initiativeRestoreSources(authoredEffect)
+      if (restores.length > 0) {
+        params.initiativeRestores.push(...restores)
+        continue
+      }
+    }
     const sink = passive
       ? params.passiveZones
       : { candidates: params.candidates, entryPoints: params.entryPoints }
@@ -606,6 +621,7 @@ export function buildCharacterActionRuleFacts(params: {
   const entryPoints: CharacterActionRuleEntryPoint[] = []
   const onHitRiders: OnHitRider[] = []
   const passiveZones: CharacterActionSources = { candidates: [], entryPoints: [] }
+  const initiativeRestores: InitiativeRestoreSource[] = []
   // Feature actions are appended once every rider is known, since an attack a Feature makes with
   // a wielded weapon carries them (D156).
   const featureActions: Pick<
@@ -701,6 +717,7 @@ export function buildCharacterActionRuleFacts(params: {
       equipment: null,
       resourcePoolCandidates: params.resourcePoolCandidates,
       passiveZones,
+      initiativeRestores,
       wieldedWeaponAttacks
     })
 
@@ -748,7 +765,7 @@ export function buildCharacterActionRuleFacts(params: {
     }
   }
 
-  return { actionCandidates, entryPoints, passiveZones }
+  return { actionCandidates, entryPoints, passiveZones, initiativeRestores }
 }
 
 type CompiledOutcome = CompiledEffectEntry['outcome']

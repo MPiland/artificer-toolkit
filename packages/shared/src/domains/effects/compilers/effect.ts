@@ -16,6 +16,7 @@ import type {
   ManifestProximityRuleAuthored,
   OptionalOnHitAuthored,
   ArmorClassFloorAuthored,
+  RestoreResourceAuthored,
   HitPointMaximumReductionAuthored,
   ScalarReductionAuthored,
   TelepathicLinkAuthored,
@@ -218,6 +219,7 @@ export type CompiledEffectOutcome =
   | import('#authored').ActionEconomyRuleAuthored
   | import('#authored').StabilizeAuthored
   | ArmorClassFloorAuthored
+  | RestoreResourceAuthored
   | TelepathicLinkAuthored
   | PlantPortalAuthored
   | TreeStrideAuthored
@@ -334,6 +336,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.ACTION_ECONOMY_RULE:
     case EFFECT_KIND.STABILIZE:
     case EFFECT_KIND.ARMOR_CLASS_FLOOR:
+    case EFFECT_KIND.RESTORE_RESOURCE:
     case EFFECT_KIND.TELEPATHIC_LINK:
     case EFFECT_KIND.PLANT_PORTAL:
     case EFFECT_KIND.TREE_STRIDE:

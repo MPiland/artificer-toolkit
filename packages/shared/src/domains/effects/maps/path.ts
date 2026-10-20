@@ -2796,6 +2796,29 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'restoreChargeId',
+      text(['chargeId'], 'Charge ID', {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.RESTORE_RESOURCE)
+      })
+    )
+    .set(
+      'restoreFloor',
+      number(['floor'], 'Restore To At Least', {
+        constraints: { minimum: 1 },
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.RESTORE_RESOURCE)
+      })
+    )
+    .set(
+      'restoreWhenAtOrBelow',
+      number(['whenAtOrBelow'], 'When Remaining Is At Most', {
+        constraints: { minimum: 0 },
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.RESTORE_RESOURCE)
+      })
+    )
+    .set(
       'degradeSubject',
       selectSingle(
         ['subject'],
