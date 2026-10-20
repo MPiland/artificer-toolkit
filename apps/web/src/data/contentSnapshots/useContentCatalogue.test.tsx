@@ -153,7 +153,7 @@ describe('useContentCatalogue', () => {
     expect(result.current.updating).toBe(false)
     expect(catalogue.manifest).toHaveBeenCalledTimes(1)
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      `https://session.example.test/content/v2/source/${PLATFORM_SOURCE_ID}/feat/list/${platform.sha256}.json`
+      `https://session.example.test/content/v3/source/${PLATFORM_SOURCE_ID}/feat/list/${platform.sha256}.json`
     ])
     expect(fetchMock.mock.calls[0]?.[1]?.headers).toEqual({})
     expect(catalogue.issueAccess).not.toHaveBeenCalled()

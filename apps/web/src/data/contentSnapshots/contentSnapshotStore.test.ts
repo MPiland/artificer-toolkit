@@ -67,7 +67,7 @@ describe('content snapshot store', () => {
     })
     const [url, init] = fetch.mock.calls[0]!
     expect(url).toBe(
-      `${ORIGIN}/content/v2/source/${SOURCE_ID}/feat/index/${object.location(true).ref.sha256}.json`
+      `${ORIGIN}/content/v3/source/${SOURCE_ID}/feat/index/${object.location(true).ref.sha256}.json`
     )
     expect(init?.headers).toEqual({})
     expect(getToken).not.toHaveBeenCalled()

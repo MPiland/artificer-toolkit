@@ -16,6 +16,7 @@ import { createSnapshotReaders } from '../character/snapshotReaders.js'
 import {
   emptyCharacter,
   prepareFixtureSheet,
+  readyFighterFixture,
   scopeObjects,
   system
 } from '../testing/characterContextFixtures.js'
@@ -121,7 +122,25 @@ describe('Retained acquired rules', () => {
       fireBolt.description
     )
     expect(context.catalog.spells.map((spell) => spell.id)).not.toContain(fireBolt.id)
-    const { sheet } = await prepareFixtureSheet({ character, documents: { SPELL: [magicMissile] } })
+    // A ready Character carrying the same retained item and acquisition reads its Sheet.
+    const ready = readyFighterFixture()
+    const { sheet } = await prepareFixtureSheet({
+      character: {
+        ...ready.character,
+        state: {
+          ...ready.character.state,
+          equipment: {
+            ...ready.character.state.equipment,
+            inventory: character.state.equipment.inventory
+          }
+        },
+        intent: {
+          ...ready.character.intent,
+          featureAcquisitions: character.intent.featureAcquisitions
+        }
+      },
+      documents: { ...ready.documents, SPELL: [magicMissile] }
+    })
     expect(sheet.spells.spells.find((spell) => spell.id === fireBolt.id)).toMatchObject({
       label: fireBolt.label,
       description: fireBolt.description,

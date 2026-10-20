@@ -32,12 +32,14 @@ import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolk
 import { api, components, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import {
+  compileAsPublished,
   importedSubject,
   importSeededSubjects,
   versionWithCompilation
 } from '../../tests/fixtures/publication'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { insertAuthoredVersion } from '../content/documents'
+import { parsePublicationDocument } from '../content/publicationDocument'
 import { readCharacterRow } from '../characters/stateDocuments'
 import {
   attachRoomWorker,
@@ -412,7 +414,8 @@ describe('native initiative Spell declarations', () => {
           documentSchemaVersion: current.documentSchemaVersion
         },
         canonicalizeRuleDocument(document),
-        current.compilation
+        // The republished document gets its own compilation, as publication writes.
+        await compileAsPublished(ctx, parsePublicationDocument('SPELL', document), null)
       )
       await ctx.db.patch(root._id, {
         currentVersionId: versionId,

@@ -56,7 +56,10 @@ export function scopeObjects(
   const scopeId = crypto.randomUUID()
   return Object.entries(documents).flatMap(([key, raw]) => {
     const kind = key as PublicationKind
-    const published = (raw ?? []).map((document) => parsePublicationDocument(kind, document))
+    // Documents reach publication as JSON, so a fixture drops undefined fields as transport does.
+    const published = (raw ?? []).map((document) =>
+      parsePublicationDocument(kind, JSON.parse(JSON.stringify(document)))
+    )
     const equipment = new Map(
       published.flatMap((entry) =>
         entry.subjectKind === 'EQUIPMENT' ? [[entry.document.id, entry.document] as const] : []

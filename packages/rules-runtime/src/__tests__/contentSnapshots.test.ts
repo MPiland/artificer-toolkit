@@ -51,16 +51,37 @@ function srdDocuments<Kind extends ContentSnapshotKind>(kind: Kind) {
 }
 
 const equipmentById = new Map(srdDocuments('EQUIPMENT').map((document) => [document.id, document]))
+// Each kind's SRD publications parse once and each document compiles once per file.
+const srdPublications = new Map<
+  ContentSnapshotKind,
+  ReturnType<typeof parsePublicationDocument>[]
+>()
+const compiledDocuments = new WeakMap<object, ReturnType<typeof storedCompilationOf>>()
+function compilationOf<Kind extends ContentSnapshotKind>(
+  kind: Kind,
+  document: ContentSnapshotDocument<Kind>
+) {
+  const cached = compiledDocuments.get(document)
+  if (cached) return cached
+  if (!srdPublications.has(kind))
+    srdPublications.set(
+      kind,
+      srdDocuments(kind).map((parent) => parsePublicationDocument(kind, parent))
+    )
+  const compilation = storedCompilationOf(
+    parsePublicationDocument(kind, document),
+    srdPublications.get(kind)
+  )
+  compiledDocuments.set(document, compilation)
+  return compilation
+}
 /** Each document's original version and stored compilation, as publish writes them. */
 function publicationPins<Kind extends ContentSnapshotKind>(
   kind: Kind,
   documents: readonly ContentSnapshotDocument<Kind>[],
   contentSourceId = SCOPE_ID
 ) {
-  const parents = srdDocuments(kind).map((document) => parsePublicationDocument(kind, document))
-  const compilations = documents.map((document) =>
-    storedCompilationOf(parsePublicationDocument(kind, document), parents)
-  )
+  const compilations = documents.map((document) => compilationOf(kind, document))
   const versions = documents.map((document, index) => ({
     identity: {
       subjectKind: kind,

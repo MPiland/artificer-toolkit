@@ -26,12 +26,17 @@ import { dwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import {
+  compileAsPublished,
+  importedSubject,
+  importSeededSubjects
+} from '../../tests/fixtures/publication'
 import { startLocalR2 } from '../../tests/localR2'
 import { api, internal } from '../_generated/api'
 import type { Doc } from '../_generated/dataModel'
 import { catalogueMetadata } from '../content/catalogueMetadata'
 import { insertAuthoredVersion } from '../content/documents'
+import { parsePublicationDocument } from '../content/publicationDocument'
 import { requireDefaultUserContentSource } from '../content/sources'
 import { withSceneVisionTracking } from '../lib/mutations'
 import type { ContentSnapshotScopeRef } from './marking'
@@ -102,7 +107,8 @@ async function setup() {
           version: current ? 2 : 1,
           documentSchemaVersion: 1
         },
-        canonicalizeRuleDocument(authored)
+        canonicalizeRuleDocument(authored),
+        await compileAsPublished(ctx, parsePublicationDocument(kind, authored), owner.userId)
       )
       const fields = {
         label: document.label,
@@ -217,7 +223,8 @@ describe('content snapshot builds', () => {
       readObject
     } = await setup()
     try {
-      await importSeededSubjects(t, {
+      // A base Race compiles at import, so one import is one snapshot revision.
+      await t.mutation(internal.content.import.importSubjects, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [importedSubject({ subjectKind: 'RACE', ...dwarf, document: dwarf })]
       })

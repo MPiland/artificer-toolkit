@@ -198,8 +198,9 @@ function buildRoots(
 function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapshotListSource {
   const { subjectKind, document: authored } = root
   const document = JSON.parse(JSON.stringify(authored))
-  const checksum = checksumRuleDocument(document)
   const publication = parsePublicationDocument(subjectKind, document)
+  // Publication checksums the parsed document, so the pin and its compilation agree.
+  const checksum = checksumRuleDocument(publication.document)
   const publicationVersion = {
     identity: {
       subjectKind,

@@ -154,13 +154,7 @@ export async function makePublishedRootOwned(
   const checksum = checksumRuleDocument(document)
   // The owned copy is a different document, so it gets its own compilation, as publication writes.
   const publication = parsePublicationDocument(version.subjectKind, document)
-  const ownedCompilation =
-    compilation &&
-    (publication.subjectKind === 'EQUIPMENT'
-      ? (await compileCurrentEquipment(ctx, publication.document, ownerUserId)).compilation
-      : publication.subjectKind === 'RACE'
-        ? (await compileCurrentRace(ctx, publication.document, ownerUserId)).compilation
-        : compilePublicationDocument(publication))
+  const ownedCompilation = compilation && (await compileAsPublished(ctx, publication, ownerUserId))
   const currentVersionId = await insertAuthoredVersion(
     ctx,
     {
@@ -267,6 +261,19 @@ export async function publicationFixture(
     })
   }
   return { t, first: actors[0]!, second: actors[1]! }
+}
+
+/** The compilation publication stores for a document: variants and subraces resolve their parents. */
+export async function compileAsPublished(
+  ctx: QueryCtx,
+  publication: ReturnType<typeof parsePublicationDocument>,
+  userId: string | null
+): Promise<AuthoredStoredCompilation> {
+  if (publication.subjectKind === 'EQUIPMENT')
+    return (await compileCurrentEquipment(ctx, publication.document, userId)).compilation
+  if (publication.subjectKind === 'RACE')
+    return (await compileCurrentRace(ctx, publication.document, userId)).compilation
+  return compilePublicationDocument(publication)
 }
 
 /** A stored version with its separately stored compilation attached, for assertions. */
