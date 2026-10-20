@@ -332,14 +332,26 @@ export function advantageGrants(
   }
 }
 
+/** An enemy of the target that can act stands within 5 feet of it (Pack Tactics). */
+export const ENEMY_WITHIN_5_FEET_OF_TARGET = {
+  predicateCode: 'ENEMY_NEAR_TARGET' as const,
+  feet: 5
+}
+
+/** The target has yet to take a turn in the Encounter (Assassinate). */
+export const TARGET_HAS_NOT_TAKEN_TURN = {
+  predicateCode: 'TARGET_HAS_NOT_TAKEN_TURN' as const
+}
+
 /**
- * A feature's Pack Tactics: advantage on attack rolls of every attack domain while an enemy of the
- * target that can act stands within 5 feet of it. One grant per attack domain, each with its own
- * restriction, takes the IDs `grantId(creatureIndex, firstLocalIndex)` onward (five per domain).
+ * A feature's advantage on attack rolls of every attack domain while the Encounter state `predicate`
+ * holds (Pack Tactics, Assassinate). One grant per attack domain, each with its own restriction,
+ * takes the IDs `grantId(creatureIndex, firstLocalIndex)` onward (five per domain).
  */
-export function packTacticsGrants(
+export function conditionalAttackAdvantageGrants(
   creatureIndex: number,
-  firstLocalIndex: number
+  firstLocalIndex: number,
+  predicate: typeof ENEMY_WITHIN_5_FEET_OF_TARGET | typeof TARGET_HAS_NOT_TAKEN_TURN
 ): NonNullable<FeatureAuthored['grants']> {
   return {
     modifiers: Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, order) => {
@@ -371,8 +383,7 @@ export function packTacticsGrants(
                       order: 0,
                       kind: 'PREDICATE' as const,
                       constraint: 'INCLUDE' as const,
-                      predicateCode: 'ENEMY_NEAR_TARGET' as const,
-                      feet: 5
+                      ...predicate
                     }
                   ]
                 }

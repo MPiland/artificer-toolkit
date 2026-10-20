@@ -90,7 +90,7 @@ import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterM
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
 import { measureNativeEnemyProximity } from './nativeAttackEnemyProximity.js'
-import { readNativeLiveTurnUses } from './nativeTurnUses.js'
+import { readNativeLiveHasNotTakenTurn, readNativeLiveTurnUses } from './nativeTurnUses.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import {
   prepareNativeLiveMovementConcentration,
@@ -291,6 +291,8 @@ export async function prepareNativeLiveMovement(
                   definitions
                 }),
               loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
+              loadTargetHasNotTakenTurn: ({ targetFacts }) =>
+                readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
               loadRelationshipFacts: async (relationship) => {
                 return lockedRelationshipActionFacts({
                   actionEffectId: relationship.actionEffectId,

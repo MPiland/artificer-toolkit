@@ -20,6 +20,7 @@ import {
   creatureActiveGrantAttackContributors,
   creatureFeatureAttackContributors,
   featureModifiersReadEnemyProximity,
+  featureModifiersReadTargetTurn,
   creatureAttackAbility,
   encounterAttackAddedDice,
   withSourceSightSave
@@ -340,6 +341,13 @@ export async function prepareEncounterActionMechanics<
    * a path limited that way (Sneak Attack). Called only for such an attack.
    */
   loadTurnUses?: () => Promise<readonly string[]>
+  /**
+   * Whether the attack's target has yet to take a turn in the Encounter (round 1, initiative
+   * status READY), for a Creature whose feature grants ask (Assassinate). Called only for such an attack.
+   */
+  loadTargetHasNotTakenTurn?: (input: {
+    targetFacts: MovementTarget<TCharacterFacts>
+  }) => Promise<boolean>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   loadRelationshipFacts: (input: {
     state: EncounterRunState
@@ -607,6 +615,13 @@ export async function prepareEncounterActionMechanics<
         featureModifiersReadEnemyProximity(sourceFacts.featureModifiers)))
       ? await input.loadEnemyProximity({ sourceFacts, targetFacts })
       : null
+  const targetHasNotTakenTurn =
+    attackKind !== null &&
+    input.loadTargetHasNotTakenTurn &&
+    source.kind !== 'CHARACTER_ACTION' &&
+    featureModifiersReadTargetTurn(sourceFacts.featureModifiers)
+      ? await input.loadTargetHasNotTakenTurn({ targetFacts })
+      : false
   const turnUses =
     attackKind !== null &&
     input.loadTurnUses &&
@@ -772,7 +787,8 @@ export async function prepareEncounterActionMechanics<
                         attackKind,
                         creatureAttackAbility(source.capability.mechanicFacts.outcomes),
                         sourceFacts.featureModifiers,
-                        enemyProximity?.nearestFeet ?? null
+                        enemyProximity?.nearestFeet ?? null,
+                        targetHasNotTakenTurn
                       )
                     ),
                     contributors

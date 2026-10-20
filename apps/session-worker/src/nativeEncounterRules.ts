@@ -82,7 +82,11 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { readNativeLiveEnemyProximity } from './nativeAttackEnemyProximity.js'
-import { readNativeLiveTurnMovedFeet, readNativeLiveTurnUses } from './nativeTurnUses.js'
+import {
+  readNativeLiveHasNotTakenTurn,
+  readNativeLiveTurnMovedFeet,
+  readNativeLiveTurnUses
+} from './nativeTurnUses.js'
 import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
@@ -706,6 +710,8 @@ export async function planNativeLiveEncounterAction(
           capture
         }),
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
+      loadTargetHasNotTakenTurn: ({ targetFacts }) =>
+        readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()

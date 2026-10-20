@@ -26,3 +26,25 @@ export async function readNativeLiveTurnUses(
   if (captured.kind !== 'TURN_USES') throw new Error('Turn uses are unavailable.')
   return captured.keys
 }
+
+/**
+ * Whether an actor has yet to take a turn in the Encounter: it is READY in the first round's
+ * initiative, read from the room's store. Later rounds mean every actor has had a turn.
+ */
+export async function readNativeLiveHasNotTakenTurn(
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => Promise<LiveSessionEncounterRulesResponse>,
+  actorId: string
+): Promise<boolean> {
+  const captured = await capture({ kind: 'INITIATIVE_ROUND' })
+  if (captured.kind !== 'INITIATIVE_ROUND') throw new Error('Turn initiative is unavailable.')
+  const { state } = captured
+  return (
+    state !== null &&
+    state.round.round === 1 &&
+    state.participants.some(
+      (participant) => participant.actorId === actorId && participant.status === 'READY'
+    )
+  )
+}

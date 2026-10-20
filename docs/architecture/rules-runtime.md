@@ -394,7 +394,7 @@ actor in range, allies included, except the holder. It never recurses: the burst
 
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 
-A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`packTacticsGrants`, Pack Tactics) reaches
+A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`conditionalAttackAdvantageGrants`, Pack Tactics and Assassinate) reaches
 its own attack rolls through `creatureFeatureAttackContributors`, merged beside the active-effect contributors in
 `prepareEncounterActionMechanics`. The grant's `ENEMY_NEAR_TARGET { feet }` restriction (an EQUIPMENT context, as a
 rider's) folds to a deferred `ENEMY_NEAR_TARGET` condition (`max` is the distance); a Character's item checks still
@@ -402,6 +402,15 @@ fail it closed. `featureModifiersReadEnemyProximity` makes the preparation load 
 grant that reads it, so the contributor holds only with a Scene and an able enemy of the target within the distance.
 "Enemy of the target" is the disposition-based set a rider uses, which equals "an ally of the attacker" when the
 attacker is hostile to the target. Disarm attacks do not read these grants yet.
+
+**Target has not taken a turn (SPELLS-33.T6d3b, D165).** Assassinate authors the same grant with
+`TARGET_HAS_NOT_TAKEN_TURN` (no parameters) in place of `ENEMY_NEAR_TARGET`; it folds to a deferred
+`TARGET_HAS_NOT_TAKEN_TURN` condition. `featureModifiersReadTargetTurn` makes the preparation call the optional
+`loadTargetHasNotTakenTurn` supplier, which the session worker backs with `readNativeLiveHasNotTakenTurn` (the
+`INITIATIVE_ROUND` capture; no stored state): the target is a participant still `READY` in round 1. The same
+supplier serves opportunity attacks. Limitation: a Creature reinforced into a later round never reads as having
+yet to take a turn, and the attacker's own first-turn clause is not gated. The automatic critical hit against a
+surprised Creature and the Bugbear's Surprise Attack stay description-only (the engine has no surprise step).
 
 ### Caster-centered radius areas (current, SPELLS-22)
 
