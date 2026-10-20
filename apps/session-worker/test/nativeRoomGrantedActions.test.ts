@@ -65,6 +65,8 @@ function spellRoom(spell: typeof haste) {
       srdCreatureActor({ id: ALLY_ID, creature: biteWolf('ATTACK'), disposition: 'FRIENDLY' }),
       srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })
     ],
+    // Level 5 gives the Character a third-level slot for Haste.
+    characterPlay: { classLevel: 5 },
     characterSpellcasting: { spells: [spell], prepared: [spell.id] },
     characterAction: (action) => action.label.startsWith(spell.label)
   })

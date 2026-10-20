@@ -244,8 +244,12 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
           })
           .check(
             z.refine(
-              (contribution) => contribution.modifiers.length + contribution.senses.length > 0,
-              'A grant contribution grants a modifier or a sense.'
+              (contribution) =>
+                contribution.modifiers.length +
+                  contribution.senses.length +
+                  (contribution.grantedActions?.length ?? 0) >
+                0,
+              'A grant contribution grants a modifier, a sense or an action.'
             )
           )
       ),
