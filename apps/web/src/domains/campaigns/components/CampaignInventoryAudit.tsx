@@ -5,7 +5,8 @@ import type { InventoryDto } from '@artificer-toolkit/schema/api/campaignInvento
 import { decodeCampaignInventoryAuditPage } from '@artificer-toolkit/schema/api/campaignInventoryPages'
 import { usePaginatedQuery } from 'convex-helpers/react'
 import { useQuery } from 'convex/react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useLoadAllPages } from '#app/data/useLoadAllPages'
 import * as sharedStyles from '../campaigns.css'
 
 const inventoryEventLabels: Record<string, string> = {
@@ -28,12 +29,8 @@ export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailD
     { campaignId: campaign.id },
     { initialNumItems: 48 }
   )
-  useEffect(() => {
-    if (items.status === 'CanLoadMore') items.loadMore(48)
-  }, [items.loadMore, items.status])
-  useEffect(() => {
-    if (currencies.status === 'CanLoadMore') currencies.loadMore(48)
-  }, [currencies.loadMore, currencies.status])
+  useLoadAllPages(items, 48)
+  useLoadAllPages(currencies, 48)
 
   return (
     <section className={sharedStyles.panel} aria-labelledby='inventory-audit-title'>

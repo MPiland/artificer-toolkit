@@ -18,7 +18,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { IconChevronDown, IconChevronUp, IconDotsVertical, IconTrash } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   encounterGmProjectionDtoSchema,
   type EncounterCommandInputDto,
@@ -156,22 +156,42 @@ export function CampaignEncounterWorkspace({
     commandWithVersion({ type: 'SET_ROUND', round })
   }
 
-  useEffect(() => {
+  const [openedActorSource, setOpenedActorSource] = useState({
+    actors: encounter.actors,
+    currentActorId: encounter.currentActorId,
+    status: encounter.status
+  })
+  if (
+    openedActorSource.actors !== encounter.actors ||
+    openedActorSource.currentActorId !== encounter.currentActorId ||
+    openedActorSource.status !== encounter.status
+  ) {
+    setOpenedActorSource({
+      actors: encounter.actors,
+      currentActorId: encounter.currentActorId,
+      status: encounter.status
+    })
     if (encounter.status === 'ACTIVE' && encounter.currentActorId) {
       setOpenedActorId(encounter.currentActorId)
-      return
+    } else if (encounter.status === 'PREPARED') {
+      const openedActor = encounter.actors.find((actor) => actor.id === openedActorId)
+      if (openedActor?.initiative !== null) {
+        setOpenedActorId(
+          encounter.actors.find((actor) => actor.initiative === null)?.id ?? openedActorId
+        )
+      }
     }
-    if (encounter.status !== 'PREPARED') return
-
-    setOpenedActorId((current) => {
-      const openedActor = encounter.actors.find((actor) => actor.id === current)
-      if (openedActor?.initiative === null) return current
-      return encounter.actors.find((actor) => actor.initiative === null)?.id ?? current
-    })
-  }, [encounter.actors, encounter.currentActorId, encounter.status])
-
-  useEffect(() => setRound(encounter.round), [encounter.round])
-  useEffect(() => setRulesetSystemId(null), [encounter.id])
+  }
+  const [syncedRound, setSyncedRound] = useState(encounter.round)
+  if (syncedRound !== encounter.round) {
+    setSyncedRound(encounter.round)
+    setRound(encounter.round)
+  }
+  const [syncedEncounterId, setSyncedEncounterId] = useState(encounter.id)
+  if (syncedEncounterId !== encounter.id) {
+    setSyncedEncounterId(encounter.id)
+    setRulesetSystemId(null)
+  }
 
   return (
     <section className={encounterStyles.encounterManager} aria-labelledby='encounter-manager-title'>

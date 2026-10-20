@@ -14,7 +14,7 @@ import {
   Tooltip
 } from '@mantine/core'
 import { Swords } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
@@ -227,7 +227,6 @@ export function CampaignTabletopActionDrawer({
     value: EncounterOptionalActionChoicesDto
   } | null>(null)
   const [optionalValues, setOptionalValues] = useState<Record<string, string>>({})
-  const [optionalChoicesLoading, setOptionalChoicesLoading] = useState(false)
   const [itemChoices, setItemChoices] = useState<{
     requestIdentity: string
     value: EncounterActionItemChoicesDto['items'] | string
@@ -265,9 +264,7 @@ export function CampaignTabletopActionDrawer({
     openAttackAction !== null && endedAttackActionAfter === openAttackAction.made
   const liveAttackAction = attackActionEnded ? null : openAttackAction
   const noAttackActionOpen = openAttackAction === null
-  useEffect(() => {
-    if (noAttackActionOpen) setEndedAttackActionAfter(null)
-  }, [noAttackActionOpen])
+  if (noAttackActionOpen && endedAttackActionAfter !== null) setEndedAttackActionAfter(null)
   const offeredAttackLabels = [
     ...new Set(actions.flatMap((action) => (action.attackSlot ? [action.label] : [])))
   ]
@@ -575,7 +572,6 @@ export function CampaignTabletopActionDrawer({
     optionalChoicesError?.requestIdentity === choiceRequestIdentity
       ? optionalChoicesError.value
       : null
-  const choiceRequestSequence = useRef(0)
   const selectionControlsDisabled =
     !connected ||
     pending ||
@@ -583,6 +579,14 @@ export function CampaignTabletopActionDrawer({
     waitingOn !== null ||
     actionsLoading ||
     actionChoicesError !== null
+  const optionalChoicesLoading =
+    opened &&
+    currentActorId !== null &&
+    selectedActionId !== null &&
+    targetActorId !== null &&
+    selectedOptionalRuleId !== null &&
+    currentOptionalChoices === null &&
+    currentOptionalChoicesError === null
   const dependentControlsDisabled = selectionControlsDisabled || optionalChoicesLoading
   // A held-weapon stow is offered only on a basic action (D152).
   const wieldConflict =
@@ -607,31 +611,41 @@ export function CampaignTabletopActionDrawer({
       !currentOptionalChoices ||
       currentOptionalChoices.fields.some((field) => !optionalValues[field.fieldId]))
 
-  useEffect(() => {
+  const [trackedTurnActorId, setTrackedTurnActorId] = useState(encounter.currentActorId)
+  if (trackedTurnActorId !== encounter.currentActorId) {
+    setTrackedTurnActorId(encounter.currentActorId)
     setPickedActionId(undefined)
-    onTargetPick(undefined)
     setPickedActorIds([])
     setOptionalRuleId(null)
     setFeedback(null)
     setError(null)
+  }
+  useEffect(() => {
+    onTargetPick(undefined)
   }, [encounter.currentActorId, onTargetPick])
 
-  useEffect(() => {
-    const sequence = ++choiceRequestSequence.current
-    setOptionalChoices(null)
-    setOptionalChoicesError(null)
+  const [trackedChoiceRequest, setTrackedChoiceRequest] = useState({
+    identity: choiceRequestIdentity,
+    opened
+  })
+  if (
+    trackedChoiceRequest.identity !== choiceRequestIdentity ||
+    trackedChoiceRequest.opened !== opened
+  ) {
+    setTrackedChoiceRequest({ identity: choiceRequestIdentity, opened })
     setOptionalValues({})
+  }
+
+  useEffect(() => {
     if (
       !opened ||
       !currentActorId ||
       !selectedActionId ||
       !targetActorId ||
       !selectedOptionalRuleId
-    ) {
-      setOptionalChoicesLoading(false)
+    )
       return
-    }
-    setOptionalChoicesLoading(true)
+    let current = true
     void onLoadOptionalChoices({
       encounterId: encounter.id,
       expectedVersion: encounter.version,
@@ -642,22 +656,21 @@ export function CampaignTabletopActionDrawer({
       definitionId: selectedOptionalRuleId
     })
       .then((nextChoices) => {
-        if (choiceRequestSequence.current !== sequence) return
+        if (!current) return
         setOptionalChoices({ requestIdentity: choiceRequestIdentity, value: nextChoices })
+        setOptionalChoicesError(null)
       })
       .catch((nextError: unknown) => {
-        if (choiceRequestSequence.current !== sequence) return
+        if (!current) return
+        setOptionalChoices(null)
         setOptionalChoicesError({
           requestIdentity: choiceRequestIdentity,
           value:
             nextError instanceof Error ? nextError.message : 'Optional choices could not be loaded.'
         })
       })
-      .finally(() => {
-        if (choiceRequestSequence.current === sequence) setOptionalChoicesLoading(false)
-      })
     return () => {
-      if (choiceRequestSequence.current === sequence) choiceRequestSequence.current += 1
+      current = false
     }
   }, [
     choiceRequestIdentity,
@@ -718,14 +731,16 @@ export function CampaignTabletopActionDrawer({
   }, [onAreaAimChange, selectedActionId, chosenZoneOptionId])
 
   // So do the creatures chosen.
-  useEffect(() => {
+  const [trackedActionId, setTrackedActionId] = useState(selectedActionId)
+  if (trackedActionId !== selectedActionId) {
+    setTrackedActionId(selectedActionId)
     setPickedActorIds([])
     setUnaffectedActorIds([])
     setPickedChoiceOptionId(null)
     setPickedFormId(null)
     setPickedBandSide(null)
     setPickedItemId(null)
-  }, [selectedActionId])
+  }
 
   useEffect(() => {
     onAreaSizeChange(areaSize)

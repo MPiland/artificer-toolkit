@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useNavigate } from '@tanstack/react-router'
 import { IconChevronLeft } from '@tabler/icons-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { useConvex } from 'convex/react'
@@ -27,7 +27,11 @@ export function CampaignSessionHeader({
   const convex = useConvex()
   const [title, setTitle] = useState(session.title ?? '')
   const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
-  useEffect(() => setTitle(session.title ?? ''), [session.title])
+  const [syncedTitle, setSyncedTitle] = useState(session.title)
+  if (syncedTitle !== session.title) {
+    setSyncedTitle(session.title)
+    setTitle(session.title ?? '')
+  }
 
   const update = useMutation({
     mutationFn: () =>

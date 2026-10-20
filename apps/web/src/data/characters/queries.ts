@@ -5,7 +5,7 @@ import type { FunctionReturnType } from 'convex/server'
 import type { CharacterListResponseDto } from '@artificer-toolkit/schema/api/characterBuilder'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { usePaginatedQuery } from 'convex/react'
-import { useEffect } from 'react'
+import { useLoadAllPages } from '#app/data/useLoadAllPages'
 import type { CharacterSheetExtraCatalogInputDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
@@ -24,10 +24,8 @@ export function useGetCharacterList(enabled = true) {
     initialNumItems: 48
   })
 
-  useEffect(() => {
-    if (enabled && active.status === 'CanLoadMore') active.loadMore(8)
-    if (enabled && drafts.status === 'CanLoadMore') drafts.loadMore(48)
-  }, [active.loadMore, active.status, drafts.loadMore, drafts.status, enabled])
+  useLoadAllPages(active, 8, enabled)
+  useLoadAllPages(drafts, 48, enabled)
 
   const isLoading = enabled && (active.status !== 'Exhausted' || drafts.status !== 'Exhausted')
   const activeIds = new Set(active.results.map((character) => character.id))

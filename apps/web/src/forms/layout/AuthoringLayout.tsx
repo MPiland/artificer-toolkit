@@ -78,17 +78,17 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   const { activateValues, clearValidationIssues, saveDraftValues, updateAuthoringFormActions } =
     authoring
   useAuthoringSaveShortcut()
-  const defaultValuesRef = useRef<{ key?: string; values: object }>({
+  const [defaultValuesState, setDefaultValuesState] = useState<{ key?: string; values: object }>({
     key: undefined,
     values: EMPTY_FORM_VALUES
   })
-  if (defaultValuesRef.current.key !== session?.key) {
-    defaultValuesRef.current = {
+  if (defaultValuesState.key !== session?.key) {
+    setDefaultValuesState({
       key: session?.key,
       values: session?.initialValues ?? EMPTY_FORM_VALUES
-    }
+    })
   }
-  const defaultValues = defaultValuesRef.current.values
+  const defaultValues = defaultValuesState.values
   const form = useAppForm({
     defaultValues,
     listeners: {
@@ -133,9 +133,11 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
     resetSessionKeyRef.current = session.key
     form.reset(session.initialValues)
   }, [form, session])
-  useEffect(() => {
+  const [guidedStateKey, setGuidedStateKey] = useState(session?.key)
+  if (guidedStateKey !== session?.key) {
+    setGuidedStateKey(session?.key)
     setGuidedState(INITIAL_GUIDED_STATE)
-  }, [session?.key])
+  }
 
   const previewContent = useMemo(() => {
     if (!session?.renderPreview) return undefined
@@ -174,7 +176,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
         const submittedSnapshot = JSON.stringify(submittedValues)
         const saved = await saveDraftValues(submittedValues)
         if (saved && JSON.stringify(form.state.values) === submittedSnapshot) {
-          defaultValuesRef.current = { key: session.key, values: submittedValues }
+          setDefaultValuesState({ key: session.key, values: submittedValues })
           form.reset(submittedValues)
         }
       }

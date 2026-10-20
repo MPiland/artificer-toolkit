@@ -71,9 +71,9 @@
         "react/incompatible-library": "off",
         "react/jsx-key": "off",
         "react/preserve-manual-memoization": "off",
-        "react/purity": "off",
-        "react/refs": "off",
-        "react/set-state-in-effect": "off",
+        "react/purity": "error",
+        "react/refs": "error",
+        "react/set-state-in-effect": "error",
         "react-hooks/exhaustive-deps": "off"
       }
     },

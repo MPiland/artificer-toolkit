@@ -17,7 +17,8 @@ import type {
   TransferCampaignInventoryInput
 } from '@artificer-toolkit/schema/api/campaignInventory'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useLoadAllPages } from '#app/data/useLoadAllPages'
 import { usePaginatedQuery } from 'convex-helpers/react'
 import { useConvex, useMutation as useConvexMutation, useQuery } from 'convex/react'
 import { CurrencySystemEditor } from './CurrencySystemEditor'
@@ -137,32 +138,17 @@ export function CampaignInventory({
     !partyOnly ? { id: campaign.gameSystemId } : 'skip'
   )
 
-  useEffect(() => {
-    if (ownerValue === selectedOwnerValue) return
+  if (ownerValue !== selectedOwnerValue) {
     setOwnerValue(selectedOwnerValue)
     setAssetValue('')
-  }, [ownerValue, selectedOwnerValue])
-  useEffect(() => {
-    if (cleanup.status === 'CanLoadMore') cleanup.loadMore(48)
-  }, [cleanup.loadMore, cleanup.status])
-  useEffect(() => {
-    if (vehicles.status === 'CanLoadMore') vehicles.loadMore(48)
-  }, [vehicles.loadMore, vehicles.status])
-  useEffect(() => {
-    if (partyItems.status === 'CanLoadMore') partyItems.loadMore(48)
-  }, [partyItems.loadMore, partyItems.status])
-  useEffect(() => {
-    if (partyCurrencies.status === 'CanLoadMore') partyCurrencies.loadMore(48)
-  }, [partyCurrencies.loadMore, partyCurrencies.status])
-  useEffect(() => {
-    if (vehicleItems.status === 'CanLoadMore') vehicleItems.loadMore(48)
-  }, [vehicleItems.loadMore, vehicleItems.status])
-  useEffect(() => {
-    if (vehicleCurrencies.status === 'CanLoadMore') vehicleCurrencies.loadMore(48)
-  }, [vehicleCurrencies.loadMore, vehicleCurrencies.status])
-  useEffect(() => {
-    if (currencySystems.status === 'CanLoadMore') currencySystems.loadMore(48)
-  }, [currencySystems.loadMore, currencySystems.status])
+  }
+  useLoadAllPages(cleanup, 48)
+  useLoadAllPages(vehicles, 48)
+  useLoadAllPages(partyItems, 48)
+  useLoadAllPages(partyCurrencies, 48)
+  useLoadAllPages(vehicleItems, 48)
+  useLoadAllPages(vehicleCurrencies, 48)
+  useLoadAllPages(currencySystems, 48)
 
   const destinationOptions = getTransferDestinationOwners(campaign, vehicles.results)
   const currencyOptionsReady =

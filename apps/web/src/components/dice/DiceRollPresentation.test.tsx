@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { useEffect, useState, type ReactNode } from 'react'
+import { hydrateRoot } from 'react-dom/client'
+import { renderToString } from 'react-dom/server'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { addedAdvantageRoll, cancelledAdvantageRoll } from './adjustedRoll.fixtures'
 import { MODE_CHANGE_ANIMATION_MS } from './dice.utils'
@@ -14,6 +16,7 @@ const testState = vi.hoisted(() => ({
 const pendingCanvas = vi.hoisted(() => new Promise<never>(() => undefined))
 let canvasMounts = 0
 let canvasUnmounts = 0
+let webGLProbes = 0
 let suspendedCanvasRenders = 0
 let rollRevealed = vi.fn()
 
@@ -33,7 +36,10 @@ vi.mock('#app/settings/dicePreferences', () => ({
 
 vi.mock('./dice.utils', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./dice.utils')>()),
-  supportsWebGL: () => testState.webGLAvailable
+  supportsWebGL: () => {
+    webGLProbes += 1
+    return testState.webGLAvailable
+  }
 }))
 
 vi.mock('./DiceCanvas', () => ({
@@ -127,6 +133,7 @@ describe('DiceRollPresentation', () => {
   beforeEach(() => {
     canvasMounts = 0
     canvasUnmounts = 0
+    webGLProbes = 0
     suspendedCanvasRenders = 0
     testState.animate3d = true
     testState.reducedMotion = false
@@ -292,5 +299,106 @@ describe('DiceRollPresentation', () => {
     expect(canvas).toHaveTextContent('idle')
     expect(rollRevealed).toHaveBeenCalledOnce()
     expect(rollRevealed).toHaveBeenCalledWith(roll.id)
+  })
+
+  describe('reveal notification (RELIABILITY-9.3)', () => {
+    it('notifies a statically shown roll once, across rerenders and a new callback identity', async () => {
+      testState.animate3d = false
+      const { rerender } = render(
+        <DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-1')} />
+      )
+      await screen.findByText('Rolled 14')
+      expect(rollRevealed).toHaveBeenCalledExactlyOnceWith('roll-1')
+
+      rerender(<DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-1')} />)
+      const replacement = vi.fn()
+      rerender(<DiceRollPresentation onRollRevealed={replacement} roll={createRoll('roll-1')} />)
+
+      expect(rollRevealed).toHaveBeenCalledOnce()
+      expect(replacement).not.toHaveBeenCalled()
+    })
+
+    it('notifies again for a new roll id, once each', () => {
+      testState.animate3d = false
+      const { rerender } = render(
+        <DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-1')} />
+      )
+      rerender(<DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-2')} />)
+      rerender(<DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-2')} />)
+
+      expect(rollRevealed.mock.calls).toEqual([['roll-1'], ['roll-2']])
+    })
+
+    it('notifies a 3D roll only after the reveal has committed, and only once', async () => {
+      const shownWhenNotified: boolean[] = []
+      const onRevealed = vi.fn(() => {
+        shownWhenNotified.push(screen.queryByText('Rolled 14') !== null)
+      })
+      const { rerender } = render(
+        <DiceRollPresentation onRollRevealed={onRevealed} roll={createRoll('roll-3d')} />
+      )
+      expect(onRevealed).not.toHaveBeenCalled()
+      fireEvent.click(await screen.findByRole('button', { name: 'Finish roll' }))
+
+      expect(onRevealed).toHaveBeenCalledExactlyOnceWith('roll-3d')
+      expect(shownWhenNotified).toEqual([true])
+
+      rerender(<DiceRollPresentation onRollRevealed={onRevealed} roll={createRoll('roll-3d')} />)
+      expect(onRevealed).toHaveBeenCalledOnce()
+    })
+
+    it('resets the reveal state for the next roll', async () => {
+      const { rerender } = render(
+        <DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-1')} />
+      )
+      fireEvent.click(await screen.findByRole('button', { name: 'Finish roll' }))
+      expect(screen.getByText('Rolled 14')).toBeInTheDocument()
+
+      rerender(<DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-2')} />)
+
+      expect(screen.getByTestId('dice-canvas')).toHaveTextContent('roll-2')
+      expect(screen.queryByText('Rolled 14')).not.toBeInTheDocument()
+      expect(rollRevealed).toHaveBeenCalledOnce()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Finish roll' }))
+      expect(rollRevealed.mock.calls).toEqual([['roll-1'], ['roll-2']])
+    })
+  })
+
+  describe('hydration (RELIABILITY-9.3)', () => {
+    it('renders nothing on the server and does not probe WebGL there', () => {
+      const html = renderToString(
+        <DiceRollPresentation onRollRevealed={rollRevealed} roll={createRoll('roll-ssr')} />
+      )
+
+      expect(html).toBe('')
+      expect(webGLProbes).toBe(0)
+      expect(rollRevealed).not.toHaveBeenCalled()
+    })
+
+    it('hydrates onto the server markup without a mismatch, then probes once in the browser', async () => {
+      const roll = createRoll('roll-hydrate')
+      const container = document.body.appendChild(document.createElement('div'))
+      container.innerHTML = renderToString(
+        <DiceRollPresentation onRollRevealed={rollRevealed} roll={roll} />
+      )
+      const recoverable = vi.fn()
+
+      let root!: ReturnType<typeof hydrateRoot>
+      await act(async () => {
+        root = hydrateRoot(
+          container,
+          <DiceRollPresentation onRollRevealed={rollRevealed} roll={roll} />,
+          { onRecoverableError: recoverable }
+        )
+      })
+
+      expect(recoverable).not.toHaveBeenCalled()
+      expect(webGLProbes).toBe(1)
+      expect(await screen.findByTestId('dice-canvas')).toHaveTextContent('roll-hydrate')
+
+      act(() => root.unmount())
+      container.remove()
+    })
   })
 })
