@@ -213,17 +213,18 @@ describe('a Multiattack slot filler used with another activation (D93)', () => {
     statBlock: brownBear,
     features: brownBear.features
   })
-  const biting = encounterRunActorStateSchema.parse({
+  const spent = encounterRunActorStateSchema.parse({
     ...bear,
-    resources: withEncounterAttackActionState(
-      withEncounterRuleUsageUsed(bear, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 1),
-      {
-        kind: 'ATTACK_ACTION',
-        turnSequence: 1,
-        alternatives: multiattack.attackSlots!.alternatives,
-        attacks: [{ actionId: ACTION_ID, featureId: bite.id, attack: true, targetIds: [WOLF_ID] }]
-      }
-    )
+    resources: withEncounterRuleUsageUsed(bear, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 1)
+  })
+  const biting = encounterRunActorStateSchema.parse({
+    ...spent,
+    resources: withEncounterAttackActionState(spent, {
+      kind: 'ATTACK_ACTION',
+      turnSequence: 1,
+      alternatives: multiattack.attackSlots!.alternatives,
+      attacks: [{ actionId: ACTION_ID, featureId: bite.id, attack: true, targetIds: [WOLF_ID] }]
+    })
   })
 
   it('is blocked as a second Bite with the Action, which no slot of the open Multiattack takes', async () => {
