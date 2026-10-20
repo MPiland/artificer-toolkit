@@ -6,6 +6,7 @@ import type {
   EncounterCommandResultDto,
   EncounterGmProjectionDto,
   EndHeldGrantInputDto,
+  MoveHeldEffectInputDto,
   EscapeRelationshipInputDto,
   ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
@@ -114,12 +115,14 @@ function drawerElement(
     authoredBasicActions = [],
     escapes = [],
     heldGrantEnds = [],
+    effectOffers = [],
     releases = [],
     openAttackAction = null,
     defaultActionId = null,
     encounter = tabletopGmEncounter,
     onEscape = vi.fn(),
     onEndHeldGrant = vi.fn(),
+    onMoveHeldEffect = vi.fn(),
     onRelease = vi.fn(),
     escapeResult = resolved,
     isGm = false,
@@ -141,12 +144,14 @@ function drawerElement(
     authoredBasicActions?: EncounterActionChoiceDto[]
     escapes?: EncounterEscapeChoiceDto[]
     heldGrantEnds?: EncounterActionChoicesDto['heldGrantEnds']
+    effectOffers?: EncounterActionChoicesDto['effectOffers']
     releases?: EncounterActionChoicesDto['releases']
     openAttackAction?: EncounterActionChoicesDto['openAttackAction']
     defaultActionId?: EncounterActionChoicesDto['defaultActionId']
     encounter?: EncounterGmProjectionDto
     onEscape?: (command: EscapeRelationshipInputDto) => Promise<unknown>
     onEndHeldGrant?: (command: EndHeldGrantInputDto) => Promise<unknown>
+    onMoveHeldEffect?: (command: MoveHeldEffectInputDto) => Promise<unknown>
     onRelease?: (command: ReleaseRelationshipInputDto) => Promise<unknown>
     /** What the room answers an escape with. */
     escapeResult?: EncounterCommandResultDto
@@ -174,6 +179,7 @@ function drawerElement(
       basicActionChoices={authoredBasicActions}
       escapes={escapes}
       heldGrantEnds={heldGrantEnds}
+      effectOffers={effectOffers}
       releases={releases}
       openAttackAction={openAttackAction}
       defaultActionId={defaultActionId}
@@ -208,6 +214,10 @@ function drawerElement(
       }}
       onEndHeldGrant={async (command) => {
         await onEndHeldGrant(command)
+        return resolved
+      }}
+      onMoveHeldEffect={async (command) => {
+        await onMoveHeldEffect(command)
         return resolved
       }}
       onRelease={async (command) => {
@@ -648,6 +658,71 @@ describe('CampaignTabletopActionDrawer held grant ends', () => {
 
     await screen.findByRole('button', { name: 'Resolve action' })
     expect(screen.queryByRole('region', { name: 'Active effects' })).not.toBeInTheDocument()
+  })
+})
+
+const effectOfferChoices = validated(encounterActionChoicesDtoSchema.shape.effectOffers)([
+  {
+    effectId: '00000000-0000-4000-8000-000000000f21',
+    offerIndex: 0,
+    kind: 'MOVE_HELD_EFFECT',
+    holderActorId: '99999999-9999-4999-8999-999999999902',
+    activation: 'BONUS_ACTION',
+    range: { amount: 90, unit: 'FEET' },
+    warnings: []
+  }
+])
+
+describe('CampaignTabletopActionDrawer effect offers', () => {
+  it('lists an offer with its cost and reach, then sends the pick of a new holder', async () => {
+    const user = userEvent.setup()
+    const onMoveHeldEffect = vi.fn().mockResolvedValue(resolved)
+    renderDrawer(vi.fn(), { effectOffers: effectOfferChoices, onMoveHeldEffect })
+
+    const section = await screen.findByRole('region', { name: 'Effect choices' })
+    expect(within(section).getByText(/Move effect on Vault Warden/)).toBeVisible()
+    expect(within(section).getByText(/Bonus action/i)).toBeVisible()
+    expect(
+      within(section).getByRole('button', { name: /Move effect on Vault Warden/ })
+    ).toBeEnabled()
+
+    await user.click(within(section).getByText('Choose target'))
+    expect(within(section).getByRole('button', { name: 'Move' })).toBeDisabled()
+    await user.click(within(section).getByRole('combobox', { name: 'New holder' }))
+    await user.click(await screen.findByRole('option', { name: "Ember's Wake" }))
+    await user.click(within(section).getByRole('button', { name: 'Move' }))
+
+    expect(onMoveHeldEffect).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'MOVE_HELD_EFFECT',
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        actorId: tabletopGmEncounter.currentActorId,
+        effectId: effectOfferChoices[0].effectId,
+        offerIndex: 0,
+        target: { kind: 'ACTOR', actorId: '99999999-9999-4999-8999-999999999901' },
+        acknowledgedWarnings: []
+      })
+    )
+    expect(await screen.findByText('Effect moved.')).toBeVisible()
+  })
+
+  it('never offers the current holder as the new one', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), { effectOffers: effectOfferChoices })
+
+    const section = await screen.findByRole('region', { name: 'Effect choices' })
+    await user.click(within(section).getByText('Choose target'))
+    await user.click(within(section).getByRole('combobox', { name: 'New holder' }))
+    expect(await screen.findByRole('option', { name: "Ember's Wake" })).toBeVisible()
+    expect(screen.queryByRole('option', { name: 'Vault Warden' })).not.toBeInTheDocument()
+  })
+
+  it('shows no section when no effect offers the actor a choice', async () => {
+    renderDrawer(vi.fn())
+
+    await screen.findByRole('button', { name: 'Resolve action' })
+    expect(screen.queryByRole('region', { name: 'Effect choices' })).not.toBeInTheDocument()
   })
 })
 

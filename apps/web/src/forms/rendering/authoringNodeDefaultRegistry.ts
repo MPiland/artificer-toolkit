@@ -74,6 +74,7 @@ type AuthoringDefaultKind =
   | 'followUpSaveRepeatAttemptGate'
   | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
+  | 'followUpSaveRepeatTrigger'
   | 'higherLevelCheck'
   | 'degradeEquipmentDestroyWhen'
   | 'hitPointMaximumReductionAmountSource'
@@ -243,6 +244,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveRepeatAttemptGate: ['followUpSaveRepeatAttemptGate'],
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
+  followUpSaveRepeatTrigger: ['followUpSaveRepeatTrigger'],
   higherLevelCheck: ['higherLevelCheck'],
   degradeEquipmentDestroyWhen: ['degradeEquipmentDestroyWhen'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],

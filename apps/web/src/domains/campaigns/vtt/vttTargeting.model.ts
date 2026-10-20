@@ -22,7 +22,8 @@ interface TargetingActor {
 
 /** The action the caster is picking a target for. */
 export interface VttTargetingRequest {
-  actionId: string
+  /** Null for a held effect's offer, which has no action to read attack modifiers for. */
+  actionId: string | null
   /** The action refuses the acting creature as its own target (Help, First Aid). */
   selfRefused: boolean
   /** The only creatures the action may name (it targets what the user holds); absent for any creature. */

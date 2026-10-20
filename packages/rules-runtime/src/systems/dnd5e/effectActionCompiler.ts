@@ -38,7 +38,8 @@ import type {
   OptionalOnHitAuthored,
   FailureMarginRiderAuthored,
   ForcedMovementCollisionAuthored,
-  PathLifecycleAuthored
+  PathLifecycleAuthored,
+  FollowUpSaveRepeatTriggerAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
   RULE_VALUE_KIND,
@@ -77,6 +78,7 @@ import type {
 } from '../../characterRuleActionSystemAdapter.js'
 import type {
   ActiveEffectEndTrigger,
+  ActiveEffectRepeatTrigger,
   GrantConsumeEvent,
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -2524,6 +2526,24 @@ function canonicalEndTriggers(
   return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }
 
+/** The authored repeat triggers as the stored effect carries them: filters explicit, canonical order. */
+function canonicalRepeatTriggers(
+  triggers: readonly FollowUpSaveRepeatTriggerAuthored[]
+): ActiveEffectRepeatTrigger[] {
+  const keyed = new Map(
+    triggers.map(({ kind, by, damageTypeIds, rollInfluence }) => {
+      const trigger: ActiveEffectRepeatTrigger = {
+        event: kind,
+        by,
+        damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null,
+        rollInfluence: rollInfluence ?? null
+      }
+      return [JSON.stringify(trigger), trigger]
+    })
+  )
+  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
+}
+
 function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {
   return pathLifecycleGrantConsumeEventSchema.safeParse(event).success
 }
@@ -3791,6 +3811,9 @@ function repeatingDirectFollowUpSavePlan(
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
     ...contribution,
+    ...(save.repeatTriggers?.length && {
+      lifecycle: { repeatTriggers: canonicalRepeatTriggers(save.repeatTriggers) }
+    }),
     adapterFacts: {
       [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: save.savingThrow.abilityDefinitionId,
       ...pinnedDc.adapterFacts,

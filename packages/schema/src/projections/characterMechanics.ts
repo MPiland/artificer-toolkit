@@ -54,6 +54,7 @@ import {
   activeEffectOnEndSchema,
   activeEffectEndEventsSchema,
   activeEffectEndTriggersSchema,
+  activeEffectRepeatTriggersSchema,
   activeGrantConsumeEventsSchema,
   activeGrantEndConditionIdsSchema,
   activeGrantEndEventsSchema,
@@ -228,7 +229,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       z.strictObject({
         consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
         endOnEvents: z._default(activeEffectEndEventsSchema, []),
-        endOnTriggers: z._default(activeEffectEndTriggersSchema, [])
+        endOnTriggers: z._default(activeEffectEndTriggersSchema, []),
+        repeatTriggers: z.optional(activeEffectRepeatTriggersSchema)
       }),
       { consumeOnFirstEvents: [], endOnEvents: [], endOnTriggers: [] }
     ),

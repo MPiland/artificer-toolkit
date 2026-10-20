@@ -540,6 +540,7 @@ export function prepareRecurringActiveEffect(
       ),
       endOnEvents: sortedUnion(grantContribution?.endOnEvents, endLifecycle?.endOnEvents),
       endOnTriggers: endLifecycle?.endOnTriggers ?? [],
+      ...(endLifecycle?.repeatTriggers?.length && { repeatTriggers: endLifecycle.repeatTriggers }),
       endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
       holderEnd: grantContribution?.holderEnd ?? null,
       ...(grantContribution?.fromSourceOnly && { fromSourceOnly: true }),

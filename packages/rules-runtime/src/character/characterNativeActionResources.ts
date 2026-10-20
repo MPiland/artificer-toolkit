@@ -12,7 +12,8 @@ import {
 } from '@artificer-toolkit/shared/character'
 import { StaleCharacterActionError } from '../encounterErrors.js'
 import { selectAmmunition, type AmmunitionStack } from './characterAmmunition.js'
-import { readSpellCastSlot, spellCastActionId } from './characterSpellCastActions.js'
+import { readSpellCastSlot } from './characterSpellCastActions.js'
+import { spellCastActionId } from '../spellCastCandidates.js'
 
 type CompiledCharacterAction = Extract<
   CompiledActionEntryPoint,
