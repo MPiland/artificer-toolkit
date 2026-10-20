@@ -37,7 +37,8 @@ describe('a Brown Bear’s Multiattack in the room (D93)', () => {
     })
     const labels = async () => (await room.actionChoices()).actions.map(({ label }) => label)
     const claws = (await room.actionChoices()).actions.find(({ label }) => label.includes('Claws'))
-    if (!claws) throw new Error('The Brown Bear offers no Claws.')
+    if (!claws)
+      throw new Error(`The Brown Bear offers no Claws: ${JSON.stringify(await labels())}.`)
 
     // Before any attack both are offered, each the first of the Multiattack's two.
     expect(await labels()).toEqual(expect.arrayContaining(['Bite', claws.label]))
@@ -56,7 +57,10 @@ describe('a Brown Bear’s Multiattack in the room (D93)', () => {
     expect((await room.actionChoices()).openAttackAction).toMatchObject({ made: 2, total: 2 })
 
     // Undoing the claws returns its slot; undoing the bite returns both.
-    for (const expected of [{ made: 1, bite: false }, { made: 0, bite: true }]) {
+    for (const expected of [
+      { made: 1, bite: false },
+      { made: 0, bite: true }
+    ]) {
       const undone = await room.send({
         type: 'REVERT_LAST_ACTION',
         encounterId: room.room.encounterId,
