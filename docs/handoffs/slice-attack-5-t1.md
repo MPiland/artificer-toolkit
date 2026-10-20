@@ -23,3 +23,7 @@ Clay Golem Slam, Cloaker Bite, Dryad Shillelagh club and the enlarged Duergar wa
 ## ATTACK-5.T3 (5.10 to 5.14)
 
 Quasit Claws and Scare, Shadow Strength Drain, Spirit Naga Bite and Rug of Smothering Smother all run from generic options; none was on `SRD_CREATURE_ATTACK_UNSUPPORTED`, so the allowlist is unchanged. One authoring gap: Scare's result block id was `actionId + '__result'`, which is not a UUID, so the repeating-save plan refused it ("unsupported bounded shape"). It now uses a UUID like the Dust Mephit's. The Rug's Smother is size-capped to Medium, so it is proved against a Medium target (a Large Ogre is not a legal target). Proofs: `srdCreatureHitRiders.test.ts` (rules-runtime, with a target picker on `attackOgre`) and `nativeRoomHitRiders.test.ts` (room journeys).
+
+## ATTACK-5.T4a (Ogre Zombie Morningstar)
+
+A Creature Feature now acts through its held Equipment when both are the same kind of attack; the Feature's printed damage type governs, so the Equipment's default type no longer has to match (`actsThroughEquipment` in `encounterFeatureActionCapabilityDiscovery.ts`). The SRD print is untouched. The Ogre Zombie Morningstar left `SRD_CREATURE_ATTACK_UNSUPPORTED`, and the `EQUIPMENT_DAMAGE_TYPE` reason was deleted from the allowlist and the sweep. Proofs: `srdCreatureHitRiders.test.ts` and `nativeRoomHitRiders.test.ts`.

@@ -534,6 +534,16 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect((await settle(room, null)).damage).toEqual([[6, damageTypeId('BLUDGEONING')]])
   })
 
+  it('hits with the Ogre Zombie’s Morningstar for its printed bludgeoning damage (ATTACK-5.T4a)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Ogre Zombie',
+      feature: 'Morningstar',
+      playerAutoRoll: true,
+      rolls: [18, 0, 0]
+    })
+    expect((await settle(room, null)).damage).toEqual([[6, damageTypeId('BLUDGEONING')]])
+  })
+
   it('grapples and restrains the Character with one hit of the Giant Toad’s Bite', async () => {
     const room = await hitRiderRoom({
       creature: 'Giant Toad',

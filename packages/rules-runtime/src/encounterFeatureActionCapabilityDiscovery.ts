@@ -252,35 +252,18 @@ function snapshotLoadout(actor: EncounterProjectionActorInput) {
   return snapshotCreatureEquipmentLoadout(actor)
 }
 
-/** The damage types of an Effect's hit damage, dice or fixed. */
-function hitDamageTypeIds(effect: CompiledEffectGroup): ReadonlySet<string> {
-  return new Set(
-    effect.entries.flatMap((entry) =>
-      entry.pathCode === 'ON_HIT' &&
-      'outcome' in entry &&
-      entry.outcome.effectKind === 'DAMAGE' &&
-      entry.outcome.damageTypeId !== undefined
-        ? [entry.outcome.damageTypeId]
-        : []
-    )
-  )
-}
-
 /**
- * A Creature Feature acts through the Equipment it holds when both are the same kind of attack and
- * the Feature deals every damage type the Equipment does. The Feature authors its own printed hit
- * damage (an SRD monster's weapon dice scale with its size, and traits such as Brute add dice);
- * the Equipment gives the action its identity and properties (D62, M9).
+ * A Creature Feature acts through the Equipment it holds when both are the same kind of attack.
+ * The Feature authors its own printed hit damage, damage type included (an SRD monster's weapon
+ * dice scale with its size, traits such as Brute add dice, and a print may name a type its
+ * Equipment's default does not); the Equipment gives the action its identity and properties
+ * (D62, M9).
  */
 function actsThroughEquipment(input: {
   equipmentEffect: CompiledEffectGroup
   featureEffect: CompiledEffectGroup
 }): boolean {
-  if (input.equipmentEffect.invocation.triggerCode !== input.featureEffect.invocation.triggerCode)
-    return false
-  const equipmentTypes = hitDamageTypeIds(input.equipmentEffect)
-  const featureTypes = hitDamageTypeIds(input.featureEffect)
-  return equipmentTypes.size > 0 && [...equipmentTypes].every((type) => featureTypes.has(type))
+  return input.equipmentEffect.invocation.triggerCode === input.featureEffect.invocation.triggerCode
 }
 
 /** The Equipment an entry's action Feature acts through, if its loadout binds one. */
@@ -327,7 +310,7 @@ function entryEquipmentBinding(
         })
     )
   ) {
-    throw new Error('Creature Feature action does not deal its Equipment damage types.')
+    throw new Error('Creature Feature action is not the same kind of attack as its Equipment.')
   }
   return {
     loadoutEntryId: source.loadoutEntryId,
