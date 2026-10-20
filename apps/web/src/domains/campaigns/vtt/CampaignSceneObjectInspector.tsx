@@ -880,6 +880,27 @@ export function CampaignSceneObjectInspector({
                   })
                 }
               />
+              <Select
+                clearable
+                data={memberships.flatMap(({ assignedCharacter }) =>
+                  assignedCharacter
+                    ? [{ label: assignedCharacter.label, value: assignedCharacter.id }]
+                    : []
+                )}
+                description='Anyone granted control of this Character can move the token.'
+                label='Linked Character'
+                value={token.characterId ?? null}
+                onChange={(characterId) =>
+                  onChange({
+                    ...scene,
+                    tokens: scene.tokens.map((item) =>
+                      item.id === token.id
+                        ? { ...item, characterId: characterId ?? undefined }
+                        : item
+                    )
+                  })
+                }
+              />
               <MultiSelect
                 data={playerOptions}
                 label='Controlled by players'

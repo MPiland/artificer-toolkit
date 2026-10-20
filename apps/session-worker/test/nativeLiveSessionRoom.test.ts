@@ -6600,7 +6600,9 @@ it('sends an expected domain rejection and keeps an unexpected failure generic',
       expect(localEncounterEvidence(context.storage)).toEqual(before)
       // The cause the member never sees reaches the test harness (PLATFORM-22.2).
       expect(roomFailureLog().flat()).toContainEqual(
-        expect.objectContaining({ message: expect.stringContaining('Encounter actor was not found') })
+        expect.objectContaining({
+          message: expect.stringContaining('Encounter actor was not found')
+        })
       )
     } finally {
       sent.mockRestore()
@@ -7108,6 +7110,7 @@ function planDoorChange(input: {
   state: 'OPEN' | 'CLOSED' | 'LOCKED'
 }) {
   return planLiveSceneCommand({
+    assignments: [],
     command: {
       barrierId: input.doorId,
       commandId: crypto.randomUUID(),
@@ -7177,6 +7180,7 @@ it('plans live token movement with vision and kept fog only while fog is OFF', (
   }
   const plan = (fogMode: CampaignSceneStateDto['fogMode']) =>
     planLiveSceneCommand({
+      assignments: [],
       command: {
         commandId: crypto.randomUUID(),
         correlationId: null,
@@ -7214,6 +7218,7 @@ it('walks a teleport that no Encounter allowance admits, so it cannot cross a cl
   }
   const plan = (expectedEncounterVersion: number | null) =>
     planLiveSceneCommand({
+      assignments: [],
       command: {
         commandId: crypto.randomUUID(),
         correlationId: null,
@@ -7244,6 +7249,7 @@ it('plans bound moves and moves on a bound Scene through room geometry', () => {
     role: 'OWNER' | 'PLAYER'
   }) =>
     planLiveSceneCommand({
+      assignments: [],
       command: {
         commandId: crypto.randomUUID(),
         correlationId: null,
@@ -7273,6 +7279,42 @@ it('plans bound moves and moves on a bound Scene through room geometry', () => {
   expect(plan({ expectedEncounterVersion: null, encounterId, role: 'PLAYER' })).toMatchObject({
     code: 'FORBIDDEN'
   })
+})
+
+it('plans an unbound move for a member granted control of the token Character, until revoked (D162)', () => {
+  const { scene, tokenId } = movementScene(crypto.randomUUID())
+  const characterId = crypto.randomUUID()
+  const grantee = crypto.randomUUID()
+  const plan = (controllerUserIds: string[]) =>
+    planLiveSceneCommand({
+      assignments: [{ characterId, userId: crypto.randomUUID(), controllerUserIds }],
+      command: {
+        commandId: crypto.randomUUID(),
+        correlationId: null,
+        expectedEncounterVersion: null,
+        expectedSceneVersion: scene.version,
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 10, y: 10 },
+          { x: 20, y: 10 }
+        ],
+        sceneId: scene.id,
+        tokenId,
+        type: 'MOVE_SCENE_TOKEN'
+      },
+      scene: {
+        ...scene,
+        fogMode: 'OFF',
+        tokens: scene.tokens.map((token) => ({ ...token, characterId, controlledByUserIds: [] }))
+      },
+      encounterId: null,
+      actor: { role: 'PLAYER', userId: grantee }
+    })
+  expect(plan([grantee])).toEqual({
+    kind: 'ACCEPTED',
+    delta: { kind: 'TOKEN_MOVED', position: { x: 20, y: 10 }, tokenId }
+  })
+  expect(plan([])).toMatchObject({ code: 'FORBIDDEN' })
 })
 
 it('fans out every non-hidden token and door to a player in a fog-OFF Scene', async () => {

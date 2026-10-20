@@ -1266,7 +1266,7 @@
             "bv": 8,
             "tc": 5,
             "rr": 8,
-            "size": 8
+            "size": 13
           },
           "acs": [
             {
@@ -1285,17 +1285,30 @@
           ],
           "tasks": [
             {
-              "id": "PLATFORM-21.T1",
-              "status": "TODO",
-              "closes": ["PLATFORM-21.1", "PLATFORM-21.2"],
-              "text": "Hydrate the character engine and room registries from the stored compiled projection; remove runtime recompilation; projection version and migration; measure evaluation cost before and after.",
+              "id": "PLATFORM-21.T1a",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-21.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 8,
-                "size": 8,
+                "size": 5,
                 "after": ["PLATFORM-20.T1"]
-              }
+              },
+              "text": "Compiled projection v2 (D163; split 2026-10-19): the projection carries every field the Builder reads from authored payloads (Class subclass selection level, spellcasting availability, proficiency scaling and restrictions, chosen-grant shapes, subclass label, feature checksum, plus any found in Spell, Race, Equipment and Background), with Equipment in the resolved shape; Builder and rules-runtime reads move to the compiled shapes while compilation is still at runtime; a migration recompiles stale rows, run on development data."
+            },
+            {
+              "id": "PLATFORM-21.T1b",
+              "status": "TODO",
+              "closes": ["PLATFORM-21.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 5,
+                "after": ["PLATFORM-21.T1a"]
+              },
+              "text": "Hydrate Builder commit, the browser Builder and the room from the stored compiled projection and remove runtime recompilation (D163); snapshot documents format 3 (ADR 0036 amendment); a compile failure blocks the publish; before-and-after measurements, including commitReadBudget within D84 (measured full swap: Fighter 5 324 KB, Wizard 5 405 KB, Fighter 3/Wizard 2 525 KB)."
             }
           ]
         },
@@ -4954,19 +4967,20 @@
             {
               "id": "SCENE-5.T1",
               "text": "The GM grants and revokes Campaign-level control of a Character; granted members move its tokens outside Encounters and are its controllers in every Run. One source of truth with the existing per-Run controllerUserIds (ADR 0034, max 8, assigned player always a controller).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SCENE-5.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 5
-              }
+              },
+              "note": "Merged m209 (19f2ec13e); D162."
             },
             {
               "id": "SCENE-5.T2",
               "text": "Main-Character picker on the tabletop and view switching by a single selected controlled token; clearing or a multi-select returns to the main Character.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SCENE-5.2"],
               "wsjf": {
                 "bv": 8,
@@ -4974,19 +4988,21 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SCENE-5.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-scene-5.md"
             },
             {
               "id": "SCENE-5.T3",
               "text": "Zoom control (percentage field and steps) with per-device zoom for every viewer, a screen-sized tabletop popup and a Full screen button.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SCENE-5.3"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 3
-              }
+              },
+              "note": "Merged m208 (6585a457f)."
             }
           ]
         }
@@ -5687,14 +5703,15 @@
             {
               "id": "ENCOUNTER-8.T1",
               "text": "Static mode-change roll card: the added die and the settled mode are shown beside the cancelled ✕ from modeAdjustment; this is also the reduced-motion presentation.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ENCOUNTER-8.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 2,
                 "size": 2
-              }
+              },
+              "note": "Merged m206 (3120bcf0d)."
             },
             {
               "id": "ENCOUNTER-8.T2",
@@ -7700,9 +7717,9 @@
             {
               "id": "ATTACK-19.T3",
               "text": "Thrown and Disarm hand transitions (extend the existing held-item transition).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-19.3"],
-              "activeWorkbook": "docs/handoffs/slice-attack-19.md"
+              "note": "Merged m207 (0c3ac23e2)."
             },
             {
               "id": "ATTACK-19.T4",

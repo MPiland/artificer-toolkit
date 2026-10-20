@@ -21,7 +21,9 @@ import {
   encounterDefaultAttackActionId,
   type DefaultAttackChoice
 } from '@artificer-toolkit/rules-runtime/encounterDefaultAttack'
+import { snapshotCreatureEquipmentItems } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { encounterActorHeldItems } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
+import { dnd5eAttackKind } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
 import {
   characterActionDrawWeapon,
   creatureActionDrawWeapon,
@@ -290,7 +292,11 @@ export async function readEncounterActionChoices(
           candidate?.mechanicFacts.invocation.activation ?? null,
           candidate?.mechanicFacts.invocation.triggerCode
         )
-        const draw = handReleaseFor(characterActionDrawWeapon(candidate?.equipment ?? null))
+        const weapon = characterActionDrawWeapon(
+          candidate?.equipment ?? null,
+          candidate ? dnd5eAttackKind(candidate.mechanicFacts.invocation.triggerCode) : null
+        )
+        const draw = handReleaseFor(weapon)
         if (candidate?.equipment)
           itemBindings.set(action.id, {
             itemId: candidate.equipment.itemInstanceId,
@@ -339,8 +345,8 @@ export async function readEncounterActionChoices(
           ),
           warnings: [
             ...economy.warnings,
-            // An attack draws its carried weapon itself (D107), so a carried weapon is no warning.
-            ...(reasonCode === 'SOURCE_NOT_EQUIPPED' && draw.kind !== 'DRAW'
+            // An attack draws or throws its carried weapon itself (D107), so a carried weapon is no warning.
+            ...(reasonCode === 'SOURCE_NOT_EQUIPPED' && draw.kind !== 'DRAW' && !weapon?.thrown
               ? [
                   {
                     code: 'SOURCE_NOT_EQUIPPED' as const,
@@ -413,7 +419,11 @@ export async function readEncounterActionChoices(
             wieldConflict: null,
             ...handReleaseChoice(
               handReleaseFor(
-                creatureActionDrawWeapon(heldItems, action.equipmentBinding?.loadoutEntryId)
+                creatureActionDrawWeapon(
+                  snapshotCreatureEquipmentItems(creature),
+                  action.equipmentBinding?.loadoutEntryId,
+                  dnd5eAttackKind(action.mechanicFacts.invocation.triggerCode)
+                )
               )
             ),
             attackSlot: economy.attackSlot,

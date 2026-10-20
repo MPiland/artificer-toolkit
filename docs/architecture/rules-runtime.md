@@ -1494,6 +1494,17 @@ flow asks "release which?", sends the existing `RELEASE_RELATIONSHIP`, then the 
 is not restored by undo. The read cannot see target-dependent refusals, so it offers the release
 whenever the listed action would need one; the planner refusal stays as the backstop.
 
+**Thrown weapon (ATTACK-19.T3, D107).** A ranged attack through a `THROWN` weapon that is in a hand
+leaves that hand: `evaluateEncounterWeaponDraw` returns `THROW { itemId, slot }` (the weapon's
+`thrown` flag is `attackKind === 'RANGED'` and the `THROWN` property, read from the authored data, never
+a named weapon). A carried thrown weapon is `NONE` (no hand is needed, so never `RELEASE_REQUIRED`), and
+a melee attack with the same weapon moves nothing. The throw reuses the draw seam end to end:
+`throwHeldItem` on the source's equipment mutation and the same `sourceItemDraw` receipt transition
+with `movement: 'THROW'` (default `'DRAW'`). A Character's throw unequips the item (after any shield
+stow); a Creature's moves the loadout entry hand -> `CARRIED`. Undo re-equips it to the hand it left,
+refusing when the equipment moved on. Disarm already empties the disarmed item's hand
+(`itemReleaseTransition`), and swapping weapons stays free (`encounterWieldConflict`).
+
 **Action phases.** An authored action compiles to an immutable template; after the owner locks and
 authorizes facts, at most two ordered phases specialize from it: `TEST` (one d20 stage selecting the hit,
 miss, critical or save path) and `OUTCOME` (exact authored dice and scaling). Each phase is acyclic with

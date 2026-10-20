@@ -1,5 +1,6 @@
 import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import {
   creatureFeature,
@@ -170,5 +171,84 @@ describe('an attack draws its carried weapon into a free hand (D107, ATTACK-19.2
     const answer = await attackTarget()
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     expect(await clubState()).toBe('MAIN_HAND')
+  })
+})
+
+describe('a thrown weapon leaves its hand (D107, ATTACK-19.3), in the room', () => {
+  it('throws the held Javelin into the carried state and undo puts it back in the hand', async () => {
+    const bugbear = seededSrdCreature('Bugbear')
+    const javelinFeatureId = creatureFeature(bugbear, 'Javelin').id
+    const holding = {
+      ...bugbear,
+      equipmentLoadout: bugbear.equipmentLoadout?.map((entry) => ({
+        ...entry,
+        useState: entry.actionFeatureIds.includes(javelinFeatureId)
+          ? ('MAIN_HAND' as const)
+          : entry.useState === 'MAIN_HAND'
+            ? ('CARRIED' as const)
+            : entry.useState
+      }))
+    }
+    const bugbearActor = srdCreatureActor({ id: OGRE_ID, creature: holding })
+    const [, thrownJavelin] = discoverEncounterFeatureActions({
+      actor: bugbearActor,
+      conditionDefinitionIds: [],
+      abilityDefinitions: []
+    }).available.filter((entry) => entry.ownerFeatureId === javelinFeatureId)
+    if (!thrownJavelin) throw new Error('The Bugbear offers no thrown Javelin action.')
+    const room = await actionRoom({
+      actors: [bugbearActor, srdCreatureActor({ id: TARGET_ID, creature: plainWolf })],
+      ownerFeatureId: javelinFeatureId
+    })
+    const stub = room.room.base.stub
+    const javelinEntryId = snapshotCreatureEquipmentLoadout(bugbearActor).find((entry) =>
+      entry.actionFeatureIds.includes(javelinFeatureId)
+    )?.id
+    const javelinState = async () => {
+      const { actors } = await readRoomHistory(stub)
+      const row = actors.find(({ id }) => id === OGRE_ID)
+      if (!row) throw new Error('The stored Run holds no Bugbear.')
+      const actor = readStoredRunActor(row)
+      if (actor.kind !== 'CREATURE') throw new Error('Expected a Creature actor.')
+      const snapshotRow = await runInDurableObject(stub, async (_instance, context) =>
+        new RoomEncounterStore(context.storage)
+          .documents('encounterActorSnapshots')
+          .find(({ checksum }) => checksum === actor.snapshotChecksum)
+      )
+      if (!snapshotRow) throw new Error('The Bugbear snapshot is not stored.')
+      return snapshotCreatureEquipmentLoadout({
+        ...actor,
+        snapshot: readStoredActorSnapshot(snapshotRow)
+      }).find((entry) => entry.id === javelinEntryId)?.useState
+    }
+    expect(await javelinState()).toBe('MAIN_HAND')
+
+    const { answer } = await room.startAction(
+      TARGET_ID,
+      ['TARGET_RANGE_UNCHECKED'],
+      null,
+      null,
+      thrownJavelin.actionId
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the attack roll.')
+    const resolved = await room.resolve(decision, {
+      kind: 'ENTER_DICE',
+      requestId: decision.pending.request.requestId,
+      rawFaces: [1],
+      rollMode: decision.pending.request.rollMode
+    })
+    expect(resolved.type, JSON.stringify(resolved)).toBe('COMMAND_COMMITTED')
+    expect(await javelinState()).toBe('CARRIED')
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await javelinState()).toBe('MAIN_HAND')
   })
 })

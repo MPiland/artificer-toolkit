@@ -238,7 +238,11 @@ planner read reaches Convex. This is current behavior.
 
 **Control and roll routing (ADR 0034).** Control belongs to the Run actor. Each actor stores
 GM-set `controllerUserIds` (current Campaign players only, at most 8) and a `disposition`; a
-Character actor's assigned player is always a controller, derived and never stored.
+Character actor's assigned player is always a controller, derived and never stored. A Campaign grant
+(`campaignCharacterAssignments.controllerUserIds`, SCENE-5.1) is a second derived source: `shared/campaign/characterControl`
+merges it with the per-Run list for Convex, the player projection and the room, so a granted player controls the
+Character in every Run and a revoke is immediate. A Scene token carries an optional `characterId`; a grantee moves an
+unbound token only when its `characterId` is a Character granted to them.
 `encounters/actorController.ts` is the one predicate used by admission, reads and responses. A PLAYER
 may `RESOLVE_ACTION` for an actor they control, end the current actor's turn when it is theirs,
 answer decisions routed to them, and enter initiative once for an actor they control, rolled

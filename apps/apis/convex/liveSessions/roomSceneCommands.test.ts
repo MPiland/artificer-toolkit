@@ -15,12 +15,16 @@ import type {
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { api } from '../_generated/api'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
+import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import {
   attachFixtureRoom,
   checkpointLiveRoom,
   executeInRoom,
   executeSceneInRoom,
+  invalidateRoomInputs,
   RoomCommandRefusal,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -497,3 +501,89 @@ it('commits a player move of a controlled unbound token through the room, refusi
   ).rejects.toThrow()
   expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
 }, 120_000)
+
+it('lets the GM give a member control of a Character and take it back, moving that Character token meanwhile (SCENE-5.1)', async () => {
+  const value = await setupPlayerScene()
+  const { base } = value
+  const ready = await readyCharacterFixture({}, undefined, base)
+  const { draft, character } = await ready.createCharacter(undefined, base.other.caller)
+  await base.other.caller.mutation(api.characters.commit.commit, {
+    expectedDraftId: draft.id,
+    mode: 'create',
+    character
+  })
+  await base.other.caller.mutation(api.campaigns.assignments.assign, {
+    campaignId: base.campaign.id,
+    characterId: character.id
+  })
+  const grantee = await createPartyPlayer(base.t, base.campaign)
+  await grantee.join()
+  const sync = async () => {
+    await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+    await checkpointLiveRoom(base.campaign.id)
+  }
+  await sync()
+
+  // The GM links the Sentry's token to the Character, as the token inspector does.
+  const linked = (
+    await executeSceneInRoom(base.owner.caller, {
+      type: 'UPSERT_SCENE_TOKEN',
+      commandId: crypto.randomUUID(),
+      sceneId: value.sceneId,
+      expectedSceneVersion: value.version,
+      token: { ...value.sentry, characterId: character.id }
+    })
+  ).result!
+  let version = linked.version
+  await checkpointLiveRoom(base.campaign.id)
+  const move = (userCaller: typeof grantee.caller, from: { x: number; y: number }) =>
+    executeSceneInRoom(userCaller, {
+      type: 'MOVE_SCENE_TOKEN',
+      commandId: crypto.randomUUID(),
+      sceneId: value.sceneId,
+      tokenId: value.sentry.id,
+      expectedSceneVersion: version,
+      expectedEncounterVersion: null,
+      correlationId: null,
+      movementKind: 'VOLUNTARY',
+      path: [from, { x: from.x + 50, y: from.y }]
+    })
+  const grant = (controllerUserIds: string[]) =>
+    base.owner.caller.mutation(
+      makeFunctionReference<'mutation', Record<string, unknown>, { ok: true }>(
+        'campaigns/characterControllers:setControllers'
+      ),
+      { campaignId: base.campaign.id, characterId: character.id, controllerUserIds }
+    )
+  let at = value.sentry.position
+
+  // Nobody but the GM and the Character's player controls it yet.
+  await expect(move(grantee.caller, at)).rejects.toThrow(/control/)
+
+  await grant([grantee.userId])
+  await sync()
+  const position = async () => {
+    await checkpointLiveRoom(base.campaign.id)
+    return base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('sceneLiveEntities')
+        .withIndex('by_sceneId_collection_entityId', (q) =>
+          q.eq('sceneId', value.sceneId).eq('collection', 'tokens').eq('entityId', value.sentry.id)
+        )
+        .unique()
+      if (row?.value?.collection !== 'tokens') throw new Error('Missing Scene token.')
+      return row.value.entity.position
+    })
+  }
+  version = (await move(grantee.caller, at)).version
+  expect(await position()).toEqual({ x: at.x + 50, y: at.y })
+  at = { x: at.x + 50, y: at.y }
+
+  await grant([])
+  await sync()
+  await expect(move(grantee.caller, at)).rejects.toThrow(/control/)
+  expect(await position()).toEqual(at)
+  // The Character's own player keeps control throughout.
+  await move(base.other.caller, at)
+  expect(await position()).toEqual({ x: at.x + 50, y: at.y })
+}, 180_000)
