@@ -1,4 +1,5 @@
 import type { EquipmentAuthored } from '@artificer-toolkit/shared'
+import { blowgunNeedles } from './blowgun-needles.js'
 import * as S from './shared.js'
 
 export const blowgun: EquipmentAuthored = {
@@ -22,6 +23,7 @@ export const blowgun: EquipmentAuthored = {
     100,
     S.EQUIPMENT_GRIP.ONE_HANDED
   ),
+  ammunitionEquipmentId: blowgunNeedles.id,
   cost: S.gp(10),
   weight: S.lbs(1),
   rarityId: S.RARITY_COMMON,

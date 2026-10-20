@@ -250,7 +250,7 @@ export const hunterConclave: ClassAuthored = {
             "You can use your action to make a ranged attack against any number of creatures within 10 feet of a point you can see within your weapon's range. You must have ammunition for each target, as normal, and you make a separate attack roll for each target.",
           order: 0,
           // An attack with each wielded ammunition weapon, within that weapon's range (D156).
-          // Ammunition is not spent yet (ATTACK-19.4).
+          // Each attack draws one piece of the chosen ammunition when the Campaign tracks it (ATTACK-19.4).
           effects: [
             {
               id: classRowId(RA, 20, 6),

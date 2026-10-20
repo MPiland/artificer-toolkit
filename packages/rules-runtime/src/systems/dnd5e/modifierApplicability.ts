@@ -193,27 +193,28 @@ export function dnd5eFoldedModifierApplicability(
 
 /**
  * A Character action evaluates its own source and, for an item action, the item it attacks with. A
- * Feature attack made with a wielded weapon also takes that weapon's own modifiers (D156).
+ * Feature attack made with a wielded weapon also takes that weapon's own modifiers (D156). The
+ * ammunition an attack fires is a source of that attack only.
  */
 export function dnd5eCharacterActionTarget(
   candidate: Pick<
     CharacterActionCandidate,
     'sourceId' | 'equipment' | 'mechanicsOwner' | 'mechanicFacts' | 'activationSourceKind'
-  >
+  >,
+  ammunition?: { itemInstanceId: string; equipmentId: string } | null
 ): Dnd5eModifierTarget {
   const weapon = candidate.equipment
+  const equipmentKey = (item: { itemInstanceId: string; equipmentId: string }) =>
+    createCharacterMechanicSourceKey({ kind: 'EQUIPMENT_INSTANCE', ...item })
   return {
-    sourceIds:
-      candidate.activationSourceKind === 'ACTIVE_SOURCE_AND_EQUIPMENT' && weapon?.equipmentId
-        ? [
-            candidate.sourceId,
-            createCharacterMechanicSourceKey({
-              kind: 'EQUIPMENT_INSTANCE',
-              equipmentId: weapon.equipmentId,
-              itemInstanceId: weapon.itemInstanceId
-            })
-          ]
-        : [candidate.sourceId],
+    sourceIds: [
+      candidate.sourceId,
+      ...(candidate.activationSourceKind === 'ACTIVE_SOURCE_AND_EQUIPMENT' && weapon?.equipmentId
+        ? [equipmentKey({ equipmentId: weapon.equipmentId, itemInstanceId: weapon.itemInstanceId })]
+        : []),
+      // The ammunition drawn for this attack is a source of this attack alone (ATTACK-19.4).
+      ...(ammunition ? [equipmentKey(ammunition)] : [])
+    ],
     item: dnd5eAttackingItem(candidate.equipment),
     attackAbility: null,
     activation: candidate.mechanicFacts.invocation.activation?.code ?? null,

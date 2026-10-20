@@ -288,6 +288,8 @@ export async function prepareEncounterActionMechanics<
   choiceOptionId?: string
   /** A read of the shared test before any pick, as `prepareEncounterActionSource` takes it. */
   readsSharedTest?: boolean
+  /** The ammunition a weapon attack fires and how many attacks the command makes; absent for a read, which previews the first stack in stock. */
+  ammunition?: { itemInstanceId?: string; attacks: number }
   wieldConflictAcceptance: EncounterWieldConflictAcceptance
   /** RESOLVE_ACTION reports overridable warnings; reactions, legendary actions and Disarm refuse them. */
   overridable: boolean
@@ -428,6 +430,8 @@ export async function prepareEncounterActionMechanics<
             expectedStreamVersion: source.characterStreamVersion,
             classLevels: characterFacts.ruleEvaluation.facts.grantFoldFacts.base.classes,
             automationMode: state.automationMode,
+            trackAmmunition: state.trackAmmunition,
+            ammunition: input.ammunition ?? null,
             overridable: input.overridable
           })
         })()
@@ -725,7 +729,10 @@ export async function prepareEncounterActionMechanics<
                       source.effectivePolicyOutput,
                       dnd5eAttackModifierDomain(attackKind),
                       {
-                        ...dnd5eCharacterActionTarget(source.candidate),
+                        ...dnd5eCharacterActionTarget(
+                          source.candidate,
+                          characterActionState?.ammunition
+                        ),
                         attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
                       }
                     )
@@ -742,7 +749,10 @@ export async function prepareEncounterActionMechanics<
               source.kind === 'CHARACTER_ACTION'
                 ? mergeCanonicalD20Contributors(
                     dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, {
-                      ...dnd5eCharacterActionTarget(source.candidate),
+                      ...dnd5eCharacterActionTarget(
+                        source.candidate,
+                        characterActionState?.ammunition
+                      ),
                       attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
                     }),
                     contributors

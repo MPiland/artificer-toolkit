@@ -1,4 +1,5 @@
 import type { EquipmentAuthored } from '@artificer-toolkit/shared'
+import { crossbowBolts } from './crossbow-bolts.js'
 import * as S from './shared.js'
 
 export const handCrossbow: EquipmentAuthored = {
@@ -23,6 +24,7 @@ export const handCrossbow: EquipmentAuthored = {
     120,
     S.EQUIPMENT_GRIP.ONE_HANDED
   ),
+  ammunitionEquipmentId: crossbowBolts.id,
   cost: S.gp(75),
   weight: S.lbs(3),
   rarityId: S.RARITY_COMMON,

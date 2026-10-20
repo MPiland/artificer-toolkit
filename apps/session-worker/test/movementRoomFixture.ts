@@ -176,6 +176,8 @@ export interface MovementRoomConfig {
   /** The scene-pixel center of every actor's 100 px token. */
   positions: Readonly<Record<string, ScenePoint>>
   automationMode?: AutomationModeDto
+  /** The Campaign's ammunition tracking option, frozen on the Run (ATTACK-19.4). */
+  trackAmmunition?: boolean
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
   /** Whose stored preference rolls dice automatically: the GM's, the Character player's, or the other player's. */
   autoRoll?: 'GAME_MASTER' | 'PLAYER' | 'BOTH' | 'EVERYONE'
@@ -303,6 +305,7 @@ export async function movementRoom(config: MovementRoomConfig) {
         })
       }),
       automationMode: config.automationMode,
+      trackAmmunition: config.trackAmmunition,
       optionalCombatKinds: config.optionalCombatKinds
     }),
     id: encounterId,
