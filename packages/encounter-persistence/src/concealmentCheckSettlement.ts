@@ -141,7 +141,8 @@ export async function settleEncounterConcealmentCheck(
         await store.deleteCas({
           id: replaced.id,
           owner: replaced.owner,
-          expectedVersion: replaced.version
+          expectedVersion: replaced.version,
+          removal: 'ENDED'
         })
         endedEffects.push(replaced)
       }
@@ -172,7 +173,12 @@ export async function settleEncounterConcealmentCheck(
         })
       } else {
         // A concealment that hides its holder from no one is over.
-        await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+        await store.deleteCas({
+          id: effect.id,
+          owner,
+          expectedVersion: effect.version,
+          removal: 'ENDED'
+        })
         endedEffects.push(effect)
       }
     }

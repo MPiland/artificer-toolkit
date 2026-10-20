@@ -4,6 +4,7 @@ import type { FailureMarginRiderAuthored } from './followUpSave.js'
 import type {
   DurationAuthored,
   FacetAuthored,
+  ModifierGrantAuthored,
   OutcomeAuthored,
   OutcomeRowMetadataAuthored,
   RangeAuthored,
@@ -85,6 +86,15 @@ export type PathLifecycleAuthored = {
     activation: ActivationAuthored
     checks: CheckChoiceAuthored
     dc: HeldEscapeDcAuthored
+  }
+  /**
+   * What the holder is left with when the effect ends, however it ends (expiry, Concentration, an end
+   * trigger, death): these modifier grants, held for `turns` of the holder's own turns (Haste's
+   * lethargy). Only an `APPLY_GRANT` effect carries one.
+   */
+  onEnd?: {
+    turns: number // int
+    modifiers: ModifierGrantAuthored[]
   }
 }
 

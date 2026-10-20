@@ -17,7 +17,12 @@ export async function deleteGrants(
 ) {
   const store = createActiveRuleEffectStore(ctx)
   for (const grant of grants)
-    await store.deleteCas({ id: grant.id, owner: grant.owner, expectedVersion: grant.version })
+    await store.deleteCas({
+      id: grant.id,
+      owner: grant.owner,
+      expectedVersion: grant.version,
+      removal: 'ENDED'
+    })
 }
 
 /**
@@ -104,7 +109,8 @@ export async function endEffects(
       id: state.id,
       encounterId,
       ownerActorId: state.ownerActorId,
-      expectedVersion: state.version
+      expectedVersion: state.version,
+      removal: 'ENDED'
     })
     ended.push(state)
   }

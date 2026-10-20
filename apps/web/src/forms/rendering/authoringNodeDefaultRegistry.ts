@@ -102,6 +102,7 @@ type AuthoringDefaultKind =
   | 'pathLifecycleEndTrigger'
   | 'pathLifecycleEscape'
   | 'pathLifecycleHolderEnd'
+  | 'pathLifecycleOnEnd'
   | 'pathLifecycleTurnAnchor'
   | 'pathRollTableRow'
   | 'perTargetLockout'
@@ -258,6 +259,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   pathLifecycleEndTrigger: ['pathLifecycleEndTrigger'],
   pathLifecycleEscape: ['pathLifecycleEscape'],
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
+  pathLifecycleOnEnd: ['pathLifecycleOnEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],
   perTargetLockout: ['perTargetLockout'],

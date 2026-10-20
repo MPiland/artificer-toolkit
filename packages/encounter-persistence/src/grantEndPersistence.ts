@@ -29,7 +29,12 @@ export async function endEncounterActorGrant(
   const effect = (await store.list(owner)).find(({ id }) => id === effectId)
   if (!effect || listActiveGrantListings([effect]).length === 0)
     throw new Error('Active grant was not found on this actor.')
-  await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+  await store.deleteCas({
+    id: effect.id,
+    owner,
+    expectedVersion: effect.version,
+    removal: 'ENDED'
+  })
   await reconcileNativeMaintenanceOwners(ctx, {
     encounterId: state.id,
     maintenance: { removed: [effect], characterVersions: [] },

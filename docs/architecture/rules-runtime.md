@@ -1308,6 +1308,10 @@ the undo unavailable, like any Character state change). A Concentration spell st
 `prepareEncounterActionMaintenance` (D99), so the undo restore rules there apply. Components, hands and
 silence have no Sheet rule yet, so an Encounter applies none either.
 
+### Ending a held effect and its `onEnd` grant (current, SPELLS-4.T2l-a)
+
+`deleteCas` and `deleteMaintainedStateCas` (`encounter-persistence/effectStore.ts`) are the one place a held effect leaves encounter state, in the Convex path and the room alike. Each takes a required `removal`: `ENDED` (expiry, Concentration drop or replacement, early end, consumption, a departing source) or `REMOVED` (undo, an actor's own removal, Run completion). An `ENDED` effect whose definition carries a `MODIFIER_GRANT` `onEnd` template leaves its follow-on grant on the same holder (Haste's lethargy, `rules-runtime/encounterEffectOnEnd.ts`): a holder-anchored timed grant with an id derived from the ended effect's, created inside the tick pass so it is not ticked in the same pass. Restoring the effect (`create` with `restoredFrom`) takes that follow-on back.
+
 ## Initiative
 
 Initiative is application policy over typed rules evidence. Campaign settings select an allowed

@@ -588,7 +588,8 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
         encounterId: base.run.id,
         targetActorId: base.actor.id
       },
-      expectedVersion: replacementDependent.version
+      expectedVersion: replacementDependent.version,
+      removal: 'REMOVED'
     })
     return state.id
   })

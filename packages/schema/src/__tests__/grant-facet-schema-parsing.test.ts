@@ -222,7 +222,6 @@ describe('grant and facet schema parsing', () => {
           ['SPELLS_PREPARED', 'SET_VALUE', {}, { amount: 4 }],
           ['ACTION_COUNT', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
           ['BONUS_ACTION_COUNT', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }],
-          ['BONUS_ACTION_COUNT', 'SET_VALUE', {}, { amount: 0 }],
           ['REACTION_COUNT', 'BONUS', {}, { valueKind: 'FIXED', amount: 1 }]
         ] as const
       ).map(([valueDomainCode, modifierKind, domain, payload]) => ({

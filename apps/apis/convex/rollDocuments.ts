@@ -65,7 +65,8 @@ export async function evaluateCharacterRoll(
     await effectStore.deleteCas({
       id: effect.id,
       owner: effect.owner,
-      expectedVersion: effect.version
+      expectedVersion: effect.version,
+      removal: 'ENDED'
     })
   const record = createRollRecord({
     characterId: character.id,

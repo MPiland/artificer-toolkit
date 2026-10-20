@@ -789,7 +789,8 @@ it('carries a Character’s creature form out of the Run with its hit points, an
     await store.deleteCas({
       id: current.id,
       owner: characterOwner,
-      expectedVersion: current.version
+      expectedVersion: current.version,
+      removal: 'ENDED'
     })
   })
   const afterSheetEnd = await t.run(async (ctx) =>

@@ -313,7 +313,8 @@ export async function persistEncounterTurnEffects(
       await store.deleteCas({
         id: effect.id,
         owner,
-        expectedVersion: effect.version
+        expectedVersion: effect.version,
+        removal: 'ENDED'
       })
     } else
       await store.updateLifecycleCas({
@@ -335,7 +336,12 @@ export async function persistEncounterTurnEffects(
   for (const endedEffect of damageDeleted) {
     if (endedEffect.maintainedEffectStateId !== null)
       terminalMaintainedStateIds.add(endedEffect.maintainedEffectStateId)
-    await store.deleteCas({ id: endedEffect.id, owner, expectedVersion: endedEffect.version })
+    await store.deleteCas({
+      id: endedEffect.id,
+      owner,
+      expectedVersion: endedEffect.version,
+      removal: 'ENDED'
+    })
   }
   const terminatedMaintainedStates = []
   for (const stateId of [...terminalMaintainedStateIds].sort()) {
@@ -350,7 +356,8 @@ export async function persistEncounterTurnEffects(
       id: maintained.id,
       encounterId: state.id,
       ownerActorId: maintained.ownerActorId,
-      expectedVersion: maintained.version
+      expectedVersion: maintained.version,
+      removal: 'ENDED'
     })
     terminatedMaintainedStates.push({
       id: maintained.id,

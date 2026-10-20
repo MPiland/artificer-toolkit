@@ -94,14 +94,16 @@ export async function applyLiveConcentrationCleanup(
     await store.deleteCas({
       id: effect.id,
       owner: effect.owner,
-      expectedVersion: effect.version
+      expectedVersion: effect.version,
+      removal: 'ENDED'
     })
   await deleteStateZones(ctx, zones)
   await store.deleteMaintainedStateCas({
     id: slot.id,
     encounterId: state.id,
     ownerActorId: slot.ownerActorId,
-    expectedVersion: slot.version
+    expectedVersion: slot.version,
+    removal: 'ENDED'
   })
   // D151: a reinstated carried Concentration's end reaches the caster's grants outside the Run too.
   const { provenance } = slot.descriptor
