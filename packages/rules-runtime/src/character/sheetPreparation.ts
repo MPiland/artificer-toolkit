@@ -1,7 +1,5 @@
-import type {
-  CharacterAuthored,
-  CreatureAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CompiledCreature } from '@artificer-toolkit/shared/subjects/compilers'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { CharacterBuilderContext } from './builderTypes.js'
 import { prepareCharacterBuilderFromContext } from './builderPreparation.js'
@@ -16,7 +14,7 @@ import { getPreparedAndKnownSpellIds } from './sheetSpellIds.js'
 /** Evaluates already-authorized current inputs without accessing persistence. */
 export async function prepareCharacterSheetFromContext<
   TContext extends CharacterBuilderContext & {
-    creaturesById: ReadonlyMap<string, CreatureAuthored>
+    creaturesById: ReadonlyMap<string, CompiledCreature>
   }
 >(input: {
   character: CharacterAuthored
@@ -49,7 +47,7 @@ export async function prepareCharacterSheetFromContext<
   const evaluationInput = {
     character: prepared.character,
     context: prepared.context,
-    spellDocumentsById: prepared.context.spellDocumentsById,
+    spellsById: prepared.context.spellsById,
     creaturesById: prepared.context.creaturesById,
     adjustments,
     attunementSlotOverride: campaignContext.attunementSlotOverride,

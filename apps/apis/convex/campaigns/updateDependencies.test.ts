@@ -13,8 +13,8 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
 import * as sheetFacts from '../characters/sheetFacts'
 
 const update = makeFunctionReference<'mutation', UpdateCampaignInput, CampaignDetailDto>(
@@ -142,7 +142,7 @@ describe('Campaign update source and mechanics dependencies', () => {
     const { t, owner, other, campaign, catalogueId, sourceId, character, snapshot, assign } =
       await setup()
     const equipment = { ...club, id: crypto.randomUUID(), label: 'Draft-only club' }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: sourceId,
       subjects: [importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })]
     })
@@ -197,7 +197,7 @@ describe('Campaign update source and mechanics dependencies', () => {
         })
         dependentId = club.id
       } else {
-        await t.mutation(internal.content.import.importSubjects, {
+        await importSeededSubjects(t, {
           contentSourceId: SRD_CONTENT_SOURCE.id,
           subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
         })

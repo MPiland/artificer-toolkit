@@ -12,7 +12,11 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileFeature } from '@artificer-toolkit/shared/compilers'
 import {
+  compileClass,
+  compileRace,
+  compileResolvedEquipment,
   resolveEquipmentAuthored,
   resolveRaceAuthored
 } from '@artificer-toolkit/shared/subjects/compilers'
@@ -53,18 +57,20 @@ function registryWith(
 ) {
   const equipment = [...SRD.equipment, ...extraEquipment]
   const equipmentById = new Map<string, EquipmentAuthored>(equipment.map((item) => [item.id, item]))
+  const compiled = {
+    races: SRD.races.map((race) =>
+      compileRace(resolveRaceAuthored(race, (id) => racesById.get(id)))
+    ),
+    classes: SRD.classes.map(compileClass),
+    backgrounds: [],
+    equipment: equipment.map((item) =>
+      compileResolvedEquipment(resolveEquipmentAuthored(item, (id) => equipmentById.get(id)))
+    ),
+    feats: [],
+    features: extraFeatures.map(compileFeature)
+  }
   return prepareCharacterRuleSources({
-    registry: {
-      races: SRD.races.map((race) => resolveRaceAuthored(race, (id) => racesById.get(id))),
-      classes: SRD.classes,
-      backgrounds: [],
-      equipment: equipment.map((item) =>
-        resolveEquipmentAuthored(item, (id) => equipmentById.get(id))
-      ),
-      feats: [],
-      features: [...extraFeatures],
-      system: { skills: [], speeds: [...SRD_SPEEDS] }
-    },
+    registry: { ...compiled, system: { skills: [], speeds: [...SRD_SPEEDS] } },
     catalog: { spells: [] }
   }).registry
 }
@@ -122,7 +128,13 @@ export type SrdCharacterInput = {
   subrace?: string
   classes: readonly { label: string; level: number; subclass?: string }[]
   features?: readonly SnapshotFeature[]
-  items?: readonly { label: string; equipped?: boolean; attuned?: boolean }[]
+  items?: readonly {
+    label: string
+    equipped?: boolean
+    attuned?: boolean
+    /** Corrosion play has put on the item. */
+    degradation?: number
+  }[]
   /** Authored equipment beyond the SRD, which `items` may then name by label. */
   extraEquipment?: readonly EquipmentAuthored[]
   /** Authored Features beyond the SRD, which `features` may then acquire by id. */
@@ -178,6 +190,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
       },
       ...(assignment ? { equippedState: { slot: assignment.slot } } : {}),
       attuned: item.attuned ?? false,
+      ...(item.degradation === undefined ? {} : { degradation: item.degradation }),
       compiledItem
     }
   })

@@ -291,18 +291,19 @@ export const vampire: CreatureAuthored = {
       label: 'Multiattack (Vampire Form Only)',
       description:
         'Multiattack (Vampire Form Only). The vampire makes two attacks, only one of which can be a bite attack.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(277, 222),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(277, 223), rangeKind: S.RANGE_KIND.SELF }
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(277, 13) }] }]
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(277, 13) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(277, 14) }] }
+            ]
+          }
+        ]
+      },
       order: 12
     },
     {

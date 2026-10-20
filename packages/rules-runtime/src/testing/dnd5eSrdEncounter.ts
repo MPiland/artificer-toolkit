@@ -33,10 +33,7 @@ import {
 
 import type { ProjectableCharacterFacts } from '../encounterActionProjection.js'
 import { buildEncounterActorRuleFacts } from '../encounterActorRuleFacts.js'
-import {
-  pinCreatureEquipmentSources,
-  resolveEquipmentSourceRecord
-} from '../encounterCreatureEquipmentSources.js'
+import { pinCreatureEquipmentSources } from '../encounterCreatureEquipmentSources.js'
 import { reconcileEncounterActorRuleOutput } from '../encounterActorRuleOutput.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
 import {
@@ -45,6 +42,7 @@ import {
   evaluateInstalledEncounterActors
 } from '../platformRulesRuntime.js'
 import type { CurrentReusableDefinitionSource } from '../ruleCapabilityStateService.js'
+import { storedEquipmentSource } from './storedEquipmentSource.js'
 
 export { SRD_SYSTEM_ID }
 
@@ -67,22 +65,18 @@ const seedsById = new Map(SRD_REUSABLE_DEFINITIONS.map((seed) => [seed.id, seed]
 
 const srdEquipmentById = new Map(srdEquipment.map((document) => [document.id, document]))
 
-/** A Creature's loadout Equipment served as current version-1 SRD records. */
+/** A Creature's loadout Equipment served as current version-1 SRD records with stored compilations. */
 function srdLoadoutEquipmentRecords(creature: CreatureAuthored) {
   return new Map(
     (creature.equipmentLoadout ?? []).map(({ equipmentId }) => {
       const document = srdEquipmentById.get(equipmentId)
       if (!document) throw new Error(`SRD Equipment "${equipmentId}" is missing.`)
-      const record = resolveEquipmentSourceRecord(
-        {
-          document,
-          checksum: checksumRuleDocument(document),
-          version: 1,
+      return [
+        equipmentId,
+        storedEquipmentSource(document, (id) => srdEquipmentById.get(id), {
           versionId: SOURCE_VERSION_ID
-        },
-        (id) => srdEquipmentById.get(id)
-      )
-      return [equipmentId, { authored: record }] as const
+        })
+      ] as const
     })
   )
 }
@@ -166,7 +160,7 @@ export function srdCreatureActor(input: {
   const { creature } = input
   const equipmentSources = pinCreatureEquipmentSources({
     creature,
-    equipmentRecords: srdLoadoutEquipmentRecords(creature)
+    equipment: srdLoadoutEquipmentRecords(creature)
   })
   return encounterRunActorStateSchema.parse({
     id: input.id,
@@ -353,6 +347,7 @@ export function srdEncounterState(input: {
   version?: number
   turnSequence?: number
   automationMode?: AutomationModeDto
+  trackAmmunition?: boolean
   initiativePolicy?: { snapshot: EncounterInitiativePolicySnapshotDto; checksum: string }
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
   sides?: readonly { id: string; label: string }[]
@@ -368,6 +363,7 @@ export function srdEncounterState(input: {
     name: 'Pure rules fixture',
     status: input.status ?? 'ACTIVE',
     automationMode: input.automationMode ?? 'ASSISTED',
+    trackAmmunition: input.trackAmmunition ?? false,
     healthDisplayDefault: 'HIDDEN',
     version: input.version ?? 7,
     round: input.round ?? 1,

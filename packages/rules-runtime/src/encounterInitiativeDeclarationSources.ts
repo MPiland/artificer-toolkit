@@ -1,4 +1,3 @@
-import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
 import type { AuthoredVersionVector } from '@artificer-toolkit/schema/projections/identity'
 import type {
   EncounterRunActorState,
@@ -6,10 +5,14 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  compiledProjectionChecksum,
+  hydrateStoredCompilation
+} from './authoredPublicationHydrate.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
+import type { CharacterRuleSpellPublication } from './character/contextPreparation.js'
 import type { prepareCharacterSheetFromContext } from './character/sheetPreparation.js'
 import type { InitiativeDeclarationSource } from './encounterInitiativeDeclarationCompiler.js'
 import { assertCharacterFactsBoundToActor } from './encounterMovementTargets.js'
@@ -39,7 +42,7 @@ export async function prepareEncounterInitiativeDeclarationSources<
     spellId: string,
     facts: TFacts
   ): Promise<{
-    publication: AuthoredPublicationDocument | null
+    publication: CharacterRuleSpellPublication | null
     version: Pick<AuthoredVersionVector[number], 'versionId' | 'version' | 'checksum'>
   }>
 }): Promise<{ sources: readonly InitiativeDeclarationSourceWithController[] }> {
@@ -91,12 +94,15 @@ export async function prepareEncounterInitiativeDeclarationSources<
       facts.ruleEvaluation.facts.spellCastCandidates.map((candidate) => candidate.spellId)
     )) {
       const { publication, version } = await input.readPublishedSpell(spellId, facts)
-      const evaluatedSpell = facts.evaluationInput.spellDocumentsById?.get(spellId)
+      const evaluatedSpell = facts.evaluationInput.spellsById?.get(spellId)
+      // The rules evaluated the stored compilation of exactly the pinned publication.
       if (
         !publication ||
         !evaluatedSpell ||
-        checksumRuleDocument(evaluatedSpell) !== version.checksum ||
-        checksumRuleDocument(publication.document) !== version.checksum
+        publication.checksum !== version.checksum ||
+        compiledProjectionChecksum(
+          hydrateStoredCompilation('SPELL', publication, publication.compilation)
+        ) !== compiledProjectionChecksum(evaluatedSpell)
       )
         throw new Error('The declared spell source is stale.')
       spellVersions.set(spellId, {

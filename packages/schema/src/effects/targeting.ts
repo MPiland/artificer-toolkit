@@ -21,6 +21,8 @@ export const targetingDtoSchema = lazySchema(() =>
       sizeLimit: z.optional(
         z.object({ stepsAboveActor: z.number().check(z.int()).check(z.nonnegative()) })
       ),
+      /** The target must be a creature the actor holds through a relationship it sources (Grappled); any other is refused. */
+      heldBySource: z.optional(z.literal(true)),
       allowedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       ),

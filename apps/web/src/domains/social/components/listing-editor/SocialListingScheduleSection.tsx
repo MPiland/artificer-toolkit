@@ -59,7 +59,7 @@ export function SocialListingScheduleSection({
         {draft.scheduleKind === 'RECURRING' ? (
           <>
             <Select
-              data={weekdayOptions}
+              data={weekdayOptions()}
               label='Weekday'
               value={String(draft.weekday)}
               onChange={(value) =>

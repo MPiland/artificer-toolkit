@@ -19,8 +19,8 @@ import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
 
 const panel = makeFunctionReference<'query', CharacterSheetPanelInput, CharacterSheetPanelDto>(
   'characters/panels:get'
@@ -263,7 +263,7 @@ describe('native personal Sheet inspector panels', () => {
         }
       ]
     })
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ subjectKind: 'CREATURE', ...cat, document: cat }),

@@ -104,9 +104,11 @@ type CharacterInverse = {
   resource: ActionBatch['resourceConsumption']
   /** The one item this action unequipped from the Character: a stow it accepted, or a drop. */
   unequipped: ActionBatch['sourceItemUseStateTransition']
-  /** The carried weapon this action's attack equipped (D107); undo takes it back to carried. */
+  /** The weapon this action's attack drew or threw (D107); undo takes a drawn one back to carried and a thrown one back to its hand. */
   drawn: Extract<ActionBatch['sourceItemDraw'], { kind: 'CHARACTER_ITEM_DRAW' }> | null
   item: ActionBatch['sourceItemConsumption']
+  /** The worn item the action corroded; undo restores its penalty and, if destroyed, its use. */
+  degradation: Extract<ActionBatch, { kind: 'CHARACTER_MECHANICS_BATCH' }>['targetItemDegradation']
   /** Slot spends in the order they committed; one batch can carry several (the cast, then its counter). */
   spells: NonNullable<ActionBatch['spellCastConsumption']>[]
   expectedStreamVersion: number
@@ -351,6 +353,7 @@ export async function revertLastEncounterAction(
           unequipped: null,
           drawn: null,
           item: null,
+          degradation: null,
           spells: [],
           expectedStreamVersion: streamVersion
         }
@@ -509,6 +512,7 @@ export async function revertLastEncounterAction(
           if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
           if (action.targetItemUseStateTransition)
             inverse.unequipped = action.targetItemUseStateTransition
+          inverse.degradation = action.targetItemDegradation
         }
       } else {
         if (target.kind === 'CHARACTER')
@@ -630,16 +634,20 @@ export async function revertLastEncounterAction(
         removal: 'REMOVED'
       })
 
-    // The weapon the source's attack drew from carried: a Creature's goes back to carried here.
+    // The weapon the source's attack drew or threw: a Creature's goes back where it was here.
     const sourceDraw = batch?.sourceItemDraw ?? null
     if (sourceDraw?.kind === 'ENCOUNTER_ACTOR_ITEM_DRAW') {
-      const carried = revertEncounterActorItemDraw({
-        actor: actorsById.get(sourceDraw.actorId)!,
-        transition: sourceDraw
-      })
-      if (!carried)
+      const actor = actorsById.get(sourceDraw.actorId)!
+      const restored =
+        sourceDraw.movement === 'THROW'
+          ? revertEncounterActorItemRelease({
+              actor,
+              transition: { ...sourceDraw, fromState: sourceDraw.slot }
+            })
+          : revertEncounterActorItemDraw({ actor, transition: sourceDraw })
+      if (!restored)
         unavailable(`${source.label}'s equipment changed after this action; adjust manually.`)
-      updateActor(sourceDraw.actorId, { snapshot: carried.snapshot })
+      updateActor(sourceDraw.actorId, { snapshot: restored.snapshot })
     }
     // The source's one spend: its Character resource, item or stow, spell slot, feature charge and allowances.
     const sourceCharacterId =
@@ -1077,6 +1085,7 @@ async function revertCheckAction(
         unequipped: null,
         drawn: null,
         item: null,
+        degradation: null,
         spells: [],
         expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
       },
@@ -1314,9 +1323,29 @@ async function restoreCharacter(
       spell.slotKey,
       () => spell.beforeUsed
     ).state
-  // A draw undoes before the stow it followed, so the equipment retraces its checksums.
+  // The hand move undoes before the stow it followed, so the equipment retraces its checksums.
+  // The receipt holds the equipment checksum, not the slot or the position: the one entry that
+  // reproduces the checksum is the exact one that was unequipped.
+  const reequip = (itemId: string, beforeStateChecksum: string) => {
+    const { equipped } = state.equipment
+    const restored = Array.from({ length: equipped.length + 1 }, (_, index) => index)
+      .flatMap((index) =>
+        EQUIPPED_SLOT_CODES.map((slot) => ({
+          ...state.equipment,
+          equipped: [...equipped.slice(0, index), { itemId, slot }, ...equipped.slice(index)]
+        }))
+      )
+      .find((equipment) => checksumRuleDocument(equipment) === beforeStateChecksum)
+    if (!restored)
+      unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
+    state = { ...state, equipment: restored }
+  }
   const drawn = inverse.drawn
-  if (drawn) {
+  if (drawn?.movement === 'THROW') {
+    if (checksumRuleDocument(state.equipment) !== drawn.afterStateChecksum)
+      unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
+    reequip(drawn.itemInstanceId, drawn.beforeStateChecksum)
+  } else if (drawn) {
     const equipment = {
       ...state.equipment,
       equipped: state.equipment.equipped.filter((entry) => entry.itemId !== drawn.itemInstanceId)
@@ -1329,23 +1358,7 @@ async function restoreCharacter(
     state = { ...state, equipment }
   }
   const unequipped = inverse.unequipped
-  if (unequipped) {
-    const equipped = state.equipment.equipped
-    const itemId = unequipped.itemInstanceId
-    // The receipt holds the equipment checksum, not the slot or the position: the one entry that
-    // reproduces the checksum is the exact one that was unequipped.
-    const restored = Array.from({ length: equipped.length + 1 }, (_, index) => index)
-      .flatMap((index) =>
-        EQUIPPED_SLOT_CODES.map((slot) => ({
-          ...state.equipment,
-          equipped: [...equipped.slice(0, index), { itemId, slot }, ...equipped.slice(index)]
-        }))
-      )
-      .find((equipment) => checksumRuleDocument(equipment) === unequipped.beforeStateChecksum)
-    if (!restored)
-      unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
-    state = { ...state, equipment: restored }
-  }
+  if (unequipped) reequip(unequipped.itemInstanceId, unequipped.beforeStateChecksum)
   const sheetState = ctx.ports.readCharacterSheetState(row)
   const resource = inverse.resource
   const nextSheetState = resource
@@ -1380,6 +1393,35 @@ async function restoreCharacter(
         ...base.itemUsage.filter((usage) => usage.itemInstanceId !== item.itemInstanceId),
         ...(item.beforeUsed > 0
           ? [{ itemInstanceId: item.itemInstanceId, used: item.beforeUsed }]
+          : [])
+      ]
+    }
+  }
+  const degradation = inverse.degradation
+  if (degradation) {
+    const base = restoredSheetState ?? sheetState
+    const usedNow =
+      base.itemUsage.find((usage) => usage.itemInstanceId === degradation.itemInstanceId)?.used ?? 0
+    if (
+      base.itemDegradation.find((entry) => entry.itemInstanceId === degradation.itemInstanceId)
+        ?.penalty !== degradation.afterPenalty ||
+      usedNow !== degradation.afterUsed
+    )
+      unavailable(`${row.label}'s items changed after this action; adjust manually.`)
+    restoredSheetState = {
+      ...base,
+      itemDegradation: [
+        ...base.itemDegradation.filter(
+          (entry) => entry.itemInstanceId !== degradation.itemInstanceId
+        ),
+        ...(degradation.beforePenalty > 0
+          ? [{ itemInstanceId: degradation.itemInstanceId, penalty: degradation.beforePenalty }]
+          : [])
+      ],
+      itemUsage: [
+        ...base.itemUsage.filter((usage) => usage.itemInstanceId !== degradation.itemInstanceId),
+        ...(degradation.beforeUsed > 0
+          ? [{ itemInstanceId: degradation.itemInstanceId, used: degradation.beforeUsed }]
           : [])
       ]
     }

@@ -11,15 +11,11 @@ import type {
   CharacterAssemblyRegistry,
   CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
-import {
-  compileBackground,
-  compileClass,
-  compileFeat,
-  compileRace,
-  compileResolvedEquipment,
-  type ResolvedEquipment
+import type {
+  CompiledCreature,
+  CompiledEquipment
 } from '@artificer-toolkit/shared/subjects/compilers'
-import { compileFeature } from '@artificer-toolkit/shared/compilers'
+
 import {
   requireDnd5eArmorClass,
   resolveDnd5eCreatureArmorClass
@@ -33,8 +29,7 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type {
   CharacterAuthored,
-  CharacterProvenance,
-  CreatureAuthored
+  CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
 
@@ -44,7 +39,7 @@ export interface CharacterRuleSnapshotInput {
   adjustments?: readonly CharacterSheetAdjustment[]
   movementDisplayPreference?: CharacterMovementDisplayPreference
   companions?: readonly NonNullable<CharacterBuildSnapshot['companions']>[number][]
-  creaturesById?: ReadonlyMap<string, CreatureAuthored>
+  creaturesById?: ReadonlyMap<string, CompiledCreature>
 }
 
 export interface CharacterRuleSnapshotResult {
@@ -72,20 +67,12 @@ function createAssemblyRegistry(context: CharacterRuleContext): CharacterAssembl
   ]
 
   return {
-    backgrounds: Object.fromEntries(
-      registry.backgrounds.map((record) => [record.id, compileBackground(record)])
-    ),
-    classes: Object.fromEntries(
-      registry.classes.map((record) => [record.id, compileClass(record)])
-    ),
-    equipment: Object.fromEntries(
-      registry.equipment.map((record) => [record.id, compileResolvedEquipment(record)])
-    ),
-    feats: Object.fromEntries(
-      (registry.feats ?? []).map((record) => [record.id, compileFeat(record)])
-    ),
-    features: Object.fromEntries(allFeatures.map((record) => [record.id, compileFeature(record)])),
-    races: Object.fromEntries(registry.races.map((record) => [record.id, compileRace(record)])),
+    backgrounds: Object.fromEntries(registry.backgrounds.map((record) => [record.id, record])),
+    classes: Object.fromEntries(registry.classes.map((record) => [record.id, record])),
+    equipment: Object.fromEntries(registry.equipment.map((record) => [record.id, record])),
+    feats: Object.fromEntries((registry.feats ?? []).map((record) => [record.id, record])),
+    features: Object.fromEntries(allFeatures.map((record) => [record.id, record])),
+    races: Object.fromEntries(registry.races.map((record) => [record.id, record])),
     spells: {},
     system: registry.system
       ? {
@@ -233,8 +220,8 @@ function assembleSpellSources(
 
 function assembleCompanions(
   character: CharacterAuthored,
-  creaturesById: ReadonlyMap<string, CreatureAuthored> | undefined,
-  loadoutEquipmentById: Readonly<Record<string, ResolvedEquipment>> | undefined
+  creaturesById: ReadonlyMap<string, CompiledCreature> | undefined,
+  loadoutEquipmentById: Readonly<Record<string, CompiledEquipment>> | undefined
 ): NonNullable<CharacterBuildSnapshot['companions']> {
   if (!creaturesById) return []
   return (character.state.creatures ?? []).flatMap((instance) => {
@@ -256,7 +243,7 @@ function assembleCompanions(
               return {
                 id: entry.id,
                 useState: entry.useState,
-                compiled: compileResolvedEquipment(equipment)
+                compiled: equipment
               }
             })
           })
@@ -294,9 +281,7 @@ export function assembleCharacterRuleSnapshot(
   const attunedIds = new Set(character.state.equipment.attuned)
   const equipmentItems = character.state.equipment.inventory.flatMap((item) => {
     const acquired = context.registry.acquiredEquipmentByItemId?.get(item.id)
-    const compiledItem = acquired
-      ? compileResolvedEquipment(acquired.equipment)
-      : registry.equipment[item.equipmentId]
+    const compiledItem = acquired ? acquired.equipment : registry.equipment[item.equipmentId]
     if (!compiledItem) return []
     const slot = equippedSlots.get(item.id)
     return [
@@ -311,6 +296,7 @@ export function assembleCharacterRuleSnapshot(
         },
         ...(slot ? { equippedState: { slot } } : {}),
         attuned: attunedIds.has(item.id),
+        ...(item.degradation === undefined ? {} : { degradation: item.degradation }),
         compiledItem
       }
     ]

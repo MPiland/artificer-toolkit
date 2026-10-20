@@ -174,6 +174,7 @@ export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
   z
     .strictObject({
       assetId: z.nullable(uuidSchema),
+      characterId: z.optional(uuidSchema),
       controlledByUserIds: z.array(uuidSchema).check(z.maxLength(100)),
       height: positiveDistanceSchema,
       hidden: z.boolean(),

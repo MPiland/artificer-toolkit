@@ -2,6 +2,7 @@ import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/ch
 import { getCharacterSheetDisplayAdjustments } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
+import { requireCharacterPresentation } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import type { QueryCtx } from '../_generated/server'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 
@@ -35,6 +36,8 @@ export async function loadCharacterSheet(
 export function projectCharacterSheetFacts(
   facts: NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts>>>
 ) {
+  // Sheet views read prose by id (D163); commit's evaluation context carries none.
+  const { presentation } = requireCharacterPresentation(facts.prepared.context)
   const { sheet, ruleProjection } = projectCharacterSheetBundle({
     character: facts.prepared.character,
     resolution: facts.prepared.resolution,
@@ -43,8 +46,7 @@ export function projectCharacterSheetFacts(
     adjustments: facts.adjustments,
     additionalConditions: getVisibleCampaignConditions(facts.campaignContext),
     additionalCurrencyOptions: facts.campaignContext.currencyOptions,
-    creaturesById: facts.prepared.context.creaturesById,
-    vehiclesById: facts.prepared.context.vehiclesById,
+    presentation,
     spellCustomizations: facts.sheetState.spellCustomizations,
     ruleEvaluation: facts.ruleEvaluation,
     activeEffects: facts.activeEffects,
@@ -66,6 +68,7 @@ export function projectCharacterSheetFacts(
     ruleEvaluation: facts.ruleEvaluation,
     ruleProjection,
     resolution: facts.prepared.resolution,
+    presentation,
     contentMaturity: facts.prepared.context.sourceAccess.campaign?.contentMaturity ?? null,
     sheet: {
       ...sheet,

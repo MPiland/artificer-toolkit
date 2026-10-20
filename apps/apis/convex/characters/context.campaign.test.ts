@@ -23,8 +23,8 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { api, internal } from '../_generated/api'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterBuilderContext } from './builderContext'
 import { loadCharacterRuleContext, readCharacterSources } from './context'
@@ -222,11 +222,11 @@ describe('assigned native Character Campaign source access', () => {
       if (!root) throw new Error('Missing Campaign.')
       await ctx.db.patch(root._id, { additionalRulesCatalogueIds: [catalogueId] })
     })
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'CREATURE', ...cat, document: cat })]
     })
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: sourceId,
       subjects: [
         importedSubject({
@@ -346,7 +346,7 @@ describe('assigned native Character Campaign source access', () => {
   it('selects and adds only shared extras, masks cursor labels, and rejects additions after revocation', async () => {
     const { t, owner, other, campaign, character, committed, readState } = await setup()
     const officialCat = { ...cat, label: 'Shitstorm official cat' }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ subjectKind: 'CREATURE', ...officialCat, document: officialCat })

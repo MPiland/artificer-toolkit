@@ -6,6 +6,7 @@ import {
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
   actionTargetActorId,
+  ammunitionCommandChoice,
   castChoiceOptionId,
   resolveEncounterActionInputDtoSchema,
   type RemoveAreaTargetInputDto,
@@ -158,6 +159,7 @@ import {
 import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import type { EncounterLegendaryResistanceOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
+import { settleEncounterAttackActionHit } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
   encounterActorEffectiveSize,
   prepareNativeActionEffectsPlan,
@@ -660,6 +662,7 @@ export async function planNativeLiveEncounterAction(
       actors,
       actionId: command.actionId,
       choiceOptionId,
+      ammunition: ammunitionCommandChoice(command.target),
       wieldConflictAcceptance: {
         kind: 'PROMPTED',
         accepted: command.acceptedWieldConflict,
@@ -776,6 +779,7 @@ export async function planNativeLiveEncounterAction(
     })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
+  const targetMovement = movementTargets.get(prepared.target.id)
   const weaponAttackHolds = heldGrantedActions(
     activeEffectsByActorId.get(prepared.actor.id) ?? []
   ).filter(({ offer }) => offer.weaponAttack)
@@ -792,6 +796,7 @@ export async function planNativeLiveEncounterAction(
       actionId: command.actionId,
       sourceTarget: movementTargets.get(prepared.actor.id),
       targetIds: [prepared.target.id],
+      targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
       capture,
       weaponAttackOffer: weaponAttackUseKey ? { useKey: weaponAttackUseKey } : null
     })
@@ -809,7 +814,6 @@ export async function planNativeLiveEncounterAction(
         outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT'
     )
   })
-  const targetMovement = movementTargets.get(prepared.target.id)
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: [
       ...prepared.ruleWarnings,
@@ -899,6 +903,7 @@ export async function planNativeLiveEncounterAction(
             actionEconomy
           }),
           actionEconomy,
+          attackAction,
           runtime: executionOptions.runtime,
           random: executionOptions.random ?? nextRollInt,
           revisions
@@ -1411,6 +1416,7 @@ export async function planNativeLiveEncounterAction(
     occurrenceId,
     commandId: command.commandId,
     activeEffectsByActorId,
+    attackAction,
     chosenItemInstanceId
   })
   const reactionUse =
@@ -1594,6 +1600,11 @@ export async function planNativeLiveEncounterAction(
       targetReleases: reactionEnded?.sourceReleases,
       damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
       releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
+      degradeTargetItem: preparedEffects.degradedItem && {
+        itemInstanceId: preparedEffects.degradedItem.itemInstanceId,
+        afterPenalty: preparedEffects.degradedItem.afterPenalty,
+        destroyed: preparedEffects.degradedItem.destroyed
+      },
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
@@ -1636,6 +1647,15 @@ export async function planNativeLiveEncounterAction(
         ? chargedTarget(planned.settledSource)
         : planned.settledSource
   }
+  // The attack's outcome is known now: a later slot's "earlier attacks hit" predicate reads it.
+  const settledAttackAction =
+    attackAction &&
+    settleEncounterAttackActionHit(
+      attackAction,
+      prepared.makesAttackRoll
+        ? execution.d20?.resultPath === 'ON_HIT' || execution.d20?.resultPath === 'ON_CRIT'
+        : null
+    )
   const settlement = planNativeLiveEncounterSettlement({
     command,
     occurrenceId,
@@ -1660,7 +1680,7 @@ export async function planNativeLiveEncounterAction(
     ],
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
-    attackAction,
+    attackAction: settledAttackAction,
     maintenance,
     activeEffectsByActorId
   })
@@ -1760,7 +1780,7 @@ export async function planNativeLiveEncounterAction(
     maintainedState: settlement.maintainedState,
     maintenanceTransition: settlement.maintenanceTransition,
     actionEconomy,
-    attackAction,
+    attackAction: settledAttackAction,
     resistance,
     reaction: reaction && {
       audit: reaction.audit,

@@ -42,6 +42,16 @@ export const giantScorpion: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The scorpion makes three attacks: two with its claws and one with its sting.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(132, 2) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(132, 3) }] }
+            ]
+          }
+        ]
+      },
       order: 1
     },
     {

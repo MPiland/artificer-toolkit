@@ -2,28 +2,30 @@ import type { CharacterBuilderFeatCatalogRecord } from '@artificer-toolkit/rules
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { CharacterBuilderContext } from '@artificer-toolkit/rules-runtime/character/builderTypes'
+import type { CharacterPresentationLookup } from '@artificer-toolkit/rules-runtime/character/characterRuleContext'
 import {
   assembleCharacterBuilderContext,
-  prepareActiveCharacterBuilderContext
+  prepareActiveCharacterBuilderContext,
+  requireCharacterPresentation
 } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import { toContentSnapshotIndexEntry } from '@artificer-toolkit/rules-runtime/contentSnapshots'
-import type {
-  CharacterAuthored,
-  ClassAuthored,
-  EquipmentAuthored,
-  CreatureAuthored,
-  VehicleAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored, ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { canReadAuthoredRoot } from '../content/documents'
 import {
+  canReadCharacterRoot,
   loadCharacterRuleContext,
   readCharacterSources,
   readCharacterPublication,
-  readCharacterSourceRoots,
-  recordCharacterSourceIdentity
+  readCharacterSourceRoots
 } from './context'
+
+/** A loaded source context; commit's referenced context carries no presentation (D163). */
+export type CharacterSourceContext = Omit<
+  Awaited<ReturnType<typeof loadCharacterBuilderContext>>,
+  'presentation'
+> &
+  Pick<CharacterBuilderContext, 'presentation'>
 
 /**
  * The server's Builder context. `resolution` reads the pools that can affect readiness (Sheet
@@ -39,27 +41,28 @@ export async function loadCharacterBuilderContext(
   referenceSpellIds: readonly string[] = []
 ): Promise<
   CharacterBuilderContext & {
-    creaturesById: ReadonlyMap<string, CreatureAuthored>
-    vehiclesById: ReadonlyMap<string, VehicleAuthored>
+    creaturesById: Awaited<ReturnType<typeof loadCharacterRuleContext>>['creaturesById']
+    vehiclesById: Awaited<ReturnType<typeof loadCharacterRuleContext>>['vehiclesById']
+    presentation: CharacterPresentationLookup
     sourceAccess: Awaited<ReturnType<typeof readCharacterSources>>
     publications: Awaited<ReturnType<typeof loadCharacterRuleContext>>['publications']
     sourceIdentities: Awaited<ReturnType<typeof loadCharacterRuleContext>>['sourceIdentities']
     spellCatalogueEntries: Awaited<
       ReturnType<typeof loadCharacterRuleContext>
     >['spellCatalogueEntries']
-    currentSpellDocumentsById: Awaited<
-      ReturnType<typeof loadCharacterRuleContext>
-    >['currentSpellDocumentsById']
+    currentSpellsById: Awaited<ReturnType<typeof loadCharacterRuleContext>>['currentSpellsById']
   }
 > {
-  const context = await loadCharacterRuleContext(
-    ctx,
-    character,
-    userId,
-    undefined,
-    authorityScope,
-    undefined,
-    referenceSpellIds
+  const context = requireCharacterPresentation(
+    await loadCharacterRuleContext(
+      ctx,
+      character,
+      userId,
+      undefined,
+      authorityScope,
+      undefined,
+      referenceSpellIds
+    )
   )
   const sources = context.sourceAccess
   if (catalogScope === 'active') {
@@ -115,7 +118,8 @@ export async function loadCharacterBuilderContext(
           await readRoots('EQUIPMENT'),
           character.systemId,
           userId,
-          context
+          sources,
+          context.sourceIdentities
         ),
       readFeats: async () =>
         readCharacterFeatCatalogue(
@@ -130,123 +134,33 @@ export async function loadCharacterBuilderContext(
   })
 }
 
-/** Readable Equipment among `roots`: stored projections, or documents while one is missing. */
+/** Readable Equipment among `roots`, from their stored builder projections alone (D163). */
 export async function readCharacterEquipmentCatalogue(
-  ctx: QueryCtx,
-  roots: readonly Doc<'authoredRoots'>[],
-  systemId: string,
-  userId: string,
-  context: Pick<
-    Awaited<ReturnType<typeof loadCharacterRuleContext>>,
-    'sourceAccess' | 'sourceIdentities' | 'publications' | 'documents'
-  >
-): Promise<
-  { entries: ContentSnapshotIndexEntry<'EQUIPMENT'>[] } | { documents: EquipmentAuthored[] }
-> {
-  const entries = await readProjectedEquipmentCatalogue(
-    ctx,
-    roots,
-    systemId,
-    userId,
-    context.sourceAccess,
-    context.sourceIdentities
-  )
-  if (entries) return { entries }
-  const documents: EquipmentAuthored[] = []
-  for (const root of roots) {
-    const published = context.publications.has(root.id)
-      ? context.publications.get(root.id)
-      : await readCharacterPublication(
-          ctx,
-          root,
-          systemId,
-          userId,
-          context.sourceAccess,
-          context.sourceIdentities,
-          context.documents
-        )
-    if (published?.subjectKind !== 'EQUIPMENT') continue
-    if (
-      root.parentEquipmentId !==
-      (published.document.category === 'VARIANT' ? published.document.parentEquipmentId : null)
-    )
-      throw new Error('Stored Equipment parent metadata mismatch.')
-    documents.push(published.document as EquipmentAuthored)
-  }
-  return { documents }
-}
-
-async function readProjectedEquipmentCatalogue(
   ctx: QueryCtx,
   roots: readonly Doc<'authoredRoots'>[],
   systemId: string,
   userId: string,
   sources: Awaited<ReturnType<typeof readCharacterSources>>,
   sourceIdentities: Awaited<ReturnType<typeof loadCharacterRuleContext>>['sourceIdentities']
-): Promise<ContentSnapshotIndexEntry<'EQUIPMENT'>[] | null> {
-  const sourceById = new Map(sources.sources.map((source) => [source.id, source]))
-  const readableRoots: Doc<'authoredRoots'>[] = []
+): Promise<{ entries: ContentSnapshotIndexEntry<'EQUIPMENT'>[] }> {
+  const entries: ContentSnapshotIndexEntry<'EQUIPMENT'>[] = []
   for (const root of roots) {
     if (root.subjectKind !== 'EQUIPMENT' || root.systemId !== systemId)
       throw new Error('Stored Character source System mismatch.')
-    const source = sourceById.get(root.contentSourceId)
-    if (source && (await canReadAuthoredRoot(ctx, root, userId, source))) {
-      readableRoots.push(root)
+    if (!(await canReadCharacterRoot(ctx, root, systemId, userId, sources, sourceIdentities)))
       continue
-    }
-    // Campaign shares retain the established current publication parse and authority check.
-    const published = await readCharacterPublication(
-      ctx,
-      root,
-      systemId,
-      userId,
-      sources,
-      sourceIdentities
-    )
-    if (!published) continue
-    if (published.subjectKind !== 'EQUIPMENT')
-      throw new Error('Stored Equipment subject metadata mismatch.')
-    const document = published.document as EquipmentAuthored
+    const facts =
+      root.equipmentOptions && authoredEquipmentOptionFactsSchema.parse(root.equipmentOptions)
+    const builder = facts?.builder
+    if (!facts || !builder || facts.checksum !== root.checksum)
+      throw new Error('Stored Equipment builder facts are missing or stale.')
     if (
-      root.parentEquipmentId !==
-      (document.category === 'VARIANT' ? document.parentEquipmentId : null)
+      builder.parentEquipmentId !== root.parentEquipmentId ||
+      (facts.category === 'VARIANT') !== (root.parentEquipmentId !== null)
     )
       throw new Error('Stored Equipment parent metadata mismatch.')
-    readableRoots.push(root)
-  }
-
-  const factsById = new Map<
-    string,
-    NonNullable<ReturnType<typeof authoredEquipmentOptionFactsSchema.parse>['builder']>
-  >()
-  let hasMissingProjection = false
-  for (const root of readableRoots) {
-    // Missing projections are a backfill state. Any present projection must validate exactly.
-    if (root.equipmentOptions === undefined || root.equipmentOptions.builder === undefined) {
-      hasMissingProjection = true
-      continue
-    }
-    const facts = authoredEquipmentOptionFactsSchema.parse(root.equipmentOptions)
-    if (facts.checksum !== root.checksum)
-      throw new Error('Stored equipment option checksum mismatch.')
-    const builder = facts.builder
-    if (builder === undefined) {
-      hasMissingProjection = true
-      continue
-    }
-    if (builder.parentEquipmentId !== root.parentEquipmentId)
-      throw new Error('Stored Equipment parent metadata mismatch.')
-    if ((facts.category === 'VARIANT') !== (root.parentEquipmentId !== null))
-      throw new Error('Stored Equipment parent metadata mismatch.')
-    factsById.set(root.id, builder)
-    recordCharacterSourceIdentity(sourceIdentities, root)
-  }
-  if (hasMissingProjection) return null
-  // Parent graph verification is shared with the snapshot path in `assembleCharacterBuilderContext`.
-  return readableRoots.map((root) => {
-    const builder = factsById.get(root.id)
-    if (!builder) throw new Error('Equipment builder projection is missing.')
-    return {
+    // Parent graph verification is shared with the snapshot path in `assembleCharacterBuilderContext`.
+    entries.push({
       id: root.id,
       label: root.label,
       parentEquipmentId: builder.parentEquipmentId,
@@ -255,8 +169,9 @@ async function readProjectedEquipmentCatalogue(
       ...(builder.maxStack === undefined ? {} : { maxStack: builder.maxStack }),
       properties: [...builder.properties],
       requiresAttunement: builder.requiresAttunement
-    }
-  })
+    })
+  }
+  return { entries }
 }
 
 export async function readCharacterFeatCatalogue(
@@ -267,29 +182,12 @@ export async function readCharacterFeatCatalogue(
   sources: Awaited<ReturnType<typeof readCharacterSources>>,
   sourceIdentities: Awaited<ReturnType<typeof loadCharacterRuleContext>>['sourceIdentities']
 ): Promise<CharacterBuilderFeatCatalogRecord[]> {
-  const sourceById = new Map(sources.sources.map((source) => [source.id, source]))
   const records: CharacterBuilderFeatCatalogRecord[] = []
   for (const root of roots) {
     if (root.subjectKind !== 'FEAT' || root.systemId !== systemId)
       throw new Error('Stored Character source System mismatch.')
-    const source = sourceById.get(root.contentSourceId)
-    if (source && (await canReadAuthoredRoot(ctx, root, userId, source))) {
+    if (await canReadCharacterRoot(ctx, root, systemId, userId, sources, sourceIdentities))
       records.push({ id: root.id, label: root.label })
-      recordCharacterSourceIdentity(sourceIdentities, root)
-      continue
-    }
-    // Campaign shares retain the established current publication parse and authority check.
-    const published = await readCharacterPublication(
-      ctx,
-      root,
-      systemId,
-      userId,
-      sources,
-      sourceIdentities
-    )
-    if (!published) continue
-    if (published.subjectKind !== 'FEAT') throw new Error('Stored Feat subject metadata mismatch.')
-    records.push({ id: root.id, label: root.label })
   }
   return records
 }

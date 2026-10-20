@@ -18,11 +18,8 @@ import {
 
 type SpellGrantFeature = {
   id: string
-  grants?: { spells?: readonly unknown[] }
-  options?: ReadonlyArray<{
-    id: string
-    grants?: { spells?: readonly unknown[] }
-  }>
+  spells?: readonly unknown[]
+  options?: ReadonlyArray<{ id: string; spells?: readonly unknown[] }>
 }
 
 function featureContributesSpellGrant(
@@ -30,10 +27,10 @@ function featureContributesSpellGrant(
   character: CharacterAuthored,
   source?: CharacterProvenance
 ): boolean {
-  if (feature.grants?.spells?.length) return true
+  if (feature.spells?.length) return true
   if (!feature.options?.length) return false
   if (!source) {
-    return feature.options.some((option) => Boolean(option.grants?.spells?.length))
+    return feature.options.some((option) => Boolean(option.spells?.length))
   }
 
   const acquisition = findCurrentCharacterFeatureAcquisition(character, feature.id, source)
@@ -49,7 +46,7 @@ function featureContributesSpellGrant(
       ) ?? []
   )
   return feature.options.some(
-    (option) => selectedOptionIds.has(option.id) && Boolean(option.grants?.spells?.length)
+    (option) => selectedOptionIds.has(option.id) && Boolean(option.spells?.length)
   )
 }
 
@@ -100,7 +97,7 @@ export function needsCharacterSpellCatalog(
       if (acquisition.source.kind !== 'FEAT') return false
       const feat = featsById.get(acquisition.source.featId)
       return Boolean(
-        feat?.grants?.spells?.length ||
+        feat?.spells?.length ||
         feat?.features?.some((feature) => featureContributesSpellGrant(feature, character))
       )
     }) ||

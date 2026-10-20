@@ -37,3 +37,14 @@ export function mergeRoomPrivateRolls(
       right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id)
   )
 }
+
+/** The voice saved for a Campaign's chat; Roleplay only counts while a Character is assigned. */
+export function readSavedChatMode(
+  storageKey: string,
+  hasAssignedCharacter: boolean
+): 'OOC' | 'ROLEPLAY' | null {
+  const savedMode = window.localStorage.getItem(storageKey)
+  if (savedMode === 'OOC' || (savedMode === 'ROLEPLAY' && hasAssignedCharacter)) return savedMode
+
+  return null
+}

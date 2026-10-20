@@ -50,6 +50,16 @@ export const polarBear: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The bear makes two attacks: one with its bite and one with its claws.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(223, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(223, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

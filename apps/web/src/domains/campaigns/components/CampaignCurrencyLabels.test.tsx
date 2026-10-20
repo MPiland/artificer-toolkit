@@ -147,7 +147,8 @@ describe('Campaign currency labels', () => {
             publicId: 'aria',
             label: 'Aria',
             systemId: system.id
-          }
+          },
+          characterControllerUserIds: []
         }
       ]
     })

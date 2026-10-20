@@ -77,7 +77,7 @@ export function CampaignScenePreparation({
   const [originX, setOriginX] = useState(0)
   const [originY, setOriginY] = useState(0)
   const [calibrationStep, setCalibrationStep] = useState<'CELL' | 'ORIGIN' | null>(null)
-  const calibrationOrigin = useRef<{ x: number; y: number } | null>(null)
+  const [calibrationOrigin, setCalibrationOrigin] = useState<{ x: number; y: number } | null>(null)
   const [unit, setUnit] = useState<'FEET' | 'METERS' | 'SQUARES'>('FEET')
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadedMap, setUploadedMap] = useState<SignedVttMapDeliveryDto | null>(null)
@@ -102,9 +102,7 @@ export function CampaignScenePreparation({
     enabled: activeSceneId !== null,
     staleTime: Number.POSITIVE_INFINITY
   })
-  useEffect(() => {
-    if (activeSceneId && selectedSceneId === null) setSelectedSceneId(activeSceneId)
-  }, [activeSceneId, selectedSceneId])
+  if (activeSceneId && selectedSceneId === null) setSelectedSceneId(activeSceneId)
   useEffect(() => {
     if (definition.data && selectedScene && definition.data.version !== selectedScene.version)
       void definition.refetch()
@@ -201,7 +199,7 @@ export function CampaignScenePreparation({
     if (!calibrationStep) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        calibrationOrigin.current = null
+        setCalibrationOrigin(null)
         setCalibrationStep(null)
       }
     }
@@ -217,13 +215,13 @@ export function CampaignScenePreparation({
       y: ((event.clientY - bounds.top) / bounds.height) * uploadedMap.height
     }
     if (calibrationStep === 'ORIGIN') {
-      calibrationOrigin.current = point
+      setCalibrationOrigin(point)
       setOriginX(Math.round(point.x))
       setOriginY(Math.round(point.y))
       setCalibrationStep('CELL')
       return
     }
-    const origin = calibrationOrigin.current
+    const origin = calibrationOrigin
     if (!origin) {
       setCalibrationStep('ORIGIN')
       return
@@ -231,7 +229,7 @@ export function CampaignScenePreparation({
     setCellSize(
       Math.max(1, Math.round(Math.max(Math.abs(point.x - origin.x), Math.abs(point.y - origin.y))))
     )
-    calibrationOrigin.current = null
+    setCalibrationOrigin(null)
     setCalibrationStep(null)
   }
   return (
@@ -376,7 +374,7 @@ export function CampaignScenePreparation({
                 <Button
                   variant={calibrationStep ? 'light' : 'default'}
                   onClick={() => {
-                    calibrationOrigin.current = null
+                    setCalibrationOrigin(null)
                     setCalibrationStep(calibrationStep ? null : 'ORIGIN')
                   }}
                 >
@@ -477,13 +475,13 @@ export function CampaignScenePreparation({
                   <rect fill={`url(#${gridPatternId})`} height='100%' width='100%' />
                 </svg>
               ) : null}
-              {calibrationStep === 'CELL' && calibrationOrigin.current ? (
+              {calibrationStep === 'CELL' && calibrationOrigin ? (
                 <span
                   aria-hidden
                   className={styles.calibrationMarker}
                   style={{
-                    left: `${(calibrationOrigin.current.x / uploadedMap.width) * 100}%`,
-                    top: `${(calibrationOrigin.current.y / uploadedMap.height) * 100}%`
+                    left: `${(calibrationOrigin.x / uploadedMap.width) * 100}%`,
+                    top: `${(calibrationOrigin.y / uploadedMap.height) * 100}%`
                   }}
                 />
               ) : null}

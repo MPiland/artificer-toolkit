@@ -171,7 +171,9 @@ export function useVttMapDelivery(
   })
   const { refetch } = query
   const retryArtworkRef = useRef(retryArtwork)
-  retryArtworkRef.current = retryArtwork
+  useEffect(() => {
+    retryArtworkRef.current = retryArtwork
+  }, [retryArtwork])
   const refreshedRef = useRef(false)
   useEffect(() => {
     refreshedRef.current = false

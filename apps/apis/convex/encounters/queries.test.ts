@@ -21,8 +21,8 @@ import { readRunState } from '@artificer-toolkit/encounter-persistence/documents
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterSummaryOf } from '../../tests/fixtures/encounterSummaries'
 import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
-import { importedSubject } from '../../tests/fixtures/publication'
-import { internal } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+
 import { encounterReadTransaction } from './encounterPorts'
 import {
   SRD_CONTENT_SOURCE,
@@ -70,7 +70,7 @@ async function setup() {
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
   })

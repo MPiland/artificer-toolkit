@@ -20,6 +20,7 @@ export function projectCharacterSheetPanel(
   const panel = buildCharacterSheetPanel({
     character: current.evaluationInput.character,
     resolution: current.resolution,
+    presentation: current.presentation,
     // Strip private/secret fields before composition; present text only after editor originals exist.
     sheet: projectCharacterSheetForViewer(current.sheet, {
       ...current.campaignContext,

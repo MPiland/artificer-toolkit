@@ -80,7 +80,7 @@ export function compiledTestSpellCast(input: {
       CharacterRulePolicyOutput,
       'resources' | 'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
     >,
-    spellDocumentsById: new Map([[spell.id, spell]]),
+    spellsById: new Map([[spell.id, compileSpell(spell)]]),
     firstSequence: 10,
     characterLevel: 1
   })

@@ -23,6 +23,7 @@ import {
 } from '@artificer-toolkit/schema/api/sourceImport'
 import { authoredDocumentVersionSchema } from '@artificer-toolkit/schema/projections/authoredContent'
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
+import { AUTHORED_SOURCE_FACTS_VERSION } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import {
   reusableDefinitionDocumentDtoSchema,
@@ -62,11 +63,12 @@ import {
 import { authoredStoredCompilationSchema } from '@artificer-toolkit/schema/api/authoredPublication'
 import {
   insertAuthoredVersion,
-  insertAuthoredVersionCompilation,
   readAuthoredVersionCompilation,
+  readAuthoredVersionCompilationRow,
   readAuthoredVersion,
   readPublishedDocument,
-  readStoredAuthoredVersionDocument
+  readStoredAuthoredVersionDocument,
+  syncCanonicalCompilation
 } from './documents'
 import { backfillCatalogueFamily, readCatalogueParent } from './catalogueFamilies'
 import {
@@ -224,6 +226,19 @@ export const bootstrap: RegisteredMutation<
   }
 })
 
+/** Catalogue facts introduced after rows were stored; a reimport adds them to an exact match. */
+const BACKFILLED_CATALOGUE_FACTS = [
+  'search',
+  'countsVersion',
+  'publishedActive',
+  'race',
+  'class',
+  'background',
+  'equipment',
+  'selectionMode',
+  'spell'
+] as const
+
 export const importSubjects: RegisteredMutation<
   'internal',
   SourceImportSubjectsInput,
@@ -232,8 +247,10 @@ export const importSubjects: RegisteredMutation<
   args: zodToConvexFields(sourceImportSubjectsInputSchema.shape),
   returns: zodToConvex(sourceImportBatchResultDtoSchema),
   handler: async (ctx, args) => {
-    const { contentSourceId, subjects } = sourceImportSubjectsInputSchema.parse(args)
+    const { contentSourceId, subjects, reimportedSubjectIds } =
+      sourceImportSubjectsInputSchema.parse(args)
     uniqueIds(subjects)
+    const reimportedIds = new Set(reimportedSubjectIds)
     const source = await requireSource(ctx, contentSourceId)
     let inserted = 0
     let reused = 0
@@ -292,9 +309,19 @@ export const importSubjects: RegisteredMutation<
         contentSourceId,
         currentVersionPublicId: versionId
       }
+      // A base Equipment or Race has no parent to wait for; a variant or subrace compiles in its
+      // derived sync once every root exists.
+      const baseEquipment =
+        parsed.subjectKind === 'EQUIPMENT' && parsed.document.category !== 'VARIANT'
+          ? await compileCurrentEquipment(ctx, parsed.document, null)
+          : undefined
+      const baseRace =
+        parsed.subjectKind === 'RACE' && parsed.document.category !== 'SUBRACE'
+          ? await compileCurrentRace(ctx, parsed.document, null)
+          : undefined
       const equipmentOptions =
         parsed.subjectKind === 'EQUIPMENT'
-          ? equipmentOptionFacts(parsed.document, parsed.checksum)
+          ? equipmentOptionFacts(parsed.document, parsed.checksum, baseEquipment?.effective)
           : undefined
       const authoringSources = authoredSourceFacts(parsed)
       const compilation =
@@ -304,7 +331,7 @@ export const importSubjects: RegisteredMutation<
         parsed.subjectKind === 'CREATURE' ||
         parsed.subjectKind === 'VEHICLE'
           ? compilePublicationDocument(parsed)
-          : undefined
+          : (baseEquipment ?? baseRace)?.compilation
       const parentClassId =
         parsed.subjectKind === 'CLASS'
           ? parsed.document.category === 'SUBCLASS'
@@ -360,9 +387,10 @@ export const importSubjects: RegisteredMutation<
           document: parsed.document,
           publicId
         })
-        if (equipment) await recompileEquipmentChildren(ctx, equipment.effective, null)
+        if (equipment)
+          await recompileEquipmentChildren(ctx, equipment.effective, null, reimportedIds)
         if (race?.effective.category === 'BASE')
-          await recompileRaceChildren(ctx, race.effective, null)
+          await recompileRaceChildren(ctx, race.effective, null, reimportedIds)
         replaced++
       } else if (current) {
         const {
@@ -397,7 +425,7 @@ export const importSubjects: RegisteredMutation<
         const storedVersion = await ctx.db.get(current.currentVersionId)
         if (!storedVersion) throw new Error('Missing canonical version.')
         const storedVersionFields = storedFields(storedVersion)
-        const storedCompilation = await readAuthoredVersionCompilation(ctx, storedVersion)
+        const storedCompilationRow = await readAuthoredVersionCompilationRow(ctx, storedVersion)
         delete storedVersionFields.documentJson
         delete storedVersionFields.documentChunkCount
         delete storedVersionFields.documentByteLength
@@ -409,22 +437,26 @@ export const importSubjects: RegisteredMutation<
             : undefined
         const equipment =
           parsed.subjectKind === 'EQUIPMENT' &&
-          (storedCompilation !== undefined || existingEquipmentOptions?.builder !== undefined)
+          (storedCompilationRow !== null || existingEquipmentOptions?.builder !== undefined)
             ? await compileCurrentEquipment(ctx, parsed.document, null)
             : undefined
-        if (storedCompilation !== undefined) {
-          if (compilation) exact(storedCompilation, compilation)
-          else if (equipment) exact(storedCompilation, equipment.compilation)
-          else if (parsed.subjectKind === 'RACE')
-            exact(
-              storedCompilation,
-              (await compileCurrentRace(ctx, parsed.document, null)).compilation
-            )
-          else if (parsed.subjectKind !== 'CLASS')
-            throw new Error('Unexpected canonical compilation.')
-        } else if (compilation) {
-          await insertAuthoredVersionCompilation(ctx, storedVersion, compilation)
-        }
+        // A Class, and a subrace not compiled yet, are synced after every root exists.
+        const expectedCompilation =
+          compilation ??
+          equipment?.compilation ??
+          (parsed.subjectKind === 'RACE' && storedCompilationRow !== null
+            ? (await compileCurrentRace(ctx, parsed.document, null)).compilation
+            : undefined)
+        if (expectedCompilation) {
+          const storedCompilation = await syncCanonicalCompilation(
+            ctx,
+            current,
+            storedVersion,
+            expectedCompilation
+          )
+          if (storedCompilation) exact(storedCompilation, expectedCompilation)
+        } else if (storedCompilationRow !== null && parsed.subjectKind !== 'CLASS')
+          throw new Error('Unexpected canonical compilation.')
         if (storedOptions !== undefined) {
           if (!equipmentOptions) throw new Error('Unexpected equipment option facts.')
           if (equipment && parsed.subjectKind === 'EQUIPMENT') {
@@ -435,7 +467,10 @@ export const importSubjects: RegisteredMutation<
               equipment.effective
             )
             if (existingEquipmentOptions.builder === undefined) {
-              exact(existingEquipmentOptions, equipmentOptions)
+              exact(
+                existingEquipmentOptions,
+                equipmentOptionFacts(parsed.document, parsed.checksum)
+              )
               await ctx.db.patch(current._id, { equipmentOptions: expected })
             } else exact(existingEquipmentOptions, expected)
           } else exact(storedOptions, equipmentOptions)
@@ -448,34 +483,30 @@ export const importSubjects: RegisteredMutation<
                 : equipmentOptions
           })
         }
-        if (storedAuthoringSources !== undefined) exact(storedAuthoringSources, authoringSources)
+        // Facts from an older derivation are re-derived; same-version facts that differ conflict.
+        if (current.authoringSources?.factsVersion === AUTHORED_SOURCE_FACTS_VERSION)
+          exact(storedAuthoringSources, authoringSources)
         else await ctx.db.patch(current._id, { authoringSources })
-        const catalogue = await catalogueMetadata(ctx, parsed.document, {
+        const catalogue = await catalogueMetadata(ctx, parsed, {
           checksum: subject.checksum,
           publicId,
           createdAt: storedVersion._creationTime
         })
         if (storedCatalogue !== undefined) {
           const existing = authoredCatalogueMetadataSchema.parse(storedCatalogue)
+          // Facts added after a row was stored backfill; every other stored fact must match exactly.
+          const missing = BACKFILLED_CATALOGUE_FACTS.filter(
+            (key) => catalogue[key] !== undefined && existing[key] === undefined
+          )
           exact(
             {
               ...existing,
-              search: existing.search ?? catalogue.search,
-              countsVersion: existing.countsVersion ?? catalogue.countsVersion,
-              ...(catalogue.selectionMode !== undefined
-                ? {
-                    selectionMode: existing.selectionMode ?? catalogue.selectionMode
-                  }
-                : {}),
-              ...(catalogue.spell !== undefined ? { spell: existing.spell ?? catalogue.spell } : {})
+              ...Object.fromEntries(missing.map((key) => [key, catalogue[key]]))
             },
             catalogue
           )
           if (
-            existing.search === undefined ||
-            existing.countsVersion === undefined ||
-            (catalogue.selectionMode !== undefined && existing.selectionMode === undefined) ||
-            (catalogue.spell !== undefined && existing.spell === undefined) ||
+            missing.length > 0 ||
             (current.subjectKind === 'SPELL' && storedSpellClassesIndexed !== true)
           ) {
             await syncCatalogueMetadata(ctx, current._id, catalogue)
@@ -508,7 +539,7 @@ export const importSubjects: RegisteredMutation<
         await syncCatalogueMetadata(
           ctx,
           rootId,
-          await catalogueMetadata(ctx, parsed.document, {
+          await catalogueMetadata(ctx, parsed, {
             checksum: subject.checksum,
             publicId,
             createdAt: published._creationTime
@@ -560,16 +591,33 @@ export const importDefinitions: RegisteredMutation<
         .withIndex('by_publicId', (q) => q.eq('id', definition.id))
         .unique()
       if (current) {
-        const changes = mutableChanges(current, { ...record, publishedAt: current.publishedAt }, [
-          'label',
-          'description',
-          'checksum',
-          'documentJson'
-        ])
+        // A row seeded before the publication metadata existed is backfilled; a different value conflicts.
+        const publication = {
+          contractVersion: current.contractVersion ?? record.contractVersion,
+          publishedBy: current.publishedBy ?? record.publishedBy,
+          publishedAt: current.publishedAt ?? new Date().toISOString()
+        }
+        const changes = mutableChanges(
+          { ...current, ...publication },
+          { ...record, publishedAt: publication.publishedAt },
+          ['label', 'description', 'checksum', 'documentJson']
+        )
         if (changes) {
-          await ctx.db.patch(current._id, { ...changes, publishedAt: new Date().toISOString() })
+          await ctx.db.patch(current._id, {
+            ...changes,
+            ...publication,
+            publishedAt: new Date().toISOString()
+          })
           replaced++
-        } else reused++
+        } else {
+          if (
+            current.contractVersion === undefined ||
+            current.publishedBy === undefined ||
+            current.publishedAt === undefined
+          )
+            await ctx.db.patch(current._id, publication)
+          reused++
+        }
       } else {
         await ctx.db.insert('reusableDefinitions', {
           ...record,
@@ -729,11 +777,10 @@ export const readSubjects = internalQuery({
           checksum: version.checksum,
           document
         })
-        const parsedDocument = parsed.document
         exact(root.authoringSources, authoredSourceFacts(parsed))
         exact(
           root.catalogue,
-          await catalogueMetadata(ctx, parsedDocument, {
+          await catalogueMetadata(ctx, parsed, {
             checksum: root.checksum,
             publicId: route.publicId,
             createdAt: version._creationTime
@@ -799,7 +846,7 @@ export const readSubjects = internalQuery({
   }
 })
 
-// Equipment parents may arrive in a later import batch. Compile only after all roots exist.
+// Variant parents may arrive in a later import batch. Compile only after all roots exist.
 export const syncEquipmentDerived = internalMutation({
   args: {
     id: zodToConvex(sourceImportSubjectDtoSchema.shape.id),
@@ -828,10 +875,8 @@ export const syncEquipmentDerived = internalMutation({
       document.category === 'VARIANT' ? document.parentEquipmentId : null
     )
     const { compilation, effective } = await compileCurrentEquipment(ctx, document, null)
-    const storedCompilation = await readAuthoredVersionCompilation(ctx, version)
-    if (storedCompilation === undefined)
-      await insertAuthoredVersionCompilation(ctx, version, compilation)
-    else exact(storedCompilation, compilation)
+    const storedCompilation = await syncCanonicalCompilation(ctx, root, version, compilation)
+    if (storedCompilation) exact(storedCompilation, compilation)
     const rawFacts = equipmentOptionFacts(document, root.checksum)
     const expectedFacts = equipmentOptionFacts(document, root.checksum, effective)
     if (root.equipmentOptions === undefined) {
@@ -887,10 +932,13 @@ export const syncClassDerived = internalMutation({
     else exact(current.root.parentClassId, args.parentClassId)
     if (current.parentClassId !== args.parentClassId)
       throw new Error('Canonical Class parent mismatch.')
-    const storedCompilation = await readAuthoredVersionCompilation(ctx, current.version)
-    if (storedCompilation === undefined)
-      await insertAuthoredVersionCompilation(ctx, current.version, compilation)
-    else exact(storedCompilation, compilation)
+    const storedCompilation = await syncCanonicalCompilation(
+      ctx,
+      current.root,
+      current.version,
+      compilation
+    )
+    if (storedCompilation) exact(storedCompilation, compilation)
     const root = await ctx.db.get(current.root._id)
     if (!root) throw new Error('Canonical Class root is missing.')
     await backfillCatalogueFamily(ctx, root)

@@ -1,10 +1,10 @@
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
-import type { VehicleAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterMovementFacts } from '../encounterMovementTargets.js'
 import type { CharacterSheetCampaignContext } from './campaignCharacterSheet.js'
 import { getVisibleCampaignConditions } from './campaignConditionVisibility.js'
+import { requireCharacterPresentation } from './contextPreparation.js'
 import type { CharacterSpellCastActions } from './characterSpellCastActions.js'
 import type { prepareCharacterSheetFromContext } from './sheetPreparation.js'
 import { projectCharacterSheetBundle } from './sheetProjection.js'
@@ -20,9 +20,7 @@ export type CharacterTurnFacts = CharacterMovementFacts &
     sheetState: Pick<CharacterSheetState, 'resourceUsage' | 'itemUsage' | 'spellCustomizations'>
     campaignContext: CharacterSheetCampaignContext
     prepared: Pick<PreparedSheet['prepared'], 'character' | 'resolution'> & {
-      context: Pick<PreparedSheet['prepared']['context'], 'creaturesById'> & {
-        vehiclesById: ReadonlyMap<string, VehicleAuthored>
-      }
+      context: Pick<PreparedSheet['prepared']['context'], 'presentation'>
     }
     activeEffects: ActiveRuleEffectRecord[]
   }
@@ -43,8 +41,7 @@ export function projectCharacterTurnActions(
     adjustments: facts.adjustments,
     additionalConditions: getVisibleCampaignConditions(facts.campaignContext),
     additionalCurrencyOptions: facts.campaignContext.currencyOptions,
-    creaturesById: facts.prepared.context.creaturesById,
-    vehiclesById: facts.prepared.context.vehiclesById,
+    presentation: requireCharacterPresentation(facts.prepared.context).presentation,
     spellCustomizations: facts.sheetState.spellCustomizations,
     ruleEvaluation: {
       ...facts.ruleEvaluation,

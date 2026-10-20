@@ -259,6 +259,7 @@ describe('native Campaign play settings', () => {
     const saved = await owner.caller.mutation(save, {
       ...input(settings),
       automationMode: 'MANUAL',
+      trackAmmunition: true,
       initiativePolicyDefinitionId: policy.id,
       initiativeTieDefinitionId: score.id,
       optionalCombatRuleDefinitionIds: [optional.id]
@@ -266,6 +267,7 @@ describe('native Campaign play settings', () => {
     const frozen = await read()
     expect(frozen).toMatchObject({
       automationMode: 'MANUAL',
+      trackAmmunition: true,
       initiativePolicySnapshot: {
         gameSystemId: campaign.gameSystemId,
         policy: {
@@ -302,9 +304,13 @@ describe('native Campaign play settings', () => {
     expect(frozen.optionalCombatSnapshotChecksum).toBe(
       checksumCanonicalJson(frozen.optionalCombatSnapshot)
     )
-    await owner.caller.mutation(save, { ...input(saved), automationMode: 'ASSISTED' })
-    expect((await read()).automationMode).toBe('ASSISTED')
-    expect(frozen.automationMode).toBe('MANUAL')
+    await owner.caller.mutation(save, {
+      ...input(saved),
+      automationMode: 'ASSISTED',
+      trackAmmunition: false
+    })
+    expect(await read()).toMatchObject({ automationMode: 'ASSISTED', trackAmmunition: false })
+    expect(frozen).toMatchObject({ automationMode: 'MANUAL', trackAmmunition: true })
     await t.run(async (ctx) => {
       const graph = await ctx.db
         .query('reusableDefinitions')

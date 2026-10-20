@@ -58,18 +58,11 @@ export const deathDog: CreatureAuthored = {
       id: S.featureId(77, 2),
       label: 'Multiattack',
       description: 'Multiattack. The dog makes two bite attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(77, 202),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(77, 1202), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEATH_DOG_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(77, 3) }] }] }
+        ]
+      },
       order: 2
     },
     {

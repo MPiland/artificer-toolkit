@@ -9,13 +9,13 @@ import {
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 import {
   automaticChargedCreature,
   automaticChargedCreatureId
 } from '../../tests/fixtures/encounterAction'
 import { domainRejection } from '../../tests/fixtures/playerControl'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
   seedTurnSaveEffect,
@@ -88,7 +88,7 @@ function initiativeDeclarationResolution(
 async function preparePendingDeletion() {
   const fixture = await turnCharacterEffectFixture()
   await setAutoRollDice(fixture.t, fixture.owner.userId, false)
-  await fixture.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(fixture.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

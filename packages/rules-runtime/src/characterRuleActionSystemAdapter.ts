@@ -3,6 +3,7 @@ import {
   type ForcedMovementDirection
 } from '@artificer-toolkit/shared/core'
 import type { GrantedAction } from '@artificer-toolkit/schema/effects/grantedAction'
+import type { AttackSlotConditionDto } from '@artificer-toolkit/schema/features/attackSlots'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
@@ -173,6 +174,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     relationshipOutcomeId: string
     /** The most creatures the source holds at once through this outcome. */
     heldAtOnce: number
+    /** The hold applies only while this predicate holds over the open Attack action. */
+    appliesWhen?: AttackSlotConditionDto
     modules: readonly ActorRelationshipModuleAuthored[]
     /** Concrete state selected at settlement; conditional state is omitted unless evidenced. */
     conditionIds: readonly string[]
@@ -559,6 +562,8 @@ export interface CharacterRuleActionSystemAdapter {
    */
   compileZonePlacement?(input: {
     action: EffectActionCapabilityDescriptor
+    /** The label of the feature that keeps a zone its Effect does not author (a passive melee trait). */
+    label?: string
   }): CharacterRuleActionZonePlacementPlan | CharacterRuleActionZoneChoicePlan | null
   /** Returns the exact supported recurring plan for this locked action, if any. */
   activeEffectPlans?(input: {

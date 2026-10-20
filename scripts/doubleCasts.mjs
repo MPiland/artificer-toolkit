@@ -58,10 +58,6 @@ export const ALLOWED = {
     count: 1,
     reason: 'one Map-backed generic store implements the per-table overload intersection'
   },
-  'packages/rules-runtime/src/encounterCreatureEquipmentSources.ts': {
-    count: 3,
-    reason: 'the equipment DTO types category and facet contexts looser than EquipmentAuthored'
-  },
   'packages/shared/src/domains/effects/maps/path.ts': {
     count: 9,
     reason: 'the outcome map is reused as a typed child map and builder API of other documents'

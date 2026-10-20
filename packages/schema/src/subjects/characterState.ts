@@ -17,7 +17,9 @@ const characterEquipmentItemStateDtoSchemaRaw = lazySchema(() =>
     containerId: z.optional(z.string()),
     customName: z.optional(z.string()),
     notes: z.optional(z.string()),
-    retainedRulesJson: z.optional(z.string())
+    retainedRulesJson: z.optional(z.string()),
+    /** Corrosion play has put on the item; derived by `effectiveInventory`, never stored on the row. */
+    degradation: z.optional(z.number().check(z.int()).check(z.positive()))
   })
 )
 const characterEquippedItemStateDtoSchemaRaw = lazySchema(() =>

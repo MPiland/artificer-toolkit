@@ -24,9 +24,9 @@ import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { api, components, internal } from '../_generated/api'
+import { api, components } from '../_generated/api'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { beginVehicleCleanup, probeVehicleCleanup } from './vehicleCleanup'
 import { retainCampaignEquipmentRules } from './acquiredEquipment'
 import {
@@ -64,7 +64,7 @@ afterEach(() => {
 
 async function setup(cargoItems = 36) {
   const base = await readySheetFixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart }),

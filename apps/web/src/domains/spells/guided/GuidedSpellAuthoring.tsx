@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSelector } from '@tanstack/react-form'
 import { Alert, Button, Group, Stack, Text } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
@@ -51,7 +51,8 @@ export const GuidedSpellAuthoring = withForm({
     const draft = localDraft ?? canonicalDraft
     const effectIds = rehydrated?.ids ?? fallbackEffectIds
     const [screen, setScreen] = useState(!isExistingDraft && draft ? 3 : 0)
-    const hadEffectsRef = useRef(Boolean(effects?.length))
+    const hasEffects = Boolean(effects?.length)
+    const [hadEffects, setHadEffects] = useState(hasEffects)
     const basics = useSelector(form.store, (state) => readSpellBasics(state.values))
     const { canFinalize } = useAuthoringForm()
 
@@ -59,19 +60,15 @@ export const GuidedSpellAuthoring = withForm({
       onStateChange({ isReview: screen === 3, showPreview: isExistingDraft || screen >= 2 })
     }, [isExistingDraft, onStateChange, screen])
 
-    useEffect(() => {
-      const hasEffects = Boolean(effects?.length)
-      const effectsCleared = hadEffectsRef.current && !hasEffects
-      hadEffectsRef.current = hasEffects
-      if (!effectsCleared) return
+    if (hadEffects !== hasEffects) {
+      setHadEffects(hasEffects)
+      if (hadEffects) {
+        setLocalDraft(null)
+        setScreen(0)
+      }
+    }
 
-      setLocalDraft(null)
-      setScreen(0)
-    }, [effects])
-
-    useEffect(() => {
-      if (screen > 0 && !basics.label) setScreen(0)
-    }, [basics.label, screen])
+    if (screen > 0 && !basics.label) setScreen(0)
 
     const applyIntent = (intent: GuidedSpellIntent) => {
       const nextDraft = createGuidedSpellDraft(intent, {

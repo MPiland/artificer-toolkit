@@ -727,7 +727,8 @@ For an existing verified development deployment, run the internal metadata backf
 `yarn convex run content/sourceMigrations:backfillAuthoringSources` from `apps/apis`.
 Check `yarn convex run --component migrations lib:getStatus`, then run `content/seed:audit`.
 The official migration is resumable, one current authored document per batch; it validates
-ownership/currentness and rejects conflicting metadata. Content, UUIDs, versions and counts
+ownership/currentness, re-derives facts from an older `factsVersion` and rejects same-version
+conflicting metadata. Content, UUIDs, versions and counts
 are unchanged. Do not tighten the optional field before completion and read-back verification.
 
 After verifying the selected dev deployment, `developmentDrafts.ts --authoring-resolver` runs
@@ -804,8 +805,9 @@ remain uncompleted cutover work.
 Equipment publication resolves current same-System visible parent chains, then atomically recompiles
 published descendants with the shared compiler. Descendant authored checksums and drafts are unchanged;
 unresolved descendants or cycles roll back the parent publication. Deletion rejects published variants.
-Exact canonical replay first backfills `parentEquipmentId`; `content/import.syncEquipmentDerived` then
-compiles one Equipment after all imported parents exist. Missing relationship metadata fails closed,
+Import stores base Equipment's compilation with its version. Exact canonical replay first backfills
+`parentEquipmentId`; `content/import.syncEquipmentDerived` then compiles one variant after all imported
+parents exist. Missing relationship metadata fails closed,
 and conflicting evidence is never overwritten. See the [authoring guide](../../docs/architecture/authoring-schema.md)
 for the existing bounded-authoring ceiling. Equipment's web transport and managed lifecycle proof are pending.
 

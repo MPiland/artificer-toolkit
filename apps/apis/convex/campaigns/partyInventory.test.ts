@@ -29,6 +29,7 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { catalogueMetadata, syncCatalogueMetadata } from '../content/catalogueMetadata'
 import { api } from '../_generated/api'
 import * as equipmentRelationships from '../content/equipmentRelationships'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
@@ -206,7 +207,7 @@ async function ownedEquipment(
         documentSchemaVersion: current.documentSchemaVersion
       },
       canonicalizeRuleDocument(document),
-      current.compilation
+      (await equipmentRelationships.compileCurrentEquipment(ctx, document, null)).compilation
     )
     const rootId = await ctx.db.insert('authoredRoots', {
       id,
@@ -226,6 +227,15 @@ async function ownedEquipment(
       kind: 'USER',
       ownerUserId: userId
     })
+    await syncCatalogueMetadata(
+      ctx,
+      rootId,
+      await catalogueMetadata(
+        ctx,
+        { subjectKind: 'EQUIPMENT', document },
+        { checksum, publicId: id, createdAt: Date.now() }
+      )
+    )
     await ctx.db.insert('authoredRouteIds', {
       subjectKind: 'EQUIPMENT',
       subjectId: id,

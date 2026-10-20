@@ -7,8 +7,8 @@ import type {
 import { cat as rawCat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { rowboat } from '@artificer-toolkit/source-data/srd/vehicles/rowboat.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { api, internal } from '../_generated/api'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { srdCreatureRecord } from '../../tests/fixtures/srdCreatures'
 import { readCharacterRow } from './stateDocuments'
@@ -30,7 +30,7 @@ const ids = {
 
 async function fixture() {
   const base = await readyCharacterFixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

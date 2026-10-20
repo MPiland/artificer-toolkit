@@ -510,12 +510,35 @@ UUID, never a Convex `_id`. Every writer that moves the current version sets `cu
 `by_versionId`, fields `subjectId`, `systemId`, `versionId`, `compilation`) and not on `authoredVersions`, so
 readers that do not compile, such as Builder commit, do not pay for it. Deleting a version deletes its
 compilation. Parent publication refreshes descendant projections and compilations in the same transaction.
+The compiler version is `subject-compiler-v2` (PLATFORM-21.T1a, D163): it carries every rules field and label
+the Builder reads, stores Equipment in its resolved shape (variant parents applied, `parentEquipmentIds`), and
+carries no prose; views read prose from the authored payload by id. `content/compilationMigration` recompiles a
+superseded row from its version's stored document (Race and Equipment against their current parents), and
+`readAuthoredVersionCompilation` refuses a superseded row. Import stores the compilation of base Equipment
+(with its builder facts) and of a base Race at once; a variant, a subrace and every Class compile in the seed's
+derived step (`syncEquipmentDerived`, `raceRelationships.syncDerived`, `syncClassDerived`) once their parents exist.
+Tests import canonical subjects the same way through `importSeededSubjects` (`tests/fixtures/publication.ts`). The seed's derived
+syncs replace a superseded compilation of a canonical row (`syncCanonicalCompilation`), because the seed is the
+source of truth for canonical content; an authored row's superseded compilation is left to the migration. The table
+validator still admits `subject-compiler-v1` rows so the migration can read them; readers reject them as stale.
+Read paths never compile (PLATFORM-21.T1b, D163): Convex Builder and Sheet preparation, commit, the browser Builder
+(format 3 snapshot `compilations`) and the room hydrate the stored row, checked against the root checksum. Only
+publish, import, the seed and the migration call a subject compiler (`readPathCompilation.test.ts`), and publish
+compiles before it stores, so a compile failure stores no version or compilation.
 
 **Equipment projection.** `authoredRoots.equipmentOptions.builder` is an optional checksum-bound projection of
 the Equipment selector fields. Builder reads preserve the complete authorized set and validate the parent graph;
-a missing projection falls back to the full publication path, a corrupt one is rejected. Spell selector facts
-live in `authoredRoots.catalogue.spell` (`selectionVersion: 1`, `publishedActive`); current readers reject an
-absent marker or stale checksum.
+a missing or stale projection is rejected; there is no payload fallback. Spell selector facts live in
+`authoredRoots.catalogue.spell` (`selectionVersion: 1`); current readers reject an absent marker or stale checksum.
+
+**Root catalogue facts (D163).** Every root's `catalogue.publishedActive` is true unless its current payload's
+status is `DRAFT` (canonical documents carry no status and are active; publication always writes `ACTIVE`); every write that stores a version sets it (`rootCatalogueFacts.test.ts` walks import,
+replacement and publication). RACE, CLASS and BACKGROUND roots also hold `catalogue.race`, `.class` or
+`.background`: the picker facts `toContentSnapshotIndexEntry` derives once at publish; EQUIPMENT roots hold
+`catalogue.equipment.quote`. Share and parent-chain authorization, the subclass and Spell witnesses, commit and the
+held-item capture (`captureAcquiredEquipmentRules`, prose from the root label and catalogue) read these root rows
+alone, so commit loads no authored payload (`commitReadBudget.test.ts` makes every payload unreadable before it commits). `compilationMigration:run`
+backfills both on older roots.
 
 **Normal publication** replaces and deletes the previous version atomically. Custody, Encounter snapshots and
 receipts carry embedded JSON, checksums and external version provenance and do not pin the `authoredVersions`
@@ -757,7 +780,11 @@ PARTY additionally needs player conversation membership. There is no edit or del
 ### Assignment, departure and ownership
 
 `campaignCharacterAssignments` enforces one Character per player and one Campaign per Character through indexed
-reads. Departure (`characterDeparture`, one atomic mutation) returns Campaign coins to loose party custody with an
+reads. The row also stores the GM's Character control grants as an optional `controllerUserIds` (SCENE-5.1, D162): other
+active Campaign players the GM lets act for the assigned Character. The grants are the only source for Campaign
+grants, read live (never copied into a Run actor), and the assigned player always keeps control. Grant and revoke are
+GM-only (`campaigns/characterControllers:setControllers`), bump the CAMPAIGN and PLAY revisions and take effect in
+open rooms with the next authorization read; a departing member is stripped from every grant. Departure (`characterDeparture`, one atomic mutation) returns Campaign coins to loose party custody with an
 OWNER audit, deletes the assignment and the `campaignCharacterStates` overlay, reconciles personal source access,
 repairs a saved draft and clamps HP. D81: departure also ends everything the Campaign or its Runs own on the
 Character (`settleDepartedCharacters`: effects, emptied maintained states in Runs the room does not hold,
@@ -780,8 +807,16 @@ and fail closed on corrupt published data. Unshare is one active-Campaign, expec
 actor-bound command fingerprint: it removes the share and dependent children, prunes lost selections from assigned
 Characters and drafts (an Active Character that can no longer be prepared becomes a repair DRAFT), and evacuates
 Vehicle cargo to party custody. Deleting an authored root runs the same per-Campaign finalization. Acquired
-Equipment keeps working through server-owned `retainedRulesJson` (raw ancestry and Spell documents with identity
-and checksum pins) on held items, so source loss never removes held items; new copies need current access.
+Equipment keeps working through server-owned `retainedRulesJson` on held items, so source loss never removes held items;
+new copies need current access. It is a pinned record (D163 ruling C, `acquiredEquipmentRulesSchema`): one
+EQUIPMENT source for the held leaf and up to 500 SPELL sources its grants name or open, each with its version
+identity, a copy of that version's stored compilation (resolved Equipment with no variant chain, or a `CompiledSpell`)
+and a small `presentation` block (label, description, quote, materialDescription). The engine hydrates the
+compilations as they are, with no compile call, after checking both checksums; views read the pinned prose, so a
+held item keeps its description after its source is deleted, and the Sheet lists a Spell only the pinned record
+supplies with its pinned prose (view only; it is never a picker option). Equipment Feature prose is not pinned.
+`content/compilationMigration` repins rows stored in the earlier raw-document shape from the stored compilation of
+the same pinned version.
 Parsed retained rules and parsed published Equipment are memoized per module (`createContentMemo`, shared
 `contentMemo`) keyed by their exact stored JSON, so only immutable content is memoized; every authorization,
 catalogue-binding and scope check still runs on each read, and correctness never depends on a hit.

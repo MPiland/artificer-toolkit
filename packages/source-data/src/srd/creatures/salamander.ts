@@ -58,6 +58,16 @@ export const salamander: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The salamander makes two attacks: one with its spear and one with its tail.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(244, 4) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(244, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

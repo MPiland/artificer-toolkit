@@ -13,17 +13,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import {
-  Check,
-  Crosshair,
-  Eye,
-  EyeOff,
-  Gamepad2,
-  SlidersHorizontal,
-  Undo2,
-  ZoomIn,
-  ZoomOut
-} from 'lucide-react'
+import { Check, Crosshair, Eye, EyeOff, Gamepad2, SlidersHorizontal, Undo2 } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import type {
   CampaignSceneStateDto,
@@ -62,9 +52,12 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 import type { BindEncounterToPresentedSceneInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneEncounterBindingSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
+import { withCharacterControllers } from '@artificer-toolkit/shared/campaign/characterControl'
 import {
   assignedCharacterTokenId,
   canMoveSceneToken,
+  characterControlAssignments,
+  controlledCharacters,
   createSceneAnnotation,
   createSceneBarrier,
   createSceneDarknessZone,
@@ -76,6 +69,7 @@ import {
   nudgeSceneToken,
   playTools,
   readActiveTurn,
+  resolveMainCharacterId,
   type CampaignVttToolDefinition,
   type SceneTokenNudgeDirection
 } from './CampaignVttStage.model'
@@ -88,6 +82,8 @@ import { CampaignTabletopMovementReadout } from './CampaignTabletopMovementReado
 import { selectMovementAllowance } from './CampaignTabletopMovementReadout.model'
 import { CampaignEncounterDecision } from '../components/CampaignEncounterDecision'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
+import { VttZoomControl } from './VttZoomControl'
+import { readStoredVttZoom, vttZoomStorageKey, writeStoredVttZoom } from './vttZoom.model'
 import * as styles from './CampaignVttStage.css'
 import { useActionTargetModifiers } from './useActionTargetModifiers'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
@@ -159,6 +155,7 @@ export function CampaignVttStage({
   const optimisticDoorCommands = useRef(new Map<string, string>())
   const [mode, setMode] = useState<CampaignVttMode>('PLAY')
   const [mapLoadStatus, setMapLoadStatus] = useState<VttMapLoadStatus | null>(null)
+  const [zoomScale, setZoomScale] = useState(1)
   const [tool, setTool] = useState<CampaignVttTool>('SELECT')
   const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
   const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
@@ -166,6 +163,7 @@ export function CampaignVttStage({
   const [chosenPreviewTokenId, setChosenPreviewTokenId] = useState<string | null>(null)
   const [inspectedTokenId, setInspectedTokenId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
+  const [pickedMainCharacterId, setPickedMainCharacterId] = useState<string | null>(null)
   // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
   const [sharePreviews, setSharePreviews] = useState(false)
   // The speed type the member chose for an actor's movement; it applies to that actor only.
@@ -187,7 +185,6 @@ export function CampaignVttStage({
     warnings: EncounterRuleWarningDto[]
   } | null>(null)
   const fogOwnerUserIdRef = useRef<string | null>(null)
-  fogOwnerUserIdRef.current = fogOwnerUserId
   // Each ping replaces the announcement's content, so a repeated ping is announced again.
   const [pingAnnouncement, setPingAnnouncement] = useState({ id: 0, text: '' })
   const announcePing = (userId: string) =>
@@ -196,7 +193,6 @@ export function CampaignVttStage({
       text: describeVttPing(campaign.memberships, userId, currentUserId)
     }))
   const announcePingRef = useRef(announcePing)
-  announcePingRef.current = announcePing
 
   // A Character ends its Concentration with its Sheet command, which needs its stream version, so the
   // Sheet is subscribed only while that one command waits for it.
@@ -229,7 +225,24 @@ export function CampaignVttStage({
     turnMovement: currentTurnMovement
   } = readActiveTurn(campaign, currentUserId, encounterSessionState)
   const pendingOccurrence = encounterSessionState?.pending
-  useEffect(() => {
+  const [trackedActingTurn, setTrackedActingTurn] = useState({
+    automationMode: activeEncounter?.automationMode,
+    encounterId: activeEncounter?.id,
+    actorId: currentActor?.id,
+    mine: currentActorMine
+  })
+  if (
+    trackedActingTurn.automationMode !== activeEncounter?.automationMode ||
+    trackedActingTurn.encounterId !== activeEncounter?.id ||
+    trackedActingTurn.actorId !== currentActor?.id ||
+    trackedActingTurn.mine !== currentActorMine
+  ) {
+    setTrackedActingTurn({
+      automationMode: activeEncounter?.automationMode,
+      encounterId: activeEncounter?.id,
+      actorId: currentActor?.id,
+      mine: currentActorMine
+    })
     if (
       !currentActorMine ||
       !activeEncounter?.id ||
@@ -239,7 +252,7 @@ export function CampaignVttStage({
       setActionsOpened(false)
       setTargetingRequest(null)
     }
-  }, [activeEncounter?.automationMode, activeEncounter?.id, currentActor?.id, currentActorMine])
+  }
   const actionChoiceScope =
     actionsOpened &&
     currentActorMine &&
@@ -283,10 +296,9 @@ export function CampaignVttStage({
   })
   // A player's last shown decision stays in its drawer to say whether the GM skipped it (D39).
   const [shownDecision, setShownDecision] =
-    useState<PendingEncounterRuleOccurrenceSummaryDto | null>(null)
-  useEffect(() => {
-    if (pendingOccurrence && campaign.role !== 'OWNER') setShownDecision(pendingOccurrence)
-  }, [campaign.role, pendingOccurrence])
+    useState<PendingEncounterRuleOccurrenceSummaryDto | null>(
+      campaign.role !== 'OWNER' ? (pendingOccurrence ?? null) : null
+    )
   const settledDecision = pendingOccurrence ? null : shownDecision
   const storedDecisionSettlement = useQuery(
     getEncounterDecisionSettlement(
@@ -300,9 +312,30 @@ export function CampaignVttStage({
     )
   )
   const decisionOutcome = room ? (room.settlement?.outcome ?? null) : storedDecisionSettlement.data
-  useEffect(() => {
-    if (decisionOutcome === 'ANSWER') setShownDecision(null)
-  }, [decisionOutcome])
+  const [trackedDecision, setTrackedDecision] = useState({
+    outcome: decisionOutcome,
+    pending: pendingOccurrence,
+    role: campaign.role
+  })
+  if (
+    trackedDecision.outcome !== decisionOutcome ||
+    trackedDecision.pending !== pendingOccurrence ||
+    trackedDecision.role !== campaign.role
+  ) {
+    setTrackedDecision({
+      outcome: decisionOutcome,
+      pending: pendingOccurrence,
+      role: campaign.role
+    })
+    if (
+      pendingOccurrence &&
+      campaign.role !== 'OWNER' &&
+      (trackedDecision.pending !== pendingOccurrence || trackedDecision.role !== campaign.role)
+    )
+      setShownDecision(pendingOccurrence)
+    if (trackedDecision.outcome !== decisionOutcome && decisionOutcome === 'ANSWER')
+      setShownDecision(null)
+  }
   const drawerDecision = pendingOccurrence ?? settledDecision
   const loadedActionChoices = roomActionChoices.routed
     ? roomActionChoices.value
@@ -441,7 +474,6 @@ export function CampaignVttStage({
         isPending: roomActorTokenBindings.value === undefined && !roomActorTokenBindings.error
       }
     : convexActorTokenBindings
-  sceneRef.current = scene
   const effectiveMode = campaign.role === 'OWNER' && !gmPreviewUserId ? mode : 'PLAY'
   const fogEnabled = scene?.fogMode !== 'OFF'
   const tools = (effectiveMode === 'EDIT' ? editTools : playTools).filter(
@@ -497,6 +529,7 @@ export function CampaignVttStage({
             range: actionPreview?.range,
             scene: encounterScene,
             selfRefused: targeting.selfRefused,
+            onlyActorIds: targeting.onlyActorIds,
             sourceTokenId: actionPreview?.sourceTokenId ?? null
           })
         : null,
@@ -569,19 +602,27 @@ export function CampaignVttStage({
       )
     }
   }, [scene, effectiveMode, activeEncounter, actorIdByTokenId])
+  // A Character's grantees control its linked tokens as its player does (D162).
+  const controlledScene = useMemo(
+    () =>
+      presentScene && (campaign.role !== 'OWNER' || gmPreviewUserId)
+        ? withCharacterControllers(presentScene, characterControlAssignments(campaign.memberships))
+        : presentScene,
+    [presentScene, campaign.role, campaign.memberships, gmPreviewUserId]
+  )
   const renderedScene = useMemo(
     () =>
-      presentScene && campaign.role === 'OWNER' && gmPreviewUserId
+      controlledScene && campaign.role === 'OWNER' && gmPreviewUserId
         ? projectSceneForViewer(
-            presentScene,
+            controlledScene,
             {
               role: 'PLAYER',
               userId: gmPreviewUserId
             },
             boundTokenControl
           )
-        : presentScene,
-    [presentScene, campaign.role, gmPreviewUserId, boundTokenControl]
+        : controlledScene,
+    [controlledScene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
   // A forced movement waiting on its source is picked on the board by whoever acts for it (D157).
   const destinationPending =
@@ -733,17 +774,19 @@ export function CampaignVttStage({
   const effectiveRole = gmPreviewUserId ? 'PLAYER' : campaign.role
   const effectivePreviewTokenId =
     campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null
+  // The tabletop is seen through one main Character's senses; selecting a controlled token overrides it.
+  const controlled = useMemo(
+    () => controlledCharacters(campaign.memberships, viewerUserId),
+    [campaign.memberships, viewerUserId]
+  )
+  const mainCharacterId = resolveMainCharacterId(controlled, pickedMainCharacterId)
   const viewTokenId = renderedScene
     ? resolveViewTokenId({
         assignedTokenId: assignedCharacterTokenId({
           actorIdByTokenId,
           actors: activeEncounter?.actors ?? [],
-          assignedCharacterId:
-            (gmPreviewUserId
-              ? campaign.memberships.find((membership) => membership.userId === gmPreviewUserId)
-                  ?.assignedCharacter
-              : campaign.assignedCharacter
-            )?.id ?? null
+          assignedCharacterId: mainCharacterId,
+          tokens: renderedScene.tokens
         }),
         boundTokenControl,
         currentUserId: viewerUserId,
@@ -753,7 +796,7 @@ export function CampaignVttStage({
         tokens: renderedScene.tokens
       })
     : null
-  rendererUpdateRef.current = renderedScene
+  const rendererUpdate: VttSceneRendererUpdate | null = renderedScene
     ? {
         areaAim: rendererAreaAim,
         boundTokenControl,
@@ -789,7 +832,11 @@ export function CampaignVttStage({
         : live.sendCommand({ command, scope: 'SCENE' })
   })
   const encounterCommand = useMutation({ mutationFn: live.sendEncounterCommand })
-  const sheetCommand = useMutation({ mutationFn: live.sendCharacterSheetCommand })
+  // The sheet's subscription ends once its one command is on its way.
+  const sheetCommand = useMutation({
+    mutationFn: live.sendCharacterSheetCommand,
+    onMutate: () => setEndingConcentrationOf(null)
+  })
   const { mutate: sendSheetCommand } = sheetCommand
   const pushedSheet = live.characterSheet
   useEffect(() => {
@@ -799,7 +846,6 @@ export function CampaignVttStage({
       pushedSheet?.characterId !== endingConcentrationOf
     )
       return
-    setEndingConcentrationOf(null)
     sendSheetCommand({
       characterId: endingConcentrationOf,
       encounterId: activeEncounter.id,
@@ -827,7 +873,6 @@ export function CampaignVttStage({
     [sceneCommand.mutate]
   )
   const dispatchRef = useRef(dispatchSceneCommand)
-  dispatchRef.current = dispatchSceneCommand
 
   const sendTransient = useCallback(
     (
@@ -876,7 +921,20 @@ export function CampaignVttStage({
     [campaign.role, gmPreviewUserId, live, sharePreviews]
   )
   const transientRef = useRef(sendTransient)
-  transientRef.current = sendTransient
+
+  // Renderer and DOM callbacks read the latest values through these refs; they are written after
+  // commit, before the renderer effects below read them.
+  useEffect(() => {
+    fogOwnerUserIdRef.current = fogOwnerUserId
+    announcePingRef.current = announcePing
+    sceneRef.current = scene
+    rendererUpdateRef.current = rendererUpdate
+    dispatchRef.current = dispatchSceneCommand
+    transientRef.current = sendTransient
+    pickTargetTokenRef.current = pickTargetToken
+    pickDestinationRef.current = destinationPick ? pickDestination : null
+    commitTokenMoveRef.current = commitTokenMove
+  })
 
   useEffect(() => {
     const host = rendererHost.current
@@ -898,6 +956,14 @@ export function CampaignVttStage({
         setActionsOpened(true)
       },
       onSquarePick: (center) => pickDestinationRef.current?.(center),
+      onZoomChange: (scale, origin) => {
+        setZoomScale(scale)
+        const sceneId = sceneRef.current?.id
+        if (origin === 'USER' && sceneId) {
+          writeStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId), scale)
+        }
+      },
+      resolveSceneZoom: (sceneId) => readStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId)),
       onMapLoadStatus: (status) => {
         setMapLoadStatus(status)
         mapDelivery.onMapLoadStatus(status)
@@ -1024,9 +1090,11 @@ export function CampaignVttStage({
     viewTokenId
   ])
 
-  useEffect(() => {
+  const [mapLoadSceneId, setMapLoadSceneId] = useState(scene?.id)
+  if (mapLoadSceneId !== scene?.id) {
+    setMapLoadSceneId(scene?.id)
     setMapLoadStatus(null)
-  }, [scene?.id])
+  }
 
   // A pick on the map or in the list ends targeting and hands the creature back to the action drawer.
   function pickTarget(actorId: string): void {
@@ -1038,7 +1106,6 @@ export function CampaignVttStage({
     const actorId = actorIdByTokenId.get(tokenId)
     if (actorId) pickTarget(actorId)
   }
-  pickTargetTokenRef.current = pickTargetToken
 
   function pickDestination(position: ScenePoint): void {
     if (!destinationPending || !activeEncounter || encounterCommand.isPending) return
@@ -1053,7 +1120,6 @@ export function CampaignVttStage({
       resolution: { kind: 'FORCED_MOVEMENT', requestId: destinationPending.requestId, position }
     })
   }
-  pickDestinationRef.current = destinationPick ? pickDestination : null
 
   function retryMap(): void {
     setMapLoadStatus('LOADING')
@@ -1160,8 +1226,6 @@ export function CampaignVttStage({
         setMoveWarning({ command, warnings: error.rejection.warnings })
     })
   }
-
-  commitTokenMoveRef.current = commitTokenMove
 
   function removeMeasurement(measurementId: string): void {
     const current = sceneRef.current
@@ -1312,6 +1376,19 @@ export function CampaignVttStage({
         </div>
         <div className={styles.headerActions}>
           {scenePresentationControl}
+          {effectiveRole === 'PLAYER' && controlled.length > 1 ? (
+            <Select
+              aria-label='Main Character'
+              allowDeselect={false}
+              data={controlled.map((character) => ({
+                label: character.label,
+                value: character.id
+              }))}
+              size='xs'
+              value={mainCharacterId}
+              onChange={setPickedMainCharacterId}
+            />
+          ) : null}
           {campaign.role === 'OWNER' ? (
             <>
               <Select
@@ -1611,15 +1688,10 @@ export function CampaignVttStage({
               if (token) commitTokenMove(tokenId, [token.position, position])
             }}
           />
-          <Tooltip label='Zoom out'>
-            <ActionIcon
-              aria-label='Zoom out'
-              variant='default'
-              onClick={() => renderer.current?.zoomOut()}
-            >
-              <ZoomOut aria-hidden size={18} />
-            </ActionIcon>
-          </Tooltip>
+          <VttZoomControl
+            scale={zoomScale}
+            onChange={(scale) => renderer.current?.setZoomScale(scale)}
+          />
           <Tooltip label='Fit map to view'>
             <ActionIcon
               aria-label='Fit map to view'
@@ -1627,15 +1699,6 @@ export function CampaignVttStage({
               onClick={() => renderer.current?.fit()}
             >
               <Crosshair aria-hidden size={18} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label='Zoom in'>
-            <ActionIcon
-              aria-label='Zoom in'
-              variant='default'
-              onClick={() => renderer.current?.zoomIn()}
-            >
-              <ZoomIn aria-hidden size={18} />
             </ActionIcon>
           </Tooltip>
         </div>

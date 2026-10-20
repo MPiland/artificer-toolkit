@@ -27,6 +27,7 @@ import {
   sceneLiveStateHeaderSchema,
   type SceneLiveStateHeader
 } from '@artificer-toolkit/schema/api/sceneLiveState'
+import { withCharacterControllers } from '@artificer-toolkit/shared/campaign/characterControl'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
   LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT,
@@ -1661,6 +1662,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /**
+   * `scene` as vision, fog and sense projection read it: a Character's grantees control its linked
+   * tokens too (D162). Never stored.
+   */
+  #controlledScene(scene: CampaignSceneStateDto, authorityEpoch: string): CampaignSceneStateDto {
+    return withCharacterControllers(
+      scene,
+      this.#authorization.current(authorityEpoch)?.campaign.assignments ?? []
+    )
+  }
+
+  /**
    * Whether `admission` controls each token bound to the cached Encounter (ADR 0034). Without current
    * play authorization on a bound Scene every token reads as uncontrolled, so no senses are shared.
    */
@@ -1691,7 +1703,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         sceneId: scene.id,
         visibleTokenIds: new Set(
           projectSceneForViewer(
-            scene,
+            this.#controlledScene(scene, authorityEpoch),
             viewer(member),
             this.#boundTokenControl(scene, member, authorityEpoch)
           ).tokens.map(({ id }) => id)
@@ -1714,7 +1726,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       authorityEpoch: current.authorityEpoch,
       sequence: current.sequence,
       state: projectNativeLiveSessionState(
-        { scene: this.#cache?.scene ?? null },
+        {
+          scene: this.#cache?.scene
+            ? this.#controlledScene(this.#cache.scene, value.authorityEpoch)
+            : null
+        },
         admission,
         this.#cache?.presentation?.expectedPresentationVersion ?? null,
         this.#cache?.scene
@@ -1822,7 +1838,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         ? {
             scope: 'SCENE',
             state: projectSceneForViewer(
-              scene,
+              this.#controlledScene(scene, value.authorityEpoch),
               viewer(admission),
               this.#boundTokenControl(scene, admission, value.authorityEpoch)
             )
@@ -2004,6 +2020,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     const plan = planLiveSceneCommand({
       actor: admission,
+      assignments: authorization.campaign.assignments,
       command,
       encounterId: cached.encounterId,
       scene
@@ -3056,7 +3073,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             ? {
                 scope: 'SCENE',
                 state: projectSceneForViewer(
-                  scene,
+                  this.#controlledScene(scene, value.authorityEpoch),
                   viewer(admission),
                   this.#boundTokenControl(scene, admission, value.authorityEpoch)
                 )
@@ -4015,8 +4032,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }): LiveSessionWebSocketServerMessageDto {
     const delta = result.delta
       ? projectSceneDeltaForViewer(
-          before,
-          after,
+          this.#controlledScene(before, epoch),
+          this.#controlledScene(after, epoch),
           viewer(admission),
           result.delta,
           this.#boundTokenControl(after, admission, epoch)
@@ -4239,6 +4256,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       originAdmission,
       candidates,
       boundTokenControl,
+      authorization.campaign.assignments,
       scene,
       envelope
     )
@@ -4503,6 +4521,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     originAdmission: Admission,
     candidates: readonly { admission: Admission; socket: WebSocket }[],
     boundTokenControl: BoundTokenControl | null,
+    assignments: LiveSessionRoomAuthorization['campaign']['assignments'],
     scene: CampaignSceneStateDto,
     envelope: SceneTransientEnvelopeDto
   ): void {
@@ -4533,7 +4552,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           token,
           role: originAdmission.role,
           userId: originAdmission.userId,
-          originBoundTokenControl: boundTokenControl
+          originBoundTokenControl: boundTokenControl,
+          assignments
         })
       )
         return
@@ -4567,9 +4587,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           },
           type: 'TRANSIENT'
         })
+      const controlledScene = withCharacterControllers(scene, assignments)
       const previewScene = {
-        ...scene,
-        tokens: scene.tokens.map((candidate) =>
+        ...controlledScene,
+        tokens: controlledScene.tokens.map((candidate) =>
           candidate.id === token.id ? { ...candidate, position: envelope.position } : candidate
         )
       }

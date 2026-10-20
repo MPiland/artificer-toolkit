@@ -6,7 +6,7 @@ import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
@@ -44,7 +44,7 @@ it('starts and advances a turn in a Run at the actor cap through the room', asyn
       ...initiative.definitions
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
   })

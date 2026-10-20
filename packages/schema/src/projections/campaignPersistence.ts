@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import {
+  campaignCharacterControllerUserIdsSchema,
   campaignDetailDtoSchema,
   campaignRoleDtoSchema,
   campaignInviteDtoSchema
@@ -37,7 +38,9 @@ export const campaignStoredAssignmentSchema = lazySchema(() =>
     campaignId: uuidSchema,
     userId: uuidSchema,
     characterId: uuidSchema,
-    assignedAt: timestampSchema
+    assignedAt: timestampSchema,
+    /** Players the GM gave control of the Character; absent means none (SCENE-5.1, D162). */
+    controllerUserIds: z.optional(campaignCharacterControllerUserIdsSchema)
   })
 )
 

@@ -1,5 +1,6 @@
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import { withGrantProse, type CharacterPresentationLookup } from './characterRuleContext.js'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import {
   createCharacterResourceOwnerKey,
@@ -9,7 +10,6 @@ import {
   type CharacterResourceOwnerRef
 } from '@artificer-toolkit/shared/character'
 import type {
-  CreatureAuthored,
   CharacterAuthored,
   CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
@@ -116,13 +116,13 @@ interface CharacterRuleResourceProjectionInput {
   grantFoldFacts: CharacterRuleEvaluationResult['facts']['grantFoldFacts']
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
-  creaturesById: ReadonlyMap<string, CreatureAuthored>
+  presentation: CharacterPresentationLookup
 }
 
 export function projectCharacterRuleResources(
   params: CharacterRuleResourceProjectionInput
 ): SheetResource[] {
-  const { policy, snapshot, grantFoldFacts, character, resolution, creaturesById } = params
+  const { policy, snapshot, grantFoldFacts, character, resolution, presentation } = params
   const sourceFacts = grantFoldSources(grantFoldFacts)
   const inventoryById = new Map(character.state.equipment.inventory.map((item) => [item.id, item]))
   const itemsByInstanceId = new Map(snapshot.equipmentItems.map((item) => [item.instanceId, item]))
@@ -210,7 +210,7 @@ export function projectCharacterRuleResources(
           ...common,
           owner,
           label: summary.label,
-          description: summary.description,
+          description: withGrantProse(presentation, summary, 'RESOURCE').description,
           sourceLabel: summary.sourceLabel
         }
       ]
@@ -262,27 +262,38 @@ export function projectCharacterRuleResources(
         branch.kind === 'FEAT' && sourceSummaries.length === 0
           ? null
           : required(sourceSummaries, `feature presentation ${snapshotFeature.featureId}`)
-      const presentation = (() => {
-        if (branch.kind === 'FEATURE') return sourceSummary!
+      const named = (() => {
+        if (branch.kind === 'FEATURE')
+          return {
+            label: sourceSummary!.label,
+            description: presentation.features[snapshotFeature.featureId]?.description
+          }
         if (branch.kind === 'FEAT') {
-          return required(
+          const feat = required(
             (resolution.registry.feats ?? []).filter(
               (entry) =>
                 snapshotFeature.source.kind === 'FEAT' && entry.id === snapshotFeature.source.featId
             ),
             `feat definition ${snapshotFeature.featureId}`
           )
+          return { label: feat.label, description: presentation.feats[feat.id]?.description }
         }
         const featureDefinition = required(
           featureDefinitions.filter((entry) => entry.id === snapshotFeature.featureId),
           `feature definition ${snapshotFeature.featureId}`
         )
-        return required(
+        const option = required(
           (featureDefinition.options ?? []).filter(
             (entry) => entry.id === authoredSource.definitionId
           ),
           `feature option ${authoredSource.definitionId}`
         )
+        return {
+          label: option.label,
+          description: presentation.features[featureDefinition.id]?.options?.find(
+            ({ id }) => id === option.id
+          )?.description
+        }
       })()
       const owner: CharacterResourceOwnerRef = {
         kind: 'AUTHORED_SOURCE',
@@ -294,9 +305,9 @@ export function projectCharacterRuleResources(
         {
           ...common,
           owner,
-          label: presentation.label,
-          description: presentation.description,
-          sourceLabel: sourceSummary?.sourceLabel ?? presentation.label,
+          label: named.label,
+          description: named.description,
+          sourceLabel: sourceSummary?.sourceLabel ?? named.label,
           ...(branch.kind === 'FEAT' ? {} : { sourceFeatureId: snapshotFeature.featureId })
         }
       ]
@@ -351,7 +362,7 @@ export function projectCharacterRuleResources(
           ...common,
           owner,
           label: matchingFeatures[0]?.label ?? `${itemLabel} charges`,
-          description: matchingFeatures[0]?.description,
+          description: featureId ? presentation.features[featureId]?.description : undefined,
           sourceLabel: itemLabel
         }
       ]
@@ -361,7 +372,8 @@ export function projectCharacterRuleResources(
       const instance = (character.state.creatures ?? []).filter(
         (entry) => entry.id === resource.companionInstanceId
       )
-      const creature = instance.length === 1 ? creaturesById.get(instance[0]!.creatureId) : null
+      const creature =
+        instance.length === 1 ? presentation.creatures[instance[0]!.creatureId] : null
       const feature = creature?.features?.filter((entry) => entry.id === resource.featureId) ?? []
       if (!creature || feature.length !== 1) {
         throw new Error(

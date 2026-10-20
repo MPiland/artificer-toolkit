@@ -252,18 +252,16 @@ export const balor: CreatureAuthored = {
       id: S.featureId(36, 5),
       label: 'Multiattack',
       description: 'The balor makes two attacks: one with its longsword and one with its whip.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(36, 116),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(36, 117), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(36, 6) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(36, 7) }] }
+            ]
+          }
+        ]
+      },
       order: 5
     },
     {

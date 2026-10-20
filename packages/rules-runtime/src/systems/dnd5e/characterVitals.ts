@@ -28,10 +28,16 @@ type ArmorClassEquipment = NonNullable<CharacterRulePolicyInput['armorClassFacts
 
 type ActiveShield = { itemInstanceId: string; armorClass: number }
 
-/** The authored armor class of one armor or shield item; one without it is refused (D143). */
+/**
+ * The armor class one armor or shield item offers: its authored one (refused when missing, D143)
+ * less the corrosion on it. The only reader of an item's armor class degradation.
+ */
 function equipmentArmorClass(item: ArmorClassEquipment[number]): number {
-  return requireDnd5eArmorClass(
-    resolveDnd5eEquipmentArmorClass(item.source.equipmentId, item.armorClass)
+  return Math.max(
+    0,
+    requireDnd5eArmorClass(
+      resolveDnd5eEquipmentArmorClass(item.source.equipmentId, item.armorClass)
+    ) - (item.degradation ?? 0)
   )
 }
 

@@ -218,9 +218,11 @@ describe('SRD Creature grapple riders (D105)', () => {
       }))
     )
 
-    expect(riders).toHaveLength(30)
+    expect(riders).toHaveLength(31)
     // The SRD prints the Darkmantle's detach DC in a paragraph of its own, so its Crush paragraph
     // reads no rider; it attaches to a creature of any size, with a DC 13 Strength check to detach.
+    // The Shambling Mound prints its grapple in its Multiattack ("if both attacks hit a Medium or smaller
+    // target"), so its Slam paragraph reads no rider; the Slam authors the hold behind that gate (D93).
     // The Vampire Spawn's Claws and the Vampire's Unarmed Strike print "can grapple the target"
     // without the word "grappled", so their printed rider names no condition; they author GRAPPLED.
     expect(
@@ -230,6 +232,11 @@ describe('SRD Creature grapple riders (D105)', () => {
         name: 'Darkmantle: Crush',
         printed: undefined,
         authored: { dc: 13, conditions: [] }
+      },
+      {
+        name: 'Shambling Mound: Slam',
+        printed: undefined,
+        authored: { dc: 14, conditions: ['GRAPPLED'], sizeLimit: 'MEDIUM' }
       },
       {
         name: 'Vampire: Unarmed Strike (Vampire Form Only)',
@@ -259,7 +266,7 @@ describe('SRD Creature grapple riders (D105)', () => {
     )
 
     // Every Actor Relationship above but the Cloaker's Bite, which attaches without grappling.
-    expect(grapples).toHaveLength(28)
+    expect(grapples).toHaveLength(29)
     expect(undragged).toEqual([])
   })
 
@@ -317,5 +324,25 @@ describe('SRD Creature grapple riders (D105)', () => {
     )
 
     expect(bare.map((creature) => creature.label)).toEqual([])
+  })
+  it('authors the Shambling Mound with core options only: a gated Slam hold and a held-only Engulf (ATTACK-7.2)', () => {
+    const mound = srdBaselineContent.subjects.creatures.find(
+      (creature) => creature.label === 'Shambling Mound'
+    )!
+    const feature = (label: string) => mound.features.find((candidate) => candidate.label === label)
+    const slam = relationshipsIn(feature('Slam'))
+    const engulf = relationshipsIn(feature('Engulf'))
+
+    expect(slam).toMatchObject([
+      { appliesWhen: { kind: 'EARLIER_SLOTS_HIT_SAME_TARGET' }, heldAtOnce: 1 }
+    ])
+    expect(engulf).toHaveLength(1)
+    expect(engulf[0]).toMatchObject({ heldAtOnce: 1 })
+    expect(engulf[0]).not.toHaveProperty('appliesWhen')
+    expect(
+      collect(feature('Engulf'), (node, add) => {
+        if (node.heldBySource === true) add(node)
+      })
+    ).toHaveLength(1)
   })
 })

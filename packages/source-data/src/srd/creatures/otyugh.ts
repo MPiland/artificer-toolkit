@@ -55,6 +55,16 @@ export const otyugh: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The otyugh makes three attacks: one with its bite and two with its tentacles.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(213, 3) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(213, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

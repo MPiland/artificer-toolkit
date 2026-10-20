@@ -313,6 +313,28 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
         })
       )
       .set(
+        'ammunitionEquipmentId',
+        selectSingle(
+          ['ammunitionEquipmentId'],
+          'Ammunition',
+          {
+            kind: 'DATA',
+            relationship: table('equipment', {
+              selectColumns: ['id', 'label']
+            })
+          },
+          {
+            section: EQUIPMENT_SECTIONS.properties,
+            order: 45,
+            showIf: logic.and([
+              isBaseEquipment,
+              local.field(['properties']).contains(['AMMUNITION'])
+            ]),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
         'rarityId',
         selectSingle(
           ['rarityId'],

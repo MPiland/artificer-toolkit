@@ -15,7 +15,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 
 type Producer = 'AUTHORED_DELETED' | 'MEMBER_LEFT' | 'MEMBER_REMOVED'
@@ -38,7 +38,7 @@ function idFor(index: number): string {
 
 async function setup(overflow = false) {
   const base = await readySheetFixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
   })

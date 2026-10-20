@@ -9,6 +9,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { sizeRank } from '@artificer-toolkit/shared/core'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
+import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
 import {
   installedGameSystemRuleOperations,
@@ -106,6 +107,11 @@ export function prepareEncounterActionEffectPlans(input: {
   /** The source's reach in feet a relationship plan seals; omitted for every action that plans none. */
   sealedReachFeet?: number
   /**
+   * The open Attack action's earlier attacks and this one, which a relationship gated by
+   * `appliesWhen` reads; null or omitted outside an open Attack action, where a gated hold never applies.
+   */
+  attacks?: { earlier: readonly AttackSlotAttack[]; current: AttackSlotAttack } | null
+  /**
    * What a settled concealment check decided: the total it froze and the observers it beats, or
    * null when it beats none. Omitted for every action that plans no concealment.
    */
@@ -172,7 +178,7 @@ export function prepareEncounterActionEffectPlans(input: {
       ? relationshipConditionApplications({
           definition: recurringEffect.definition,
           target: input.target,
-          resolvedPath: input.d20!.resultPath
+          resolvedPath: input.d20?.resultPath ?? 'ON_USE'
         })
       : []
   return {
@@ -199,7 +205,8 @@ export function relationshipConditionApplications(input: {
   if (
     authoredPath !== 'ON_HIT' &&
     authoredPath !== 'ON_CRIT' &&
-    authoredPath !== 'ON_CHECK_SUCCESS'
+    authoredPath !== 'ON_CHECK_SUCCESS' &&
+    authoredPath !== 'ON_USE'
   )
     throw new EncounterActionEffectPlanError('Encounter relationship authored path is unavailable.')
   const relationshipConditionIds = definition.stateContributions.flatMap((contribution) =>
@@ -241,6 +248,8 @@ function reachesAuthoredPath(
     return resultPath === authoredPath
   if (outcome === 'relationship' && authoredPath === 'ON_CHECK_SUCCESS')
     return resultPath === 'ON_CHECK_SUCCESS'
+  // A relationship an action simply creates (Engulf) has no roll to reach.
+  if (outcome === 'relationship' && authoredPath === 'ON_USE') return true
   if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
     throw new EncounterActionEffectPlanError(`Encounter ${outcome} authored path is unavailable.`)
   return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')
@@ -398,6 +407,15 @@ export function prepareRecurringActiveEffect(
         plan.adapterFacts['dnd5e.relationship-authored-path'],
         input.d20?.resultPath,
         'relationship'
+      )
+    )
+      return null
+    const { appliesWhen } = relationshipContribution
+    if (
+      appliesWhen &&
+      !(
+        input.attacks &&
+        attackSlotConditionHolds(appliesWhen, input.attacks.current, input.attacks.earlier)
       )
     )
       return null

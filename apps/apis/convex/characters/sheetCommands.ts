@@ -410,6 +410,7 @@ export async function executeCharacterSheetCommand(
   const nextSheetState = characterSheetStateSchema.parse({
     // Play-owned single-use item usage passes through; a Sheet command never changes it.
     itemUsage: initial.sheetState.itemUsage,
+    itemDegradation: initial.sheetState.itemDegradation,
     spellCustomizations,
     adjustments: pruneSheetAdjustments({
       adjustments: getProspectiveSheetAdjustments({

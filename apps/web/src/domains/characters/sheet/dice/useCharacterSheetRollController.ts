@@ -104,7 +104,9 @@ export function useCharacterSheetRollController(
     )
   }
 
-  discardPrivateRollRef.current = discardPrivateRoll
+  useEffect(() => {
+    discardPrivateRollRef.current = discardPrivateRoll
+  })
 
   function settlePendingPresentation(roll?: RollRecordDto) {
     const pending = pendingPresentation.current

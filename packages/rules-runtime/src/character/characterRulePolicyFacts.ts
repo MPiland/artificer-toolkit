@@ -2,7 +2,7 @@ import {
   characterRulePolicyInputSchema,
   type CharacterRulePolicyInput
 } from '@artificer-toolkit/schema/api/characterRules'
-import type { CreatureAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CompiledCreature, CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
 
 import { buildCharacterArmorClassRuleFacts } from './characterArmorClassRuleFacts.js'
@@ -36,7 +36,7 @@ export interface CharacterRulePolicyFactsInput extends CharacterRuleSnapshotInpu
   hitPointProgression?: NonNullable<CharacterRulePolicyInput['hitPointFacts']>['progression']
   attunementSlotOverride?: number | null
   resourceUsage?: readonly CharacterResourceUsage[]
-  spellsWithEffects?: readonly SpellAuthored[]
+  spellsWithEffects?: readonly CompiledSpell[]
 }
 
 export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotResult {
@@ -78,7 +78,7 @@ export function composeCharacterRulePolicyFacts(
     registry,
     grantFoldFacts,
     spellAccessCandidates: spellFacts.spellAccessCandidates,
-    creaturesById: input.creaturesById ?? new Map<string, CreatureAuthored>(),
+    creaturesById: input.creaturesById ?? new Map<string, CompiledCreature>(),
     resourceUsage: input.resourceUsage
   })
   const spellCastFacts = buildCharacterSpellCastRuleFacts({

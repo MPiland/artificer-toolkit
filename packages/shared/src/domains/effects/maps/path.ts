@@ -28,6 +28,7 @@ import type {
   PathChoiceOptionAuthored,
   PathRollTableRowAuthored,
   ResultBlockAuthored,
+  DegradeEquipmentDestroyWhenAuthored,
   ScalarReductionAuthored,
   SummonStatBlockAuthored
 } from '#authored'
@@ -103,6 +104,7 @@ import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
 import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP, HELD_ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
+import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
@@ -253,6 +255,7 @@ const manifestNestedPath = buildNodeMap<EffectPathAuthored<Trigger, NonManifestO
 const manifestBehavior = buildNodeMap<ManifestBehaviorAuthored>()
 const hitPointMaximumReductionAmountSource =
   buildNodeMap<HitPointMaximumReductionAuthored['amountSource']>()
+const degradeEquipmentDestroyWhen = buildNodeMap<DegradeEquipmentDestroyWhenAuthored>()
 const scalarReductionAmount = buildNodeMap<ScalarReductionAuthored['amount']>()
 const actorRelationshipModule = buildNodeMap<ActorRelationshipModuleNode>()
 const actionEffectId = buildNodeMap<{ value: string }>()
@@ -1338,6 +1341,25 @@ const HIT_POINT_MAXIMUM_REDUCTION_AMOUNT_SOURCE_NODE_MAP =
     }
   )
 
+const DEGRADE_EQUIPMENT_DESTROY_WHEN_NODE_MAP = degradeEquipmentDestroyWhen.define(
+  'degradeEquipmentDestroyWhen',
+  ({ map, nodes }) => {
+    const { number, selectSingle } = nodes
+    map
+      .set(
+        'kind',
+        selectSingle(['kind'], 'Destroyed When', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'ARMOR_CLASS_OFFERED_AT_MOST', label: 'Armor Class offered is at most' },
+            { code: 'PENALTY_REACHES', label: 'Penalty reaches' }
+          ]
+        })
+      )
+      .set('value', number(['value'], 'Value', { constraints: { minimum: 0 } }))
+  }
+)
+
 const ACTION_EFFECT_ID_NODE_MAP = actionEffectId.define('actionEffectId', ({ map, nodes }) => {
   map.set('value', nodes.text(['value'], 'Effect ID'))
 })
@@ -1828,6 +1850,13 @@ function registerOutcomeFields(
       'actorRelationshipHeldAtOnce',
       number(['heldAtOnce'], 'Held at Once', {
         constraints: { minimum: 1 },
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTOR_RELATIONSHIP)
+      })
+    )
+    .set(
+      'actorRelationshipAppliesWhen',
+      groupObject(['appliesWhen'], 'Applies Only When', () => ATTACK_SLOT_CONDITION_NODE_MAP, {
+        presentation: 'inline',
         showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTOR_RELATIONSHIP)
       })
     )
@@ -2667,6 +2696,59 @@ function registerOutcomeFields(
         constraints: { minimum: 0 },
         requiredIf: true,
         showIf: local.field(['effectKind']).eq(EFFECT_KIND.ARMOR_CLASS_FLOOR)
+      })
+    )
+    .set(
+      'degradeCategory',
+      selectSingle(
+        ['category'],
+        'Degrades',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'ARMOR', label: 'Armor' },
+            { code: 'SHIELD', label: 'Shield' },
+            { code: 'WEAPON', label: 'Weapon' }
+          ]
+        },
+        { requiredIf: true, showIf: local.field(['effectKind']).eq(EFFECT_KIND.DEGRADE_EQUIPMENT) }
+      )
+    )
+    .set(
+      'degradeNonmagical',
+      toggle(['nonmagical'], 'Nonmagical Only', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.DEGRADE_EQUIPMENT)
+      })
+    )
+    .set(
+      'degradeMaterials',
+      selectMulti(
+        ['materials'],
+        'Materials (any when empty)',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'METAL', label: 'Metal' },
+            { code: 'WOOD', label: 'Wood' }
+          ]
+        },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.DEGRADE_EQUIPMENT) }
+      )
+    )
+    .set(
+      'degradeStep',
+      number(['step'], 'Penalty Per Hit', {
+        constraints: { minimum: 1 },
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.DEGRADE_EQUIPMENT)
+      })
+    )
+    .set(
+      'degradeDestroyWhen',
+      groupObject(['destroyWhen'], 'Destruction', () => DEGRADE_EQUIPMENT_DESTROY_WHEN_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.DEGRADE_EQUIPMENT)
       })
     )
     .set(

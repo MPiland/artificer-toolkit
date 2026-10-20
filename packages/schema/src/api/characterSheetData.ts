@@ -608,6 +608,8 @@ export const characterSheetInventoryItemDtoSchema = lazySchema(() =>
     costLabel: z.optional(stringSchema),
     weight: z.optional(weightDtoSchema),
     armorClass: z.optional(integerSchema),
+    /** Corrosion on the item: the armor class it offers or the damage rolls it makes lose this much. */
+    degradation: z.optional(integerSchema),
     customName: z.optional(stringSchema),
     quantity: integerSchema,
     equippedSlot: z.nullable(z.enum(EQUIPPED_SLOT_CODES)),

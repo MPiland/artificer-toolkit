@@ -1,7 +1,7 @@
 import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Button, CloseButton, Drawer, Popover, Text } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 import { formatHitDiceSummary } from '../overview/characterSheetOverview.utils'
@@ -71,10 +71,12 @@ export function CharacterSheetOverviewVitals({
     />
   ))
 
-  useEffect(() => {
+  const [seenOverlayEpoch, setSeenOverlayEpoch] = useState(overlayEpoch)
+  if (seenOverlayEpoch !== overlayEpoch) {
+    setSeenOverlayEpoch(overlayEpoch)
     setHpControlsOpen(false)
     setActiveRestKind(undefined)
-  }, [overlayEpoch])
+  }
 
   return (
     <>

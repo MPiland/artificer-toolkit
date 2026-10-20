@@ -131,6 +131,8 @@ async function longswordHit(input: {
     expectedStreamVersion: 0,
     classLevels: character.facts.grantFoldFacts.base.classes,
     automationMode: 'ASSISTED',
+    trackAmmunition: false,
+    ammunition: null,
     overridable: false
   })
   const rolls = [...input.rolls]

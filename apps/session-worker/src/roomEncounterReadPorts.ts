@@ -160,6 +160,7 @@ export async function roomEncounterReadTransaction(input: {
         if (index < 0) continue
         const document = object.roots[index]!
         const pin = object.versions[index]!
+        const compilation = object.compilations[index]!
         if (
           document.systemId !== systemId ||
           pin.identity.subjectId !== id ||
@@ -169,6 +170,7 @@ export async function roomEncounterReadTransaction(input: {
           throw new Error('Encounter source snapshot identity mismatch.')
         return {
           document,
+          compilation,
           checksum: pin.identity.checksum,
           version: pin.version,
           versionId: pin.identity.versionId

@@ -39,7 +39,7 @@ import {
   automaticChargedCreature,
   automaticChargedCreatureId
 } from '../../tests/fixtures/encounterAction'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import {
   SRD_CONTENT_SOURCE,
@@ -1283,7 +1283,7 @@ describe('native initiative declarations', () => {
 
   it('declares a published Creature feature without spending its charge', async () => {
     const base = await setup()
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({

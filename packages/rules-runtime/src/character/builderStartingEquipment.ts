@@ -1,10 +1,6 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { EquipmentCategoryCode, EquipmentPropertyCode } from '@artificer-toolkit/shared/core'
-import type {
-  BackgroundAuthored,
-  CharacterAuthored,
-  ParentClassAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { StartingEquipmentAuthored } from '@artificer-toolkit/shared/authored'
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
 import { compileCharacterEligibilityRuleFacts } from './characterEligibilityRuleFacts.js'
@@ -225,8 +221,8 @@ function filterStartingEquipmentByEligibility(
 }
 
 export function resolveEligibleStartingEquipment(params: {
-  primaryClass?: ParentClassAuthored
-  selectedBackground?: BackgroundAuthored
+  primaryClass?: { startingEquipment: StartingEquipmentAuthored }
+  selectedBackground?: { startingEquipment?: StartingEquipmentAuthored }
   eligibilityById: ReadonlyMap<string, boolean>
 }): {
   classStartingEquipment?: StartingEquipmentAuthored

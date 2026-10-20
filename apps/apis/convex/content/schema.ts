@@ -1,5 +1,5 @@
 import { defineTable } from 'convex/server'
-import { authoredStoredCompilationSchema } from '@artificer-toolkit/schema/api/authoredPublication'
+import { authoredStoredCompilationRowSchema } from '@artificer-toolkit/schema/api/authoredPublication'
 import { v } from 'convex/values'
 import * as zMini from 'zod/mini'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
@@ -299,7 +299,7 @@ export function buildContentTables() {
       subjectId: v.string(),
       systemId: v.string(),
       versionId: v.string(),
-      compilation: zodToConvex(authoredStoredCompilationSchema)
+      compilation: zodToConvex(authoredStoredCompilationRowSchema)
     }).index('by_versionId', ['versionId']),
     authoredVersionPayloadChunks: defineTable({
       ...zodToConvexFields(authoredStoredVersionPayloadChunkSchema.shape),

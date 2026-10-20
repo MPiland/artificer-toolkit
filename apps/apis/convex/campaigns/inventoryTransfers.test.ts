@@ -33,8 +33,8 @@ import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.
 import { pouch } from '@artificer-toolkit/source-data/srd/equipment/pouch.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { internal } from '../_generated/api'
-import { importedSubject } from '../../tests/fixtures/publication'
+
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -85,7 +85,7 @@ const vehicle = (vehicleId: string) => ({ kind: 'VEHICLE' as const, vehicleId })
 
 async function setup() {
   const base = await readySheetFixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
   })
@@ -214,7 +214,7 @@ describe('native Campaign party and Vehicle custody transfers', () => {
 
   it('moves a nested bag with its complete item and currency contents while preserving exact custody and rollback', async () => {
     const base = await setup()
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [backpack, pouch].map((equipment) =>
         importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })
@@ -367,7 +367,7 @@ describe('native Campaign party and Vehicle custody transfers', () => {
   it('moves each selected populated bag unit with its contents and leaves only empty stack units behind', async () => {
     for (const amount of [1, 2, 4]) {
       const base = await setup()
-      await base.t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(base.t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [backpack, pouch].map((equipment) =>
           importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })

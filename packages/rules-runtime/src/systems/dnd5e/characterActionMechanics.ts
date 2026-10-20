@@ -37,6 +37,8 @@ type MechanicContext = {
   readonly spellDamageBonus: number
   /** The spell whose effect is resolved, for spell-scoped modifiers. */
   readonly spellId: string | null
+  /** The ammunition stack this attack fires, whose modifiers apply to it alone. */
+  readonly ammunition?: { itemInstanceId: string; equipmentId: string }
 }
 type ModifierContribution =
   CharacterActionModelInput['modifierGroups'][number]['contributions'][number]
@@ -237,7 +239,7 @@ export function resolveDnd5eActionMechanic(
   const item = dnd5eAttackingItem(equipment)
   const actionTarget: Dnd5eModifierTarget =
     'sourceId' in candidate
-      ? dnd5eCharacterActionTarget(candidate)
+      ? dnd5eCharacterActionTarget(candidate, context.ammunition)
       : { ...DND5E_CHARACTER_WIDE_TARGET, spellId: context.spellId }
   const target: Dnd5eModifierTarget = {
     ...actionTarget,
@@ -362,7 +364,8 @@ export function resolveDnd5eActionMechanic(
       ? 0
       : abilityTotal('DAMAGE') +
         appliedTotal(applicable('DAMAGE', ['BONUS', 'PENALTY'])) +
-        (adjustment?.damageBonus ?? 0)
+        (adjustment?.damageBonus ?? 0) -
+        (equipment?.degradation ?? 0)
   const firstDamageOutcome = outcomes.find((outcome) => outcome.kind === 'DAMAGE')
   /** A weapon attack's damage die can be replaced (Shillelagh's d8); the largest one applies. */
   const weaponDieFaces =

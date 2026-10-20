@@ -44,6 +44,16 @@ export const tyrannosaurusRex: CreatureAuthored = {
       label: 'Multiattack',
       description:
         "Multiattack. The tyrannosaurus makes two attacks: one with its bite and one with its tail. It can't make both attacks against the same target.",
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(275, 2) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(275, 3) }] }
+            ]
+          }
+        ]
+      },
       order: 1
     },
     {

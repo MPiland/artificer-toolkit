@@ -1,4 +1,5 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
+import { AUTHORED_SOURCE_FACTS_VERSION } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -21,6 +22,7 @@ import {
   SRD_RULES_CATALOGUE,
   SRD_REUSABLE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { importSeededSubjects } from '../../tests/fixtures/publication'
 import { api, components, internal } from '../_generated/api'
 import schema from '../schema'
 import authSchema from '../betterAuth/schema'
@@ -143,7 +145,7 @@ async function importAcolyteEquipment(t: Awaited<ReturnType<typeof fixture>>['t'
   if (!mace || !plate || equipment.length !== equipmentIds.length) {
     throw new Error('Missing canonical Acolyte equipment fixtures')
   }
-  await t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       {
@@ -339,7 +341,7 @@ describe('native Convex authoring resolver', () => {
     const { t, userId } = await fixture()
     const creature = srdBaselineContent.subjects.creatures[0]
     const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(creature)))
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         {
@@ -426,7 +428,7 @@ describe('native Convex authoring resolver', () => {
       category: 'VARIANT',
       parentEquipmentId: mace.id
     })
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject(variant)]
     })
@@ -448,7 +450,7 @@ describe('native Convex authoring resolver', () => {
     const { t, caller } = await fixture()
     const spell = srdBaselineContent.subjects.spells[0]
     const characterClass = srdBaselineContent.subjects.classes[0]
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [spell, characterClass].map((item) => {
         const document = jsonValueSchema.parse(JSON.parse(JSON.stringify(item)))
@@ -787,7 +789,7 @@ describe('native Convex authoring resolver', () => {
         )
       )
     ).rejects.toThrow('Authoring source facts are not materialized.')
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject(mace)]
     })
@@ -798,12 +800,13 @@ describe('native Convex authoring resolver', () => {
       await ctx.db.patch(before._id, {
         authoringSources: {
           checksum: '0'.repeat(64),
+          factsVersion: AUTHORED_SOURCE_FACTS_VERSION,
           rows: {}
         }
       })
     })
     await expect(
-      t.mutation(internal.content.import.importSubjects, {
+      importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [importedSubject(mace)]
       })

@@ -66,7 +66,9 @@ export const CharacterBuilderRenderer = withForm({
       [isResolving, payload, payloadFormValues, values]
     )
     const latestValuesRef = useRef(values)
-    latestValuesRef.current = values
+    useEffect(() => {
+      latestValuesRef.current = values
+    }, [values])
     const previousImmediateFingerprintRef = useRef(immediateResolutionFingerprint)
     const resolveRequestIdRef = useRef(0)
     const hasMarkedBuilderShellReadyRef = useRef(false)

@@ -51,7 +51,7 @@ import { writeRunActor } from '@artificer-toolkit/encounter-persistence/document
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { seededSrdCreature, srdWolf } from '../../tests/fixtures/srdCreatures'
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { readMovementTargets } from '../../tests/fixtures/movementTargets'
@@ -516,7 +516,7 @@ async function setup({
             srdSystemRecord.conditionTypes.find((condition) => condition.code === 'FRIGHTENED')?.id)
     )
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({
@@ -2561,8 +2561,8 @@ describe('GM undo of the last action', () => {
     // A Creature attacks once per Attack action: the one Bite fills it.
     expect(encounterAttackActionState(await sourceActorState(base))).toMatchObject({
       kind: 'ATTACK_ACTION',
-      total: 1,
-      attacks: [{ actionId: base.actionId, targetIds: [base.target.id] }]
+      alternatives: [{ slots: [{ count: 1, fillers: [{ kind: 'ANY_ATTACK' }] }] }],
+      attacks: [{ actionId: base.actionId, attack: true, targetIds: [base.target.id] }]
     })
     await revert(base, 1)
     expect(encounterAttackActionState(await sourceActorState(base))).toBeNull()

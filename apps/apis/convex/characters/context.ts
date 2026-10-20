@@ -1,38 +1,46 @@
 import { authoredSourceKindsByTable } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
-import { authoredNodeRuntimeSourceFactsSchema } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
+import {
+  AUTHORED_SOURCE_FACTS_VERSION,
+  authoredNodeRuntimeSourceFactsSchema
+} from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type {
   AuthoredCurrentSourceIdentity,
   AuthoredPublicationDocument
 } from '@artificer-toolkit/schema/api/authoredPublication'
-import { authoredCatalogueMetadataSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { toContentSnapshotIndexEntry } from '@artificer-toolkit/rules-runtime/contentSnapshots'
-import { prepareCharacterRuleContext } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
+import type { BaseRaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
+import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
+import {
+  prepareCharacterRuleContext,
+  toCharacterRuleFactsPublication,
+  toCharacterRulePublication,
+  type CharacterRulePublication,
+  type CharacterRuleSpellPublication
+} from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import {
   characterFeatureProvenanceRootId,
   publicationFeatureIds
 } from '@artificer-toolkit/rules-runtime/character/featureSourceHints'
-import type { CharacterAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { requireClassParent } from '../content/classRelationships'
-import { requireEquipmentParents, requireRaceParent } from '../content/relationshipReads'
+import { readRootCatalogue } from '../content/catalogueMetadata'
+import { requireParentRoots } from '../content/relationshipReads'
 import { requireSystem } from '../content/systemDocuments'
-import { canReadAuthoredRoot, type PublishedDocumentReads } from '../content/documents'
+import { readAuthoredVersionCompilation, readPublishedRootDocument } from '../content/documents'
+import { parsePublicationDocument } from '../content/publicationDocumentRead'
 import type { CampaignInternalScope } from '../campaigns/authority'
-import {
-  readCampaignSharedRoot,
-  readCampaignSharedRootPublication
-} from '../campaigns/contentAccess'
+import { readCampaignSharedActiveRoot } from '../campaigns/contentAccess'
 
 import {
+  canReadCharacterRoot,
   readCharacterSources,
-  readCharacterPublication,
   recordCharacterSourceIdentity,
   readCharacterSourceRoots,
   rejectUnavailableSource
 } from './sourceReads'
 export {
+  canReadCharacterRoot,
   readCharacterCampaign,
   readCharacterSources,
   readCharacterPublication,
@@ -46,12 +54,13 @@ export {
 export type CharacterReferencedReads = {
   /** Standalone feature id to the root the client found it in; verified before use. */
   featureSourceHints: ReadonlyMap<string, string>
-  /** Publications read earlier in this transaction, shared with a post-materialization reload. */
-  publications: Map<string, AuthoredPublicationDocument | null>
+  /**
+   * Rule publications read earlier in this transaction, shared with a post-materialization reload.
+   * Commit builds them from root rows and stored compilations; it reads no authored payload (D163).
+   */
+  rulePublications: Map<string, CharacterRulePublication | null>
   /** Referenced ids whose root exists but is not readable to this Character. */
   unreadableRootIds: Set<string>
-  /** Stored published documents by root id, read once per transaction. */
-  documents: PublishedDocumentReads
   /** Roots by public id, read once per transaction. */
   roots: Map<string, Doc<'authoredRoots'> | null>
   /** The System and source access, read once per transaction. */
@@ -76,6 +85,38 @@ export async function readReferencedRoot(
   return root
 }
 
+/** The stored compilation of a root's current version; nothing compiles at read time (D163). */
+export async function readCharacterStoredCompilation(ctx: QueryCtx, root: Doc<'authoredRoots'>) {
+  const compilation = await readAuthoredVersionCompilation(ctx, {
+    versionId: root.currentVersionPublicId
+  })
+  if (!compilation || compilation.authoredChecksum !== root.checksum)
+    throw new Error(
+      `Character source compilation is missing or stale: ${root.subjectKind} ${root.id}.`
+    )
+  return { checksum: root.checksum, compilation }
+}
+
+/** A Spell's selector facts from its root's checksum-bound catalogue. */
+export function readSpellIndexEntry(
+  root: Doc<'authoredRoots'>
+): ContentSnapshotIndexEntry<'SPELL'> {
+  const metadata = readRootCatalogue(root)
+  if (
+    !metadata.spell ||
+    metadata.description === null ||
+    metadata.spell.selectionVersion !== 1 ||
+    metadata.nameKey !== root.label.toLowerCase()
+  )
+    throw new Error('Character Spell selector facts are missing or stale.')
+  const {
+    selectionVersion: _selectionVersion,
+    magicSchoolNameKey: _schoolKey,
+    ...facts
+  } = metadata.spell
+  return { id: root.id, label: root.label, ...facts, description: metadata.description }
+}
+
 /** Current authorized source context; Character ownership is not a Campaign GM grant. */
 export async function loadCharacterRuleContext(
   ctx: QueryCtx,
@@ -84,7 +125,7 @@ export async function loadCharacterRuleContext(
   /** Complete selector facts and referenced mechanics from this same transaction. */
   previousSources?: {
     spellCatalogueEntries: readonly ContentSnapshotIndexEntry<'SPELL'>[]
-    currentSpellDocumentsById: ReadonlyMap<string, SpellAuthored>
+    currentSpellsById: ReadonlyMap<string, CharacterRuleSpellPublication>
     sourceIdentities: ReadonlyMap<string, AuthoredCurrentSourceIdentity>
   },
   authorityScope?: CampaignInternalScope,
@@ -99,51 +140,100 @@ export async function loadCharacterRuleContext(
   const sourceIds = new Set(sources.sources.map((source) => source.id))
   const canReadSharedRoot = async (root: Doc<'authoredRoots'>) =>
     sources.campaign !== null &&
-    (await readCampaignSharedRootPublication(ctx, sources.campaign, root.subjectKind, root.id)) !==
+    (await readCampaignSharedActiveRoot(ctx, sources.campaign, root.subjectKind, root.id, root)) !==
       null
-  const publications =
-    referenced?.publications ?? new Map<string, AuthoredPublicationDocument | null>()
+  // Views read current documents of authorized roots for presentation; commit reads none (D163).
+  const publications = new Map<string, AuthoredPublicationDocument>()
+  const rulePublications =
+    referenced?.rulePublications ?? new Map<string, CharacterRulePublication | null>()
   const sourceIdentities = new Map(previousSources?.sourceIdentities)
-  const recordSource = (root: Doc<'authoredRoots'>) =>
-    recordCharacterSourceIdentity(sourceIdentities, root)
+  const roots = referenced?.roots ?? new Map<string, Doc<'authoredRoots'> | null>()
+  const readRootById = (id: string) => readReferencedRoot(ctx, id, { roots })
 
-  async function readRoot(root: Doc<'authoredRoots'>) {
-    if (publications.has(root.id)) return publications.get(root.id) ?? null
-    const published = await readCharacterPublication(
-      ctx,
-      root,
-      character.systemId,
-      userId,
-      sources,
-      sourceIdentities,
-      referenced?.documents
+  /** The current document of a root `toRulePublication` authorized; views only. */
+  async function readDocument(root: Doc<'authoredRoots'>) {
+    const cached = publications.get(root.id)
+    if (cached) return cached
+    const published = parsePublicationDocument(
+      root.subjectKind,
+      (await readPublishedRootDocument(ctx, root)).document
     )
     publications.set(root.id, published)
     return published
   }
 
-  const readRootById = (id: string) => readReferencedRoot(ctx, id, referenced)
-  // Commit reads each root once per transaction, parents included.
-  const readParentRoot = referenced ? readRootById : undefined
-
-  async function readId(id: string) {
-    if (!id) return null
-    if (publications.has(id)) return publications.get(id) ?? null
-    const root = await readRootById(id)
-    if (root) {
-      const published = await readRoot(root)
-      if (!published) referenced?.unreadableRootIds.add(id)
-      return published
+  // Engines hydrate the stored compilation of the current version (D163). A subrace, subclass or
+  // Equipment variant is readable only with its whole parent chain, authorized from root rows.
+  async function toRulePublication(root: Doc<'authoredRoots'>) {
+    if (!(await canReadCharacterRoot(ctx, root, character.systemId, userId, sources))) return null
+    const ancestors = await requireParentRoots(ctx, root, {
+      userId,
+      allowedSourceIds: sourceIds,
+      canReadSharedRoot,
+      readRoot: readRootById
+    })
+    for (const ancestor of [root, ...ancestors])
+      recordCharacterSourceIdentity(sourceIdentities, ancestor)
+    const stored = await readCharacterStoredCompilation(ctx, root)
+    if (referenced) {
+      const facts = readRootCatalogue(root)
+      return toCharacterRuleFactsPublication(
+        { subjectKind: root.subjectKind, id: root.id, systemId: root.systemId, ...stored },
+        {
+          ...facts,
+          raceParent:
+            root.subjectKind === 'RACE' && ancestors[0]
+              ? readRootCatalogue(ancestors[0]).race
+              : undefined
+        }
+      )
     }
-    publications.set(id, null)
-    return null
+    const published = await readDocument(root)
+    const parentDocuments = await Promise.all(ancestors.map(readDocument))
+    const [raceParent] = parentDocuments
+    return toCharacterRulePublication(
+      published,
+      stored,
+      {
+        race:
+          raceParent?.subjectKind === 'RACE' && raceParent.document.category === 'BASE'
+            ? (raceParent.document as BaseRaceAuthoredDto)
+            : undefined,
+        equipment: new Map(
+          parentDocuments.flatMap((parent) =>
+            parent.subjectKind === 'EQUIPMENT'
+              ? [[parent.document.id, parent.document as EquipmentAuthoredDto] as const]
+              : []
+          )
+        )
+      },
+      true
+    )
+  }
+  async function readRuleRoot(root: Doc<'authoredRoots'>) {
+    if (rulePublications.has(root.id)) return rulePublications.get(root.id) ?? null
+    const rule = await toRulePublication(root)
+    rulePublications.set(root.id, rule)
+    return rule
+  }
+  async function readRuleId(id: string) {
+    if (!id) return null
+    if (rulePublications.has(id)) return rulePublications.get(id) ?? null
+    const root = await readRootById(id)
+    if (!root) {
+      rulePublications.set(id, null)
+      return null
+    }
+    const rule = await readRuleRoot(root)
+    if (!rule) referenced?.unreadableRootIds.add(id)
+    return rule
   }
 
   async function readReferencedFeatureSources(
     missingFeatures: ReadonlySet<string>,
     hints: ReadonlyMap<string, string>
   ) {
-    const matched: AuthoredPublicationDocument[] = []
+    const matched: CharacterRulePublication[] = []
     for (const featureId of missingFeatures) {
       const rootIds = new Set(
         character.intent.featureAcquisitions.flatMap((acquisition) => {
@@ -159,7 +249,7 @@ export async function loadCharacterRuleContext(
         rootIds.add(hint)
       }
       for (const rootId of rootIds) {
-        const published = await readId(rootId)
+        const published = await readRuleId(rootId)
         if (!published) {
           // A root the provenance names but cannot be read fails closed after preparation.
           if (hinted) rejectUnavailableSource(rootId)
@@ -178,48 +268,11 @@ export async function loadCharacterRuleContext(
   }
 
   const prepared = await prepareCharacterRuleContext(character, system, previousSources, {
-    readPublication: readId,
-    readRaceParent: (document) =>
-      requireRaceParent(
-        ctx,
-        document,
-        userId,
-        sourceIds,
-        canReadSharedRoot,
-        undefined,
-        recordSource,
-        readParentRoot,
-        referenced?.documents
-      ),
-    requireClassParent: async (document) => {
-      await requireClassParent(
-        ctx,
-        document,
-        userId,
-        sourceIds,
-        canReadSharedRoot,
-        undefined,
-        recordSource,
-        readParentRoot,
-        referenced ? async (root) => (await readId(root.id))?.document : undefined
-      )
-    },
-    readEquipmentParents: (document) =>
-      requireEquipmentParents(
-        ctx,
-        document,
-        userId,
-        sourceIds,
-        canReadSharedRoot,
-        undefined,
-        recordSource,
-        readParentRoot,
-        referenced?.documents
-      ),
+    readPublication: readRuleId,
     readFeatureSources: async (missingFeatures) => {
       if (referenced)
         return readReferencedFeatureSources(missingFeatures, referenced.featureSourceHints)
-      const matched: AuthoredPublicationDocument[] = []
+      const matched: CharacterRulePublication[] = []
       // Standalone acquisitions retain feature UUIDs, not parent-root UUIDs. Use the existing
       // checksum-bound owner metadata to locate exact published documents, not draft JSON.
       for (const kind of authoredSourceKindsByTable.features ?? []) {
@@ -229,13 +282,17 @@ export async function loadCharacterRuleContext(
           const metadata = authoredNodeRuntimeSourceFactsSchema.parse(root.authoringSources)
           if (metadata.checksum !== root.checksum)
             throw new Error('Stored Character feature source checksum mismatch.')
+          if (metadata.factsVersion !== AUTHORED_SOURCE_FACTS_VERSION)
+            throw new Error(
+              'Stored authoring source facts are superseded; run content/sourceMigrations.'
+            )
           if (
             !metadata.rows.features?.some(
               (row) => typeof row.id === 'string' && missingFeatures.has(row.id)
             )
           )
             continue
-          const published = await readRoot(root)
+          const published = await readRuleRoot(root)
           if (published) matched.push(published)
         }
       }
@@ -244,82 +301,47 @@ export async function loadCharacterRuleContext(
     readSpellCatalogue: async (referencedSpellIds) => {
       const requiredSpellIds = new Set([...referencedSpellIds, ...referenceSpellIds])
       const entries: ContentSnapshotIndexEntry<'SPELL'>[] = []
-      const spells: Array<
-        Extract<AuthoredPublicationDocument, { subjectKind: 'SPELL' }>['document']
-      > = []
+      const spells: CharacterRuleSpellPublication[] = []
       if (previousSources) {
         for (const id of requiredSpellIds) {
-          const existing = previousSources.currentSpellDocumentsById.get(id)
-          if (existing)
-            spells.push(
-              existing as Extract<AuthoredPublicationDocument, { subjectKind: 'SPELL' }>['document']
-            )
-          else {
-            const published = await readId(id)
-            if (published?.subjectKind === 'SPELL') spells.push(published.document)
-          }
+          const spell = previousSources.currentSpellsById.get(id) ?? (await readRuleId(id))
+          if (spell?.subjectKind === 'SPELL') spells.push(spell)
         }
-        return { entries: previousSources.spellCatalogueEntries, documents: spells }
+        return { entries: previousSources.spellCatalogueEntries, publications: spells }
       }
       if (referenced) {
         // Referenced ids include chosen-grant targets of other kinds; only Spells join.
         for (const id of referencedSpellIds) {
-          const published = await readId(id)
-          if (published?.subjectKind === 'SPELL') {
-            spells.push(published.document)
-            entries.push(toContentSnapshotIndexEntry(published))
-          }
+          const spell = await readRuleId(id)
+          const root = await readRootById(id)
+          if (spell?.subjectKind !== 'SPELL' || !root) continue
+          spells.push(spell)
+          entries.push(readSpellIndexEntry(root))
         }
-        return { entries, documents: spells }
+        return { entries, publications: spells }
       }
       for (const root of await visibleRoots('SPELL')) {
-        const source = sources.sources.find((source) => source.id === root.contentSourceId)
         if (
-          !(source && (await canReadAuthoredRoot(ctx, root, userId, source))) &&
-          !(
-            sources.campaign &&
-            (await readCampaignSharedRoot(ctx, sources.campaign, 'SPELL', root.id, root))
-          )
+          !(await canReadCharacterRoot(
+            ctx,
+            root,
+            character.systemId,
+            userId,
+            sources,
+            sourceIdentities
+          ))
         )
           continue
-        const metadata = root.catalogue && authoredCatalogueMetadataSchema.parse(root.catalogue)
-        if (
-          !metadata?.spell ||
-          metadata.description === null ||
-          metadata.spell.selectionVersion !== 1 ||
-          metadata.spell.publishedActive === undefined ||
-          metadata.checksum !== root.checksum ||
-          metadata.nameKey !== root.label.toLowerCase()
-        )
-          throw new Error('Character Spell selector facts are missing or stale.')
-        const {
-          selectionVersion: _selectionVersion,
-          publishedActive: _active,
-          magicSchoolNameKey: _schoolKey,
-          ...facts
-        } = metadata.spell
-        entries.push({
-          id: root.id,
-          label: root.label,
-          ...facts,
-          description: metadata.description
-        })
-        recordSource(root)
+        entries.push(readSpellIndexEntry(root))
         if (requiredSpellIds.has(root.id)) {
-          const published = await readRoot(root)
-          if (published?.subjectKind === 'SPELL') spells.push(published.document)
+          const spell = await readRuleRoot(root)
+          if (spell?.subjectKind === 'SPELL') spells.push(spell)
         }
       }
-      return { entries, documents: spells }
+      return { entries, publications: spells }
     }
   })
   // Retained dependencies hydrate only held mechanics; current catalogues never include them.
   // The Builder may reuse these validated documents within this same source load.
-  return {
-    ...prepared,
-    sourceAccess: sources,
-    sourceIdentities,
-    publications,
-    documents: referenced?.documents
-  }
+  return { ...prepared, sourceAccess: sources, sourceIdentities, publications }
 }

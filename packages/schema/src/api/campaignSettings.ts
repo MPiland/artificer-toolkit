@@ -47,6 +47,8 @@ const campaignPlaySettingsBaseDtoSchema = lazySchema(() =>
       z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
     ),
     automationMode: z._default(automationModeDtoSchema, 'ASSISTED'),
+    /** When on, each ammunition attack draws its pieces from the chosen stack (ATTACK-19.4, D4). */
+    trackAmmunition: z._default(z.boolean(), false),
     initiativePolicyDefinitionId: z._default(z.nullable(uuidSchema), null),
     initiativeTieDefinitionId: z._default(z.nullable(uuidSchema), null),
     optionalCombatRuleDefinitionIds: optionalCombatDefinitionIdsDtoSchema,

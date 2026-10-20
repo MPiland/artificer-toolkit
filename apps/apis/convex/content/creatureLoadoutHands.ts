@@ -1,7 +1,3 @@
-import {
-  equipmentAuthoredDtoSchema,
-  type EquipmentAuthoredDto
-} from '@artificer-toolkit/schema/subjects/equipment'
 import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
 import {
   EQUIPMENT_PROPERTY_CODE,
@@ -9,24 +5,21 @@ import {
   isHandSlot,
   resolveHandOccupancy
 } from '@artificer-toolkit/shared/core'
-import { compileResolvedEquipment } from '@artificer-toolkit/shared/subjects/compilers'
+import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
 import { resolveDnd5eCreatureArmorClass } from '@artificer-toolkit/rules-runtime/systems/dnd5e/armorClass'
 import type { QueryCtx } from '../_generated/server'
-import { canReadAuthoredRoot, readPublishedRootDocument } from './documents'
-import { compileCurrentEquipment } from './equipmentRelationships'
+import { canReadAuthoredRoot } from './documents'
+import { readStoredEquipment } from './storedEquipment'
 
-/** The current effective Equipment of each readable loadout entry, by Equipment id. */
+/** The current compiled Equipment of each readable loadout entry, by Equipment id. */
 export async function readLoadoutEquipment(
   ctx: QueryCtx,
   entries: readonly { equipmentId: string }[],
   userId: string | null
 ) {
-  const effectiveByEquipmentId = new Map<
-    string,
-    Awaited<ReturnType<typeof compileCurrentEquipment>>['effective']
-  >()
+  const compiledByEquipmentId = new Map<string, CompiledEquipment>()
   for (const { equipmentId } of entries) {
-    if (effectiveByEquipmentId.has(equipmentId)) continue
+    if (compiledByEquipmentId.has(equipmentId)) continue
     const root = await ctx.db
       .query('authoredRoots')
       .withIndex('by_publicId', (q) => q.eq('id', equipmentId))
@@ -37,15 +30,9 @@ export async function readLoadoutEquipment(
       !(await canReadAuthoredRoot(ctx, root, userId))
     )
       continue
-    const stored: EquipmentAuthoredDto = equipmentAuthoredDtoSchema.parse(
-      (await readPublishedRootDocument(ctx, root)).document
-    )
-    effectiveByEquipmentId.set(
-      equipmentId,
-      (await compileCurrentEquipment(ctx, stored, userId)).effective
-    )
+    compiledByEquipmentId.set(equipmentId, (await readStoredEquipment(ctx, root, userId)).compiled)
   }
-  return effectiveByEquipmentId
+  return compiledByEquipmentId
 }
 
 /**
@@ -94,7 +81,7 @@ export async function readCreatureArmorClass(
     equipment: entries.map((entry) => ({
       id: entry.id,
       useState: entry.useState,
-      compiled: compileResolvedEquipment(equipment.get(entry.equipmentId)!)
+      compiled: equipment.get(entry.equipmentId)!
     }))
   })
 }

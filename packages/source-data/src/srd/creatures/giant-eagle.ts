@@ -62,18 +62,16 @@ export const giantEagle: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The eagle makes two attacks: one with its beak and one with its talons.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(121, 203),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(121, 1203), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_EAGLE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(121, 4) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(121, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

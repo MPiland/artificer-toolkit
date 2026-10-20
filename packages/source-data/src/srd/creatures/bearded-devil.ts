@@ -75,6 +75,16 @@ export const beardedDevil: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The devil makes two attacks: one with its beard and one with its glaive.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(42, 5) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(42, 6) }] }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

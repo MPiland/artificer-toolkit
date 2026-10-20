@@ -3,12 +3,14 @@ import {
   type ContentSnapshotIndexObject,
   type ContentSnapshotObject
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
   CharacterAuthored,
   EquipmentAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
-import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
+import {
+  compileSpell,
+  resolveEquipmentAuthored
+} from '@artificer-toolkit/shared/subjects/compilers'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { championMartialArchetype } from '@artificer-toolkit/source-data/srd/classes/champion.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
@@ -34,7 +36,8 @@ import { evaluateCharacterRules } from '../character/characterRuleEvaluation.js'
 import { getSheetSpellIdsByClass } from '../character/sheetSpellIds.js'
 import {
   assembleCharacterBuilderContext,
-  prepareCharacterRuleContext
+  prepareCharacterRuleContext,
+  requireCharacterPresentation
 } from '../character/contextPreparation.js'
 import { createLazySnapshotReaders, createSnapshotReaders } from '../character/snapshotReaders.js'
 import { toContentSnapshotIndexEntry } from '../contentSnapshots.js'
@@ -44,6 +47,7 @@ import {
   system,
   type PublicationKind as Kind
 } from '../testing/characterContextFixtures.js'
+import { pinnedRetainedRulesJson } from '../testing/pinnedRetainedRules.js'
 
 // ADR 0036 S9: the Builder's picker pools come only from content snapshots, so the catalogue
 // rules the server once asserted over Convex reads are asserted here over snapshot objects.
@@ -76,7 +80,7 @@ describe('Builder catalogue from content snapshots', () => {
       fireBolt.id,
       magicMissile.id
     ])
-    expect(unselected.spellDocumentsById.size).toBe(0)
+    expect(unselected.spellsById.size).toBe(0)
     expect(loadDocuments.mock.calls.some(([kinds]) => kinds.includes('SPELL'))).toBe(false)
 
     character.intent.spellSelections = [
@@ -88,11 +92,13 @@ describe('Builder catalogue from content snapshots', () => {
       }
     ]
     const selected = await prepareCharacterRuleContext(character, system, undefined, readers)
-    expect([...selected.currentSpellDocumentsById.keys()]).toEqual([fireBolt.id])
-    expect(selected.spellDocumentsById.has(magicMissile.id)).toBe(false)
-    const fullDocuments = new Map([fireBolt, magicMissile].map((spell) => [spell.id, spell]))
+    expect([...selected.currentSpellsById.keys()]).toEqual([fireBolt.id])
+    expect(selected.spellsById.has(magicMissile.id)).toBe(false)
+    const fullSpells = new Map(
+      [fireBolt, magicMissile].map((spell) => [spell.id, compileSpell(spell)])
+    )
     const prepared = await Promise.all(
-      [selected, { ...selected, spellDocumentsById: fullDocuments }].map(async (ruleContext) =>
+      [selected, { ...selected, spellsById: fullSpells }].map(async (ruleContext) =>
         prepareCharacterBuilderFromContext({
           character,
           current: null,
@@ -113,7 +119,7 @@ describe('Builder catalogue from content snapshots', () => {
     const evaluationInput = {
       character: prepared[0]!.character,
       context: prepared[0]!.context,
-      spellDocumentsById: selected.spellDocumentsById
+      spellsById: selected.spellsById
     }
     const evaluation = evaluateCharacterRules(evaluationInput)
     expect(getSheetSpellIdsByClass(evaluation.output, evaluation.facts).get(wizard.id)).toContain(
@@ -124,7 +130,7 @@ describe('Builder catalogue from content snapshots', () => {
     ).toBe(false)
     const inspected = evaluateCharacterRules({
       ...evaluationInput,
-      spellDocumentsById: fullDocuments,
+      spellsById: fullSpells,
       referenceSpellIds: [magicMissile.id]
     })
     expect(
@@ -136,7 +142,7 @@ describe('Builder catalogue from content snapshots', () => {
       readSpellCatalogue
     })
     expect(reused.spellCatalogueEntries).toBe(selected.spellCatalogueEntries)
-    expect(reused.currentSpellDocumentsById).toEqual(selected.currentSpellDocumentsById)
+    expect(reused.currentSpellsById).toEqual(selected.currentSpellsById)
     expect(readSpellCatalogue).not.toHaveBeenCalled()
 
     character.intent.spellSelections[0]!.spells.push(magicMissile.id)
@@ -147,7 +153,7 @@ describe('Builder catalogue from content snapshots', () => {
     expect(readSpellCatalogue).toHaveBeenCalledExactlyOnceWith(
       new Set([fireBolt.id, magicMissile.id])
     )
-    expect([...extended.currentSpellDocumentsById.keys()]).toEqual([fireBolt.id, magicMissile.id])
+    expect([...extended.currentSpellsById.keys()]).toEqual([fireBolt.id, magicMissile.id])
     expect(extended.catalog.spells).toEqual(selected.catalog.spells)
   })
 
@@ -183,23 +189,16 @@ describe('Builder catalogue from content snapshots', () => {
       id: crypto.randomUUID(),
       equipmentId: equipment.id,
       quantity: 1,
-      retainedRulesJson: JSON.stringify({
-        equipmentId: equipment.id,
+      retainedRulesJson: pinnedRetainedRulesJson({
         systemId: system.id,
-        sources: [equipment, fireBolt].map((document) => ({
-          subjectKind: document.kind,
-          subjectId: document.id,
-          versionId: document.id,
-          version: 1,
-          checksum: checksumRuleDocument(JSON.parse(JSON.stringify(document))),
-          documentJson: JSON.stringify(document)
-        }))
+        equipment,
+        spells: [fireBolt]
       })
     })
     const readers = createSnapshotReaders(scopeObjects({ SPELL: [magicMissile] }))
     const context = await prepareCharacterRuleContext(character, system, undefined, readers)
-    expect(context.spellDocumentsById.get(fireBolt.id)?.label).toBe(fireBolt.label)
-    expect(context.currentSpellDocumentsById.has(fireBolt.id)).toBe(false)
+    expect(context.spellsById.get(fireBolt.id)?.label).toBe(fireBolt.label)
+    expect(context.currentSpellsById.has(fireBolt.id)).toBe(false)
     const builder = await assembleCharacterBuilderContext(character, context, {
       scope: 'selectors',
       readers
@@ -377,7 +376,9 @@ describe('Builder catalogue from content snapshots', () => {
         ...testCase.character,
         state: testCase.current?.state ?? testCase.character.state
       }
-      const ruleContext = await prepareCharacterRuleContext(candidate, system, undefined, readers)
+      const ruleContext = requireCharacterPresentation(
+        await prepareCharacterRuleContext(candidate, system, undefined, readers)
+      )
       const [selectors, resolution] = await Promise.all(
         (['selectors', 'resolution'] as const).map(async (scope) => {
           const context = await assembleCharacterBuilderContext(candidate, ruleContext, {
@@ -395,7 +396,11 @@ describe('Builder catalogue from content snapshots', () => {
           return {
             character: prepared.character,
             resolution: rest,
-            view: toCharacterBuilderPayload(prepared.character, prepared.resolution).resolution,
+            view: toCharacterBuilderPayload(
+              prepared.character,
+              prepared.resolution,
+              prepared.context.presentation
+            ).resolution,
             preview: createCharacterBuilderChangePreview({
               previousCharacter: testCase.current ?? prepared.candidate,
               nextCharacter: prepared.character,

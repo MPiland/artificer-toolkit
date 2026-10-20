@@ -34,7 +34,7 @@ it('delivers the shared local fixture gzip objects with metadata and scoped auth
   try {
     const sourceId = '00000000-0000-4000-8000-000000000403'
     const publicKey = contentSnapshotObjectKey(
-      { format: 2, scope: 'SOURCE', scopeId: sourceId, kind: 'RACE', part: 'index' },
+      { format: 3, scope: 'SOURCE', scopeId: sourceId, kind: 'RACE', part: 'index' },
       'a'.repeat(64)
     )
     const privateKey = publicKey.replace('a'.repeat(64), 'b'.repeat(64))

@@ -23,7 +23,7 @@ import { equipAllCharacterItems, equipAllItems, setupCharacterRun } from './enco
 import { createEncounterInitiativeDefinitions } from './encounterInitiative'
 import { attachFixtureRoom, checkpointLiveRoom } from './localRoomWorker'
 import { createPartyPlayer } from './partyPlayer'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { setAutoRollDice } from './rollPreferences'
 import { srdWolf } from './srdCreatures'
 import { readTestActor } from './storedActors'
@@ -96,7 +96,7 @@ export async function assistedPartyFixture(
       )
     ]
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...srdWolf, subjectKind: 'CREATURE', document: srdWolf })]
   })

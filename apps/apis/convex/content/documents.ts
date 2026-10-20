@@ -6,7 +6,10 @@ import {
   authoredStoredDraftPayloadSchema,
   type AuthoredDraftResult
 } from '@artificer-toolkit/schema/api/authoredDrafts'
-import type { AuthoredStoredCompilation } from '@artificer-toolkit/schema/api/authoredPublication'
+import {
+  SUBJECT_COMPILER_VERSION,
+  type AuthoredStoredCompilation
+} from '@artificer-toolkit/schema/api/authoredPublication'
 import { IMPORT_MAX_ENTRY_BYTES } from '@artificer-toolkit/schema/api/imports'
 import { jsonValueSchema, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import {
@@ -397,8 +400,34 @@ export async function readAuthoredVersionCompilationRow(
 export async function readAuthoredVersionCompilation(
   ctx: QueryCtx,
   version: Pick<Doc<'authoredVersions'>, 'versionId'>
-) {
-  return (await readAuthoredVersionCompilationRow(ctx, version))?.compilation
+): Promise<AuthoredStoredCompilation | undefined> {
+  const compilation = (await readAuthoredVersionCompilationRow(ctx, version))?.compilation
+  if (!compilation) return undefined
+  const { compilerVersion, ...stored } = compilation
+  if (compilerVersion !== SUBJECT_COMPILER_VERSION)
+    throw new Error('Stored compilation is superseded; run content/compilationMigration.')
+  return { ...stored, compilerVersion }
+}
+
+/**
+ * The seed is canonical content's source of truth, so it stores a missing compilation and replaces a
+ * superseded one. Returns a current stored compilation for the caller to verify.
+ */
+export async function syncCanonicalCompilation(
+  ctx: MutationCtx,
+  root: Pick<Doc<'authoredRoots'>, 'ownerUserId'>,
+  version: Pick<Doc<'authoredVersions'>, 'id' | 'systemId' | 'versionId'>,
+  compilation: AuthoredStoredCompilation
+): Promise<AuthoredStoredCompilation | undefined> {
+  if (root.ownerUserId !== undefined)
+    throw new Error('Only canonical content re-seeds its compilation.')
+  const stored = await readAuthoredVersionCompilationRow(ctx, version)
+  if (stored) {
+    const { compilerVersion, ...current } = stored.compilation
+    if (compilerVersion === SUBJECT_COMPILER_VERSION) return { ...current, compilerVersion }
+    await ctx.db.patch(stored._id, { compilation })
+  } else await insertAuthoredVersionCompilation(ctx, version, compilation)
+  return undefined
 }
 
 export async function readStoredAuthoredVersionDocument(

@@ -18,7 +18,7 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignInventory'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -243,7 +243,7 @@ describe('native Campaign inventory owner versions', () => {
   })
   it('keeps metadata readable but fences transfers for unavailable cargo, archived Campaigns, and corrupt Characters', async () => {
     const base = await setup()
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
     })

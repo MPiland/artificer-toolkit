@@ -13,8 +13,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
-import { importedSubject } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
 import { readCharacterSourceAccessLoss } from './sourceAccessLoss'
 import { readCharacterDraft } from './documents'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
@@ -58,7 +58,7 @@ async function publishFeat(
 describe('Character authored source access loss', () => {
   it('retains held raw Equipment without author access while fencing new choices and corrupt rules', async () => {
     const { t, owner, other } = await fixture()
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({
@@ -168,16 +168,19 @@ describe('Character authored source access loss', () => {
     ).rejects.toThrow('Acquired Equipment scope mismatch')
     const source = raw.sources[0]
     if (!source) throw new Error('Captured Equipment source is missing.')
-    const document: Record<string, unknown> = JSON.parse(source.documentJson)
+    const projection: Record<string, unknown> = JSON.parse(source.compilation.projectionJson)
     held.retainedRulesJson = JSON.stringify({
       ...raw,
       sources: [
         {
           ...source,
-          documentJson: JSON.stringify({
-            ...document,
-            label: 'Corrupt captured rules'
-          })
+          compilation: {
+            ...source.compilation,
+            projectionJson: JSON.stringify({
+              ...projection,
+              label: 'Corrupt captured rules'
+            })
+          }
         },
         ...raw.sources.slice(1)
       ]
@@ -188,7 +191,7 @@ describe('Character authored source access loss', () => {
           allowRetainedEquipment: true
         })
       )
-    ).rejects.toThrow('Acquired source checksum mismatch')
+    ).rejects.toThrow('Stored EQUIPMENT compilation checksum mismatch')
     held.retainedRulesJson = before.state.equipment.inventory[0]!.retainedRulesJson
     expect(character).toEqual(before)
     expect(
@@ -233,7 +236,7 @@ describe('Character authored source access loss', () => {
           : grant
       )
     }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({

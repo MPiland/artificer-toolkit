@@ -58,7 +58,12 @@ export function referenceKindForKey(key: string) {
   if (key === 'parentClassId' || key === 'classId' || key === 'classIds') return 'CLASS'
   if (key === 'parentRaceId' || key === 'raceId') return 'RACE'
   if (key === 'backgroundId') return 'BACKGROUND'
-  if (key === 'parentEquipmentId' || key === 'equipmentId' || key === 'equipmentIds')
+  if (
+    key === 'parentEquipmentId' ||
+    key === 'ammunitionEquipmentId' ||
+    key === 'equipmentId' ||
+    key === 'equipmentIds'
+  )
     return 'EQUIPMENT'
   if (key === 'featId' || key === 'featIds') return 'FEAT'
   if (key === 'spellId' || key === 'spellIds') return 'SPELL'

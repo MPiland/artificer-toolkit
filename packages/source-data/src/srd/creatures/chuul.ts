@@ -66,18 +66,20 @@ export const chuul: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The chuul makes two pincer attacks. If the chuul is grappling a creature, the chuul can also use its tentacles once.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(63, 105),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(63, 106), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHUUL_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(63, 5) }] },
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(63, 6) }],
+                optional: true
+              }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

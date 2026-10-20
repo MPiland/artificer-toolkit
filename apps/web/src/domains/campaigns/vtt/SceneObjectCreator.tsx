@@ -1,5 +1,5 @@
 import { Button, Fieldset, NumberInput, Select } from '@mantine/core'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   createSceneObject,
@@ -34,12 +34,21 @@ export function SceneObjectCreator({
   const [x, setX] = useState(defaults.x)
   const [y, setY] = useState(defaults.y)
   const [length, setLength] = useState(defaults.length)
-  useEffect(() => {
-    const next = sceneCreationDefaults(scene)
-    setX(next.x)
-    setY(next.y)
-    setLength(next.length)
-  }, [scene.grid, scene.map.height, scene.map.width])
+  const [trackedBounds, setTrackedBounds] = useState({
+    grid: scene.grid,
+    height: scene.map.height,
+    width: scene.map.width
+  })
+  if (
+    trackedBounds.grid !== scene.grid ||
+    trackedBounds.height !== scene.map.height ||
+    trackedBounds.width !== scene.map.width
+  ) {
+    setTrackedBounds({ grid: scene.grid, height: scene.map.height, width: scene.map.width })
+    setX(defaults.x)
+    setY(defaults.y)
+    setLength(defaults.length)
+  }
   return (
     <Fieldset className={styles.objectFields} disabled={disabled} legend='Create scene object'>
       <Select

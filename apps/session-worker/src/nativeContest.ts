@@ -16,6 +16,7 @@ import {
   type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
+import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -25,6 +26,7 @@ import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { encounterAttackD20Belief } from '@artificer-toolkit/rules-runtime/encounterAttackBelief'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
@@ -517,6 +519,7 @@ export async function planNativeLiveContest(
   const contestInput = { state, actor, target, command: root, prepared, sceneContext, system }
   let preparation: ContestPreparation
   let actionEconomy: EncounterActionEconomyConsumption | null
+  let contestAttackAction: EncounterAttackActionTransitionDto | null = null
   if (definition) {
     const selection = readEncounterDisarmSelection({
       actor,
@@ -551,7 +554,7 @@ export async function planNativeLiveContest(
     preparation = { ...disarm, published: disarm.graph.published }
   } else {
     // A basic action contest (Grapple) spends the allowance its own activation names.
-    const { economy } = await evaluateNativeLiveActionEconomy({
+    const { economy, attackAction } = await evaluateNativeLiveActionEconomy({
       prepared,
       state,
       actionId: root.actionId,
@@ -560,6 +563,7 @@ export async function planNativeLiveContest(
       capture
     })
     actionEconomy = economy?.consumption ?? null
+    contestAttackAction = attackAction
     preparation = prepareEncounterBasicActionContest({
       ...contestInput,
       actionEconomy,
@@ -582,6 +586,7 @@ export async function planNativeLiveContest(
     activeEffectsByActorId,
     preparation,
     actionEconomy,
+    attackAction: contestAttackAction,
     runtime: executionOptions.runtime,
     random: executionOptions.random,
     revisions: reads.revisions()
@@ -693,6 +698,8 @@ export async function planNativeLiveContestRolls(input: {
   activeEffectsByActorId: ContestActors['activeEffectsByActorId']
   preparation: ContestPreparation
   actionEconomy: EncounterActionEconomyConsumption | null
+  /** The Attack action a contest that replaces one attack fills; null for any other contest. */
+  attackAction?: EncounterAttackActionTransitionDto | null
   runtime: RulesRuntimeService
   random(maximum: number): number
   revisions: LiveSessionRulesRevisions
@@ -955,13 +962,16 @@ export async function planNativeLiveContestRolls(input: {
         )
       : null
   const releasedActor = sourceRelease?.settledSource ?? escaped?.actor ?? actor
-  const settledActor = actionEconomy
+  const spentActor = actionEconomy
     ? consumeEncounterActionEconomy({
         actor: releasedActor,
         consumption: actionEconomy,
         overridden: false
       })
     : releasedActor
+  const settledActor = input.attackAction
+    ? applyEncounterAttackActionTransition(spentActor, input.attackAction)
+    : spentActor
   const nextActors = actors.map((entry) =>
     entry.id === settledActor.id
       ? settledActor
@@ -999,6 +1009,7 @@ export async function planNativeLiveContestRolls(input: {
             outcome?.stateTransition ??
             escaped?.stateTransition ?? { kind: 'NONE' },
           actionEconomy,
+          attackAction: input.attackAction ?? null,
           sourceApplications: sourceRelease?.sourceResourcePlan?.receiptApplications ?? []
         })
       }),

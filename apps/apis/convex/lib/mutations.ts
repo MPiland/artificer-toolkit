@@ -289,6 +289,8 @@ triggers.register('campaignMemberships', async (ctx, change) => {
 registerScope('campaigns', (_, document) => campaignScope(document.id))
 registerScope('campaignMemberships', (_, document) => campaignScope(document.campaignId))
 registerScope('campaignCharacterAssignments', (_, document) => campaignScope(document.campaignId))
+// Grants of Character control change who may act in open Runs, so play-time readers refresh too.
+registerScope('campaignCharacterAssignments', (_, document) => playScope(document.campaignId))
 registerScope('campaignContentShares', (_, document) => campaignScope(document.campaignId))
 
 triggers.register('campaignNotebookSections', async (ctx, change) => {

@@ -15,8 +15,10 @@ import { compileClass, type CompiledClass } from './class.js'
 import { compileCreature, type CompiledCreature } from './creature.js'
 import {
   compileEquipment,
+  compileResolvedEquipment,
   type CompiledEquipment,
-  type CompiledEquipmentVariant
+  type CompiledEquipmentVariant,
+  type ResolvedEquipment
 } from './equipment.js'
 import { compileFeat, type CompiledFeat } from './feat.js'
 import {
@@ -233,6 +235,7 @@ function rootDescriptor(
         field('maxStack', value.maxStack),
         field('rarityId', value.rarityId),
         field('armorClass', value.armorClass),
+        field('ammunitionEquipmentId', value.ammunitionEquipmentId),
         field('contains', value.contains)
       )
     }
@@ -669,7 +672,9 @@ function compileSubject(
     case 'CREATURE':
       return compileCreature(authored as CreatureAuthored)
     case 'EQUIPMENT':
-      return compileEquipment(authored as EquipmentAuthored)
+      return sourceOnly
+        ? compileEquipment(authored as EquipmentAuthored)
+        : compileResolvedEquipment(authored as ResolvedEquipment)
     case 'FEAT':
       return compileFeat(authored as FeatAuthored)
     case 'RACE': {

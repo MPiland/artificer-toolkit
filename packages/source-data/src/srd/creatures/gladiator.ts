@@ -61,6 +61,22 @@ export const gladiator: CreatureAuthored = {
       id: S.featureId(143, 3),
       label: 'Multiattack',
       description: 'Multiattack. The gladiator makes three melee attacks or two ranged attacks.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 3,
+                fillers: [
+                  { kind: 'FEATURE', featureId: S.featureId(143, 4) },
+                  { kind: 'FEATURE', featureId: S.featureId(143, 5) }
+                ]
+              }
+            ]
+          },
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(143, 4) }] }] }
+        ]
+      },
       order: 3
     },
     {

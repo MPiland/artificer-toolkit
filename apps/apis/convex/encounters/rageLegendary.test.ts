@@ -13,10 +13,15 @@ import {
   SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { barbarianState, rages, setupBarbarianRun, srdBarbarian } from '../../tests/fixtures/barbarianRun'
+import {
+  barbarianState,
+  rages,
+  setupBarbarianRun,
+  srdBarbarian
+} from '../../tests/fixtures/barbarianRun'
 import type { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { queueRoomRolls, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import {
   importSeededSrdCreatureSenses,
   seededSrdCreature,
@@ -52,7 +57,7 @@ const dragonEnemy = {
         definitions
       })
     await importSeededSrdCreatureSenses(base.t, dragon)
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ ...dragon, subjectKind: 'CREATURE', document: dragon }),
@@ -92,10 +97,7 @@ const respond = (
   })
 
 /** Answers whatever a turn change asks until it commits: the dragon declines its window, a Recharge rolls 5. */
-async function settleTurn(
-  fixture: RunFixture,
-  started: Settled
-): Promise<Settled> {
+async function settleTurn(fixture: RunFixture, started: Settled): Promise<Settled> {
   let result = started
   for (let step = 0; step < 6 && result.occurrence?.status !== 'COMPLETE'; step += 1) {
     const pending = result.occurrence?.pending

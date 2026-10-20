@@ -87,14 +87,27 @@ export const authoredPublicationResultSchema = lazySchema(() =>
   })
 )
 
+/** The only stored compilation version evaluation reads; older rows are recompiled by migration. */
+export const SUBJECT_COMPILER_VERSION = 'subject-compiler-v2'
+
 // Server-produced current compilation, not source history or a client-editable plan.
 export const authoredStoredCompilationSchema = lazySchema(() =>
   z.strictObject({
-    compilerVersion: z.literal('subject-compiler-v1'),
+    compilerVersion: z.literal(SUBJECT_COMPILER_VERSION),
     projectionSchemaVersion: z.literal(1),
     authoredChecksum: projectionChecksumSchema,
     projectionChecksum: projectionChecksumSchema,
     projectionJson: z.string()
+  })
+)
+
+/**
+ * The table also admits a superseded compiler version: `content/compilationMigration` reads such a
+ * row to recompile it, and readers reject it as stale (D163).
+ */
+export const authoredStoredCompilationRowSchema = lazySchema(() =>
+  z.extend(authoredStoredCompilationSchema, {
+    compilerVersion: z.enum(['subject-compiler-v1', SUBJECT_COMPILER_VERSION])
   })
 )
 

@@ -224,13 +224,18 @@ root labels and resolver-reachable feature/option/grant/effect/ancestry relation
 Equipment categories/properties. These are read metadata, not independently editable domain records;
 the reader uses indexed master/owner ranges, never other owners' roots or unpublished drafts.
 Import derives these facts from the validated document; publication must update them atomically
-with the current version. Exact import replay may backfill missing facts after verifying the
-unchanged root and version. Conflicting facts reject rather than overwrite.
+with the current version. Stored facts carry `factsVersion`, the `AUTHORED_SOURCE_FACTS_VERSION`
+of the derivation that produced them; bump it whenever `authoredSourceFacts` derives different
+rows from the same document (a drift-guard test fails until it is bumped). Exact import replay
+backfills missing facts and re-derives facts from an older or absent version after verifying the
+unchanged root and version. Same-version facts that differ reject rather than overwrite.
+Resolver reads reject a superseded version.
 
 The internal `content/sourceMigrations:backfillAuthoringSources` uses the official migrations
-component to process existing master and owned current roots one document per batch. It validates
-source ownership, exact current version, normalized document and checksum before filling absent
-metadata; conflicting facts reject. It never rewrites authored content, UUIDs or versions.
+component to process existing master and owned current roots one document per batch; it is also
+the first step of `content/compilationMigration:run`. It validates source ownership, exact current
+version, normalized document and checksum before filling absent metadata or re-deriving an older
+version; same-version conflicting facts reject. It never rewrites authored content, UUIDs or versions.
 
 Inline options are complete or fail: 100 caller-visible content sources and 500 definitions or visible
 roots per subject kind, never silent truncation. Missing/stale facts or unsupported source keys
@@ -394,7 +399,10 @@ Race uses the same current-parent contract for BASE/SUBRACE, with `parentRaceId`
 the parent UUID for SUBRACE and an index on `(systemId, subjectKind, parentRaceId)`. Publication
 fails closed while same-System Race parent metadata is missing. BASE replacement atomically
 recompiles published children and refreshes their catalogue family keys; their source documents, current-version IDs, checksums and working
-drafts remain unchanged. Invalid or foreign-owned dependents roll back the parent mutation.
+drafts remain unchanged. Invalid or foreign-owned dependents roll back the parent mutation, and a
+dependent whose stored document fails the current schema is named. The seed passes `importSubjects`
+the changed subjects a later batch replaces (`reimportedSubjectIds`); a Race or Equipment parent
+replace leaves those dependents to their own import, which compiles them against the current parent.
 The family limit is 500 records including the BASE; SUBRACE admission reads the sibling index in
 the publication transaction and excludes itself on replacement. Published children block BASE
 deletion and conversion to SUBRACE. Internal canonical `raceRelationships.syncDerived` fills only

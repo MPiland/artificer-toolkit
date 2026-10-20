@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useCampaignDetail } from '#app/data/campaigns/queries'
 import { useAutoRollDicePreference } from '#app/settings/useAutoRollDicePreference'
 import { CampaignGmRoller } from '../components/CampaignGmRoller'
+import { CampaignTabletopFullscreenButton } from './CampaignTabletopFullscreenButton'
 import { CampaignSceneShowingControl } from './CampaignSceneShowingControl'
 import { CampaignShownSceneViewer } from './CampaignShownSceneViewer'
 import { CampaignVttStage } from './CampaignVttStage'
@@ -45,6 +46,7 @@ export function CampaignTabletopWindow({
           {campaign.role === 'OWNER' ? (
             <CampaignSceneShowingControl campaignId={campaign.id} />
           ) : null}
+          <CampaignTabletopFullscreenButton />
           <Switch
             aria-label='Roll my dice automatically'
             checked={autoRoll.autoRollDice}

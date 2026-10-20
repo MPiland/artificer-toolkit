@@ -25,6 +25,7 @@ import {
 } from '../encounterDisarmPreparation.js'
 import { prepareDnd5eOptionalCombatContestPendingContext } from '../systems/dnd5e/optionalCombatContestPendingContext.js'
 import { characterActor, creatureActor, creatureRuleFacts } from '../testing/dnd5eSrdEncounter.js'
+import { storedEquipmentSource } from '../testing/storedEquipmentSource.js'
 
 const SOURCE_ACTOR_ID = '00000000-0000-4000-8000-00000000d101'
 const TARGET_ACTOR_ID = '00000000-0000-4000-8000-00000000d102'
@@ -43,14 +44,15 @@ type Contest = ServerContestCheckPendingApplicationContextDto
 const heldWeapon = baseEquipmentAuthoredDtoSchema.parse(dagger)
 const carriedWeapon = baseEquipmentAuthoredDtoSchema.parse(club)
 
-function equipmentSource(loadoutEntryId: string, payload: typeof heldWeapon) {
+function equipmentSource(loadoutEntryId: string, document: typeof heldWeapon) {
+  const stored = storedEquipmentSource(document, undefined, { versionId: SOURCE_VERSION_ID })
   return {
     loadoutEntryId,
-    equipmentId: payload.id,
-    sourceRevision: 1,
-    sourceVersionId: SOURCE_VERSION_ID,
-    sourceChecksum: checksumRuleDocument(payload),
-    payload
+    equipmentId: document.id,
+    sourceRevision: stored.version,
+    sourceVersionId: stored.versionId,
+    sourceChecksum: stored.checksum,
+    compilation: stored.compilation
   }
 }
 

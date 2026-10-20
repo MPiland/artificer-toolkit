@@ -1,6 +1,7 @@
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { characterItemConsumptionPiecesMatch } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import {
@@ -19,6 +20,7 @@ import type {
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { HandSlotCode } from '@artificer-toolkit/shared/core'
 import type {
+  CharacterItemDegradationReceiptDto,
   CharacterItemUseStateTransitionDto,
   EncounterActorItemUseStateTransitionDto,
   SourceItemDrawDto
@@ -45,6 +47,7 @@ import {
 import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
 import {
   applyEncounterActorItemDraw,
+  applyEncounterActorItemThrow,
   applyEncounterActorOptionalContestSuccess,
   readEncounterActorOptionalContestContext
 } from './encounterActorOptionalContestContext.js'
@@ -95,10 +98,20 @@ export type EncounterMechanicsBatchInput = {
    */
   releaseHeldItemInstanceId?: string
   /**
+   * The worn item this outcome corrodes (`planEncounterEquipmentDegradation`): its penalty rises to
+   * `afterPenalty` and, when `destroyed`, it is used up. Characters only.
+   */
+  degradeItem?: { itemInstanceId: string; afterPenalty: number; destroyed: boolean }
+  /**
    * The carried weapon an attack draws into this hand (D107): a Character's item is equipped, a
    * Creature's loadout entry moves to the hand. The inverse of a stow, with the same exclusions.
    */
   drawHeldItem?: { itemId: string; slot: HandSlotCode }
+  /**
+   * The weapon an attack throws out of this hand (D107): a Character's item is unequipped, a
+   * Creature's loadout entry carried. It follows a stow in one Character version.
+   */
+  throwHeldItem?: { itemId: string; slot: HandSlotCode }
   /** A dying Character's turn-start death save die (D96); Characters only. */
   deathSave?: { rawDie: number; addedTotal: number }
   /** The Creature form this outcome swaps the actor into, held by `effectId` (D130). */
@@ -124,8 +137,10 @@ export type EncounterMechanicsBatchPlan = {
     | CharacterItemUseStateTransitionDto
     | EncounterActorItemUseStateTransitionDto
     | null
-  /** The weapon the actor drew (`drawHeldItem`); null when it drew none. */
+  /** The weapon the actor drew or threw (`drawHeldItem`, `throwHeldItem`); null when it moved none. */
   itemDrawTransition: SourceItemDrawDto | null
+  /** The worn item the outcome corroded (`degradeItem`); null when it corroded none. */
+  itemDegradationTransition: CharacterItemDegradationReceiptDto | null
   stateChanged: boolean
   shouldAdvance: boolean
   characterUpdate: {
@@ -149,6 +164,8 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors cannot use Character resources.')
     if (batch.characterItemConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use up Character items.')
+    if (batch.degradeItem !== undefined)
+      throw new Error('Encounter non-Character actors wear no tracked equipment.')
     if (batch.characterSpellConsumptions !== undefined)
       throw new Error('Encounter non-Character actors cannot spend Character spell slots.')
     if (batch.stowEquippedItemInstanceId !== undefined)
@@ -226,18 +243,27 @@ export function planEncounterMechanicsBatch(input: {
       ? applyEncounterActorOptionalContestSuccess({ context: releaseContext, actor: formed })
       : null
     const draw = batch.drawHeldItem
-    if (draw !== undefined && release !== undefined)
-      throw new Error('Encounter actor cannot draw and drop items in one change.')
+    const thrown = batch.throwHeldItem
+    if ((draw !== undefined || thrown !== undefined) && release !== undefined)
+      throw new Error('Encounter actor cannot draw or throw and drop items in one change.')
+    if (draw !== undefined && thrown !== undefined)
+      throw new Error('Encounter actor cannot draw and throw in one change.')
     const drawn = draw
       ? applyEncounterActorItemDraw({ actor: formed, loadoutEntryId: draw.itemId, slot: draw.slot })
       : null
-    const changedActor = released?.actor ?? drawn?.actor
+    const thrownOut = thrown
+      ? applyEncounterActorItemThrow({ actor: formed, loadoutEntryId: thrown.itemId })
+      : null
+    const handMoved = drawn ?? thrownOut
+    const handMove = draw ?? thrown
+    const changedActor = released?.actor ?? handMoved?.actor
     return {
       updatedActor: changedActor ? encounterRunActorStateSchema.parse(changedActor) : formed,
       receiptApplications: folded.applications,
       targetTransition: transition(actor.id, folded.before, folded.after),
       characterStreamVersion: null,
       itemUseStateTransition: null,
+      itemDegradationTransition: null,
       itemReleaseTransition:
         released && releaseContext
           ? {
@@ -252,15 +278,16 @@ export function planEncounterMechanicsBatch(input: {
             }
           : null,
       itemDrawTransition:
-        drawn && draw
+        handMoved && handMove
           ? {
               kind: 'ENCOUNTER_ACTOR_ITEM_DRAW',
+              movement: drawn ? 'DRAW' : 'THROW',
               actorId: actor.id,
-              loadoutEntryId: draw.itemId,
-              equipmentId: drawn.equipmentId,
-              slot: draw.slot,
-              beforeStateChecksum: drawn.beforeStateChecksum,
-              afterStateChecksum: drawn.afterStateChecksum
+              loadoutEntryId: handMove.itemId,
+              equipmentId: handMoved.equipmentId,
+              slot: handMove.slot,
+              beforeStateChecksum: handMoved.beforeStateChecksum,
+              afterStateChecksum: handMoved.afterStateChecksum
             }
           : null,
       stateChanged:
@@ -268,7 +295,7 @@ export function planEncounterMechanicsBatch(input: {
         folded.afterAbsence !== actor.absence ||
         batch.enterForm !== undefined ||
         released !== null ||
-        drawn !== null,
+        handMoved !== null,
       shouldAdvance: false,
       characterUpdate: null
     }
@@ -352,8 +379,7 @@ export function planEncounterMechanicsBatch(input: {
     if (
       itemConsumption.characterId !== loaded.active.id ||
       itemConsumption.expectedStreamVersion !== loaded.active.play.streamVersion ||
-      itemConsumption.afterUsed !== itemConsumption.beforeUsed + 1 ||
-      itemConsumption.afterQuantity !== itemConsumption.beforeQuantity - 1 ||
+      !characterItemConsumptionPiecesMatch(itemConsumption) ||
       !row ||
       row.quantity !== itemConsumption.beforeQuantity ||
       currentUsed !== itemConsumption.beforeUsed
@@ -365,6 +391,40 @@ export function planEncounterMechanicsBatch(input: {
       ),
       { itemInstanceId: itemConsumption.itemInstanceId, used: itemConsumption.afterUsed }
     ]
+  }
+
+  const degrade = batch.degradeItem
+  let itemDegradationTransition: CharacterItemDegradationReceiptDto | null = null
+  let nextItemDegradation = loaded.sheetState.itemDegradation
+  if (degrade !== undefined) {
+    const row = loaded.character.state.equipment.inventory.find(
+      (item) => item.id === degrade.itemInstanceId
+    )
+    const beforePenalty =
+      nextItemDegradation.find((entry) => entry.itemInstanceId === degrade.itemInstanceId)
+        ?.penalty ?? 0
+    const beforeUsed =
+      nextItemUsage.find((usage) => usage.itemInstanceId === degrade.itemInstanceId)?.used ?? 0
+    if (!row || row.quantity - beforeUsed <= 0 || degrade.afterPenalty <= beforePenalty)
+      throw new Error('Encounter Character item degradation is stale.')
+    const afterUsed = degrade.destroyed ? beforeUsed + 1 : beforeUsed
+    nextItemDegradation = [
+      ...nextItemDegradation.filter((entry) => entry.itemInstanceId !== degrade.itemInstanceId),
+      { itemInstanceId: degrade.itemInstanceId, penalty: degrade.afterPenalty }
+    ]
+    if (degrade.destroyed)
+      nextItemUsage = [
+        ...nextItemUsage.filter((usage) => usage.itemInstanceId !== degrade.itemInstanceId),
+        { itemInstanceId: degrade.itemInstanceId, used: afterUsed }
+      ]
+    itemDegradationTransition = {
+      characterId: loaded.active.id,
+      itemInstanceId: degrade.itemInstanceId,
+      beforePenalty,
+      afterPenalty: degrade.afterPenalty,
+      beforeUsed,
+      afterUsed
+    }
   }
 
   let slotsCharacter = loaded.character
@@ -393,10 +453,17 @@ export function planEncounterMechanicsBatch(input: {
   const stowItemId = batch.stowEquippedItemInstanceId
   const releaseItemId = batch.releaseHeldItemInstanceId
   const draw = batch.drawHeldItem
+  const thrown = batch.throwHeldItem
   // One Character version records one equipment change: a draw follows a stow (the shield an
-  // attack stows frees the hand its weapon is drawn into), and a drop stands alone.
-  if (releaseItemId !== undefined && (stowItemId !== undefined || draw !== undefined))
-    throw new Error('Encounter Character cannot drop items and stow or draw in one change.')
+  // attack stows frees the hand its weapon is drawn into), a throw follows one too, and a drop
+  // stands alone.
+  if (
+    releaseItemId !== undefined &&
+    (stowItemId !== undefined || draw !== undefined || thrown !== undefined)
+  )
+    throw new Error('Encounter Character cannot drop items and stow, draw or throw in one change.')
+  if (draw !== undefined && thrown !== undefined)
+    throw new Error('Encounter Character cannot draw and throw in one change.')
   const { equipped } = loaded.character.state.equipment
   if (stowItemId !== undefined && !equipped.some((entry) => entry.itemId === stowItemId))
     throw new Error('Encounter Character item to stow is no longer equipped.')
@@ -414,11 +481,21 @@ export function planEncounterMechanicsBatch(input: {
     )
   )
     throw new Error('Encounter Character weapon to draw is already equipped or its hand is taken.')
+  if (
+    thrown !== undefined &&
+    !afterStow.state.equipment.equipped.some(
+      (entry) => entry.itemId === thrown.itemId && entry.slot === thrown.slot
+    )
+  )
+    throw new Error('Encounter Character weapon to throw is no longer in that hand.')
+  const handMove = draw ?? thrown
   const equippedCharacter = draw
     ? drawCharacterItem(afterStow, draw.itemId, draw.slot)
-    : releaseItemId === undefined
-      ? afterStow
-      : unequipCharacterItem(loaded.character, releaseItemId)
+    : thrown
+      ? unequipCharacterItem(afterStow, thrown.itemId)
+      : releaseItemId === undefined
+        ? afterStow
+        : unequipCharacterItem(loaded.character, releaseItemId)
 
   const itemTransition = (
     itemInstanceId: string,
@@ -478,7 +555,10 @@ export function planEncounterMechanicsBatch(input: {
   const spellSlotsChanged =
     nextSpellSlots !== undefined &&
     JSON.stringify(nextSpellSlots) !== JSON.stringify(loaded.character.state.spellSlots ?? [])
-  const sheetStateChanged = resourceConsumption !== undefined || itemConsumption !== undefined
+  const sheetStateChanged =
+    resourceConsumption !== undefined ||
+    itemConsumption !== undefined ||
+    itemDegradationTransition !== null
   const sheetHitPointsChanged =
     sheetHitPoints.current !== folded.sheet.currentHitPoints ||
     sheetHitPoints.temp !== folded.sheet.temporaryHitPoints ||
@@ -511,7 +591,8 @@ export function planEncounterMechanicsBatch(input: {
     ? characterSheetStateSchema.parse({
         ...loaded.sheetState,
         resourceUsage: nextResourceUsage,
-        itemUsage: nextItemUsage
+        itemUsage: nextItemUsage,
+        itemDegradation: nextItemDegradation
       })
     : null
   // The form is the actor's own state: it changes with its hit points and ends with them (D130).
@@ -529,14 +610,16 @@ export function planEncounterMechanicsBatch(input: {
     targetTransition: transition(actor.id, folded.before, folded.after),
     characterStreamVersion: shouldAdvance ? loaded.active.play.streamVersion + 1 : null,
     itemUseStateTransition: stowItemId === undefined ? null : itemTransition(stowItemId, afterStow),
+    itemDegradationTransition,
     itemReleaseTransition:
       releaseItemId === undefined ? null : itemTransition(releaseItemId, equippedCharacter),
-    itemDrawTransition: draw
+    itemDrawTransition: handMove
       ? {
           kind: 'CHARACTER_ITEM_DRAW',
+          movement: draw ? 'DRAW' : 'THROW',
           characterId: loaded.active.id,
-          itemInstanceId: draw.itemId,
-          slot: draw.slot,
+          itemInstanceId: handMove.itemId,
+          slot: handMove.slot,
           beforeStreamVersion: loaded.active.play.streamVersion,
           afterStreamVersion: loaded.active.play.streamVersion + 1,
           beforeStateChecksum: checksumRuleDocument(afterStow.state.equipment),

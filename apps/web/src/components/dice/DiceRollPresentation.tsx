@@ -1,10 +1,13 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useMediaQuery } from '@mantine/hooks'
+import { useHydrated } from '@tanstack/react-router'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import {
+  formatModeChange,
   formatRollEvidence,
   getVisualDiceCount,
   MAX_3D_DICE,
+  MODE_CHANGE_ANIMATION_MS,
   supportsWebGL,
   type DicePresentationRoll
 } from './dice.utils'
@@ -13,11 +16,32 @@ import * as diceStyles from './dice.css'
 
 const DiceCanvas = lazy(() => import('./DiceCanvas'))
 const DICE_LOAD_TIMEOUT_MS = 10_000
+/** Rolls whose mode change already played here, so a card shown again does not replay it. */
+const animatedModeChangeRollIds = new Set<string>()
 
-function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
+function StaticDiceResult({
+  reducedMotion,
+  roll
+}: {
+  reducedMotion: boolean
+  roll: DicePresentationRoll
+}) {
   const adjustment = roll.ruleCheck?.kind === 'D20_MODE_ADJUSTED' ? roll.ruleCheck : undefined
+  const [playing, setPlaying] = useState(
+    () => Boolean(adjustment) && !reducedMotion && !animatedModeChangeRollIds.has(roll.id)
+  )
+  useEffect(() => {
+    if (!playing) return
+    animatedModeChangeRollIds.add(roll.id)
+    const timeout = window.setTimeout(() => setPlaying(false), MODE_CHANGE_ANIMATION_MS)
+    return () => window.clearTimeout(timeout)
+  }, [playing, roll.id])
   return (
-    <div className={diceStyles.staticDiceOverlay} aria-live='polite'>
+    <div
+      className={diceStyles.staticDiceOverlay}
+      aria-live='polite'
+      data-mode-change={playing ? 'playing' : undefined}
+    >
       <div className={diceStyles.staticDiceList}>
         {roll.evidence.terms.flatMap((term, termIndex) =>
           term.rolls.map((value, rollIndex) => {
@@ -31,6 +55,7 @@ function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
             return (
               <span
                 className={diceStyles.staticDie}
+                data-added={added ? 'true' : undefined}
                 data-cancelled={cancelled ? 'true' : undefined}
                 data-kept={kept && !cancelled ? 'true' : undefined}
                 key={`${termIndex}:${rollIndex}`}
@@ -58,6 +83,11 @@ function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
           })
         )}
       </div>
+      {adjustment ? (
+        <span className={diceStyles.staticDiceCaption}>
+          <strong>{formatModeChange(adjustment)}</strong>
+        </span>
+      ) : null}
       {adjustment?.caption ? (
         <span className={diceStyles.staticDiceCaption}>{adjustment.caption}</span>
       ) : null}
@@ -97,22 +127,24 @@ export function DiceRollPresentation({
   const animatedRoll =
     canAnimate && rollFitsCanvas && roll?.id !== revealedRollId ? roll : undefined
   const waitingForWebGL = needsWebGL && webGLAvailable == null
-  const revealRoll = useCallback(
-    (rollId: string) => {
-      if (revealedRollId === rollId) return
-      setRevealedRollId(rollId)
-      onRollRevealed(rollId)
-    },
-    [onRollRevealed, revealedRollId]
-  )
+  const hydrated = useHydrated()
+  const notifiedRollIdRef = useRef<string | undefined>(undefined)
+
+  // The probe needs the browser, so it waits for hydration to keep the first client render equal
+  // to the server's.
+  if (hydrated && needsWebGL && webGLAvailable == null) setWebGLAvailable(supportsWebGL())
+
+  if (!canvasMounted && canAnimate && (animatedRoll || pending)) setCanvasMounted(true)
+
+  // A roll with no animation to wait for is revealed as soon as it can be shown.
+  if (roll && roll.id !== revealedRollId && !animatedRoll && !waitingForWebGL)
+    setRevealedRollId(roll.id)
 
   useEffect(() => {
-    if (needsWebGL && webGLAvailable == null) setWebGLAvailable(supportsWebGL())
-  }, [needsWebGL, webGLAvailable])
-
-  useEffect(() => {
-    if (canAnimate && (animatedRoll || pending)) setCanvasMounted(true)
-  }, [animatedRoll, canAnimate, pending])
+    if (!revealedRollId || notifiedRollIdRef.current === revealedRollId) return
+    notifiedRollIdRef.current = revealedRollId
+    onRollRevealed(revealedRollId)
+  }, [onRollRevealed, revealedRollId])
 
   useEffect(() => {
     if (!animatedRoll || readyRollId === animatedRoll.id) return
@@ -120,13 +152,7 @@ export function DiceRollPresentation({
     return () => window.clearTimeout(timeout)
   }, [animatedRoll, readyRollId])
 
-  useEffect(() => {
-    if (roll && roll.id !== revealedRollId && !animatedRoll && !waitingForWebGL) {
-      revealRoll(roll.id)
-    }
-  }, [animatedRoll, revealRoll, revealedRollId, roll, waitingForWebGL])
-
-  const fallback = roll ? <StaticDiceResult roll={roll} /> : null
+  const fallback = roll ? <StaticDiceResult reducedMotion={reducedMotion} roll={roll} /> : null
   if (waitingForWebGL) return null
   if (rendererFailed) return fallback
   if (!canvasMounted && !animatedRoll) return fallback
@@ -136,7 +162,7 @@ export function DiceRollPresentation({
       <Suspense fallback={null}>
         <DiceCanvas
           onReady={setReadyRollId}
-          onRollSettled={revealRoll}
+          onRollSettled={setRevealedRollId}
           preferences={preferences}
           roll={animatedRoll}
           staticFallback={fallback}

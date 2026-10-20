@@ -192,18 +192,11 @@ export const airElemental: CreatureAuthored = {
       id: S.featureId(13, 3),
       label: 'Multiattack',
       description: 'Multiattack. The elemental makes two slam attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(13, 115),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(13, 116), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(13, 4) }] }] }
+        ]
+      },
       order: 3
     },
     {

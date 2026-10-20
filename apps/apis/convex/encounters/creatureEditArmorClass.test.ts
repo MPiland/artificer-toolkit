@@ -10,7 +10,7 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
 import { creaturePublicationInput } from '../../tests/fixtures/creatureDrafts'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import {
   importSeededSrdCreatureSenses,
   seededSrdCreature,
@@ -18,14 +18,14 @@ import {
   srdPrintedArmorClass
 } from '../../tests/fixtures/srdCreatures'
 import { readTestActor } from '../../tests/fixtures/storedActors'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 
 const goblin = seededSrdCreature('Goblin')
 
 async function setup() {
   const base = await fixture()
   await importSeededSrdCreatureSenses(base.t, goblin)
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...goblin, subjectKind: 'CREATURE', document: goblin }),
