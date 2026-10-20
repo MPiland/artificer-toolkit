@@ -37,7 +37,7 @@ import { fixture } from './characters'
 import { reactionBinding } from './reactionBinding'
 import { srdCreatureRecord, srdWolf } from './srdCreatures'
 import { createEncounterLifecyclePolicyFixture } from './encounterInitiative'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { maintenanceDefinitionFixture } from './maintenanceDefinition'
 import { api, internal } from '../../convex/_generated/api'
 import { sourceImportBatches } from '../../convex/content/importBatches'
@@ -368,7 +368,7 @@ export async function setupCreatureReactionRun(
       }))
     }))
   }
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

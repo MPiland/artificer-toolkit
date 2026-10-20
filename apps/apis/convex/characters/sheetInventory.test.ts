@@ -15,8 +15,8 @@ import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
-import { api, internal } from '../_generated/api'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
@@ -46,7 +46,7 @@ async function fixture() {
       amount: 3
     }
   }
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })]
   })
@@ -507,7 +507,7 @@ describe('native Character Sheet inventory commands', () => {
 
   it('assigns hands on equip, swaps them, promotes an off-hand weapon, and counts only a held shield (D107)', async () => {
     const { t, owner, character, equipment } = await fixture()
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ ...shieldWood, subjectKind: 'EQUIPMENT', document: shieldWood })]
     })

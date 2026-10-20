@@ -51,7 +51,7 @@ import { writeRunActor } from '@artificer-toolkit/encounter-persistence/document
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { seededSrdCreature, srdWolf } from '../../tests/fixtures/srdCreatures'
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { readMovementTargets } from '../../tests/fixtures/movementTargets'
@@ -516,7 +516,7 @@ async function setup({
             srdSystemRecord.conditionTypes.find((condition) => condition.code === 'FRIGHTENED')?.id)
     )
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({

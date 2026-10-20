@@ -47,7 +47,7 @@ export async function replaceActorEquipment(
       ...armorClassInputs,
       equipmentLoadout: [{ ...entry, equipmentId: input.equipmentId }]
     },
-    equipmentRecords: await readCreatureEquipmentRecords(
+    equipment: await readCreatureEquipmentRecords(
       (id) => ctx.ports.readEncounterSource(userId, systemId, id, 'EQUIPMENT'),
       [input.equipmentId]
     )

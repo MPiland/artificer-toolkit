@@ -1,17 +1,14 @@
-import type { AuthoredPublicationDocument } from '@artificer-toolkit/schema/api/authoredPublication'
-import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
 import type {
-  ClassAuthoredDto,
-  SubclassAuthoredDto
-} from '@artificer-toolkit/schema/subjects/class'
+  AuthoredPublicationDocument,
+  AuthoredStoredCompilation
+} from '@artificer-toolkit/schema/api/authoredPublication'
+import type { AcquiredPresentation } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
+import type { ClassAuthoredDto } from '@artificer-toolkit/schema/subjects/class'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
-import type {
-  BaseRaceAuthoredDto,
-  SubraceAuthoredDto
-} from '@artificer-toolkit/schema/subjects/race'
-import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
+import type { BaseRaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { CompiledFeature } from '@artificer-toolkit/shared/compilers'
 import type {
   BackgroundAuthored,
   CharacterAuthored,
@@ -23,26 +20,27 @@ import type {
   SpellAuthored,
   VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
-import { compileFeature } from '@artificer-toolkit/shared/compilers'
 import {
-  compileBackground,
-  compileClass,
-  compileFeat,
-  compileRace,
-  compileResolvedEquipment,
   resolveEquipmentAuthored,
   resolveRaceAuthored,
-  compileSpell,
+  type CompiledBackground,
   type CompiledClass,
+  type CompiledCreature,
   type CompiledEquipment,
+  type CompiledFeat,
+  type CompiledRace,
   type CompiledSpell,
+  type CompiledVehicle,
   type ResolvedEquipment,
   type ResolvedRace
 } from '@artificer-toolkit/shared/subjects/compilers'
 
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 
-import { compiledProjectionChecksum } from '../authoredPublicationCompile.js'
+import {
+  compiledProjectionChecksum,
+  hydrateStoredCompilation
+} from '../authoredPublicationHydrate.js'
 import { toContentSnapshotIndexEntry } from '../contentSnapshots.js'
 import { readAcquiredEquipmentRules } from './acquiredEquipmentRules.js'
 import { collectContextSpellIds, needsCharacterSpellCatalog } from './characterContextSpells.js'
@@ -53,8 +51,10 @@ import {
   collectGrantedFeaturesForCharacter
 } from './characterBuilderSelections.js'
 import { getChosenGrantWitnessQuestions } from './chosenGrantChoiceResolver.js'
+import { publicationFeatures } from './featureSourceHints.js'
 import {
   createCharacterBuilderCatalog,
+  joinRaceCatalogSource,
   toCharacterBuilderEquipmentCatalogRecord,
   toCharacterBuilderRaceCatalogSource,
   toCharacterBuilderSpellCatalogRecord,
@@ -65,25 +65,192 @@ import {
   type CharacterBuilderRaceCatalogSource
 } from './builderCatalog.js'
 
-/** Reads current publications the caller is already authorized to see; unreadable ids are null. */
+type SubjectKind = AuthoredPublicationDocument['subjectKind']
+
+/** The authored record each kind's views read prose from; a subrace or variant is resolved. */
+type CharacterPublicationPresentationOf = {
+  BACKGROUND: BackgroundAuthored
+  CLASS: ClassAuthored
+  CREATURE: CreatureAuthored
+  EQUIPMENT: ResolvedEquipment
+  FEAT: FeatAuthored
+  RACE: ResolvedRace
+  SPELL: SpellAuthored
+  VEHICLE: VehicleAuthored
+}
+
+/** The picker facts of the kinds a Builder catalogue lists from the selected roots. */
+type CharacterPublicationCatalogSourceOf = {
+  BACKGROUND: CharacterBuilderBackgroundCatalogSource
+  CLASS: CharacterBuilderClassCatalogSource
+  RACE: CharacterBuilderRaceCatalogSource
+}
+
+/**
+ * A current publication as the engine reads it (D163): the compilation it stored at publish, which
+ * hydrates with no compile call. Only view readers supply `presentation`, the authored record
+ * views read prose from; commit readers omit it, so no prose reaches readiness or a write.
+ */
+export type CharacterRulePublication = {
+  [Kind in SubjectKind]: {
+    subjectKind: Kind
+    id: string
+    systemId: string
+    checksum: string
+    compilation: AuthoredStoredCompilation
+    presentation?: CharacterPublicationPresentationOf[Kind]
+  } & (Kind extends keyof CharacterPublicationCatalogSourceOf
+    ? { catalogSource: CharacterPublicationCatalogSourceOf[Kind] }
+    : unknown)
+}[SubjectKind]
+
+export type CharacterRuleSpellPublication = Extract<
+  CharacterRulePublication,
+  { subjectKind: 'SPELL' }
+>
+
+/**
+ * Reads current publications the caller is already authorized to see; unreadable ids are null. A
+ * subrace, subclass or Equipment variant is readable only with its whole parent chain.
+ */
 export type CharacterRuleContextReaders = {
-  readPublication(id: string): Promise<AuthoredPublicationDocument | null>
-  readRaceParent(document: SubraceAuthoredDto): Promise<BaseRaceAuthoredDto>
-  requireClassParent(document: SubclassAuthoredDto): Promise<void>
-  readEquipmentParents(
-    document: EquipmentAuthoredDto
-  ): Promise<ReadonlyMap<string, EquipmentAuthoredDto>>
+  readPublication(id: string): Promise<CharacterRulePublication | null>
   readFeatureSources(
     missingFeatureIds: ReadonlySet<string>
-  ): Promise<readonly AuthoredPublicationDocument[]>
+  ): Promise<readonly CharacterRulePublication[]>
   /**
    * Complete authorized picker facts and only readable referenced mechanics. Referenced ids may
    * also name non-Spell targets.
    */
   readSpellCatalogue(referencedSpellIds: ReadonlySet<string>): Promise<{
     entries: readonly ContentSnapshotIndexEntry<'SPELL'>[]
-    documents: readonly SpellAuthoredDto[]
+    publications: readonly CharacterRuleSpellPublication[]
   }>
+}
+
+/**
+ * A readable current publication as the readers hand it to preparation: its stored compilation,
+ * its picker facts and, for view readers, its presentation. A subrace or Equipment variant takes
+ * its authorized parent chain, which only its presentation and picker facts resolve against.
+ */
+export function toCharacterRulePublication(
+  published: AuthoredPublicationDocument,
+  stored: { checksum: string; compilation: AuthoredStoredCompilation },
+  parents: {
+    race?: BaseRaceAuthoredDto
+    equipment?: ReadonlyMap<string, EquipmentAuthoredDto>
+  },
+  withPresentation: boolean
+): CharacterRulePublication {
+  const { id, systemId } = published.document
+  const identity = { id, systemId, ...stored }
+  // DTO refinements are narrower in the authored types; each document bridges after the
+  // publication schema validated it.
+  switch (published.subjectKind) {
+    case 'RACE': {
+      const race = resolveRaceAuthored(published.document as RaceAuthored, (parentId) =>
+        parentId === parents.race?.id ? (parents.race as RaceAuthored) : undefined
+      )
+      return {
+        ...identity,
+        subjectKind: 'RACE',
+        catalogSource: toCharacterBuilderRaceCatalogSource(race),
+        ...(withPresentation ? { presentation: race } : {})
+      }
+    }
+    case 'CLASS':
+      return {
+        ...identity,
+        subjectKind: 'CLASS',
+        catalogSource: toContentSnapshotIndexEntry(published),
+        ...(withPresentation ? { presentation: published.document as ClassAuthored } : {})
+      }
+    case 'BACKGROUND':
+      return {
+        ...identity,
+        subjectKind: 'BACKGROUND',
+        catalogSource: toContentSnapshotIndexEntry(published),
+        ...(withPresentation ? { presentation: published.document as BackgroundAuthored } : {})
+      }
+    case 'EQUIPMENT':
+      return {
+        ...identity,
+        subjectKind: 'EQUIPMENT',
+        ...(withPresentation
+          ? {
+              presentation: resolveEquipmentAuthored(
+                published.document as EquipmentAuthored,
+                (parentId) => parents.equipment?.get(parentId) as EquipmentAuthored | undefined
+              )
+            }
+          : {})
+      }
+    case 'FEAT':
+      return {
+        ...identity,
+        subjectKind: 'FEAT',
+        ...(withPresentation ? { presentation: published.document as FeatAuthored } : {})
+      }
+    case 'SPELL':
+      return {
+        ...identity,
+        subjectKind: 'SPELL',
+        ...(withPresentation ? { presentation: published.document as SpellAuthored } : {})
+      }
+    case 'CREATURE':
+      return {
+        ...identity,
+        subjectKind: 'CREATURE',
+        ...(withPresentation ? { presentation: published.document as CreatureAuthored } : {})
+      }
+    case 'VEHICLE':
+      return {
+        ...identity,
+        subjectKind: 'VEHICLE',
+        ...(withPresentation ? { presentation: published.document as VehicleAuthored } : {})
+      }
+  }
+}
+
+/**
+ * Commit's publication from stored facts alone (D163): the stored compilation and the picker facts
+ * the root's catalogue holds. A subrace joins its authorized base Race's facts.
+ */
+export function toCharacterRuleFactsPublication(
+  identity: {
+    subjectKind: SubjectKind
+    id: string
+    systemId: string
+    checksum: string
+    compilation: AuthoredStoredCompilation
+  },
+  facts: {
+    race?: ContentSnapshotIndexEntry<'RACE'>
+    raceParent?: ContentSnapshotIndexEntry<'RACE'>
+    class?: ContentSnapshotIndexEntry<'CLASS'>
+    background?: ContentSnapshotIndexEntry<'BACKGROUND'>
+  }
+): CharacterRulePublication {
+  const { subjectKind, ...stored } = identity
+  const required = <Facts extends { id: string }>(value: Facts | undefined) => {
+    if (value?.id !== identity.id)
+      throw new Error(`Stored ${subjectKind} picker facts are missing or stale.`)
+    return value
+  }
+  switch (subjectKind) {
+    case 'RACE':
+      return {
+        ...stored,
+        subjectKind,
+        catalogSource: joinRaceCatalogSource(required(facts.race), facts.raceParent)
+      }
+    case 'CLASS':
+      return { ...stored, subjectKind, catalogSource: required(facts.class) }
+    case 'BACKGROUND':
+      return { ...stored, subjectKind, catalogSource: required(facts.background) }
+    default:
+      return { ...stored, subjectKind }
+  }
 }
 
 /** Spells the Character's selections, state, chosen grants and granted features name. */
@@ -104,14 +271,11 @@ export function collectCharacterReferencedSpellIds(
 
 /** Shared by source batching and context assembly so their required roots cannot diverge. */
 function collectCharacterRuleSourceSelections(character: CharacterAuthored) {
-  const selected = new Map<string, Set<AuthoredPublicationDocument['subjectKind']>>()
-  function select(
-    kind: AuthoredPublicationDocument['subjectKind'],
-    ids: readonly (string | undefined)[]
-  ) {
+  const selected = new Map<string, Set<SubjectKind>>()
+  function select(kind: SubjectKind, ids: readonly (string | undefined)[]) {
     for (const id of ids) {
       if (!id) continue
-      const kinds = selected.get(id) ?? new Set<AuthoredPublicationDocument['subjectKind']>()
+      const kinds = selected.get(id) ?? new Set<SubjectKind>()
       kinds.add(kind)
       selected.set(id, kinds)
     }
@@ -151,58 +315,36 @@ function collectCharacterRuleSourceSelections(character: CharacterAuthored) {
   return selected
 }
 
-/**
- * Selected authored roots split into their compiled rule records and the by-id prose lookup the
- * views read (D163). `features` are the wanted Features beyond those the roots own.
- */
-export function compileCharacterRuleSources(roots: {
-  races: readonly ResolvedRace[]
-  classes: readonly ClassAuthored[]
-  backgrounds: readonly BackgroundAuthored[]
-  equipment: readonly ResolvedEquipment[]
-  feats: readonly FeatAuthored[]
-  features: readonly FeatureAuthored[]
-}) {
-  const { races, classes, backgrounds, equipment, feats, features } = roots
-  const presentation: CharacterPresentationLookup = {
-    races: Object.fromEntries(races.map((record) => [record.id, record])),
-    classes: Object.fromEntries(classes.map((record) => [record.id, record])),
-    backgrounds: Object.fromEntries(backgrounds.map((record) => [record.id, record])),
-    feats: Object.fromEntries(feats.map((record) => [record.id, record])),
-    features: Object.fromEntries(
-      [...races, ...classes, ...backgrounds, ...equipment, ...feats]
-        .flatMap((root) => (root.features ?? []) as FeatureAuthored[])
-        .concat(
-          races.flatMap(
-            (race) => race.ancestry?.options.flatMap((option) => option.features ?? []) ?? []
-          ),
-          features
-        )
-        .map((record) => [record.id, record])
-    ),
-    equipment: Object.fromEntries(equipment.map((record) => [record.id, record]))
-  }
-  return {
-    compiled: {
-      races: races.map(compileRace),
-      classes: classes.map(compileClass),
-      backgrounds: backgrounds.map(compileBackground),
-      equipment: equipment.map(compileResolvedEquipment),
-      feats: feats.map(compileFeat),
-      features: features.map(compileFeature)
-    },
-    presentation
-  }
+/** A publication of another System never joins the Character's rules. */
+function requireCharacterSystem(
+  character: Pick<CharacterAuthored, 'systemId'>,
+  publication: CharacterRulePublication
+) {
+  if (publication.systemId !== character.systemId)
+    throw new Error(
+      `Character rule evaluation could not hydrate ${publication.subjectKind.toLowerCase()} "${publication.id}".`
+    )
 }
 
-/** A current authorized Spell compiled for the rules; a Spell of another System never joins. */
-export function compileCharacterRuleSpell(
+/** A current authorized Spell's stored compilation, hydrated for the rules. */
+export function hydrateCharacterRuleSpell(
   character: Pick<CharacterAuthored, 'systemId'>,
-  spell: SpellAuthored
-) {
-  if (spell.systemId !== character.systemId)
-    throw new Error(`Character rule evaluation could not hydrate spell "${spell.id}".`)
-  return compileSpell(spell)
+  spell: CharacterRuleSpellPublication
+): CompiledSpell {
+  requireCharacterSystem(character, spell)
+  return hydrateStoredCompilation('SPELL', spell, spell.compilation)
+}
+
+/** Every Feature an authored record holds, ancestry options included, for the prose lookup. */
+function presentationFeatures(
+  record: NonNullable<CharacterRulePublication['presentation']>
+): FeatureAuthored[] {
+  return [
+    ...('features' in record ? ((record.features ?? []) as FeatureAuthored[]) : []),
+    ...('ancestry' in record
+      ? (record.ancestry?.options.flatMap((option) => option.features ?? []) ?? [])
+      : [])
+  ]
 }
 
 /** Prepare current mechanics; catalogue reuse is limited to the same authorized transaction. */
@@ -212,17 +354,24 @@ export async function prepareCharacterRuleContext(
   previousSpellCatalogue:
     | {
         spellCatalogueEntries: readonly ContentSnapshotIndexEntry<'SPELL'>[]
-        currentSpellDocumentsById: ReadonlyMap<string, SpellAuthored>
+        currentSpellsById: ReadonlyMap<string, CharacterRuleSpellPublication>
       }
     | undefined,
   readers: CharacterRuleContextReaders
 ) {
   const selected = collectCharacterRuleSourceSelections(character)
 
-  const races: ResolvedRace[] = []
-  const classes: ClassAuthored[] = []
-  const backgrounds: BackgroundAuthored[] = []
-  const equipment: ResolvedEquipment[] = []
+  const read: CharacterRulePublication[] = []
+  const races: CompiledRace[] = []
+  const classes: CompiledClass[] = []
+  const backgrounds: CompiledBackground[] = []
+  const equipment: CompiledEquipment[] = []
+  const feats: CompiledFeat[] = []
+  const catalogSources = {
+    races: [] as CharacterBuilderRaceCatalogSource[],
+    classes: [] as CharacterBuilderClassCatalogSource[],
+    backgrounds: [] as CharacterBuilderBackgroundCatalogSource[]
+  }
   const acquiredEquipmentByItemId = new Map<
     string,
     { equipment: CompiledEquipment; versionId: string }
@@ -247,10 +396,12 @@ export async function prepareCharacterRuleContext(
     string,
     Pick<ReturnType<typeof readAcquiredEquipmentRules>, 'equipment' | 'presentation'>
   >()
-  const retainedSpellsById = new Map<string, CompiledSpell>()
-  const feats: FeatAuthored[] = []
-  const creaturesById = new Map<string, CreatureAuthored>()
-  const vehiclesById = new Map<string, VehicleAuthored>()
+  const retainedSpellsById = new Map<
+    string,
+    { compiled: CompiledSpell; presentation: AcquiredPresentation }
+  >()
+  const creaturesById = new Map<string, CompiledCreature>()
+  const vehiclesById = new Map<string, CompiledVehicle>()
   for (const [id, kinds] of selected) {
     const published = await readers.readPublication(id)
     if (!published || !kinds.has(published.subjectKind)) {
@@ -274,48 +425,35 @@ export async function prepareCharacterRuleContext(
       }
       continue
     }
-    // DTO charge refinements do not express CLASS_LEVEL narrowing in inferred TS types.
-    // Bridge only after current-document schema and provenance validation above.
+    requireCharacterSystem(character, published)
+    read.push(published)
     switch (published.subjectKind) {
-      case 'RACE': {
-        const parent =
-          published.document.category === 'SUBRACE'
-            ? await readers.readRaceParent(published.document)
-            : undefined
-        races.push(
-          resolveRaceAuthored(
-            published.document as RaceAuthored,
-            (id) => (id === parent?.id ? parent : undefined) as RaceAuthored | undefined
-          )
-        )
+      case 'RACE':
+        races.push(hydrateStoredCompilation('RACE', published, published.compilation))
+        catalogSources.races.push(published.catalogSource)
         break
-      }
       case 'CLASS':
-        if (published.document.category === 'SUBCLASS')
-          await readers.requireClassParent(published.document)
-        classes.push(published.document as ClassAuthored)
+        classes.push(hydrateStoredCompilation('CLASS', published, published.compilation))
+        catalogSources.classes.push(published.catalogSource)
         break
       case 'BACKGROUND':
-        backgrounds.push(published.document as BackgroundAuthored)
+        backgrounds.push(hydrateStoredCompilation('BACKGROUND', published, published.compilation))
+        catalogSources.backgrounds.push(published.catalogSource)
         break
-      case 'EQUIPMENT': {
-        const ancestors = await readers.readEquipmentParents(published.document)
-        equipment.push(
-          resolveEquipmentAuthored(
-            published.document as EquipmentAuthored,
-            (id) => ancestors.get(id) as EquipmentAuthored | undefined
-          )
-        )
+      case 'EQUIPMENT':
+        equipment.push(hydrateStoredCompilation('EQUIPMENT', published, published.compilation))
         break
-      }
       case 'FEAT':
-        feats.push(published.document as FeatAuthored)
+        feats.push(hydrateStoredCompilation('FEAT', published, published.compilation))
         break
       case 'CREATURE':
-        creaturesById.set(id, published.document as CreatureAuthored)
+        creaturesById.set(
+          id,
+          hydrateStoredCompilation('CREATURE', published, published.compilation)
+        )
         break
       case 'VEHICLE':
-        vehiclesById.set(id, published.document as VehicleAuthored)
+        vehiclesById.set(id, hydrateStoredCompilation('VEHICLE', published, published.compilation))
         break
     }
   }
@@ -329,41 +467,34 @@ export async function prepareCharacterRuleContext(
       const published = await readers.readPublication(equipmentId)
       if (published?.subjectKind !== 'EQUIPMENT')
         throw new Error('A companion Creature loadout Equipment is unavailable.')
-      const ancestors = await readers.readEquipmentParents(published.document)
-      creatureLoadoutEquipmentById[equipmentId] = compileResolvedEquipment(
-        resolveEquipmentAuthored(
-          published.document as EquipmentAuthored,
-          (id) => ancestors.get(id) as EquipmentAuthored | undefined
-        )
+      requireCharacterSystem(character, published)
+      creatureLoadoutEquipmentById[equipmentId] = hydrateStoredCompilation(
+        'EQUIPMENT',
+        published,
+        published.compilation
       )
     }
   }
 
   const wantedFeatures = new Set(character.intent.featureAcquisitions.map((row) => row.featureId))
-  const features = new Map<string, FeatureAuthored>()
-  function addFeatures(records: readonly FeatureAuthored[]) {
+  const features = new Map<string, CompiledFeature>()
+  // Rules identity: two owners may word one feature differently, never compile it differently.
+  function addFeatures(records: readonly CompiledFeature[]) {
     for (const feature of records) {
       if (!wantedFeatures.has(feature.id)) continue
       const previous = features.get(feature.id)
-      // Rules identity: two owners may word one feature differently, never compile it differently.
-      if (
-        previous &&
-        compiledProjectionChecksum(compileFeature(previous)) !==
-          compiledProjectionChecksum(compileFeature(feature))
-      )
+      if (previous && compiledProjectionChecksum(previous) !== compiledProjectionChecksum(feature))
         throw new Error('Current Character feature identity is ambiguous.')
       if (!previous) features.set(feature.id, feature)
     }
   }
-  for (const root of [...races, ...classes, ...backgrounds, ...equipment, ...feats])
-    addFeatures((root.features ?? []) as FeatureAuthored[])
-  for (const race of races)
-    addFeatures(race.ancestry?.options.flatMap((option) => option.features ?? []) ?? [])
+  for (const published of read) addFeatures(publicationFeatures(published))
 
   // Pinned acquired Equipment carries its Features compiled; they hydrate as they are (D163).
-  const retainedFeatures = [...retainedEquipmentById.values()]
-    .flatMap(({ equipment }) => equipment.features ?? [])
-    .filter((feature) => wantedFeatures.has(feature.id))
+  const retainedFeatures = [...retainedEquipmentById.values()].flatMap(
+    ({ equipment }) => equipment.features ?? []
+  )
+  const featureSources: CharacterRulePublication[] = []
   const missingFeatures = new Set(
     [...wantedFeatures].filter(
       (id) =>
@@ -374,58 +505,46 @@ export async function prepareCharacterRuleContext(
   )
   if (missingFeatures.size) {
     for (const published of await readers.readFeatureSources(missingFeatures)) {
-      if ('features' in published.document)
-        addFeatures((published.document.features ?? []) as FeatureAuthored[])
-      if (published.subjectKind === 'RACE' && published.document.category === 'BASE')
-        addFeatures(
-          (published.document.ancestry?.options.flatMap((option) => option.features ?? []) ??
-            []) as FeatureAuthored[]
-        )
+      requireCharacterSystem(character, published)
+      featureSources.push(published)
+      addFeatures(publicationFeatures(published))
     }
   }
+  addFeatures(retainedFeatures)
 
-  const { compiled, presentation } = compileCharacterRuleSources({
-    races,
-    classes,
-    backgrounds,
-    equipment,
-    feats,
-    features: [...features.values()]
-  })
   const pinnedEquipment = [...retainedEquipmentById.values()].filter(
-    ({ equipment }) => !compiled.equipment.some((record) => record.id === equipment.id)
+    ({ equipment: pinned }) => !equipment.some((record) => record.id === pinned.id)
   )
-  compiled.equipment.push(...pinnedEquipment.map(({ equipment }) => equipment))
-  for (const feature of retainedFeatures) {
-    const previous = compiled.features.find((record) => record.id === feature.id)
-    if (previous && compiledProjectionChecksum(previous) !== compiledProjectionChecksum(feature))
-      throw new Error('Current Character feature identity is ambiguous.')
-    if (!previous) compiled.features.push(feature)
-  }
+  equipment.push(...pinnedEquipment.map((pinned) => pinned.equipment))
+
   const context = {
     registry: {
       system,
-      ...compiled,
+      races,
+      classes,
+      backgrounds,
+      equipment,
+      feats,
+      features: [...features.values()],
       acquiredEquipmentByItemId,
       creatureLoadoutEquipmentById
     },
-    presentation: {
-      ...presentation,
-      equipment: {
-        ...presentation.equipment,
-        ...Object.fromEntries(
-          pinnedEquipment.map((pinned) => [pinned.equipment.id, pinned.presentation])
-        )
-      }
-    },
+    presentation: presentationLookup(
+      read,
+      featureSources,
+      Object.fromEntries(
+        pinnedEquipment.map((pinned) => [pinned.equipment.id, pinned.presentation])
+      ),
+      Object.fromEntries(retainedSpellsById)
+    ),
     catalog: { spells: [] as CharacterRuleContext['catalog']['spells'] },
     vocabularySnapshot: { document: system }
   } satisfies CharacterRuleContext
   const needsSpellCatalog = needsCharacterSpellCatalog(character, context.registry)
-  const currentSpellDocumentsById =
+  const currentSpellsById =
     needsSpellCatalog && previousSpellCatalogue
-      ? new Map(previousSpellCatalogue.currentSpellDocumentsById)
-      : new Map<string, SpellAuthored>()
+      ? new Map(previousSpellCatalogue.currentSpellsById)
+      : new Map<string, CharacterRuleSpellPublication>()
   let spellCatalogueEntries: readonly ContentSnapshotIndexEntry<'SPELL'>[] = []
   if (needsSpellCatalog) {
     if (previousSpellCatalogue) spellCatalogueEntries = previousSpellCatalogue.spellCatalogueEntries
@@ -433,13 +552,12 @@ export async function prepareCharacterRuleContext(
     if (
       !previousSpellCatalogue ||
       spellCatalogueEntries.some(
-        (entry) => referencedSpellIds.has(entry.id) && !currentSpellDocumentsById.has(entry.id)
+        (entry) => referencedSpellIds.has(entry.id) && !currentSpellsById.has(entry.id)
       )
     ) {
       const catalogue = await readers.readSpellCatalogue(referencedSpellIds)
       spellCatalogueEntries = catalogue.entries
-      for (const spell of catalogue.documents)
-        currentSpellDocumentsById.set(spell.id, spell as SpellAuthored)
+      for (const spell of catalogue.publications) currentSpellsById.set(spell.id, spell)
     }
     context.catalog.spells = [...spellCatalogueEntries]
       .map(({ id, label, level, classIds }) => ({ id, label, level, classIds }))
@@ -448,28 +566,77 @@ export async function prepareCharacterRuleContext(
       )
   }
   const spellsById = new Map(
-    [...currentSpellDocumentsById].map(
-      ([id, spell]) => [id, compileCharacterRuleSpell(character, spell)] as const
+    [...currentSpellsById].map(
+      ([id, spell]) => [id, hydrateCharacterRuleSpell(character, spell)] as const
     )
   )
-  for (const [id, spell] of retainedSpellsById) if (!spellsById.has(id)) spellsById.set(id, spell)
+  for (const [id, { compiled }] of retainedSpellsById)
+    if (!spellsById.has(id)) spellsById.set(id, compiled)
   return {
     ...context,
     spellsById,
-    currentSpellDocumentsById,
+    currentSpellsById,
     spellCatalogueEntries,
     creaturesById,
     vehiclesById,
     /** Picker facts of the selected roots, so a catalogue over them needs no authored record. */
-    catalogSources: {
-      races: races.map(toCharacterBuilderRaceCatalogSource),
-      classes: classes.map(toClassSource),
-      backgrounds: backgrounds.map(toBackgroundSource)
-    }
+    catalogSources
+  }
+}
+
+/**
+ * The by-id prose views read (D163), when the readers supplied every record's presentation; commit
+ * readers supply none, and a partial lookup would render silent blanks, so it fails closed.
+ */
+function presentationLookup(
+  roots: readonly CharacterRulePublication[],
+  featureSources: readonly CharacterRulePublication[],
+  pinnedEquipment: CharacterPresentationLookup['equipment'],
+  retainedSpells: CharacterPresentationLookup['retainedSpells']
+): CharacterPresentationLookup | undefined {
+  const supplied = [...roots, ...featureSources].filter(
+    (published) => published.presentation !== undefined
+  )
+  if (supplied.length === 0 && roots.length + featureSources.length > 0) return undefined
+  if (supplied.length !== roots.length + featureSources.length)
+    throw new Error('Character presentation is incomplete.')
+  const of = <Kind extends SubjectKind>(kind: Kind) =>
+    Object.fromEntries(
+      roots.flatMap((published) =>
+        published.subjectKind === kind && published.presentation
+          ? [[published.id, published.presentation as CharacterPublicationPresentationOf[Kind]]]
+          : []
+      )
+    )
+  return {
+    races: of('RACE'),
+    classes: of('CLASS'),
+    backgrounds: of('BACKGROUND'),
+    feats: of('FEAT'),
+    creatures: of('CREATURE'),
+    vehicles: of('VEHICLE'),
+    features: Object.fromEntries(
+      [...roots, ...featureSources]
+        .flatMap((published) =>
+          published.presentation ? presentationFeatures(published.presentation) : []
+        )
+        .map((record) => [record.id, record])
+    ),
+    equipment: { ...of('EQUIPMENT'), ...pinnedEquipment },
+    retainedSpells
   }
 }
 
 type PreparedCharacterRuleContext = Awaited<ReturnType<typeof prepareCharacterRuleContext>>
+
+/** Builder and Sheet views read prose; only commit prepares a context without it (D163). */
+export function requireCharacterPresentation<
+  TContext extends { presentation?: CharacterPresentationLookup }
+>(context: TContext): TContext & { presentation: CharacterPresentationLookup } {
+  const { presentation } = context
+  if (!presentation) throw new Error('Character presentation is missing.')
+  return { ...context, presentation }
+}
 
 /**
  * The readable pools the `resolution` scope reads. Each reader applies its own source authority and
@@ -498,12 +665,6 @@ function byLabel(left: { id: string; label: string }, right: { id: string; label
 // Registry documents passed the publication schema; authored refinements narrow its inferred DTO.
 const toClassSource = (document: ClassAuthored) =>
   toContentSnapshotIndexEntry({ subjectKind: 'CLASS', document: document as ClassAuthoredDto })
-const toBackgroundSource = (document: BackgroundAuthored) =>
-  toContentSnapshotIndexEntry({
-    subjectKind: 'BACKGROUND',
-    document: document as BackgroundAuthoredDto
-  })
-
 /** The Class pool matters only once a selected Class reaches its subclass level. */
 function isSubclassSelectionDue(character: CharacterAuthored, classes: readonly CompiledClass[]) {
   return character.intent.classes.some((selection) =>
@@ -647,8 +808,8 @@ type CharacterReferencedCatalogueReaders = {
   ): Promise<CharacterEquipmentPool | null>
   findSpell(
     candidateIds: readonly string[] | null,
-    matches: (spell: SpellAuthoredDto) => boolean
-  ): Promise<SpellAuthoredDto | null>
+    matches: (spell: ContentSnapshotIndexEntry<'SPELL'>) => boolean
+  ): Promise<ContentSnapshotIndexEntry<'SPELL'> | null>
   findFeat(
     candidateIds: readonly string[] | null,
     matches: (feat: CharacterBuilderFeatCatalogRecord) => boolean
@@ -667,7 +828,7 @@ export async function assembleCharacterReferencedBuilderContext<
 >(character: CharacterAuthored, context: TContext, readers: CharacterReferencedCatalogueReaders) {
   const { registry, catalogSources } = context
   const selected = collectCharacterRuleSourceSelections(character)
-  const idsOf = (kind: AuthoredPublicationDocument['subjectKind']) =>
+  const idsOf = (kind: SubjectKind) =>
     new Set([...selected].flatMap(([id, kinds]) => (kinds.has(kind) ? [id] : [])))
   const equipment = new Map<string, CharacterBuilderEquipmentCatalogRecord>()
   const addEquipment = (pool: CharacterEquipmentPool | null) => {
@@ -772,7 +933,7 @@ export async function prepareActiveCharacterBuilderContext<
   }
   requireSubclassParents(classes)
   return {
-    ...context,
+    ...requireCharacterPresentation(context),
     catalog: createCharacterBuilderCatalog({
       system: registry.system,
       races: catalogSources.races,

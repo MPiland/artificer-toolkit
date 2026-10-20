@@ -199,3 +199,42 @@ the stored projection".
   seeded definition record without backfilling stored rows (all 61 local rows lacked them). `importDefinitions` now
   backfills absent publication metadata on a canonical row and still refuses a different present value (proof in
   `content/import.test.ts`).
+- 2026-10-20: **PLATFORM-21.T1b** (`ci/platform-21-t1b`, D163 rulings #1 B with addendum and #2 A). Roots carry
+  `catalogue.publishedActive` for every kind (`catalogue.spell.publishedActive` removed, no alias) and RACE, CLASS
+  and BACKGROUND picker facts derived once at publish by `toContentSnapshotIndexEntry` (`rootCatalogueFacts`,
+  `catalogueMetadata.ts`). Share and parent-chain authorization (`campaigns/contentAccess.ts`,
+  `requireParentRoots`), the subclass and Spell witnesses and commit's rule publications
+  (`toCharacterRuleFactsPublication`) and the held-item capture (ruling #3: `catalogue.equipment.quote`) read root
+  rows only; Equipment pickers read `equipmentOptions.builder` with
+  no payload fallback. `compilationMigration:run` gains `backfillRootCatalogueFacts`. The Sheet evaluator no longer
+  requires presentation; the Sheet and turn-action projections require it. Proofs: `rootCatalogueFacts.test.ts` (status
+  transitions), the migration backfill test, and `commitReadBudget.test.ts` (every payload unreadable before
+  commit). Local data: the catalogue validator rejects stored `spell.publishedActive`, so the local backend needs
+  a reseed (standing approval) before the schema push.
+- 2026-10-20: **PLATFORM-21.T1b** finished in the tree (rulings #2 A and #3 A folded in). Encounter Creature
+  `equipmentSources[]` pins hold the stored compilation. The room, blueprint snapshots and `creatureLoadoutHands`
+  hydrate it, and `encounters/equipmentPinMigration` runs as steps of `compilationMigration:run`, which is now the
+  only runner. The held-item capture builds its presentation from the root and `catalogue.equipment.quote`.
+  `catalogue.publishedActive` treats an absent status as active, because canonical documents carry none and
+  publication always writes `ACTIVE`; shares and held-item capture keep their earlier behaviour. Import compiles
+  a base Race at insert, like base Equipment. Tests import canonical subjects through `importSeededSubjects`
+  (`tests/fixtures/publication.ts`): the import, then the seed's derived step. Without runtime recompilation, a
+  fixture that skips that step fails closed. Compile failure blocks publish:
+  `racePublication.test.ts` "preserves state on unauthorized, stale, invalid-parent…" refuses a compile-step
+  failure and leaves stored state unchanged; the Creature schema mirrors every compiler check, so no
+  schema-valid Creature reaches a compiler failure. Measurements: `docs/validation/platform-21-evaluation-cost.md`
+  (commit Fighter 5 313.8 KB, Wizard 5 385.9 KB, Fighter 3/Wizard 2 509.3 KB).
+  Local dev data needs, in order: a reseed (standing approval), `content/compilationMigration:run`, a format 3
+  snapshot rebuild, and a Session Worker room reset (Durable Object SQLite keeps old pins). These are known gaps,
+  dev data only. Pending contest and action pins of snapshot checksums are not rewritten.
+  `encounterBlueprintUpdates.resultJson` receipts keep the old pin shape.
+- 2026-10-20: **PLATFORM-21.T1b** CI fallout (orchestrator ruling B). Test fixtures store the compilation that
+  publication writes (`compileAsPublished`, `tests/fixtures/publication.ts`), JSON round-trip raw documents,
+  and checksum the parsed document. "JSON values only" was a fixture issue, since the product receives JSON.
+  The builder catalogue tests expect the D163 fail-closed error: there's no payload fallback, and the cycle case
+  is dropped. The Sheet's retained Spell view (`sheetProjection.ts`, "A Spell only a held item's pinned rules
+  supply…") is unreachable: it lists only Spells in `displayedSpellIds`, but spell access
+  (`characterRules.ts` `sourceKind`) covers only Class, Subclass, Race and Subrace, and
+  `buildCharacterSpellRuleFacts` walks only those features. No Equipment `SPELL_GRANT` reaches the Sheet, retained
+  or current. `retainedRulesWithoutCompile.test.ts` proves the pinned prose lookup
+  (`presentation.retainedSpells`). Equipment and Feat Spell access is a new-PBI question with the user.

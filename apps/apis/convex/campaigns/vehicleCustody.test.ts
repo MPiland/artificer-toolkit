@@ -30,8 +30,8 @@ import {
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { internal } from '../_generated/api'
-import { importedSubject } from '../../tests/fixtures/publication'
+
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -95,7 +95,7 @@ const page = (campaignId: string): CampaignPartyInventoryListInput => ({
 
 async function setup() {
   const base = await readySheetFixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
   })

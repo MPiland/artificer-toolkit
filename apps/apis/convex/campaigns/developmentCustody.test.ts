@@ -14,7 +14,7 @@ import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/
 import { characterBuilderResolveInputSchema } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { verifyCampaignMembershipLifecycle } from '../../tests/developmentCampaignMembershipLifecycle'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.js'
@@ -292,7 +292,7 @@ async function mixedCohort() {
     campaignId: base.campaign.id,
     characterId: second.characterId
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart }),
@@ -383,7 +383,7 @@ describe('development custody fixture cleanup', () => {
       campaignId: base.campaign.id,
       characterId: second.characterId
     })
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart }),
@@ -438,7 +438,7 @@ describe('development custody fixture cleanup', () => {
       campaignId: base.campaign.id,
       characterId: second.characterId
     })
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'EQUIPMENT', ...backpack, document: backpack })]
     })
@@ -600,7 +600,7 @@ describe('development custody fixture cleanup', () => {
       campaignId: base.campaign.id,
       characterId: second.characterId
     })
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart }),
@@ -922,7 +922,7 @@ describe('development custody fixture cleanup', () => {
         characterId: second.characterId
       })
     ).resolves.toEqual({ ok: true })
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart }),

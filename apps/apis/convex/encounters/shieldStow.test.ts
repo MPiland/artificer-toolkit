@@ -42,7 +42,7 @@ import {
   restrictedTo,
   useAnObjectEffectId
 } from '../../tests/fixtures/restrictedBasicAction'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { sourceImportBatches } from '../content/importBatches'
 import { api, internal } from '../_generated/api'
@@ -114,7 +114,7 @@ async function setup({
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions
     })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...shieldWood, subjectKind: 'EQUIPMENT', document: shieldWood }),

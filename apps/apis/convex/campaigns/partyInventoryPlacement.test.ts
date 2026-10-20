@@ -10,9 +10,9 @@ import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
 
 type Command = CampaignPartyInventoryMutationInput extends infer Input
   ? Input extends { kind: string }
@@ -23,7 +23,7 @@ type Command = CampaignPartyInventoryMutationInput extends infer Input
 async function setup() {
   if (fighter.category !== 'BASE') throw new Error('Expected the base Fighter.')
   const base = await readySheetFixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart }),

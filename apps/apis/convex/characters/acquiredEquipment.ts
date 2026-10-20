@@ -9,14 +9,14 @@ import {
   readReferencedRoot,
   type CharacterReferencedReads
 } from './context'
-import { readCampaignSharedRootPublication } from '../campaigns/contentAccess'
+import { readCampaignSharedActiveRoot } from '../campaigns/contentAccess'
 
 /** Refreshes only server-owned held item data, before source or assignment authority is removed. */
 export async function retainCharacterEquipmentRules(
   ctx: QueryCtx,
   character: CharacterAuthored,
   authorityScope?: import('../campaigns/authority').CampaignInternalScope,
-  reads?: Pick<CharacterReferencedReads, 'roots' | 'publications' | 'documents'>
+  reads?: Pick<CharacterReferencedReads, 'roots' | 'rulePublications'>
 ) {
   const access = await readCharacterSources(ctx, character, character.userId, authorityScope)
   const sourceIds = new Set(access.sources.map((source) => source.id))
@@ -28,17 +28,9 @@ export async function retainCharacterEquipmentRules(
     const root = await readReferencedRoot(ctx, item.equipmentId, reads)
     const current = !root
       ? null
-      : reads?.publications.has(root.id)
-        ? (reads.publications.get(root.id) ?? null)
-        : await readCharacterPublication(
-            ctx,
-            root,
-            character.systemId,
-            character.userId,
-            access,
-            undefined,
-            reads?.documents
-          )
+      : reads?.rulePublications.has(root.id)
+        ? (reads.rulePublications.get(root.id) ?? null)
+        : await readCharacterPublication(ctx, root, character.systemId, character.userId, access)
     if (!current) {
       if (!item.retainedRulesJson)
         throw new Error('Acquired Character Equipment has no usable source or retained rules.')
@@ -56,15 +48,15 @@ export async function retainCharacterEquipmentRules(
         sourceIds,
         canReadSharedRoot: async (candidate) =>
           access.campaign !== null &&
-          (await readCampaignSharedRootPublication(
+          (await readCampaignSharedActiveRoot(
             ctx,
             access.campaign,
             candidate.subjectKind,
-            candidate.id
+            candidate.id,
+            candidate
           )) !== null,
         spellRoots: () => readCharacterSourceRoots(ctx, character.systemId, access, 'SPELL'),
-        lookupRoot: (id) => readReferencedRoot(ctx, id, reads),
-        documents: reads?.documents
+        lookupRoot: (id) => readReferencedRoot(ctx, id, reads)
       }))
     snapshotsByEquipmentId.set(item.equipmentId, retainedRulesJson)
     inventory.push({ ...item, retainedRulesJson })

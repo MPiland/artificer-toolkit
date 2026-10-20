@@ -14,7 +14,7 @@ import { api, components, internal } from './_generated/api'
 import authSchema from './betterAuth/schema'
 import schema from './schema'
 import { fixture as socialFixture } from '../tests/fixtures/socialWriters'
-import { importedSubject } from '../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../tests/fixtures/publication'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 
@@ -264,7 +264,7 @@ describe('development account-deletion inspector', () => {
     const base = await socialFixture()
     const auditor = await base.addActor('F12Auditor')
     const account = await makeDraftFixtureAccount(base, base.owner.userId, auditor.userId)
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'CLASS', ...fighter, document: fighter })]
     })

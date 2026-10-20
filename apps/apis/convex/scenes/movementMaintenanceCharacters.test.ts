@@ -44,7 +44,7 @@ import {
   queueRoomRolls,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { api, internal } from '../_generated/api'
@@ -189,7 +189,7 @@ async function setup() {
     })
     return document
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: creatures.map((document) =>
       importedSubject({ ...document, subjectKind: 'CREATURE', document })

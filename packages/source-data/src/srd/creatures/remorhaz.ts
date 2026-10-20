@@ -64,13 +64,13 @@ export const remorhaz: CreatureAuthored = {
             {
               id: S.actionId(235, 801),
               order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(235, 801) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                resultKind: 'SINGLE' as const,
                 outcomes: [
                   {
                     id: S.actionId(235, 910),
@@ -79,11 +79,6 @@ export const remorhaz: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '3d6'
-                  },
-                  {
-                    id: S.actionId(235, 918),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_REMORHAZ_HEATED_BODY
                   }
                 ]
               }

@@ -1,4 +1,5 @@
 import { v5 as uuidV5 } from 'uuid'
+import { compilePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationCompile'
 import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import {
@@ -197,8 +198,9 @@ function buildRoots(
 function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapshotListSource {
   const { subjectKind, document: authored } = root
   const document = JSON.parse(JSON.stringify(authored))
-  const checksum = checksumRuleDocument(document)
   const publication = parsePublicationDocument(subjectKind, document)
+  // Publication checksums the parsed document, so the pin and its compilation agree.
+  const checksum = checksumRuleDocument(publication.document)
   const publicationVersion = {
     identity: {
       subjectKind,
@@ -217,7 +219,11 @@ function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapsho
     },
     version: 1
   }
-  const identity = { publicId: publication.document.id, publicationVersion }
+  const identity = {
+    publicId: publication.document.id,
+    publicationVersion,
+    compilation: compilePublicationDocument(publication)
+  }
   if (publication.subjectKind === 'SPELL') {
     const school = srdSystemRecord.magicSchools.find(
       ({ id }) => id === publication.document.magicSchoolId
@@ -267,7 +273,7 @@ export function buildSrdSourceKinds(
   ] as const
   return kinds.map((kind) => {
     const header = {
-      format: 2 as const,
+      format: 3 as const,
       scope: 'SOURCE' as const,
       scopeId: SRD_CONTENT_SOURCE.id,
       kind

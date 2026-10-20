@@ -16,6 +16,7 @@ import { prepareCharacterBuilderFromContext } from './builderPreparation.js'
 import {
   assembleCharacterBuilderContext,
   prepareCharacterRuleContext,
+  requireCharacterPresentation,
   type CharacterBuilderCatalogueReaders,
   type CharacterRuleContextReaders
 } from './contextPreparation.js'
@@ -50,7 +51,9 @@ async function assembleSnapshotContext(
   }
   const context = await assembleCharacterBuilderContext(
     character,
-    await prepareCharacterRuleContext(character, input.system, undefined, readers),
+    requireCharacterPresentation(
+      await prepareCharacterRuleContext(character, input.system, undefined, readers)
+    ),
     { scope, readers }
   )
   return { character, context }

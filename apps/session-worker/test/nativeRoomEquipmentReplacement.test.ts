@@ -146,9 +146,10 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     expect(source).toMatchObject({
       loadoutEntryId: room.heldEntryId,
       equipmentId: compatibleGreatclub.id,
-      payload: { id: compatibleGreatclub.id, label: compatibleGreatclub.label }
+      compiled: { id: compatibleGreatclub.id, label: compatibleGreatclub.label }
     })
-    expect(source!.sourceChecksum).toBe(checksumRuleDocument(source!.payload))
+    expect(source!.sourceChecksum).toBe(checksumRuleDocument(compatibleGreatclub))
+    expect(source!.compilation.authoredChecksum).toBe(source!.sourceChecksum)
     expect(after.currentHitPoints).toBe(before.currentHitPoints)
 
     const replay = await room.replace({

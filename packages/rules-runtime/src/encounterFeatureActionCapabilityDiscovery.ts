@@ -7,7 +7,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import { collectOnHitRiders, mergeOnHitRiders } from './character/characterOnHitRiders.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
-import { placedSpaceManifest } from './encounterZonePlacement.js'
+import { passiveMeleeRetaliationZone, placedSpaceManifest } from './encounterZonePlacement.js'
 import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
 import { reduceEffectRestrictions } from './systems/dnd5e/attackRestrictions.js'
 import {
@@ -663,7 +663,14 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
             const damageGrant =
               passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
             const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
-            if (passive && !damageGrant && !hpZero && !placedSpaceManifest(compiledEffect)) continue
+            if (
+              passive &&
+              !damageGrant &&
+              !hpZero &&
+              !placedSpaceManifest(compiledEffect) &&
+              !passiveMeleeRetaliationZone(compiledEffect, label)
+            )
+              continue
             const equipmentBinding = entryEquipmentBinding(input.actor, entry, compiledEffect)
             const normalized = bindEffect(adapter, {
               gameSystemId,

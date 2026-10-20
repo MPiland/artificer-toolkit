@@ -11,7 +11,8 @@ import {
   type ContentSnapshotManifestDto
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { compilePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationCompile'
+import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
 import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -39,8 +40,9 @@ function document(scope: 'SOURCE' | 'CAMPAIGN', scopeId: string, label = 'Source
     size: 'MEDIUM',
     speeds: []
   }
+  const compilation = compilePublicationDocument(parsePublicationDocument('RACE', root))
   return contentSnapshotDocumentsObjectSchema.parse({
-    format: 2,
+    format: 3,
     scope,
     scopeId,
     kind: 'RACE',
@@ -54,12 +56,13 @@ function document(scope: 'SOURCE' | 'CAMPAIGN', scopeId: string, label = 'Source
           systemId,
           contentSourceId: scope === 'SOURCE' ? scopeId : sourceId,
           versionId: rootId,
-          checksum: checksumRuleDocument(root)
+          checksum: compilation.authoredChecksum
         },
         version: 1,
         storedParentId: null
       }
-    ]
+    ],
+    compilations: [compilation]
   })
 }
 
@@ -168,9 +171,9 @@ describe('room content snapshots', () => {
       'Campaign share',
       'Campaign share'
     ])
-    expect((await createSnapshotReaders(objects).readPublication(rootId))?.document.label).toBe(
-      'Source race'
-    )
+    expect(
+      (await createSnapshotReaders(objects).readPublication(rootId))?.presentation?.label
+    ).toBe('Source race')
     expect((await createSnapshotReaders(objects).readRaces()).map((race) => race.label)).toEqual([
       'Source race'
     ])
@@ -272,7 +275,10 @@ describe('room content snapshots', () => {
               ...original,
               roots: [...original.roots, ...original.roots],
               ...(original.part === 'documents'
-                ? { versions: [...original.versions, ...original.versions] }
+                ? {
+                    versions: [...original.versions, ...original.versions],
+                    compilations: [...original.compilations, ...original.compilations]
+                  }
                 : {})
             })
           if (failure !== 'hash') {

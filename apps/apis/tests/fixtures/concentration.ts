@@ -18,7 +18,7 @@ import { readReceiptHeaders } from '../../convex/lib/receiptLedgers'
 import { sourceImportBatches } from '../../convex/content/importBatches'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { setupCharacterRun } from './encounterCharacter'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 import { activateFixtureRun } from './activeInitiative'
 import { readEncounterHistory } from './localRoomWorker'
@@ -100,7 +100,7 @@ export async function setupConcentration(
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions
     })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ ...source.creature, subjectKind: 'CREATURE', document: source.creature })

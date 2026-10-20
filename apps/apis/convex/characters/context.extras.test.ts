@@ -8,14 +8,14 @@ import { rowboat } from '@artificer-toolkit/source-data/srd/vehicles/rowboat.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { srdPrintedArmorClass, srdWolf } from '../../tests/fixtures/srdCreatures'
-import { importedSubject } from '../../tests/fixtures/publication'
-import { api, internal } from '../_generated/api'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import { api } from '../_generated/api'
 import { loadCharacterRuleContext } from './context'
 
 describe('current Character extra sources', () => {
   it('loads selected current Creature/Vehicle documents once and supplies companion policy facts', async () => {
     const { t, owner, other } = await fixture()
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({ subjectKind: 'CREATURE', ...cat, document: { ...cat, features: [] } }),
@@ -141,7 +141,7 @@ describe('current Character extra sources', () => {
         }
       ]
     }
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [
         importedSubject({

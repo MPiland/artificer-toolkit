@@ -5,11 +5,11 @@ import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { api, internal } from '../../convex/_generated/api'
+import { api } from '../../convex/_generated/api'
 import { readCharacterRow } from '../../convex/characters/stateDocuments'
 import { readReceiptHeaders } from '../../convex/lib/receiptLedgers'
 import { fixture, input } from './characters'
-import { importedSubject } from './publication'
+import { importedSubject, importSeededSubjects } from './publication'
 
 export async function readyCharacterFixture(
   {
@@ -79,7 +79,7 @@ export async function readyCharacterFixture(
     proficiencies: [],
     startingEquipment: { ...sourceClass.startingEquipment!, sets: [] }
   }
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({ subjectKind: 'RACE', ...human, document: { ...human, features: [] } }),

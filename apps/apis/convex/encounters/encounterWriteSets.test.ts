@@ -10,7 +10,7 @@ import { api, internal } from '../_generated/api'
 import schema from '../schema'
 import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { playerControlFixture, type PlayerControlFixture } from '../../tests/fixtures/playerControl'
 import {
   attachFixtureRoom,
@@ -205,7 +205,7 @@ async function tiedStart(actors: number) {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions
   })
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
   })

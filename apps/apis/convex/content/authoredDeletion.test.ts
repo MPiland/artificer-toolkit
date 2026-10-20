@@ -44,7 +44,7 @@ import {
 import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -637,7 +637,7 @@ describe('native authored deletion source-loss cleanup', () => {
 
   it('preserves Vehicle item trees, currency groups and loose balances with correlated audit', async () => {
     const base = await readySheetFixture()
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
     })

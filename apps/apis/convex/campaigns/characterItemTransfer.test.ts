@@ -26,7 +26,7 @@ import { pouch } from '@artificer-toolkit/source-data/srd/equipment/pouch.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { editCharacterRecord, writeCharacterRecord } from '../../tests/fixtures/characterRecords'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
@@ -64,7 +64,7 @@ const idFor = (index: number) => `70000000-0000-4000-8000-${String(index).padSta
 
 async function setup() {
   const base = await readySheetFixture()
-  await base.t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [backpack, pouch].map((equipment) =>
       importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })
@@ -426,7 +426,7 @@ describe('native Character item custody', () => {
   it('settles Character cargo through unavailable Vehicle rules and keeps player Vehicle sourcing owner-only', async () => {
     const base = await setup()
     const itemId = idFor(41)
-    await base.t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(base.t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'VEHICLE', ...cart, document: cart })]
     })

@@ -33,7 +33,7 @@ import { owl as rawOwl } from '@artificer-toolkit/source-data/srd/creatures/owl.
 import schema from '../schema'
 import authSchema from '../betterAuth/schema'
 import { startLocalR2 } from '../../tests/localR2'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { readImageSlot } from '../content/imageSlots'
 import { srdCreatureRecord } from '../../tests/fixtures/srdCreatures'
 
@@ -86,7 +86,7 @@ beforeEach(async () => {
     contentSource: SRD_CONTENT_SOURCE,
     catalogue: SRD_RULES_CATALOGUE
   })
-  await t.mutation(internal.content.import.importSubjects, {
+  await importSeededSubjects(t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
       importedSubject({
@@ -223,7 +223,7 @@ function publicationInput(item: AuthoredDraftResult) {
 
 describe('authored image media', () => {
   it('reads canonical Owl artwork bindings and keeps master artwork immutable', async () => {
-    await t.mutation(internal.content.import.importSubjects, {
+    await importSeededSubjects(t, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: [importedSubject({ subjectKind: 'CREATURE', ...owl, document: owl })]
     })
@@ -282,7 +282,7 @@ describe('authored image media', () => {
     'publishes $subjectKind artwork, isolates a working removal and denies foreign access',
     async (subject) => {
       if (subject.subjectKind === 'SPELL') {
-        await t.mutation(internal.content.import.importSubjects, {
+        await importSeededSubjects(t, {
           contentSourceId: SRD_CONTENT_SOURCE.id,
           subjects: [
             importedSubject({
@@ -304,7 +304,7 @@ describe('authored image media', () => {
         })
       }
       if (subject.subjectKind === 'CREATURE') {
-        await t.mutation(internal.content.import.importSubjects, {
+        await importSeededSubjects(t, {
           contentSourceId: SRD_CONTENT_SOURCE.id,
           subjects: [importedSubject({ subjectKind: 'CREATURE', ...cat, document: cat })]
         })
@@ -315,7 +315,7 @@ describe('authored image media', () => {
           ...human,
           document: human
         })
-        await t.mutation(internal.content.import.importSubjects, {
+        await importSeededSubjects(t, {
           contentSourceId: SRD_CONTENT_SOURCE.id,
           subjects: [canonical]
         })
@@ -400,7 +400,7 @@ describe('authored image media', () => {
     'binds a $subjectKind artwork upload to the owning caller and draft',
     async (subject) => {
       const race = importedSubject({ subjectKind: 'RACE', ...human, document: human })
-      await t.mutation(internal.content.import.importSubjects, {
+      await importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [
           importedSubject({ subjectKind: 'CLASS', ...sorcerer, document: sorcerer }),
