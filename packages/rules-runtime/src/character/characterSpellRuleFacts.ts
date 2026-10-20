@@ -17,15 +17,16 @@ type SupportedSpellSource = Extract<
 >
 
 type CandidateSource = {
-  kind: SupportedSpellSource['kind']
   id: string
-  /** The acquisition that owns a chosen option; the Builder keys the option's chosen grants by it. */
-  acquiredParentId?: string
   owningClassId: string | null
   activeLevel: number
   specializationId: string | null
   inheritedFeatureIds: ReadonlySet<string>
-}
+} & (
+  | { kind: Exclude<SupportedSpellSource['kind'], 'OPTION'>; acquiredParentId?: undefined }
+  /** The acquisition owning a chosen option; the Builder keys the option's chosen grants by it. */
+  | { kind: 'OPTION'; acquiredParentId: string }
+)
 
 function collectSpecializationRestrictionIds(restrictions: unknown): string[] | null {
   const ids: string[] = []
@@ -134,7 +135,7 @@ function sourceProvenance(source: CandidateSource): SupportedSpellSource {
     case 'OPTION':
       return {
         kind: source.kind,
-        acquiredParentId: source.acquiredParentId ?? '',
+        acquiredParentId: source.acquiredParentId,
         optionId: source.id
       }
   }
@@ -143,7 +144,7 @@ function sourceProvenance(source: CandidateSource): SupportedSpellSource {
 function sourceInstanceId(source: CandidateSource, featureId: string, grantId: string): string {
   // The acquisition already names the feature and class an option belongs to, and action source ids
   // are bounded, so an option's identity stays short.
-  if (source.acquiredParentId) {
+  if (source.kind === 'OPTION') {
     return `${source.kind}:${source.acquiredParentId}:${source.id}:${grantId}`
   }
   return source.owningClassId

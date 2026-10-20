@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 
 import {
   buildCharacterSpellRuleFacts,
@@ -72,16 +73,20 @@ describe('chosen-feature spell access (SPELLS-31.T5t)', () => {
   it('reads a Feat once, whatever number of its features were acquired', () => {
     const featId = 'feat-test'
     const featureId = 'feat-test-feature'
-    const registry = {
+    const registry: CharacterAssemblyRegistry = {
       ...srdRegistry,
       feats: {
-        [featId]: { id: featId, spells: [{ ...chainsGrant, id: 'feat-root-grant' }] }
+        [featId]: {
+          id: featId,
+          label: 'Test feat',
+          spells: [{ ...chainsGrant, id: 'feat-root-grant' }]
+        }
       },
       features: {
         ...srdRegistry.features,
         [featureId]: { label: 'Feat feature', spells: [{ ...chainsGrant, id: 'feat-child-grant' }] }
       }
-    } as unknown as typeof srdRegistry
+    }
     const character = evaluateSrdCharacter({
       classes: [{ label: 'Fighter', level: 4 }],
       features: [
@@ -122,13 +127,13 @@ describe('chosen-feature spell access (SPELLS-31.T5t)', () => {
   it('reads a Background feature as character-level access', () => {
     const backgroundId = 'background-test'
     const featureId = 'background-test-feature'
-    const registry = {
+    const registry: CharacterAssemblyRegistry = {
       ...srdRegistry,
       features: {
         ...srdRegistry.features,
         [featureId]: { label: 'Background feature', spells: [chainsGrant] }
       }
-    } as unknown as typeof srdRegistry
+    }
     const character = evaluateSrdCharacter({
       classes: [{ label: 'Fighter', level: 3 }],
       features: [
