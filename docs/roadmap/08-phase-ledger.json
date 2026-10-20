@@ -12481,18 +12481,31 @@
               "note": "2026-10-20 ruling: data conversion with parity proofs (spell list, DC and slots stay visible to the GM); the room cast proof moves to T3c because creature SPELL_GRANTs are not castable in a room yet. Merged m238 (7f5b03598): 8 casters author per-level slot charges; 8 spellcasting kinds deleted; parity proof creatureSpellSlotsAuthoringParity.test.ts."
             },
             {
-              "id": "SPELLS-33.T3c",
+              "id": "SPELLS-33.T3c1",
               "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T3b"]
+              },
+              "text": "Feature-level spell slot table (split from T3c, ruled 2026-10-20): grants.spellSlots { id, resetKind, levels[{ level, amount }] } through schema, shared authoring, compiler, node map and web defaults; T3b casters become one table plus SPELL_SLOT-mode spell grants; parity proof keeps the GM description and slot counts. No runtime change."
+            },
+            {
+              "id": "SPELLS-33.T3c2",
+              "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T3b"]
+                "after": ["SPELLS-33.T3c1"]
               },
-              "text": "Creature spell grants cast in the room (found by T3b, 2026-10-20): creatureFeatureGrantFold folds creature SPELL_GRANTs to no spells, and grant handling (cast at level, limited use, slot charges) is Character-only. A creature with authored spell grants offers those spells, casts them through the existing cast path, spends its slot or use with undo, and refreshes on its rest. Room journey: a converted SRD caster casts a levelled spell and spends the slot. Slots are authored per spell level today (one charge pool per level), so a creature cannot spend a higher slot on a lower-level spell; T3c makes the slot pool spendable at or above the spell level (upcast) or records why not.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "text": "Creature spell grants cast in the room (split from T3c, ruled 2026-10-20): one holder-agnostic cast candidate builder for Characters and creatures (no Character assertion changes); creature fold; a cast spends a slot at or above the spell level, preferring the exact level, through actor.resources.featureCharges; undo and rest refresh proofs; room journey: the SRD Mage casts a levelled spell, including a low spell from a higher slot."
             },
             {
               "id": "SPELLS-33.T4c",
