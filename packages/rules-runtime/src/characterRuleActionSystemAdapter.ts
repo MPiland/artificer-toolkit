@@ -345,6 +345,8 @@ export type CharacterHitPointOutcomeApplication =
       damageDisposition: DamageDispositionDto
       /** A critical hit: damage at 0 hit points adds two death save failures (D96). */
       critical: boolean
+      /** The held effect whose damage interception left the target above 0 hit points instead. */
+      interceptedBy?: string
     })
 
 export interface CharacterConditionApplyOutcomeApplication {
@@ -405,6 +407,17 @@ export interface CharacterKillOutcomeApplication {
   targetActorId: string
 }
 
+/** A kill a held damage interception negated: nothing changes, and the interception's use is spent. */
+export interface CharacterKillNegatedOutcomeApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'KILL_NEGATED'
+  targetActorId: string
+  negatedBy: string
+}
+
 /** A System-authorized departure: the target leaves the Run's play (D128). */
 export interface CharacterDepartOutcomeApplication {
   sourceNodeId: string
@@ -459,6 +472,7 @@ export type CharacterRuleActionApplication =
   | CharacterTemporaryHitPointsReleaseApplication
   | CharacterStabilizeOutcomeApplication
   | CharacterKillOutcomeApplication
+  | CharacterKillNegatedOutcomeApplication
   | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication
   | CharacterScalarReductionApplication
