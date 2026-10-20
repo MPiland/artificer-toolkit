@@ -2,16 +2,26 @@ import { describe, expect, it } from 'vitest'
 
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import {
+  AUTHORED_SOURCE_FACTS_VERSION,
   authoredNodeRuntimeSourceFactsSchema,
   nodeRuntimeSourceManifest,
   type AuthoredNodeRuntimeSourceFacts,
   type NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { AuthoredDocumentVersion } from '@artificer-toolkit/schema/projections/authoredContent'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { authoredSourceFacts } from './authoredSourceFacts.js'
+import { authoredSourceFacts, authoredSourceKindsByTable } from './authoredSourceFacts.js'
 
 const checksum = 'a'.repeat(64)
+/**
+ * The derivation shape each facts version produced. A derivation change fails the drift guard
+ * until AUTHORED_SOURCE_FACTS_VERSION is bumped and its new shape added here; never re-pin an
+ * existing version, or stored facts from the old derivation are mistaken for current ones.
+ */
+const factsShapeByVersion: Readonly<Record<number, string>> = {
+  1: 'bd9f89f9203754081a83156523106116d6940867a2d308ddc1aa85d4f4c602c3'
+}
 const subjectKinds = {
   backgrounds: 'BACKGROUND',
   classes: 'CLASS',
@@ -76,6 +86,35 @@ describe('authoredSourceFacts', () => {
     const sourceBytes = facts.reduce((size, fact) => size + JSON.stringify(fact.rows).length, 0)
     const documentBytes = JSON.stringify(srdBaselineContent.subjects).length
     expect(sourceBytes).toBeLessThan(documentBytes)
+  })
+
+  it('pins the facts version to the shape its derivation produces from the SRD corpus', () => {
+    const derived = Object.entries(srdBaselineContent.subjects).flatMap(([kind, subjects]) =>
+      subjects.flatMap((document: unknown) => {
+        const subjectKind = subjectKinds[kind as keyof typeof subjectKinds]
+        const facts = authoredSourceFacts(version(subjectKind, document))
+        expect(facts.factsVersion).toBe(AUTHORED_SOURCE_FACTS_VERSION)
+        return Object.entries(facts.rows).map(([table, rows]) => ({
+          subjectKind,
+          table,
+          columns: [...new Set((rows ?? []).flatMap((row) => Object.keys(row)))].sort()
+        }))
+      })
+    )
+    const shape = {
+      kindsByTable: authoredSourceKindsByTable,
+      derived: [...new Map(derived.map((entry) => [JSON.stringify(entry), entry])).values()].sort(
+        (left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))
+      )
+    }
+
+    expect(new Set(Object.values(factsShapeByVersion)).size).toBe(
+      Object.keys(factsShapeByVersion).length
+    )
+    expect(Math.max(...Object.keys(factsShapeByVersion).map(Number))).toBe(
+      AUTHORED_SOURCE_FACTS_VERSION
+    )
+    expect(checksumRuleDocument(shape)).toBe(factsShapeByVersion[AUTHORED_SOURCE_FACTS_VERSION])
   })
 
   it('projects a triggering-weapon damage outcome with no fixed damage type', () => {

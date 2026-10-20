@@ -3,6 +3,7 @@ import { runToCompletion } from '@convex-dev/migrations'
 import migrations from '@convex-dev/migrations/test'
 import { describe, expect, it } from 'vitest'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
+import { AUTHORED_SOURCE_FACTS_VERSION } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import {
   sourceImportDefinitionDtoSchema,
   sourceImportSubjectDtoSchema,
@@ -444,7 +445,11 @@ describe('internal canonical source import', () => {
       const roots = await ctx.db.query('authoredRoots').withIndex('by_publicId').take(3)
       await ctx.db.patch(roots[0]._id, { authoringSources: undefined })
       await ctx.db.patch(roots[1]._id, {
-        authoringSources: { checksum: roots[1].checksum, rows: {} }
+        authoringSources: {
+          checksum: roots[1].checksum,
+          factsVersion: AUTHORED_SOURCE_FACTS_VERSION,
+          rows: {}
+        }
       })
       return ctx.db.query('authoredRoots').withIndex('by_publicId').take(3)
     })
@@ -510,6 +515,40 @@ describe('internal canonical source import', () => {
     await expect(t.query(internal.content.import.readSubjects, page)).rejects.toThrow(
       'Canonical content conflict.'
     )
+  })
+
+  it('re-derives canonical source facts that an older or unversioned derivation stored', async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.content.import.bootstrap, bootstrap)
+    const input = { contentSourceId: sourceId, subjects: [subject()] }
+    await t.mutation(internal.content.import.importSubjects, input)
+    const root = await t.run((ctx) =>
+      ctx.db
+        .query('authoredRoots')
+        .withIndex('by_publicId', (q) => q.eq('id', acolyte.id))
+        .unique()
+    )
+    if (!root?.authoringSources) throw new Error('Missing projected source fixture')
+    expect(root.authoringSources.factsVersion).toBe(AUTHORED_SOURCE_FACTS_VERSION)
+    const tables = Object.keys(root.authoringSources.rows)
+    expect(tables.length).toBeGreaterThan(1)
+    // An older derivation produced no rows for a table the current one derives, and no version.
+    await t.run((ctx) =>
+      ctx.db.patch(root._id, {
+        authoringSources: {
+          checksum: root.authoringSources!.checksum,
+          rows: Object.fromEntries(
+            Object.entries(root.authoringSources!.rows).filter(([table]) => table !== tables.at(-1))
+          )
+        }
+      })
+    )
+    expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
+      inserted: 0,
+      reused: 1,
+      replaced: 0
+    })
+    expect(await t.run((ctx) => ctx.db.get(root._id))).toEqual(root)
   })
 
   it('backfills catalogue metadata and counts exactly once, rejecting stale metadata', async () => {

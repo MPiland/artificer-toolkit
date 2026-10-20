@@ -224,13 +224,18 @@ root labels and resolver-reachable feature/option/grant/effect/ancestry relation
 Equipment categories/properties. These are read metadata, not independently editable domain records;
 the reader uses indexed master/owner ranges, never other owners' roots or unpublished drafts.
 Import derives these facts from the validated document; publication must update them atomically
-with the current version. Exact import replay may backfill missing facts after verifying the
-unchanged root and version. Conflicting facts reject rather than overwrite.
+with the current version. Stored facts carry `factsVersion`, the `AUTHORED_SOURCE_FACTS_VERSION`
+of the derivation that produced them; bump it whenever `authoredSourceFacts` derives different
+rows from the same document (a drift-guard test fails until it is bumped). Exact import replay
+backfills missing facts and re-derives facts from an older or absent version after verifying the
+unchanged root and version. Same-version facts that differ reject rather than overwrite.
+Resolver reads reject a superseded version.
 
 The internal `content/sourceMigrations:backfillAuthoringSources` uses the official migrations
-component to process existing master and owned current roots one document per batch. It validates
-source ownership, exact current version, normalized document and checksum before filling absent
-metadata; conflicting facts reject. It never rewrites authored content, UUIDs or versions.
+component to process existing master and owned current roots one document per batch; it is also
+the first step of `content/compilationMigration:run`. It validates source ownership, exact current
+version, normalized document and checksum before filling absent metadata or re-deriving an older
+version; same-version conflicting facts reject. It never rewrites authored content, UUIDs or versions.
 
 Inline options are complete or fail: 100 caller-visible content sources and 500 definitions or visible
 roots per subject kind, never silent truncation. Missing/stale facts or unsupported source keys

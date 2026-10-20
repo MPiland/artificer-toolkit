@@ -23,6 +23,7 @@ import {
 } from '@artificer-toolkit/schema/api/sourceImport'
 import { authoredDocumentVersionSchema } from '@artificer-toolkit/schema/projections/authoredContent'
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
+import { AUTHORED_SOURCE_FACTS_VERSION } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import {
   reusableDefinitionDocumentDtoSchema,
@@ -461,7 +462,9 @@ export const importSubjects: RegisteredMutation<
                 : equipmentOptions
           })
         }
-        if (storedAuthoringSources !== undefined) exact(storedAuthoringSources, authoringSources)
+        // Facts from an older derivation are re-derived; same-version facts that differ conflict.
+        if (current.authoringSources?.factsVersion === AUTHORED_SOURCE_FACTS_VERSION)
+          exact(storedAuthoringSources, authoringSources)
         else await ctx.db.patch(current._id, { authoringSources })
         const catalogue = await catalogueMetadata(ctx, parsed.document, {
           checksum: subject.checksum,

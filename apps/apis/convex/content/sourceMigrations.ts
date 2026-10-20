@@ -1,5 +1,6 @@
 import { Migrations } from '@convex-dev/migrations'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
+import { AUTHORED_SOURCE_FACTS_VERSION } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import { authoredDocumentVersionSchema } from '@artificer-toolkit/schema/projections/authoredContent'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { components } from '../_generated/api'
@@ -30,7 +31,8 @@ export const backfillAuthoringSources = migrations.define({
     if (checksumRuleDocument(parsed.document) !== root.checksum)
       throw new Error('Stored authored content is not schema-normalized.')
     const authoringSources = authoredSourceFacts(parsed)
-    if (root.authoringSources !== undefined) {
+    // Facts from an older derivation are re-derived; same-version facts that differ conflict.
+    if (root.authoringSources?.factsVersion === AUTHORED_SOURCE_FACTS_VERSION) {
       if (checksumRuleDocument(root.authoringSources) !== checksumRuleDocument(authoringSources))
         throw new Error('Stored authoring source facts conflict.')
       return
