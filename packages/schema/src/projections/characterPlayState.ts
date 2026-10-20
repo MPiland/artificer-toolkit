@@ -15,7 +15,8 @@ import { characterSheetStateSchema } from './characterSheetState.js'
 export const characterPlayStateSchema = lazySchema(() => {
   const { hitpoints, inspiration, resources, spellSlots, conditions, exhaustion, equipment } =
     characterStateDtoSchema.shape
-  const { resourceUsage, itemUsage, partyVisibility } = characterSheetStateSchema.shape
+  const { resourceUsage, itemUsage, itemDegradation, partyVisibility } =
+    characterSheetStateSchema.shape
   return z.strictObject({
     hitpoints,
     inspiration,
@@ -27,6 +28,7 @@ export const characterPlayStateSchema = lazySchema(() => {
     attuned: equipment.shape.attuned,
     resourceUsage,
     itemUsage,
+    itemDegradation,
     partyVisibility
   })
 })
@@ -54,6 +56,7 @@ export const characterSheetStructureSchema = lazySchema(() =>
   z.omit(characterSheetStateSchema, {
     resourceUsage: true,
     itemUsage: true,
+    itemDegradation: true,
     partyVisibility: true
   })
 )
@@ -79,32 +82,40 @@ interface CharacterSplitState {
 /** The play fields that live in the Character `state`. */
 type CharacterStatePlay = Omit<
   CharacterPlayState,
-  'resourceUsage' | 'itemUsage' | 'partyVisibility'
+  'resourceUsage' | 'itemUsage' | 'itemDegradation' | 'partyVisibility'
 >
 /** The play fields that live in the Sheet state. */
 type CharacterSheetStatePlay = Pick<
   CharacterPlayState,
-  'resourceUsage' | 'itemUsage' | 'partyVisibility'
+  'resourceUsage' | 'itemUsage' | 'itemDegradation' | 'partyVisibility'
 >
 type CharacterInventory = CharacterState['equipment']['inventory']
 type CharacterEquipped = CharacterState['equipment']['equipped']
 type ItemUsage = CharacterPlayState['itemUsage']
+type ItemDegradation = CharacterPlayState['itemDegradation']
 
 const usedById = (itemUsage: ItemUsage) =>
   new Map(itemUsage.map((usage) => [usage.itemInstanceId, usage.used]))
 
 /**
- * The inventory a reader sees: each stored row less what play has used up. A row with none left is
- * hidden from every reader. Pure.
+ * The inventory a reader sees: each stored row less what play has used up, carrying the corrosion
+ * play has put on it. A row with none left is hidden from every reader. Pure.
  */
 export function effectiveInventory(
   inventory: CharacterInventory,
-  itemUsage: ItemUsage
+  itemUsage: ItemUsage,
+  itemDegradation: ItemDegradation = []
 ): CharacterInventory {
   const used = usedById(itemUsage)
+  const degradation = new Map(
+    itemDegradation.map(({ itemInstanceId, penalty }) => [itemInstanceId, penalty])
+  )
   return inventory.flatMap((item) => {
     const quantity = item.quantity - (used.get(item.id) ?? 0)
-    return quantity > 0 ? [{ ...item, quantity }] : []
+    const penalty = degradation.get(item.id)
+    return quantity > 0
+      ? [{ ...item, quantity, ...(penalty === undefined ? {} : { degradation: penalty }) }]
+      : []
   })
 }
 
@@ -139,7 +150,7 @@ export function storeInventory(
 ): { inventory: CharacterInventory; itemUsage: ItemUsage } {
   const baseUsed = usedById(base?.itemUsage ?? [])
   const editedIds = new Set(edited.map((item) => item.id))
-  const inventory = edited.map((item) => ({
+  const inventory = edited.map(({ degradation: _derived, ...item }) => ({
     ...item,
     quantity: item.quantity + (baseUsed.get(item.id) ?? 0)
   }))
@@ -226,8 +237,8 @@ function splitCharacterSheetStatePlay(sheetState: CharacterSheetState): {
   structure: CharacterSheetStructure
   play: CharacterSheetStatePlay
 } {
-  const { resourceUsage, itemUsage, partyVisibility, ...structure } = sheetState
-  return { structure, play: { resourceUsage, itemUsage, partyVisibility } }
+  const { resourceUsage, itemUsage, itemDegradation, partyVisibility, ...structure } = sheetState
+  return { structure, play: { resourceUsage, itemUsage, itemDegradation, partyVisibility } }
 }
 
 /** The inverse of `splitCharacterSheetStatePlay`: the Sheet state from its structure and play. */
@@ -239,6 +250,7 @@ export function mergeCharacterSheetStatePlay(
     ...structure,
     resourceUsage: play.resourceUsage,
     itemUsage: play.itemUsage,
+    itemDegradation: play.itemDegradation,
     partyVisibility: play.partyVisibility
   }
 }

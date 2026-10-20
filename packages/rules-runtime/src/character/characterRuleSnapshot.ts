@@ -294,6 +294,7 @@ export function assembleCharacterRuleSnapshot(
         },
         ...(slot ? { equippedState: { slot } } : {}),
         attuned: attunedIds.has(item.id),
+        ...(item.degradation === undefined ? {} : { degradation: item.degradation }),
         compiledItem
       }
     ]

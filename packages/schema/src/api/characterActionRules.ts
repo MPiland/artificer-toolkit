@@ -100,7 +100,9 @@ const actionEquipmentStateSchema = lazySchema(() =>
     /** Another weapon is equipped: attacking with this item is not wielding it alone (Dueling). */
     otherWeaponEquipped: booleanSchema,
     /** Using this item's action uses one up (the item's `CONSUMED_ON_USE` attribute). */
-    consumedOnUse: booleanSchema
+    consumedOnUse: booleanSchema,
+    /** Corrosion on this item: its damage rolls lose this much. */
+    degradation: z.optional(integerSchema.check(z.gte(1)))
   })
 )
 

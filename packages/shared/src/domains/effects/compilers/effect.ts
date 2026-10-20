@@ -227,6 +227,7 @@ export type CompiledEffectOutcome =
   | import('#authored').CancelTriggeringEventAuthored
   | import('#authored').SourceImmunityAuthored
   | import('#authored').ReleaseChosenItemAuthored
+  | import('#authored').DegradeEquipmentAuthored
   | ClosedRuleAuthored
   | import('#authored').TeleportAuthored
   | import('#authored').ManualAdjudicationAuthored
@@ -342,6 +343,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.CANCEL_TRIGGERING_EVENT:
     case EFFECT_KIND.SOURCE_IMMUNITY:
     case EFFECT_KIND.RELEASE_CHOSEN_ITEM:
+    case EFFECT_KIND.DEGRADE_EQUIPMENT:
     case EFFECT_KIND.CLOSED_RULE:
     case EFFECT_KIND.MANUAL_ADJUDICATION:
       return [outcome]
