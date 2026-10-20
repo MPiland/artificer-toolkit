@@ -70,22 +70,24 @@ const initiativeResponse = (
       updatedAt: NOW
     },
     sides: [],
-    participants: Object.entries(statuses).map(([actorId, status], turnOrderOrdinal) => ({
-      encounterId: testUuid(0xf12),
-      round,
-      actorId,
-      sideId: testUuid(0xf13),
-      status,
-      initiativeScore: null,
-      evaluation: { occurrenceId: null, resultChecksum: null },
-      tie: { occurrenceId: null, resultChecksum: null },
-      declaration: null,
-      declarationChecksum: null,
-      turnOrderOrdinal,
-      version: 0,
-      createdAt: NOW,
-      updatedAt: NOW
-    }))
+    participants: Object.entries(statuses)
+      .sort(([left], [right]) => (left < right ? -1 : 1))
+      .map(([actorId, status], turnOrderOrdinal) => ({
+        encounterId: testUuid(0xf12),
+        round,
+        actorId,
+        sideId: testUuid(0xf13),
+        status,
+        initiativeScore: null,
+        evaluation: { occurrenceId: null, resultChecksum: null },
+        tie: { occurrenceId: null, resultChecksum: null },
+        declaration: null,
+        declarationChecksum: null,
+        turnOrderOrdinal,
+        version: 0,
+        createdAt: NOW,
+        updatedAt: NOW
+      }))
   })
 })
 
