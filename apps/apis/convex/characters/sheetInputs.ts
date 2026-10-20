@@ -121,7 +121,8 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
           {},
           true
         )
-        if (spell.subjectKind !== 'SPELL') throw new Error('Referenced Character Spell is unavailable.')
+        if (spell.subjectKind !== 'SPELL')
+          throw new Error('Referenced Character Spell is unavailable.')
         currentSpellsById.set(spellId, spell)
         spellsById.set(spellId, hydrateCharacterRuleSpell(character, spell))
         publications.set(spellId, published)

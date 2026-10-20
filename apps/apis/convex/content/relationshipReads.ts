@@ -85,7 +85,7 @@ export async function requireParentRoots(
   const seen = new Set([root.id])
   // Only Race, Class and Equipment roots have a parent id; every other kind ends here.
   const kind = root.subjectKind as keyof typeof PARENT_REQUIRED
-  for (let parentId = rootParentId(root); parentId !== null; ) {
+  for (let parentId = rootParentId(root); parentId !== null;) {
     if (seen.has(parentId)) {
       if (kind === 'EQUIPMENT') throw new Error('Equipment variant cycle detected.')
       throw new Error(PARENT_REQUIRED[kind])

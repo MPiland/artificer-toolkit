@@ -8,6 +8,7 @@ import { hydrateStoredCompilation } from '@artificer-toolkit/rules-runtime/autho
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { authoredStoredCompilationSchema } from '@artificer-toolkit/schema/api/authoredPublication'
 import { internal } from '../_generated/api'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -50,7 +51,8 @@ async function fixtureWithLegacyPin() {
     sourceChecksum: checksumRuleDocument(club),
     payload: JSON.parse(JSON.stringify(club))
   }
-  return { base, stored: stored.compilation, legacyPin }
+  // Import stores the current compiler's output, so the pinned compilation parses as current.
+  return { base, stored: authoredStoredCompilationSchema.parse(stored.compilation), legacyPin }
 }
 
 it('replaces Blueprint pins of the old shape with the pinned version compilation', async ({

@@ -271,11 +271,8 @@ describe('content snapshot parts', () => {
     )
     const documents = contentSnapshotDocumentsObjectSchema.parse(
       JSON.parse(
-        buildContentSnapshotPart(
-          header('RACE', 'documents'),
-          races,
-          publicationPins('RACE', races)
-        ).json
+        buildContentSnapshotPart(header('RACE', 'documents'), races, publicationPins('RACE', races))
+          .json
       )
     )
 

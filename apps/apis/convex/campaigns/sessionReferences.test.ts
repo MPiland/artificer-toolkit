@@ -30,7 +30,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject, importSeededSubjects, versionWithCompilation } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { deleteAuthoredVersion, insertAuthoredVersion } from '../content/documents'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(

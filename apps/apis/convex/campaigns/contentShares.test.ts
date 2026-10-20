@@ -22,7 +22,11 @@ import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolk
 import { catalogueMetadata } from '../content/catalogueMetadata'
 import { api } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
-import { corruptPublishedVersionPayload, importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import {
+  corruptPublishedVersionPayload,
+  importedSubject,
+  importSeededSubjects
+} from '../../tests/fixtures/publication'
 import {
   deleteAuthoredVersion,
   insertAuthoredVersion,

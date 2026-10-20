@@ -30,7 +30,12 @@ import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subj
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { collectReferenceIds, stripPortableMetadata } from '@artificer-toolkit/shared/utils'
 import { api, internal } from '../_generated/api'
-import { importedSubject, importSeededSubjects, publicationFixture, versionWithCompilation } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  publicationFixture,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 

@@ -48,7 +48,9 @@ export function rootCatalogueFacts(
     case 'BACKGROUND':
       return {
         publishedActive,
-        background: storedForm(toContentSnapshotIndexEntry(parsePublicationDocument('BACKGROUND', document)))
+        background: storedForm(
+          toContentSnapshotIndexEntry(parsePublicationDocument('BACKGROUND', document))
+        )
       }
     default:
       return { publishedActive }
@@ -70,8 +72,7 @@ export async function catalogueMetadata(
   identity: { checksum: string; publicId: string; createdAt: number }
 ): Promise<AuthoredCatalogueMetadata> {
   const { subjectKind, document } = publication
-  const spell =
-subjectKind === 'SPELL' ? spellAuthoredDtoSchema.parse(document) : null
+  const spell = subjectKind === 'SPELL' ? spellAuthoredDtoSchema.parse(document) : null
   const magicSchool = spell
     ? (await requireSystem(ctx, spell.systemId)).magicSchools.find(
         (entry) => entry.id === spell.magicSchoolId
@@ -138,7 +139,9 @@ export function readRootCatalogue(root: Doc<'authoredRoots'>) {
     (root.subjectKind === 'CLASS') !== (metadata.class !== undefined) ||
     (root.subjectKind === 'BACKGROUND') !== (metadata.background !== undefined)
   )
-    throw new Error('Stored catalogue facts are missing or stale; run content/compilationMigration.')
+    throw new Error(
+      'Stored catalogue facts are missing or stale; run content/compilationMigration.'
+    )
   return { ...metadata, publishedActive }
 }
 

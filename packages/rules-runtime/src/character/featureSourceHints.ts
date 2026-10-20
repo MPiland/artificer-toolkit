@@ -54,11 +54,7 @@ export function characterFeatureProvenanceRootId(
 export function publicationFeatures(
   published: Pick<CharacterRulePublication, 'subjectKind' | 'id' | 'checksum' | 'compilation'>
 ): CompiledFeature[] {
-  const compiled = hydrateStoredCompilation(
-    published.subjectKind,
-    published,
-    published.compilation
-  )
+  const compiled = hydrateStoredCompilation(published.subjectKind, published, published.compilation)
   if (published.subjectKind === 'RACE' && 'parentRaceId' in compiled) {
     const inherited = new Set(compiled.inheritedFeatureIds)
     return (compiled.features ?? []).filter((feature) => !inherited.has(feature.id))

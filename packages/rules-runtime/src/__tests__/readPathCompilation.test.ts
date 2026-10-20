@@ -16,7 +16,8 @@ const productionRoots = [
 ]
 const SUBJECT_COMPILER_CALL =
   /\b(?:compileBackground|compileClass|compileCreature|compileEquipment|compileResolvedEquipment|compileFeat|compileFeature|compileRace|compileSubraceSource|compileSpell|compileVehicle|compileSubjectWithMechanicsIndex|compilePublicationDocument)\(/
-const TEST_ONLY = /(?:\.test\.tsx?|\.stories\.tsx|\.fixtures\.ts)$|[\\/](?:__tests__|testing|_generated)[\\/]/
+const TEST_ONLY =
+  /(?:\.test\.tsx?|\.stories\.tsx|\.fixtures\.ts)$|[\\/](?:__tests__|testing|_generated)[\\/]/
 
 const COMPILATION_WRITERS = [
   'apps/apis/convex/content/classPublicationActions.ts',

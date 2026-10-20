@@ -13,7 +13,11 @@ import { rowboat } from '@artificer-toolkit/source-data/srd/vehicles/rowboat.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { api } from '../_generated/api'
-import { importedSubject, importSeededSubjects, versionWithCompilation } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import {
   deleteAuthoredVersion,

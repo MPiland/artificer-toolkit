@@ -31,7 +31,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api, components, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject, importSeededSubjects, versionWithCompilation } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { insertAuthoredVersion } from '../content/documents'
 import { readCharacterRow } from '../characters/stateDocuments'

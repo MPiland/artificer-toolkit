@@ -9,7 +9,10 @@ import type {
   ContentSnapshotObject
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
-import type { BaseRaceAuthoredDto, SubraceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
+import type {
+  BaseRaceAuthoredDto,
+  SubraceAuthoredDto
+} from '@artificer-toolkit/schema/subjects/race'
 
 import { joinRaceCatalogSource } from './builderCatalog.js'
 import {

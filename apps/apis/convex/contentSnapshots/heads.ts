@@ -243,7 +243,11 @@ async function readCampaignPublications(
     await requireCampaignContentParents(ctx, campaign, root)
     const version = await readAuthoredVersion(ctx, root)
     const document = await readPublishedDocument(ctx, root, version)
-    page.push({ root, publication: parsePublicationDocument(kind, document), version: version.version })
+    page.push({
+      root,
+      publication: parsePublicationDocument(kind, document),
+      version: version.version
+    })
   }
   return { ...shares, page }
 }

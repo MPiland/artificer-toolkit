@@ -3,11 +3,9 @@ import type {
   AuthoredStoredCompilation
 } from '@artificer-toolkit/schema/api/authoredPublication'
 import type { AcquiredPresentation } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
-import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoredDto } from '@artificer-toolkit/schema/subjects/class'
 import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
 import type { BaseRaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
-import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledFeature } from '@artificer-toolkit/shared/compilers'
@@ -449,7 +447,10 @@ export async function prepareCharacterRuleContext(
         feats.push(hydrateStoredCompilation('FEAT', published, published.compilation))
         break
       case 'CREATURE':
-        creaturesById.set(id, hydrateStoredCompilation('CREATURE', published, published.compilation))
+        creaturesById.set(
+          id,
+          hydrateStoredCompilation('CREATURE', published, published.compilation)
+        )
         break
       case 'VEHICLE':
         vehiclesById.set(id, hydrateStoredCompilation('VEHICLE', published, published.compilation))
@@ -664,12 +665,6 @@ function byLabel(left: { id: string; label: string }, right: { id: string; label
 // Registry documents passed the publication schema; authored refinements narrow its inferred DTO.
 const toClassSource = (document: ClassAuthored) =>
   toContentSnapshotIndexEntry({ subjectKind: 'CLASS', document: document as ClassAuthoredDto })
-const toBackgroundSource = (document: BackgroundAuthored) =>
-  toContentSnapshotIndexEntry({
-    subjectKind: 'BACKGROUND',
-    document: document as BackgroundAuthoredDto
-  })
-
 /** The Class pool matters only once a selected Class reaches its subclass level. */
 function isSubclassSelectionDue(character: CharacterAuthored, classes: readonly CompiledClass[]) {
   return character.intent.classes.some((selection) =>

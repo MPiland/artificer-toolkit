@@ -9,7 +9,12 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { api } from '../_generated/api'
-import { corruptPublishedVersionPayload, importedSubject, importSeededSubjects, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  corruptPublishedVersionPayload,
+  importedSubject,
+  importSeededSubjects,
+  publicationFixture
+} from '../../tests/fixtures/publication'
 
 const definitionOptions = makeFunctionReference<
   'query',

@@ -50,8 +50,7 @@ export async function retainPartyEquipmentRules(
         .withIndex('by_campaignId_subjectKind_subjectId', (q) =>
           q.eq('campaignId', campaign.id).eq('subjectKind', 'SPELL')
         )) {
-        if (!(await readCampaignSharedActiveRoot(ctx, campaign, 'SPELL', share.subjectId)))
-          continue
+        if (!(await readCampaignSharedActiveRoot(ctx, campaign, 'SPELL', share.subjectId))) continue
         const root = await ctx.db
           .query('authoredRoots')
           .withIndex('by_publicId', (q) => q.eq('id', share.subjectId))

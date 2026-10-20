@@ -107,11 +107,15 @@ async function setup() {
       const fields = {
         label: document.label,
         checksum,
-        catalogue: await catalogueMetadata(ctx, { subjectKind: kind, document: authored }, {
-          checksum,
-          publicId: document.id,
-          createdAt: Date.now()
-        }),
+        catalogue: await catalogueMetadata(
+          ctx,
+          { subjectKind: kind, document: authored },
+          {
+            checksum,
+            publicId: document.id,
+            createdAt: Date.now()
+          }
+        ),
         currentVersionId,
         currentVersionPublicId: versionId
       }

@@ -25,7 +25,12 @@ import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime'
 import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subjects/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api } from '../_generated/api'
-import { importedSubject, importSeededSubjects, publicationFixture, versionWithCompilation } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  publicationFixture,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readStoredAuthoredVersionDocument } from './documents'
 
 const publish = makeFunctionReference<

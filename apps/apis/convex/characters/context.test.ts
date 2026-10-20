@@ -21,7 +21,11 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { corruptPublishedVersionPayload, importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import {
+  corruptPublishedVersionPayload,
+  importedSubject,
+  importSeededSubjects
+} from '../../tests/fixtures/publication'
 import { api } from '../_generated/api'
 import { loadCharacterRuleContext } from './context'
 import { loadCharacterBuilderContext } from './builderContext'

@@ -30,13 +30,7 @@ export async function retainCharacterEquipmentRules(
       ? null
       : reads?.rulePublications.has(root.id)
         ? (reads.rulePublications.get(root.id) ?? null)
-        : await readCharacterPublication(
-            ctx,
-            root,
-            character.systemId,
-            character.userId,
-            access
-          )
+        : await readCharacterPublication(ctx, root, character.systemId, character.userId, access)
     if (!current) {
       if (!item.retainedRulesJson)
         throw new Error('Acquired Character Equipment has no usable source or retained rules.')

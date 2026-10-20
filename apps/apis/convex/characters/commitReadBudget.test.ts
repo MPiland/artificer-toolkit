@@ -304,7 +304,8 @@ describe('commit read budget', () => {
         draftId: draft.id,
         character: await makeReady(t, character),
         budget:
-          SINGLE_CLASS_COMMIT_BUDGET_BYTES + (classes.length - 1) * FURTHER_CLASS_COMMIT_BUDGET_BYTES
+          SINGLE_CLASS_COMMIT_BUDGET_BYTES +
+          (classes.length - 1) * FURTHER_CLASS_COMMIT_BUDGET_BYTES
       })
     }
 
@@ -314,8 +315,13 @@ describe('commit read budget', () => {
       await t.run(async (ctx) => {
         const growth: Record<string, { roots: number; bytes: number }> = {}
         for (const root of await ctx.db.query('authoredRoots').collect()) {
-          const { publishedActive, race, class: classFacts, background, equipment } =
-            root.catalogue ?? {}
+          const {
+            publishedActive,
+            race,
+            class: classFacts,
+            background,
+            equipment
+          } = root.catalogue ?? {}
           const entry = (growth[root.subjectKind] ??= { roots: 0, bytes: 0 })
           entry.roots += 1
           entry.bytes += JSON.stringify({

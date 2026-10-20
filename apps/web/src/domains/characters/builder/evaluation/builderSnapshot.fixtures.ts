@@ -64,28 +64,28 @@ function buildSrdSnapshot(documentOverrides: ReadonlyMap<string, SrdDocument>) {
       }))
     const parents = publications.map(({ publication }) => publication)
     const sources = publications.map(({ subject, publication }) => {
-        const document = publication.document as SrdDocument
-        const compilation = storedCompilationOf(publication, parents)
-        return {
-          subjectKind: kind,
-          document,
-          publicId: document.id,
-          compilation,
-          publicationVersion: {
-            identity: {
-              subjectKind: kind,
-              subjectId: subject.id,
-              systemId: subject.systemId,
-              contentSourceId: SRD_CONTENT_SOURCE.id,
-              versionId: subject.id,
-              checksum: compilation.authoredChecksum
-            },
-            version: 1,
-            storedParentId: document.parentRaceId ?? document.parentClassId ?? null
+      const document = publication.document as SrdDocument
+      const compilation = storedCompilationOf(publication, parents)
+      return {
+        subjectKind: kind,
+        document,
+        publicId: document.id,
+        compilation,
+        publicationVersion: {
+          identity: {
+            subjectKind: kind,
+            subjectId: subject.id,
+            systemId: subject.systemId,
+            contentSourceId: SRD_CONTENT_SOURCE.id,
+            versionId: subject.id,
+            checksum: compilation.authoredChecksum
           },
-          magicSchoolLabel: 'School'
-        } as unknown as ContentSnapshotListSource
-      })
+          version: 1,
+          storedParentId: document.parentRaceId ?? document.parentClassId ?? null
+        },
+        magicSchoolLabel: 'School'
+      } as unknown as ContentSnapshotListSource
+    })
     const built = buildContentSnapshotKind(
       { format: 3, scope: 'SOURCE', scopeId: SRD_CONTENT_SOURCE.id, kind },
       sources

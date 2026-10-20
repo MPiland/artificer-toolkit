@@ -35,7 +35,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { fixture, input } from '../../tests/fixtures/characters'
 import { evaluateBuilderCandidate } from '../../tests/fixtures/builderEvaluation'
 import { createBrowserReaders } from '../../tests/fixtures/contentSnapshotReaders'
-import { importedSubject, importSeededSubjects, makePublishedRootOwned } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  makePublishedRootOwned
+} from '../../tests/fixtures/publication'
 import { readyCharacterFixture, readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api } from '../_generated/api'
 import { readAuthoredVersion, readPublishedDocument } from '../content/documents'

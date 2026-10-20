@@ -171,9 +171,9 @@ describe('room content snapshots', () => {
       'Campaign share',
       'Campaign share'
     ])
-    expect((await createSnapshotReaders(objects).readPublication(rootId))?.presentation?.label).toBe(
-      'Source race'
-    )
+    expect(
+      (await createSnapshotReaders(objects).readPublication(rootId))?.presentation?.label
+    ).toBe('Source race')
     expect((await createSnapshotReaders(objects).readRaces()).map((race) => race.label)).toEqual([
       'Source race'
     ])

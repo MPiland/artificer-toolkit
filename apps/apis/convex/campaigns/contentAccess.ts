@@ -177,7 +177,13 @@ export async function readCampaignSharedAuthorizedRoot(
   subjectId: string,
   currentRoot?: Doc<'authoredRoots'>
 ) {
-  const root = await readCampaignSharedActiveRoot(ctx, campaign, subjectKind, subjectId, currentRoot)
+  const root = await readCampaignSharedActiveRoot(
+    ctx,
+    campaign,
+    subjectKind,
+    subjectId,
+    currentRoot
+  )
   if (root) await requireCampaignContentParents(ctx, campaign, root)
   return root
 }

@@ -49,7 +49,10 @@ export function joinRaceCatalogSource(
     ...race,
     size: parent.size,
     speeds: parent.speeds,
-    abilityScoreIncreaseFacts: [...parent.abilityScoreIncreaseFacts, ...race.abilityScoreIncreaseFacts]
+    abilityScoreIncreaseFacts: [
+      ...parent.abilityScoreIncreaseFacts,
+      ...race.abilityScoreIncreaseFacts
+    ]
   }
 }
 

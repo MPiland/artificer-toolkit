@@ -831,14 +831,8 @@ interface CharacterSheetProjectionBundle {
 export function projectCharacterSheetBundle(
   params: ProjectCharacterSheetBundleParams
 ): CharacterSheetProjectionBundle {
-  const {
-    character,
-    resolution,
-    presentation,
-    streamVersion,
-    hasBuilderDraft,
-    ruleEvaluation
-  } = params
+  const { character, resolution, presentation, streamVersion, hasBuilderDraft, ruleEvaluation } =
+    params
   const adjustments = params.adjustments ?? []
   const spellCustomizations = params.spellCustomizations ?? []
   const totalLevel = Math.max(resolution.summary.totalLevel, 1)

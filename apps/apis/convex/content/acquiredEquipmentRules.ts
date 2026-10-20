@@ -6,7 +6,11 @@ import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules/checks
 import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { canReadAuthoredRoot, readAuthoredVersion, readAuthoredVersionCompilation } from './documents'
+import {
+  canReadAuthoredRoot,
+  readAuthoredVersion,
+  readAuthoredVersionCompilation
+} from './documents'
 import { readRootCatalogue } from './catalogueMetadata'
 import { requireParentRoots } from './relationshipReads'
 import {

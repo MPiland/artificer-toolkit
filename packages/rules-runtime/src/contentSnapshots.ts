@@ -55,9 +55,7 @@ export function buildContentSnapshotPart<
     throw new Error('Duplicate content snapshot publication version.')
   if (
     header.part === 'documents' &&
-    (!pins ||
-      pins.versions.length !== roots.length ||
-      pins.compilations.length !== roots.length)
+    (!pins || pins.versions.length !== roots.length || pins.compilations.length !== roots.length)
   )
     throw new Error('Content snapshot publication versions or compilations are incomplete.')
   const input = {

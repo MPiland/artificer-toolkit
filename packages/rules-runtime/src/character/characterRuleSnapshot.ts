@@ -11,7 +11,10 @@ import type {
   CharacterAssemblyRegistry,
   CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
-import type { CompiledCreature, CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
+import type {
+  CompiledCreature,
+  CompiledEquipment
+} from '@artificer-toolkit/shared/subjects/compilers'
 
 import {
   requireDnd5eArmorClass,

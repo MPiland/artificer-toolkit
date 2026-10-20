@@ -14,11 +14,7 @@ import { api, internal } from '../../convex/_generated/api'
 import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
 import { activateFixtureRun } from './activeInitiative'
 import { equipAllCharacterItems, setupCharacterRun } from './encounterCharacter'
-import {
-  attachRoomWorker,
-  executeInRoom,
-  seedRoomContentSnapshots
-} from './localRoomWorker'
+import { attachRoomWorker, executeInRoom, seedRoomContentSnapshots } from './localRoomWorker'
 import { importedSubject, importSeededSubjects } from './publication'
 import { setAutoRollDice } from './rollPreferences'
 import { srdWolf } from './srdCreatures'

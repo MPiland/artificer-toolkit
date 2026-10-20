@@ -11,11 +11,11 @@ Source: `apps/apis/convex/characters/commitReadBudget.test.ts`, the commit read 
 Characters. Each case makes every authored payload unreadable before it commits, so commit
 reads root rows, catalogue facts and stored compilations only. KB = 1024 bytes.
 
-| Case                  | Before (phase tip, compiled at runtime) | D163 forecast (full swap) | After T1b | Budget (D84) |
-| --------------------- | --------------------------------------- | ------------------------- | --------- | ------------ |
-| Fighter 5 / Champion  | 361.6                                   | 324.1                     | 313.8     | 450          |
-| Wizard 5 / Evocation  | 416.3                                   | 404.5                     | 385.9     | 450          |
-| Fighter 3 / Wizard 2  | 580.9                                   | 524.8                     | 509.3     | 650          |
+| Case                 | Before (phase tip, compiled at runtime) | D163 forecast (full swap) | After T1b | Budget (D84) |
+| -------------------- | --------------------------------------- | ------------------------- | --------- | ------------ |
+| Fighter 5 / Champion | 361.6                                   | 324.1                     | 313.8     | 450          |
+| Wizard 5 / Evocation | 416.3                                   | 404.5                     | 385.9     | 450          |
+| Fighter 3 / Wizard 2 | 580.9                                   | 524.8                     | 509.3     | 650          |
 
 The after column includes the catalogue facts T1b adds to roots (below). Rulings #1 and #3 replaced the payload
 reads with these facts, so every case comes in under its forecast.
@@ -40,12 +40,12 @@ Each `equipmentSources[]` pin now holds the Equipment version's stored compilati
 snapshots hydrate that compilation and do not compile it. Sizes are serialized JSON bytes from the SRD Goblin
 fixtures. Room load reads the same documents, so it grows by the same bytes.
 
-| Measure                                | Before | After  | Change |
-| -------------------------------------- | ------ | ------ | ------ |
-| Goblin `equipmentSources` (4 pins)     | 10,549 | 12,186 | +15.5% |
-| Goblin with a Shield +1 variant        | 11,169 | 12,948 | +15.9% |
-| Goblin blueprint snapshot              | 18,084 | 19,721 | +9.1%  |
-| Goblin Encounter actor                 | 18,807 | 20,444 | +8.7%  |
-| Five actors (room load)                | 94,661 | 102,988 | +8.8% |
+| Measure                            | Before | After   | Change |
+| ---------------------------------- | ------ | ------- | ------ |
+| Goblin `equipmentSources` (4 pins) | 10,549 | 12,186  | +15.5% |
+| Goblin with a Shield +1 variant    | 11,169 | 12,948  | +15.9% |
+| Goblin blueprint snapshot          | 18,084 | 19,721  | +9.1%  |
+| Goblin Encounter actor             | 18,807 | 20,444  | +8.7%  |
+| Five actors (room load)            | 94,661 | 102,988 | +8.8%  |
 
 Creating a blueprint reads one extra compilation row per loadout entry.

@@ -372,7 +372,8 @@ export function projectCharacterRuleResources(
       const instance = (character.state.creatures ?? []).filter(
         (entry) => entry.id === resource.companionInstanceId
       )
-      const creature = instance.length === 1 ? presentation.creatures[instance[0]!.creatureId] : null
+      const creature =
+        instance.length === 1 ? presentation.creatures[instance[0]!.creatureId] : null
       const feature = creature?.features?.filter((entry) => entry.id === resource.featureId) ?? []
       if (!creature || feature.length !== 1) {
         throw new Error(

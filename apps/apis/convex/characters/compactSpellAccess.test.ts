@@ -8,7 +8,11 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { corruptPublishedVersionPayload, importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import {
+  corruptPublishedVersionPayload,
+  importedSubject,
+  importSeededSubjects
+} from '../../tests/fixtures/publication'
 import { loadCharacterRuleContext } from './context'
 
 describe('compact Campaign Spell selector access', () => {

@@ -91,12 +91,16 @@ export async function readCharacterStoredCompilation(ctx: QueryCtx, root: Doc<'a
     versionId: root.currentVersionPublicId
   })
   if (!compilation || compilation.authoredChecksum !== root.checksum)
-    throw new Error(`Character source compilation is missing or stale: ${root.subjectKind} ${root.id}.`)
+    throw new Error(
+      `Character source compilation is missing or stale: ${root.subjectKind} ${root.id}.`
+    )
   return { checksum: root.checksum, compilation }
 }
 
 /** A Spell's selector facts from its root's checksum-bound catalogue. */
-export function readSpellIndexEntry(root: Doc<'authoredRoots'>): ContentSnapshotIndexEntry<'SPELL'> {
+export function readSpellIndexEntry(
+  root: Doc<'authoredRoots'>
+): ContentSnapshotIndexEntry<'SPELL'> {
   const metadata = readRootCatalogue(root)
   if (
     !metadata.spell ||
@@ -105,8 +109,11 @@ export function readSpellIndexEntry(root: Doc<'authoredRoots'>): ContentSnapshot
     metadata.nameKey !== root.label.toLowerCase()
   )
     throw new Error('Character Spell selector facts are missing or stale.')
-  const { selectionVersion: _selectionVersion, magicSchoolNameKey: _schoolKey, ...facts } =
-    metadata.spell
+  const {
+    selectionVersion: _selectionVersion,
+    magicSchoolNameKey: _schoolKey,
+    ...facts
+  } = metadata.spell
   return { id: root.id, label: root.label, ...facts, description: metadata.description }
 }
 
@@ -158,8 +165,7 @@ export async function loadCharacterRuleContext(
   // Engines hydrate the stored compilation of the current version (D163). A subrace, subclass or
   // Equipment variant is readable only with its whole parent chain, authorized from root rows.
   async function toRulePublication(root: Doc<'authoredRoots'>) {
-    if (!(await canReadCharacterRoot(ctx, root, character.systemId, userId, sources)))
-      return null
+    if (!(await canReadCharacterRoot(ctx, root, character.systemId, userId, sources))) return null
     const ancestors = await requireParentRoots(ctx, root, {
       userId,
       allowedSourceIds: sourceIds,

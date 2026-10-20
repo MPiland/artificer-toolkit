@@ -24,10 +24,7 @@ import {
   readPublishedDocumentPayload
 } from '../content/documents'
 import { compileCurrentEquipment } from '../content/equipmentRelationships'
-import {
-  readCampaignSharedActiveRoot,
-  readCampaignSharedRootPublication
-} from './contentAccess'
+import { readCampaignSharedActiveRoot, readCampaignSharedRootPublication } from './contentAccess'
 import { requireSystem } from '../content/systemDocuments'
 import { readCurrencySystem } from './currencySystemDocuments'
 import { readCampaignInventory } from './inventoryVersionDocuments'
@@ -99,8 +96,13 @@ export async function readPartyEquipmentSource(
   // Canonical imported Equipment predates the optional authored status field.
   if (document.status !== undefined && document.status !== 'ACTIVE') return null
   const canReadSharedRoot = async (candidate: Doc<'authoredRoots'>) =>
-    (await readCampaignSharedActiveRoot(ctx, campaign, candidate.subjectKind, candidate.id, candidate)) !==
-    null
+    (await readCampaignSharedActiveRoot(
+      ctx,
+      campaign,
+      candidate.subjectKind,
+      candidate.id,
+      candidate
+    )) !== null
   return { document, sourceIds, canReadSharedRoot }
 }
 

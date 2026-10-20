@@ -155,8 +155,7 @@ export async function loadCharacterReferencedContext(
           throw new Error('Character sources require paginated search.')
         if (!(await isPoolRoot(root)) || !(await canRead(root))) continue
         const subclass = readRootCatalogue(root).class
-        if (subclass?.category === 'SUBCLASS' && subclass.parentClassId === classId)
-          return subclass
+        if (subclass?.category === 'SUBCLASS' && subclass.parentClassId === classId) return subclass
       }
       return null
     },
@@ -240,10 +239,7 @@ function requireReferencedSources(
       ...(entry.spells?.prepared ?? [])
     ])
   ])
-    if (
-      reads.rulePublications.has(id) &&
-      reads.rulePublications.get(id)?.subjectKind !== 'SPELL'
-    )
+    if (reads.rulePublications.has(id) && reads.rulePublications.get(id)?.subjectKind !== 'SPELL')
       rejectUnavailableSource(id)
   for (const id of reads.unreadableRootIds) if (!exempt.has(id)) rejectUnavailableSource(id)
 }

@@ -12,10 +12,16 @@ import { readPublishedRootDocument } from './documents'
 const equipmentIds = new Set(collectReferenceIds([acolyte], 'equipmentId', 'equipmentIds'))
 const referenced = srdEquipment
   .filter((equipment) => equipmentIds.has(equipment.id))
-  .map((equipment) => importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment }))
+  .map((equipment) =>
+    importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })
+  )
 
 function acolyteWithStatus(status: 'ACTIVE' | 'DRAFT') {
-  return importedSubject({ subjectKind: 'BACKGROUND', ...acolyte, document: { ...acolyte, status } })
+  return importedSubject({
+    subjectKind: 'BACKGROUND',
+    ...acolyte,
+    document: { ...acolyte, status }
+  })
 }
 
 it('keeps the root ACTIVE fact equal to the current payload status across every status write (D163)', async () => {

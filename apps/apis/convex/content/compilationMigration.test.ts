@@ -312,7 +312,9 @@ it('backfills the root ACTIVE fact, picker facts and Equipment quote of roots st
     )
   const published = await catalogues()
   expect(
-    published.filter(({ catalogue }) => catalogue?.race ?? catalogue?.class ?? catalogue?.background)
+    published.filter(
+      ({ catalogue }) => catalogue?.race ?? catalogue?.class ?? catalogue?.background
+    )
   ).toHaveLength(sources.filter(({ subjectKind }) => subjectKind !== 'EQUIPMENT').length)
   // Every Equipment root, the fixture's and those its sources reference, carries the quote fact.
   const equipmentRoots = published.filter(({ subjectKind }) => subjectKind === 'EQUIPMENT')

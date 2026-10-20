@@ -25,7 +25,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject, importSeededSubjects, makePublishedRootOwned } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  importSeededSubjects,
+  makePublishedRootOwned
+} from '../../tests/fixtures/publication'
 import { api } from '../_generated/api'
 import { readCharacterDraft } from '../characters/documents'
 import {
