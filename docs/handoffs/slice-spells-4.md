@@ -428,6 +428,7 @@ Split of SPELLS-4.T2m (orchestrator ruling): T2m1 (this), T2m1b (the DAMAGE_TAKE
 #### Resume: T2m1d (size 8, after T2m1; needs registering)
 
 Irresistible Dance and the generic holder-action save. Ruled seam: extend `lifecycle.escape` with a saving-throw roll (do not fork it; do not use `grantedActions`). Work, in order:
+
 1. Authored `escape.savingThrow` (abilityDefinitionId, `dc: SOURCE_SAVE_DC`), Zod schema, node maps; stored `CONDITION_ESCAPE` gains the roll kind and is allowed on a non-zone effect (`escapeSourceId` = the effect id).
 2. Cast DC pin for a non-save cast (Finding 2): resolve the caster's spell save DC at cast and store it under `DND5E_SAVE_DC_FACT_KEY`.
 3. `modifierGrantEntryPlan`: destructure `escape` from `lifecycle` and carry it to the stored contribution.
