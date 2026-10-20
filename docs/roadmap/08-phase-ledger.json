@@ -8681,6 +8681,19 @@
               "activeWorkbook": "docs/handoffs/slice-spells-4-t2d2.md"
             },
             {
+              "id": "SPELLS-4.T2d4",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2d3"]
+              },
+              "text": "Effect offer browser journey (split from T2d3, ruled 2026-10-20): a held-effect-browser Playwright proof through scripts/runLocalConvexProof.ps1 against the local Convex container: an authored creature action with a move offer, holder at 0 HP, the drawer offer, map pick, move and undo. Needs the session-worker .dev.vars and local-validation env (ask the user to supply them for the worktree)."
+            },
+            {
               "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2e",
