@@ -1,6 +1,6 @@
 # SCENE-5 plan: the shared table screen
 
-Status: **confirmed by the product owner (2026-10-19)**, model, tasks and AC wording included. Sent to the orchestrator to register.
+Status: **MVP confirmed by the product owner (2026-10-19)** and sent to the orchestrator to register. This supersedes the earlier drafts of this doc.
 
 ## What in-person groups actually do
 
@@ -17,61 +17,33 @@ Two findings shape the design:
 - No major VTT has a first-party table mode. All of them rely on dummy accounts and modules. A clean, built-in one is a real differentiator, which fits the goal of being smoother than the Foundry baseline.
 - Almost nobody handles hidden rolls or whispers on the shared screen. Groups push them to physical dice, or to the players' own phones.
 
-## The owner's play pattern
+## Why the scope shrank
 
-The owner's last Campaign used pattern 2: one person logged in to a LAN Foundry instance, the GM gave them control of the party, 3D minis stood on the TV, and every roll happened off screen. That is a **Manual Run** here: it tracks initiative, hit points and conditions and raises no rules prompts, and the GM runs the enemies. No new mode is needed for it.
+Earlier drafts tried to make Assisted rules with private prompts work on one shared screen: a table role with its own projection, global prompts on any page, presence, a "no other window open" fallback and moving chat out of the tabletop. Walking the owner's scenarios (all remote; same room, everyone with a device; same room, no devices, Manual) showed that machinery serves an edge case. The owner's real game, and the common pattern in the research, is a TV map, someone moving the party's tokens, physical dice and the GM tracking the rest: a Manual game. Every VTT leaves private prompts on a shared screen to the group. SCENE-5 follows Foundry instead (owner, 2026-10-19).
 
-## Model (agreed with the owner, 2026-10-19)
+## MVP (confirmed by the product owner, 2026-10-19)
 
-- **The table is a role, not an account or a display.** The GM gives the table role to a Campaign member for the Session, at any time while it runs (not chosen at launch). The GM may give it to themselves. Rejected: a dedicated table account (2026-10-19), and the GM-opened display of the first draft.
-- **The role changes only the holder's tabletop window.** On that account, the tabletop window becomes the table: the server projects it with the main Character's vision, and with no chat, whispers, roll prompts, private rolls, GM notes or GM-only data, including the holder's own. The holder's other pages (Sheet, Session page, anything else) stay theirs, so the holder needs no second account, and their own prompts reach them on their phone.
-- **Vision** keeps the 2026-10-12 rule: the main Character's senses; a single selected covered token switches the view to its senses; clearing or a multi-select returns to the main Character. The explored map shown is the viewed Character's.
-- **The table acts for the covered Characters.** It moves their tokens and opens the existing action drawer for them. Outside an Encounter it moves any covered token. In an Assisted Encounter it moves and acts only for the covered Character whose turn it is. In a Manual Run it moves any covered token, because a Manual Run only tracks and the GM adjudicates. Whoever drives the table asks the player where to go, or hands them the mouse.
-- **Prompts follow the controller, not the table.** A roll prompt for a Character goes to its controller, on any signed-in page they have open: a global prompt modal over whatever they are viewing. Several open tabs or devices all show it, and answering in one clears the rest. A table window never shows prompts. Prompts raised by an action started at the table go to that Character's controller.
-- **A "your turn" notification** shows on any signed-in page when one of the member's Characters starts its turn, using the existing Mantine notifications.
-- **Assisted play assumes every covered Character's controller has a device.** A group without devices plays a Manual Run. There is no routing of private information to the GM for a player without a device. A controller who drops mid-Encounter is handled as today: their prompt waits, and the GM can skip it.
-- **Cost:** prompts live in the Session room, so the global modal holds a room connection only while one of the member's Campaigns has an ACTIVE Session. One socket per tab; nothing when nobody is playing.
+- **Control, not a role.** The GM gives a Campaign member control of other players' Characters and can take it back at any time; the owners keep control. It is Campaign-level and persists until revoked, like Foundry ownership. No special role, window or projection mode. That member opens the tabletop on the TV and moves the party's tokens. The GM may grant it to anyone, including for a TV they drive themselves.
+- **Existing seam.** GM-granted control already exists per Encounter Run (`controllerUserIds`, ADR 0034, at most 8; the assigned player is always a controller), and controllers already move, act for and answer prompts for the actor. Outside an Encounter only the owner moves a Character's token. T1 lifts the grant to the Campaign and keeps one source of truth for Run actors' controllers.
+- **Vision** keeps the 2026-10-12 rule: a member who controls several Characters sees through one main Character, which they pick on the tabletop (default: their own Character); a single selected controlled token switches the view; clearing or a multi-select returns to the main Character.
+- **Zoom for minis.** No Lock View or calibration: the person at the TV zooms until squares fit the minis, by wheel or by typing a percentage. Every viewer's zoom persists on their device.
+- **Documented limitation, not engineered around.** In an Assisted game a controlled Character's prompts reach every controller, the TV included, as in Foundry. Manual play has no prompts. Groups that mind let the GM drive the TV or play Manual.
 
-## Work
+## ACs (confirmed)
 
-The prompt modal and the turn notification help every remote player, not only shared tables, and deliver a visible behaviour on their own. They become **a new PBI** ahead of SCENE-5 (id and feature assigned by the orchestrator). SCENE-5.T1 depends on its T1 so that the table window's exclusion is built once, in the global modal.
+- **5.1** (replaces 5.1-5.3): "The GM can give a Campaign member control of other players' Characters and take it back at any time; the owners keep control. A member moves a controlled Character's token on the tabletop as its owner can, and in every Encounter they are one of its controllers."
+- **5.2:** "A member who controls several Characters sees the Scene through one main Character's senses, which they pick on the tabletop and which defaults to their own Character. Selecting a single token they control switches the view to that token's senses; clearing or multi-selecting returns to the main Character. They never see what the viewed Character cannot see."
+- **5.3:** "Every tabletop viewer can set the zoom by typing a percentage or stepping it, and their tabletop window keeps that zoom on that device across reloads, reconnects and view switches. The tabletop opens in a window sized to the screen and offers a Full screen button."
+- **Removed:** the old 5.3 (private information not shown on the table screen), replaced by the documented limitation above.
 
-New PBI, "Prompts and turn notices follow the player to any page":
+## Tasks
 
-| Task | Delivers                                                                                                                                                                         | Size | After |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ----- |
-| T1   | A pending roll prompt for a member's Character shows in a global modal on any signed-in page while its Session is ACTIVE; answering it in one tab or device clears it everywhere | 5    |       |
-| T2   | A "your turn" notification on any signed-in page when one of the member's Characters starts its turn                                                                             | 2    | T1    |
+| Task | Delivers                                                                                                                                                                                                    | AC  | Size | After |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ---- | ----- |
+| T1   | The GM grants and revokes Campaign-level control of a Character; granted members move its tokens outside Encounters and are its controllers in every Run (one source of truth with the per-Run controllers) | 5.1 | 5    |       |
+| T2   | Main-Character picker on the tabletop and view switching by a single selected controlled token                                                                                                              | 5.2 | 3    | T1    |
+| T3   | Zoom control (percentage and steps) with per-device zoom for every viewer, a screen-sized tabletop popup and a Full screen button                                                                           | 5.3 | 3    |       |
 
-SCENE-5:
+## Post-launch (future enhancements)
 
-| Task | Delivers                                                                                                                                                                                                                                                                       | Size | After      |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ---------- |
-| T1   | The GM gives the table role and names the covered and main Characters; the holder's tabletop window is server-projected as the table (main Character's vision; no chat, prompts, private rolls or GM data); it remembers its zoom on that device across reloads and reconnects | 5    | new PBI T1 |
-| T2   | View switching by a single selected covered token; clearing or a multi-select returns to the main Character; a switch may pan but never changes the zoom                                                                                                                       | 3    | T1         |
-| T3   | The table acts for covered Characters: moves (any outside an Encounter or in a Manual Run; the turn's one in an Assisted Encounter) and the action drawer for the turn's covered Character; other clients converge                                                             | 5    | T1         |
-| T4   | A Chrome-style zoom control on the tabletop for every viewer: a zoom icon opens a percentage field with minus and plus, so a table can type the zoom that fits its minis                                                                                                       | 2    |            |
-
-T3 needs a server change: room admission (`roomBoundTokenControl` and the Encounter action admission) must accept the table role's commands for covered Characters it does not own.
-
-## AC wording (confirmed 2026-10-19)
-
-- **5.1:** the table mode is no longer chosen at launch: "During an ACTIVE Session the GM can give one member the table role, covering chosen player Characters with one as the main Character. That member's tabletop window shows the Scene through the main Character's senses …" (the vision sentences stay).
-- **5.2:** the table no longer answers roll prompts: "The table acts for every covered Character: it moves their tokens (outside an Encounter or in a Manual Run any of them; in an Assisted Encounter the one whose turn it is) and chooses their actions; their roll prompts go to each Character's controller; every other client converges as for any player command."
-- **5.3:** unchanged, but it now holds for every Character, the holder's own included.
-- **New 5.4:** "Every tabletop viewer can set the zoom by typing a percentage or stepping it. The table window keeps its zoom on that device across reloads, reconnects and view switches, so squares stay sized to physical minis."
-- **New PBI, AC 1:** "A pending roll prompt for a member's Character shows in a modal over whatever signed-in page they have open while its Session is ACTIVE. Every open tab or device shows it, answering it in one clears it everywhere, and a table window never shows it."
-- **New PBI, AC 2:** "When one of a member's Characters starts its turn, a 'your turn' notification shows on any signed-in page they have open, except a table window."
-
-## Later, not in SCENE-5 (future enhancements)
-
-- Push notifications for a locked phone or a backgrounded app.
-- A vision-off "map board" mode, and touch gestures beyond tap and drag.
-
-## Physical minis
-
-No Lock View or calibration. Grids are fixed to the map, and the person at the TV zooms until squares fit the minis, by wheel or by typing a percentage (T4). The table window keeps that zoom across reloads (T1) and view switches (T2). An accidental wheel bump is not guarded against; re-zooming fixes it.
-
-## Closing the main app window
-
-The table window is its own page with its own room connection (the opener link is cut on open), so closing the main app window does not disconnect the table. No auto-close and no leave warning: auto-close would blank the TV when the holder closes their laptop tab, and a warning would claim a loss that does not happen.
+Prompts that follow a member to any app page, presence (online = any non-VTT app page open), the "no other app window" prompt fallback for the tabletop, moving chat out of the tabletop, OS notifications (Notification API) for a waiting prompt, a vision-off map board, and touch gestures beyond tap and drag.
