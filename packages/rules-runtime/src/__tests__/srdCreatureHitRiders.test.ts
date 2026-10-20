@@ -34,6 +34,8 @@ async function attackOgre(input: {
   feature: string
   rolls: readonly number[]
   attackerHitPoints?: number
+  /** The label of the feature option the GM picks (a Dryad's Shillelagh club, an enlarged Duergar pick). */
+  option?: string
 }) {
   const attacker = srdByLabel(SRD.creatures, input.attacker)
   const prepared = await prepareCreatureAction({
@@ -46,6 +48,11 @@ async function attackOgre(input: {
     }),
     target: srdCreatureActor({ id: TARGET_ID, creature: srdByLabel(SRD.creatures, 'Ogre') }),
     featureId: creatureFeature(attacker, input.feature).id,
+    ...(input.option && {
+      effectId: creatureFeature(attacker, input.feature).options?.find(
+        ({ label }) => label === input.option
+      )?.effects?.[0]?.id
+    }),
     overridable: true
   })
   const { execution, mechanics } = await settleCreatureAction({ prepared, rolls: input.rolls })
@@ -389,6 +396,70 @@ describe('SRD swarm attacks', () => {
     expect(resolve(null)).toBeNull()
     expect(resolve({ current: 12, maximum: 22 })).toBe('4d4')
     expect(resolve({ current: 11, maximum: 22 })).toBe('2d4')
+  })
+})
+
+describe('SRD Creature hits the GM picks the exact option of (ATTACK-5.3 to 5.7)', () => {
+  it('reduces the target’s hit point maximum by the Clay Golem’s Slam damage on a failed save, not on a success', async () => {
+    // Slam, +8: 2d10 + 5 bludgeoning, then DC 15 Constitution; the Ogre saves at +3.
+    const failed = await attackOgre({
+      attacker: 'Clay Golem',
+      feature: 'Slam',
+      rolls: [9, 0, 0, 0]
+    })
+    expect(failed.execution.nestedD20).toMatchObject({
+      defenseOrDc: 15,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.damage).toEqual([[7, srdDamageTypeId('BLUDGEONING')]])
+    expect(failed.transition.after.maximumHitPoints).toBe(
+      failed.transition.before.maximumHitPoints - 7
+    )
+
+    const saved = await attackOgre({
+      attacker: 'Clay Golem',
+      feature: 'Slam',
+      rolls: [9, 0, 0, 19]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.transition.after.maximumHitPoints).toBe(saved.transition.before.maximumHitPoints)
+  })
+
+  it('deals the Cloaker’s Bite damage and attaches it to the Ogre, a Large target', async () => {
+    // Bite, +6: 2d6 + 3 piercing with both dice rolling 1.
+    const hit = await attackOgre({ attacker: 'Cloaker', feature: 'Bite', rolls: [9, 0, 0] })
+    expect(hit.damage).toEqual([[5, srdDamageTypeId('PIERCING')]])
+    expect(hit.effects.recurringEffect?.definition).toBeDefined()
+  })
+
+  it.each([
+    { attacker: 'Dryad', feature: 'Club', option: 'Club', rolls: [9, 0], damage: 1 },
+    { attacker: 'Dryad', feature: 'Club', option: 'Club (Shillelagh)', rolls: [9, 0], damage: 5 },
+    { attacker: 'Duergar', feature: 'War Pick', option: 'War Pick', rolls: [9, 0], damage: 3 },
+    {
+      attacker: 'Duergar',
+      feature: 'War Pick',
+      option: 'War Pick (Enlarged)',
+      rolls: [9, 0, 0],
+      damage: 4
+    },
+    {
+      attacker: 'Duergar',
+      feature: 'Javelin',
+      option: 'Javelin (Melee, Enlarged)',
+      rolls: [9, 0, 0],
+      damage: 4
+    },
+    {
+      attacker: 'Duergar',
+      feature: 'Javelin',
+      option: 'Javelin (Ranged, Enlarged)',
+      rolls: [9, 0, 0],
+      damage: 4
+    }
+  ])('deals the $attacker’s $option damage', async ({ damage, ...input }) => {
+    const hit = await attackOgre(input)
+    expect(hit.damage.map(([amount]) => amount)).toEqual([damage])
   })
 })
 
