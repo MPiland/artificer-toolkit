@@ -493,7 +493,7 @@ Mummy and Mummy Lord Dreadful Glare grant SOURCE_IMMUNITY per source, so a targe
 ### T6e: Deferred edge cases
 
 - Zone and melee-retaliation damage ended no until-damaged effect (T6e4 wired both: see `spatialDamageEnds`). Occupant save auras deal no damage, so they are not a damage root. Spatial movement contacts (`planNativeSpatialMovementPrefix` without `damageEnds`) still end nothing; they are the one root left.
-- T6e1 (Balor Death Throes): a death-throes defeat does not retrigger `ON_HP_ZERO`.
+- T6e1 (Balor Death Throes): a death-throes defeat does not retrigger `ON_HP_ZERO` (orchestrator ruling; the hook never recurses, pinned by `nativeRoomHpZeroEffect.test.ts`).
 - T6e3 (Flesh Golem Aversion of Fire, Water Elemental Freeze) is the passive damage-type trigger that creates a timed self grant on every damage root; it needs effect-creation slots, receipts, persistence and revert per root. T6e3a did the action root; T6e3b wired the turn-zone, melee-retaliation (evidence `grantEffectTransitions`, undo deletes them), legendary and movement-reaction roots. T6e3c did the area root (each target's batch carries `grantEffectTransitions`; undo is the shared per-target path). Left: spatial movement contacts with T6e4's gap. Retaliation undo (action root) restores the effects the retaliation ended, the grant it replaced and the conditions released. Movement-reaction and legendary retaliation roots are not undoable.
 
 ## T4c: Knight Leadership and Lamia Intoxicating Touch
@@ -505,3 +505,16 @@ Class B (core options), branch `spells-33-t4c`, pushed to `ci/spells-33-t4c`. Bo
 - Parity proof: `creatureCurseAuthoringParity.test.ts` normalizes both creatures through the creature node map unchanged.
 - Deferred edge cases for the orchestrator to move at merge (already in future-enhancements): "one Leadership die at a time" and "can hear and understand".
 - Open gap (tracked until SPELLS-33.T4c2): persistence scans holders for an omitted source-bound end only when a damaged source's end was sent, so a planner that sends no end at all commits silently. Gating on each damaged actor's committed reason threw in `resolveRuleCapabilityAvailability` (suppressions keyed by the authored grant id), so T4c2 fixes that collision and restores the committed-reason gate and its "sends none, refused" test.
+
+## T6e1a: Balor Death Throes as the `HP_ZERO` runtime (done, `ci/spells-33-t6e1`)
+
+`CREATURE_BALOR_DEATH_THROES` is deleted (D156). The Balor authors a PASSIVE `HP_ZERO` area (Dex save, 20d6 fire / half, 30 ft); "ignite objects" and "destroy weapons" stay description-only. The runtime is generic: `passiveHpZeroEffects` in creature discovery, one hook (`raiseRoomHpZeroEffects`) at the room's command funnel, and a SYSTEM admission kind for the rule-raised root. Nothing in code names the Balor.
+
+- Auto-roll victims settle in the defeating commit; manual rollers get the area `AREA_PENDING` in the same commit. Victims: every actor within 30 ft of the defeated token's footprint, allies included, excluding the holder.
+- Undo of the burst reverts the parent attack in the same commit (system group first); proof: kill, burst, undo, both the Balor's and the victims' hit points restored.
+- Proofs: `encounterPassiveHpZeroEffects.test.ts` (discovery), `effect-node-maps.test.ts` (authoring parity through the node map), `nativeRoomHpZeroEffect.test.ts` (room journey, undo, manual rollers, no retrigger).
+- Deferred edge cases for the orchestrator to move at merge: the burst's own defeats never retrigger (T6e1 ruling; Balor in a Balor's blast does not chain); a holder defeated while an area is already PENDING raises nothing (queue behind pending is T6e1b, like `deferredCleaving`); undo of a manual-roll attack (any root answered through a d20 evidence occurrence) is refused as "a later rule result", so a manually rolled kill and its burst are voided and fixed by hand.
+
+### Decision candidate D161: SYSTEM admission kind
+
+A `RESOLVE_ACTION` may be raised by the rules rather than a player when it carries `systemTrigger: { parentCommandId }`. It is self-verifying: a deterministic uuidv5 command id from (parent, holder, action), a `CASTER_CENTERED` target and a committed parent in the same Encounter are all it needs; no new table, no persisted flag. It is the only admission that lets a defeated actor be the source. Undo and void treat the parent and the system root as one change. Written in [persistence](../architecture/persistence.md#rule-raised-system-action-admission-current-spells-33t6e1-d161-candidate).

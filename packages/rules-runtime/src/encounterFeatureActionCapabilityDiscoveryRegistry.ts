@@ -7,6 +7,7 @@ import type { EffectActionCapabilityDescriptor } from './characterActionCapabili
 import {
   CharacterRuleActionUnsupportedCompilationError,
   type CharacterRuleActionActiveEffectPlan,
+  type CharacterRuleActionExecutionPlan,
   type CharacterRuleActionSystemAdapter
 } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
@@ -40,6 +41,12 @@ export interface EncounterPassiveDamageGrant {
   plan: CharacterRuleActionActiveEffectPlan
 }
 
+/** An effect a Creature's passive feature runs where it stands when it is reduced to 0 hit points. */
+export interface EncounterPassiveHpZeroEffect {
+  capability: EncounterFeatureActionCapabilityDescriptor
+  plan: CharacterRuleActionExecutionPlan
+}
+
 /**
  * Every action of a Creature: the ones it can take, and the unavailable ones with their reason,
  * with the zones its passive features keep around it. An action or passive zone whose shape its
@@ -49,15 +56,17 @@ export function discoverEncounterFeatureActions(
   input: Parameters<typeof registry.discover>[0]
 ): Omit<
   EncounterFeatureActionDiscovery,
-  'passiveZoneCapabilities' | 'passiveDamageGrantCapabilities'
+  'passiveZoneCapabilities' | 'passiveDamageGrantCapabilities' | 'passiveHpZeroCapabilities'
 > & {
   passiveZones: readonly EncounterPassiveZone[]
   passiveDamageGrants: readonly EncounterPassiveDamageGrant[]
+  passiveHpZeroEffects: readonly EncounterPassiveHpZeroEffect[]
 } {
   const discovered = registry.discover(input)
   const available: EncounterFeatureActionCapabilityDescriptor[] = []
   const passiveZones: EncounterPassiveZone[] = []
   const passiveDamageGrants: EncounterPassiveDamageGrant[] = []
+  const passiveHpZeroEffects: EncounterPassiveHpZeroEffect[] = []
   const unavailable = [...discovered.unavailable]
   const compiles = (
     capability: EncounterFeatureActionCapabilityDescriptor,
@@ -93,7 +102,14 @@ export function discoverEncounterFeatureActions(
     compiles(capability, (adapter) => {
       passiveDamageGrants.push(compilePassiveDamageGrant(adapter, capability))
     })
-  return { available, unavailable, passiveZones, passiveDamageGrants }
+  for (const capability of discovered.passiveHpZeroCapabilities)
+    compiles(capability, (adapter) => {
+      passiveHpZeroEffects.push({
+        capability,
+        plan: compileEncounterFeatureActionPlan(adapter, capability)
+      })
+    })
+  return { available, unavailable, passiveZones, passiveDamageGrants, passiveHpZeroEffects }
 }
 
 /**

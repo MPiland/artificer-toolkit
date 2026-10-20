@@ -34,6 +34,37 @@ describe('effect node maps', () => {
     )
   })
 
+  it('offers the hit-point-zero trigger with the saving throw an area of its own needs', () => {
+    const invocationNode = EFFECT_NODE_MAP.nodes.invocation
+
+    if (invocationNode.kind !== 'GROUP') {
+      throw new Error('Expected invocation to be a group node')
+    }
+
+    const invocationMap =
+      typeof invocationNode.nodes === 'function' ? invocationNode.nodes() : invocationNode.nodes
+    const { triggerCode, savingThrow } = invocationMap.nodes
+
+    if (
+      triggerCode?.kind !== 'INPUT' ||
+      triggerCode.type !== 'SELECT_SINGLE' ||
+      triggerCode.source.kind !== 'INLINE_OPTIONS'
+    ) {
+      throw new Error('Expected trigger code to be an inline select')
+    }
+    if (savingThrow?.kind !== 'GROUP' || !savingThrow.showIf) {
+      throw new Error('Expected the saving throw group to be conditional')
+    }
+
+    expect(triggerCode.source.options.map((option) => option.code)).toContain(TRIGGER.HP_ZERO)
+    expect(
+      evaluateConditionIf(savingThrow.showIf, { values: { triggerCode: TRIGGER.HP_ZERO } })
+    ).toBe(true)
+    expect(
+      evaluateConditionIf(savingThrow.showIf, { values: { triggerCode: TRIGGER.ENTER_AREA } })
+    ).toBe(false)
+  })
+
   it('declares explicit authoring presentation for effect groups', () => {
     const effectsNode = SPELL_NODE_MAP.nodes.effects
     const invocationNode = EFFECT_NODE_MAP.nodes.invocation

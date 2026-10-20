@@ -73,6 +73,8 @@ export interface EncounterFeatureActionDiscovery {
   passiveZoneCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   /** The passive features that give their holder a timed grant when it takes damage, never offered as actions. */
   passiveDamageGrantCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  /** The passive features that fire when their holder is reduced to 0 hit points, never offered as actions. */
+  passiveHpZeroCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
 }
 
 type FeatureOption = NonNullable<FeatureDto['options']>[number]
@@ -458,7 +460,21 @@ function creatureActionEffect(
       )
     )
   )
-  return reduceEffectRestrictions(mergeOnHitRiders(compileEffect(effect), riders), null)
+  const compiled = reduceEffectRestrictions(mergeOnHitRiders(compileEffect(effect), riders), null)
+  const { invocation } = compiled
+  // A passive "when reduced to 0 hit points" save effect runs as the save action the System fires
+  // for its holder, so it compiles and plans like any other area save.
+  return invocation.kind === 'PASSIVE' && invocation.triggerCode === 'HP_ZERO'
+    ? {
+        ...compiled,
+        invocation: {
+          ...invocation,
+          kind: 'ACTION',
+          triggerCode: 'SAVING_THROW',
+          activation: { code: 'ACTION', amount: 1 }
+        }
+      }
+    : compiled
 }
 
 function featureEffectEntries(
@@ -578,7 +594,8 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           available: [],
           unavailable: [],
           passiveZoneCapabilities: [],
-          passiveDamageGrantCapabilities: []
+          passiveDamageGrantCapabilities: [],
+          passiveHpZeroCapabilities: []
         }
       const provenance = snapshotProvenance(input.actor)
       const gameSystemId = requireCanonicalUuid(
@@ -591,12 +608,14 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           available: [],
           unavailable: [],
           passiveZoneCapabilities: [],
-          passiveDamageGrantCapabilities: []
+          passiveDamageGrantCapabilities: [],
+          passiveHpZeroCapabilities: []
         }
       const available: EncounterFeatureActionCapabilityDescriptor[] = []
       const unavailable: EncounterFeatureActionUnavailable[] = []
       const passiveZoneCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const passiveDamageGrantCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+      const passiveHpZeroCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const actionIds = new Set<string>()
       const features = snapshotFeatures(input.actor)
       for (const feature of features) {
@@ -625,7 +644,8 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
             const compiledEffect = creatureActionEffect(effect, features)
             const damageGrant =
               passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
-            if (passive && !damageGrant && !placedSpaceManifest(compiledEffect)) continue
+            const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
+            if (passive && !damageGrant && !hpZero && !placedSpaceManifest(compiledEffect)) continue
             const equipmentBinding = entryEquipmentBinding(input.actor, entry, compiledEffect)
             const normalized = bindEffect(adapter, {
               gameSystemId,
@@ -636,9 +656,11 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
             if (normalized === null) continue
             ;(damageGrant
               ? passiveDamageGrantCapabilities
-              : passive
-                ? passiveZoneCapabilities
-                : available
+              : hpZero
+                ? passiveHpZeroCapabilities
+                : passive
+                  ? passiveZoneCapabilities
+                  : available
             ).push({
               kind: 'ENCOUNTER_FEATURE',
               gameSystemId,
@@ -679,7 +701,13 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           }
         }
       }
-      return { available, unavailable, passiveZoneCapabilities, passiveDamageGrantCapabilities }
+      return {
+        available,
+        unavailable,
+        passiveZoneCapabilities,
+        passiveDamageGrantCapabilities,
+        passiveHpZeroCapabilities
+      }
     }
   }
 }

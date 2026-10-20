@@ -258,6 +258,11 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
     target: resolveEncounterActionTargetDtoSchema,
     optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),
+    /**
+     * Set only on a root the rules raise themselves, never on one a player submits: the committed
+     * command whose result raised it. Admission proves the link against that command's receipt.
+     */
+    systemTrigger: z.optional(z.strictObject({ parentCommandId: uuidSchema })),
     acceptedWieldConflict: z._default(
       z.optional(z.nullable(encounterAcceptedWieldConflictDtoSchema)),
       null

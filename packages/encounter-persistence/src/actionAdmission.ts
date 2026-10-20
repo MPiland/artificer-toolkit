@@ -5,6 +5,7 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readEncounterActorDefeated } from './characterStates.js'
+import { requireSystemTriggerAdmission } from './systemTriggerAdmission.js'
 import { nativeActionPendingResult, readNativePendingRoot } from './actionPendingResult.js'
 import { readRunActor, readRunState } from './documents.js'
 import { readEncounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
@@ -200,7 +201,15 @@ export async function readNativeEncounterActionAdmission(
     const result = await replayEncounterCommandResult(ctx, state, replay)
     return { kind: 'REPLAY' as const, input, run, state, campaign, membership, fingerprint, result }
   }
-  if (!resume) {
+  const { systemTrigger } = input
+  if (systemTrigger)
+    await requireSystemTriggerAdmission(ctx, {
+      run,
+      state,
+      command: { ...input, systemTrigger },
+      fresh: !resume
+    })
+  else if (!resume) {
     const actor = await readRunActor(ctx, state, input.actorId)
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
@@ -222,7 +231,7 @@ export async function readNativeEncounterActionAdmission(
   if (state.status !== 'ACTIVE')
     rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Actions require an active Encounter.')
   if (state.automationMode === 'MANUAL') rejectDomain('ASSISTED_ONLY')
-  if (state.currentActorId !== input.actorId) rejectDomain('NOT_CURRENT_ACTOR')
+  if (!systemTrigger && state.currentActorId !== input.actorId) rejectDomain('NOT_CURRENT_ACTOR')
   const pending = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (query) =>

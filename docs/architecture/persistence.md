@@ -196,6 +196,24 @@ GM actor sides and decision settlement; `timelinePages.ts`: one timeline page) l
 ([Held Encounter session](live-sessions.md#held-encounter-session)) call the same readers, so they cannot
 drift; Convex keeps authorization, receipt-ledger loading and read budgets.
 
+### Rule-raised (SYSTEM) action admission (current, SPELLS-33.T6e1, D161 candidate)
+
+A rule, not a player, can raise an action: a defeated creature's passive `HP_ZERO` area (Balor Death Throes).
+The room raises it as a `RESOLVE_ACTION` carrying `systemTrigger: { parentCommandId }` right after the
+command that defeated the holder commits. `readNativeEncounterActionAdmission` admits it through
+`requireSystemTriggerAdmission` (`systemTriggerAdmission.ts`) instead of the player checks, and proves it
+from the stored record alone: the command id must equal `systemTriggerCommandId(parent, holder, actionId)`
+(uuidv5, `rules-runtime/encounterSystemTrigger`), the target must be `CASTER_CENTERED`, the parent must be a
+committed Run command or rule receipt of the same Encounter, and a fresh root must name the parent's version
+and a defeated holder. A replay of the same id returns the stored result. The SYSTEM root skips the
+current-actor and control checks (the holder is defeated and it is nobody's turn), and every other check, the
+save requests and the settlement run unchanged.
+
+Undo and void. The parent and its system root are one change to the GM: `REVERT_LAST_ACTION` of the
+system root reads the parent's group from the stored `systemTrigger` link and inverts both in one commit
+(system group first, then the parent, shared actor and Character accumulators). A pending manual save on
+the death area refuses the undo like any pending decision; the GM voids it, then undoes.
+
 ### Encounter record shapes (ADR 0035 Amendment 12)
 
 - **Character play state.** A Character is a `characters` row (structure, clocked by `updatedAt`) and a

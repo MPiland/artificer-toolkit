@@ -36,6 +36,7 @@ function defaultPathCode(triggerCode: EffectAuthored['invocation']['triggerCode'
     case TRIGGER.INCOMING_SAVING_THROW:
     case TRIGGER.ENTER_AREA:
     case TRIGGER.INCOMING_DAMAGE:
+    case TRIGGER.HP_ZERO:
       return PATH_CODE.PASSIVE
     case TRIGGER.ACTIVATED:
       return PATH_CODE.ON_USE

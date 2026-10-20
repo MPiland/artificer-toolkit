@@ -173,22 +173,22 @@ export const balor: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SAVING_THROW,
+            triggerCode: S.TRIGGER.HP_ZERO,
             savingThrow: {
               id: S.actionId(36, 109),
               dcMethod: 'FIXED_DC',
               abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 20
             },
-            range: {
-              id: S.actionId(36, 110),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 30,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
+            range: { id: S.actionId(36, 110), rangeKind: S.RANGE_KIND.SELF },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            },
+            shape: {
+              id: S.actionId(36, 130),
+              shapeKind: SHAPE_KIND.SPHERE,
+              radius: { amount: 30, unit: S.MEASUREMENT_UNIT_CODE.FEET }
             }
           },
           paths: [
@@ -210,11 +210,6 @@ export const balor: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '20d6'
-                  },
-                  {
-                    id: S.actionId(36, 113),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_BALOR_DEATH_THROES
                   }
                 ]
               }

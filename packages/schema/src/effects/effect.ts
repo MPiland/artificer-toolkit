@@ -72,7 +72,10 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
   z.union([
     z.object({
       kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
-      triggerCode: z.literal(triggerCodeSchema._zod.def.entries.SAVING_THROW),
+      triggerCode: z.enum([
+        triggerCodeSchema._zod.def.entries.SAVING_THROW,
+        triggerCodeSchema._zod.def.entries.HP_ZERO
+      ]),
       savingThrow: savingThrowDtoSchema,
       range: rangeDtoSchema,
       shape: z.optional(shapeDtoSchema),

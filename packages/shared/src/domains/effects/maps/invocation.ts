@@ -248,7 +248,7 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
   ({ map, nodes, cond, logic, data }) => {
     const { selectSingle, selectMulti, groupObject } = nodes
     const { table } = data
-    const { and } = logic
+    const { or } = logic
     const local = cond.local()
 
     map
@@ -287,7 +287,10 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
         groupObject(['savingThrow'], 'Saving Throw', () => SAVING_THROW_NODE_MAP, {
           presentation: 'inline',
           order: 3,
-          showIf: and([local.field(['triggerCode']).eq('SAVING_THROW')])
+          showIf: or([
+            local.field(['triggerCode']).eq('SAVING_THROW'),
+            local.field(['triggerCode']).eq('HP_ZERO')
+          ])
         })
       )
       .set(
