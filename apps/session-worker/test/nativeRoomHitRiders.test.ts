@@ -40,6 +40,18 @@ function srdId(entries: readonly { id: string; code: string }[], code: string) {
 const conditionId = (code: string) => srdId(SRD_CONDITION_TYPES, code)
 const damageTypeId = (code: string) => srdId(SRD_DAMAGE_TYPES, code)
 
+/** The Effect of the feature option labelled `option`: the exact normal or enhanced attack (D62). */
+function optionEffectId(
+  creature: Parameters<typeof creatureFeature>[0],
+  feature: string,
+  option: string
+) {
+  const effect = creatureFeature(creature, feature).options?.find(({ label }) => label === option)
+    ?.effects?.[0]
+  if (!effect) throw new Error(`The ${feature} option ${option} is missing.`)
+  return effect.id
+}
+
 /**
  * The seeded SRD Creature `creature` attacking the player's Character with `feature`. The GM
  * rolls the Creature's dice automatically; `playerAutoRoll` also auto-rolls the Character's saves,
@@ -54,6 +66,8 @@ function hitRiderRoom(input: {
   grip?: 'ONE_HANDED' | 'TWO_HANDED'
   /** The Creature's current hit points, when not its maximum. */
   creatureHitPoints?: number
+  /** The label of the feature option the GM picks (a Dryad's Shillelagh club, an enlarged Duergar pick). */
+  option?: string
 }) {
   const creature = seededSrdCreature(input.creature)
   return actionRoom({
@@ -66,6 +80,7 @@ function hitRiderRoom(input: {
       characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
     ],
     ownerFeatureId: creatureFeature(creature, input.feature).id,
+    ...(input.option && { effectId: optionEffectId(creature, input.feature, input.option) }),
     grip: input.grip,
     autoRoll: input.playerAutoRoll ? 'BOTH' : 'GAME_MASTER',
     rolls: input.rolls
@@ -318,6 +333,89 @@ describe('seeded SRD Creature hit riders in the room', () => {
     })
     expect((await settle(room, null)).damage).toEqual([[damage, damageTypeId('PIERCING')]])
   })
+
+  it('reduces the Character’s hit point maximum by the damage the Clay Golem’s Slam deals on a failed save (ATTACK-5.3)', async () => {
+    // 2d10 + 5 bludgeoning with both dice rolling 1 is 7; the DC 15 Constitution save fails.
+    const room = await hitRiderRoom({
+      creature: 'Clay Golem',
+      feature: 'Slam',
+      playerAutoRoll: false,
+      rolls: [18, 0, 0]
+    })
+    const batch = await settle(room, 1)
+    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 15, resultPath: 'ON_SAVE_FAIL' })
+    expect(batch.damage).toEqual([[7, damageTypeId('BLUDGEONING')]])
+    expect(batch.targetTransition.after.maximumHitPoints).toBe(
+      batch.targetTransition.before.maximumHitPoints - 7
+    )
+  })
+
+  it('leaves the hit point maximum when the Character passes its save against the Clay Golem’s Slam (ATTACK-5.3)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Clay Golem',
+      feature: 'Slam',
+      playerAutoRoll: false,
+      rolls: [18, 0, 0]
+    })
+    const batch = await settle(room, 19)
+    expect(batch.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(batch.targetTransition.after.maximumHitPoints).toBe(
+      batch.targetTransition.before.maximumHitPoints
+    )
+  })
+
+  it('attaches the Cloaker to a Large Creature its Bite hits (ATTACK-5.4)', async () => {
+    // 2d6 + 3 piercing with both dice rolling 1 is 5; an Ogre is Large, so the Cloaker attaches.
+    const cloaker = seededSrdCreature('Cloaker')
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: SOURCE_ID, creature: cloaker }),
+        srdCreatureActor({ id: CREATURE_TARGET_ID, creature: seededSrdCreature('Ogre') })
+      ],
+      ownerFeatureId: creatureFeature(cloaker, 'Bite').id,
+      autoRoll: 'GAME_MASTER',
+      rolls: [18, 0, 0]
+    })
+    const { answer } = await room.startAction(CREATURE_TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await room.heldRelationships()) ?? []).toMatchObject([
+      { heldActorId: CREATURE_TARGET_ID }
+    ])
+  })
+
+  it.each([
+    { creature: 'Dryad', feature: 'Club', option: 'Club', rolls: [18, 0], damage: 1 },
+    { creature: 'Dryad', feature: 'Club', option: 'Club (Shillelagh)', rolls: [18, 0], damage: 5 },
+    { creature: 'Duergar', feature: 'War Pick', option: 'War Pick', rolls: [18, 0], damage: 3 },
+    {
+      creature: 'Duergar',
+      feature: 'War Pick',
+      option: 'War Pick (Enlarged)',
+      rolls: [18, 0, 0],
+      damage: 4
+    },
+    {
+      creature: 'Duergar',
+      feature: 'Javelin',
+      option: 'Javelin (Melee, Enlarged)',
+      rolls: [18, 0, 0],
+      damage: 4
+    },
+    {
+      creature: 'Duergar',
+      feature: 'Javelin',
+      option: 'Javelin (Ranged, Enlarged)',
+      rolls: [18, 0, 0],
+      damage: 4
+    }
+  ])(
+    'deals the $creature’s $option damage when the GM picks that option (ATTACK-5.5, 5.6, 5.7)',
+    async ({ creature, feature, option, rolls, damage }) => {
+      const room = await hitRiderRoom({ creature, feature, option, playerAutoRoll: true, rolls })
+      const batch = await settle(room, null)
+      expect(batch.damage.map(([amount]) => amount)).toEqual([damage])
+    }
+  )
 
   it('hits with the Ogre’s Greatclub for its printed damage through its held Equipment', async () => {
     // 2d8 + 4 bludgeoning (the Equipment alone deals 1d8) with both dice rolling 1.

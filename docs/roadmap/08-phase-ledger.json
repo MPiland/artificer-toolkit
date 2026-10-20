@@ -6114,40 +6114,55 @@
             },
             {
               "text": "Clay Golem Slam runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-CLAY-GOLEM-SLAM"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.3"
             },
             {
               "text": "Cloaker Bite runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-CLOAKER-BITE"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.4"
             },
             {
               "text": "Dryad Shillelagh runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-DRYAD-SHILLELAGH"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.5"
             },
             {
               "text": "The enlarged Duergar war pick runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-DUERGAR-WAR-PICK"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.6"
             },
             {
               "text": "The enlarged Duergar javelin runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-DUERGAR-JAVELIN"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.7"
@@ -6248,7 +6263,7 @@
             {
               "id": "ATTACK-5.T2",
               "text": "Clay Golem, Cloaker, Dryad and enlarged Duergar attacks.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-5.3", "ATTACK-5.4", "ATTACK-5.5", "ATTACK-5.6", "ATTACK-5.7"],
               "wsjf": {
                 "bv": 3,
@@ -6256,12 +6271,13 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["ATTACK-7"]
-              }
+              },
+              "note": "Merged m223 (40e43e5f2). All five already ran from generic options; proof only."
             },
             {
               "id": "ATTACK-5.T3",
               "text": "Quasit, Rug of Smothering, Shadow and Spirit Naga attacks.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-5.10", "ATTACK-5.11", "ATTACK-5.12", "ATTACK-5.13", "ATTACK-5.14"],
               "wsjf": {
                 "bv": 3,
@@ -7768,38 +7784,65 @@
         {
           "id": "ATTACK-19",
           "title": "Weapons in hand during play",
-          "status": "TODO",
-          "journeyTests": [],
+          "status": "IN_PROGRESS",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts",
+            "apps/session-worker/test/nativeRoomWeaponDraw.test.ts",
+            "apps/session-worker/test/nativeRoomAmmunition.test.ts",
+            "apps/session-worker/test/nativeRoomDisarm.test.ts"
+          ],
           "journeyStatus": "none",
           "origin": [],
           "note": "Registered 2026-10-10 by the product owner (D107). Builds on SHEET-8 and AUTHORING-17.",
           "acs": [
             {
               "text": "The Attack action defaults to the main-hand weapon with full damage, and the bonus attack to the off-hand weapon, which adds no positive ability modifier to damage unless the actor has Two-Weapon Fighting; proficiency applies to both.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterDefaultAttack.test.ts",
+                "apps/session-worker/test/nativeRoomTwoWeaponFighting.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx"
+              ],
               "origin": [],
               "id": "ATTACK-19.1"
             },
             {
               "text": "An attack draws its bound weapon into a free hand automatically. With no free hand, an actor holding creatures with the basic Grapple releases one to draw or attack, choosing which when it holds several.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterWeaponDraw.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterCreatureWeaponDraw.test.ts",
+                "apps/session-worker/test/nativeRoomWeaponDraw.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx",
+                "apps/apis/convex/encounters/shieldStow.test.ts"
+              ],
               "origin": [],
               "id": "ATTACK-19.2"
             },
             {
               "text": "A thrown weapon leaves its hand, and Disarm empties the disarmed item's hand; swapping weapons stays free.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterWeaponDraw.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterCreatureWeaponDraw.test.ts",
+                "apps/apis/convex/encounters/shieldStow.test.ts",
+                "apps/session-worker/test/nativeRoomWeaponDraw.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterDisarmSettlement.test.ts",
+                "apps/session-worker/test/nativeRoomDisarm.test.ts"
+              ],
               "origin": [],
               "note": "Swaps stay free per encounterWieldConflict.ts. The one free object interaction per turn is not tracked (future-enhancements.md).",
               "id": "ATTACK-19.3"
             },
             {
               "id": "ATTACK-19.4",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/characterAmmunition.test.ts",
+                "packages/rules-runtime/src/__tests__/srdAmmunitionLinks.test.ts",
+                "apps/session-worker/test/nativeRoomAmmunition.test.ts",
+                "apps/apis/convex/campaigns/playSettings.test.ts"
+              ],
               "origin": [],
               "text": "With the Campaign ammunition tracking option on, each weapon attack that uses ammunition draws one piece of the chosen stack (auto-selected when only one fits) and is refused when none is left; Volley draws one per target. With it off, the chosen ammunition still applies its bonuses and nothing is counted (D4 and its 2026-09-25 user override)."
             }
@@ -7828,7 +7871,7 @@
             },
             {
               "id": "ATTACK-19.T4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-19.4"],
               "wsjf": {
                 "bv": 5,
@@ -7837,7 +7880,20 @@
                 "size": 3,
                 "after": ["ATTACK-19.T1", "SPELLS-4.T2e"]
               },
-              "text": "Ammunition per attack (D4): the Campaign tracking option, stack choice per weapon, one piece drawn per ammunition attack in the attack transaction (reverted with it), refusal at zero, and a room journey firing a Longbow to empty. Found in the SPELLS-31.T5s design: no attack draws ammunition today. Also converts EQUIPMENT_MAGIC_AMMUNITION: the drawn stack feeds SPELLS-4.T2e’s bound-source rule so its bonus reaches only the attack that fires it; the kind is deleted (moved from SPELLS-4.T2e, 2026-10-18 ruling)."
+              "text": "Ammunition per attack (D4): the Campaign tracking option, stack choice per weapon, one piece drawn per ammunition attack in the attack transaction (reverted with it), refusal at zero, and a room journey firing a Longbow to empty. Found in the SPELLS-31.T5s design: no attack draws ammunition today. Also converts EQUIPMENT_MAGIC_AMMUNITION: the drawn stack feeds SPELLS-4.T2e’s bound-source rule so its bonus reaches only the attack that fires it; the kind is deleted (moved from SPELLS-4.T2e, 2026-10-18 ruling).",
+              "note": "Merged m222 (75781f5e6)."
+            },
+            {
+              "id": "ATTACK-19.T5",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-19.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 1
+              },
+              "text": "Prove \"swapping weapons stays free\" (found at the ATTACK-19 close, 2026-10-20): a rules-runtime test that a weapon swap spends nothing beyond the rules grant, and a room journey step in nativeRoomWeaponDraw.test.ts that swaps and still attacks with a full action economy. The other 19.3 clauses are already proved."
             }
           ],
           "wsjf": {
@@ -14430,7 +14486,7 @@
         {
           "id": "RELIABILITY-9",
           "title": "The web follows React data-flow rules",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -14530,7 +14586,7 @@
             {
               "id": "RELIABILITY-9.T2",
               "text": "One all-pages query contract, pure render and SSR-stable values. Also re-check CharacterSheetOverviewVitals: its overlay-epoch reset must not discard in-progress edits (carry-over from T1), and run the Storybook stories T1 could not run in its worktree: EncounterActorCard, CampaignClockEditor, CharacterSheetTextEditor, CharacterSheetInspector, CharacterSelectionModal, CharacterStartingEquipmentChoices, SocialListingFormPage, ProfileSettingsPage, CharacterBuilderAuthoringRuntime.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELIABILITY-9.2", "RELIABILITY-9.3", "RELIABILITY-9.7"],
               "wsjf": {
                 "bv": 2,
