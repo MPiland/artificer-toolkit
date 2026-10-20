@@ -1278,9 +1278,15 @@
             },
             {
               "id": "PLATFORM-21.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated."
+              "text": "A compiled projection whose compiler version or checksum no longer matches is recompiled by a migration in the same change, so the engine never reads a stale projection; development data is migrated.",
+              "proof": [
+                "apps/apis/convex/content/compilationMigration.test.ts",
+                "apps/apis/convex/content/import.test.ts",
+                "apps/apis/convex/authoring/nodeRuntime.test.ts",
+                "packages/authoring/src/nodeRuntime/authoredSourceFacts.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -1300,7 +1306,7 @@
             },
             {
               "id": "PLATFORM-21.T1a2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-21.2"],
               "wsjf": {
                 "bv": 8,
@@ -1309,11 +1315,12 @@
                 "size": 2,
                 "after": ["PLATFORM-21.T1a"]
               },
-              "text": "Local development data recompiles (found in T1a, 2026-10-20): the local seed refuses the unchanged SRD Sorcerer with \"Canonical content conflict\", the first chunked document in the run, so the T1a migration cannot run on review data. Find the stored-versus-parsed difference with the real parser, fix its root cause in import or chunking with a regression test, then seed and migrate the local container with no reset."
+              "text": "Local development data recompiles (found in T1a, 2026-10-20): the local seed refuses the unchanged SRD Sorcerer with \"Canonical content conflict\", the first chunked document in the run, so the T1a migration cannot run on review data. Find the stored-versus-parsed difference with the real parser, fix its root cause in import or chunking with a regression test, then seed and migrate the local container with no reset.",
+              "note": "Merged m219 (92560662b). Local seed and migrate succeeded without a reset."
             },
             {
               "id": "PLATFORM-21.T1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["PLATFORM-21.1"],
               "wsjf": {
                 "bv": 8,

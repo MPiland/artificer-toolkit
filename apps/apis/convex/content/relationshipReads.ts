@@ -6,13 +6,37 @@ import {
   raceAuthoredDtoSchema,
   type SubraceAuthoredDto
 } from '@artificer-toolkit/schema/subjects/race'
+import type * as z from 'zod/mini'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import {
   canReadAuthoredRoot,
+  readAuthoredVersion,
+  readPublishedDocument,
   readPublishedRootDocument,
   type PublishedDocumentReads
 } from './documents'
+
+/**
+ * Reads a dependent's stored document for its parent's recompile. A dependent the seed replaces in
+ * a later batch is left to that import, which compiles it against the current parent, so its stored
+ * document may predate the current schema. Any other dependent must parse; a failure names it.
+ */
+export async function readRecompiledDependent<T>(
+  ctx: QueryCtx,
+  root: Doc<'authoredRoots'>,
+  schema: z.ZodMiniType<T>,
+  reimportedIds: ReadonlySet<string>
+) {
+  if (reimportedIds.has(root.id)) return undefined
+  const version = await readAuthoredVersion(ctx, root)
+  const parsed = schema.safeParse(await readPublishedDocument(ctx, root, version))
+  if (!parsed.success)
+    throw new Error(
+      `Stored ${root.subjectKind} ${root.id} does not match its current schema at ${parsed.error.issues.map(({ path }) => path.join('.')).join(', ')}.`
+    )
+  return { version, document: parsed.data }
+}
 
 export async function requireRaceParent(
   ctx: QueryCtx,

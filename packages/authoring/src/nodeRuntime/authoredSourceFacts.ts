@@ -1,4 +1,5 @@
 import {
+  AUTHORED_SOURCE_FACTS_VERSION,
   authoredNodeRuntimeSourceFactsSchema,
   type AuthoredNodeRuntimeSourceFacts,
   type NodeRuntimeSourceTable
@@ -361,5 +362,9 @@ export function authoredSourceFacts(subject: Subject): AuthoredNodeRuntimeSource
 
   for (const tableRows of Object.values(rows))
     tableRows?.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
-  return authoredNodeRuntimeSourceFactsSchema.parse({ checksum: subject.checksum, rows })
+  return authoredNodeRuntimeSourceFactsSchema.parse({
+    checksum: subject.checksum,
+    factsVersion: AUTHORED_SOURCE_FACTS_VERSION,
+    rows
+  })
 }

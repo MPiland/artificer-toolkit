@@ -1,4 +1,5 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
+import { AUTHORED_SOURCE_FACTS_VERSION } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -798,6 +799,7 @@ describe('native Convex authoring resolver', () => {
       await ctx.db.patch(before._id, {
         authoringSources: {
           checksum: '0'.repeat(64),
+          factsVersion: AUTHORED_SOURCE_FACTS_VERSION,
           rows: {}
         }
       })

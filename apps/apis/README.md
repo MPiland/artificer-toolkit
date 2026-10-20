@@ -727,7 +727,8 @@ For an existing verified development deployment, run the internal metadata backf
 `yarn convex run content/sourceMigrations:backfillAuthoringSources` from `apps/apis`.
 Check `yarn convex run --component migrations lib:getStatus`, then run `content/seed:audit`.
 The official migration is resumable, one current authored document per batch; it validates
-ownership/currentness and rejects conflicting metadata. Content, UUIDs, versions and counts
+ownership/currentness, re-derives facts from an older `factsVersion` and rejects same-version
+conflicting metadata. Content, UUIDs, versions and counts
 are unchanged. Do not tighten the optional field before completion and read-back verification.
 
 After verifying the selected dev deployment, `developmentDrafts.ts --authoring-resolver` runs

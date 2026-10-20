@@ -9,6 +9,7 @@ import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index
 import { dwarf, hillDwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
 import { SUBJECT_COMPILER_VERSION } from '@artificer-toolkit/schema/api/authoredPublication'
 import { acquiredEquipmentRulesSchema } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
 import { characterCollectionRecord } from '@artificer-toolkit/schema/projections/characterOperationalState'
@@ -30,6 +31,7 @@ import type { MutationCtx } from '../_generated/server'
 import {
   readAuthoredVersionCompilation,
   readAuthoredVersionCompilationRow,
+  readStoredAuthoredVersionDocument,
   syncCanonicalCompilation
 } from './documents'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
@@ -189,6 +191,62 @@ it('re-seeds superseded canonical compilations and refuses to re-seed authored c
       'Stored compilation is superseded; run content/compilationMigration.'
     )
   })
+})
+
+it('re-derives the unversioned source facts of an authored row from its stored document', async ({
+  onTestFinished
+}) => {
+  const { t } = await publicationFixture(
+    import.meta.glob('/apps/apis/convex/**/*.*s'),
+    import.meta.glob('../betterAuth/**/*.*s'),
+    fixtureBatches()
+  )
+  vi.useFakeTimers()
+  onTestFinished(() => {
+    vi.useRealTimers()
+  })
+  migrations.register(t)
+  const ownerUserId = crypto.randomUUID()
+  const expected = await t.run(async (ctx) => {
+    await makePublishedRootOwned(ctx, acolyte.id, ownerUserId)
+    const root = await ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (query) => query.eq('id', acolyte.id))
+      .unique()
+    if (!root) throw new Error('Acolyte was not imported.')
+    const version = await readVersion(ctx, acolyte.id)
+    const facts = authoredSourceFacts({
+      ...parsePublicationDocument(
+        'BACKGROUND',
+        await readStoredAuthoredVersionDocument(ctx, version)
+      ),
+      checksum: root.checksum
+    })
+    // An older derivation left no version and no rows for a table the current one derives.
+    const tables = Object.keys(facts.rows)
+    expect(tables.length).toBeGreaterThan(1)
+    await ctx.db.patch(root._id, {
+      authoringSources: {
+        checksum: root.checksum,
+        rows: Object.fromEntries(
+          Object.entries(facts.rows).filter(([table]) => table !== tables.at(-1))
+        )
+      }
+    })
+    return facts
+  })
+
+  await t.mutation(runMigration, {})
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+
+  const migrated = await t.run((ctx) =>
+    ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (query) => query.eq('id', acolyte.id))
+      .unique()
+  )
+  expect(migrated?.ownerUserId).toBe(ownerUserId)
+  expect(migrated?.authoringSources).toEqual(expected)
 })
 
 it('recompiles every superseded stored compilation at the current compiler version', async ({

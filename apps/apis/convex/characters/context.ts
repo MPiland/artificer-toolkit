@@ -1,5 +1,8 @@
 import { authoredSourceKindsByTable } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
-import { authoredNodeRuntimeSourceFactsSchema } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
+import {
+  AUTHORED_SOURCE_FACTS_VERSION,
+  authoredNodeRuntimeSourceFactsSchema
+} from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type {
   AuthoredCurrentSourceIdentity,
   AuthoredPublicationDocument
@@ -229,6 +232,10 @@ export async function loadCharacterRuleContext(
           const metadata = authoredNodeRuntimeSourceFactsSchema.parse(root.authoringSources)
           if (metadata.checksum !== root.checksum)
             throw new Error('Stored Character feature source checksum mismatch.')
+          if (metadata.factsVersion !== AUTHORED_SOURCE_FACTS_VERSION)
+            throw new Error(
+              'Stored authoring source facts are superseded; run content/sourceMigrations.'
+            )
           if (
             !metadata.rows.features?.some(
               (row) => typeof row.id === 'string' && missingFeatures.has(row.id)

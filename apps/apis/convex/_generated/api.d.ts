@@ -136022,6 +136022,7 @@ export declare const internal: {
         {
           authoringSources: {
             checksum: string;
+            factsVersion?: number;
             rows: {
               ability_definitions?: Array<
                 Record<string, string | number | boolean | null>
@@ -136671,6 +136672,7 @@ export declare const internal: {
         "internal",
         {
           contentSourceId: string;
+          reimportedSubjectIds?: Array<string>;
           subjects: Array<{
             checksum: string;
             document:

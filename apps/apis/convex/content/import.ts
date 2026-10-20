@@ -23,6 +23,7 @@ import {
 } from '@artificer-toolkit/schema/api/sourceImport'
 import { authoredDocumentVersionSchema } from '@artificer-toolkit/schema/projections/authoredContent'
 import { authoredEquipmentOptionFactsSchema } from '@artificer-toolkit/schema/api/authoredOptions'
+import { AUTHORED_SOURCE_FACTS_VERSION } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import {
   reusableDefinitionDocumentDtoSchema,
@@ -233,8 +234,10 @@ export const importSubjects: RegisteredMutation<
   args: zodToConvexFields(sourceImportSubjectsInputSchema.shape),
   returns: zodToConvex(sourceImportBatchResultDtoSchema),
   handler: async (ctx, args) => {
-    const { contentSourceId, subjects } = sourceImportSubjectsInputSchema.parse(args)
+    const { contentSourceId, subjects, reimportedSubjectIds } =
+      sourceImportSubjectsInputSchema.parse(args)
     uniqueIds(subjects)
+    const reimportedIds = new Set(reimportedSubjectIds)
     const source = await requireSource(ctx, contentSourceId)
     let inserted = 0
     let reused = 0
@@ -366,9 +369,10 @@ export const importSubjects: RegisteredMutation<
           document: parsed.document,
           publicId
         })
-        if (equipment) await recompileEquipmentChildren(ctx, equipment.effective, null)
+        if (equipment)
+          await recompileEquipmentChildren(ctx, equipment.effective, null, reimportedIds)
         if (race?.effective.category === 'BASE')
-          await recompileRaceChildren(ctx, race.effective, null)
+          await recompileRaceChildren(ctx, race.effective, null, reimportedIds)
         replaced++
       } else if (current) {
         const {
@@ -461,7 +465,9 @@ export const importSubjects: RegisteredMutation<
                 : equipmentOptions
           })
         }
-        if (storedAuthoringSources !== undefined) exact(storedAuthoringSources, authoringSources)
+        // Facts from an older derivation are re-derived; same-version facts that differ conflict.
+        if (current.authoringSources?.factsVersion === AUTHORED_SOURCE_FACTS_VERSION)
+          exact(storedAuthoringSources, authoringSources)
         else await ctx.db.patch(current._id, { authoringSources })
         const catalogue = await catalogueMetadata(ctx, parsed.document, {
           checksum: subject.checksum,
@@ -573,16 +579,33 @@ export const importDefinitions: RegisteredMutation<
         .withIndex('by_publicId', (q) => q.eq('id', definition.id))
         .unique()
       if (current) {
-        const changes = mutableChanges(current, { ...record, publishedAt: current.publishedAt }, [
-          'label',
-          'description',
-          'checksum',
-          'documentJson'
-        ])
+        // A row seeded before the publication metadata existed is backfilled; a different value conflicts.
+        const publication = {
+          contractVersion: current.contractVersion ?? record.contractVersion,
+          publishedBy: current.publishedBy ?? record.publishedBy,
+          publishedAt: current.publishedAt ?? new Date().toISOString()
+        }
+        const changes = mutableChanges(
+          { ...current, ...publication },
+          { ...record, publishedAt: publication.publishedAt },
+          ['label', 'description', 'checksum', 'documentJson']
+        )
         if (changes) {
-          await ctx.db.patch(current._id, { ...changes, publishedAt: new Date().toISOString() })
+          await ctx.db.patch(current._id, {
+            ...changes,
+            ...publication,
+            publishedAt: new Date().toISOString()
+          })
           replaced++
-        } else reused++
+        } else {
+          if (
+            current.contractVersion === undefined ||
+            current.publishedBy === undefined ||
+            current.publishedAt === undefined
+          )
+            await ctx.db.patch(current._id, publication)
+          reused++
+        }
       } else {
         await ctx.db.insert('reusableDefinitions', {
           ...record,

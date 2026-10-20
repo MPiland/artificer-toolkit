@@ -23,7 +23,7 @@ import {
 } from './documents'
 import { compilePublicationDocument } from './publicationDocument'
 import { backfillCatalogueFamily } from './catalogueFamilies'
-import { requireRaceParent } from './relationshipReads'
+import { readRecompiledDependent, requireRaceParent } from './relationshipReads'
 import { isImportRowVisible } from '../imports/visibility'
 
 export { requireRaceParent } from './relationshipReads'
@@ -88,7 +88,8 @@ export async function assertNoRaceChildren(ctx: QueryCtx, systemId: string, race
 export async function recompileRaceChildren(
   ctx: MutationCtx,
   parent: ResolvedBaseRace,
-  userId: string | null
+  userId: string | null,
+  reimportedIds: ReadonlySet<string> = new Set()
 ) {
   const children = await ctx.db
     .query('authoredRoots')
@@ -104,8 +105,9 @@ export async function recompileRaceChildren(
       !(await canReadAuthoredRoot(ctx, root, userId))
     )
       throw new Error('Race dependent ownership mismatch.')
-    const version = await readAuthoredVersion(ctx, root)
-    const document = raceAuthoredDtoSchema.parse(await readPublishedDocument(ctx, root, version))
+    const dependent = await readRecompiledDependent(ctx, root, raceAuthoredDtoSchema, reimportedIds)
+    if (!dependent) continue
+    const { version, document } = dependent
     if (
       document.category !== 'SUBRACE' ||
       document.parentRaceId !== parent.id ||
