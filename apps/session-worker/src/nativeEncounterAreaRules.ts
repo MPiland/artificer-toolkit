@@ -186,6 +186,7 @@ import {
   refuseUnmetBasicActionRestrictions,
   interpretForcedMovements
 } from './nativeEncounterActionInputs.js'
+import { readNativeLiveTurnMovedFeet } from './nativeTurnUses.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {
   prepareNativeLiveActionMaintenance,
@@ -349,7 +350,8 @@ export async function prepareCasterSource(
       gameSystemId: state.gameSystemId,
       definitions: captureActionEconomyDefinitions(input.capture),
       speedDefinitions: input.system.speeds,
-      runEffectsByActorId: input.activeEffectsByActorId
+      runEffectsByActorId: input.activeEffectsByActorId,
+      readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(input.capture, casterFacts.actor.id)
     }
   )
   // A zone whose cast authors a save puts each creature in its area through it as it appears (D154).

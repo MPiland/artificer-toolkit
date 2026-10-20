@@ -6,6 +6,7 @@ import {
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
@@ -23,6 +24,7 @@ import {
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -47,6 +49,8 @@ export type NativeLiveCheckActionInput = {
   system: SystemAuthoredDto
   actors: readonly EncounterRunActorState[]
   actor: CheckTarget
+  /** The effects the acting actor holds before the action; taking it ends those that end with an action. */
+  actorEffects: readonly ActiveRuleEffectRecord[]
   target: CheckTarget
   overrides: readonly EncounterRuleWarningDto[]
   actionEconomy: LiveSessionEncounterBasicActionCommitInput['actionEconomy']
@@ -92,6 +96,17 @@ export function nativeLiveCheckCommitInput(
         overridden: overridesActionEconomy(input.overrides)
       })
     : actor.actor
+  // An action ends the effects that last until its holder takes one (Hide in Plain Sight). A check
+  // that rolls nothing is no action taken, and the conditions an ending effect alone held are
+  // released in the holder's own batch, which a check action does not plan.
+  const { consumedGrants: ended, sourceReleases } = actionEndedEffects({
+    holderActorId: settled.id,
+    held: planned.check ? input.actorEffects : [],
+    makesAttackRoll: false,
+    againstEnemy: false
+  })
+  if (sourceReleases.length)
+    throw new EncounterValidationError('A check action cannot end an effect that owns a condition.')
   const facts = buildEncounterActorRuleFacts({ actors: input.actors })
   const nextFacts = buildEncounterActorRuleFacts({
     actors: input.actors.map((entry) => (entry.id === settled.id ? settled : entry))
@@ -108,7 +123,10 @@ export function nativeLiveCheckCommitInput(
     },
     actionEconomy: input.actionEconomy,
     ruleOverrides: input.overrides,
-    consumedGrants: planned.consumedGrants,
+    consumedGrants: [
+      ...planned.consumedGrants,
+      ...ended.filter(({ id }) => !planned.consumedGrants.some((grant) => grant.id === id))
+    ],
     check: planned.check,
     rules: reconcileEncounterActorRuleOutput(
       evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),

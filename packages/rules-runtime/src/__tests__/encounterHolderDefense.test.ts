@@ -59,7 +59,8 @@ const defend = (target: MovementTarget) =>
     gameSystemId: SRD_SYSTEM_ID,
     definitions: srdDefinitions,
     speedDefinitions: SRD_SPEEDS,
-    runEffectsByActorId: new Map()
+    runEffectsByActorId: new Map(),
+    readTurnMovedFeet: async () => 0
   })
 
 const dexteritySave = (target: MovementTarget) =>
@@ -207,7 +208,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
       gameSystemId: SRD_SYSTEM_ID,
       definitions: srdDefinitions,
       speedDefinitions: SRD_SPEEDS,
-      runEffectsByActorId: new Map()
+      runEffectsByActorId: new Map(),
+      readTurnMovedFeet: async () => 0
     })
 
   it('CAN_ACT fails once a condition suppresses the actor-action capability', async () => {
@@ -281,7 +283,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
         gameSystemId: SRD_SYSTEM_ID,
         definitions: srdDefinitions,
         speedDefinitions: SRD_SPEEDS,
-        runEffectsByActorId: new Map()
+        runEffectsByActorId: new Map(),
+        readTurnMovedFeet: async () => 0
       })
     await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FEET' }])).resolves.toMatchObject({
       speedAboveZero: true
@@ -329,7 +332,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
           canAct: true,
           speedAboveZero: true,
           freeHand: true,
-          stowableHeldItemInstanceId: null
+          stowableHeldItemInstanceId: null,
+          turnMovement: { usedFeet: 0, speedFeet: 30 }
         }
       })
     ).toEqual([])
@@ -344,7 +348,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
           canAct: true,
           speedAboveZero: true,
           freeHand: true,
-          stowableHeldItemInstanceId: null
+          stowableHeldItemInstanceId: null,
+          turnMovement: { usedFeet: 0, speedFeet: 30 }
         }
       })
     ).toHaveLength(ATTACK_DOMAINS.length)
@@ -363,7 +368,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
           canAct,
           speedAboveZero,
           freeHand: true,
-          stowableHeldItemInstanceId: null
+          stowableHeldItemInstanceId: null,
+          turnMovement: { usedFeet: 0, speedFeet: 30 }
         }
       }).length > 0
     expect(holds(true, true)).toBe(true)

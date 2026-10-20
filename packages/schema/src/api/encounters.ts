@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import {
   encounterActorControllerUserIdsDtoSchema,
   encounterActorDispositionDtoSchema,
@@ -232,6 +233,17 @@ export const adjustEncounterFeatureResourceInputDtoSchema = lazySchema(() =>
     amount: z._default(z.number().check(z.int()).check(z.positive()), 1)
   })
 )
+/**
+ * GM-only: a short or long rest for creature actors. Each one's spent feature charges and spell
+ * slot rows that reset on that rest come back; a Character rests through its Sheet.
+ */
+export const restEncounterCreaturesInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('CREATURE_REST'),
+    restKind: z.enum(['SHORT', 'LONG']),
+    actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+  })
+)
 export const upsertEncounterReminderInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
     type: z.literal('UPSERT_REMINDER'),
@@ -311,6 +323,7 @@ export const encounterCommandInputDtoSchema = lazySchema(() =>
     setEncounterRoundInputDtoSchema,
     replaceEncounterOptionalCombatRulesInputDtoSchema,
     adjustEncounterFeatureResourceInputDtoSchema,
+    restEncounterCreaturesInputDtoSchema,
     upsertEncounterReminderInputDtoSchema,
     removeEncounterReminderInputDtoSchema,
     rollEncounterEnemyActionInputDtoSchema,
@@ -345,6 +358,7 @@ export type ReplaceCreatureEquipmentInputDto = z.infer<
 export type SetEncounterInitiativeInputDto = z.infer<typeof setEncounterInitiativeInputDtoSchema>
 export type SetEncounterRoundInputDto = z.infer<typeof setEncounterRoundInputDtoSchema>
 export type ReorderEncounterInputDto = z.infer<typeof reorderEncounterInputDtoSchema>
+export type RestEncounterCreaturesInputDto = z.infer<typeof restEncounterCreaturesInputDtoSchema>
 export type EncounterCommandInputDto = z.infer<typeof encounterCommandInputDtoSchema>
 
 /** GM-only: posts one actor's current descriptive health to the table log once (ADR 0034). */

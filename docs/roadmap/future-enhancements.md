@@ -89,6 +89,9 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 - **Haste's lethargy timing (SPELLS-4.T2l-a):** the follow-on grant lasts one end of the holder's turn. A Haste that ends during its holder's own turn (Concentration dropped mid-turn) lets the lethargy end at the end of that same turn, instead of the holder's next. The rules text is "until after its next turn"; it is rare, and the GM can end the lethargy by hand. Related, latent: a follow-on created during the outgoing boundary's turn effects could tick once before `persistEncounterGrantTicks`; `documents.ts` deletes a form-holding effect row directly, bypassing the `onEnd` seam; only the first `MODIFIER_GRANT` contribution's `onEnd` is read. No SRD effect triggers any of these today.
 
+- **Initiative-roll restores outside the start roll (SPELLS-31.T5o):** a Reinforcement that rolls initiative mid-Run gets no `ROLL_INITIATIVE` restore, and creature-feature and equipment `ROLL_INITIATIVE` passives are inert (only Character features restore). A restore sharing a turn commit with concentration cleanup is untested; a code read finds at worst an extra stream-version increment or a visible version rejection, never a silent wrong write. The GM adjusts the pool by hand.
+- **A check action ending a condition-owning effect (SPELLS-31.T5n):** `ON_TAKE_ACTION` ends effects on check actions such as Hide, but refuses one that owns a condition (the check path has no holder batch to release it), so One with Shadows' Invisibility survives a Hide. The GM ends it by hand.
+- **Creature long rest recovers hit points and Hit Dice (SPELLS-33.T3c3):** the GM's creature rest resets feature charges and spell slot rows only. A long rest that should also restore hit points leaves them as they were, so the GM sets them by hand. Recovery would follow the Sheet's long-rest rules for Characters.
 - **Target creature-type and ability-score gates (SPELLS-4.T2m1):** `allowedCreatureTypeIds` filters targets by creature type, but nothing filters by ability score. Animal Friendship (fails against Intelligence 4 or higher) and Hideous Laughter (not affected at Intelligence 4 or lower) stay description-only for the score, and Finger of Death's humanoid check shares the gap. The GM refuses an ineligible target; a generic target-fact gate (creature type and ability score) would cover all three.
 
 - **Parry and Heated Body (SPELLS-33.T4k, T4k2):** Parry is offered without checking that the creature wields a melee weapon (a disarmed parrier still parries), and Heated Body triggers on melee hits only, not on a creature touching or grappling the Remorhaz. Both are rare; the GM can decline the reaction or apply the damage by hand.
@@ -374,7 +377,7 @@ Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. 
 
 ### Surprise (D156)
 
-Encounters have no surprise step, so Foresight's "can't be surprised" ships as description only (SPELLS-4.T2a2). A surprise round, with creatures that can't be surprised exempt, would let it resolve.
+Encounters have no surprise step, so Foresight's "can't be surprised", Assassinate's automatic critical against a surprised creature and Surprise Attack's extra 2d6 ship as description only (SPELLS-4.T2a2, SPELLS-33.T6d3b, D165). A surprise round, with creatures that can't be surprised exempt, would let it resolve.
 
 ### Shared table screen extras (SCENE-5, 2026-10-19)
 

@@ -467,3 +467,24 @@ Original T2m1b design (now b2):
 #### Resume: T2m2 (size 5) and T2m3 (size 5)
 
 T2m2: `CONDITION_SUPPRESSION { conditionIds, effectOrigin: ANY | MAGICAL, mode: SUPPRESS | PREVENT }` on an APPLY_GRANT holder; SUPPRESS suppresses held conditions without deleting them (they resume if their duration remains), PREVENT refuses a magical apply with a receipt line. Converts CALM_EMOTIONS (indifference stays manual) and FREEDOM_OF_MOVEMENT. T2m3: lifecycle `onTriggers` `DAMAGE_TAKEN` applying a condition (Slimy Doom's stun) and the Contagion disease rows.
+
+### T2d3 (web UI for source-side effect offers; merged) and T2d4 (browser journey, resume section)
+
+- **T2d3 shipped:** the actor drawer's "Effect choices" section (`CampaignTabletopEffectOffers.tsx`, `effectOffers.model.ts`) lists `effectOffers[]` with cost and range, picks the new holder in a list or on the map (the Scene targeting request takes `actionId: null` for an offer), and sends `MOVE_HELD_EFFECT` with a holder-to-new-holder Scene read. Proofs: three drawer component tests and the `EffectOfferListed` / `EffectOfferPickingNewHolder` stories. The server side is proved by `apps/session-worker/test/nativeRoomMoveHeldEffect.test.ts`.
+- **T2d4 (not started): one Playwright journey** on the live stack: the offer appears only while the holder is at 0 HP, picking a token moves the effect, and undo restores it. Nothing was written blind; the work below is what remains.
+- **Proof name `held-effect-browser`** (driver flag `--encounter-held-effect-browser`), modelled on `hide-browser`:
+  - **Apis fixture** `apps/apis/tests/developmentEncounterHeldEffect.ts`, exporting `verifyEncounterHeldEffect` and a `...BrowserFixture` / `...BrowserControls` pair, shaped like `developmentEncounterHide.ts`. It sets up the Campaign, play settings (ASSISTED, initiative policy), a Character assignment, a blueprint, the run and START with initiative settled.
+  - **Creature fixture** `apps/apis/tests/fixtures/encounterHeldEffect.ts`, shaped like `encounterEffects.ts`: a creature action whose result block is `APPLY_GRANT` with `lifecycle.effectOffers[{ kind: 'MOVE_HELD_EFFECT', offeredTo: 'SOURCE', when: 'HOLDER_AT_ZERO_HP', activation: BONUS_ACTION, range }]`. Nothing spell-specific. Hunter's Mark's `effects[0]` (`packages/source-data/src/srd/spells/hunters-mark.ts`) is the reference authoring. Include a low-hit-point creature to hold it and a third creature to take it.
+  - **How the holder reaches 0 HP:** first check whether a GM `UPDATE_ACTOR` can set hit points; otherwise add a damaging action to the fixture creature. Put the holder at 0 only after the effect is applied, so the browser can assert the offer is absent first.
+  - **Web driver** `apps/web/tests/live-backend/encounterHeldEffect.ts`, shaped like `encounterHide.ts`/`encounterEffects.ts` (`signIn`, `watchAuthenticatedSession`, `captureEncounterCommands`, `waitForCommand`): assert no "Effect choices" region while the holder is above 0; after it drops, assert the region, choose the offer, pick the new holder on the map (Scene token), click Move, assert a `MOVE_HELD_EFFECT` command and the effect now on the new holder; then undo through the encounter workspace's `REVERT_LAST_ACTION` control (`CampaignEncounterWorkspace.tsx`) and assert it is back. A Scene with tokens for all three creatures is needed, so the range is measured and the map pick works.
+  - **Registration:**
+    - `apps/apis/tests/developmentDrafts.ts`: a `--encounter-held-effect-browser` flag block beside `hideBrowser` (draft and publish the creatures, then call the verifier with a `browser` runner that imports the web driver and writes evidence under `local-validation/local-convex-proofs/`).
+    - `scripts/runLocalConvexProof.ps1`: add `held-effect-browser` to the `ValidateSet` and the driver-argument switch.
+    - `scripts/validatePreStagingLocal.mjs`: add it to the proof list (before `vtt-browser`, which must stay last).
+- **Environment needed** (this slice's worktree had neither, so it could not be run):
+  - Docker with the `phase82-convex-local-linux` container up.
+  - `local-validation/local-convex/local.application.env`, with no admin key in it.
+  - The gitignored `apps/session-worker/.dev.vars`, which worktrees lack; ask the user to supply it.
+  - A built workspace (`yarn install`, then `yarn build:shared` and `yarn build:schema`).
+  - Run: `pwsh scripts/runLocalConvexProof.ps1 -Name <attempt> -Proof held-effect-browser`.
+- **Done when:** the journey passes locally, its evidence packet verifies under `validatePreStagingLocal.mjs`, and the slice's acceptance criteria in the ledger are updated.

@@ -19,6 +19,7 @@ import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
   EncounterActionItemChoicesDto,
+  EncounterEffectOfferChoiceDto,
   EncounterEscapeChoiceDto,
   EncounterHeldGrantEndChoiceDto,
   EncounterOptionalActionChoicesDto,
@@ -32,6 +33,7 @@ import type {
   EncounterPlayerProjectionDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
+  MoveHeldEffectInputDto,
   ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -57,6 +59,7 @@ import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConf
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
 import { CampaignTabletopFormCreaturePicker } from './CampaignTabletopFormCreaturePicker'
+import { CampaignTabletopEffectOffers } from './CampaignTabletopEffectOffers'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
@@ -67,6 +70,7 @@ import {
   type VttAreaAim,
   type VttAreaSize
 } from './vttSceneRenderer.model'
+import { effectOfferKey } from './effectOffers.model'
 import { targetableEncounterActors, type VttTargetingRequest } from './vttTargeting.model'
 
 const NO_TOKENS: CampaignSceneStateDto['tokens'] = []
@@ -118,6 +122,7 @@ export function CampaignTabletopActionDrawer({
   basicActionChoices,
   escapes,
   heldGrantEnds,
+  effectOffers,
   releases,
   openAttackAction,
   defaultActionId,
@@ -146,6 +151,7 @@ export function CampaignTabletopActionDrawer({
   onResolve,
   onEscape,
   onEndHeldGrant,
+  onMoveHeldEffect,
   onRelease,
   onLoadOptionalChoices,
   onLoadItemChoices
@@ -155,6 +161,7 @@ export function CampaignTabletopActionDrawer({
   basicActionChoices: EncounterActionChoiceDto[]
   escapes: EncounterEscapeChoiceDto[]
   heldGrantEnds: EncounterHeldGrantEndChoiceDto[]
+  effectOffers: EncounterEffectOfferChoiceDto[]
   releases: EncounterReleaseChoiceDto[]
   /** The Attack action opened this turn; its last target is preselected for the next attack. */
   openAttackAction: EncounterActionChoicesDto['openAttackAction']
@@ -202,6 +209,7 @@ export function CampaignTabletopActionDrawer({
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
   onEscape: (command: EscapeRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onEndHeldGrant: (command: EndHeldGrantInputDto) => Promise<EncounterCommandResultDto>
+  onMoveHeldEffect: (command: MoveHeldEffectInputDto) => Promise<EncounterCommandResultDto>
   onRelease: (command: ReleaseRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onLoadOptionalChoices: (
     request: GetEncounterOptionalActionChoicesInputDto
@@ -216,6 +224,7 @@ export function CampaignTabletopActionDrawer({
   // The attacks made when the viewer chose "Done attacking"; the next attack opens the panel again.
   const [endedAttackActionAfter, setEndedAttackActionAfter] = useState<number | null>(null)
   const [pickedActorIds, setPickedActorIds] = useState<string[]>([])
+  const [chosenOfferKey, setChosenOfferKey] = useState<string | null>(null)
   const [unaffectedActorIds, setUnaffectedActorIds] = useState<string[]>([])
   const [pickedChoiceOptionId, setPickedChoiceOptionId] = useState<string | null>(null)
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
@@ -538,6 +547,21 @@ export function CampaignTabletopActionDrawer({
     [actorIdByTokenId, sceneTokens, targetActorId]
   )
   const targetTokenId = targetToken?.id ?? null
+  // An effect offer's pick is measured from the effect's holder, and only a live creature other than the holder may take it.
+  const chosenOffer = effectOffers.find((offer) => effectOfferKey(offer) === chosenOfferKey) ?? null
+  const offerTargetActorId =
+    chosenOffer &&
+    pickedTargetActorId &&
+    pickedTargetActorId !== chosenOffer.holderActorId &&
+    encounter.actors.some((actor) => actor.id === pickedTargetActorId && !actor.defeated)
+      ? pickedTargetActorId
+      : null
+  const tokenIdOfActor = (actorId: string | null) =>
+    actorId
+      ? (sceneTokens.find((token) => actorIdByTokenId.get(token.id) === actorId)?.id ?? null)
+      : null
+  const offerHolderTokenId = tokenIdOfActor(chosenOffer?.holderActorId ?? null)
+  const offerTargetTokenId = tokenIdOfActor(offerTargetActorId)
   const sceneContext = useMemo(
     () =>
       scene && sourceTokenId && targetTokenId
@@ -616,6 +640,7 @@ export function CampaignTabletopActionDrawer({
     setTrackedTurnActorId(encounter.currentActorId)
     setPickedActionId(undefined)
     setPickedActorIds([])
+    setChosenOfferKey(null)
     setOptionalRuleId(null)
     setFeedback(null)
     setError(null)
@@ -750,14 +775,29 @@ export function CampaignTabletopActionDrawer({
   // An area's target is its origin, which the stage draws as the area, so only a creature target is ringed.
   const actionPreview = useMemo<VttActionPreview | null>(
     () =>
-      selectedAction && sourceTokenId
-        ? {
-            range: selectedAction.range,
-            sourceTokenId,
-            targetTokenId: selectedAction.target.kind === 'ACTOR' ? targetTokenId : null
-          }
-        : null,
-    [selectedAction, sourceTokenId, targetTokenId]
+      chosenOffer
+        ? offerHolderTokenId
+          ? {
+              range: { kind: 'WITHIN', distance: chosenOffer.range },
+              sourceTokenId: offerHolderTokenId,
+              targetTokenId: offerTargetTokenId
+            }
+          : null
+        : selectedAction && sourceTokenId
+          ? {
+              range: selectedAction.range,
+              sourceTokenId,
+              targetTokenId: selectedAction.target.kind === 'ACTOR' ? targetTokenId : null
+            }
+          : null,
+    [
+      chosenOffer,
+      offerHolderTokenId,
+      offerTargetTokenId,
+      selectedAction,
+      sourceTokenId,
+      targetTokenId
+    ]
   )
 
   useEffect(() => {
@@ -1432,6 +1472,43 @@ export function CampaignTabletopActionDrawer({
               encounterVersion={encounter.version}
               heldGrantEnds={heldGrantEnds}
               onEnd={onEndHeldGrant}
+            />
+          ) : null}
+          {currentActor && !actionsLoading && !actionChoicesError && effectOffers.length ? (
+            <CampaignTabletopEffectOffers
+              actorId={currentActor.id}
+              chosenOfferKey={chosenOffer ? chosenOfferKey : null}
+              creatures={encounter.actors.filter((actor) => !actor.defeated)}
+              disabled={selectionControlsDisabled}
+              encounterId={encounter.id}
+              encounterVersion={encounter.version}
+              holderLabel={(holderActorId) =>
+                encounter.actors.find((actor) => actor.id === holderActorId)?.label ?? 'a creature'
+              }
+              offers={effectOffers}
+              sceneContext={(offer, newHolderActorId) => {
+                const sourceTokenId = tokenIdOfActor(offer.holderActorId)
+                const targetTokenId = tokenIdOfActor(newHolderActorId)
+                return scene && sourceTokenId && targetTokenId
+                  ? {
+                      sceneId: scene.id,
+                      expectedSceneVersion: scene.version,
+                      sourceTokenId,
+                      targetTokenId
+                    }
+                  : null
+              }}
+              targetActorId={offerTargetActorId}
+              onChooseOffer={setChosenOfferKey}
+              onMove={onMoveHeldEffect}
+              onPickOnMap={() =>
+                onPickTargetOnMap({
+                  actionId: null,
+                  selfRefused: false,
+                  onlyActorIds: undefined
+                })
+              }
+              onTargetPick={onTargetPick}
             />
           ) : null}
           {currentActor && !actionsLoading && !actionChoicesError && releases.length ? (

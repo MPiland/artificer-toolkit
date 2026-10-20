@@ -252,6 +252,11 @@ export type EncounterHolderState = {
   speedAboveZero: boolean
   freeHand: boolean
   /**
+   * The feet the holder has moved this turn and its speed in feet (its fastest after conditions),
+   * which `TURN_MOVEMENT` weighs; both 0 off its turn.
+   */
+  turnMovement: { usedFeet: number; speedFeet: number }
+  /**
    * When no hand is free, the held weapon a Character can stow for free to free one (its off hand
    * first, never a shield, D152); null otherwise.
    */
@@ -283,6 +288,13 @@ function holderConditionMatches(
         condition.mode === 'ALL' ||
         condition.requiredIds.some((id) => holderState.creatureTypeIds.includes(id))
       )
+    case 'TURN_MOVEMENT': {
+      const { usedFeet, speedFeet } = holderState.turnMovement
+      return (
+        (condition.max === null || usedFeet <= condition.max) &&
+        (condition.speedFraction === null || usedFeet <= speedFeet * condition.speedFraction)
+      )
+    }
     default:
       return isHolderStateKind(condition.kind)
         ? holderState[HOLDER_STATE_FLAG[condition.kind]]
@@ -312,7 +324,9 @@ export function holderStateRestrictionsHold(
 
 function hasHolderStateRestriction(restrictions: ModifierRestrictions): boolean {
   return restrictions.some((group) =>
-    group.conditions.some((condition) => isHolderStateKind(condition.kind))
+    group.conditions.some(
+      (condition) => isHolderStateKind(condition.kind) || condition.kind === 'TURN_MOVEMENT'
+    )
   )
 }
 
@@ -445,6 +459,63 @@ export function encounterAttackAgainstContributors(input: {
     })
   })
   return [...fromFeatures, ...fromEffects]
+}
+
+/** A Character feature's skill-check advantage or disadvantage that holds only by holder state. */
+function featureHolderStateSkillGrants(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers' | 'modifierGroups'> | null
+) {
+  return (grantFold?.modifierGroups ?? []).flatMap(({ contributions }) =>
+    contributions.flatMap(({ acceptedModifierIndex, grantId }) => {
+      const modifier = grantFold!.modifiers[acceptedModifierIndex]!
+      return modifier.valueDomainCode === 'SKILL_MODIFIER' &&
+        (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+        modifier.scope === 'GLOBAL' &&
+        modifier.source.kind !== 'ACTIVE_EFFECT' &&
+        hasHolderStateRestriction(modifier.deferredRequirements)
+        ? [{ modifier, grantId, influence: modifier.modifierKind }]
+        : []
+    })
+  )
+}
+
+/** Whether a Character's own features carry a skill-check grant its holder state decides (Supreme Sneak). */
+export function hasFeatureHolderStateSkillGrants(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers' | 'modifierGroups'> | null
+): boolean {
+  return featureHolderStateSkillGrants(grantFold).length > 0
+}
+
+/**
+ * The advantage and disadvantage contributors a Character's features give a skill check while
+ * their holder-state restrictions hold now (Supreme Sneak's half-speed movement). The Character
+ * fold fails those grants closed, so this is their only path. `skillAliases` are the ids the
+ * check's skill is granted under.
+ */
+export function encounterFeatureSkillCheckContributors(input: {
+  holderActorId: string
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers' | 'modifierGroups'> | null
+  holderState: EncounterHolderState
+  skillAliases: readonly string[]
+}): EncounterRelationshipD20Contributor[] {
+  return featureHolderStateSkillGrants(input.grantFold).flatMap(
+    ({ modifier, grantId, influence }) =>
+      input.skillAliases.includes(String(modifier.domain.skillId)) &&
+      holderStateRestrictionsHold(modifier.deferredRequirements, input.holderState)
+        ? [
+            {
+              sourceId: modifier.sourceId,
+              grantId,
+              domainKey: modifier.domainKey,
+              influence,
+              source: rollModeContributorSourceOfMechanicSource(
+                modifier.source,
+                input.holderActorId
+              )
+            }
+          ]
+        : []
+  )
 }
 
 /** Whether a Character's own features carry an `ATTACKS_AGAINST` grant. */

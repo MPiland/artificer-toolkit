@@ -678,6 +678,7 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'REORDER') return 'Turn order updated'
   if (commandType === 'REINFORCE') return 'Enemy added'
   if (commandType === 'ADJUST_FEATURE_RESOURCE') return 'Feature charge changed'
+  if (commandType === 'CREATURE_REST') return 'Creatures rested'
   if (commandType === 'UPSERT_REMINDER') return 'Reminder updated'
   if (commandType === 'REMOVE_REMINDER') return 'Reminder removed'
   if (commandType === 'CREATE') return 'Encounter created'

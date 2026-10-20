@@ -273,6 +273,16 @@ export async function removeTurnTeleportAllowance(
   })
 }
 
+/** The feet an actor has moved in the current turn; 0 off its turn or before moving. */
+export async function readTurnMovedFeet(
+  ctx: EncounterReadContext,
+  input: { state: RunTurnState; actorId: string }
+): Promise<number> {
+  const turn = currentTurn(input.state)
+  const row = turn ? await readTurnRow(ctx, turn, input.actorId) : null
+  return row?.usedFeet ?? 0
+}
+
 /** The once-per-turn usage keys an actor has spent in the current turn (D119); none between turns. */
 export async function readTurnUses(
   ctx: EncounterReadContext,

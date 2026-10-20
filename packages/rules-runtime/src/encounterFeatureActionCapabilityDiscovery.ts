@@ -2,11 +2,14 @@ import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/fea
 import type { EncounterProjectionActorInput } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import { compileEffect, type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import { collectOnHitRiders, mergeOnHitRiders } from './character/characterOnHitRiders.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
+import { listCreatureSpellCasts } from './encounterCreatureSpellCasts.js'
+import { castableEffectGroups, spellCastActionId, spellCastLabel } from './spellCastCandidates.js'
 import { passiveMeleeRetaliationZone, placedSpaceManifest } from './encounterZonePlacement.js'
 import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
 import { reduceEffectRestrictions } from './systems/dnd5e/attackRestrictions.js'
@@ -607,6 +610,8 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
       actor: EncounterProjectionActorInput
       conditionDefinitionIds?: readonly string[]
       abilityDefinitions?: readonly { id: string; code: string }[]
+      /** The compiled spells the Creature's spell grants name; without them it casts none. */
+      spells?: ReadonlyMap<string, CompiledSpell>
     }): EncounterFeatureActionDiscovery {
       if (input.actor.kind === 'CUSTOM' || input.actor.kind === 'CHARACTER')
         return {
@@ -730,6 +735,59 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               ownerFeatureId,
               label,
               reason: error instanceof Error ? error.message : 'Its authored mechanics are invalid.'
+            })
+          }
+        }
+      }
+      const spells = input.spells
+      if (spells?.size) {
+        const casts = listCreatureSpellCasts({
+          actor: input.actor,
+          features,
+          spellLevelsById: spells
+        })
+        for (const { ownerFeature, cast } of casts) {
+          const spell = spells.get(cast.spellId)!
+          for (const [index, compiledEffect] of castableEffectGroups(spell).entries()) {
+            const normalized = bindEffect(adapter, {
+              gameSystemId,
+              compiledEffect,
+              conditionDefinitionIds: input.conditionDefinitionIds ?? [],
+              abilityDefinitions: input.abilityDefinitions ?? []
+            })
+            if (normalized === null) continue
+            available.push({
+              kind: 'ENCOUNTER_FEATURE',
+              gameSystemId,
+              authoredRootKind: 'effect',
+              entryPointDefinitionId: compiledEffect.id,
+              effectId: compiledEffect.id,
+              actionId: spellCastActionId(
+                cast.candidateId,
+                index === 0 ? undefined : compiledEffect.id
+              ),
+              label: spellCastLabel(spell, cast),
+              grip: null,
+              spellCast: { castLevel: cast.castLevel },
+              spellCastLevel: cast.castLevel,
+              sourceId: ownerFeature.id,
+              mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
+              conditionDefinitionIds:
+                normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
+              savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
+              compiledEffect,
+              encounterActorId: input.actor.id,
+              ownerFeatureId: ownerFeature.id,
+              featureOptionId: null,
+              actionFeatureId: null,
+              ownerRuleDefinitionIds: ownerFeature.ruleDefinitionIds ?? [],
+              optionRuleDefinitionIds: [],
+              authoredEffectChecksum: checksumRuleDocument(compiledEffect),
+              compiledEffectChecksum: checksumRuleDocument(compiledEffect),
+              featureResourceUse: null,
+              equipmentBinding: null,
+              attackMechanic: null,
+              ...provenance
             })
           }
         }

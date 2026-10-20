@@ -348,6 +348,13 @@ store.
   lists each actor whose mark that action changed with its previous value so `REVERT_LAST_ACTION` restores exactly those (`rules-runtime.md`, Idle turns). A moved effect (D160) is the stored Run command `MOVE_HELD_EFFECT`: its receipt keeps `{ actorId, actionEconomy, effectId, fromActorId, toActorId, before, afterVersion }`, where `before` is the whole record as the old holder kept it and `afterVersion` the version the new holder's copy was created with. `REVERT_LAST_ACTION` deletes the new holder's copy only while its version is still `afterVersion` and recreates `before` at the old holder with `restoredFrom` (exact ordinal, version and timestamps); it is a root command, so anything committed after it makes the undo unavailable. A holder-ended grant is the stored Run command `END_HELD_GRANT`; like any costed
   Run command it blocks undo of the prior action (D99). The Sheet end of a holder-end grant is free in a MANUAL Run
   (`economyEnforced: false`).
+- **Creature rest:** `CREATURE_REST { restKind: SHORT | LONG, actorIds }` (GM only, ACTIVE Run) is one undoable stored Run command. For
+  each creature actor it resets the `actor.resources.featureCharges` entries whose feature charge or spell slot table `resetKind` the
+  rest recovers (SHORT recovers `SHORT_REST`; LONG also `LONG_REST`; the trigger set is `getRestRecoveryTriggers`, shared with the
+  Character Sheet rest), keyed by feature id and slot `levels[].id`. A Character id, a duplicate id, or a rest that recovers nothing is
+  refused; a Character rests through its Sheet. The receipt keeps `{ restKind, actors: [{ actorId, resets: [{ key, beforeUsed }] }] }`
+  for exactly the rows it touched, and `REVERT_LAST_ACTION` spends them again only while each row is still `0` (root command, as
+  `MOVE_HELD_EFFECT`). Not yet: hit point and hit dice recovery on a long rest.
 - **No Convex timeline:** the timeline and latest evidence roll are read only from the room. Encounter
   commands write no Character receipts, and the Character history API is removed.
 

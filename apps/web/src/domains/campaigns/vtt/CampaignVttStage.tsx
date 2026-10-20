@@ -504,7 +504,7 @@ export function CampaignVttStage({
   const targeting = actionsOpened ? targetingRequest : null
   const targetModifiers = useActionTargetModifiers({
     input:
-      targeting && activeEncounter && currentActor
+      targeting?.actionId && activeEncounter && currentActor
         ? {
             encounterId: activeEncounter.id,
             expectedVersion: activeEncounter.version,
@@ -1590,6 +1590,7 @@ export function CampaignVttStage({
               basicActionChoices={currentActionChoices?.basicActionChoices ?? []}
               escapes={currentActionChoices?.escapes ?? []}
               heldGrantEnds={currentActionChoices?.heldGrantEnds ?? []}
+              effectOffers={currentActionChoices?.effectOffers ?? []}
               releases={currentActionChoices?.releases ?? []}
               openAttackAction={currentActionChoices?.openAttackAction ?? null}
               defaultActionId={currentActionChoices?.defaultActionId ?? null}
@@ -1618,6 +1619,7 @@ export function CampaignVttStage({
               onResolve={(command) => encounterCommand.mutateAsync(command)}
               onEscape={(command) => encounterCommand.mutateAsync(command)}
               onEndHeldGrant={(command) => encounterCommand.mutateAsync(command)}
+              onMoveHeldEffect={(command) => encounterCommand.mutateAsync(command)}
               onRelease={(command) => encounterCommand.mutateAsync(command)}
               onLoadOptionalChoices={loadOptionalActionChoices}
               onLoadItemChoices={loadActionItemChoices}

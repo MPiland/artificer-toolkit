@@ -82,7 +82,7 @@ import {
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { readNativeLiveEnemyProximity } from './nativeAttackEnemyProximity.js'
-import { readNativeLiveTurnUses } from './nativeTurnUses.js'
+import { readNativeLiveTurnMovedFeet, readNativeLiveTurnUses } from './nativeTurnUses.js'
 import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
@@ -757,7 +757,8 @@ export async function planNativeLiveEncounterAction(
       gameSystemId: state.gameSystemId,
       definitions,
       speedDefinitions: system.speeds,
-      runEffectsByActorId: activeEffectsByActorId
+      runEffectsByActorId: activeEffectsByActorId,
+      readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(capture, prepared.actor.id)
     }
   )
   refuseUnmetItemActionRequirements(prepared, state)
@@ -936,6 +937,7 @@ export async function planNativeLiveEncounterAction(
       system,
       actors,
       actor,
+      actorEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
       target,
       overrides: ruleWarnings.overrides,
       actionEconomy,

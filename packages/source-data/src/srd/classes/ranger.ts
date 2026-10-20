@@ -7,6 +7,7 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
@@ -39,6 +40,7 @@ import {
   attacksPerAttackActionGrant,
   closedRuleEffect,
   duelingRestriction,
+  selfActionEffect,
   twoWeaponFightingGrants
 } from './mechanics.js'
 
@@ -891,7 +893,38 @@ export const ranger: ClassAuthored = {
       label: 'Hide in Plain Sight',
       description:
         'Starting at 10th level, you can spend 1 minute creating camouflage for yourself. You must have access to fresh mud, dirt, plants, soot, and other naturally occurring materials with which to create your camouflage.\n\nOnce you are camouflaged in this way, you can try to hide by pressing yourself up against a solid surface, such as a tree or wall, that is at least as tall and wide as you are. You gain a +10 bonus to Dexterity (Stealth) checks as long as you remain there without moving or taking actions. Once you move or take an action or a reaction, you must camouflage yourself again to gain this benefit.',
-      effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_RANGER_HIDE_IN_PLAIN_SIGHT)],
+      // The 1 minute of camouflage preparation is not modelled: the action applies the bonus at once.
+      effects: [
+        selfActionEffect({
+          ids: {
+            effect: classRowId(RA, 0x60, 13),
+            range: classRowId(RA, 0x69, 13),
+            path: classRowId(RA, 0x80, 13),
+            result: classRowId(RA, 0x81, 13)
+          },
+          activation: ACTIVATION_CODE.ACTION,
+          lifecycle: { endOnEvents: ['ON_MOVE', 'ON_TAKE_ACTION'] },
+          outcome: {
+            id: classRowId(RA, 0x82, 13),
+            effectKind: EFFECT_KIND.APPLY_GRANT,
+            grants: {
+              modifiers: [
+                {
+                  id: classRowId(RA, 0x84, 13),
+                  grantKind: GRANT_KIND.MODIFIER_GRANT,
+                  valueDomainCode: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
+                  domain: { skillId: skillId('STEALTH') },
+                  modifierKind: MODIFIER_KIND.BONUS,
+                  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                  selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                  payload: { valueKind: 'FIXED', amount: 10 },
+                  order: 1
+                }
+              ]
+            }
+          }
+        })
+      ],
       availableAtLevel: 10,
       order: 13
     },

@@ -137,6 +137,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('INPUTS') }),
     z.strictObject({ kind: z.literal('INITIATIVE_ROUND') }),
     z.strictObject({ kind: z.literal('TURN_USES'), actorId: postgresUuidSchema }),
+    z.strictObject({ kind: z.literal('TURN_MOVED_FEET'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TELEPORT_ALLOWANCES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('ACTOR_TOKEN_BINDINGS') }),
     z.strictObject({ kind: z.literal('SEEN_ACTORS') }),
@@ -336,6 +337,12 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       kind: z.literal('TURN_USES'),
       revisions: liveSessionRulesRevisionsSchema,
       keys: encounterTurnUseKeysSchema
+    }),
+    z.strictObject({
+      kind: z.literal('TURN_MOVED_FEET'),
+      revisions: liveSessionRulesRevisionsSchema,
+      /** The feet the actor has moved this turn; 0 off its turn. */
+      feet: z.number().check(z.nonnegative())
     }),
     z.strictObject({
       kind: z.literal('TELEPORT_ALLOWANCES'),

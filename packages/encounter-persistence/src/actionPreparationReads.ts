@@ -35,7 +35,7 @@ import { refuseStaleCharacterAction } from './staleCharacterAction.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import { readRunActors } from './documents.js'
-import { readTurnUses } from './turnMovement.js'
+import { readTurnMovedFeet, readTurnUses } from './turnMovement.js'
 import type { EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
@@ -103,7 +103,8 @@ export async function readActionHolderState(
     runEffectsByActorId: await loadRunActiveEffects(tx, {
       state: input.state,
       actors: await readRunActors(tx, input.state)
-    })
+    }),
+    readTurnMovedFeet: () => readTurnMovedFeet(tx, { state: input.state, actorId: input.actor.id })
   })
 }
 

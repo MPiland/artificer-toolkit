@@ -52,6 +52,7 @@ import { removeEncounterActor } from './actorRemovalCommand.js'
 import { reorderEncounterActors } from './actorReorderCommand.js'
 import { reinforceEncounterActors } from './actorReinforcementCommand.js'
 import { setConcealmentObservers } from './concealmentObserverCommand.js'
+import { restEncounterCreatures } from './creatureRestCommand.js'
 import { revertLastEncounterAction } from './actionRevert.js'
 import { enemyActionRollLabel, readNativeEncounterCommandReplay } from './commandReplay.js'
 import { rejectDomain } from './domainRejections.js'
@@ -117,6 +118,7 @@ export async function recordEncounterCommand(
   if (command.type === 'REVERT_LAST_ACTION') return revertLastEncounterAction(ctx, command, userId)
   if (command.type === 'SET_CONCEALMENT_OBSERVERS')
     return setConcealmentObservers(ctx, command, userId)
+  if (command.type === 'CREATURE_REST') return restEncounterCreatures(ctx, command, userId)
   if (
     command.type !== 'UPSERT_REMINDER' &&
     command.type !== 'REMOVE_REMINDER' &&

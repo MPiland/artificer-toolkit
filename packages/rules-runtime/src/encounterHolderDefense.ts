@@ -9,6 +9,7 @@ import {
   encounterAttackAgainstContributors,
   encounterSourceSightSaveGrants,
   hasEncounterDefensiveGrants,
+  hasFeatureHolderStateSkillGrants,
   hasFeatureAttacksAgainstGrants,
   holderStateRestrictionsHold,
   withActiveGrantSpeeds,
@@ -38,6 +39,8 @@ export async function encounterHolderState(input: {
   speedDefinitions: readonly { id: string }[]
   /** Every Run actor's active effects: the creatures the holder holds keep their hold effects. */
   runEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  /** Reads the feet the holder has moved this turn (0 off its turn); called once per state. */
+  readTurnMovedFeet: () => Promise<number>
 }): Promise<EncounterHolderState> {
   const { target } = input
   const speeds =
@@ -64,6 +67,7 @@ export async function encounterHolderState(input: {
     })),
     speedAboveZero: !feet.length || feet.some((value) => value > 0),
     freeHand,
+    turnMovement: { usedFeet: await input.readTurnMovedFeet(), speedFeet: Math.max(0, ...feet) },
     stowableHeldItemInstanceId: freeHand ? null : stowableHeldWeapon(target, items, holds)
   }
 }
@@ -127,6 +131,7 @@ export async function withEncounterHolderDefense<T extends MovementTarget>(input
   definitions: CurrentReusableDefinitionSource
   speedDefinitions: readonly { id: string }[]
   runEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  readTurnMovedFeet: () => Promise<number>
 }): Promise<T> {
   const { target } = input
   if (!hasHolderDefenseGrants(target)) return target
@@ -145,6 +150,7 @@ function hasHolderDefenseGrants(target: MovementTarget): boolean {
   return (
     hasEncounterDefensiveGrants(target.activeEffects) ||
     hasFeatureAttacksAgainstGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
+    hasFeatureHolderStateSkillGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
     sourceSightSaveGrants(target).length > 0
   )
 }

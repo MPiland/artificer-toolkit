@@ -724,6 +724,19 @@ describe('encounter contracts', () => {
     ).toMatchObject({ type: 'ADJUST_FEATURE_RESOURCE', amount: 1 })
   })
 
+  it('accepts a creature rest and bounds its actors', () => {
+    const rest = { encounterId, commandId, expectedVersion: 2, type: 'CREATURE_REST' }
+    expect(
+      encounterCommandInputDtoSchema.parse({ ...rest, restKind: 'LONG', actorIds: [commandId] })
+    ).toMatchObject({ type: 'CREATURE_REST', restKind: 'LONG', actorIds: [commandId] })
+    for (const invalid of [
+      { restKind: 'LONG', actorIds: [] },
+      { restKind: 'LONG', actorIds: ['not-a-uuid'] },
+      { restKind: 'DAILY', actorIds: [commandId] }
+    ])
+      expect(() => encounterCommandInputDtoSchema.parse({ ...rest, ...invalid })).toThrow()
+  })
+
   it('rejects the retired rule-pack revision, upgrade command, and evaluator evidence', () => {
     const projection = {
       id: encounterId,
