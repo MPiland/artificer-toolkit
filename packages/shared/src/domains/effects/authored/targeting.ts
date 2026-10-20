@@ -16,6 +16,8 @@ export type TargetingAuthored =
       self?: TargetSelfPolicy
       /** The largest target, in size steps above the actor's; a larger one only warns. */
       sizeLimit?: { stepsAboveActor: number }
+      /** The target must be a creature the actor holds through a relationship it sources; any other is refused. */
+      heldBySource?: true
       allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]
     }

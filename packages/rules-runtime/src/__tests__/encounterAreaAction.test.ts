@@ -200,6 +200,17 @@ describe('encounter action choice target', () => {
       })
     )
 
+  it('flags a single target that only a creature the user holds can be', () => {
+    const held = encounterActionChoiceTarget(
+      policy({
+        shape: null,
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY', heldBySource: true }
+      })
+    )
+    expect(held).toMatchObject({ kind: 'ACTOR', heldBySource: true })
+    expect(single('REFUSED')).not.toHaveProperty('heldBySource')
+  })
+
   it('projects the authored self of a single target, whatever it is', () => {
     expect(single('REFUSED')).toEqual({ kind: 'ACTOR', self: 'REFUSED' })
     expect(single('WARN')).toEqual({ kind: 'ACTOR', self: 'WARN' })

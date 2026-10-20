@@ -1,4 +1,5 @@
 import type {
+  AttackSlotConditionDto,
   AttackSlotDto,
   AttackSlotSetDto
 } from '@artificer-toolkit/schema/features/attackSlots'
@@ -27,13 +28,15 @@ function fills(slot: AttackSlotDto, attack: AttackSlotAttack) {
   )
 }
 
-function conditionHolds(
-  slot: AttackSlotDto,
-  attack: AttackSlotAttack,
-  earlier: AttackSlotAttack[]
+/**
+ * Whether an authored predicate holds for an attack, given the attacks made before it in the same
+ * Attack action: a slot's condition (D93), and the gate on a hold an attack applies (D105).
+ */
+export function attackSlotConditionHolds(
+  condition: AttackSlotConditionDto,
+  attack: Pick<AttackSlotAttack, 'targetIds' | 'targetSize'>,
+  earlier: readonly AttackSlotAttack[]
 ) {
-  const { condition } = slot
-  if (!condition) return true
   if (condition.kind === 'TARGET_SIZE_AT_MOST') {
     const rank = sizeRank(attack.targetSize)
     return rank === null || rank <= (sizeRank(condition.size) ?? -1)
@@ -47,6 +50,14 @@ function conditionHolds(
     undefined
   )
   return shared !== undefined && shared.size > 0
+}
+
+function conditionHolds(
+  slot: AttackSlotDto,
+  attack: AttackSlotAttack,
+  earlier: AttackSlotAttack[]
+) {
+  return !slot.condition || attackSlotConditionHolds(slot.condition, attack, earlier)
 }
 
 /** Every way the attacks fill the alternative's slots, as what each slot has left. */

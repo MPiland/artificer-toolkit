@@ -1,4 +1,5 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
+import { attackSlotConditionDtoSchema } from '../features/attackSlots.js'
 import { activationDtoSchema } from './activation.js'
 import { checkChoiceDtoSchema, escapeDcDtoSchema } from './check.js'
 import { damageDtoSchema } from './damage.js'
@@ -83,6 +84,11 @@ export const actorRelationshipDtoSchema = lazySchema(() =>
       effectKind: z.literal('ACTOR_RELATIONSHIP'),
       /** The most creatures this outcome holds at once, counted per outcome (D105). */
       heldAtOnce: z.number().check(z.int()).check(z.gte(1)),
+      /**
+       * The hold applies only while this predicate holds over the open Attack action (D93):
+       * absent, it always applies; outside an open Attack action a gated outcome never applies.
+       */
+      appliesWhen: z.optional(attackSlotConditionDtoSchema),
       modules: authoredNestedCollectionSchema(actorRelationshipModuleDtoSchema)
         .check(z.minLength(1))
         .check(z.maxLength(32)),

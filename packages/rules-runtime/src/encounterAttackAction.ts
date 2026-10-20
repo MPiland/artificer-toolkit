@@ -223,6 +223,18 @@ export function encounterAttackActionFits(
   )
 }
 
+/**
+ * The attacks made before the one a transition adds, and that attack, as a predicate over the open
+ * Attack action reads them (a hold gated by `appliesWhen`, D93).
+ */
+export function encounterAttackActionAttacks(transition: EncounterAttackActionTransitionDto) {
+  const made = transition.after.attacks
+  const current = made[made.length - 1]
+  return current
+    ? { earlier: made.slice(0, -1).map(slotAttack), current: slotAttack(current) }
+    : null
+}
+
 /** Records the outcome of the attack roll on the attack a transition adds. */
 export function settleEncounterAttackActionHit(
   transition: EncounterAttackActionTransitionDto,

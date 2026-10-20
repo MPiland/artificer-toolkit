@@ -2,6 +2,7 @@ import {
   FORCED_MOVEMENT_DIRECTION,
   type ForcedMovementDirection
 } from '@artificer-toolkit/shared/core'
+import type { AttackSlotConditionDto } from '@artificer-toolkit/schema/features/attackSlots'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
@@ -170,6 +171,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     relationshipOutcomeId: string
     /** The most creatures the source holds at once through this outcome. */
     heldAtOnce: number
+    /** The hold applies only while this predicate holds over the open Attack action. */
+    appliesWhen?: AttackSlotConditionDto
     modules: readonly ActorRelationshipModuleAuthored[]
     /** Concrete state selected at settlement; conditional state is omitted unless evidenced. */
     conditionIds: readonly string[]

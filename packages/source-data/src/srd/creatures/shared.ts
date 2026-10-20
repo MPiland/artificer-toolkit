@@ -35,6 +35,7 @@ import {
   DURATION_KIND,
   type ActorRelationshipAuthored,
   type ActorRelationshipModuleAuthored,
+  type AttackSlotCondition,
   type CreatureAuthored,
   type CreatureSenseAuthored,
   type EffectAuthored,
@@ -647,8 +648,12 @@ export type GrappleRider = {
   largestTarget?: SizeCode
   /** The printed "until this grapple ends" conditions besides Grappled. */
   untilEnds?: readonly SrdConditionCode[]
+  /** The hold imposes only `untilEnds`: it layers on a grapple the source already has (Engulf). */
+  omitGrappled?: true
   /** The printed "can't bite another target": these actions may target only the held creature. */
   restrictedActionEffectIds?: readonly string[]
+  /** The hold applies only when this holds of the open Attack action (a Multiattack's "if both attacks hit"). */
+  appliesWhen?: AttackSlotCondition
 }
 
 /**
@@ -701,9 +706,10 @@ export function grappledOutcome(
     id: id(0),
     effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP,
     heldAtOnce: rider.heldAtOnce,
+    ...(rider.appliesWhen ? { appliesWhen: rider.appliesWhen } : {}),
     modules: modules.map((module, order) => ({ ...module, order: order + 1 })),
     conditions: [
-      GRAPPLED_CONDITION_ID,
+      ...(rider.omitGrappled ? [] : [GRAPPLED_CONDITION_ID]),
       ...(rider.untilEnds ?? []).map((code) => vocabularyId(SRD_CONDITION_TYPES, code))
     ].map((conditionId, index) => ({
       id: id(3 + index),

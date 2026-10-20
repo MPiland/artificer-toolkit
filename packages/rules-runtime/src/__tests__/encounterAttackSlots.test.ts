@@ -4,6 +4,7 @@ import { chimera } from '@artificer-toolkit/source-data/srd/creatures/chimera.js
 import { drider } from '@artificer-toolkit/source-data/srd/creatures/drider.js'
 import { describe, expect, it } from 'vitest'
 import {
+  attackSlotConditionHolds,
   attackSlotTotal,
   evaluateAttackSlots,
   isAttackSlotFiller,
@@ -187,5 +188,36 @@ describe('a conditional slot', () => {
     const swallow = (targetSize: string | null) => attack({ featureId: 'swallow', targetSize })
     expect(evaluateAttackSlots(small, [swallow('MEDIUM')]).fits).toBe(true)
     expect(evaluateAttackSlots(small, [swallow('LARGE')]).fits).toBe(false)
+  })
+})
+
+describe('a hold gate (appliesWhen)', () => {
+  const made = (overrides: Partial<AttackSlotAttack>): AttackSlotAttack => ({
+    featureId: 'slam',
+    attack: true,
+    targetIds: [TARGET],
+    hit: true,
+    targetSize: 'MEDIUM',
+    ...overrides
+  })
+  const bothHit = { kind: 'EARLIER_SLOTS_HIT_SAME_TARGET' } as const
+
+  it('never holds for a lone attack, so a Slam outside a Multiattack grapples nothing', () => {
+    expect(attackSlotConditionHolds(bothHit, made({}), [])).toBe(false)
+  })
+
+  it('holds when every earlier attack hit the same target', () => {
+    expect(attackSlotConditionHolds(bothHit, made({}), [made({})])).toBe(true)
+  })
+
+  it('does not hold after a miss or against another target', () => {
+    expect(attackSlotConditionHolds(bothHit, made({}), [made({ hit: false })])).toBe(false)
+    expect(attackSlotConditionHolds(bothHit, made({}), [made({ targetIds: [OTHER] })])).toBe(false)
+  })
+
+  it('reads the size of the attack it gates', () => {
+    const small = { kind: 'TARGET_SIZE_AT_MOST', size: 'MEDIUM' } as const
+    expect(attackSlotConditionHolds(small, made({ targetSize: 'MEDIUM' }), [])).toBe(true)
+    expect(attackSlotConditionHolds(small, made({ targetSize: 'LARGE' }), [])).toBe(false)
   })
 })
