@@ -8731,8 +8731,21 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Hit point threshold gates and outcomes. Converts POWER_WORD_KILL, POWER_WORD_STUN, DIVINE_WORD, DEATH_WARD, FINGER_OF_DEATH_ZOMBIE, with parity proofs; each kind deleted.",
+              "text": "New generic option (D156 T2 split, class B), ruled 2026-10-20: a hit-point gate on the result block (current HP threshold, and reduced to 0 by this damage), HIT_POINT_TIERS path selection and a generic KILL outcome. Converts POWER_WORD_KILL, POWER_WORD_STUN, DIVINE_WORD (planar banishment description-only, D156) and the Finger of Death kill, with parity proofs; each kind deleted. FINGER_OF_DEATH_ZOMBIE moves to SPELLS-33.T6a2; DEATH_WARD moves to T2i2.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2i2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2i"]
+              },
+              "text": "Generic damage interception (split from T2i, 2026-10-20): \"would drop to 0 HP, instead drop to N\", with uses, as an authored grant. Converts DEATH_WARD with a parity proof and deletes the kind. SPELLS-33.T4i (Undead Fortitude) and the race corpus (Relentless Endurance) reuse it."
             },
             {
               "status": "TODO",
@@ -12447,7 +12460,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2i"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2"]
               },
               "text": "regeneration, Undead Fortitude, hit point threshold riders (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Also removes the Giant Centipede Bite and Solar Slaying Longbow SRD_CREATURE_ATTACK_UNSUPPORTED entries, with a room proof for each attack (from ATTACK-5.T4d/T4e, 2026-10-20)."
             },
@@ -12699,7 +12712,7 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6a1"]
               },
-              "text": "new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
+              "text": "new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Also converts FINGER_OF_DEATH_ZOMBIE (humanoid killed rises as a caster-commanded zombie; moved from SPELLS-4.T2i, 2026-10-20)."
             },
             {
               "id": "SPELLS-33.T6a3",
