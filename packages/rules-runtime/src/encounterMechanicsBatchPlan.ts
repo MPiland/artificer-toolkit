@@ -26,6 +26,7 @@ import type {
   SourceItemDrawDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import type { CharacterResourceRestore } from './encounterInitiativeRestores.js'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type {
   NativeCharacterActionResourceConsumption,
@@ -89,6 +90,8 @@ export type EncounterMechanicsBatchInput = {
   retainedConditionIds?: readonly string[]
   effectiveScalarValues?: Readonly<Record<string, number>>
   characterResourceConsumption?: NativeCharacterActionResourceConsumption
+  /** The empty pools this Character's initiative restores raise; applied after any spend. */
+  characterResourceRestores?: readonly CharacterResourceRestore[]
   /** A single-use item this Assisted action used up; recorded as play usage, never as a structure edit. */
   characterItemConsumption?: NativeCharacterItemConsumption
   /**
@@ -168,6 +171,8 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors have no Character stream version.')
     if (batch.characterResourceConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use Character resources.')
+    if (batch.characterResourceRestores !== undefined)
+      throw new Error('Encounter non-Character actors cannot restore Character resources.')
     if (batch.characterItemConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use up Character items.')
     if (batch.degradeItem !== undefined)
@@ -373,6 +378,33 @@ export function planEncounterMechanicsBatch(input: {
     ]
   }
 
+  for (const restore of batch.characterResourceRestores ?? []) {
+    const ownerKey = createCharacterResourceOwnerKey(restore.owner)
+    const matchingUsage = nextResourceUsage.filter(
+      (usage) => createCharacterResourceOwnerKey(usage.owner) === ownerKey
+    )
+    const [existingUsage] = matchingUsage
+    if (
+      ownerKey !== restore.poolId ||
+      matchingUsage.length !== 1 ||
+      !existingUsage ||
+      existingUsage.used !== restore.beforeUsed ||
+      !Number.isSafeInteger(restore.afterUsed) ||
+      restore.afterUsed < 0 ||
+      restore.afterUsed >= restore.beforeUsed ||
+      !Number.isSafeInteger(restore.beforeRemaining) ||
+      restore.beforeRemaining < 0 ||
+      !Number.isSafeInteger(restore.afterRemaining) ||
+      restore.afterRemaining <= restore.beforeRemaining
+    )
+      throw new Error('Encounter Character resource restore is stale.')
+    nextResourceUsage = nextResourceUsage.map((usage) =>
+      usage === existingUsage
+        ? { ...usage, used: restore.afterUsed, updatedBy: userId, updatedAt: batch.occurredAt }
+        : usage
+    )
+  }
+
   const itemConsumption = batch.characterItemConsumption
   let nextItemUsage = loaded.sheetState.itemUsage
   if (itemConsumption !== undefined) {
@@ -564,6 +596,7 @@ export function planEncounterMechanicsBatch(input: {
     JSON.stringify(nextSpellSlots) !== JSON.stringify(loaded.character.state.spellSlots ?? [])
   const sheetStateChanged =
     resourceConsumption !== undefined ||
+    batch.characterResourceRestores !== undefined ||
     itemConsumption !== undefined ||
     itemDegradationTransition !== null
   const sheetHitPointsChanged =

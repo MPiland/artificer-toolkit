@@ -8,6 +8,7 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
@@ -15,6 +16,8 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   MEASUREMENT_UNIT_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
@@ -1133,7 +1136,41 @@ export const bard: ClassAuthored = {
         'At 20th level, when you roll initiative and have no uses of Bardic Inspiration left, you regain one use.',
       availableAtLevel: 20,
       order: 19,
-      effects: [selfClassRuleEffect(20, CLOSED_RULE_KIND.CLASS_BARD_SUPERIOR_INSPIRATION)]
+      effects: [
+        {
+          id: classRowId(BD, 0x60, 20),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ROLL_INITIATIVE,
+            range: { id: classRowId(BD, 0x69, 20), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: classRowId(BD, 0x80, 20),
+              order: 1,
+              pathCode: PATH_CODE.PASSIVE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(BD, 0x81, 20),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(BD, 0x82, 20),
+                    effectKind: EFFECT_KIND.RESTORE_RESOURCE,
+                    chargeId: bardicInspirationCharge.id,
+                    floor: 1,
+                    whenAtOrBelow: 0
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

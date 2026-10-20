@@ -17,6 +17,7 @@ import type { StabilizeAuthored } from './stabilize.js'
 import type { KillAuthored } from './kill.js'
 import type { TeleportAuthored } from './teleport.js'
 import type { ArmorClassFloorAuthored } from './armorClassFloor.js'
+import type { RestoreResourceAuthored } from './restoreResource.js'
 import type { TelepathicLinkAuthored } from './telepathicLink.js'
 import type { PlantPortalAuthored } from './plantPortal.js'
 import type { TreeStrideAuthored } from './treeStride.js'
@@ -53,6 +54,7 @@ export type OutcomeAuthored =
   | StabilizeAuthored
   | KillAuthored
   | ArmorClassFloorAuthored
+  | RestoreResourceAuthored
   | TelepathicLinkAuthored
   | PlantPortalAuthored
   | TreeStrideAuthored

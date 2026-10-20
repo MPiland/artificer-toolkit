@@ -3,7 +3,10 @@ import {
   characterDocumentSchema,
   encodeCharacterRecord
 } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import {
+  characterSheetStateSchema,
+  type CharacterSheetState
+} from '@artificer-toolkit/schema/projections/characterSheetState'
 import { splitCharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
@@ -193,6 +196,25 @@ export interface CharacterPlayOverrides {
   spells?: { learned: readonly string[]; prepared: readonly string[] }
   /** Spell slots already spent, by slot key (for example `STANDARD:4`). */
   spellSlots?: readonly { slotKey: string; used: number }[]
+  /** Sheet resource usage already spent (the Sheet's stored `resourceUsage` records, without their metadata). */
+  resourceUsage?: readonly Pick<CharacterSheetState['resourceUsage'][number], 'owner' | 'used'>[]
+}
+
+/** The captured Sheet state, carrying the spent resource usage `play` names. */
+function sheetStateFor(characterId: string, userId: string, play: CharacterPlayOverrides = {}) {
+  return {
+    ...sheetState,
+    resourceUsage: (play.resourceUsage ?? []).map(({ owner, used }) => ({
+      id: crypto.randomUUID(),
+      characterId,
+      createdBy: userId,
+      updatedBy: userId,
+      createdAt: updatedAt,
+      updatedAt,
+      owner,
+      used
+    }))
+  }
 }
 
 /** The captured Character's private stored row (structure with its play record), re-keyed to an owner. */
@@ -337,7 +359,7 @@ export function characterOwnerRowFor({
       },
       {
         document: character,
-        sheetState,
+        sheetState: sheetStateFor(characterId, userId, playOverrides),
         streamVersion: capturedPage.inputs.streamVersion,
         updatedAt
       }
@@ -384,7 +406,7 @@ export function characterPageFixtureFor({
     inputs: {
       owner: characterOwnerRowFor({ characterId, userId, play }),
       campaign: { ...capturedPage.inputs.campaign, id: campaignId },
-      sheetState
+      sheetState: sheetStateFor(characterId, userId, play)
     },
     revisions
   }

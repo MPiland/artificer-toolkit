@@ -1010,7 +1010,41 @@ export const monk: ClassAuthored = {
         'At 20th level, when you roll for initiative and have no ki points remaining, you regain 4 ki points.',
       availableAtLevel: 20,
       order: 26,
-      effects: [selfClassRuleEffect(27, CLOSED_RULE_KIND.CLASS_MONK_PERFECT_SELF)]
+      effects: [
+        {
+          id: classRowId(M, 0x60, 27),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ROLL_INITIATIVE,
+            range: { id: classRowId(M, 0x69, 27), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: classRowId(M, 0x80, 27),
+              order: 1,
+              pathCode: PATH_CODE.PASSIVE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(M, 0x81, 27),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(M, 0x82, 27),
+                    effectKind: EFFECT_KIND.RESTORE_RESOURCE,
+                    chargeId: kiCharge.id,
+                    floor: 4,
+                    whenAtOrBelow: 0
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
