@@ -510,6 +510,12 @@ against the attacker with system-rolled dice, as one attacker mechanics batch ca
 application; Legendary Action attacks run it through `prepareTurnLegendaryActions`' `meleeRetaliation` port, carried
 on the window's application. Both replay from that evidence (`retained`), so a staged response or a later window's
 re-run rolls no fresh die.
+A creature's passive melee trait with no zone (Remorhaz Heated Body, SPELLS-33 T4k2) is the same zone derived from the
+trait: a PASSIVE effect whose melee attack trigger and distance range say how near a hitter must stand, with direct
+dice damage on `ON_USE`. `passiveMeleeRetaliationZone` stands for it as a SOURCE sphere of that range with one
+`MELEE_HIT_ON_SOURCE` component whose behavior is the trait's own effect, so discovery, placement on the token, the
+selection, the system-rolled plan, persistence and the damage-ends seam are the zone path above. Placement centers every
+passive zone on its holder whatever range its trait authors. A hit by touch is not modeled.
 A component that authors `requiresFullyWithin` (Stinking Cloud, SPELLS-20 T4b3a) is compiled onto the placement and
 instance, and the turn seam then catches only a creature whose whole footprint lies inside the area (edges may touch
 its boundary); the compiler refuses it on a zone with a movement trigger. A component's

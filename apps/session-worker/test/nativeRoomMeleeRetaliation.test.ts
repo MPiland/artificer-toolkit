@@ -45,9 +45,11 @@ const CASTER_ACTOR_ID = testUuid(0x2252)
 const CASTER_ID = testUuid(0x2253)
 const GOBLIN_ID = testUuid(0x2254)
 const REACTOR_ID = testUuid(0x2255)
+const REMORHAZ_ID = testUuid(0x2256)
 const SHIELD_SEED = 0x2260
 
 const balor = srdByLabel(SRD.creatures, 'Balor')
+const remorhaz = srdByLabel(SRD.creatures, 'Remorhaz')
 const goblin = srdByLabel(SRD.creatures, 'Goblin')
 
 afterEach(() => {
@@ -74,31 +76,31 @@ async function retaliationOf(room: Room, commandId: string) {
   return execution.applicationOutputs.meleeRetaliation
 }
 
-describe('the SRD Balor’s Fire Aura answers a melee hit (SPELLS-20 T6d2a, D153)', () => {
-  it('burns the Wolf that bites the Balor for 3d6 fire', async () => {
-    const room = await actionRoom({
-      actors: [
-        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
-        srdCreatureActor({ id: BALOR_ID, creature: balor })
-      ],
-      ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
-      status: 'PREPARED',
-      autoRoll: 'EVERYONE',
-      fallbackRoll: DIE
-    })
-    const start = await room.send({
-      type: 'START',
-      encounterId: room.room.encounterId,
-      commandId: crypto.randomUUID(),
-      expectedVersion: await room.version()
-    })
-    expect(start.type, JSON.stringify(start)).toBe('COMMAND_COMMITTED')
-    // Both have Dexterity 15 and roll the same die, so the GM settles the tie with the Wolf first.
-    const tie =
-      start.type === 'COMMAND_COMMITTED' && start.delta?.scope === 'ENCOUNTER'
-        ? start.delta.result.occurrence?.pending
-        : undefined
-    if (tie?.kind !== 'INITIATIVE_ORDER') throw new Error('Expected the initiative tie.')
+/** A Run begun with the Wolf ahead of `holder` in turn order, the Wolf's bite prepared. */
+async function wolfAndHolderRoom(holderId: string, holder: typeof balor) {
+  const room = await actionRoom({
+    actors: [
+      srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+      srdCreatureActor({ id: holderId, creature: holder })
+    ],
+    ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
+    status: 'PREPARED',
+    autoRoll: 'EVERYONE',
+    fallbackRoll: DIE
+  })
+  const start = await room.send({
+    type: 'START',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version()
+  })
+  expect(start.type, JSON.stringify(start)).toBe('COMMAND_COMMITTED')
+  // A holder of the Wolf's Dexterity ties its initiative, and the GM settles the tie with the Wolf first.
+  const tie =
+    start.type === 'COMMAND_COMMITTED' && start.delta?.scope === 'ENCOUNTER'
+      ? start.delta.result.occurrence?.pending
+      : undefined
+  if (tie?.kind === 'INITIATIVE_ORDER')
     await room.commit({
       type: 'RESOLVE_RULE_OCCURRENCE',
       encounterId: room.room.encounterId,
@@ -109,6 +111,12 @@ describe('the SRD Balor’s Fire Aura answers a melee hit (SPELLS-20 T6d2a, D153
       correlationId: null,
       resolution: { kind: 'INITIATIVE_ENTITY', requestId: tie.requestId, entityId: WOLF_ID }
     })
+  return room
+}
+
+describe('the SRD Balor’s Fire Aura answers a melee hit (SPELLS-20 T6d2a, D153)', () => {
+  it('burns the Wolf that bites the Balor for 3d6 fire', async () => {
+    const room = await wolfAndHolderRoom(BALOR_ID, balor)
     const [aura] = (await readZones(room)).map(readSpatialEffect)
     const wolfBefore = (await hitPointsOf(room, WOLF_ID)) ?? 0
 
@@ -121,6 +129,31 @@ describe('the SRD Balor’s Fire Aura answers a melee hit (SPELLS-20 T6d2a, D153
           ordinal: 0,
           candidate: {
             candidate: { effectId: aura!.id, sourceActorId: BALOR_ID, targetActorId: WOLF_ID }
+          },
+          applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: 3 * D6 })]
+        }
+      ]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(wolfBefore - 3 * D6)
+  })
+})
+
+describe('the SRD Remorhaz’s zone-less Heated Body answers a melee hit (SPELLS-33 T4k2)', () => {
+  it('burns the Wolf that bites the Remorhaz for 3d6 fire, with no authored zone', async () => {
+    const room = await wolfAndHolderRoom(REMORHAZ_ID, remorhaz)
+    const [trait] = (await readZones(room)).map(readSpatialEffect)
+    expect(trait).toMatchObject({ placement: { label: 'Heated Body', retaliatesMeleeHits: true } })
+    const wolfBefore = (await hitPointsOf(room, WOLF_ID)) ?? 0
+
+    const { command, answer } = await room.startAction(REMORHAZ_ID, [], room.sceneContext(1))
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    expect(await retaliationOf(room, command.commandId)).toMatchObject({
+      executions: [
+        {
+          ordinal: 0,
+          candidate: {
+            candidate: { effectId: trait!.id, sourceActorId: REMORHAZ_ID, targetActorId: WOLF_ID }
           },
           applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: 3 * D6 })]
         }

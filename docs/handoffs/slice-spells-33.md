@@ -496,6 +496,15 @@ Mummy and Mummy Lord Dreadful Glare grant SOURCE_IMMUNITY per source, so a targe
 - T6e1 (Balor Death Throes): a death-throes defeat does not retrigger `ON_HP_ZERO` (orchestrator ruling; the hook never recurses, pinned by `nativeRoomHpZeroEffect.test.ts`).
 - T6e3 (Flesh Golem Aversion of Fire, Water Elemental Freeze) is the passive damage-type trigger that creates a timed self grant on every damage root; it needs effect-creation slots, receipts, persistence and revert per root. T6e3a did the action root; T6e3b wired the turn-zone, melee-retaliation (evidence `grantEffectTransitions`, undo deletes them), legendary and movement-reaction roots. T6e3c did the area root (each target's batch carries `grantEffectTransitions`; undo is the shared per-target path). Left: spatial movement contacts with T6e4's gap. Retaliation undo (action root) restores the effects the retaliation ended, the grant it replaced and the conditions released. Movement-reaction and legendary retaliation roots are not undoable.
 
+## T4k2: Remorhaz Heated Body
+
+Done on `ci/spells-33-t4k2`. Class: existing option (D153's `MELEE_HIT_ON_SOURCE`, reached without an authored zone).
+
+- The Remorhaz authors Heated Body as a PASSIVE `MELEE_WEAPON_ATTACK` effect with a 5 ft distance range and 3d6 fire on `ON_USE`; `CREATURE_REMORHAZ_HEATED_BODY` is deleted.
+- `passiveMeleeRetaliationZone` derives the SOURCE zone from the trait, so discovery, placement, `selectMeleeRetaliationContacts`, `planEncounterMeleeRetaliation` and T6e4's damage-ends seam run unchanged. Passive zones are now centered on their holder whatever range the trait authors (`planEncounterPassiveZones`).
+- Proofs: compile parity with a core-options 5 ft aura (`encounterZonePlacementCompilation.test.ts`), creature node-map parity (`creatureZoneAuthoringParity.test.ts`), room journey (`nativeRoomMeleeRetaliation.test.ts`).
+- Azer and Salamander keep Heated Body as description only (not in this slice's one kind); touch contact stays deferred (future-enhancements).
+
 ## T4c: Knight Leadership and Lamia Intoxicating Touch
 
 Class B (core options), branch `spells-33-t4c`, pushed to `ci/spells-33-t4c`. Both kinds deleted.
