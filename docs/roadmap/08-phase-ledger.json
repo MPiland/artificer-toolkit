@@ -4992,14 +4992,15 @@
             {
               "id": "SCENE-5.T3",
               "text": "Zoom control (percentage field and steps) with per-device zoom for every viewer, a screen-sized tabletop popup and a Full screen button.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SCENE-5.3"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 3
-              }
+              },
+              "note": "Merged m208 (6585a457f)."
             }
           ]
         }
