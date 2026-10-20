@@ -50,50 +50,19 @@ export const cultFanatic: CreatureAuthored = {
       label: 'Spellcasting',
       description:
         'Spellcasting. The fanatic is a 4th-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 11, +3 to hit with spell attacks). The fanatic has the following cleric spells prepared: Cantrips (at will): light, sacred flame, thaumaturgy 1st level (4 slots): command, inflict wounds, shield of faith 2nd level (3 slots): hold person, spiritual weapon',
-      grants: {
-        spells: [
+      grants: S.slottedSpellcastingGrants(
+        74,
+        S.ABILITY_CODE.WISDOM,
+        [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
+        [
           {
-            id: S.actionId(74, 301),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
-            castingAbility: S.ABILITY_CODE.WISDOM,
-            order: 0
+            level: 1,
+            slots: 4,
+            spellIds: [S.SPELL_IDS.COMMAND, S.SPELL_IDS.INFLICT_WOUNDS, S.SPELL_IDS.SHIELD_OF_FAITH]
           },
-          {
-            id: S.actionId(74, 302),
-            grantKind: S.GRANT_KIND.SPELL_GRANT,
-            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: S.SCALING.NONE,
-            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [
-              S.SPELL_IDS.COMMAND,
-              S.SPELL_IDS.INFLICT_WOUNDS,
-              S.SPELL_IDS.SHIELD_OF_FAITH,
-              S.SPELL_IDS.HOLD_PERSON,
-              S.SPELL_IDS.SPIRITUAL_WEAPON
-            ],
-            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED],
-            castingAbility: S.ABILITY_CODE.WISDOM,
-            order: 1
-          }
+          { level: 2, slots: 3, spellIds: [S.SPELL_IDS.HOLD_PERSON, S.SPELL_IDS.SPIRITUAL_WEAPON] }
         ]
-      },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(74, 303),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(74, 1301), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CULT_FANATIC_SPELLCASTING
-        })
-      ],
+      ),
       order: 2
     },
     {

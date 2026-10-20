@@ -524,3 +524,17 @@ Class B (core options), branch `spells-33-t4c`, pushed to `ci/spells-33-t4c`. Bo
 ### Decision candidate D161: SYSTEM admission kind
 
 A `RESOLVE_ACTION` may be raised by the rules rather than a player when it carries `systemTrigger: { parentCommandId }`. It is self-verifying: a deterministic uuidv5 command id from (parent, holder, action), a `CASTER_CENTERED` target and a committed parent in the same Encounter are all it needs; no new table, no persisted flag. It is the only admission that lets a defeated actor be the source. Undo and void treat the parent and the system root as one change. Written in [persistence](../architecture/persistence.md#rule-raised-system-action-admission-current-spells-33t6e1-d161-candidate).
+
+## T3b: slotted casters (done, `ci/spells-33-t3b`)
+
+Class A (acolyte pattern), data only. Cult Fanatic, Druid, Guardian Naga, Gynosphinx, Lich, Mage, Mummy Lord and Priest author an at-will cantrip grant plus one PREPARED / LIMITED_USE / CAST_AT_LEVEL SPELL_GRANT per spell level whose long-rest `charges` are that level's slots (`S.slottedSpellcastingGrants`, `creatures/shared.ts`). The eight `CREATURE_*_SPELLCASTING` kinds are deleted. The Spellcasting feature keeps its stat-block description, so the GM still reads save DC, attack bonus, spell list and slots.
+
+- Proof: `creatureSpellSlotsAuthoringParity.test.ts` (creature node map unchanged, charges equal the slots the stat block states, cantrips at will, one casting ability, unique ids, description shows DC, attack bonus and slots).
+- No room proof: creature spell grants have no runtime path (ruling: T3b stays data only; room proof moved to T3c).
+
+### T3c seam notes (creature SPELL_GRANT casting in the room)
+
+- `creatureFeatureGrantFold.ts:60` folds every creature feature to `spells: []`, so a creature's SPELL_GRANTs, `castAtLevel` and slot `charges` are inert at the table.
+- Spell-grant handling (access, cast rule facts, charge spend, cast-at-level choice) lives only under `packages/rules-runtime/src/character/` (`characterSpellAccess`, `characterSpellCastRuleFacts`, `characterResourceRuleFacts`, `sheetResourceUsage`) and is Character-only.
+- The one creature spell-cast path today is a capability `spellCast` (`{ castLevel }` on an action invocation), used by the Counterspell offer (`nativeRoomCounterspellCreatureCast.test.ts`); it spends no slot.
+- T3c needs: fold creature grants into cast actions, spend the level's charge on cast with undo, offer cast at level, then the room proof that a converted caster spends a slot when it casts.
