@@ -3486,6 +3486,7 @@ export declare const api: {
               cost?: { amount: number; currencyId: string };
               costLabel?: string;
               customName?: string;
+              degradation?: number;
               description?: string | null;
               displayAsAttack?: boolean;
               equipmentId: string;
@@ -11766,6 +11767,7 @@ export declare const api: {
               inventory: Array<{
                 containerId?: string;
                 customName?: string;
+                degradation?: number;
                 equipmentId: string;
                 id: string;
                 notes?: string;
@@ -12147,6 +12149,7 @@ export declare const api: {
                 inventory: Array<{
                   containerId?: string;
                   customName?: string;
+                  degradation?: number;
                   equipmentId: string;
                   id: string;
                   notes?: string;
@@ -12527,6 +12530,7 @@ export declare const api: {
                 inventory: Array<{
                   containerId?: string;
                   customName?: string;
+                  degradation?: number;
                   equipmentId: string;
                   id: string;
                   notes?: string;
@@ -13233,6 +13237,7 @@ export declare const api: {
                   inventory: Array<{
                     containerId?: string;
                     customName?: string;
+                    degradation?: number;
                     equipmentId: string;
                     id: string;
                     notes?: string;
@@ -13947,6 +13952,7 @@ export declare const api: {
                   inventory: Array<{
                     containerId?: string;
                     customName?: string;
+                    degradation?: number;
                     equipmentId: string;
                     id: string;
                     notes?: string;
@@ -14673,6 +14679,7 @@ export declare const api: {
                 inventory: Array<{
                   containerId?: string;
                   customName?: string;
+                  degradation?: number;
                   equipmentId: string;
                   id: string;
                   notes?: string;
@@ -15373,6 +15380,7 @@ export declare const api: {
                   inventory: Array<{
                     containerId?: string;
                     customName?: string;
+                    degradation?: number;
                     equipmentId: string;
                     id: string;
                     notes?: string;
@@ -18658,6 +18666,7 @@ export declare const api: {
               cost?: { amount: number; currencyId: string };
               costLabel?: string;
               customName?: string;
+              degradation?: number;
               description?: string | null;
               displayAsAttack?: boolean;
               equipmentId: string;
@@ -22198,6 +22207,7 @@ export declare const api: {
                   cost?: { amount: number; currencyId: string };
                   costLabel?: string;
                   customName?: string;
+                  degradation?: number;
                   description?: string | null;
                   displayAsAttack?: boolean;
                   equipmentId: string;
