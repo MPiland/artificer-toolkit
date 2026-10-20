@@ -107,17 +107,7 @@ export const kraken: CreatureAuthored = {
         'Multiattack. The kraken makes three tentacle attacks, each of which it can replace with one use of Fling.',
       attackSlots: {
         alternatives: [
-          {
-            slots: [
-              {
-                count: 3,
-                fillers: [
-                  { kind: 'FEATURE', featureId: S.featureId(180, 6) },
-                  { kind: 'FEATURE', featureId: S.featureId(180, 10) }
-                ]
-              }
-            ]
-          }
+          { slots: [{ count: 3, fillers: [{ kind: 'FEATURE', featureId: S.featureId(180, 6) }] }] }
         ]
       },
       order: 5

@@ -125,16 +125,7 @@ export const glabrezu: CreatureAuthored = {
               { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(142, 6) }] }
             ]
           },
-          {
-            slots: [
-              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(142, 5) }] },
-              {
-                count: 1,
-                fillers: [{ kind: 'FEATURE', featureId: S.featureId(142, 1) }],
-                optional: true
-              }
-            ]
-          }
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(142, 5) }] }] }
         ]
       },
       order: 4

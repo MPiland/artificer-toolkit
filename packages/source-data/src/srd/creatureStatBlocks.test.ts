@@ -349,13 +349,11 @@ describe('SRD Creature stat blocks', () => {
 describe('SRD Creature Multiattacks (D93)', () => {
   const multiattacks = srdBaselineContent.subjects.creatures.flatMap((creature) => {
     const block = SRD_CREATURE_STAT_BLOCKS.get(creature.id)
-    return (block?.actions ?? [])
-      .filter(isPrintedMultiattack)
-      .map((name) => ({
-        creature,
-        name,
-        source: creature.features.find(({ label }) => label === name)
-      }))
+    return (block?.actions ?? []).filter(isPrintedMultiattack).map((name) => ({
+      creature,
+      name,
+      source: creature.features.find(({ label }) => label === name)
+    }))
   })
 
   it('refuses a Multiattack that authors no attack slots, whatever else it carries', () => {
@@ -382,18 +380,21 @@ describe('SRD Creature Multiattacks (D93)', () => {
     ).toEqual([])
   })
 
-  it('fills every slot with the Creature’s own action Features', () => {
-    const dangling = multiattacks.flatMap(({ creature, name, source }) => {
-      const own = new Set(creature.features.map(({ id }) => id))
-      return (source?.attackSlots?.alternatives ?? [])
+  it('fills every slot with another of the Creature’s action Features', () => {
+    const dangling = multiattacks.flatMap(({ creature, name, source }) =>
+      (source?.attackSlots?.alternatives ?? [])
         .flatMap(({ slots }) => slots.flatMap(({ fillers }) => fillers))
-        .flatMap((filler) =>
-          filler.kind === 'FEATURE' &&
-          (!own.has(filler.featureId) || filler.featureId === source?.id)
-            ? [`${creature.label}|${name} -> ${filler.featureId}`]
-            : []
-        )
-    })
+        .flatMap((filler) => {
+          if (filler.kind !== 'FEATURE') return []
+          const filled = creature.features.find(({ id }) => id === filler.featureId)
+          const isAction = (filled?.effects ?? []).some(
+            (effect) => effect.invocation.kind !== 'PASSIVE'
+          )
+          return filled && filled.id !== source?.id && isAction
+            ? []
+            : [`${creature.label}|${name} -> ${filler.featureId}`]
+        })
+    )
     expect(dangling).toEqual([])
   })
 })
