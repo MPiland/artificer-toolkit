@@ -8668,7 +8668,7 @@
             },
             {
               "id": "SPELLS-4.T2d3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8678,7 +8678,7 @@
                 "after": ["SPELLS-4.T2d2"]
               },
               "text": "Effect offers in the web table (split from T2d2, 2026-10-20): the action choices response already carries effectOffers[]; show them in the actor drawer and stage, with a Scene token pick for the new holder, so a player can move a held effect (Hunter's Mark re-mark) in-app. Stories, component tests and a browser journey.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4-t2d2.md"
+              "note": "Merged m247 (e1294f221); Playwright journey is T2d4."
             },
             {
               "id": "SPELLS-4.T2d4",
