@@ -4967,14 +4967,15 @@
             {
               "id": "SCENE-5.T1",
               "text": "The GM grants and revokes Campaign-level control of a Character; granted members move its tokens outside Encounters and are its controllers in every Run. One source of truth with the existing per-Run controllerUserIds (ADR 0034, max 8, assigned player always a controller).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SCENE-5.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 5
-              }
+              },
+              "note": "Merged m209 (19f2ec13e); D162."
             },
             {
               "id": "SCENE-5.T2",
