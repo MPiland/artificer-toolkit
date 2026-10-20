@@ -6068,7 +6068,7 @@
             {
               "text": "Cleaving policy and target selection are authored and typed.",
               "status": "TODO",
-              "proof": [],
+              "proof": ["packages/rules-runtime/src/__tests__/encounterCleaving.test.ts > Cleaving authored definition"],
               "origin": ["P81-CLEAVING-SOURCE"],
               "note": "Decisions D31/D48; no 8.2 criterion names Cleaving.",
               "id": "ATTACK-4.1"
@@ -6076,7 +6076,7 @@
             {
               "text": "Cleaving carries excess damage down its chain.",
               "status": "TODO",
-              "proof": [],
+              "proof": ["packages/rules-runtime/src/__tests__/encounterCleaving.test.ts > Cleaving damage carry-over > applies the carried damage to the next target and chains while it drops undamaged targets", "apps/apis/convex/encounters/cleaving.test.ts > native Cleaving action settlement > carries one finalized %s attack through a bounded chain without rolling or spending again"],
               "origin": ["P81-CLEAVING-EXECUTION"],
               "note": "Decisions D31/D48; cleaving.test.ts exists but no criterion accepts it.",
               "id": "ATTACK-4.2"
