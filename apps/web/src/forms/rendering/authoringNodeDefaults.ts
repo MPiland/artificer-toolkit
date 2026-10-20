@@ -523,6 +523,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       }
     case 'followUpSaveRepeatPerception':
       return createFollowUpSaveRepeatPerception()
+    case 'degradeEquipmentDestroyWhen':
+      return { kind: 'PENALTY_REACHES', value: 1 }
     case 'hitPointMaximumReductionAmountSource':
       return {
         kind: 'DAMAGE_TAKEN',

@@ -91,14 +91,14 @@ describe('D&D 5e weapon attacks', () => {
     const character = evaluateSrdCharacter({
       abilities: { STRENGTH: 16 },
       classes: [fighter()],
-      items: [{ label: 'Longsword', degradation: 2 }, { label: 'Dagger' }]
+      items: [{ label: 'Longsword', degradation: 2 }, { label: 'Mace' }]
     })
     const damage = (label: string) =>
       damageExpression(
         itemAction(character, label, { attackKind: 'MELEE', grip: 'ONE_HANDED' }).decision
       )
     expect(damage('Longsword')).toBe('1d8 + 1')
-    expect(damage('Dagger')).toBe('1d4 + 3')
+    expect(damage('Mace')).toBe('1d6 + 3')
   })
 
   it('Dueling adds +2 only to a one-handed melee weapon', () => {
@@ -382,7 +382,7 @@ describe('D&D 5e armor class', () => {
   })
 
   it('corrosion lowers the armor class an armor and a shield offer, never below 0', () => {
-    const armorClass = (degradation: number) =>
+    const armorClass = (degradation?: number) =>
       evaluateSrdCharacter({
         abilities: { DEXTERITY: 10 },
         classes: [fighter()],
@@ -391,7 +391,7 @@ describe('D&D 5e armor class', () => {
           { label: 'Shield', equipped: true, degradation }
         ]
       }).output.derivedStats.armorClass.effective
-    expect(armorClass(1)).toBe(armorClass(0) - 2)
+    expect(armorClass(1)).toBe(armorClass() - 2)
     expect(armorClass(40)).toBe(0)
   })
 
