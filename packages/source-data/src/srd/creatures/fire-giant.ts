@@ -45,6 +45,11 @@ export const fireGiant: CreatureAuthored = {
       id: S.featureId(102, 1),
       label: 'Multiattack',
       description: 'The giant makes two greatsword attacks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(102, 2) }] }] }
+        ]
+      },
       order: 1
     },
     {

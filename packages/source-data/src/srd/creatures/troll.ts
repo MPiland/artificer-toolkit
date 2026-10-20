@@ -59,6 +59,16 @@ export const troll: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The troll makes three attacks: one with its bite and two with its claws.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(274, 4) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(274, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

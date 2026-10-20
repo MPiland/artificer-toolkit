@@ -239,18 +239,16 @@ export const youngGoldDragon: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The dragon makes three attacks: one with its bite and two with its claws.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(306, 211),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(306, 212), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(306, 4) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(306, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

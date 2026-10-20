@@ -64,6 +64,11 @@ export const animatedArmor: CreatureAuthored = {
       id: S.featureId(25, 3),
       label: 'Multiattack',
       description: 'The armor makes two melee attacks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(25, 4) }] }] }
+        ]
+      },
       order: 3
     },
     {

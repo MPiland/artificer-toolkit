@@ -318,6 +318,11 @@ export const solar: CreatureAuthored = {
       id: S.featureId(256, 8),
       label: 'Multiattack',
       description: 'Multiattack. The solar makes two greatsword attacks.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(256, 4) }] }] }
+        ]
+      },
       order: 7
     },
     {

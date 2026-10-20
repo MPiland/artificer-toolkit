@@ -22,8 +22,10 @@ import { movementRoom, type MovementRoomConfig } from './movementRoomFixture.js'
 
 const GRAPPLER_ID = testUuid(0xe70)
 const HELD_ID = testUuid(0xe71)
+const SECOND_HELD_ID = testUuid(0xe74)
 const GRAPPLER_START: ScenePoint = { x: 150, y: 150 }
 const HELD_START: ScenePoint = { x: 50, y: 150 }
+const SECOND_HELD_START: ScenePoint = { x: 150, y: 250 }
 const GRAPPLED = srdCondition('Grappled')
 
 afterEach(() => {
@@ -33,12 +35,15 @@ afterEach(() => {
 
 /** A HOSTILE grappler holds a FRIENDLY Wolf whose Bite is an opportunity attack, just behind it. */
 async function dragRoom(
-  options: { dragged: boolean; heldSize?: CreatureAuthored['size'] } & Pick<
-    MovementRoomConfig,
-    'sceneOverrides'
-  >
+  options: {
+    dragged: boolean
+    heldSize?: CreatureAuthored['size']
+    /** A second creature the grappler holds and drags, of this size. */
+    secondHeldSize?: CreatureAuthored['size']
+  } & Pick<MovementRoomConfig, 'sceneOverrides'>
 ) {
   let heldTokenId = ''
+  const heldIds = options.secondHeldSize ? [HELD_ID, SECOND_HELD_ID] : [HELD_ID]
   const room = await movementRoom({
     actors: [
       srdCreatureActor({ id: GRAPPLER_ID, creature: plainWolf }),
@@ -47,27 +52,42 @@ async function dragRoom(
         creature: options.heldSize ? { ...reactionWolf, size: options.heldSize } : reactionWolf,
         disposition: 'FRIENDLY',
         conditionIds: [GRAPPLED]
-      })
+      }),
+      ...(options.secondHeldSize
+        ? [
+            srdCreatureActor({
+              id: SECOND_HELD_ID,
+              creature: { ...reactionWolf, size: options.secondHeldSize },
+              disposition: 'FRIENDLY',
+              conditionIds: [GRAPPLED]
+            })
+          ]
+        : [])
     ],
     moverActorId: GRAPPLER_ID,
-    positions: { [GRAPPLER_ID]: GRAPPLER_START, [HELD_ID]: HELD_START },
+    positions: {
+      [GRAPPLER_ID]: GRAPPLER_START,
+      [HELD_ID]: HELD_START,
+      ...(options.secondHeldSize ? { [SECOND_HELD_ID]: SECOND_HELD_START } : {})
+    },
     autoRoll: 'GAME_MASTER',
     fallbackRoll: 0,
     ...(options.sceneOverrides ? { sceneOverrides: options.sceneOverrides } : {}),
     seed: async ({ effects, encounterId, occurredAt, tokenIdOf }) => {
       heldTokenId = tokenIdOf(HELD_ID)
-      await effects.create({
-        id: testUuid(0xe72),
-        owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: HELD_ID },
-        lifecycle: { schemaVersion: 1, remainingTicks: null },
-        definition: escapeGrappleEffectDefinition({
-          encounterId,
-          grapplerId: GRAPPLER_ID,
-          conditionIds: [GRAPPLED],
-          dragged: options.dragged
-        }),
-        occurredAt
-      })
+      for (const [index, heldId] of heldIds.entries())
+        await effects.create({
+          id: testUuid(0xe72 + index * 0x10),
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: heldId },
+          lifecycle: { schemaVersion: 1, remainingTicks: null },
+          definition: escapeGrappleEffectDefinition({
+            encounterId,
+            grapplerId: GRAPPLER_ID,
+            conditionIds: [GRAPPLED],
+            dragged: options.dragged
+          }),
+          occurredAt
+        })
     }
   })
   return { room, heldTokenId }
@@ -132,6 +152,36 @@ describe('a grappler drags the creature it holds (ATTACK-7.T7, D105), in the roo
     expect(await holds({ dragged: false })).toEqual([
       { sourceActorId: GRAPPLER_ID, heldActorId: HELD_ID, drag: null }
     ])
+  }, 60_000)
+
+  it('prices each hold on its own when the grappler drags two creatures of mixed sizes', async () => {
+    const { room } = await dragRoom({ dragged: true, heldSize: 'TINY', secondHeldSize: 'MEDIUM' })
+
+    const holds = await readRoomEncounter(room.base, {
+      kind: 'HELD_RELATIONSHIPS',
+      input: { encounterId: room.encounterId }
+    })
+    // Only the Tiny creature, two sizes below the Medium Wolf, is exempt from half speed.
+    expect(
+      holds
+        .map(({ heldActorId, drag }) => ({ heldActorId, drag }))
+        .sort((a, b) => a.heldActorId.localeCompare(b.heldActorId))
+    ).toEqual(
+      [
+        { heldActorId: HELD_ID, drag: { doublesCost: false } },
+        { heldActorId: SECOND_HELD_ID, drag: { doublesCost: true } }
+      ].sort((a, b) => a.heldActorId.localeCompare(b.heldActorId))
+    )
+
+    const moved = await room.move([GRAPPLER_START, { x: 450, y: 150 }])
+
+    expect(moved).toMatchObject({ type: 'COMMAND_COMMITTED' })
+    // Both creatures move with the grappler and never react to leaving its reach.
+    expect(await room.pending()).toBeNull()
+    expect(await feetMoved(room, HELD_ID)).toBe(0)
+    expect(await feetMoved(room, SECOND_HELD_ID)).toBe(0)
+    // 15 ft of walking costs double because one dragged creature is not small enough.
+    expect(await feetMoved(room, GRAPPLER_ID)).toBe(30)
   }, 60_000)
 
   it('lets the held creature react to a grappler whose hold does not drag', async () => {

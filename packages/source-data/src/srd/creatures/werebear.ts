@@ -75,18 +75,12 @@ export const werebear: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. In bear form, the werebear makes two claw attacks. In humanoid form, it makes two greataxe attacks. In hybrid form, it can attack like a bear or a humanoid.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(287, 202),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(287, 203), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(287, 5) }] }] },
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(287, 6) }] }] }
+        ]
+      },
       order: 3
     },
     {

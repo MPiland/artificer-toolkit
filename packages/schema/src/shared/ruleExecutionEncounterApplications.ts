@@ -1176,6 +1176,8 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
         })
       ]),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      /** The Attack action a contest that replaces one attack (Grapple, Shove) fills; absent otherwise. */
+      attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
       /** The source's own conditions released by effects its attack roll ended; empty when none. */
       sourceApplications: sourceApplicationsDtoSchema
     })

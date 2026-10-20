@@ -3,6 +3,7 @@ import type { AbilityCode, CreatureAuthored } from '@artificer-toolkit/shared'
 import { printCreatureSenses } from '@artificer-toolkit/shared/subjects/core'
 import { describe, expect, it } from 'vitest'
 import { SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS } from './creatureDescriptionOnlyActions.js'
+import { isPrintedMultiattack, printedActionHasMechanics } from './creatureStatBlockAudit.js'
 import { SRD_CREATURE_STAT_BLOCK_EXCEPTIONS } from './creatureStatBlockExceptions.js'
 import { SRD_CREATURE_STAT_BLOCKS, type SrdCreatureStatBlock } from './creatures/stat-blocks.js'
 import { srdBaselineContent } from './index.js'
@@ -289,14 +290,9 @@ const descriptionOnlyActions = new Set(
     return Object.entries(lists).flatMap(([field, [printed, sources]]) =>
       printed.flatMap((name) => {
         const source = sources.find((candidate) => candidate.label === name)
-        const hasEffect =
-          source !== undefined &&
-          ('actionReference' in source ||
-            ('attackSlots' in source && source.attackSlots !== undefined) ||
-            [source, ...('options' in source ? (source.options ?? []) : [])].some(
-              (entry) => (entry.effects ?? []).length > 0
-            ))
-        return source && !hasEffect ? [`${creature.label}|${field} ${name}`] : []
+        return source && !printedActionHasMechanics(name, source)
+          ? [`${creature.label}|${field} ${name}`]
+          : []
       })
     )
   })
@@ -347,5 +343,58 @@ describe('SRD Creature stat blocks', () => {
 
   it('prints a stat block for every SRD Creature', () => {
     expect(SRD_CREATURE_STAT_BLOCKS.size).toBe(srdBaselineContent.subjects.creatures.length)
+  })
+})
+
+describe('SRD Creature Multiattacks (D93)', () => {
+  const multiattacks = srdBaselineContent.subjects.creatures.flatMap((creature) => {
+    const block = SRD_CREATURE_STAT_BLOCKS.get(creature.id)
+    return (block?.actions ?? []).filter(isPrintedMultiattack).map((name) => ({
+      creature,
+      name,
+      source: creature.features.find(({ label }) => label === name)
+    }))
+  })
+
+  it('refuses a Multiattack that authors no attack slots, whatever else it carries', () => {
+    const description = { label: 'Multiattack' }
+    expect(printedActionHasMechanics('Multiattack', description)).toBe(false)
+    expect(printedActionHasMechanics('Multiattack', { ...description, effects: [{}] })).toBe(false)
+    expect(printedActionHasMechanics('Multiattack', { ...description, attackSlots: {} })).toBe(true)
+    // Any other printed action is satisfied by an Effect.
+    expect(printedActionHasMechanics('Bite', { label: 'Bite', effects: [{}] })).toBe(true)
+    expect(printedActionHasMechanics('Bite', { label: 'Bite' })).toBe(false)
+  })
+
+  it('authors attack slots for every printed Multiattack, with no description-only excuse', () => {
+    expect(multiattacks.length).toBeGreaterThan(0)
+    expect(
+      multiattacks
+        .filter(({ source }) => source?.attackSlots === undefined)
+        .map(({ creature, name }) => `${creature.label}|${name}`)
+    ).toEqual([])
+    expect(
+      [...SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS.keys()].filter((key) =>
+        /actions Multiattack/.test(key)
+      )
+    ).toEqual([])
+  })
+
+  it('fills every slot with another of the Creature’s action Features', () => {
+    const dangling = multiattacks.flatMap(({ creature, name, source }) =>
+      (source?.attackSlots?.alternatives ?? [])
+        .flatMap(({ slots }) => slots.flatMap(({ fillers }) => fillers))
+        .flatMap((filler) => {
+          if (filler.kind !== 'FEATURE') return []
+          const filled = creature.features.find(({ id }) => id === filler.featureId)
+          const isAction = (filled?.effects ?? []).some(
+            (effect) => effect.invocation.kind !== 'PASSIVE'
+          )
+          return filled && filled.id !== source?.id && isAction
+            ? []
+            : [`${creature.label}|${name} -> ${filler.featureId}`]
+        })
+    )
+    expect(dangling).toEqual([])
   })
 })

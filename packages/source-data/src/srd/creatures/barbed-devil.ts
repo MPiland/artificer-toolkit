@@ -131,18 +131,17 @@ export const barbedDevil: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The devil makes three melee attacks: one with its tail and two with its claws. Alternatively, it can use Hurl Flame twice.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(39, 108),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(39, 109), rangeKind: S.RANGE_KIND.SPECIAL }
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(39, 6) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(39, 5) }] }
+            ]
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(39, 7) }] }] }
+        ]
+      },
       order: 4
     },
     {

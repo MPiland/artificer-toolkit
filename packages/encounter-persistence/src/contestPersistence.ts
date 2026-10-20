@@ -299,6 +299,7 @@ export async function persistEncounterContestCommit(
     contest,
     rolls: { initiator: outputs.sourceRoll, defender: outputs.targetRoll },
     actionEconomy: outputs.actionEconomyTransition,
+    attackAction: outputs.attackActionTransition ?? null,
     createdEffect: input.createdEffect,
     conditionApplications: input.conditionApplications,
     forcedMovements: input.forcedMovements,

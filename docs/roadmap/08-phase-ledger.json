@@ -1286,7 +1286,7 @@
           "tasks": [
             {
               "id": "PLATFORM-21.T1a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-21.2"],
               "wsjf": {
                 "bv": 8,
@@ -1295,7 +1295,21 @@
                 "size": 5,
                 "after": ["PLATFORM-20.T1"]
               },
-              "text": "Compiled projection v2 (D163; split 2026-10-19): the projection carries every field the Builder reads from authored payloads (Class subclass selection level, spellcasting availability, proficiency scaling and restrictions, chosen-grant shapes, subclass label, feature checksum, plus any found in Spell, Race, Equipment and Background), with Equipment in the resolved shape; Builder and rules-runtime reads move to the compiled shapes while compilation is still at runtime; a migration recompiles stale rows, run on development data."
+              "text": "Compiled projection v2 (D163; split 2026-10-19): the projection carries every field the Builder reads from authored payloads (Class subclass selection level, spellcasting availability, proficiency scaling and restrictions, chosen-grant shapes, subclass label, feature checksum, plus any found in Spell, Race, Equipment and Background), with Equipment in the resolved shape; Builder and rules-runtime reads move to the compiled shapes while compilation is still at runtime; a migration recompiles stale rows, run on development data.",
+              "note": "Merged m216 (67c9bdb51). Local dev-data migration moved to T1a2."
+            },
+            {
+              "id": "PLATFORM-21.T1a2",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-21.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 2,
+                "after": ["PLATFORM-21.T1a"]
+              },
+              "text": "Local development data recompiles (found in T1a, 2026-10-20): the local seed refuses the unchanged SRD Sorcerer with \"Canonical content conflict\", the first chunked document in the run, so the T1a migration cannot run on review data. Find the stored-versus-parsed difference with the real parser, fix its root cause in import or chunking with a regression test, then seed and migrate the local container with no reset."
             },
             {
               "id": "PLATFORM-21.T1b",
@@ -1306,9 +1320,9 @@
                 "tc": 5,
                 "rr": 8,
                 "size": 5,
-                "after": ["PLATFORM-21.T1a"]
+                "after": ["PLATFORM-21.T1a2"]
               },
-              "text": "Hydrate Builder commit, the browser Builder and the room from the stored compiled projection and remove runtime recompilation (D163); snapshot documents format 3 (ADR 0036 amendment); a compile failure blocks the publish; before-and-after measurements, including commitReadBudget within D84 (measured full swap: Fighter 5 324 KB, Wizard 5 405 KB, Fighter 3/Wizard 2 525 KB)."
+              "text": "Hydrate Builder commit, the browser Builder and the room from the stored compiled projection and remove runtime recompilation (D163); snapshot documents format 3 (ADR 0036 amendment); a compile failure blocks the publish; before-and-after measurements, including commitReadBudget within D84 (measured full swap: Fighter 5 324 KB, Wizard 5 405 KB, Fighter 3/Wizard 2 525 KB). Also show the retained Spell presentation that T1a pins (view only)."
             }
           ]
         },
@@ -5693,15 +5707,15 @@
         {
           "id": "ENCOUNTER-8",
           "title": "Roll cards show a roll mode that changed at commit",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/web/src/components/dice/DiceRollPresentation.test.tsx"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "A roll card whose mode changed at commit animates the change, with an ✕ over a cancelled die and a newly added die rolling in, and shows the same result statically when reduced motion is on.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/web/src/components/dice/DiceRollPresentation.test.tsx"],
               "origin": [],
               "note": "Registered 2026-10-09 from the user's ATTACK-10.1 ruling; User ruling 2026-10-14: built to DESIGN.md now; the design review is RELEASE-8, after all code is green. Depends on ATTACK-10.1, which supplies the cancelled and added die data and a static rendering.",
               "id": "ENCOUNTER-8.1"
@@ -5730,7 +5744,7 @@
             {
               "id": "ENCOUNTER-8.T2",
               "text": "Animated mode change: the ✕ draws over the cancelled die, then the added die rolls in, for everyone who sees the card when it arrives (no replay on reopen); reduced motion shows the T1 result. A DESIGN.md motion entry records timing and style.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ENCOUNTER-8.1"],
               "wsjf": {
                 "bv": 2,
@@ -5738,7 +5752,8 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ENCOUNTER-8.T1"]
-              }
+              },
+              "note": "Merged m215 (a9b35a398). Table-wide roll presentation deferred to future-enhancements."
             }
           ]
         },
@@ -6351,24 +6366,37 @@
             },
             {
               "text": "A grappler that moves drags the creatures it grapples, at half speed unless each is two or more sizes smaller; dragged creatures provoke no opportunity attacks.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterMovementDrag.test.ts",
+                "apps/session-worker/test/nativeRoomGrappleDrag.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice G.",
               "id": "ATTACK-7.5"
             },
             {
               "text": "Shove replaces one attack of the Attack action against a creature within reach and no more than one size larger, with the same contest; on a win the shover knocks it prone or pushes it 5 feet away.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomShoveContest.test.ts",
+                "apps/session-worker/test/nativeRoomAttackAction.test.ts",
+                "packages/rules-runtime/src/__tests__/checkActionCompile.test.ts",
+                "packages/authoring/src/nodeRuntime/contestOutcomeAuthoringParity.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice F.",
               "id": "ATTACK-7.6"
             },
             {
               "text": "Forced movement is authored with a direction (away, toward, aside within the source's reach, or any) and an exact or up-to distance; away and toward follow the straight line from the source through the target (the mover chooses only how far, for an up-to distance), any lets the mover pick a legal unoccupied square, and it provokes no opportunity attacks. A homebrew Crusher feat (any direction, 5 feet, on a bludgeoning hit) proves the any-direction case.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomForcedMovement.test.ts",
+                "apps/session-worker/test/nativeRoomAreaForcedMovementPick.test.ts",
+                "apps/session-worker/test/nativeRoomCrusher.test.ts",
+                "packages/shared/src/__tests__/optionalCombatGeometry.test.ts"
+              ],
               "origin": [],
               "note": "D105 slice E.",
               "id": "ATTACK-7.7"
@@ -6398,8 +6426,11 @@
             },
             {
               "text": "When a grapple's escape allows it (the Cloaker), another creature within reach of the grappled creature can use its Action to make the escape check and free it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterRescues.test.ts",
+                "apps/session-worker/test/nativeRoomEscapeRescue.test.ts"
+              ],
               "origin": [],
               "note": "D105. Registered 2026-10-11 in slice B: the SRD Cloaker authors `CREATURE_WITHIN_REACH` and no play path existed. Reuses the slice B escape command with the rescuer as the actor.",
               "id": "ATTACK-7.9"
@@ -6565,7 +6596,7 @@
             {
               "id": "ATTACK-7.T8",
               "text": "Engulf and \"grappled by this creature\" targeting, after ATTACK-11.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.2"]
             },
             {
@@ -6574,6 +6605,19 @@
               "status": "DONE",
               "closes": ["ATTACK-7.9"],
               "note": "Merged m200 (a0a21ae5d)."
+            },
+            {
+              "id": "ATTACK-7.T10",
+              "status": "DONE",
+              "closes": ["ATTACK-7.5", "ATTACK-7.6", "ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "text": "Close the proof gaps the 2026-10-20 audit found in merged work: a drag with mixed-size holds prices each creature (7.5); Shove refused outside reach and against a target more than one size larger, and Shove filling one attack of the Attack action (7.6); room-level ASIDE and single-target UP_TO forced movement, and no opportunity attacks on a picked forced move (7.7). Tests run real code; a failing test is a bug to fix in this task, with the test as its regression proof.",
+              "note": "Merged m217 (f2e325779). Found and fixed: a Shove or Grapple spent the Action without opening the Attack action (D152 amendment)."
             }
           ],
           "wsjf": {
@@ -7123,9 +7167,12 @@
         {
           "id": "ATTACK-11",
           "title": "Authored Multiattack with auto-sequence",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomMultiattackSlots.test.ts",
+            "apps/web/src/forms/tests/AttackSlotAuthoring.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -7142,8 +7189,8 @@
             },
             {
               "text": "All 142 SRD Multiattacks are authored as slot sets, and the stat-block audit refuses a description-only Multiattack.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["packages/source-data/src/srd/creatureStatBlocks.test.ts"],
               "origin": [],
               "note": "D93. Shambling Mound's conditional Engulf slot is authored here; Engulf itself is offered once ATTACK-7 lands.",
               "id": "ATTACK-11.2"
@@ -7224,7 +7271,7 @@
             {
               "id": "ATTACK-11.T4",
               "text": "Author every remaining SRD Multiattack as a slot set, delete the remaining CREATURE_*_MULTIATTACK closed rules and the description-only allowlist entries, and make the stat-block audit refuse a description-only Multiattack. Split by creature family if it exceeds one slice. A conditional Engulf slot is authored now and offered once ATTACK-7.T8 lands.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-11.2"],
               "wsjf": {
                 "bv": 5,
@@ -7232,7 +7279,8 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["ATTACK-11.T1"]
-              }
+              },
+              "note": "Merged m214 (05cce2fef). Contract limits recorded in D93 and future-enhancements."
             }
           ]
         },
@@ -7752,7 +7800,7 @@
             },
             {
               "id": "ATTACK-19.T4",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-19.4"],
               "wsjf": {
                 "bv": 5,

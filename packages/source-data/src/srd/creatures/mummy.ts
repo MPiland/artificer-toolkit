@@ -51,19 +51,21 @@ export const mummy: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The mummy can use its Dreadful Glare and makes one attack with its rotting fist.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(201, 501),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(201, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MUMMY_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(201, 4) }],
+                optional: true,
+                comesFirst: true
+              },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(201, 3) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

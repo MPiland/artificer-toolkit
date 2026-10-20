@@ -6,8 +6,6 @@
  * audit fails when an entry no longer applies.
  */
 
-const MULTIATTACK =
-  'Multiattack names the attacks the Creature makes in one action; each attack is its own Effect, and the Multiattack itself is description-only (mechanics follow-up, D60).'
 const UNMODELED =
   'The printed mechanics have no model yet, so the GM resolves the printed text (mechanics follow-up, D60).'
 const DESCRIPTION_ONLY =
@@ -17,68 +15,6 @@ const entries = (reason: string, keys: readonly string[]) =>
   keys.map((key) => [key, reason] as const)
 
 export const SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS: ReadonlyMap<string, string> = new Map([
-  ...entries(MULTIATTACK, [
-    'Adult Black Dragon|actions Multiattack',
-    'Adult Blue Dragon|actions Multiattack',
-    'Adult Green Dragon|actions Multiattack',
-    'Ancient Black Dragon|actions Multiattack',
-    'Ancient Blue Dragon|actions Multiattack',
-    'Ancient Green Dragon|actions Multiattack',
-    'Ancient Red Dragon|actions Multiattack',
-    'Animated Armor|actions Multiattack',
-    'Ape|actions Multiattack',
-    'Bearded Devil|actions Multiattack',
-    'Behir|actions Multiattack',
-    'Black Bear|actions Multiattack',
-    'Centaur|actions Multiattack',
-    'Doppelganger|actions Multiattack',
-    'Dragon Turtle|actions Multiattack',
-    'Earth Elemental|actions Multiattack',
-    'Ettercap|actions Multiattack',
-    'Ettin|actions Multiattack',
-    'Fire Elemental|actions Multiattack',
-    'Fire Giant|actions Multiattack',
-    'Frost Giant|actions Multiattack',
-    'Gargoyle|actions Multiattack',
-    'Giant Ape|actions Multiattack',
-    'Giant Badger|actions Multiattack',
-    'Giant Crocodile|actions Multiattack',
-    'Giant Scorpion|actions Multiattack',
-    'Gibbering Mouther|actions Multiattack',
-    'Gladiator|actions Multiattack',
-    'Grick|actions Multiattack',
-    'Griffon|actions Multiattack',
-    'Half-Red Dragon Veteran|actions Multiattack',
-    'Harpy|actions Multiattack',
-    'Hill Giant|actions Multiattack',
-    'Hippogriff|actions Multiattack',
-    'Lizardfolk|actions Multiattack',
-    'Manticore|actions Multiattack',
-    'Otyugh|actions Multiattack',
-    'Owlbear|actions Multiattack',
-    'Polar Bear|actions Multiattack',
-    'Roc|actions Multiattack',
-    'Sahuagin|actions Multiattack',
-    'Salamander|actions Multiattack',
-    'Shambling Mound|actions Multiattack',
-    'Solar|actions Multiattack',
-    'Stone Giant|actions Multiattack',
-    'Stone Golem|actions Multiattack',
-    'Troll|actions Multiattack',
-    'Tyrannosaurus Rex|actions Multiattack',
-    'Vampire Spawn|actions Multiattack',
-    'Violet Fungus|actions Multiattack',
-    'Water Elemental|actions Multiattack',
-    'Wereboar|actions Multiattack (Humanoid or Hybrid Form Only)',
-    'Wyvern|actions Multiattack',
-    'Xorn|actions Multiattack',
-    'Young Black Dragon|actions Multiattack',
-    'Young Brass Dragon|actions Multiattack',
-    'Young Bronze Dragon|actions Multiattack',
-    'Young Green Dragon|actions Multiattack',
-    'Young Red Dragon|actions Multiattack',
-    'Young Silver Dragon|actions Multiattack'
-  ]),
   ...entries(UNMODELED, [
     // Swallowing a grappled target.
     'Behir|actions Swallow',

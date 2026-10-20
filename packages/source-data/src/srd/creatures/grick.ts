@@ -49,6 +49,21 @@ export const grick: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The grick makes one attack with its tentacles. If that attack hits, the grick can make one beak attack against the same target.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(152, 3) }] },
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(152, 4) }],
+                optional: true,
+                condition: { kind: 'EARLIER_SLOTS_HIT_SAME_TARGET' }
+              }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {
