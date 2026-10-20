@@ -6565,7 +6565,7 @@
             {
               "id": "ATTACK-7.T8",
               "text": "Engulf and \"grappled by this creature\" targeting, after ATTACK-11.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.2"]
             },
             {
