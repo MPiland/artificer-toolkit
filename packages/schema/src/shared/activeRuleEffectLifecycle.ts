@@ -11,6 +11,24 @@ export const activeEffectUsesSchema = lazySchema(() =>
   z.number().check(z.int()).check(z.gte(1)).check(z.lte(255))
 )
 
+/** The repeat saves a threshold-counted effect has made so far; the thresholds live in its definition. */
+export const activeEffectSaveTallySchema = lazySchema(() =>
+  z.strictObject({
+    successes: z.number().check(z.int()).check(z.gte(0)).check(z.lte(255)),
+    failures: z.number().check(z.int()).check(z.gte(0)).check(z.lte(255))
+  })
+)
+
+/** A repeat save counted to thresholds: the successes that end the effect and the failures that settle it. */
+export const activeEffectSaveThresholdsSchema = lazySchema(() =>
+  z.strictObject({
+    successesToEnd: z.number().check(z.int()).check(z.gte(1)).check(z.lte(255)),
+    failuresToResolve: z.number().check(z.int()).check(z.gte(1)).check(z.lte(255)),
+    /** A success zeroes the failure count and a failure the success count. */
+    consecutive: z.boolean()
+  })
+)
+
 /** Mutable current lifecycle state. It never repeats immutable recurrence configuration. */
 export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -23,6 +41,12 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
      * modifier domain) spends them; the immutable definition holds the initial count.
      */
     remainingUses: z.optional(activeEffectUsesSchema),
+    /**
+     * Only on an effect authored with repeat-save `THRESHOLDS`: the successes and failures its
+     * turn saves have counted, advanced in the same CAS as `remainingTicks`. The thresholds live in
+     * the definition's `recurrence.saveThresholds`.
+     */
+    saveTally: z.optional(activeEffectSaveTallySchema),
     /**
      * Set once a grant is carried out of its Run (D99): it ends when the Campaign clock reaches this
      * absolute minute, or, `null` without a Campaign clock, when the GM ends it.
@@ -71,4 +95,6 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
   })
 )
 
+export type ActiveEffectSaveThresholds = z.infer<typeof activeEffectSaveThresholdsSchema>
+export type ActiveEffectSaveTally = z.infer<typeof activeEffectSaveTallySchema>
 export type ActiveRuleEffectLifecycleDto = z.infer<typeof activeRuleEffectLifecycleDtoSchema>

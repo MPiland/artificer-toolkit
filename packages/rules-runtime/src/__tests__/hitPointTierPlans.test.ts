@@ -163,11 +163,13 @@ describe('hit point tiered active-effect plans (SPELLS-4.T2i4a)', () => {
     [41, 50],
     [50, 50]
   ])('chooses the %i hit point target the %i ceiling plan', (hitPoints, atMost) => {
-    expect(selectHitPointTierPlan(plans(), hitPoints)?.hitPointTier?.atMost).toBe(atMost)
+    expect(selectHitPointTierPlan([30, 40, 50], plans(), hitPoints)?.hitPointTier?.atMost).toBe(
+      atMost
+    )
   })
 
   it('chooses no plan for a target above every ceiling', () => {
-    expect(selectHitPointTierPlan(plans(), 51)).toBeNull()
+    expect(selectHitPointTierPlan([30, 40, 50], plans(), 51)).toBeNull()
   })
 
   it('compiles the tiers to one plan each, with no plan that serves every target', () => {

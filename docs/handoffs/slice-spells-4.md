@@ -428,14 +428,22 @@ T2i4 was split: T2i4a is the generic tier-selection seam, T2i4b the tiered save 
 
 Maintenance readers (`encounterActionMaintenance.ts`, `encounterSourceImmunity.ts`, `actionChoiceReads.ts`, `nativeEncounterRules.ts`) read `compilation.activeEffectPlan`, which is null for a tiered action: a tier plan may author no maintenance or source immunity until one of them needs it.
 
-### T2i4b resume (Divine Word, size 2; fresh session)
+### T2i4b1 (tiered save graph, done; `ci/spells-4-t2i4b`)
 
-Converts DIVINE_WORD and deletes the kind. Not started. Branch from the phase branch with T2i4a merged; push to `ci/spells-4-t2i4b`.
+T2i4b split: T2i4b1 (this) is the generic tiered save; T2i4b2 is the Divine Word data and its proofs.
 
-- A tiered action does not compile end to end yet: `compileExecutionPlan`/`adapter.compile` refuse it (a tiered spell becomes MANUAL). Build the tiered **save** graph: `testPlan` refuses distinct result blocks on one path ("D&D test action branches must not merge distinct authored result blocks") and `refuseGate` blocks a gate beside a save/test; both need to admit tiers on the ON_SAVE_FAIL path. Divine Word saves once (Charisma, SOURCE_SAVE_DC, CHOSEN_CREATURES); the failed-save path then selects the tier by the target's hit points.
-- Each tier's entry has its own entry id, so its application has its own evidence id; the KILL tier (20 or fewer) is a generic `KILL` outcome inside the save-fail graph, negated by Death Ward (T2i2).
+- The hit-point gate contract changed in place to a band (no v3, no compat): the v2 gated proposal operations take `targetCurrentHitPoints`, `hitPointsAbove` and `hitPointsAtMost`, authorized by the one comparator `withinHitPointBand` in `hitPointTiers.ts` (`hitPointsAbove` is `NO_HIT_POINT_FLOOR`, -1, for Power Word Kill/Stun). A tier's floor is the nearest lower sibling ceiling (`hitPointTierFloor`); `selectHitPointTier(ceilings, hp)` picks the one band holding the hit points.
+- The tier is selected at outcome specialization (`specializeDnd5eEffectActionOutcomeBody`): only the selected tier's entries become graph nodes, each gated on its band. `bindFacts` always binds the target's current hit points. A target no band holds is owed nothing (`TEST_ONLY`, see `resolveEncounterActionPhaseExecution`).
+- A KILL tier has no plan and applies through the graph (`boundedTestOutcome` admits a tiered KILL). `compilation.hitPointTiers` persists the ceilings (schema `compiledActionHitPointTiersSchema`) so `selectHitPointTierPlan(ceilings, plans, hp)` gives a planless tier its band and its targets no plan. `ownsTimedSaveCondition` plans a tier's conditions from the tier-narrowed action.
+- Tier rows no longer set `entryId`: each outcome keeps its own entry id so each application has its own evidence id (source-entry bindings are one-to-one with nodes).
+- Proof: `hitPointTierSave.test.ts` (fixture spell, hp 20/21/30/31/40/41/50/51 through the real compile and graph), `hitPointTiers.test.ts`, `powerWordStun.test.ts`.
+
+### T2i4b2 resume (Divine Word data; fresh session)
+
+Not started. Convert DIVINE_WORD and delete the kind. Push to `ci/spells-4-t2i4b2`.
+
 - Data (`packages/source-data/src/srd/spells/divine-word.ts`): `selectionKind: 'HIT_POINT_TIERS'` rows 50 (deafened, 1 minute), 40 (deafened and blinded, 10 minutes), 30 (blinded, deafened and stunned, 1 hour), 20 (KILL). Planar banishment stays description-only (no plane model); add it to future-enhancements if absent.
-- Proof: rules-runtime test per tier boundary (20, 21, 30, 31, 40, 41, 50, 51) through the real compile and graph, a room journey, an authoring-parity proof, and delete DIVINE_WORD from `closedRuleKind.ts`. Then drop the published-graph stand-in in `hitPointTierPlans.test.ts` (`compiledTieredCast`): the real tiered graph replaces it.
+- Proof: authoring-parity proof, a room journey, delete DIVINE_WORD from `closedRuleKind.ts`, drop the published-graph stand-in in `hitPointTierPlans.test.ts` (`compiledTieredCast`) for the real compile, and drop `compiledTestSpellCast`'s optional `registry` arg if unused.
 
 ### T2m1 (Animal Friendship; repeat-save design ruled 2026-10-20)
 
@@ -457,7 +465,11 @@ Irresistible Dance and the generic holder-action save. Ruled seam: extend `lifec
 4. Runtime/room: save facts in `prepareEncounterEscapeCheck`, ON_SAVING_THROW consumed grants, pending-context and output schemas, `escapeEffectVerification`, `nativeEscapeAction`, offers; success ends the effect.
 5. Dance data: speed multiply 0, ADVANTAGE `ATTACKS_AGAINST` (`requiresHolderSeesAttacker: false`), DISADVANTAGE on attack rolls and Dex saves, charm immunity via the existing path; delete `IRRESISTIBLE_DANCE`. Proofs: grant parity and a room journey (the dancer saves as an action and the effect ends; a failed save keeps it).
 
-#### Resume: T2m1b (size 3, `repeatTriggers`, funnel hook)
+#### Resume: T2m1b (split into T2m1b1, T2m1b1b, T2m1b2)
+
+Split (orchestrator ruling): **T2m1b1 (done, size 3)** adds `FollowUpSave.repeatTriggers` (DAMAGE_TAKEN only) to the authored type, Zod schema, node map and web defaults, the stored `recurrence.repeatTriggers` and the compiler output on the active-effect plan (proof on a Hold Person homebrew; no spell converted). **`repeatTriggers` has no consumer until T2m1b2: it is stored data, not live behaviour.** **T2m1b1b (size 3)** extends the repeat plan to multiple conditions (plan, graph, a fact list instead of the single-string `dnd5e.active-effect-repeat-save-condition-id`, removal) and converts Hideous Laughter data, deleting the `HIDEOUS_LAUGHTER` kind. **T2m1b2 (size 5)** is the funnel hook below, a shared seam for T2m3, SPELLS-33.T6e2 and SPELLS-33.T4m. Parity note for b2: "can't stand up" is out of scope and a recorded gap against Hideous Laughter's rules text.
+
+Original T2m1b design (now b2):
 
 `FollowUpSave.repeatTriggers: [{ kind: 'DAMAGE_TAKEN', by: 'ANYONE' | 'SOURCE_SIDE', damageTypeIds?, rollInfluence }]` (DAMAGE_TAKEN only; HOLDER_ACTION is T2m1d's escape, so it is not on this schema). Contract for T2m1b, SPELLS-33.T6e2 (Vampire Charm) and SPELLS-33.T4m: the on-damage repeat timing is exactly this field. The hook is modelled on D161's `raiseRoomHpZeroEffects` (`apps/session-worker/src/roomEncounterHpZeroTriggers.ts`): it reads the committed receipt's DAMAGE applications, raises a SYSTEM root per holder with undo bound to the parent, and runs the effect's frozen save (same DC and ability, advantage when authored); success ends the effect. Converts HIDEOUS_LAUGHTER with room journeys for a single-target hit and an area hit. T2m3 and SPELLS-33.T6e2 follow.
 

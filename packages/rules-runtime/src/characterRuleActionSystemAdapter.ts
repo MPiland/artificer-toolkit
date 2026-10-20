@@ -12,6 +12,10 @@ import type {
   CharacterGrantFoldSense
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
+  ActiveEffectSaveTally,
+  ActiveEffectSaveThresholds
+} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import type {
   ActiveRuleEffectDefinitionDto,
   ActiveRuleEffectLifecycleDto,
   RuleGraphSourceIdentityDto,
@@ -23,6 +27,7 @@ import type {
   ActiveEffectConsumeEvent,
   ActiveEffectEndEvent,
   ActiveEffectEndTrigger,
+  ActiveEffectRepeatTrigger,
   ActiveGrantHolderEnd,
   GrantConsumeEvent,
   GrantEndEvent
@@ -67,6 +72,8 @@ export interface CharacterRuleActionActiveEffectPlan {
    * planner, so it is stored with no recurrence stage of its own.
    */
   recurrenceStage: 'NONE' | 'START_OF_TURN' | 'END_OF_TURN'
+  /** Set on a repeat save counted to thresholds; the room stores it in the effect's recurrence. */
+  saveThresholds?: ActiveEffectSaveThresholds
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
   /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
@@ -96,6 +103,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     endOnEvents?: readonly ActiveEffectEndEvent[]
     /** The structured events that end the effect, unique and in canonical order. */
     endOnTriggers?: readonly ActiveEffectEndTrigger[]
+    /** The structured events that repeat the effect's save, unique and in canonical order. */
+    repeatTriggers?: readonly ActiveEffectRepeatTrigger[]
   }
   /** The timed APPLY_GRANT modifiers this effect owns, folded into the holder while it lasts. */
   modifierGrantContribution?: null | {
@@ -845,6 +854,8 @@ export interface CharacterRuleActionSystemAdapter {
     terminal: boolean
     /** A retained recurring effect may resolve an authorized no-op branch. */
     emptyApplicationAllowed?: boolean
+    /** Only a threshold-counted effect: its save tally once this turn's save is counted. */
+    saveTally?: ActiveEffectSaveTally
   }
 }
 
