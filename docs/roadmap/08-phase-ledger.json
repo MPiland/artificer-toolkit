@@ -8762,8 +8762,8 @@
               "note": "Merged m240 (47197271d)."
             },
             {
-              "id": "SPELLS-4.T2i4",
-              "status": "TODO",
+              "id": "SPELLS-4.T2i4a",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8772,7 +8772,21 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2i"]
               },
-              "text": "Divine Word (split from T2i, 2026-10-20): runtime HIT_POINT_TIERS selection with per-tier durations and entries. Converts DIVINE_WORD with a parity proof (planar banishment description-only, D156); kind deleted."
+              "text": "Hit-point tier selection seam (split from T2i4, ruled 2026-10-20): a generic tiered active-effect plan list chosen per target by current hit points through the T2i HIT_POINT_TIERS evaluation, carrying per-tier timed conditions and durations; lifts the one-plan refusal without changing single-plan actions. Boundary tests for the condition tiers.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2i4b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2i4a"]
+              },
+              "text": "Divine Word (split from T2i4): the gated KILL tier inside the save-fail graph chosen by the same tier selection; Divine Word data with a parity proof, boundary tests, room journey; DIVINE_WORD kind deleted; docs. Planar banishment stays description-only."
             },
             {
               "id": "SPELLS-4.T2i2a",
