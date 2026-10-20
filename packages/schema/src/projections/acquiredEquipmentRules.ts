@@ -7,7 +7,8 @@ import { authoredVersionVectorEntrySchema } from './identity.js'
 const acquiredPresentationSchema = lazySchema(() =>
   z.strictObject({
     label: z.string().check(z.minLength(1)),
-    description: z.optional(z.string()),
+    // Equipment authors null for no prose; a Spell always has a description.
+    description: z.optional(z.nullable(z.string())),
     quote: z.optional(z.string()),
     materialDescription: z.optional(z.string())
   })

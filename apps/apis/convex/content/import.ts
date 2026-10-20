@@ -292,9 +292,14 @@ export const importSubjects: RegisteredMutation<
         contentSourceId,
         currentVersionPublicId: versionId
       }
+      // Base Equipment has no parents to wait for; a variant compiles in syncEquipmentDerived.
+      const baseEquipment =
+        parsed.subjectKind === 'EQUIPMENT' && parsed.document.category !== 'VARIANT'
+          ? await compileCurrentEquipment(ctx, parsed.document, null)
+          : undefined
       const equipmentOptions =
         parsed.subjectKind === 'EQUIPMENT'
-          ? equipmentOptionFacts(parsed.document, parsed.checksum)
+          ? equipmentOptionFacts(parsed.document, parsed.checksum, baseEquipment?.effective)
           : undefined
       const authoringSources = authoredSourceFacts(parsed)
       const compilation =
@@ -304,10 +309,7 @@ export const importSubjects: RegisteredMutation<
         parsed.subjectKind === 'CREATURE' ||
         parsed.subjectKind === 'VEHICLE'
           ? compilePublicationDocument(parsed)
-          : // Base Equipment has no parents to wait for; a variant compiles in syncEquipmentDerived.
-            parsed.subjectKind === 'EQUIPMENT' && parsed.document.category !== 'VARIANT'
-            ? (await compileCurrentEquipment(ctx, parsed.document, null)).compilation
-            : undefined
+          : baseEquipment?.compilation
       const parentClassId =
         parsed.subjectKind === 'CLASS'
           ? parsed.document.category === 'SUBCLASS'
@@ -438,7 +440,10 @@ export const importSubjects: RegisteredMutation<
               equipment.effective
             )
             if (existingEquipmentOptions.builder === undefined) {
-              exact(existingEquipmentOptions, equipmentOptions)
+              exact(
+                existingEquipmentOptions,
+                equipmentOptionFacts(parsed.document, parsed.checksum)
+              )
               await ctx.db.patch(current._id, { equipmentOptions: expected })
             } else exact(existingEquipmentOptions, expected)
           } else exact(storedOptions, equipmentOptions)

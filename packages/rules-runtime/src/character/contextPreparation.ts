@@ -23,7 +23,7 @@ import type {
   SpellAuthored,
   VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
-import { compileFeature, type CompiledFeature } from '@artificer-toolkit/shared/compilers'
+import { compileFeature } from '@artificer-toolkit/shared/compilers'
 import {
   compileBackground,
   compileClass,
@@ -39,10 +39,10 @@ import {
   type ResolvedEquipment,
   type ResolvedRace
 } from '@artificer-toolkit/shared/subjects/compilers'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 
+import { compiledProjectionChecksum } from '../authoredPublicationCompile.js'
 import { toContentSnapshotIndexEntry } from '../contentSnapshots.js'
 import { readAcquiredEquipmentRules } from './acquiredEquipmentRules.js'
 import { collectContextSpellIds, needsCharacterSpellCatalog } from './characterContextSpells.js'
@@ -193,11 +193,6 @@ export function compileCharacterRuleSources(roots: {
     },
     presentation
   }
-}
-
-/** A compiled Feature's rules identity; compiler output leaves absent fields `undefined`. */
-function compiledFeatureChecksum(feature: CompiledFeature) {
-  return checksumRuleDocument(JSON.parse(JSON.stringify(feature)))
 }
 
 /** A current authorized Spell compiled for the rules; a Spell of another System never joins. */
@@ -353,8 +348,8 @@ export async function prepareCharacterRuleContext(
       // Rules identity: two owners may word one feature differently, never compile it differently.
       if (
         previous &&
-        compiledFeatureChecksum(compileFeature(previous)) !==
-          compiledFeatureChecksum(compileFeature(feature))
+        compiledProjectionChecksum(compileFeature(previous)) !==
+          compiledProjectionChecksum(compileFeature(feature))
       )
         throw new Error('Current Character feature identity is ambiguous.')
       if (!previous) features.set(feature.id, feature)
@@ -403,7 +398,7 @@ export async function prepareCharacterRuleContext(
   compiled.equipment.push(...pinnedEquipment.map(({ equipment }) => equipment))
   for (const feature of retainedFeatures) {
     const previous = compiled.features.find((record) => record.id === feature.id)
-    if (previous && compiledFeatureChecksum(previous) !== compiledFeatureChecksum(feature))
+    if (previous && compiledProjectionChecksum(previous) !== compiledProjectionChecksum(feature))
       throw new Error('Current Character feature identity is ambiguous.')
     if (!previous) compiled.features.push(feature)
   }

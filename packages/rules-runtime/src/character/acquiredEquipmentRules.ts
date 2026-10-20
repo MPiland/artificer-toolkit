@@ -40,7 +40,7 @@ export function equipmentPresentation(
 ): AcquiredPresentation {
   return {
     label: document.label,
-    ...(document.description === null ? {} : { description: document.description }),
+    description: document.description,
     ...(document.quote === undefined ? {} : { quote: document.quote })
   }
 }

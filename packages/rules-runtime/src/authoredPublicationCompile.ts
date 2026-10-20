@@ -13,6 +13,11 @@ import {
 } from '@artificer-toolkit/shared/subjects/compilers'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
+/** A compiled projection's rules identity; compiler output leaves absent fields `undefined`. */
+export function compiledProjectionChecksum(compiled: unknown) {
+  return checksumRuleDocument(jsonValueSchema.parse(JSON.parse(JSON.stringify(compiled))))
+}
+
 /** The stored compilation a publication writes: the current compiler's projection and checksums. */
 export function compilePublicationDocument(
   subject: AuthoredPublicationDocument,

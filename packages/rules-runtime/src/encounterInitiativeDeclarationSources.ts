@@ -9,6 +9,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
+import { compiledProjectionChecksum } from './authoredPublicationCompile.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
@@ -99,8 +100,8 @@ export async function prepareEncounterInitiativeDeclarationSources<
         publication?.subjectKind !== 'SPELL' ||
         !evaluatedSpell ||
         checksumRuleDocument(publication.document) !== version.checksum ||
-        checksumRuleDocument(compileSpell(publication.document as SpellAuthored)) !==
-          checksumRuleDocument(evaluatedSpell)
+        compiledProjectionChecksum(compileSpell(publication.document as SpellAuthored)) !==
+          compiledProjectionChecksum(evaluatedSpell)
       )
         throw new Error('The declared spell source is stale.')
       spellVersions.set(spellId, {
