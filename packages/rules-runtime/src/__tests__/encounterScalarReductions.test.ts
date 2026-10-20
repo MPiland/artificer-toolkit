@@ -264,6 +264,7 @@ describe('Creature movement target', () => {
       conditionDefinitions: [],
       conditionMechanics: [],
       attackTraitGrants: [],
+      featureModifiers: [],
       innateConditionIds: [],
       targetDerivedFacts: {
         actorId: CREATURE_ID,

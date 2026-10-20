@@ -166,6 +166,7 @@ function target(
     conditionDefinitions: [],
     conditionMechanics: [],
     attackTraitGrants: [],
+    featureModifiers: [],
     innateConditionIds: []
   }
 }

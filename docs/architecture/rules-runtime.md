@@ -392,6 +392,17 @@ raises each holder's effect as a `CASTER_CENTERED` area through the SYSTEM admis
 actor in range, allies included, except the holder. It never recurses: the burst's own defeats raise nothing
 (deferred edge case in the SPELLS-33 workbook).
 
+### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
+
+A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`packTacticsGrants`, Pack Tactics) reaches
+its own attack rolls through `creatureFeatureAttackContributors`, merged beside the active-effect contributors in
+`prepareEncounterActionMechanics`. The grant's `ENEMY_NEAR_TARGET { feet }` restriction (an EQUIPMENT context, as a
+rider's) folds to a deferred `ENEMY_NEAR_TARGET` condition (`max` is the distance); a Character's item checks still
+fail it closed. `featureModifiersReadEnemyProximity` makes the preparation load the Scene's enemy proximity for a
+grant that reads it, so the contributor holds only with a Scene and an able enemy of the target within the distance.
+"Enemy of the target" is the disposition-based set a rider uses, which equals "an ally of the attacker" when the
+attacker is hostile to the target. Disarm attacks do not read these grants yet.
+
 ### Caster-centered radius areas (current, SPELLS-22)
 
 An `AREA_CONTENTS` action whose range is Self and whose shape is a sphere, cylinder or circle takes the fourth

@@ -42,18 +42,7 @@ export const tribalWarrior: CreatureAuthored = {
       label: 'Pack Tactics',
       description:
         "Pack Tactics. The warrior has advantage on an attack roll against a creature if at least one of the warrior's allies is within 5 feet of the creature and the ally isn't incapacitated.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(272, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(272, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PACK_TACTICS
-        })
-      ],
+      grants: S.packTacticsGrants(272, 1),
       order: 1
     },
     {
