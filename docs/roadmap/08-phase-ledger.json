@@ -6114,40 +6114,55 @@
             },
             {
               "text": "Clay Golem Slam runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-CLAY-GOLEM-SLAM"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.3"
             },
             {
               "text": "Cloaker Bite runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-CLOAKER-BITE"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.4"
             },
             {
               "text": "Dryad Shillelagh runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-DRYAD-SHILLELAGH"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.5"
             },
             {
               "text": "The enlarged Duergar war pick runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-DUERGAR-WAR-PICK"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.6"
             },
             {
               "text": "The enlarged Duergar javelin runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-DUERGAR-JAVELIN"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.7"
@@ -6248,7 +6263,7 @@
             {
               "id": "ATTACK-5.T2",
               "text": "Clay Golem, Cloaker, Dryad and enlarged Duergar attacks.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-5.3", "ATTACK-5.4", "ATTACK-5.5", "ATTACK-5.6", "ATTACK-5.7"],
               "wsjf": {
                 "bv": 3,
@@ -6256,12 +6271,13 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["ATTACK-7"]
-              }
+              },
+              "note": "Merged m223 (40e43e5f2). All five already ran from generic options; proof only."
             },
             {
               "id": "ATTACK-5.T3",
               "text": "Quasit, Rug of Smothering, Shadow and Spirit Naga attacks.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-5.10", "ATTACK-5.11", "ATTACK-5.12", "ATTACK-5.13", "ATTACK-5.14"],
               "wsjf": {
                 "bv": 3,
