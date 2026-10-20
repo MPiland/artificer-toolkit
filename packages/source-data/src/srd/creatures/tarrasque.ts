@@ -101,18 +101,30 @@ export const tarrasque: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The tarrasque can use its Frightful Presence. It then makes five attacks: one with its bite, two with its claws, one with its horns, and one with its tail. It can use its Swallow instead of its bite.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(268, 207),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(268, 208), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(268, 9) }],
+                optional: true,
+                comesFirst: true
+              },
+              {
+                count: 1,
+                fillers: [
+                  { kind: 'FEATURE', featureId: S.featureId(268, 5) },
+                  { kind: 'FEATURE', featureId: S.featureId(268, 10) }
+                ]
+              },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(268, 6) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(268, 7) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(268, 8) }] }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

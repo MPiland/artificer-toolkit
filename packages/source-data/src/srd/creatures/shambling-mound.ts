@@ -257,6 +257,21 @@ export const shamblingMound: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The shambling mound makes two slam attacks. If both attacks hit a Medium or smaller target, the target is grappled (escape DC 14), and the shambling mound uses its Engulf on it.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(251, 4) }] },
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(251, 3) }],
+                optional: true,
+                condition: { kind: 'EARLIER_SLOTS_HIT_SAME_TARGET' }
+              }
+            ]
+          }
+        ]
+      },
       order: 5
     }
   ]

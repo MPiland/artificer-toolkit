@@ -49,6 +49,16 @@ export const giantCrocodile: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The crocodile makes two attacks: one with its bite and one with its tail.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(120, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(120, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

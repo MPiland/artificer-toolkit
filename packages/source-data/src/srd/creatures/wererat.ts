@@ -81,18 +81,33 @@ export const wererat: CreatureAuthored = {
       label: 'Multiattack (Humanoid or Hybrid Form Only)',
       description:
         'Multiattack (Humanoid or Hybrid Form Only). The wererat makes two attacks, only one of which can be a bite.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(289, 202),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(289, 203), rangeKind: S.RANGE_KIND.SELF }
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 2,
+                fillers: [
+                  { kind: 'FEATURE', featureId: S.featureId(289, 7) },
+                  { kind: 'FEATURE', featureId: S.featureId(289, 6) }
+                ]
+              }
+            ]
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(289, 5) }] },
+              {
+                count: 1,
+                fillers: [
+                  { kind: 'FEATURE', featureId: S.featureId(289, 7) },
+                  { kind: 'FEATURE', featureId: S.featureId(289, 6) }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

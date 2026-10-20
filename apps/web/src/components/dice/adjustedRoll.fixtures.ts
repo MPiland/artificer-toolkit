@@ -6,6 +6,7 @@ export function createAdjustedRoll({
   appliedMode,
   cancelledRollIndexes,
   caption,
+  id = 'adjusted-roll',
   keptRollIndex,
   rolledMode,
   rolls
@@ -14,13 +15,14 @@ export function createAdjustedRoll({
   appliedMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   cancelledRollIndexes: number[]
   caption: string | null
+  id?: string
   keptRollIndex: number
   rolledMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   rolls: number[]
 }) {
   const kept = rolls[keptRollIndex]!
   return rollRecordDtoSchema.parse({
-    id: 'adjusted-roll',
+    id,
     normalizedExpression: '1d20+3',
     evidence: {
       terms: [{ count: rolls.length, die: 20, rolls, subtotal: kept, keptRollIndex }],
@@ -46,23 +48,25 @@ export function createAdjustedRoll({
   })
 }
 
-export const cancelledAdvantageRoll = () =>
+export const cancelledAdvantageRoll = (id?: string) =>
   createAdjustedRoll({
     addedRollIndexes: [],
     appliedMode: 'NORMAL',
     cancelledRollIndexes: [1],
     caption: 'Advantage cancelled: the target can sense you',
+    id,
     keptRollIndex: 0,
     rolledMode: 'ADVANTAGE',
     rolls: [7, 16]
   })
 
-export const addedAdvantageRoll = () =>
+export const addedAdvantageRoll = (id?: string) =>
   createAdjustedRoll({
     addedRollIndexes: [1],
     appliedMode: 'ADVANTAGE',
     cancelledRollIndexes: [],
     caption: "Advantage: the target can't see you",
+    id,
     keptRollIndex: 1,
     rolledMode: 'NORMAL',
     rolls: [12, 17]

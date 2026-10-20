@@ -92,18 +92,19 @@ export const hydra: CreatureAuthored = {
       id: S.featureId(169, 5),
       label: 'Multiattack',
       description: 'Multiattack. The hydra makes as many bite attacks as it has heads.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(169, 205),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(169, 1205), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HYDRA_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 5,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(169, 6) }],
+                optional: true
+              }
+            ]
+          }
+        ]
+      },
       order: 5
     },
     {

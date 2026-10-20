@@ -130,18 +130,16 @@ export const hezrou: CreatureAuthored = {
       id: S.featureId(162, 4),
       label: 'Multiattack',
       description: 'The hezrou makes three attacks: one with its bite and two with its claws.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(162, 208),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(162, 1204), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HEZROU_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(162, 5) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(162, 6) }] }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

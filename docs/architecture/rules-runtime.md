@@ -274,6 +274,7 @@ but still honors suppression: `isActionEconomySuppressed` reuses the allowance c
 `evaluateEncounterActionEconomy`, and an actor that can't act (Incapacitated, a suppressing effect) gets
 the overridable `ACTION_ECONOMY_UNAVAILABLE` warning and no `attackSlot`; a spent Action is not
 suppression. Manual mode tracks nothing.
+Every SRD Multiattack authors its slots as data (D93); the stat-block audit (`creatureStatBlockAudit.ts`) fails a Multiattack with none.
 
 The command proceeds only when `acknowledgedWarnings` (part of its fingerprint) covers every current
 code; otherwise it is refused with `RULE_WARNINGS`. An override spends only what remains and

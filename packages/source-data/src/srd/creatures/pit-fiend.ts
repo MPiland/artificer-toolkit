@@ -157,19 +157,18 @@ export const pitFiend: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The pit fiend makes four attacks: one with its bite, one with its claw, one with its mace, and one with its tail.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(219, 504),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(219, 609), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PIT_FIEND_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(219, 7) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(219, 8) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(219, 9) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(219, 10) }] }
+            ]
+          }
+        ]
+      },
       order: 6
     },
     {

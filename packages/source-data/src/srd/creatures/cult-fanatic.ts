@@ -109,18 +109,11 @@ export const cultFanatic: CreatureAuthored = {
       id: S.featureId(74, 4),
       label: 'Multiattack',
       description: 'Multiattack. The fanatic makes two melee attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(74, 204),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(74, 1204), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CULT_FANATIC_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(74, 5) }] }] }
+        ]
+      },
       order: 4
     },
     {

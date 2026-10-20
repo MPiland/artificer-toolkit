@@ -49,6 +49,16 @@ export const giantBadger: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The badger makes two attacks: one with its bite and one with its claws.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(114, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(114, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

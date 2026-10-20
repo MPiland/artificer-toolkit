@@ -70,6 +70,22 @@ export const adultGreenDragon: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(9, 7) }],
+                optional: true,
+                comesFirst: true
+              },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(9, 4) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(9, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

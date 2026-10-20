@@ -79,18 +79,17 @@ export const iceDevil: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The devil makes three attacks: one with its bite, one with its claws, and one with its tail.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(171, 204),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(171, 1204), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ICE_DEVIL_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(171, 5) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(171, 7) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(171, 6) }] }
+            ]
+          }
+        ]
+      },
       order: 4
     },
     {

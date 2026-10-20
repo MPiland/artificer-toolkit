@@ -49,6 +49,16 @@ export const hippogriff: CreatureAuthored = {
       id: S.featureId(164, 2),
       label: 'Multiattack',
       description: 'The hippogriff makes two attacks: one with its beak and one with its claws.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(164, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(164, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

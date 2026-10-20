@@ -52,6 +52,16 @@ export const roc: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The roc makes two attacks: one with its beak and one with its talons.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(238, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(238, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

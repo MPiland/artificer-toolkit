@@ -86,18 +86,11 @@ export const spy: CreatureAuthored = {
       id: S.featureId(261, 4),
       label: 'Multiattack',
       description: 'The spy makes two melee attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(261, 204),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(261, 205), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(261, 5) }] }] }
+        ]
+      },
       order: 4
     },
     {
