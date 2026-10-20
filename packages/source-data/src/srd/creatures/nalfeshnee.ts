@@ -73,19 +73,22 @@ export const nalfeshnee: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The nalfeshnee uses Horror Nimbus if it can. It then makes three attacks: one with its bite and two with its claws.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(203, 502),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(203, 602), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_NALFESHNEE_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(203, 6) }],
+                optional: true,
+                comesFirst: true
+              },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(203, 4) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(203, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

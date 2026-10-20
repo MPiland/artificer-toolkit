@@ -286,6 +286,17 @@ export const vampireSpawn: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The vampire makes two attacks, only one of which can be a bite attack.',
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(278, 4) }] }] },
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(278, 4) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(278, 3) }] }
+            ]
+          }
+        ]
+      },
       order: 10
     }
   ]

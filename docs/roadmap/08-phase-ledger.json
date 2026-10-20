@@ -6398,8 +6398,11 @@
             },
             {
               "text": "When a grapple's escape allows it (the Cloaker), another creature within reach of the grappled creature can use its Action to make the escape check and free it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterRescues.test.ts",
+                "apps/session-worker/test/nativeRoomEscapeRescue.test.ts"
+              ],
               "origin": [],
               "note": "D105. Registered 2026-10-11 in slice B: the SRD Cloaker authors `CREATURE_WITHIN_REACH` and no play path existed. Reuses the slice B escape command with the rescuer as the actor.",
               "id": "ATTACK-7.9"
@@ -6565,7 +6568,7 @@
             {
               "id": "ATTACK-7.T8",
               "text": "Engulf and \"grappled by this creature\" targeting, after ATTACK-11.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-7.2"]
             },
             {
@@ -6574,6 +6577,18 @@
               "status": "DONE",
               "closes": ["ATTACK-7.9"],
               "note": "Merged m200 (a0a21ae5d)."
+            },
+            {
+              "id": "ATTACK-7.T10",
+              "status": "TODO",
+              "closes": ["ATTACK-7.5", "ATTACK-7.6", "ATTACK-7.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 3
+              },
+              "text": "Close the proof gaps the 2026-10-20 audit found in merged work: a drag with mixed-size holds prices each creature (7.5); Shove refused outside reach and against a target more than one size larger, and Shove filling one attack of the Attack action (7.6); room-level ASIDE and single-target UP_TO forced movement, and no opportunity attacks on a picked forced move (7.7). Tests run real code; a failing test is a bug to fix in this task, with the test as its regression proof."
             }
           ],
           "wsjf": {
@@ -7123,9 +7138,12 @@
         {
           "id": "ATTACK-11",
           "title": "Authored Multiattack with auto-sequence",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomMultiattackSlots.test.ts",
+            "apps/web/src/forms/tests/AttackSlotAuthoring.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -7142,8 +7160,8 @@
             },
             {
               "text": "All 142 SRD Multiattacks are authored as slot sets, and the stat-block audit refuses a description-only Multiattack.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["packages/source-data/src/srd/creatureStatBlocks.test.ts"],
               "origin": [],
               "note": "D93. Shambling Mound's conditional Engulf slot is authored here; Engulf itself is offered once ATTACK-7 lands.",
               "id": "ATTACK-11.2"
@@ -7224,7 +7242,7 @@
             {
               "id": "ATTACK-11.T4",
               "text": "Author every remaining SRD Multiattack as a slot set, delete the remaining CREATURE_*_MULTIATTACK closed rules and the description-only allowlist entries, and make the stat-block audit refuse a description-only Multiattack. Split by creature family if it exceeds one slice. A conditional Engulf slot is authored now and offered once ATTACK-7.T8 lands.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-11.2"],
               "wsjf": {
                 "bv": 5,
@@ -7232,7 +7250,8 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["ATTACK-11.T1"]
-              }
+              },
+              "note": "Merged m214 (05cce2fef). Contract limits recorded in D93 and future-enhancements."
             }
           ]
         },

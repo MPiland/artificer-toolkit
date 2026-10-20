@@ -120,18 +120,12 @@ export const efreeti: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The efreeti makes two scimitar attacks or uses its Hurl Flame twice.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(95, 203),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(95, 1203), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_EFREETI_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(95, 4) }] }] },
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(95, 5) }] }] }
+        ]
+      },
       order: 3
     },
     {

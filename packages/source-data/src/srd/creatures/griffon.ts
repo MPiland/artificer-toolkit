@@ -48,6 +48,16 @@ export const griffon: CreatureAuthored = {
       id: S.featureId(153, 2),
       label: 'Multiattack',
       description: 'The griffon makes two attacks: one with its beak and one with its claws.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(153, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(153, 4) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {

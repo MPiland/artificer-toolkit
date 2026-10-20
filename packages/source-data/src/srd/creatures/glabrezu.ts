@@ -117,18 +117,17 @@ export const glabrezu: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The glabrezu makes four attacks: two with its pincers and two with its fists. Alternatively, it makes two attacks with its pincers and casts one spell.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(142, 204),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(142, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(142, 5) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(142, 6) }] }
+            ]
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GLABREZU_MULTIATTACK
-        })
-      ],
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(142, 5) }] }] }
+        ]
+      },
       order: 4
     },
     {

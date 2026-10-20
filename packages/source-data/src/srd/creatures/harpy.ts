@@ -44,6 +44,16 @@ export const harpy: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The harpy makes two attacks: one with its claws and one with its club.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(159, 2) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(159, 3) }] }
+            ]
+          }
+        ]
+      },
       order: 1
     },
     {

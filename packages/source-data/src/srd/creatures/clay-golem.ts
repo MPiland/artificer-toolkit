@@ -111,18 +111,11 @@ export const clayGolem: CreatureAuthored = {
       id: S.featureId(64, 6),
       label: 'Multiattack',
       description: 'The golem makes two slam attacks.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(64, 109),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(64, 110), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLAY_GOLEM_MULTIATTACK
-        })
-      ],
+      attackSlots: {
+        alternatives: [
+          { slots: [{ count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(64, 7) }] }] }
+        ]
+      },
       order: 6
     },
     {

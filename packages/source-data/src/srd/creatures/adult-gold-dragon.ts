@@ -70,45 +70,22 @@ export const adultGoldDragon: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
-      effects: [
-        {
-          id: S.actionId(8, 10),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(8, 11),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(8, 12),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(8, 12) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(8, 12),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 1,
+                fillers: [{ kind: 'FEATURE', featureId: S.featureId(8, 7) }],
+                optional: true,
+                comesFirst: true
+              },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(8, 4) }] },
+              { count: 2, fillers: [{ kind: 'FEATURE', featureId: S.featureId(8, 5) }] }
+            ]
+          }
+        ]
+      },
       order: 3
     },
     {

@@ -53,6 +53,28 @@ export const lizardfolk: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The lizardfolk makes two melee attacks, each one with a different weapon.',
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(186, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(186, 4) }] }
+            ]
+          },
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(186, 3) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(186, 6) }] }
+            ]
+          },
+          {
+            slots: [
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(186, 4) }] },
+              { count: 1, fillers: [{ kind: 'FEATURE', featureId: S.featureId(186, 6) }] }
+            ]
+          }
+        ]
+      },
       order: 2
     },
     {
