@@ -6073,7 +6073,7 @@
         {
           "id": "ATTACK-5",
           "title": "Every SRD monster attack runs",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
             "apps/apis/convex/encounters/srdLegendaryAction.test.ts"
@@ -6214,7 +6214,7 @@
             {
               "id": "ATTACK-5.T1",
               "text": "Marquee monster attacks: Balor Whip, Kraken Lightning Storm and Purple Worm Tail Stinger.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-5.2", "ATTACK-5.8", "ATTACK-5.9"],
               "wsjf": {
                 "bv": 5,
