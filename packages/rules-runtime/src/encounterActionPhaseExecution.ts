@@ -72,7 +72,9 @@ export function resolveEncounterActionPhaseExecution(input: {
     if (outcome) throw new Error('An omitted TEST outcome path cannot produce an OUTCOME graph.')
     return { kind: 'TEST_ONLY', selectedPath }
   }
-  if (!outcome) throw new Error('A selected outcome path requires its sealed OUTCOME graph.')
+  // A path owes nothing to this target when no authored result holds for it (a hit-point tier
+  // that no band of the target's reaches), so the TEST alone settles it.
+  if (!outcome) return { kind: 'TEST_ONLY', selectedPath }
   if (
     outcome.templateChecksum !== expectedTemplate.template.checksum ||
     outcome.published.id !== expectedTemplate.template.definitionId ||

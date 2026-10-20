@@ -26,6 +26,7 @@ import {
   resolveChosenCreaturesTargeting
 } from './encounterAreaAction.js'
 import { castChoiceOptions } from './encounterCastChoice.js'
+import { hitPointTierCeilings } from './hitPointTiers.js'
 import { placedSpaceManifest, zoneAppearSave } from './encounterZonePlacement.js'
 
 class CharacterActionEntryPointIntegrityError extends Error {
@@ -211,13 +212,16 @@ function compileActionPlans(
   const published =
     executionPlan.kind === 'SINGLE_GRAPH' ? executionPlan.published : executionPlan.test.published
   const activeEffectPlans = adapter.activeEffectPlans?.({ action: descriptor, published }) ?? []
-  const hitPointTierPlans = activeEffectPlans.filter((plan) => plan.hitPointTier)
+  const hitPointTiers = hitPointTierCeilings(descriptor.compiledEffect.entries)
+  const tiered = hitPointTiers.length > 0
   if (
-    hitPointTierPlans.length > 0
-      ? hitPointTierPlans.length !== activeEffectPlans.length ||
-        new Set(hitPointTierPlans.map((plan) => plan.hitPointTier?.atMost)).size !==
-          hitPointTierPlans.length
-      : activeEffectPlans.length > 1
+    tiered
+      ? activeEffectPlans.some(
+          (plan) => !plan.hitPointTier || !hitPointTiers.includes(plan.hitPointTier.atMost)
+        ) ||
+        new Set(activeEffectPlans.map((plan) => plan.hitPointTier?.atMost)).size !==
+          activeEffectPlans.length
+      : activeEffectPlans.length > 1 || activeEffectPlans.some((plan) => plan.hitPointTier)
   ) {
     throw new CharacterRuleActionUnsupportedCompilationError(
       'Character actions support at most one active-effect plan, or one per hit-point tier.'
@@ -240,8 +244,8 @@ function compileActionPlans(
     )
   }
   return {
-    activeEffectPlan: hitPointTierPlans.length > 0 ? null : (activeEffectPlans[0] ?? null),
-    ...(hitPointTierPlans.length > 0 && { hitPointTierPlans }),
+    activeEffectPlan: tiered ? null : (activeEffectPlans[0] ?? null),
+    ...(tiered && { hitPointTierPlans: activeEffectPlans, hitPointTiers }),
     executionPlan
   }
 }
@@ -282,8 +286,11 @@ export function compileCastChoicePlans(
 ) {
   const compiled = castChoiceOptions(descriptor.compiledEffect)?.map((option) => {
     const optionDescriptor = { ...descriptor, compiledEffect: option.compiledEffect }
-    const { hitPointTierPlans, ...plans } = compileActionPlans(adapter, optionDescriptor)
-    if (hitPointTierPlans)
+    const { hitPointTierPlans, hitPointTiers, ...plans } = compileActionPlans(
+      adapter,
+      optionDescriptor
+    )
+    if (hitPointTierPlans || hitPointTiers)
       throw new CharacterRuleActionUnsupportedCompilationError(
         'A cast pick cannot also tier on hit points.'
       )
@@ -313,7 +320,10 @@ export function compileCastChoicePlans(
   const plans = options?.[0] ?? compileActionPlans(adapter, descriptor)
   return {
     activeEffectPlan: plans.activeEffectPlan,
-    ...('hitPointTierPlans' in plans && { hitPointTierPlans: plans.hitPointTierPlans }),
+    ...('hitPointTierPlans' in plans && {
+      hitPointTierPlans: plans.hitPointTierPlans,
+      hitPointTiers: plans.hitPointTiers
+    }),
     executionPlan: plans.executionPlan,
     choice: options ? { options } : null
   }
@@ -413,7 +423,7 @@ export function compileCharacterActionEntryPoints(
             }
           }
         }
-        const { activeEffectPlan, hitPointTierPlans, executionPlan, choice } =
+        const { activeEffectPlan, hitPointTierPlans, hitPointTiers, executionPlan, choice } =
           compileCastChoicePlans(adapter, descriptor, exactTargetPolicy)
         return {
           schemaVersion: 4,
@@ -425,7 +435,7 @@ export function compileCharacterActionEntryPoints(
             kind: 'COMPILED',
             resourceBinding: compiledResourceBinding(candidate),
             activeEffectPlan,
-            ...(hitPointTierPlans && { hitPointTierPlans }),
+            ...(hitPointTierPlans && { hitPointTierPlans, hitPointTiers }),
             zonePlacement: null,
             choice,
             executionPlan

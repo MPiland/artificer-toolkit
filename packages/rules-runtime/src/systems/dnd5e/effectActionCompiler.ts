@@ -92,7 +92,13 @@ import {
   encounterZoneChoiceTarget
 } from '../../encounterAreaAction.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
-import { withinHitPointTier } from '../../hitPointTiers.js'
+import {
+  hitPointTierCeilings,
+  hitPointTierFloor,
+  NO_HIT_POINT_FLOOR,
+  selectHitPointTier,
+  withinHitPointBand
+} from '../../hitPointTiers.js'
 import {
   passiveMeleeRetaliationZone,
   placedSpaceZone,
@@ -209,8 +215,9 @@ const DND5E_CRITICAL_EXTRA_DICE_FACT_KEY = 'dnd5e.critical-extra-dice'
 export const DND5E_TARGET_STATE_CHECKSUM_FACT_KEY = 'dnd5e.target-state-checksum'
 export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-immune'
 /**
- * The target's current hit points when the action resolves. A result block's hit-point gate reads
- * it; the gated proposal compares it with the gate's `hitPointsAtMost` literal.
+ * The target's current hit points when the action resolves. A hit-point gate reads it; the gated
+ * proposal checks it against the gate's band (`hitPointsAbove` and `hitPointsAtMost` literals), and
+ * a tiered save selects its tier by it when the outcome is specialized.
  */
 export const DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY = 'dnd5e.target-current-hit-points'
 const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
@@ -465,6 +472,8 @@ type Dnd5eEffectScalingFacts = Readonly<{
   criticalExtraDice?: number
   /** By how much the completed saving throw fell short of its DC. */
   saveFailedBy?: number
+  /** The target's current hit points, which select the hit-point tier of a tiered result. */
+  targetCurrentHitPoints?: number
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
   weaponDamageDieFaces?: number
@@ -527,7 +536,11 @@ function dndScalingFactsFromRuleValues(
     resolvedDamageOutcomeExpressions: parseResolvedOutcomeExpressions(
       facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
     ),
-    weaponDamageDieFaces: positiveInteger(facts[DND5E_WEAPON_DAMAGE_DIE_FACT_KEY])
+    weaponDamageDieFaces: positiveInteger(facts[DND5E_WEAPON_DAMAGE_DIE_FACT_KEY]),
+    targetCurrentHitPoints:
+      typeof facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] === 'number'
+        ? facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]
+        : undefined
   }
 }
 
@@ -1674,6 +1687,9 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
       settledForcedMovement(outcome) ??
       unsupported('D&D forced movement must move its target a distance in feet, at no cost to it.')
     )
+  // An instant kill is admitted only as a hit-point tier's result, never on a save alone.
+  if (outcome.effectKind === 'KILL' && 'hitPointTier' in entry && entry.hitPointTier)
+    return { kind: 'KILL' }
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D test action outcome is not supported.')
   if (
@@ -2388,13 +2404,20 @@ function ownsTimedSaveCondition(
 ): boolean {
   if (!('outcome' in entry)) return false
   const turns = entry.duration ? conditionDurationTurns(entry.duration) : null
+  const tier = 'hitPointTier' in entry ? entry.hitPointTier : undefined
+  // A tier's conditions are planned from the action narrowed to that tier.
+  const planned = tier
+    ? hitPointTierActions(action)?.find(({ atMost }) => atMost === tier.atMost)?.tierAction
+    : action
   return (
     testPhaseKindOrNull(action) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
-    ((entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 ||
+    (tier !== undefined ||
+      (entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 ||
       (entry.lifecycle?.endOnEvents?.length ?? 0) > 0 ||
       (turns !== null && turns <= 1)) &&
-    timedConditionPlan(action) !== null
+    planned !== undefined &&
+    timedConditionPlan(planned) !== null
   )
 }
 
@@ -4959,9 +4982,23 @@ export const dnd5eKillProposalOperation = targetOnlyProposalOperation(
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   'kill'
 )
+/** The band a version 2 gate's literals bound, or null when they do not bound a non-empty one. */
+function hitPointGateBand(
+  inputs: Readonly<Record<string, unknown>>
+): { above: number; atMost: number } | null {
+  const { hitPointsAbove: above, hitPointsAtMost: atMost } = inputs
+  return typeof above === 'number' &&
+    typeof atMost === 'number' &&
+    Number.isSafeInteger(above) &&
+    Number.isSafeInteger(atMost) &&
+    above >= NO_HIT_POINT_FLOOR &&
+    atMost > Math.max(above, 0)
+    ? { above, atMost }
+    : null
+}
 /**
  * Version 2 of a target-only proposal also reads the target's current hit points and the gate's
- * ceiling, and is authorized only while the target is at or under it.
+ * band, and is authorized only while the target is above its floor and at or under its ceiling.
  */
 function hitPointGatedTargetOnlyProposalOperation(
   key: string,
@@ -4974,24 +5011,24 @@ function hitPointGatedTargetOnlyProposalOperation(
     inputs: {
       ...base.inputs,
       targetCurrentHitPoints: RULE_VALUE_KIND.NUMBER,
+      hitPointsAbove: RULE_VALUE_KIND.NUMBER,
       hitPointsAtMost: RULE_VALUE_KIND.NUMBER
     },
     execute(inputs) {
-      const { targetCurrentHitPoints, hitPointsAtMost } = inputs
+      const { targetCurrentHitPoints } = inputs
+      const band = hitPointGateBand(inputs)
       if (
         typeof targetCurrentHitPoints !== 'number' ||
         !Number.isSafeInteger(targetCurrentHitPoints) ||
         targetCurrentHitPoints < 0 ||
-        typeof hitPointsAtMost !== 'number' ||
-        !Number.isSafeInteger(hitPointsAtMost) ||
-        hitPointsAtMost < 1
+        !band
       )
         throw new Error(
           `D&D ${label} proposal requires the target's hit points and a hit-point gate.`
         )
       return {
         ...base.execute(inputs),
-        authorized: withinHitPointTier(targetCurrentHitPoints, hitPointsAtMost)
+        authorized: withinHitPointBand(targetCurrentHitPoints, band.above, band.atMost)
       }
     }
   }
@@ -5598,7 +5635,7 @@ export const dnd5eConditionApplyProposalOperation: ProposalRuleOperationContract
 
 /**
  * Version 2 of the condition proposal also reads the target's current hit points and the gate's
- * ceiling: the condition is authorized only for a target that is not immune and is at or under it.
+ * band: the condition is authorized only for a target that is not immune and lies in it.
  */
 export const dnd5eHitPointGatedConditionApplyProposalOperation: ProposalRuleOperationContract = {
   ...dnd5eConditionApplyProposalOperation,
@@ -5606,17 +5643,17 @@ export const dnd5eHitPointGatedConditionApplyProposalOperation: ProposalRuleOper
   inputs: {
     ...dnd5eConditionApplyProposalOperation.inputs,
     targetCurrentHitPoints: RULE_VALUE_KIND.NUMBER,
+    hitPointsAbove: RULE_VALUE_KIND.NUMBER,
     hitPointsAtMost: RULE_VALUE_KIND.NUMBER
   },
   execute(inputs) {
-    const { targetCurrentHitPoints, hitPointsAtMost } = inputs
+    const { targetCurrentHitPoints } = inputs
+    const band = hitPointGateBand(inputs)
     if (
       typeof targetCurrentHitPoints !== 'number' ||
       !Number.isSafeInteger(targetCurrentHitPoints) ||
       targetCurrentHitPoints < 0 ||
-      typeof hitPointsAtMost !== 'number' ||
-      !Number.isSafeInteger(hitPointsAtMost) ||
-      hitPointsAtMost < 1
+      !band
     )
       throw new Error(
         "D&D condition proposal requires the target's hit points and a hit-point gate."
@@ -5625,7 +5662,8 @@ export const dnd5eHitPointGatedConditionApplyProposalOperation: ProposalRuleOper
     return {
       ...base,
       authorized:
-        base.authorized === true && withinHitPointTier(targetCurrentHitPoints, hitPointsAtMost)
+        base.authorized === true &&
+        withinHitPointBand(targetCurrentHitPoints, band.above, band.atMost)
     }
   }
 }
@@ -6387,12 +6425,14 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
       if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
         unsupported('D&D test action condition is not in the pinned System vocabulary.')
       // Each of a result path's conditions binds its own condition-immunity fact.
-      const count = (conditionCounts.get(entry.pathCode) ?? 0) + 1
+      // Only one hit-point tier applies to a target, so a tier counts its own conditions.
+      const countKey = `${entry.pathCode}:${'hitPointTier' in entry ? entry.hitPointTier?.atMost : ''}`
+      const count = (conditionCounts.get(countKey) ?? 0) + 1
       if (count > MAX_CONDITIONS_PER_PATH)
         unsupported(
           'D&D test action outcome is not supported: one path applies too many conditions.'
         )
-      conditionCounts.set(entry.pathCode, count)
+      conditionCounts.set(countKey, count)
     }
     // A reduction takes its amount from one damage outcome of its own result path.
     if (
@@ -7291,6 +7331,8 @@ function fixedOutcomeGraphDefinition(input: {
   nodePrefix?: string
   /** The condition's place among its path's conditions, which selects its immunity fact. */
   conditionOrdinal?: number
+  /** The hit-point band that gates the outcome: a hit-point tier's. */
+  hitPointBand?: { above: number; atMost: number }
 }): RuleGraphDefinition {
   const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
   // The OUTCOME phase runs only on its selected path, so the push is authorized by construction.
@@ -7335,6 +7377,16 @@ function fixedOutcomeGraphDefinition(input: {
       kind: 'FACT' as const,
       factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
     },
+    ...(input.hitPointBand
+      ? {
+          targetCurrentHitPoints: {
+            kind: 'FACT' as const,
+            factKey: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY
+          },
+          hitPointsAbove: { kind: 'LITERAL' as const, value: input.hitPointBand.above },
+          hitPointsAtMost: { kind: 'LITERAL' as const, value: input.hitPointBand.atMost }
+        }
+      : {}),
     ...(isTargetOnlyOutcome(input.outcome)
       ? targetOnlyOutcomeInputs(input.outcome)
       : input.outcome.kind === 'CONDITION_APPLY'
@@ -7403,7 +7455,7 @@ function fixedOutcomeGraphDefinition(input: {
     nodes: [
       {
         id: proposalId,
-        operation: { key: operation, contractVersion: 1 },
+        operation: { key: operation, contractVersion: input.hitPointBand ? 2 : 1 },
         inputs
       }
     ],
@@ -7796,11 +7848,22 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     }
   }
   const authoredGroups = selectedOutcomeGroups(input.action, input.selectedPath)
+  // A tiered result owes only the tier whose band holds the target's hit points, if any does.
+  const tierCeilings = hitPointTierCeilings(authoredGroups.flat())
+  if (tierCeilings.length > 0 && input.facts.targetCurrentHitPoints === undefined)
+    unsupported('D&D hit-point tiers need the current hit points of the target.')
+  const selectedTier =
+    tierCeilings.length > 0
+      ? selectHitPointTier(tierCeilings, input.facts.targetCurrentHitPoints ?? 0)
+      : null
   const ownedGroups = authoredGroups.filter((entries) =>
     entries.every(
       (entry) =>
         isChosenEntry(entry, input.facts) &&
-        pathOwed(entry, input.action.compiledEffect.id, input.facts)
+        pathOwed(entry, input.action.compiledEffect.id, input.facts) &&
+        (!('hitPointTier' in entry) ||
+          !entry.hitPointTier ||
+          entry.hitPointTier.atMost === selectedTier)
     )
   )
   if (ownedGroups.length === 0) return null
@@ -7872,6 +7935,14 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
             entry,
             outcome,
             ...groupNodePrefix,
+            ...('hitPointTier' in entry && entry.hitPointTier
+              ? {
+                  hitPointBand: {
+                    above: hitPointTierFloor(tierCeilings, entry.hitPointTier.atMost),
+                    atMost: entry.hitPointTier.atMost
+                  }
+                }
+              : {}),
             conditionOrdinal: groups
               .slice(0, groupIndex + 1)
               .filter(
@@ -8355,6 +8426,7 @@ function compileEffectActionGraph(
                   kind: 'FACT',
                   factKey: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY
                 },
+                hitPointsAbove: { kind: 'LITERAL', value: NO_HIT_POINT_FLOOR },
                 hitPointsAtMost: { kind: 'LITERAL', value: gateAtMost }
               }),
           ...(isTargetOnlyOutcome(outcome)
@@ -9026,14 +9098,6 @@ type DirectInterpretationInput = Pick<
   | 'conditionImmunityIds'
 >
 
-function graphReadsFact(graph: Pick<CompiledRuleGraph, 'nodes'>, factKey: string): boolean {
-  return graph.nodes.some((node) =>
-    Object.values(node.inputs).some(
-      (binding) => binding.kind === 'FACT' && binding.factKey === factKey
-    )
-  )
-}
-
 function conditionImmunityFacts(
   graph: Pick<CompiledRuleGraph, 'nodes'>,
   conditionImmunityIds: readonly string[] | undefined
@@ -9116,18 +9180,22 @@ function hitPointGateEvidenceIsValid(
   otherwiseAuthorized = true
 ): boolean {
   const hitPoints = publishedNode.inputs.targetCurrentHitPoints
+  const floor = publishedNode.inputs.hitPointsAbove
   const ceiling = publishedNode.inputs.hitPointsAtMost
   if (trace.operation.contractVersion === 1)
-    return !hitPoints && !ceiling && trace.outputs.authorized === true
+    return !hitPoints && !floor && !ceiling && trace.outputs.authorized === true
+  const band = hitPointGateBand({
+    hitPointsAbove: floor?.kind === 'LITERAL' ? floor.value : undefined,
+    hitPointsAtMost: ceiling?.kind === 'LITERAL' ? ceiling.value : undefined
+  })
   return (
     hitPoints?.kind === 'FACT' &&
     hitPoints.factKey === DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY &&
-    ceiling?.kind === 'LITERAL' &&
-    typeof ceiling.value === 'number' &&
+    band !== null &&
     input.execution.evidence.facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] ===
       input.currentHitPoints &&
     trace.outputs.authorized ===
-      (otherwiseAuthorized && withinHitPointTier(input.currentHitPoints, ceiling.value))
+      (otherwiseAuthorized && withinHitPointBand(input.currentHitPoints, band.above, band.atMost))
   )
 }
 
@@ -10535,9 +10603,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         conditionIds: targetConditionIds
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
-      ...(graphReadsFact(published.definition, DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY)
-        ? { [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints }
-        : {}),
+      [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
       ...resolvedDamageExpressionFacts,
       ...weaponDamageDieFacts,
       ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0
