@@ -27,3 +27,5 @@ Quasit Claws and Scare, Shadow Strength Drain, Spirit Naga Bite and Rug of Smoth
 ## ATTACK-5.T4a (Ogre Zombie Morningstar)
 
 A Creature Feature now acts through its held Equipment when both are the same kind of attack; the Feature's printed damage type governs, so the Equipment's default type no longer has to match (`actsThroughEquipment` in `encounterFeatureActionCapabilityDiscovery.ts`). The SRD print is untouched. The Ogre Zombie Morningstar left `SRD_CREATURE_ATTACK_UNSUPPORTED`, and the `EQUIPMENT_DAMAGE_TYPE` reason was deleted from the allowlist and the sweep. Proofs: `srdCreatureHitRiders.test.ts` and `nativeRoomHitRiders.test.ts`.
+
+Replacement (orchestrator ruling A): `replaceActorEquipment` still refuses a replacement that changes the damage types of the Equipment a Feature action is bound to (`equipmentReplacementKeepsDamageTypes`), so the print governs the bound attack but the loadout cannot drift to another weapon type. Proofs: `nativeRoomEquipmentReplacement.test.ts` (Ogre Zombie accepts a Shortsword, refuses a Mace); the two existing refusal tests are unchanged.

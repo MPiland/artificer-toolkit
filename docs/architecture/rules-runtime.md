@@ -1441,6 +1441,8 @@ calculation (best of worn armor, unarmored, or an authored formula; a shield and
 Creature `qualifiedDamageDefenses` apply only to attacks lacking every bypassing trait. Modifier kinds
 without a consumer are rejected at grant validation (see [authoring schema](authoring-schema.md)).
 
+**Creature loadout replacement and the printed attack.** A Creature Feature action binds to its loadout Equipment by attack kind (`triggerCode`) alone: the Feature's own print governs the bound attack's damage and damage type, so a Creature printed with a different damage type than its Equipment's default (the Ogre Zombie's bludgeoning Morningstar) still runs. `replaceActorEquipment` keeps that binding honest: the replacement must keep the attack kind the Feature acts through and, for an entry a Feature action is bound to, the damage types of the Equipment it replaces (`equipmentReplacementKeepsDamageTypes`), so a piercing weapon swaps for another piercing one and a bludgeoning weapon is refused.
+
 **Creature equipment hands (D107).** A Creature's authored `equipmentLoadout` places each item in
 `MAIN_HAND`, `OFF_HAND`, `CARRIED` or `WORN` (`EQUIPMENT_SLOT_CODES`, `packages/shared` core). One
 function, `resolveHandOccupancy`, decides hand legality for the schema (two items in one hand), the

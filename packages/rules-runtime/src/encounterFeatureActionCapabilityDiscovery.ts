@@ -11,6 +11,7 @@ import { placedSpaceManifest } from './encounterZonePlacement.js'
 import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
 import { reduceEffectRestrictions } from './systems/dnd5e/attackRestrictions.js'
 import {
+  type EncounterCreatureEquipmentSource,
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
 } from './encounterCreatureEquipmentSources.js'
@@ -250,6 +251,40 @@ export function snapshotFeatures(
 
 function snapshotLoadout(actor: EncounterProjectionActorInput) {
   return snapshotCreatureEquipmentLoadout(actor)
+}
+
+/** The damage types of an Effect's hit damage, dice or fixed. */
+function hitDamageTypeIds(effect: CompiledEffectGroup): ReadonlySet<string> {
+  return new Set(
+    effect.entries.flatMap((entry) =>
+      entry.pathCode === 'ON_HIT' &&
+      'outcome' in entry &&
+      entry.outcome.effectKind === 'DAMAGE' &&
+      entry.outcome.damageTypeId !== undefined
+        ? [entry.outcome.damageTypeId]
+        : []
+    )
+  )
+}
+
+/**
+ * A replacement of Equipment that Feature actions act through keeps the damage types of the Equipment it replaces: the print governs the bound
+ * attack, so the swap must not change what kind of weapon the loadout holds (a Greatclub for a
+ * Dagger is refused).
+ */
+export function equipmentReplacementKeepsDamageTypes(
+  replaced: EncounterCreatureEquipmentSource,
+  replacement: EncounterCreatureEquipmentSource
+): boolean {
+  const types = (source: EncounterCreatureEquipmentSource) =>
+    new Set(
+      (source.compiled.effects ?? []).flatMap((effect) =>
+        effect.invocation.kind === 'ACTION' ? [...hitDamageTypeIds(effect)] : []
+      )
+    )
+  const before = types(replaced)
+  const after = types(replacement)
+  return before.size === after.size && [...before].every((type) => after.has(type))
 }
 
 /**

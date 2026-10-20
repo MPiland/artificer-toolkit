@@ -11,6 +11,8 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
+import { mace } from '@artificer-toolkit/source-data/srd/equipment/mace.js'
+import { shortsword } from '@artificer-toolkit/source-data/srd/equipment/shortsword.js'
 import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -42,13 +44,13 @@ afterEach(() => {
  * and a Dagger (with the Club every room publishes) into the room's R2 content: the sources a
  * replacement reads.
  */
-async function equipmentRoom() {
-  const ogre = srdCreatureActor({ id: OGRE_ID, creature: seededSrdCreature('Ogre') })
+async function equipmentRoom(creatureName = 'Ogre') {
+  const ogre = srdCreatureActor({ id: OGRE_ID, creature: seededSrdCreature(creatureName) })
   const room = await movementRoom({
     actors: [characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }), ogre],
     moverActorId: FIGHTER_ACTOR_ID,
     positions: { [FIGHTER_ACTOR_ID]: { x: 150, y: 150 }, [OGRE_ID]: { x: 250, y: 150 } },
-    characterEquipment: [compatibleGreatclub, dagger]
+    characterEquipment: creatureName === 'Ogre' ? [compatibleGreatclub, dagger] : [shortsword, mace]
   })
   const heldEntryId = snapshotCreatureEquipmentLoadout(ogre).find(
     (entry) => entry.useState === 'MAIN_HAND'
@@ -182,6 +184,35 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     expect(await room.runVersion()).toBe(versionBefore)
     expect(await room.storedOgre()).toEqual(before)
   })
+
+  it.each([
+    { label: 'another piercing melee weapon', equipment: shortsword, accepted: true },
+    { label: 'a bludgeoning melee weapon', equipment: mace, accepted: false }
+  ])(
+    'the Ogre Zombie’s printed Morningstar attack: $label is accepted=$accepted',
+    async ({ equipment, accepted }) => {
+      const room = await equipmentRoom('Ogre Zombie')
+      const before = await room.storedOgre()
+
+      const { answer, causes } = await room.refusedReplace({ equipmentId: equipment.id })
+
+      if (accepted) {
+        expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+        expect(causes).toEqual([])
+        expect(
+          snapshotCreatureEquipmentSources(await room.storedOgre()).find(
+            ({ loadoutEntryId }) => loadoutEntryId === room.heldEntryId
+          )?.equipmentId
+        ).toBe(equipment.id)
+      } else {
+        expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
+        expect(causes).toEqual([
+          'Replacement Equipment is incompatible with the Creature Feature actions.'
+        ])
+        expect(await room.storedOgre()).toEqual(before)
+      }
+    }
+  )
 
   it('refuses a Character actor', async () => {
     const room = await equipmentRoom()
