@@ -126547,6 +126547,7 @@ export declare const api: {
             }>;
           }>;
           openAttackAction: {
+            complete: boolean;
             lastActionId: string;
             lastTargetIds: Array<string>;
             made: number;
