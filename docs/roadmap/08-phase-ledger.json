@@ -1260,7 +1260,7 @@
         {
           "id": "PLATFORM-21",
           "title": "The engine loads compiled content instead of recompiling",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "origin": [],
           "wsjf": {
             "bv": 8,
@@ -1271,10 +1271,18 @@
           "acs": [
             {
               "id": "PLATFORM-21.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
               "note": "User decision 2026-10-17 (option a): compile once at publish, as ADR 0003 describes, for performance and reliability.",
-              "text": "Compile once: content is compiled when it is published or imported, the stored compiled projection is what the character engine and the room load, and no evaluation recompiles authored records; a compile failure blocks the publish with its diagnostics."
+              "text": "Compile once: content is compiled when it is published or imported, the stored compiled projection is what the character engine and the room load, and no evaluation recompiles authored records; a compile failure blocks the publish with its diagnostics.",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/readPathCompilation.test.ts",
+                "packages/rules-runtime/src/__tests__/retainedRulesWithoutCompile.test.ts",
+                "packages/rules-runtime/src/__tests__/contentSnapshots.test.ts",
+                "apps/apis/convex/characters/commitReadBudget.test.ts",
+                "apps/session-worker/test/nativeContentSnapshots.test.ts",
+                "apps/session-worker/test/nativeRoomEquipmentReplacement.test.ts"
+              ]
             },
             {
               "id": "PLATFORM-21.2",
@@ -1320,7 +1328,7 @@
             },
             {
               "id": "PLATFORM-21.T1b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["PLATFORM-21.1"],
               "wsjf": {
                 "bv": 8,
@@ -1329,7 +1337,21 @@
                 "size": 5,
                 "after": ["PLATFORM-21.T1a2"]
               },
-              "text": "Hydrate Builder commit, the browser Builder and the room from the stored compiled projection and remove runtime recompilation (D163); snapshot documents format 3 (ADR 0036 amendment); a compile failure blocks the publish; before-and-after measurements, including commitReadBudget within D84 (measured full swap: Fighter 5 324 KB, Wizard 5 405 KB, Fighter 3/Wizard 2 525 KB). Also show the retained Spell presentation that T1a pins (view only)."
+              "text": "Hydrate Builder commit, the browser Builder and the room from the stored compiled projection and remove runtime recompilation (D163); snapshot documents format 3 (ADR 0036 amendment); a compile failure blocks the publish; before-and-after measurements, including commitReadBudget within D84 (measured full swap: Fighter 5 324 KB, Wizard 5 405 KB, Fighter 3/Wizard 2 525 KB). Also show the retained Spell presentation that T1a pins (view only).",
+              "note": "Merged m231 (aeaccfdab). Ruling B: the Sheet retained-Spell view is unreachable until Equipment/Feat spell access exists (open question Q28)."
+            },
+            {
+              "id": "PLATFORM-21.T1c",
+              "status": "TODO",
+              "closes": ["PLATFORM-21.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 8,
+                "size": 1,
+                "after": ["PLATFORM-21.T1b"]
+              },
+              "text": "Test the stored-compilation guards T1b added without a test (from the m231 assertion audit): hydrateStoredCompilation refuses a superseded compilerVersion and a projection whose id is not the subject id; Creature Equipment pin and snapshot refuse Equipment from another Game System (or prove a reader-level test already covers it). Then add the PBI journey test list."
             }
           ]
         },
