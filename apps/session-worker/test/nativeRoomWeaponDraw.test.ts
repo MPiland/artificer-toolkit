@@ -252,3 +252,47 @@ describe('a thrown weapon leaves its hand (D107, ATTACK-19.3), in the room', () 
     expect(await javelinState()).toBe('MAIN_HAND')
   })
 })
+
+describe('a weapon swap spends no action economy (D107, ATTACK-19.3), in the room', () => {
+  it('draws the carried Shortsword beside the held Longsword and still makes the whole Multiattack', async () => {
+    const veteran = seededSrdCreature('Veteran')
+    const longsword = creatureFeature(veteran, 'Longsword')
+    const shortsword = creatureFeature(veteran, 'Shortsword')
+    const swapping = {
+      ...veteran,
+      equipmentLoadout: veteran.equipmentLoadout?.map((entry) => ({
+        ...entry,
+        useState: entry.actionFeatureIds.includes(longsword.id)
+          ? ('MAIN_HAND' as const)
+          : entry.actionFeatureIds.includes(shortsword.id)
+            ? ('CARRIED' as const)
+            : entry.useState
+      }))
+    }
+    const room = await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: Array.from({ length: 12 }, (_, index) => (index % 2 === 0 ? 14 : 1)),
+      actors: [
+        srdCreatureActor({ id: OGRE_ID, creature: swapping }),
+        srdCreatureActor({ id: TARGET_ID, creature: plainWolf })
+      ],
+      ownerFeatureId: longsword.id,
+      grip: 'ONE_HANDED'
+    })
+    const choices = async () => room.actionChoices()
+    const swap = (await choices()).actions.find(({ label }) => label.includes('Shortsword'))
+    if (!swap) throw new Error('The Veteran offers no Shortsword attack.')
+    const range: ['TARGET_RANGE_UNCHECKED'] = ['TARGET_RANGE_UNCHECKED']
+
+    const first = await room.startAction(TARGET_ID, range)
+    expect(first.answer.type, JSON.stringify(first.answer)).toBe('COMMAND_COMMITTED')
+    // The swap: the Shortsword is drawn beside the Longsword and fills the Multiattack's optional slot.
+    const drawn = await room.startAction(TARGET_ID, range, null, null, swap.id)
+    expect(drawn.answer.type, JSON.stringify(drawn.answer)).toBe('COMMAND_COMMITTED')
+    expect((await choices()).openAttackAction).toMatchObject({ made: 2, complete: false })
+    // The swap took no slot and no action: the second Longsword attack is still the Multiattack's.
+    const last = await room.startAction(TARGET_ID, range)
+    expect(last.answer.type, JSON.stringify(last.answer)).toBe('COMMAND_COMMITTED')
+    expect((await choices()).openAttackAction).toMatchObject({ made: 3, total: 3, complete: true })
+  })
+})
