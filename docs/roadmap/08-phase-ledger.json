@@ -4929,9 +4929,12 @@
         {
           "id": "SCENE-5",
           "title": "One shared table screen for players in the same room",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeLiveSessionRoom.test.ts",
+            "apps/web/src/domains/campaigns/vtt/CampaignVttStage.mainCharacter.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "note": "Registered 2026-10-12 by the product owner. Replanned 2026-10-19 with the product owner (docs/handoffs/scene-5-plan.md) to a Foundry-style MVP: the GM grants Campaign-level control of other players’ Characters, and the controlling member opens the tabletop on the TV. No table role or projection. The old AC 5.3 (private information off the shared screen) is removed and documented as a limitation. Depends on VTT_UI-3.4 for per-Character senses.",
           "acs": [
@@ -5727,7 +5730,7 @@
             {
               "id": "ENCOUNTER-8.T2",
               "text": "Animated mode change: the ✕ draws over the cancelled die, then the added die rolls in, for everyone who sees the card when it arrives (no replay on reopen); reduced motion shows the T1 result. A DESIGN.md motion entry records timing and style.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ENCOUNTER-8.1"],
               "wsjf": {
                 "bv": 2,
