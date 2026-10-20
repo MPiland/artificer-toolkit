@@ -1,4 +1,5 @@
 import { convexTest } from '../../tests/convexTest'
+import type { TestConvex } from 'convex-test'
 import { runToCompletion } from '@convex-dev/migrations'
 import migrations from '@convex-dev/migrations/test'
 import { describe, expect, it } from 'vitest'
@@ -915,7 +916,7 @@ describe('internal canonical source import', () => {
   })
 
   // T1a2: a retired rule kind left stored canonical dependents that the current schema rejects.
-  async function storeRetiredShape(t: ReturnType<typeof convexTest<typeof schema>>, id: string) {
+  async function storeRetiredShape(t: TestConvex<typeof schema>, id: string) {
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
