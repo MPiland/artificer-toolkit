@@ -34,22 +34,24 @@ Replacement (orchestrator ruling A): `replaceActorEquipment` still refuses a rep
 
 Remaining allowlist entries (`packages/rules-runtime/src/__tests__/srdCreatureAttackSweepAllowlist.ts`): remove each attack's entry in the slice that makes it run; the sweep fails if a listed attack starts working or an unlisted one fails.
 
-| Slice | Attacks | Allowlist reason | Size |
-| --- | --- | --- | --- |
-| T4b | Cockatrice Bite escalation, Couatl Bite, Guardian Naga Spit Poison | `FOLLOW_UP_SAVE` | 5 |
-| T4c | Dragon Turtle Tail (push and prone), Horned Devil Tail (Infernal Wound) | `FOLLOW_UP_SAVE` | 5 |
-| T4d | Giant Centipede Bite, Purple Worm Bite (investigate, then build) | `OUTCOME_KIND` | 3 |
-| T4e | Solar Longbow slay | `OUTCOME_KIND` | 3 |
+| Slice | Attacks                                                                 | Allowlist reason | Size |
+| ----- | ----------------------------------------------------------------------- | ---------------- | ---- |
+| T4b   | Cockatrice Bite escalation, Couatl Bite, Guardian Naga Spit Poison      | `FOLLOW_UP_SAVE` | 5    |
+| T4c   | Dragon Turtle Tail (push and prone), Horned Devil Tail (Infernal Wound) | `FOLLOW_UP_SAVE` | 5    |
+| T4d   | Giant Centipede Bite, Purple Worm Bite (investigate, then build)        | `OUTCOME_KIND`   | 3    |
+| T4e   | Solar Longbow slay                                                      | `OUTCOME_KIND`   | 3    |
 
 T4 itself is then a size-2 close-out: the allowlist is empty (SPELLS-33 tasks T6a1, T6a2, T6a3, T6b2, T6b3, T6e2, T6i, T6i2 remove their own entries; Kraken Bite goes with T6a1, Black Pudding with T6i/T6i2) and leftovers (Rakshasa Claw, Vampire/Spawn Bite if T6e2 misses them) are covered.
 
 File map:
+
 - Creature prints: `packages/source-data/src/srd/creatures/<name>.ts` (protected; fix the compiler or runtime, not the print, except result-block ids as in the Quasit Scare fix).
 - Follow-up save planning: `repeatingDirectFollowUpSavePlan` and the plan compilers in `packages/rules-runtime/src/effectActionCompiler.ts`.
 - Equipment binding and replacement: `encounterFeatureActionCapabilityDiscovery.ts`, `packages/encounter-persistence/src/actorEquipment.ts`.
 - Proof helpers: `srdCreatureHitRiders.test.ts` (`attackOgre`, `target`/`option`), `apps/session-worker/test/nativeRoomHitRiders.test.ts` (`hitRiderRoom`, `settle`, `settledBatch`).
 
 Pitfalls:
+
 - Result blocks the repeating-save plan uses need UUID ids (`S.actionId(...)`); a derived `__result` id reads as "unsupported bounded shape".
 - Rolls are 0-based die faces in request order: attack, hit damage, save, then rider dice. In the room the player's save is a separate `settle(room, face)`.
 - Smother and similar effects are size-capped; target a Medium actor (e.g. Veteran).
