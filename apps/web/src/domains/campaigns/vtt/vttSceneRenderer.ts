@@ -77,6 +77,7 @@ import {
 } from './vttSceneRenderer.model'
 import { createVttAreaAimGesture } from './vttAreaAimGesture'
 import { createVttPingPress, isVttPingKey, vttPingRingFrame } from './vttPing'
+import { clampVttZoomScale } from './vttZoom.model'
 
 export type CampaignVttMode = 'PLAY' | 'EDIT'
 export type CampaignVttTool =
@@ -105,6 +106,10 @@ interface VttSceneRendererCallbacks {
   /** The source pressed inside one of a forced movement's legal squares (D157): its centre. */
   onSquarePick?: (center: ScenePoint) => void
   onMapLoadStatus?: (status: VttMapLoadStatus) => void
+  /** The zoom changed; origin says whether the viewer did it or the renderer set it when showing a scene. */
+  onZoomChange?: (scale: number, origin: 'SCENE' | 'USER') => void
+  /** The zoom this device saved for the scene, applied instead of fitting the map when it is first shown. */
+  resolveSceneZoom?: (sceneId: string) => number | null
   onCreateAnnotation?: (position: ScenePoint) => void
   onCreateBarrier: (
     kind: 'DOOR' | 'WALL' | 'WINDOW' | 'ONE_WAY' | 'TERRAIN',
@@ -259,6 +264,8 @@ export interface VttSceneRenderer {
   sampleDarkness: (
     points: readonly ScenePoint[]
   ) => { alpha: number; greyscale: boolean; masked: boolean; point: ScenePoint }[]
+  /** Zooms about the view centre to an absolute scale (1 = one map pixel per screen pixel), clamped to the range. */
+  setZoomScale: (scale: number) => void
   update: (next: VttSceneRendererUpdate) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -691,16 +698,27 @@ export async function createVttSceneRenderer(
     pings.delete(userId)
   }
 
-  function fit(): void {
+  function showMap(scale: number | null, origin: 'SCENE' | 'USER'): void {
     if (!current) return
     const { height, width } = current.scene.map
-    const scale = Math.min(app.screen.width / width, app.screen.height / height) * 0.94
-    world.scale.set(Math.max(0.02, Math.min(scale, 8)))
+    world.scale.set(
+      scale ??
+        clampVttZoomScale(Math.min(app.screen.width / width, app.screen.height / height) * 0.94)
+    )
     world.position.set(
       (app.screen.width - width * world.scale.x) / 2,
       (app.screen.height - height * world.scale.y) / 2
     )
     requestRender()
+    callbacks.onZoomChange?.(world.scale.x, origin)
+  }
+
+  function fit(): void {
+    showMap(null, 'USER')
+  }
+
+  function setZoomScale(scale: number): void {
+    zoomAtCanvasCenter(clampVttZoomScale(scale) / world.scale.x)
   }
 
   function focusPoint(point: ScenePoint): void {
@@ -714,6 +732,7 @@ export async function createVttSceneRenderer(
   function focusToken(token: { height: number; position: ScenePoint; width: number }): void {
     world.scale.set(resolveVttTokenFocusScale(world.scale.x, token))
     focusPoint(token.position)
+    callbacks.onZoomChange?.(world.scale.x, 'USER')
   }
 
   function zoomAt(factor: number, point: ScenePoint): void {
@@ -724,6 +743,7 @@ export async function createVttSceneRenderer(
     world.position.x += point.x - after.x
     world.position.y += point.y - after.y
     requestRender()
+    callbacks.onZoomChange?.(nextScale, 'USER')
   }
 
   function zoomAtCanvasCenter(factor: number): void {
@@ -2070,7 +2090,7 @@ export async function createVttSceneRenderer(
     drawBarriers(next.scene)
     if (fittedSceneId !== next.scene.id) {
       fittedSceneId = next.scene.id
-      fit()
+      showMap(callbacks.resolveSceneZoom?.(next.scene.id) ?? null, 'SCENE')
     }
   }
 
@@ -2714,6 +2734,7 @@ export async function createVttSceneRenderer(
       mapCredentialKey = delivery.expiresAt
       loadMissingMapParts(current.scene, delivery)
     },
+    setZoomScale,
     update: draw,
     zoomIn: () => zoomAtCanvasCenter(zoomFactor),
     zoomOut: () => zoomAtCanvasCenter(1 / zoomFactor)

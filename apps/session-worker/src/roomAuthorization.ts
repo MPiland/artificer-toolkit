@@ -11,6 +11,7 @@ import type {
   LiveSessionRoomSceneCapture,
   LiveSessionTransientMember
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import { controlsAssignedCharacter } from '@artificer-toolkit/shared/campaign/characterControl'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import { z } from 'zod'
 
@@ -92,7 +93,8 @@ export function admitsRoomMember(
 
 /**
  * A player's control of each token bound to the Encounter on `scene` (D25): GM-granted control
- * while they are still a player, or their assigned Character's actor (ADR 0034 decision 1). Null
+ * while they are still a player, or the actor of a Character assigned to them or whose control the
+ * GM granted them (ADR 0034 decision 1, D162). Null
  * when the cached Encounter is not the one bound to that Scene.
  */
 export function roomBoundTokenControl(
@@ -106,9 +108,7 @@ export function roomBoundTokenControl(
   const player = authorization.campaign.members.some(
     (member) => member.userId === userId && member.role === 'PLAYER'
   )
-  const assignedCharacterId =
-    authorization.campaign.assignments.find((assignment) => assignment.userId === userId)
-      ?.characterId ?? null
+  const { assignments } = authorization.campaign
   const actors = new Map(encounter.actors.map((actor) => [actor.id, actor]))
   return encounter.tokens.map(({ tokenId, actorId }) => {
     const actor = actors.get(actorId)
@@ -118,7 +118,11 @@ export function roomBoundTokenControl(
         player &&
         !!actor &&
         (actor.controllerUserIds.includes(userId) ||
-          (actor.kind === 'CHARACTER' && actor.sourceId === assignedCharacterId))
+          (actor.kind === 'CHARACTER' &&
+            controlsAssignedCharacter(
+              assignments.find((assignment) => assignment.characterId === actor.sourceId),
+              userId
+            )))
     }
   })
 }

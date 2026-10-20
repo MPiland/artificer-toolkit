@@ -96,7 +96,7 @@ export function sourceSpendMutation(input: {
       ? source.kind !== 'CHARACTER' || source.sourceId !== draw.characterId
       : source.kind !== 'CREATURE' || source.id !== draw.actorId)
   )
-    throw new Error('Live Session weapon draw scope mismatch.')
+    throw new Error('Live Session weapon hand move scope mismatch.')
   return {
     spends: Boolean(resource || item || spell || stow || draw),
     mutation: {
@@ -104,17 +104,18 @@ export function sourceSpendMutation(input: {
       ...(item ? { characterItemConsumption: item } : {}),
       ...(spell ? { characterSpellConsumptions: [spell] } : {}),
       ...(stow ? { stowEquippedItemInstanceId: encounterStowedItemInstanceId(stow) } : {}),
-      ...(draw
-        ? {
-            drawHeldItem: {
-              itemId:
-                draw.kind === 'CHARACTER_ITEM_DRAW' ? draw.itemInstanceId : draw.loadoutEntryId,
-              slot: draw.slot
-            }
-          }
-        : {})
+      ...(draw ? handMoveMutation(draw) : {})
     }
   }
+}
+
+/** The batch input that replays a recorded draw into a hand or throw out of it. */
+function handMoveMutation(draw: NonNullable<SourceSpendReceipts['sourceItemDraw']>) {
+  const heldItem = {
+    itemId: draw.kind === 'CHARACTER_ITEM_DRAW' ? draw.itemInstanceId : draw.loadoutEntryId,
+    slot: draw.slot
+  }
+  return draw.movement === 'THROW' ? { throwHeldItem: heldItem } : { drawHeldItem: heldItem }
 }
 
 type SpendMutation = ReturnType<typeof sourceSpendMutation>['mutation']

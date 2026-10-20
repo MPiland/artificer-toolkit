@@ -1266,7 +1266,7 @@
             "bv": 8,
             "tc": 5,
             "rr": 8,
-            "size": 8
+            "size": 13
           },
           "acs": [
             {
@@ -1285,17 +1285,30 @@
           ],
           "tasks": [
             {
-              "id": "PLATFORM-21.T1",
-              "status": "TODO",
-              "closes": ["PLATFORM-21.1", "PLATFORM-21.2"],
-              "text": "Hydrate the character engine and room registries from the stored compiled projection; remove runtime recompilation; projection version and migration; measure evaluation cost before and after.",
+              "id": "PLATFORM-21.T1a",
+              "status": "IN_PROGRESS",
+              "closes": ["PLATFORM-21.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 8,
-                "size": 8,
+                "size": 5,
                 "after": ["PLATFORM-20.T1"]
-              }
+              },
+              "text": "Compiled projection v2 (D163; split 2026-10-19): the projection carries every field the Builder reads from authored payloads (Class subclass selection level, spellcasting availability, proficiency scaling and restrictions, chosen-grant shapes, subclass label, feature checksum, plus any found in Spell, Race, Equipment and Background), with Equipment in the resolved shape; Builder and rules-runtime reads move to the compiled shapes while compilation is still at runtime; a migration recompiles stale rows, run on development data."
+            },
+            {
+              "id": "PLATFORM-21.T1b",
+              "status": "TODO",
+              "closes": ["PLATFORM-21.1"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 5,
+                "after": ["PLATFORM-21.T1a"]
+              },
+              "text": "Hydrate Builder commit, the browser Builder and the room from the stored compiled projection and remove runtime recompilation (D163); snapshot documents format 3 (ADR 0036 amendment); a compile failure blocks the publish; before-and-after measurements, including commitReadBudget within D84 (measured full swap: Fighter 5 324 KB, Wizard 5 405 KB, Fighter 3/Wizard 2 525 KB)."
             }
           ]
         },
@@ -4916,30 +4929,44 @@
         {
           "id": "SCENE-5",
           "title": "One shared table screen for players in the same room",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeLiveSessionRoom.test.ts",
+            "apps/web/src/domains/campaigns/vtt/CampaignVttStage.mainCharacter.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "note": "Registered 2026-10-12 by the product owner. Replanned 2026-10-19 with the product owner (docs/handoffs/scene-5-plan.md) to a Foundry-style MVP: the GM grants Campaign-level control of other players’ Characters, and the controlling member opens the tabletop on the TV. No table role or projection. The old AC 5.3 (private information off the shared screen) is removed and documented as a limitation. Depends on VTT_UI-3.4 for per-Character senses.",
           "acs": [
             {
               "text": "The GM can give a Campaign member control of other players’ Characters and take it back at any time; the owners keep control. A member moves a controlled Character’s token on the tabletop as its owner can, and in every Encounter they are one of its controllers.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/liveSessions/roomSceneCommands.test.ts",
+                "apps/apis/convex/campaigns/characterControllers.test.ts",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts"
+              ],
               "origin": [],
               "id": "SCENE-5.1"
             },
             {
               "text": "A member who controls several Characters sees the Scene through one main Character’s senses, which they pick on the tabletop and which defaults to their own Character. Selecting a single token they control switches the view to that token’s senses; clearing or multi-selecting returns to the main Character. They never see what the viewed Character cannot see.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.mainCharacter.test.tsx",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts"
+              ],
               "origin": [],
               "id": "SCENE-5.2"
             },
             {
               "text": "Every tabletop viewer can set the zoom by typing a percentage or stepping it, and their tabletop window keeps that zoom on that device across reloads, reconnects and view switches. The tabletop opens in a window sized to the screen and offers a Full screen button.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.zoom.test.tsx",
+                "apps/web/src/domains/campaigns/vtt/vttZoom.model.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopFullscreenButton.test.tsx"
+              ],
               "origin": [],
               "id": "SCENE-5.3"
             }
@@ -4954,19 +4981,20 @@
             {
               "id": "SCENE-5.T1",
               "text": "The GM grants and revokes Campaign-level control of a Character; granted members move its tokens outside Encounters and are its controllers in every Run. One source of truth with the existing per-Run controllerUserIds (ADR 0034, max 8, assigned player always a controller).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SCENE-5.1"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 5
-              }
+              },
+              "note": "Merged m209 (19f2ec13e); D162."
             },
             {
               "id": "SCENE-5.T2",
               "text": "Main-Character picker on the tabletop and view switching by a single selected controlled token; clearing or a multi-select returns to the main Character.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SCENE-5.2"],
               "wsjf": {
                 "bv": 8,
@@ -4974,19 +5002,21 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SCENE-5.T1"]
-              }
+              },
+              "note": "Merged m211 (9045d49db)."
             },
             {
               "id": "SCENE-5.T3",
               "text": "Zoom control (percentage field and steps) with per-device zoom for every viewer, a screen-sized tabletop popup and a Full screen button.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SCENE-5.3"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 3
-              }
+              },
+              "note": "Merged m208 (6585a457f)."
             }
           ]
         }
@@ -5700,7 +5730,7 @@
             {
               "id": "ENCOUNTER-8.T2",
               "text": "Animated mode change: the ✕ draws over the cancelled die, then the added die rolls in, for everyone who sees the card when it arrives (no replay on reopen); reduced motion shows the T1 result. A DESIGN.md motion entry records timing and style.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ENCOUNTER-8.1"],
               "wsjf": {
                 "bv": 2,
@@ -7100,8 +7130,12 @@
           "acs": [
             {
               "text": "An author can author a Multiattack in the Creature editor as alternatives of attack slots (count, the actions that fill it, optional, comes first), with swaps and slot conditions (earlier slots in this action hit the same target; target size at most X), and publication refuses an invalid one.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/creature-attack-slots.test.ts",
+                "packages/shared/src/__tests__/creature-feature-node-maps.test.ts",
+                "apps/web/src/forms/tests/AttackSlotAuthoring.test.tsx"
+              ],
               "origin": [],
               "note": "D93. After ATTACK-8 (shared slot model).",
               "id": "ATTACK-11.1"
@@ -7116,16 +7150,24 @@
             },
             {
               "text": "During a Multiattack only actions that fill a remaining slot of a still-feasible alternative are offered: a Brown Bear can't bite twice, a Drider's Bite swap is offered once, Frightful Presence only comes first, a Recharge that isn't ready isn't offered, and a conditional slot is offered only while its condition holds.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterAttackSlots.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts",
+                "apps/session-worker/test/nativeRoomMultiattackSlots.test.ts"
+              ],
               "origin": [],
               "note": "D93.",
               "id": "ATTACK-11.3"
             },
             {
               "text": "Auto-sequence: the GM's action drawer shows what is left of the Multiattack, preselects the only possible next attack and keeps the last target; the GM confirms each attack and can end the Multiattack early.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx",
+                "apps/session-worker/test/nativeRoomMultiattackSlots.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts"
+              ],
               "origin": [],
               "note": "D93. Assisted means assisted: nothing resolves without the controller's confirmation.",
               "id": "ATTACK-11.4"
@@ -7141,19 +7183,20 @@
             {
               "id": "ATTACK-11.T1",
               "text": "Multiattack offering end to end (D93): the slot-set contract (alternatives of slots with count, fillers, optional, comes first; swaps; same-target and target-size predicates), the ATTACK_ACTION state replaced by slot tracking (pre-launch, no migration), and the action drawer offering only fillers of a still-feasible alternative. Authored for the D93 examples (Brown Bear, Drider, an adult dragon with Frightful Presence, a Recharge creature) with their closed rules deleted.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-11.3"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 2,
                 "size": 5
-              }
+              },
+              "note": "Merged m210 (fea80ba05). Brown Bear, Drider, Adult Red Dragon and Chimera authored; the rest in T4."
             },
             {
               "id": "ATTACK-11.T2",
               "text": "Multiattack auto-sequence in the GM action drawer: what is left, the only possible next attack preselected, the last target kept, GM confirms each attack and can end the Multiattack early.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-11.4"],
               "wsjf": {
                 "bv": 5,
@@ -7161,12 +7204,13 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ATTACK-11.T1"]
-              }
+              },
+              "note": "Merged m212 (8469475ab). Fixed a T1 bug: only a filler that spends the Action fills a slot."
             },
             {
               "id": "ATTACK-11.T3",
               "text": "Creature editor authoring of Multiattack slot sets (alternatives, slots, swaps, conditions), with publication refusing an invalid one.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-11.1"],
               "wsjf": {
                 "bv": 5,
@@ -7174,12 +7218,13 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["ATTACK-11.T1"]
-              }
+              },
+              "note": "Merged m213 (08d6aadd5)."
             },
             {
               "id": "ATTACK-11.T4",
               "text": "Author every remaining SRD Multiattack as a slot set, delete the remaining CREATURE_*_MULTIATTACK closed rules and the description-only allowlist entries, and make the stat-block audit refuse a description-only Multiattack. Split by creature family if it exceeds one slice. A conditional Engulf slot is authored now and offered once ATTACK-7.T8 lands.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-11.2"],
               "wsjf": {
                 "bv": 5,
@@ -7701,9 +7746,9 @@
             {
               "id": "ATTACK-19.T3",
               "text": "Thrown and Disarm hand transitions (extend the existing held-item transition).",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-19.3"],
-              "activeWorkbook": "docs/handoffs/slice-attack-19.md"
+              "note": "Merged m207 (0c3ac23e2)."
             },
             {
               "id": "ATTACK-19.T4",

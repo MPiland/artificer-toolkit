@@ -1658,6 +1658,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -1695,6 +1696,18 @@ export declare const api: {
         "mutation",
         "public",
         { campaignId: string; characterId?: string },
+        { ok: true }
+      >;
+    };
+    characterControllers: {
+      setControllers: FunctionReference<
+        "mutation",
+        "public",
+        {
+          campaignId: string;
+          characterId: string;
+          controllerUserIds: Array<string>;
+        },
         { ok: true }
       >;
     };
@@ -8006,6 +8019,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -8088,6 +8102,7 @@ export declare const api: {
                 publicId: string;
                 systemId: string;
               } | null;
+              characterControllerUserIds: Array<string>;
               role: "OWNER" | "PLAYER";
               userId: string;
               username: string;
@@ -8170,6 +8185,7 @@ export declare const api: {
                 publicId: string;
                 systemId: string;
               } | null;
+              characterControllerUserIds: Array<string>;
               role: "OWNER" | "PLAYER";
               userId: string;
               username: string;
@@ -8262,6 +8278,7 @@ export declare const api: {
                   publicId: string;
                   systemId: string;
                 } | null;
+                characterControllerUserIds: Array<string>;
                 role: "OWNER" | "PLAYER";
                 userId: string;
                 username: string;
@@ -8348,6 +8365,7 @@ export declare const api: {
                 publicId: string;
                 systemId: string;
               } | null;
+              characterControllerUserIds: Array<string>;
               role: "OWNER" | "PLAYER";
               userId: string;
               username: string;
@@ -8447,6 +8465,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -9723,6 +9742,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -10138,6 +10158,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -10289,6 +10310,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -11180,6 +11202,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -126524,6 +126547,7 @@ export declare const api: {
             }>;
           }>;
           openAttackAction: {
+            complete: boolean;
             lastActionId: string;
             lastTargetIds: Array<string>;
             made: number;
@@ -130963,6 +130987,7 @@ export declare const api: {
                   collection: "tokens";
                   entity: {
                     assetId: string | null;
+                    characterId?: string;
                     controlledByUserIds: Array<string>;
                     height: number;
                     hidden: boolean;
@@ -131259,6 +131284,7 @@ export declare const api: {
                 collection: "tokens";
                 entities: Array<{
                   assetId: string | null;
+                  characterId?: string;
                   controlledByUserIds: Array<string>;
                   height: number;
                   hidden: boolean;
@@ -131598,6 +131624,7 @@ export declare const api: {
                   collection: "tokens";
                   entity: {
                     assetId: string | null;
+                    characterId?: string;
                     controlledByUserIds: Array<string>;
                     height: number;
                     hidden: boolean;
@@ -131896,6 +131923,7 @@ export declare const api: {
                   collection: "tokens";
                   entity: {
                     assetId: string | null;
+                    characterId?: string;
                     controlledByUserIds: Array<string>;
                     height: number;
                     hidden: boolean;
@@ -132128,6 +132156,7 @@ export declare const api: {
             name: string;
             tokens: Array<{
               assetId: string | null;
+              characterId?: string;
               controlledByUserIds: Array<string>;
               height: number;
               hidden: boolean;
@@ -132981,6 +133010,7 @@ export declare const api: {
               publicId: string;
               systemId: string;
             } | null;
+            characterControllerUserIds: Array<string>;
             role: "OWNER" | "PLAYER";
             userId: string;
             username: string;
@@ -138488,7 +138518,11 @@ export declare const internal: {
         },
         {
           campaign?: {
-            assignments: Array<{ characterId: string; userId: string }>;
+            assignments: Array<{
+              characterId: string;
+              controllerUserIds?: Array<string>;
+              userId: string;
+            }>;
             members: Array<{
               membershipEpoch: string;
               role: "OWNER" | "PLAYER";
@@ -140610,6 +140644,7 @@ export declare const internal: {
                   collection: "tokens";
                   entity: {
                     assetId: string | null;
+                    characterId?: string;
                     controlledByUserIds: Array<string>;
                     height: number;
                     hidden: boolean;

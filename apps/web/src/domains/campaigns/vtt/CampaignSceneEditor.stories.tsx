@@ -129,6 +129,7 @@ export const ConfiguredScene: Story = {
         acceptedAt: '2026-08-01T12:00:00.000Z',
         accessStartedAt: '2026-08-01T12:00:00.000Z',
         assignedCharacter: null,
+        characterControllerUserIds: [],
         role: 'PLAYER',
         userId: tabletopCurrentUserId,
         username: 'ember'

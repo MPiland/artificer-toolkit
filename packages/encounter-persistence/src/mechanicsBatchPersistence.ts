@@ -33,7 +33,7 @@ export type EncounterMechanicsBatchResult = {
   itemUseStateTransition: EncounterMechanicsBatchPlan['itemUseStateTransition']
   /** The item the target dropped (`releaseHeldItemInstanceId`); null when it dropped none. */
   itemReleaseTransition: EncounterMechanicsBatchPlan['itemReleaseTransition']
-  /** The carried weapon the actor drew (`drawHeldItem`); null when it drew none. */
+  /** The weapon the actor drew or threw (`drawHeldItem`, `throwHeldItem`); null when it moved none. */
   itemDrawTransition: EncounterMechanicsBatchPlan['itemDrawTransition']
   /** The "until healed" grants a heal in this batch ended: the action's undo gives them back. */
   endedGrants: ActiveRuleEffectRecord[]

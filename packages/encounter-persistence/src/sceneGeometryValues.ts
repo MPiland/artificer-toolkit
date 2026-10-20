@@ -13,6 +13,7 @@ export function normalizeSceneGeometryEntity<T extends SceneGeometryEntity>(valu
       ...value.entity,
       id: value.entity.id.toLowerCase(),
       assetId: value.entity.assetId?.toLowerCase() ?? null,
+      ...(value.entity.characterId && { characterId: value.entity.characterId.toLowerCase() }),
       controlledByUserIds: [
         ...new Set(value.entity.controlledByUserIds.map((id) => id.toLowerCase()))
       ]

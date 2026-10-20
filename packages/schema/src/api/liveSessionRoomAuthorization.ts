@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { campaignCharacterControllerUserIdsSchema } from './campaignCore.js'
 import { encounterGmActorDtoSchema } from './encounterData.js'
 import { characterPartyVisibilityDtoSchema, healthDisplayLevelDtoSchema } from './healthDisplay.js'
 import { rollVisibilityDtoSchema } from './rolls.js'
@@ -32,7 +33,14 @@ const liveSessionRoomCampaignAuthorizationSchema = lazySchema(() =>
     /** Current ACTIVE members only; an archived Campaign has none. */
     members: z.array(liveSessionTransientMemberSchema).check(z.maxLength(MAX_ROOM_MEMBERS)),
     assignments: z
-      .array(z.strictObject({ characterId: uuidSchema, userId: uuidSchema }))
+      .array(
+        z.strictObject({
+          characterId: uuidSchema,
+          userId: uuidSchema,
+          /** GM-granted controllers of the Character (D162); absent means none. */
+          controllerUserIds: z.optional(campaignCharacterControllerUserIdsSchema)
+        })
+      )
       .check(z.maxLength(MAX_ROOM_MEMBERS))
   })
 )

@@ -39,6 +39,7 @@ it('lets a player preview a bound token only when they control its actor', () =>
   expect(
     canPreviewSceneTokenDrag({
       ...player,
+      assignments: [],
       token: token({ controlledByUserIds: [playerId] }),
       originBoundTokenControl: [{ tokenId, controlled: false }]
     })
@@ -47,6 +48,7 @@ it('lets a player preview a bound token only when they control its actor', () =>
   expect(
     canPreviewSceneTokenDrag({
       ...player,
+      assignments: [],
       token: token(),
       originBoundTokenControl: [{ tokenId, controlled: true }]
     })
@@ -57,16 +59,23 @@ it('keeps Scene token control for unbound tokens and refuses locked or hidden on
   expect(
     canPreviewSceneTokenDrag({
       ...player,
+      assignments: [],
       token: token({ controlledByUserIds: [playerId] }),
       originBoundTokenControl: []
     })
   ).toBe(true)
   expect(
-    canPreviewSceneTokenDrag({ ...player, token: token(), originBoundTokenControl: null })
+    canPreviewSceneTokenDrag({
+      ...player,
+      assignments: [],
+      token: token(),
+      originBoundTokenControl: null
+    })
   ).toBe(false)
   expect(
     canPreviewSceneTokenDrag({
       ...player,
+      assignments: [],
       token: token({ controlledByUserIds: [playerId], hidden: true }),
       originBoundTokenControl: null
     })
@@ -74,6 +83,7 @@ it('keeps Scene token control for unbound tokens and refuses locked or hidden on
   expect(
     canPreviewSceneTokenDrag({
       role: 'OWNER',
+      assignments: [],
       userId: playerId,
       token: token({ locked: true }),
       originBoundTokenControl: null
@@ -82,8 +92,54 @@ it('keeps Scene token control for unbound tokens and refuses locked or hidden on
   expect(
     canPreviewSceneTokenDrag({
       role: 'OWNER',
+      assignments: [],
       userId: playerId,
       token: token(),
+      originBoundTokenControl: null
+    })
+  ).toBe(true)
+})
+
+const ownerId = '00000000-0000-4000-8000-000000000301'
+const characterId = '00000000-0000-4000-8000-000000000302'
+const otherCharacterId = '00000000-0000-4000-8000-000000000303'
+
+it('lets a granted member preview a token bound to a Character they control, and only that one (D162)', () => {
+  const assignments = [
+    { characterId, userId: ownerId, controllerUserIds: [playerId] },
+    { characterId: otherCharacterId, userId: ownerId }
+  ]
+  const drag = (overrides: Parameters<typeof token>[0]) =>
+    canPreviewSceneTokenDrag({
+      ...player,
+      assignments,
+      token: token(overrides),
+      originBoundTokenControl: null
+    })
+  expect(drag({ characterId })).toBe(true)
+  // The same owner's other Character, and a token with no Character, grant nothing.
+  expect(drag({ characterId: otherCharacterId })).toBe(false)
+  expect(drag({})).toBe(false)
+})
+
+it('refuses a revoked member the same drag', () => {
+  expect(
+    canPreviewSceneTokenDrag({
+      ...player,
+      assignments: [{ characterId, userId: ownerId, controllerUserIds: [] }],
+      token: token({ characterId }),
+      originBoundTokenControl: null
+    })
+  ).toBe(false)
+})
+
+it('keeps the assigned player in control of their own Character token', () => {
+  expect(
+    canPreviewSceneTokenDrag({
+      role: 'PLAYER',
+      userId: ownerId,
+      assignments: [{ characterId, userId: ownerId }],
+      token: token({ characterId }),
       originBoundTokenControl: null
     })
   ).toBe(true)

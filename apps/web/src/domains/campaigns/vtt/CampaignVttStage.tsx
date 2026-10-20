@@ -13,17 +13,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import {
-  Check,
-  Crosshair,
-  Eye,
-  EyeOff,
-  Gamepad2,
-  SlidersHorizontal,
-  Undo2,
-  ZoomIn,
-  ZoomOut
-} from 'lucide-react'
+import { Check, Crosshair, Eye, EyeOff, Gamepad2, SlidersHorizontal, Undo2 } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import type {
   CampaignSceneStateDto,
@@ -62,9 +52,12 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 import type { BindEncounterToPresentedSceneInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneEncounterBindingSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
+import { withCharacterControllers } from '@artificer-toolkit/shared/campaign/characterControl'
 import {
   assignedCharacterTokenId,
   canMoveSceneToken,
+  characterControlAssignments,
+  controlledCharacters,
   createSceneAnnotation,
   createSceneBarrier,
   createSceneDarknessZone,
@@ -76,6 +69,7 @@ import {
   nudgeSceneToken,
   playTools,
   readActiveTurn,
+  resolveMainCharacterId,
   type CampaignVttToolDefinition,
   type SceneTokenNudgeDirection
 } from './CampaignVttStage.model'
@@ -88,6 +82,8 @@ import { CampaignTabletopMovementReadout } from './CampaignTabletopMovementReado
 import { selectMovementAllowance } from './CampaignTabletopMovementReadout.model'
 import { CampaignEncounterDecision } from '../components/CampaignEncounterDecision'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
+import { VttZoomControl } from './VttZoomControl'
+import { readStoredVttZoom, vttZoomStorageKey, writeStoredVttZoom } from './vttZoom.model'
 import * as styles from './CampaignVttStage.css'
 import { useActionTargetModifiers } from './useActionTargetModifiers'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
@@ -159,6 +155,7 @@ export function CampaignVttStage({
   const optimisticDoorCommands = useRef(new Map<string, string>())
   const [mode, setMode] = useState<CampaignVttMode>('PLAY')
   const [mapLoadStatus, setMapLoadStatus] = useState<VttMapLoadStatus | null>(null)
+  const [zoomScale, setZoomScale] = useState(1)
   const [tool, setTool] = useState<CampaignVttTool>('SELECT')
   const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
   const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
@@ -166,6 +163,7 @@ export function CampaignVttStage({
   const [chosenPreviewTokenId, setChosenPreviewTokenId] = useState<string | null>(null)
   const [inspectedTokenId, setInspectedTokenId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
+  const [pickedMainCharacterId, setPickedMainCharacterId] = useState<string | null>(null)
   // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
   const [sharePreviews, setSharePreviews] = useState(false)
   // The speed type the member chose for an actor's movement; it applies to that actor only.
@@ -569,19 +567,27 @@ export function CampaignVttStage({
       )
     }
   }, [scene, effectiveMode, activeEncounter, actorIdByTokenId])
+  // A Character's grantees control its linked tokens as its player does (D162).
+  const controlledScene = useMemo(
+    () =>
+      presentScene && (campaign.role !== 'OWNER' || gmPreviewUserId)
+        ? withCharacterControllers(presentScene, characterControlAssignments(campaign.memberships))
+        : presentScene,
+    [presentScene, campaign.role, campaign.memberships, gmPreviewUserId]
+  )
   const renderedScene = useMemo(
     () =>
-      presentScene && campaign.role === 'OWNER' && gmPreviewUserId
+      controlledScene && campaign.role === 'OWNER' && gmPreviewUserId
         ? projectSceneForViewer(
-            presentScene,
+            controlledScene,
             {
               role: 'PLAYER',
               userId: gmPreviewUserId
             },
             boundTokenControl
           )
-        : presentScene,
-    [presentScene, campaign.role, gmPreviewUserId, boundTokenControl]
+        : controlledScene,
+    [controlledScene, campaign.role, gmPreviewUserId, boundTokenControl]
   )
   // A forced movement waiting on its source is picked on the board by whoever acts for it (D157).
   const destinationPending =
@@ -733,17 +739,19 @@ export function CampaignVttStage({
   const effectiveRole = gmPreviewUserId ? 'PLAYER' : campaign.role
   const effectivePreviewTokenId =
     campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null
+  // The tabletop is seen through one main Character's senses; selecting a controlled token overrides it.
+  const controlled = useMemo(
+    () => controlledCharacters(campaign.memberships, viewerUserId),
+    [campaign.memberships, viewerUserId]
+  )
+  const mainCharacterId = resolveMainCharacterId(controlled, pickedMainCharacterId)
   const viewTokenId = renderedScene
     ? resolveViewTokenId({
         assignedTokenId: assignedCharacterTokenId({
           actorIdByTokenId,
           actors: activeEncounter?.actors ?? [],
-          assignedCharacterId:
-            (gmPreviewUserId
-              ? campaign.memberships.find((membership) => membership.userId === gmPreviewUserId)
-                  ?.assignedCharacter
-              : campaign.assignedCharacter
-            )?.id ?? null
+          assignedCharacterId: mainCharacterId,
+          tokens: renderedScene.tokens
         }),
         boundTokenControl,
         currentUserId: viewerUserId,
@@ -898,6 +906,14 @@ export function CampaignVttStage({
         setActionsOpened(true)
       },
       onSquarePick: (center) => pickDestinationRef.current?.(center),
+      onZoomChange: (scale, origin) => {
+        setZoomScale(scale)
+        const sceneId = sceneRef.current?.id
+        if (origin === 'USER' && sceneId) {
+          writeStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId), scale)
+        }
+      },
+      resolveSceneZoom: (sceneId) => readStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId)),
       onMapLoadStatus: (status) => {
         setMapLoadStatus(status)
         mapDelivery.onMapLoadStatus(status)
@@ -1312,6 +1328,19 @@ export function CampaignVttStage({
         </div>
         <div className={styles.headerActions}>
           {scenePresentationControl}
+          {effectiveRole === 'PLAYER' && controlled.length > 1 ? (
+            <Select
+              aria-label='Main Character'
+              allowDeselect={false}
+              data={controlled.map((character) => ({
+                label: character.label,
+                value: character.id
+              }))}
+              size='xs'
+              value={mainCharacterId}
+              onChange={setPickedMainCharacterId}
+            />
+          ) : null}
           {campaign.role === 'OWNER' ? (
             <>
               <Select
@@ -1611,15 +1640,10 @@ export function CampaignVttStage({
               if (token) commitTokenMove(tokenId, [token.position, position])
             }}
           />
-          <Tooltip label='Zoom out'>
-            <ActionIcon
-              aria-label='Zoom out'
-              variant='default'
-              onClick={() => renderer.current?.zoomOut()}
-            >
-              <ZoomOut aria-hidden size={18} />
-            </ActionIcon>
-          </Tooltip>
+          <VttZoomControl
+            scale={zoomScale}
+            onChange={(scale) => renderer.current?.setZoomScale(scale)}
+          />
           <Tooltip label='Fit map to view'>
             <ActionIcon
               aria-label='Fit map to view'
@@ -1627,15 +1651,6 @@ export function CampaignVttStage({
               onClick={() => renderer.current?.fit()}
             >
               <Crosshair aria-hidden size={18} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label='Zoom in'>
-            <ActionIcon
-              aria-label='Zoom in'
-              variant='default'
-              onClick={() => renderer.current?.zoomIn()}
-            >
-              <ZoomIn aria-hidden size={18} />
             </ActionIcon>
           </Tooltip>
         </div>

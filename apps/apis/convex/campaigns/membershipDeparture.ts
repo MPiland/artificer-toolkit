@@ -15,6 +15,7 @@ import { removeCampaignCharacterAssignment } from './characterDeparture'
 import { removeCampaignSharesAndReconcile } from './contentShareRemoval'
 import { scheduleLiveSessionUserEviction } from '../liveSessions/controlScheduling'
 import { removeEncounterActorController } from '../encounters/actorControllerRemoval'
+import { removeCampaignCharacterController } from './characterControllers'
 
 async function depart(
   ctx: MutationCtx,
@@ -109,6 +110,7 @@ async function depart(
     inputFingerprint
   })
   await removeEncounterActorController(ctx, campaign, departing.userId)
+  await removeCampaignCharacterController(ctx, campaign, departing.userId)
   await ctx.db.patch(departing._id, { status: 'LEFT', leftAt: new Date().toISOString() })
   await scheduleLiveSessionUserEviction(ctx, {
     campaignId: campaign.id,

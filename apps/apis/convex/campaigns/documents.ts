@@ -63,6 +63,14 @@ export async function readCampaignDetail(
 ) {
   if (privateOwnerView && membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
   const members = await readActiveCampaignMembers(ctx, campaign)
+  const grantsByUserId = new Map(
+    (
+      await ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+        .collect()
+    ).map(({ userId, controllerUserIds }) => [userId, controllerUserIds ?? []])
+  )
   const memberDetails = await Promise.all(
     members.map(async (member) => {
       const [profile, assignedCharacter] = await Promise.all([
@@ -90,7 +98,8 @@ export async function readCampaignDetail(
       role: member.role,
       accessStartedAt: member.accessStartedAt,
       acceptedAt: member.joinedAt,
-      assignedCharacter
+      assignedCharacter,
+      characterControllerUserIds: assignedCharacter ? (grantsByUserId.get(member.userId) ?? []) : []
     }
   })
   const own = memberships.find((member) => member.userId === membership.userId)

@@ -32,7 +32,7 @@ import {
 } from './sceneGeometryDocuments.js'
 import { geometryTarget, normalizeSceneGeometryEntity } from './sceneGeometryValues.js'
 import { advanceLiveState } from './sceneLiveState.js'
-import { requireBoundTokenMoveControl } from './actorController.js'
+import { requireBoundTokenMoveControl, requireUnboundTokenMoveControl } from './actorController.js'
 import { consumeTurnTeleportAllowance, recordTurnMovement } from './turnMovement.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
@@ -202,15 +202,6 @@ function liveEntityChange(row: Omit<LiveEntity, 'checksum'>): LiveEntity {
 const samePoint = (left: { x: number; y: number }, right: { x: number; y: number }) =>
   Math.abs(left.x - right.x) <= 1e-8 && Math.abs(left.y - right.y) <= 1e-8
 
-function assertMoveTokenControl(
-  token: { controlledByUserIds: readonly string[]; locked: boolean } | null,
-  userId: string,
-  owner: boolean
-) {
-  if (!token || token.locked || (!owner && !token.controlledByUserIds.includes(userId)))
-    throw new Error('Members may only move an unlocked token they control.')
-}
-
 /** `rules` publishes Encounter-bound movement; only the Session room supplies it (D43). */
 export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometry>(
   ctx: EncounterCharacterWriteTransaction,
@@ -349,7 +340,7 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
         encounterId: preparation.encounterId,
         tokenId: movingToken.id
       })
-    } else assertMoveTokenControl(movingToken, userId, membership.role === 'OWNER')
+    } else await requireUnboundTokenMoveControl(ctx, { campaign, membership, token: movingToken })
   }
   const pending = preparation?.outcome.kind === 'PENDING' ? preparation.outcome : null
   const delta =

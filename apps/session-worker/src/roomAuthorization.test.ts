@@ -393,6 +393,49 @@ describe('room authorization cache', () => {
     expect(current.characters.map((character) => character.characterId)).toEqual([characterId])
   })
 
+  it('gives a granted member control of the Character actor and takes it back at the next read (D162)', async () => {
+    const first = fullResponse()
+    const granted: Response = {
+      revisions: { ...first.revisions, campaign: id(104) },
+      campaign: {
+        ownerUserId: ownerId,
+        members: members(playerId, otherPlayerId),
+        assignments: [
+          { characterId, userId: playerId, controllerUserIds: [otherPlayerId] },
+          { characterId: otherCharacterId, userId: otherPlayerId }
+        ]
+      },
+      characters: []
+    }
+    const revoked: Response = {
+      revisions: { ...first.revisions, campaign: id(105) },
+      campaign: { ...granted.campaign!, assignments: first.campaign!.assignments },
+      characters: []
+    }
+    const { cache } = cacheWith(first, granted, revoked)
+    const bound = { sceneId, encounterId }
+    expect(roomBoundTokenControl(await cache.refresh(epoch), otherPlayerId, bound)).toEqual([
+      { tokenId, controlled: false },
+      { tokenId: otherTokenId, controlled: true }
+    ])
+    cache.invalidate()
+    const current = await cache.refresh(epoch)
+    expect(roomBoundTokenControl(current, otherPlayerId, bound)).toEqual([
+      { tokenId, controlled: true },
+      { tokenId: otherTokenId, controlled: true }
+    ])
+    // The owner keeps control, and the grant reaches no other Character's actor.
+    expect(roomBoundTokenControl(current, playerId, bound)).toEqual([
+      { tokenId, controlled: true },
+      { tokenId: otherTokenId, controlled: false }
+    ])
+    cache.invalidate()
+    expect(roomBoundTokenControl(await cache.refresh(epoch), otherPlayerId, bound)).toEqual([
+      { tokenId, controlled: false },
+      { tokenId: otherTokenId, controlled: true }
+    ])
+  })
+
   it('follows an ownership transfer: new roles and membership epochs, never the old admissions', async () => {
     const first = fullResponse()
     const transferredAt = '2026-09-28T01:00:00.000Z'
