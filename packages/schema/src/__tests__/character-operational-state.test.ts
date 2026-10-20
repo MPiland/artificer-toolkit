@@ -92,6 +92,7 @@ function capture(state: typeof character.state) {
       spellCustomizations: [],
       resourceUsage: [],
       itemUsage: [],
+      itemDegradation: [],
       partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY
     }
   })

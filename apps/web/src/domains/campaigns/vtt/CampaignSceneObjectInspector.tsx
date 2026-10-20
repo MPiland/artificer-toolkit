@@ -13,7 +13,7 @@ import {
   TextInput
 } from '@mantine/core'
 import { Crosshair, Trash2 } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ScenePoint, SceneTokenVision } from '@artificer-toolkit/shared/vtt'
@@ -1158,10 +1158,10 @@ function ObjectPicker({
 
 function useSelection(ids: string[]): [string | null, (value: string | null) => void] {
   const [value, setValue] = useState<string | null>(ids[0] ?? null)
-  useEffect(() => {
-    if (value && ids.includes(value)) return
-    setValue(ids[0] ?? null)
-  }, [ids, value])
+  if (!value || !ids.includes(value)) {
+    const fallback = ids[0] ?? null
+    if (fallback !== value) setValue(fallback)
+  }
   return [value, setValue]
 }
 

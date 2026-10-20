@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { balor } from '@artificer-toolkit/source-data/srd/creatures/balor.js'
+import { remorhaz } from '@artificer-toolkit/source-data/srd/creatures/remorhaz.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -71,6 +72,43 @@ describe('a creature’s passive zone through the creature node map (ADR 0038)',
 
   it('keeps an aura with another radius and other dice the same way', async () => {
     const authored = variant()
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+  })
+})
+
+/**
+ * SPELLS-33 T4k2 (D156): the SRD Remorhaz's Heated Body is a passive melee trait authored from core
+ * options, with no zone and no closed rule: a PASSIVE melee effect with a distance range and direct
+ * damage. A Builder author's variant with another range and other dice must pass the node map too.
+ */
+describe('a creature’s passive melee retaliation trait through the creature node map (ADR 0038)', () => {
+  function heatedBody(creature: CreatureAuthored) {
+    const effect = creature.features?.find(({ label }) => label === 'Heated Body')?.effects?.[0]
+    const path = effect?.paths[0]
+    const damage = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+    if (!effect || damage?.effectKind !== 'DAMAGE' || !('diceConfig' in damage))
+      throw new Error('The Remorhaz must author Heated Body as passive dice damage.')
+    return { effect, damage }
+  }
+
+  it('keeps the SRD Remorhaz’s Heated Body exactly as authored, with no closed rule', async () => {
+    const { effect } = heatedBody(remorhaz)
+    expect(effect.invocation).toMatchObject({ kind: 'PASSIVE', triggerCode: 'MELEE_WEAPON_ATTACK' })
+    expect(JSON.stringify(effect)).not.toContain('CLOSED_RULE')
+    const result = await normalize(remorhaz)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(remorhaz.features)
+  })
+
+  it('keeps a trait with another range and other dice the same way', async () => {
+    const authored = structuredClone(remorhaz)
+    const { effect, damage } = heatedBody(authored)
+    if (effect.invocation.range?.rangeKind !== 'DISTANCE')
+      throw new Error('The trait must author a distance range.')
+    effect.invocation.range = { ...effect.invocation.range, amount: 10 }
+    damage.diceConfig = '2d8'
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)

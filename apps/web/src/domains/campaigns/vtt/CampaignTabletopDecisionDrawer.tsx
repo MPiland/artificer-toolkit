@@ -14,7 +14,7 @@ import {
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { CircleHelp } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type {
   EncounterD20RollModeDto,
   EncounterEvidenceRollDto,
@@ -85,13 +85,21 @@ export function CampaignTabletopDecisionDrawer({
   const movementChoice =
     pending.kind === 'MOVEMENT_REACTION' || pending.kind === 'MOVEMENT_PASSAGE_CHOICE'
 
-  useEffect(() => {
+  const [trackedOccurrence, setTrackedOccurrence] = useState({
+    id: pending.occurrenceId,
+    version: pending.occurrenceVersion
+  })
+  if (
+    trackedOccurrence.id !== pending.occurrenceId ||
+    trackedOccurrence.version !== pending.occurrenceVersion
+  ) {
+    setTrackedOccurrence({ id: pending.occurrenceId, version: pending.occurrenceVersion })
     setPrimaryOptionId(null)
     setBonusOptionId(null)
     setAdjudicationValues({})
     setFeedback(null)
     setError(null)
-  }, [pending.occurrenceId, pending.occurrenceVersion])
+  }
 
   function commandTarget() {
     return {

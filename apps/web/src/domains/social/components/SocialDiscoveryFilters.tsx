@@ -126,7 +126,7 @@ export function SocialDiscoveryFilters({
             />
             <AppSelect
               clearable
-              data={weekdayOptions}
+              data={weekdayOptions()}
               disabled={search.scheduleKind !== 'RECURRING'}
               label='Weekday'
               value={search.weekday === undefined ? null : String(search.weekday)}

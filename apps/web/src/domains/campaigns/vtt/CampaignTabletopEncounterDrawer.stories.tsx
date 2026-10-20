@@ -113,6 +113,10 @@ export const PlayerReleasesOffTurn: Story = {
     releaseSent.mockClear()
     const canvas = within(canvasElement.ownerDocument.body)
     await userEvent.click(canvas.getByRole('button', { name: 'Open turn order' }))
+    // The drawer fades in; its content only counts as visible once the open transition ends.
+    await waitFor(async () => {
+      await expect(await canvas.findByRole('dialog', { name: 'Turn order' })).toBeVisible()
+    })
     const section = within(await canvas.findByRole('region', { name: 'Holding' }))
 
     await userEvent.click(section.getByRole('button', { name: playerHold.label }))

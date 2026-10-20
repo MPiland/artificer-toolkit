@@ -1282,6 +1282,7 @@ export function projectCharacterSheetBundle(
           : undefined,
         weight: mechanics?.weight,
         armorClass: equipment?.armorClass,
+        degradation: item.degradation,
         customName: item.customName,
         quantity: item.quantity,
         equippedSlot:

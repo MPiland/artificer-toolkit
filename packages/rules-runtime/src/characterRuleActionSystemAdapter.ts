@@ -559,6 +559,8 @@ export interface CharacterRuleActionSystemAdapter {
    */
   compileZonePlacement?(input: {
     action: EffectActionCapabilityDescriptor
+    /** The label of the feature that keeps a zone its Effect does not author (a passive melee trait). */
+    label?: string
   }): CharacterRuleActionZonePlacementPlan | CharacterRuleActionZoneChoicePlan | null
   /** Returns the exact supported recurring plan for this locked action, if any. */
   activeEffectPlans?(input: {

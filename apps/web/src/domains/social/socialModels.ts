@@ -95,12 +95,15 @@ export const socialListingPolicyFields = [
   ['How safety practices are used', 'safetyDetails']
 ] as const
 
-export const weekdayOptions = Array.from({ length: 7 }, (_, weekday) => ({
-  value: String(weekday),
-  label: new Intl.DateTimeFormat(undefined, { weekday: 'long', timeZone: 'UTC' }).format(
-    new Date(Date.UTC(2024, 0, 7 + weekday))
-  )
-}))
+/** Built per call: the labels follow the reader's locale, which is unknown at module load. */
+export function weekdayOptions() {
+  return Array.from({ length: 7 }, (_, weekday) => ({
+    value: String(weekday),
+    label: new Intl.DateTimeFormat(undefined, { weekday: 'long', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(2024, 0, 7 + weekday))
+    )
+  }))
+}
 
 export function buildSocialListingRouteParams(
   listing: Pick<SocialListingDto, 'listingPublicId' | 'title'>
@@ -119,7 +122,7 @@ export function formatSocialSchedule(schedule: SocialListingScheduleDto) {
     }).format(new Date(schedule.startsAt))} — ${schedule.summary}`
   }
 
-  const weekday = weekdayOptions[schedule.weekday]?.label ?? 'Recurring'
+  const weekday = weekdayOptions()[schedule.weekday]?.label ?? 'Recurring'
   return `${weekday} at ${schedule.localStartTime} (${schedule.recurrence === 'WEEKLY' ? 'weekly' : 'every other week'}) — ${schedule.summary}`
 }
 

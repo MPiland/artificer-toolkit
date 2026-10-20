@@ -157,6 +157,7 @@ export function buildEncounterActionStoredExecution(input: {
             sourceItemDraw: settled.sourceItemDraw,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
+            targetItemDegradation: settled.targetItemDegradation,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions: activeEffectTransitions.map((transition) =>

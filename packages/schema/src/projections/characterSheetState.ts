@@ -60,6 +60,13 @@ const itemUsageSchema = lazySchema(() =>
     used: z.number().check(z.int()).check(z.positive())
   })
 )
+/** Corroded equipment: the penalty its armor class or damage rolls carry, never below one. */
+const itemDegradationSchema = lazySchema(() =>
+  z.strictObject({
+    itemInstanceId: z.string(),
+    penalty: z.number().check(z.int()).check(z.positive())
+  })
+)
 const spellCustomizationSchema = lazySchema(() =>
   z.extend(sheetRecordMetadataSchema, {
     source: characterSpellSourceRefDtoSchema,
@@ -77,6 +84,7 @@ export const characterSheetStateSchema = lazySchema(() =>
     partyVisibility: characterPartyVisibilityDtoSchema,
     resourceUsage: z._default(z.array(resourceUsageSchema), []),
     itemUsage: z._default(z.array(itemUsageSchema), []),
+    itemDegradation: z._default(z.array(itemDegradationSchema), []),
     spellCustomizations: z._default(z.array(spellCustomizationSchema), [])
   })
 )

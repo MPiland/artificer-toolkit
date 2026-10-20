@@ -1103,6 +1103,23 @@ describe('a source zone that burns a melee attacker standing in it (SPELLS-20 T6
     expect(comparable(balor)).toEqual(comparable(homebrew))
   })
 
+  it('compiles the SRD Remorhaz’s zone-less Heated Body as the same zone a core-options 5 ft aura of 3d6 fire answering melee hits is (SPELLS-33 T4k2)', () => {
+    const comparable = ({ label: _label, shape, entry, ...rest }: CompiledActionZonePlacement) => ({
+      ...rest,
+      shape: { ...shape, id: null },
+      nodes: entry.frozenGraph.definition.nodes.map(({ id, operation }) => ({ id, operation }))
+    })
+    const remorhaz = passiveZoneOf(srdByLabel(SRD.creatures, 'Remorhaz'))
+    const homebrew = goblinWith(creatureAuraFeature('3d6', 5, ['MELEE_HIT_ON_SOURCE']))
+    expect(remorhaz).toMatchObject({
+      label: 'Heated Body',
+      attachment: 'SOURCE',
+      retaliatesMeleeHits: true
+    })
+    expect(remorhaz).not.toHaveProperty('turnTriggers')
+    expect(comparable(remorhaz)).toEqual(comparable(homebrew))
+  })
+
   it('stays manual on a zone left at a point, which has no source to hit', () => {
     expect(
       compileItemEntry(
