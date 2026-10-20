@@ -62,8 +62,8 @@ import {
 import { authoredStoredCompilationSchema } from '@artificer-toolkit/schema/api/authoredPublication'
 import {
   insertAuthoredVersion,
-  insertAuthoredVersionCompilation,
   readAuthoredVersionCompilation,
+  readAuthoredVersionCompilationRow,
   readAuthoredVersion,
   readPublishedDocument,
   readStoredAuthoredVersionDocument,
@@ -403,7 +403,7 @@ export const importSubjects: RegisteredMutation<
         const storedVersion = await ctx.db.get(current.currentVersionId)
         if (!storedVersion) throw new Error('Missing canonical version.')
         const storedVersionFields = storedFields(storedVersion)
-        const storedCompilation = await readAuthoredVersionCompilation(ctx, storedVersion)
+        const storedCompilationRow = await readAuthoredVersionCompilationRow(ctx, storedVersion)
         delete storedVersionFields.documentJson
         delete storedVersionFields.documentChunkCount
         delete storedVersionFields.documentByteLength
@@ -415,22 +415,26 @@ export const importSubjects: RegisteredMutation<
             : undefined
         const equipment =
           parsed.subjectKind === 'EQUIPMENT' &&
-          (storedCompilation !== undefined || existingEquipmentOptions?.builder !== undefined)
+          (storedCompilationRow !== null || existingEquipmentOptions?.builder !== undefined)
             ? await compileCurrentEquipment(ctx, parsed.document, null)
             : undefined
-        if (storedCompilation !== undefined) {
-          if (compilation) exact(storedCompilation, compilation)
-          else if (equipment) exact(storedCompilation, equipment.compilation)
-          else if (parsed.subjectKind === 'RACE')
-            exact(
-              storedCompilation,
-              (await compileCurrentRace(ctx, parsed.document, null)).compilation
-            )
-          else if (parsed.subjectKind !== 'CLASS')
-            throw new Error('Unexpected canonical compilation.')
-        } else if (compilation) {
-          await insertAuthoredVersionCompilation(ctx, storedVersion, compilation)
-        }
+        // A Class, and a Race not compiled yet, are synced after every root exists.
+        const expectedCompilation =
+          compilation ??
+          equipment?.compilation ??
+          (parsed.subjectKind === 'RACE' && storedCompilationRow !== null
+            ? (await compileCurrentRace(ctx, parsed.document, null)).compilation
+            : undefined)
+        if (expectedCompilation) {
+          const storedCompilation = await syncCanonicalCompilation(
+            ctx,
+            current,
+            storedVersion,
+            expectedCompilation
+          )
+          if (storedCompilation) exact(storedCompilation, expectedCompilation)
+        } else if (storedCompilationRow !== null && parsed.subjectKind !== 'CLASS')
+          throw new Error('Unexpected canonical compilation.')
         if (storedOptions !== undefined) {
           if (!equipmentOptions) throw new Error('Unexpected equipment option facts.')
           if (equipment && parsed.subjectKind === 'EQUIPMENT') {

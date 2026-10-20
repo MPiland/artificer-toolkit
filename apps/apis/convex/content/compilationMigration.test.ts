@@ -8,6 +8,7 @@ import { arrowsPlus1 } from '@artificer-toolkit/source-data/srd/equipment/arrows
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { dwarf, hillDwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
+import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SUBJECT_COMPILER_VERSION } from '@artificer-toolkit/schema/api/authoredPublication'
 import { acquiredEquipmentRulesSchema } from '@artificer-toolkit/schema/projections/acquiredEquipmentRules'
 import { characterCollectionRecord } from '@artificer-toolkit/schema/projections/characterOperationalState'
@@ -114,7 +115,7 @@ async function supersede(ctx: MutationCtx, current: ReturnType<typeof currentCom
   }
 }
 
-function sourceImportBatches() {
+function fixtureBatches() {
   return [
     sources.map((source) =>
       importedSubject({ ...source, ...source.document, document: source.document })
@@ -129,7 +130,7 @@ it('re-seeds superseded canonical compilations and refuses to re-seed authored c
   const { t } = await publicationFixture(
     import.meta.glob('/apps/apis/convex/**/*.*s'),
     import.meta.glob('../betterAuth/**/*.*s'),
-    sourceImportBatches()
+    fixtureBatches()
   )
   const current = sources.map(currentCompilation)
   const ownerUserId = crypto.randomUUID()
@@ -138,7 +139,12 @@ it('re-seeds superseded canonical compilations and refuses to re-seed authored c
     await supersede(ctx, current)
   })
 
-  // The seed's derived syncs, in its order.
+  // The seed replays every canonical subject, then runs its derived syncs, in its order.
+  for (const subject of fixtureBatches()[0]!.filter(({ id }) => id !== acolyte.id))
+    await t.mutation(internal.content.import.importSubjects, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [subject]
+    })
   await t.mutation(
     internal.content.import.syncClassDerived,
     classDerivedArgs(importedSubject({ subjectKind: 'CLASS', ...fighter, document: fighter }))
@@ -191,7 +197,7 @@ it('recompiles every superseded stored compilation at the current compiler versi
   const { t } = await publicationFixture(
     import.meta.glob('/apps/apis/convex/**/*.*s'),
     import.meta.glob('../betterAuth/**/*.*s'),
-    sourceImportBatches()
+    fixtureBatches()
   )
   vi.useFakeTimers()
   onTestFinished(() => {
