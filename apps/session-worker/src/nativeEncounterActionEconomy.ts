@@ -1,4 +1,5 @@
 import type { LiveSessionEncounterRulesRequest } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
@@ -40,6 +41,8 @@ export async function evaluateNativeLiveActionEconomy(input: {
   /** The acting actor's own facts. */
   sourceTarget: EconomyTarget
   targetIds: readonly string[]
+  /** The size of the one creature the action targets, when a slot's predicate reads it. */
+  targetSize?: string | null
   capture: EconomyCapture
 }) {
   const { prepared } = input
@@ -56,6 +59,9 @@ export async function evaluateNativeLiveActionEconomy(input: {
     return { activationCode: activation.code, economy: null, suppressed: false, attackAction: null }
   if (activation.amount === null)
     throw new Error('The selected action activation is not normalized.')
+  const featureId =
+    prepared.source.kind === 'CREATURE' ? prepared.source.capability.ownerFeatureId : undefined
+  const targetSize = sizeCodeSchema.safeParse(input.targetSize)
   const {
     economy,
     attackAction: openedAttackAction,
@@ -64,6 +70,9 @@ export async function evaluateNativeLiveActionEconomy(input: {
     triggerCode: invocation.triggerCode,
     replacesAttack:
       prepared.source.kind === 'BASIC_ACTION' && prepared.source.capability.actionCost === 'ATTACK',
+    featureId,
+    targetIds: input.targetIds,
+    targetSize: targetSize.success ? targetSize.data : null,
     actor: prepared.actor,
     state: input.state,
     activation: { code: activation.code, amount: activation.amount },
@@ -78,7 +87,9 @@ export async function evaluateNativeLiveActionEconomy(input: {
     attackAction: openedAttackAction
       ? encounterAttackActionTransition(openedAttackAction, {
           actionId: input.actionId,
+          ...(featureId ? { featureId } : {}),
           targetIds: [...input.targetIds],
+          ...(targetSize.success ? { targetSize: targetSize.data } : {}),
           ...(equipment
             ? {
                 item: {

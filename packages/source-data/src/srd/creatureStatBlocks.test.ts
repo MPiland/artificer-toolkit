@@ -272,7 +272,7 @@ const mismatches = new Map<string, string>(
 /**
  * `Creature label|actions Name` (or `reactions`, `legendaryActions`) of every printed action whose
  * authored Feature or legendary option has no Effect, on itself or on one of its options, and names no
- * action it runs (D51 option B). A printed name with no authored source at all is a name difference
+ * action it runs (D51 option B) and authors no attack slots (D93). A printed name with no authored source at all is a name difference
  * above instead.
  */
 const descriptionOnlyActions = new Set(
@@ -292,6 +292,7 @@ const descriptionOnlyActions = new Set(
         const hasEffect =
           source !== undefined &&
           ('actionReference' in source ||
+            ('attackSlots' in source && source.attackSlots !== undefined) ||
             [source, ...('options' in source ? (source.options ?? []) : [])].some(
               (entry) => (entry.effects ?? []).length > 0
             ))

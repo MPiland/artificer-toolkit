@@ -50,9 +50,10 @@ function attackActionWith(
   return {
     kind: 'ATTACK_ACTION',
     turnSequence,
-    total: 2,
+    alternatives: [{ slots: [{ count: 2, fillers: [{ kind: 'ANY_ATTACK' }] }] }],
     attacks: attacks.map(({ itemInstanceId, properties }) => ({
       actionId: 'source:ACTION:attack',
+      attack: true,
       targetIds: [TARGET_ID],
       ...(itemInstanceId ? { item: { itemInstanceId, properties: properties ?? [] } } : {})
     }))

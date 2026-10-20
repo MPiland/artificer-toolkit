@@ -1,4 +1,6 @@
 import { z, lazySchema } from '../zod.js'
+import { attackSlotSetDtoSchema } from '../features/attackSlots.js'
+import { sizeCodeSchema } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 /** Most attacks one Attack action can make; bounds the stored state. */
@@ -15,12 +17,23 @@ export const encounterAttackActionStateDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('ATTACK_ACTION'),
       turnSequence: z.number().check(z.int()).check(z.nonnegative()),
-      total: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ATTACKS_PER_ATTACK_ACTION)),
+      /** The ways this Attack action may be spent, fixed when it opened (D93). */
+      alternatives: attackSlotSetDtoSchema.shape.alternatives,
       attacks: z
         .array(
           z.strictObject({
             actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
+            /** The Creature Feature the attack came from; absent for a Character's. */
+            featureId: z.optional(
+              z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+            ),
+            /** Whether it is an Attack-action attack rather than a Feature that only fills a slot. */
+            attack: z.boolean(),
             targetIds: z.array(postgresUuidSchema).check(z.minLength(1)).check(z.maxLength(16)),
+            /** The target's size when known; a slot's size predicate reads it. */
+            targetSize: z.optional(sizeCodeSchema),
+            /** Whether the attack roll hit, once settled; absent for an action without one. */
+            hit: z.optional(z.boolean()),
             /** The item the attack was made with and its property codes; absent for an unarmed strike. */
             item: z.optional(
               z.strictObject({

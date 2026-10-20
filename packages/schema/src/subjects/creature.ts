@@ -324,6 +324,35 @@ function validateCreatureActionReferences(
 ) {
   const { features } = creature
   for (const [featureIndex, feature] of features.entries()) {
+    for (const [alternativeIndex, alternative] of (
+      feature.attackSlots?.alternatives ?? []
+    ).entries())
+      for (const [slotIndex, slot] of alternative.slots.entries())
+        for (const [fillerIndex, filler] of slot.fillers.entries()) {
+          if (filler.kind !== 'FEATURE') continue
+          const referenced = features.find((candidate) => candidate.id === filler.featureId)
+          if (
+            !referenced ||
+            referenced.id === feature.id ||
+            !(referenced.effects ?? []).some((effect) => effect.invocation.kind !== 'PASSIVE')
+          )
+            context.addIssue({
+              code: 'custom',
+              path: [
+                'features',
+                featureIndex,
+                'attackSlots',
+                'alternatives',
+                alternativeIndex,
+                'slots',
+                slotIndex,
+                'fillers',
+                fillerIndex,
+                'featureId'
+              ],
+              message: `"${feature.label}" must fill a slot with another action Feature of this Creature.`
+            })
+        }
     for (const [optionIndex, option] of (feature.options ?? []).entries()) {
       const reference = option.actionReference
       if (!reference) continue
