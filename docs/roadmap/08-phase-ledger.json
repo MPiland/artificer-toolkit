@@ -14470,7 +14470,7 @@
         {
           "id": "RELIABILITY-9",
           "title": "The web follows React data-flow rules",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -14570,7 +14570,7 @@
             {
               "id": "RELIABILITY-9.T2",
               "text": "One all-pages query contract, pure render and SSR-stable values. Also re-check CharacterSheetOverviewVitals: its overlay-epoch reset must not discard in-progress edits (carry-over from T1), and run the Storybook stories T1 could not run in its worktree: EncounterActorCard, CampaignClockEditor, CharacterSheetTextEditor, CharacterSheetInspector, CharacterSelectionModal, CharacterStartingEquipmentChoices, SocialListingFormPage, ProfileSettingsPage, CharacterBuilderAuthoringRuntime.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RELIABILITY-9.2", "RELIABILITY-9.3", "RELIABILITY-9.7"],
               "wsjf": {
                 "bv": 2,
