@@ -11,7 +11,10 @@ import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtim
 import { characterFormCreatureView } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
-import { creatureAttackSlotAlternatives } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import {
+  creatureAttackSlotAlternatives,
+  encounterAttackActionStanding
+} from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
   attackSlotTotal,
   isAttackSlotFiller
@@ -591,6 +594,7 @@ export async function readEncounterActionChoices(
         ? {
             made: attackActionThisTurn.attacks.length,
             total: attackSlotTotal(attackActionThisTurn.alternatives),
+            complete: !encounterAttackActionStanding(attackActionThisTurn).incomplete,
             lastActionId: lastAttack.actionId,
             lastTargetIds: lastAttack.targetIds
           }

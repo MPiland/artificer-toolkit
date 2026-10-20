@@ -264,7 +264,12 @@ Action, warns when none is left, and opens a new Attack action. Settlement final
 the attack's `hit` (`settleEncounterAttackActionHit`) before it is committed and receipted. Settlement commits the `attackActionTransition` `{ before, after }` in the
 action's mechanics batch with the same compare-and-set as the allowance; `REVERT_LAST_ACTION` restores
 `before` only while the actor still holds `after`, else it refuses with `REVERT_UNAVAILABLE`. Action
-choices report `attackSlot` per action and the actor's `openAttackAction`. A filler attack spends nothing
+choices report `attackSlot` per action and the actor's `openAttackAction` (`made`, `total`, `complete`:
+no required slot left, so every offer with an `attackSlot` is optional). A slot filler is tracked and
+blocked only when it spends the Action (`spendsAttackAction` on the adapter); the same Feature used as a
+Bonus Action, Reaction or Legendary Action is unaffected by the open Attack action. The drawer's "Done
+attacking" is client-only: it collapses the remaining-slots panel and drops the preselection while the
+server keeps the action open until the turn ends. A filler attack spends nothing
 but still honors suppression: `isActionEconomySuppressed` reuses the allowance capability resolution of
 `evaluateEncounterActionEconomy`, and an actor that can't act (Incapacitated, a suppressing effect) gets
 the overridable `ACTION_ECONOMY_UNAVAILABLE` warning and no `attackSlot`; a spent Action is not

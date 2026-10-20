@@ -941,6 +941,7 @@ const slotted = (number: number, total = 2): EncounterActionChoiceDto => ({
 const openAction = (made: number): EncounterActionChoicesDto['openAttackAction'] => ({
   made,
   total: 2,
+  complete: made >= 2,
   lastActionId: actions[0]!.id,
   lastTargetIds: [target.id]
 })
@@ -1002,6 +1003,50 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
         target: { kind: 'ACTOR', actorId: target.id }
       })
     )
+  })
+
+  it('shows what is left of the open Attack action, and what is optional once it is complete', async () => {
+    const open = renderDrawer(vi.fn(), {
+      choices: [slotted(2)],
+      openAttackAction: openAction(1),
+      defaultActionId: actions[0]!.id
+    })
+    expect(await screen.findByText('Attack action: 1 of 2 made')).toBeVisible()
+    expect(screen.getByText('Left: Quarterstaff')).toBeVisible()
+    open.unmount()
+
+    renderDrawer(vi.fn(), {
+      choices: [slotted(3, 3)],
+      openAttackAction: openAction(2),
+      defaultActionId: actions[0]!.id
+    })
+    expect(await screen.findByText('Attack action: 2 of 2 made')).toBeVisible()
+    expect(screen.getByText('Optional: Quarterstaff')).toBeVisible()
+  })
+
+  it('ends the panel and the preselection on "Done attacking" without submitting, and an attack reopens it', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const view = renderDrawer(onResolve, {
+      choices: [slotted(2)],
+      openAttackAction: openAction(1),
+      defaultActionId: actions[0]!.id
+    })
+    await user.click(await screen.findByRole('button', { name: 'Done attacking' }))
+
+    expect(screen.queryByText('Attack action: 1 of 2 made')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Action' })).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: 'Target' })).toHaveValue('')
+    expect(onResolve).not.toHaveBeenCalled()
+
+    view.rerender(
+      drawerElement(onResolve, {
+        choices: [slotted(2)],
+        openAttackAction: { ...openAction(1)!, made: 2, complete: true },
+        defaultActionId: actions[0]!.id
+      })
+    )
+    expect(await screen.findByText('Attack action: 2 of 2 made')).toBeVisible()
   })
 
   it('keeps the weapon and target for the next attack once the first resolves', async () => {

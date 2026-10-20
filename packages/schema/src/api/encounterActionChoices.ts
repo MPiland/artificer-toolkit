@@ -380,6 +380,8 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
       z.strictObject({
         made: z.number().check(z.int()).check(z.gte(1)),
         total: z.number().check(z.int()).check(z.gte(1)),
+        /** No required slot is left; whatever `actions` still offers with an `attackSlot` is optional. */
+        complete: z.boolean(),
         lastActionId: characterSheetActionDtoSchema.shape.id,
         lastTargetIds: z.array(postgresUuidSchema)
       })

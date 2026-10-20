@@ -26,6 +26,11 @@ export interface ActionEconomyCapabilityAdapter {
     activationAmount: number
   }): ActionEconomyCapabilityBinding
   /**
+   * Whether an activation spends the Action an Attack action opens with. Only such an action can
+   * fill the slots of an open Attack action; a bonus, reaction or legendary action never does.
+   */
+  spendsAttackAction(input: { activationKind: string; activationAmount: number }): boolean
+  /**
    * Whether an action is an attack of the Attack action: several of them share the one Action the
    * first spends, up to the actor's attacks per Attack action.
    */
@@ -72,6 +77,15 @@ export function createActionEconomyCapabilityRegistry(
         activationKind: input.activationKind,
         activationAmount: input.activationAmount
       })
+    },
+    spendsAttackAction(input: {
+      gameSystemId: string
+      activationKind: string
+      activationAmount: number
+    }): boolean {
+      return (
+        bySystemId.get(canonicalSystemId(input.gameSystemId))?.spendsAttackAction(input) ?? false
+      )
     },
     isAttackActionAttack(input: {
       gameSystemId: string
