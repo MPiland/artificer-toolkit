@@ -304,7 +304,10 @@ export const importSubjects: RegisteredMutation<
         parsed.subjectKind === 'CREATURE' ||
         parsed.subjectKind === 'VEHICLE'
           ? compilePublicationDocument(parsed)
-          : undefined
+          : // Base Equipment has no parents to wait for; a variant compiles in syncEquipmentDerived.
+            parsed.subjectKind === 'EQUIPMENT' && parsed.document.category !== 'VARIANT'
+            ? (await compileCurrentEquipment(ctx, parsed.document, null)).compilation
+            : undefined
       const parentClassId =
         parsed.subjectKind === 'CLASS'
           ? parsed.document.category === 'SUBCLASS'
@@ -799,7 +802,7 @@ export const readSubjects = internalQuery({
   }
 })
 
-// Equipment parents may arrive in a later import batch. Compile only after all roots exist.
+// Variant parents may arrive in a later import batch. Compile only after all roots exist.
 export const syncEquipmentDerived = internalMutation({
   args: {
     id: zodToConvex(sourceImportSubjectDtoSchema.shape.id),

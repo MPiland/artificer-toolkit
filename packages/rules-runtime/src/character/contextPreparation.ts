@@ -23,7 +23,7 @@ import type {
   SpellAuthored,
   VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
-import { compileFeature } from '@artificer-toolkit/shared/compilers'
+import { compileFeature, type CompiledFeature } from '@artificer-toolkit/shared/compilers'
 import {
   compileBackground,
   compileClass,
@@ -195,6 +195,11 @@ export function compileCharacterRuleSources(roots: {
   }
 }
 
+/** A compiled Feature's rules identity; compiler output leaves absent fields `undefined`. */
+function compiledFeatureChecksum(feature: CompiledFeature) {
+  return checksumRuleDocument(JSON.parse(JSON.stringify(feature)))
+}
+
 /** A current authorized Spell compiled for the rules; a Spell of another System never joins. */
 export function compileCharacterRuleSpell(
   character: Pick<CharacterAuthored, 'systemId'>,
@@ -348,8 +353,8 @@ export async function prepareCharacterRuleContext(
       // Rules identity: two owners may word one feature differently, never compile it differently.
       if (
         previous &&
-        checksumRuleDocument(compileFeature(previous)) !==
-          checksumRuleDocument(compileFeature(feature))
+        compiledFeatureChecksum(compileFeature(previous)) !==
+          compiledFeatureChecksum(compileFeature(feature))
       )
         throw new Error('Current Character feature identity is ambiguous.')
       if (!previous) features.set(feature.id, feature)
@@ -398,7 +403,7 @@ export async function prepareCharacterRuleContext(
   compiled.equipment.push(...pinnedEquipment.map(({ equipment }) => equipment))
   for (const feature of retainedFeatures) {
     const previous = compiled.features.find((record) => record.id === feature.id)
-    if (previous && checksumRuleDocument(previous) !== checksumRuleDocument(feature))
+    if (previous && compiledFeatureChecksum(previous) !== compiledFeatureChecksum(feature))
       throw new Error('Current Character feature identity is ambiguous.')
     if (!previous) compiled.features.push(feature)
   }

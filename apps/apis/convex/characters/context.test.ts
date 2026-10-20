@@ -7,6 +7,7 @@ import { composeCharacterRulePolicyFacts } from '@artificer-toolkit/rules-runtim
 import type { CharacterRuleContext } from '@artificer-toolkit/rules-runtime/character/characterRuleContext'
 import { evaluateInstalledCharacterPolicy } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
+import { compileFeature } from '@artificer-toolkit/shared/compilers'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
@@ -364,7 +365,9 @@ describe('native current Character rule context', () => {
     }))
     const context = await t.run((ctx) => serializableContext(ctx, character, owner.userId))
     expect(context.registry.backgrounds).toEqual([])
-    expect(context.registry.features).toEqual([ownFeature])
+    // D163: the registry holds the compiled Feature; its prose is read through the presentation lookup.
+    expect(context.registry.features).toEqual([compileFeature(ownFeature)])
+    expect(Object.values(context.presentation.features)).toEqual([ownFeature])
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')

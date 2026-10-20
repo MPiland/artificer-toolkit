@@ -19,6 +19,7 @@ import {
 } from '@artificer-toolkit/shared/subjects/compilers'
 import { collectReferenceIds } from '@artificer-toolkit/shared/utils'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import { internal } from '../_generated/api'
 import type { MutationCtx } from '../_generated/server'
 import { readAuthoredVersionCompilation, readAuthoredVersionCompilationRow } from './documents'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
@@ -163,6 +164,12 @@ it('repins legacy retained rules to the stored compilation of the same version, 
     vi.useRealTimers()
   })
   migrations.register(t)
+  // As the seed does, the variant compiles once its parent exists.
+  const variant = await t.run((ctx) => readVersion(ctx, arrowsPlus1.id))
+  await t.mutation(internal.content.import.syncEquipmentDerived, {
+    id: arrowsPlus1.id,
+    checksum: variant.checksum
+  })
   const characterId = crypto.randomUUID()
   const itemId = crypto.randomUUID()
 

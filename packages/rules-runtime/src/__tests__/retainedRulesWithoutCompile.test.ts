@@ -77,6 +77,12 @@ describe('Retained acquired rules', () => {
       quantity: 1,
       retainedRulesJson
     })
+    character.intent.featureAcquisitions.push({
+      id: crypto.randomUUID(),
+      featureId,
+      source: { kind: 'MANUAL' },
+      timing: { kind: 'IMMEDIATE' }
+    })
     vi.clearAllMocks()
 
     // Neither source is current: only the pinned record can supply the item and its Spell.
