@@ -868,6 +868,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > records t
         {
           "actorId": "<uuid:0>",
           "encounterId": "<uuid:1>",
+          "lastMove": null,
           "round": 1,
           "speedBonuses": 0,
           "speedId": null,

@@ -117,6 +117,7 @@ describe('room Encounter store', () => {
         speedBonuses: 0,
         speedId: null,
         usedOncePerTurn: [],
+        lastMove: null,
         teleportAllowances: []
       }
     }
@@ -429,6 +430,7 @@ describe('room Encounter store', () => {
           speedBonuses: 0,
           speedId: null,
           usedOncePerTurn: [],
+          lastMove: null,
           teleportAllowances: []
         })
         transaction.setRecord({ ...playState(0), revision: null, json: '{"aborted":true}' })
@@ -528,6 +530,7 @@ describe('room Encounter store', () => {
                   speedBonuses: 0,
                   speedId: null,
                   usedOncePerTurn: [],
+                  lastMove: null,
                   teleportAllowances: []
                 }
               },
@@ -879,6 +882,7 @@ describe('room Encounter store', () => {
         speedBonuses: 0,
         speedId: null,
         usedOncePerTurn: [],
+        lastMove: null,
         teleportAllowances: []
       })
       const insertAndDelete = async (room: RoomEncounterStore) =>

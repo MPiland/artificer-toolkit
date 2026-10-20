@@ -1606,7 +1606,7 @@ Smite (`source-data/srd/classes/paladin`) are authored from core options only. I
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
 mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
 restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
@@ -1640,6 +1640,19 @@ unavailable token refuses the attack, as for an area action. Persistence never
 re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies". A movement
 opportunity attack supplies the same fact: the Session Worker places the mover at the contact point of its
 planned path and measures the Scene with the same helper (`measureNativeEnemyProximity`).
+
+**Moved toward the target (D164).** `MOVED_TOWARD_TARGET {minFeet}` is the third circumstance check, the
+printed Charge gate ("moves at least N feet straight toward a target and then hits it on the same turn"). It
+passes when the attacker's latest voluntary move this turn closed at least `minFeet` between its start and
+end positions and the target's token (`movedTowardTarget`, `encounterMoveToward`): distance(start, target) -
+distance(end, target). No heading or path is stored. The D38 `encounterTurnMovements` row keeps that move as
+`lastMove` `{start, end}` beside `usedFeet`; each voluntary move replaces it, and forced movement or a teleport
+clears it (`recordTurnLastMove`, `clearTurnLastMove`). A `lastMove.end` that is not the attacker's current token
+position (undo, a drag) answers 0 closed feet. `loadMoveToward` (supplied only for an Effect that reads the
+predicate, `effectReadsMoveToward`) binds the TEXT fact `dnd5e.attack-move-toward` (`{"closedFeet": number}`);
+without it (no Scene, or a reaction or opportunity attack, which have no turn record) the group fails whichever
+the constraint. The Session Worker reads the record through the `TURN_LAST_MOVE` capture. A move published in
+segments records only its last segment.
 
 **Once per turn (D119 f).** `usage: ONCE_PER_TURN` on a path limits it to one hit per turn of any creature
 (Sneak Attack can land on a reaction). The usage key is the compiled effect id for a path in the attack's own

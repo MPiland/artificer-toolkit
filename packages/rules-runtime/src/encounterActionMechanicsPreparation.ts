@@ -77,9 +77,11 @@ import { activeAttackCriticalRules, activeDamageDice } from './character/activeE
 import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
 import {
   effectReadsEnemyProximity,
+  effectReadsMoveToward,
   effectReadsTurnUses,
   spentTurnUses,
-  type Dnd5eEnemyProximity
+  type Dnd5eEnemyProximity,
+  type Dnd5eMoveToward
 } from './systems/dnd5e/attackRestrictions.js'
 import { dndSourceFromCompilerSource } from './systems/dnd5e/effectActionCompiler.js'
 import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
@@ -333,6 +335,15 @@ export async function prepareEncounterActionMechanics<
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
   }) => Promise<Dnd5eEnemyProximity | null>
+  /**
+   * How far the attacker's latest move this turn closed its distance to the target, for an attack
+   * with a path that asks (a creature's Charge). Called only for such an attack; null when it has
+   * no Scene to measure on, which leaves the check unanswerable.
+   */
+  loadMoveToward?: (input: {
+    sourceFacts: MovementTarget<TCharacterFacts>
+    targetFacts: MovementTarget<TCharacterFacts>
+  }) => Promise<Dnd5eMoveToward | null>
   /**
    * The once-per-turn uses the attacker has spent this turn (sorted usage keys), for an attack with
    * a path limited that way (Sneak Attack). Called only for such an attack.
@@ -604,6 +615,13 @@ export async function prepareEncounterActionMechanics<
     effectReadsEnemyProximity(compiledEffect)
       ? await input.loadEnemyProximity({ sourceFacts, targetFacts })
       : null
+  const moveToward =
+    attackKind !== null &&
+    input.loadMoveToward &&
+    compiledEffect &&
+    effectReadsMoveToward(compiledEffect)
+      ? await input.loadMoveToward({ sourceFacts, targetFacts })
+      : null
   const turnUses =
     attackKind !== null &&
     input.loadTurnUses &&
@@ -704,6 +722,7 @@ export async function prepareEncounterActionMechanics<
           ? source.effectivePolicyOutput
           : sourceFacts.targetDerivedFacts),
         ...(enemyProximity ? { attackEnemyProximity: enemyProximity } : {}),
+        ...(moveToward ? { attackMoveToward: moveToward } : {}),
         ...(turnUses ? { attackTurnUses: turnUses } : {}),
         ...(attackAdvantageNegated ? { attackAdvantageNegated } : {}),
         attackAddedDice: encounterAttackAddedDice(
