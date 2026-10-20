@@ -6103,8 +6103,11 @@
             },
             {
               "text": "Balor Whip (forced movement) runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomMonsterRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-BALOR-WHIP"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.2"
@@ -6151,16 +6154,22 @@
             },
             {
               "text": "Kraken Lightning Storm runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomMonsterRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-KRAKEN-LIGHTNING"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.8"
             },
             {
               "text": "Purple Worm Tail Stinger runs.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomMonsterRiders.test.ts"
+              ],
               "origin": ["P81-CREATURE-PURPLE-WORM-STINGER"],
               "note": "Verify against the 41-attack allowlist.",
               "id": "ATTACK-5.9"
@@ -6225,7 +6234,7 @@
             {
               "id": "ATTACK-5.T1",
               "text": "Marquee monster attacks: Balor Whip, Kraken Lightning Storm and Purple Worm Tail Stinger.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-5.2", "ATTACK-5.8", "ATTACK-5.9"],
               "wsjf": {
                 "bv": 5,
@@ -6233,12 +6242,13 @@
                 "rr": 2,
                 "size": 5,
                 "after": ["ATTACK-7"]
-              }
+              },
+              "note": "Merged m221 (337414d34). The three were not on the unsupported allowlist; Balor Whip already ran (tests added)."
             },
             {
               "id": "ATTACK-5.T2",
               "text": "Clay Golem, Cloaker, Dryad and enlarged Duergar attacks.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-5.3", "ATTACK-5.4", "ATTACK-5.5", "ATTACK-5.6", "ATTACK-5.7"],
               "wsjf": {
                 "bv": 3,
@@ -12779,7 +12789,20 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6e"]
               },
-              "text": "new: equipment degradation (corrode) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: equipment degradation (corrode) (2 kinds: Black Pudding Dissolving Pseudopod and Rust Monster Antennae; Corrosive Form moved to T6i2). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T6i2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T6i"]
+              },
+              "text": "Black Pudding Corrosive Form (split from T6i, 2026-10-20): the weapon that hits the pudding degrades through degradeEquipment. This needs the attacking weapon identity on the retaliation path. Authoring-parity proof, deletes CREATURE_BLACK_PUDDING_CORROSIVE_FORM, plus a room journey."
             },
             {
               "id": "SPELLS-33.T6j",
