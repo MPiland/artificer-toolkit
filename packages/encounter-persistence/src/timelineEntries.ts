@@ -111,6 +111,7 @@ export function presentTimelineEntry(
       command.commandType === 'RESOLVE_ACTION' ||
       command.commandType === 'ESCAPE' ||
       command.commandType === 'END_HELD_GRANT' ||
+      command.commandType === 'MOVE_HELD_EFFECT' ||
       command.commandType === 'RELEASE_RELATIONSHIP' ||
       command.commandType === 'RELATIONSHIPS_ENDED' ||
       command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE'
@@ -119,7 +120,8 @@ export function presentTimelineEntry(
     ruleOverrides:
       command.commandType === 'RESOLVE_ACTION' ||
       command.commandType === 'ESCAPE' ||
-      command.commandType === 'END_HELD_GRANT'
+      command.commandType === 'END_HELD_GRANT' ||
+      command.commandType === 'MOVE_HELD_EFFECT'
         ? command.ruleOverrides
         : [],
     issuerLines: command.commandType === 'RESOLVE_ACTION' ? command.issuerLines : [],

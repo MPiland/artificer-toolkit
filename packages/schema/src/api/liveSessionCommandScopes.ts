@@ -3,6 +3,7 @@ import { advanceEncounterTurnInputDtoSchema } from './encounters.js'
 import {
   endHeldGrantInputDtoSchema,
   escapeRelationshipInputDtoSchema,
+  moveHeldEffectInputDtoSchema,
   releaseRelationshipInputDtoSchema,
   resolveCheckActionInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
@@ -10,7 +11,7 @@ import {
 } from './encounterRuleCommands.js'
 
 /**
- * A CHECK action, an Escape, the end of a held grant or a relationship's release, or the answer to
+ * A CHECK action, an Escape, the end of a held grant, the move of a held effect or a relationship's release, or the answer to
  * the check either of the first two started.
  */
 export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
@@ -18,6 +19,7 @@ export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
     resolveCheckActionInputDtoSchema,
     escapeRelationshipInputDtoSchema,
     endHeldGrantInputDtoSchema,
+    moveHeldEffectInputDtoSchema,
     releaseRelationshipInputDtoSchema,
     resolveRuleOccurrenceInputDtoSchema
   ])

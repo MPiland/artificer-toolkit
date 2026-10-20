@@ -1,29 +1,29 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EffectOffer } from '@artificer-toolkit/schema/effects/effectOffer'
 
 type HeldEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition'>
+type EffectsByHolder = ReadonlyMap<string, readonly HeldEffect[]>
 
-/** One offer a held effect makes an actor that is not (only) its holder, live right now (D160). */
-export interface LiveEffectOffer {
+/** An offer a held effect makes an actor, with the holder it applies to (D160). */
+export interface HeldEffectOffer extends EffectOffer {
   effectId: string
   offerIndex: number
-  kind: EffectOffer['kind']
   holderActorId: string
-  activation: EffectOffer['activation']
-  range: EffectOffer['range']
 }
 
+/** The listed form of an offer that holds right now: what the pick needs, without its condition. */
+export type LiveEffectOffer = Omit<HeldEffectOffer, 'offeredTo' | 'when'>
+
 /**
- * The offers `actorId` may take, in a stable order: an offer is live when the effect's role matches
- * `offeredTo` (`SOURCE` is the effect's source actor, `HOLDER` its holder) and `when` holds on the
- * holder now. `effectsByHolder` is every actor's effects keyed by holder; the offering actor need not
- * hold the effect.
+ * Every offer `actorId` is offered by the effects in `effectsByHolder`, whether or not its condition
+ * holds: `SOURCE` offers go to the effect's source actor, `HOLDER` offers to its holder. The offering
+ * actor need not hold the effect, so the scan covers every holder.
  */
-export function liveEffectOffers(input: {
+export function effectOffersFor(input: {
   actorId: string
-  effectsByHolder: ReadonlyMap<string, readonly HeldEffect[]>
-  zeroHitPointActorIds: ReadonlySet<string>
-}): LiveEffectOffer[] {
+  effectsByHolder: EffectsByHolder
+}): HeldEffectOffer[] {
   return [...input.effectsByHolder].flatMap(([holderActorId, effects]) =>
     effects.flatMap((effect) =>
       effect.definition.schemaVersion !== 2
@@ -31,28 +31,43 @@ export function liveEffectOffers(input: {
         : effect.definition.stateContributions.flatMap((contribution) =>
             contribution.kind !== 'MODIFIER_GRANT'
               ? []
-              : (contribution.effectOffers ?? []).flatMap(
-                  ({ kind, offeredTo, when, activation, range }, offerIndex) =>
-                    (offeredTo === 'HOLDER'
+              : (contribution.effectOffers ?? []).flatMap((offer, offerIndex) =>
+                  (
+                    offer.offeredTo === 'HOLDER'
                       ? holderActorId === input.actorId
                       : effect.definition.origin.kind === 'ENCOUNTER' &&
-                        effect.definition.origin.sourceActorId === input.actorId) &&
-                    when === 'HOLDER_AT_ZERO_HP' &&
-                    input.zeroHitPointActorIds.has(holderActorId)
-                      ? [
-                          {
-                            effectId: effect.id,
-                            offerIndex,
-                            kind,
-                            holderActorId,
-                            activation,
-                            range: { ...range }
-                          }
-                        ]
-                      : []
+                        effect.definition.origin.sourceActorId === input.actorId
+                  )
+                    ? [
+                        {
+                          ...offer,
+                          range: { ...offer.range },
+                          effectId: effect.id,
+                          offerIndex,
+                          holderActorId
+                        }
+                      ]
+                    : []
                 )
           )
     )
+  )
+}
+
+/**
+ * The offers `actorId` may take now, in a stable order: those whose `when` holds on the holder
+ * (`zeroHitPointActorIds` are the actors at 0 hit points).
+ */
+export function liveEffectOffers(input: {
+  actorId: string
+  effectsByHolder: EffectsByHolder
+  zeroHitPointActorIds: ReadonlySet<string>
+}): LiveEffectOffer[] {
+  return effectOffersFor(input).flatMap(
+    ({ offeredTo: _offeredTo, when, ...choice }) =>
+      when === 'HOLDER_AT_ZERO_HP' && input.zeroHitPointActorIds.has(choice.holderActorId)
+        ? [choice]
+        : []
   )
 }
 
@@ -65,4 +80,14 @@ export function resolveEffectOffer(
   )
   if (!offer) throw new Error('The selected effect offer is stale.')
   return offer
+}
+
+/** The target policy an offer's range holds the new holder to: any single creature within `range`. */
+export function effectOfferTargetPolicy(range: EffectOffer['range']): CompiledActionTargetPolicy {
+  return {
+    range: { id: 'effect-offer-range', rangeKind: 'DISTANCE', ...range },
+    targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+    shape: null,
+    pathOverrides: []
+  }
 }
