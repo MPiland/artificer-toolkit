@@ -8733,7 +8733,7 @@
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Removed-from-play state that returns at a boundary. Converts BANISHMENT, BLINK, ETHEREALNESS, MAZE, IMPRISONMENT, with parity proofs; each kind deleted."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2i",
               "wsjf": {
@@ -8744,11 +8744,11 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "New generic option (D156 T2 split, class B), ruled 2026-10-20: a hit-point threshold gate on the result block and a generic KILL outcome, plus the HIT_POINT_TIERS contract (compile only). Converts POWER_WORD_KILL with parity and room proofs; kind deleted. Split 2026-10-20: Power Word Stun to T2i3, Divine Word to T2i4, Death Ward to T2i2. FINGER_OF_DEATH_ZOMBIE (zombie rise) moves to SPELLS-33.T6a2; the Finger of Death kill is ordinary damage and already runs.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m239 (05eebfbad)."
             },
             {
               "id": "SPELLS-4.T2i3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8757,7 +8757,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2i"]
               },
-              "text": "Power Word Stun (split from T2i, 2026-10-20): a gated condition apply and a repeating follow-up save on an activated action, honoured by active-effect creation. Converts POWER_WORD_STUN with a parity proof; kind deleted."
+              "text": "Power Word Stun (split from T2i, 2026-10-20): a gated condition apply and a repeating follow-up save on an activated action, honoured by active-effect creation. Converts POWER_WORD_STUN with a parity proof; kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2i4",
