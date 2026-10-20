@@ -1045,6 +1045,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Pack Tactics (T6d3a):** a standing `ATTACK_ROLL` advantage modifier accepts the existing `ENEMY_NEAR_TARGET {feet: 5}` predicate, read at roll time from the enemy proximity the attack path already supplies. No new option.
   - **Assassinate's advantage (T6d3b):** a new predicate, `TARGET_HAS_NOT_TAKEN_TURN`, derived from the Run's existing initiative order and turn history, with no new stored state. If it cannot be derived without new state, the session reports back before adding any.
   - **Surprise stays out:** the engine has no surprise step, and adding one is post-launch work (future-enhancements "Surprise (D156)"), following the Foresight precedent (T2a2 ruling). Assassinate's automatic critical against a surprised creature and Surprise Attack's extra 2d6 stay description-only, and the SURPRISE_ATTACK kind is deleted. Rejected: a GM-set surprised flag or a surprise round now, which is new encounter state and a new outcome for two creature features.
+* **D166** (2026-10-20) Repeat-source-path offers run as their own action source (SPELLS-4.T2lb2a, under D160; [slice-spells-4.md](slice-spells-4.md)). Orchestrator ruling.
+  - **Action source:** a new `REPEAT_PATH` action source kind. At cast time the compiler freezes the repeated paths into the stored effect as an authored Effect, with a `FIXED_DC` and the cast-level values (the stored cast context), in the same way D163 pins without a recompile. A repeat is picked through `effectOffers` kind `REPEAT_SOURCE_PATH`, using the offer's activation (Heat Metal: a bonus action). It runs through the normal capability pipeline, adding one new pending-context arm, and spends no slot and starts no new Concentration.
+  - **Heat Metal:** it gains an item-bound effect that lasts its Concentration and carries the offer. The effect ends with Concentration through the shared effect-release seam. The 1-round disadvantage grant stays as it is.
+  - **Rejected:** re-running the original spell action with overrides, because it couples to the Sheet's slot state and needs synthesized candidates.
+  - **Size:** T2lb2a is re-sized from 3 to 5. The contract and its first conversion stay one vertical slice.
 
 ## Approved implementation decisions
 

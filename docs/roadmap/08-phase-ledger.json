@@ -10918,13 +10918,13 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": [
                   "SPELLS-4.T2lb",
                   "SPELLS-4.T2d2"
                 ]
               },
-              "text": "Repeat-source-path offers (D160, split 2026-10-20): the repeat-offer contract, the cast context (DC, slot level) the compiler freezes into the stored effect, runtime, persistence (CAS and undo) and a room proof. Converts the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e), with a parity proof.",
+              "text": "Repeat-source-path offers (D160, D166; split 2026-10-20): the repeat-offer contract, the cast context (DC, slot level) the compiler freezes into the stored effect, runtime, persistence (CAS and undo) and a room proof. Converts the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e), with a parity proof.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
