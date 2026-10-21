@@ -6,7 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/rolls'
 import type {
   basicActionCheckApplicationOutputDtoSchema,
-  concentrationCheckApplicationOutputDtoSchema
+  damageSaveCheckApplicationOutputDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
@@ -87,11 +87,12 @@ export function withMinimumRoll(
 }
 
 /**
- * The roll-log record of one settled Concentration check: its dice as roll evidence, plus the
- * actor, the damage that triggered it, the DC and whether Concentration was kept.
+ * The roll-log record of one settled damage-triggered save: its dice as roll evidence. A
+ * Concentration check adds the actor, the damage that triggered it, the DC and whether
+ * Concentration was kept; an effect repeat save is a plain saving-throw card.
  */
 export function concentrationCheckRollRecord(input: {
-  output: ReturnType<typeof concentrationCheckApplicationOutputDtoSchema.parse>
+  output: ReturnType<typeof damageSaveCheckApplicationOutputDtoSchema.parse>
   actorLabel: string
   ruleset: RollRecordDto['ruleset']
   createdAt: string
@@ -117,24 +118,31 @@ export function concentrationCheckRollRecord(input: {
     ...evaluated,
     characterId: null,
     characterLabel: input.actorLabel,
-    source: { kind: 'SAVING_THROW', label: 'Concentration' },
+    source: {
+      kind: 'SAVING_THROW',
+      label: output.source === 'CONCENTRATION' ? 'Concentration' : 'Repeat save'
+    },
     ruleset: input.ruleset,
     createdAt: input.createdAt,
-    ruleCheck: {
-      kind: 'CONCENTRATION',
-      actorId: output.application.targetActorId,
-      actorLabel: input.actorLabel,
-      damage: {
-        amount: output.application.appliedAmount,
-        typeLabel: output.trigger.damageTypeLabel
-      },
-      sourceLabel: output.trigger.sourceLabel,
-      dc: d20.dc,
-      faces: d20.rawFaces,
-      modifier: d20.modifier,
-      total: d20.total,
-      outcome: output.outcome === 'SAVE_SUCCESS' ? 'KEPT' : 'LOST'
-    }
+    ...(output.source === 'CONCENTRATION'
+      ? {
+          ruleCheck: {
+            kind: 'CONCENTRATION',
+            actorId: output.application.targetActorId,
+            actorLabel: input.actorLabel,
+            damage: {
+              amount: output.application.appliedAmount,
+              typeLabel: output.trigger.damageTypeLabel
+            },
+            sourceLabel: output.trigger.sourceLabel,
+            dc: d20.dc,
+            faces: d20.rawFaces,
+            modifier: d20.modifier,
+            total: d20.total,
+            outcome: output.outcome === 'SAVE_SUCCESS' ? 'KEPT' : 'LOST'
+          }
+        }
+      : {})
   })
 }
 

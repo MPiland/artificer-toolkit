@@ -25,7 +25,8 @@ const CHECKSUM = 'a'.repeat(64)
 const OCCURRED_AT = '2026-10-15T00:00:00.000Z'
 
 const checkOutput = concentrationCheckApplicationOutputDtoSchema.parse({
-  kind: 'CONCENTRATION_CHECK',
+  kind: 'DAMAGE_SAVE_CHECK',
+  source: 'CONCENTRATION',
   schemaVersion: 1,
   occurrenceId: OCCURRENCE_ID,
   parentOccurrenceId: PARENT_ID,

@@ -79,7 +79,7 @@ describe('GM void decision table', () => {
           .kind
       ).toBe('REFUSE')
     for (const kind of [
-      'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK',
+      'ENCOUNTER_DAMAGE_SAVE_CHECK',
       'ENCOUNTER_INITIATIVE',
       'ENCOUNTER_INITIATIVE_DECLARATION',
       'ENCOUNTER_TURN_RECHARGE',

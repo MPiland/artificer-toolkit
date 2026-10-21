@@ -354,7 +354,7 @@ const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
           })
         if (
           snapshot.deferredCleaving &&
-          (snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' ||
+          (snapshot.applicationContext.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK' ||
             snapshot.deferredCleaving.parentOccurrenceId !==
               snapshot.applicationContext.parentOccurrenceId ||
             snapshot.optionalCombatSnapshotChecksum == null)

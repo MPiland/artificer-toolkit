@@ -47,6 +47,11 @@ export interface EncounterPassiveHpZeroEffect {
   plan: CharacterRuleActionExecutionPlan
 }
 
+/** An effect a Creature's passive feature runs on itself at the start of its turn. */
+export interface EncounterPassiveStartOfTurnEffect {
+  capability: EncounterFeatureActionCapabilityDescriptor
+}
+
 /** A passive feature that wears down the weapon of whoever hits its Creature with one. */
 export interface EncounterPassiveWeaponHit {
   capability: EncounterFeatureActionCapabilityDescriptor
@@ -65,11 +70,13 @@ export function discoverEncounterFeatureActions(
   | 'passiveDamageGrantCapabilities'
   | 'passiveHpZeroCapabilities'
   | 'passiveWeaponHitCapabilities'
+  | 'passiveStartOfTurnCapabilities'
 > & {
   passiveZones: readonly EncounterPassiveZone[]
   passiveDamageGrants: readonly EncounterPassiveDamageGrant[]
   passiveHpZeroEffects: readonly EncounterPassiveHpZeroEffect[]
   passiveWeaponHits: readonly EncounterPassiveWeaponHit[]
+  passiveStartOfTurnEffects: readonly EncounterPassiveStartOfTurnEffect[]
 } {
   const discovered = registry.discover(input)
   const available: EncounterFeatureActionCapabilityDescriptor[] = []
@@ -77,6 +84,7 @@ export function discoverEncounterFeatureActions(
   const passiveDamageGrants: EncounterPassiveDamageGrant[] = []
   const passiveHpZeroEffects: EncounterPassiveHpZeroEffect[] = []
   const passiveWeaponHits: EncounterPassiveWeaponHit[] = []
+  const passiveStartOfTurnEffects: EncounterPassiveStartOfTurnEffect[] = []
   const unavailable = [...discovered.unavailable]
   const compiles = (
     capability: EncounterFeatureActionCapabilityDescriptor,
@@ -124,13 +132,20 @@ export function discoverEncounterFeatureActions(
       assertWeaponHitDegradationOnly(capability)
       passiveWeaponHits.push({ capability })
     })
+  for (const capability of discovered.passiveStartOfTurnCapabilities)
+    compiles(capability, (adapter) => {
+      assertStartOfTurnHealOnly(capability)
+      compileEncounterFeatureActionPlan(adapter, capability)
+      passiveStartOfTurnEffects.push({ capability })
+    })
   return {
     available,
     unavailable,
     passiveZones,
     passiveDamageGrants,
     passiveHpZeroEffects,
-    passiveWeaponHits
+    passiveWeaponHits,
+    passiveStartOfTurnEffects
   }
 }
 
@@ -185,6 +200,18 @@ function assertWeaponHitDegradationOnly(capability: EffectActionCapabilityDescri
   )
     throw new CharacterRuleActionUnsupportedCompilationError(
       'A weapon-hit trigger degrades the attacker weapon and does nothing else.'
+    )
+}
+
+/** A start-of-turn passive heals its holder and does nothing else; any other outcome is unsupported. */
+function assertStartOfTurnHealOnly(capability: EffectActionCapabilityDescriptor) {
+  const { entries } = capability.compiledEffect
+  if (
+    entries.length === 0 ||
+    !entries.every((entry) => 'outcome' in entry && entry.outcome.effectKind === 'HEAL')
+  )
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      'A start-of-turn trigger heals its holder and does nothing else.'
     )
 }
 

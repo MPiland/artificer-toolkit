@@ -70,7 +70,7 @@ import {
   type VttAreaAim,
   type VttAreaSize
 } from './vttSceneRenderer.model'
-import { effectOfferKey } from './effectOffers.model'
+import { effectOfferKey, isMoveEffectOffer } from './effectOffers.model'
 import { targetableEncounterActors, type VttTargetingRequest } from './vttTargeting.model'
 
 const NO_TOKENS: CampaignSceneStateDto['tokens'] = []
@@ -548,7 +548,8 @@ export function CampaignTabletopActionDrawer({
   )
   const targetTokenId = targetToken?.id ?? null
   // An effect offer's pick is measured from the effect's holder, and only a live creature other than the holder may take it.
-  const chosenOffer = effectOffers.find((offer) => effectOfferKey(offer) === chosenOfferKey) ?? null
+  const moveOffers = effectOffers.filter(isMoveEffectOffer)
+  const chosenOffer = moveOffers.find((offer) => effectOfferKey(offer) === chosenOfferKey) ?? null
   const offerTargetActorId =
     chosenOffer &&
     pickedTargetActorId &&
@@ -1474,7 +1475,7 @@ export function CampaignTabletopActionDrawer({
               onEnd={onEndHeldGrant}
             />
           ) : null}
-          {currentActor && !actionsLoading && !actionChoicesError && effectOffers.length ? (
+          {currentActor && !actionsLoading && !actionChoicesError && moveOffers.length ? (
             <CampaignTabletopEffectOffers
               actorId={currentActor.id}
               chosenOfferKey={chosenOffer ? chosenOfferKey : null}
@@ -1485,7 +1486,7 @@ export function CampaignTabletopActionDrawer({
               holderLabel={(holderActorId) =>
                 encounter.actors.find((actor) => actor.id === holderActorId)?.label ?? 'a creature'
               }
-              offers={effectOffers}
+              offers={moveOffers}
               sceneContext={(offer, newHolderActorId) => {
                 const sourceTokenId = tokenIdOfActor(offer.holderActorId)
                 const targetTokenId = tokenIdOfActor(newHolderActorId)

@@ -1534,6 +1534,11 @@ describe('hit-point gate, hit-point tiers and kill (SPELLS-4.T2i)', () => {
     })
   })
 
+  it('keeps an at-least hit-point gate', () => {
+    const gate = { kind: 'TARGET_HIT_POINTS_AT_LEAST', amount: 1 }
+    expect(effectDtoSchema.parse(gated(gate)).paths[0]).toMatchObject({ resultBlock: { gate } })
+  })
+
   it.each([
     ['a zero amount', { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 0 }],
     ['a fractional amount', { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 1.5 }],

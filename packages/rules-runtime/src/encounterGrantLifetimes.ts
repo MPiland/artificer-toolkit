@@ -82,13 +82,20 @@ function bareTestApplies(
 
 /**
  * Whether a scoped test spent the effect's grants: it has no grants to the test's value domain (the
- * event alone ends it), or one of them applied to the test's ability.
+ * event alone ends it), or one of them applied to the test's ability. A die held for after the roll
+ * is spent through the roll's window, so the test alone never spends an effect that holds only those.
  */
 function scopedTestApplies(effect: ActiveRuleEffectRecord, test: ScopedD20Test) {
   const grants = testGrants(effect, test.event)
+  const withRoll = grants.filter(
+    ({ payload }) => !(payload && 'timing' in payload && payload.timing === 'AFTER_ROLL')
+  )
+  if (grants.length > 0 && withRoll.length === 0) return false
   return (
-    grants.length === 0 ||
-    grants.some(({ domain }) => domain.ability === undefined || domain.ability === test.abilityCode)
+    withRoll.length === 0 ||
+    withRoll.some(
+      ({ domain }) => domain.ability === undefined || domain.ability === test.abilityCode
+    )
   )
 }
 
@@ -149,14 +156,14 @@ function boundItemInstanceId(effect: ActiveRuleEffectRecord) {
 /**
  * The holder's grants its state ends (D95): those that end on incapacitation when it is
  * incapacitated or defeated, those that name a condition it has, and those that end on release
- * when no hand of it holds their bound item, whatever else is true of them.
+ * when it neither holds nor wears their bound item, whatever else is true of them.
  */
 export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[],
   state: {
     reason: Exclude<ConcentrationEndReason, 'CHOSEN'> | null
     conditionIds: readonly string[]
-    heldItemInstanceIds: readonly string[]
+    itemInstanceIdsOnActor: readonly string[]
   }
 ) {
   const incapacitated = state.reason === 'INCAPACITATED' || state.reason === 'DEFEATED'
@@ -170,7 +177,7 @@ export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
       endOnConditionIds.some((conditionId) => conditionIds.includes(conditionId)) ||
       (endOnEvents.includes('ON_CHOSEN_ITEM_RELEASED') &&
         boundItemId !== null &&
-        !state.heldItemInstanceIds.includes(boundItemId))
+        !state.itemInstanceIdsOnActor.includes(boundItemId))
     )
   })
 }

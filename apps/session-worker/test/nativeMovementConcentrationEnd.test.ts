@@ -54,7 +54,7 @@ describe('movement-path Concentration ends (D95)', () => {
 
     await room.move([MOVER_START, { x: 550, y: 150 }])
 
-    expect(await receiptsOf(room, 'CONCENTRATION_CHECK')).toHaveLength(0)
+    expect(await receiptsOf(room, 'DAMAGE_SAVE_CHECK')).toHaveLength(0)
     const ends = await receiptsOf(room, 'CONCENTRATION_END')
     expect(ends).toHaveLength(1)
     expect(ends[0]?.result).toMatchObject({
@@ -88,7 +88,7 @@ describe('movement-path Concentration ends (D95)', () => {
 
     await room.move([MOVER_START, { x: 650, y: 150 }])
 
-    expect(await receiptsOf(room, 'CONCENTRATION_CHECK')).toHaveLength(0)
+    expect(await receiptsOf(room, 'DAMAGE_SAVE_CHECK')).toHaveLength(0)
     expect(await receiptsOf(room, 'CONCENTRATION_END')).toHaveLength(1)
     expect(room.diceDrawn()).toBe(0)
     // Both hazards acted on the holder; only the first contact carries the end.
@@ -121,7 +121,7 @@ describe('movement-path Concentration ends (D95)', () => {
     if (!option) throw new Error('The reaction decision offers no option.')
     await room.respond({ kind: 'OPTION', optionId: option.optionId })
 
-    expect(await receiptsOf(room, 'CONCENTRATION_CHECK')).toHaveLength(0)
+    expect(await receiptsOf(room, 'DAMAGE_SAVE_CHECK')).toHaveLength(0)
     expect(await receiptsOf(room, 'CONCENTRATION_END')).toHaveLength(1)
     // Only the reaction's attack d20 and bite dice are rolled; no save follows.
     expect(room.diceDrawn()).toBe(3)
@@ -139,7 +139,7 @@ describe('movement-path Concentration ends (D95)', () => {
 
       await room.move([MOVER_START, { x: 550, y: 150 }])
 
-      expect(await receiptsOf(room, 'CONCENTRATION_CHECK')).toHaveLength(0)
+      expect(await receiptsOf(room, 'DAMAGE_SAVE_CHECK')).toHaveLength(0)
       const ends = await receiptsOf(room, 'CONCENTRATION_END')
       expect(ends).toHaveLength(1)
       expect(ends[0]?.result).toMatchObject({
@@ -173,7 +173,7 @@ describe('movement-path Concentration ends (D95)', () => {
     if (!option) throw new Error('The reaction decision offers no option.')
     await room.respond({ kind: 'OPTION', optionId: option.optionId })
 
-    expect(await receiptsOf(room, 'CONCENTRATION_CHECK')).toHaveLength(0)
+    expect(await receiptsOf(room, 'DAMAGE_SAVE_CHECK')).toHaveLength(0)
     const ends = await receiptsOf(room, 'CONCENTRATION_END')
     expect(ends).toHaveLength(1)
     expect(ends[0]?.result).toMatchObject({

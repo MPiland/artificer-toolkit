@@ -72,7 +72,8 @@ export async function planNativeLiveMoveHeldEffect(
         heldBy && heldByPrepared?.target.state.current === 0 ? [heldBy.id] : []
       ),
       effectId: root.effectId,
-      offerIndex: root.offerIndex
+      offerIndex: root.offerIndex,
+      kind: 'MOVE_HELD_EFFECT'
     })
   } catch {
     throw refusal('SOURCE_REQUIREMENTS_NOT_MET', 'That effect can no longer be moved.')

@@ -39,3 +39,29 @@ export function systemTriggerAreaCommand(input: {
     systemTrigger: { parentCommandId: input.parentCommandId }
   }
 }
+
+/**
+ * The root command for a passive effect that fires at the start of its holder's turn. It aims at the
+ * holder itself; admission proves the link against the START or ADVANCE_TURN command that began the turn.
+ */
+export function systemTriggerStartOfTurnCommand(input: {
+  encounterId: string
+  expectedVersion: number
+  parentCommandId: string
+  holderActorId: string
+  actionId: string
+}): ResolveEncounterActionInputDto {
+  return {
+    type: 'RESOLVE_ACTION',
+    encounterId: input.encounterId,
+    expectedVersion: input.expectedVersion,
+    commandId: systemTriggerCommandId(input.parentCommandId, input.holderActorId, input.actionId),
+    actorId: input.holderActorId,
+    actionId: input.actionId,
+    target: { kind: 'ACTOR', actorId: input.holderActorId },
+    acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
+    sceneContext: null,
+    systemTrigger: { parentCommandId: input.parentCommandId, trigger: 'START_OF_TURN' }
+  }
+}

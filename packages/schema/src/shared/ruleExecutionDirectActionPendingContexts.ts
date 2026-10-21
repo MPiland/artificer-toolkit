@@ -14,11 +14,11 @@ import {
 import type { D20MinimumRollDto } from './d20MinimumRoll.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
-  compareConcentrationDamageApplications,
+  compareDamageSaveApplications,
   concentrationCheckTriggerDtoSchema,
   concentrationDamageApplicationDtoSchema,
   concentrationDamageSourceLabelsDtoSchema,
-  concentrationMaintainedDamageApplicationDtoSchema
+  damageSaveApplicationDtoSchema
 } from './ruleExecutionConcentration.js'
 
 import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits.js'
@@ -654,18 +654,67 @@ export const encounterConcealmentCheckPendingContextDtoSchema = lazySchema(() =>
   })
 )
 
+/** The pins every damage-triggered save shares: its parent, the damage and the holder's pinned stream. */
+const damageSaveCheckCommonFields = () => ({
+  schemaVersion: z.literal(1),
+  parentOccurrenceId: uuidSchema,
+  parentCommandFingerprint: checksumSchema,
+  finalizedDamageEnvelopeChecksum: checksumSchema,
+  application: concentrationDamageApplicationDtoSchema,
+  /** Display names for the whole envelope, so each later check can name its own trigger. */
+  sourceLabels: concentrationDamageSourceLabelsDtoSchema,
+  trigger: concentrationCheckTriggerDtoSchema,
+  /** The pinned Character stream; null for a Creature or custom actor holder. */
+  targetCharacter: z.nullable(
+    z.strictObject({
+      streamVersion: integerSchema.check(z.gte(0)),
+      baseProjectionChecksum: checksumSchema,
+      campaignOverlayChecksum: checksumSchema,
+      mechanicalContextChecksum: checksumSchema
+    })
+  ),
+  systemVocabularySnapshot: z.strictObject({
+    id: uuidSchema,
+    version: integerSchema.check(z.gte(1)),
+    checksum: checksumSchema
+  }),
+  /**
+   * Who dealt the damage, present when the chain can hold effect repeat saves (D167): each later
+   * check re-derives its trigger from it. Absent for a chain that holds only Concentration checks.
+   */
+  repeatSaveDamagerActorId: z.optional(z.nullable(uuidSchema)),
+  contextChecksum: checksumSchema,
+  remaining: z
+    .array(damageSaveApplicationDtoSchema)
+    .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS - 1))
+})
+
+function remainingInCanonicalOrder(
+  value: {
+    application: Parameters<typeof compareDamageSaveApplications>[0]
+    remaining: readonly Parameters<typeof compareDamageSaveApplications>[0][]
+  },
+  context: { addIssue(issue: { code: 'custom'; path: (string | number)[]; message: string }): void }
+) {
+  let prior = value.application
+  for (const [index, remaining] of value.remaining.entries()) {
+    if (compareDamageSaveApplications(remaining, prior) <= 0)
+      context.addIssue({
+        code: 'custom',
+        path: ['remaining', index],
+        message: 'Remaining damage saves must use canonical application order.'
+      })
+    prior = remaining
+  }
+}
+
+/** A Concentration check forced by one damage application of a finalized envelope. */
 export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySchema(() =>
   z
     .strictObject({
-      kind: z.literal('ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'),
-      schemaVersion: z.literal(1),
-      parentOccurrenceId: uuidSchema,
-      parentCommandFingerprint: checksumSchema,
-      finalizedDamageEnvelopeChecksum: checksumSchema,
-      application: concentrationDamageApplicationDtoSchema,
-      /** Display names for the whole envelope, so each later check can name its own trigger. */
-      sourceLabels: concentrationDamageSourceLabelsDtoSchema,
-      trigger: concentrationCheckTriggerDtoSchema,
+      kind: z.literal('ENCOUNTER_DAMAGE_SAVE_CHECK'),
+      source: z.literal('CONCENTRATION'),
+      ...damageSaveCheckCommonFields(),
       maintainedState: z.strictObject({
         id: uuidSchema,
         version: integerSchema.check(z.gte(0)),
@@ -684,38 +733,38 @@ export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySche
         contributorChecksum: checksumSchema,
         /** Dice the holder rolls with the save (D156); absent when it rolls none. */
         addedDice: z.optional(d20AddedDiceDtoSchema)
-      }),
-      /** The pinned Character stream; null for a Creature or custom actor holder. */
-      targetCharacter: z.nullable(
-        z.strictObject({
-          streamVersion: integerSchema.check(z.gte(0)),
-          baseProjectionChecksum: checksumSchema,
-          campaignOverlayChecksum: checksumSchema,
-          mechanicalContextChecksum: checksumSchema
-        })
-      ),
-      systemVocabularySnapshot: z.strictObject({
-        id: uuidSchema,
-        version: integerSchema.check(z.gte(1)),
-        checksum: checksumSchema
-      }),
-      contextChecksum: checksumSchema,
-      remaining: z
-        .array(concentrationMaintainedDamageApplicationDtoSchema)
-        .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS - 1))
-    })
-    .check(
-      z.superRefine((value, context) => {
-        let prior = value.application
-        for (const [index, remaining] of value.remaining.entries()) {
-          if (compareConcentrationDamageApplications(remaining, prior) <= 0)
-            context.addIssue({
-              code: 'custom',
-              path: ['remaining', index],
-              message: 'Remaining concentration checks must use canonical application order.'
-            })
-          prior = remaining
-        }
       })
-    )
+    })
+    .check(z.superRefine(remainingInCanonicalOrder))
+)
+
+/**
+ * A repeat save a damaged holder's active effect offers (D167): the effect's own frozen save,
+ * rolled by the holder's controllers, whose success ends the effect. The kernel continuation is the
+ * only executable payload; the pins here bind it to the exact effect row it was started from.
+ */
+export const encounterEffectRepeatSavePendingContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_DAMAGE_SAVE_CHECK'),
+      source: z.literal('EFFECT_REPEAT_SAVE'),
+      ...damageSaveCheckCommonFields(),
+      activeEffect: z.strictObject({
+        id: uuidSchema,
+        version: integerSchema.check(z.gte(0)),
+        lifecycleChecksum: checksumSchema
+      }),
+      /** How the effect's trigger tilts the roll; applied on top of the holder's own influences. */
+      rollInfluence: z.nullable(z.enum(['ADVANTAGE', 'DISADVANTAGE'])),
+      /** The pinned frozen save, taken from the paused kernel request. */
+      d20Policy: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)
+    })
+    .check(z.superRefine(remainingInCanonicalOrder))
+)
+
+export const encounterDamageSaveCheckPendingContextDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('source', [
+    encounterConcentrationDamageCheckPendingContextDtoSchema,
+    encounterEffectRepeatSavePendingContextDtoSchema
+  ])
 )

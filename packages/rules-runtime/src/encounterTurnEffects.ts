@@ -121,7 +121,9 @@ function pendingCandidate(input: {
   }
 }
 
-function executionState(target: MovementTarget) {
+function executionState(
+  target: Pick<MovementTarget, 'state' | 'characterFacts' | 'effectiveScalarValues'>
+) {
   return {
     current: target.state.current,
     temporary: target.state.temporary,
@@ -134,6 +136,39 @@ function executionState(target: MovementTarget) {
         )
       : [...target.state.conditions],
     scalarValues: { ...target.effectiveScalarValues }
+  }
+}
+
+/** The target facts a target-bound active effect executes against, from the holder's state. */
+export function activeEffectTargetFacts(
+  target: Pick<
+    MovementTarget,
+    | 'actor'
+    | 'state'
+    | 'characterFacts'
+    | 'effectiveScalarValues'
+    | 'effectiveMaximumHitPoints'
+    | 'targetDerivedFacts'
+    | 'defenses'
+    | 'conditionImmunityIds'
+    | 'conditionMechanics'
+  >,
+  state: ReturnType<typeof executionState> = executionState(target)
+) {
+  return {
+    targetActorId: target.actor.id,
+    currentHitPoints: state.current,
+    temporaryHitPoints: state.temporary,
+    maximumHitPoints: target.effectiveMaximumHitPoints,
+    targetScalarValues: state.scalarValues,
+    targetConditionIds: state.conditions,
+    targetDerivedFacts: target.targetDerivedFacts,
+    defenses: target.defenses,
+    conditionImmunityIds: target.conditionImmunityIds,
+    conditionOutcomeRules: {
+      hitIsCritical: false,
+      saveAutoFailAbilityIds: encounterConditionSaveAutoFailAbilityIds(target.conditionMechanics)
+    }
   }
 }
 
@@ -375,21 +410,7 @@ async function evaluateEncounterTurnEffects(input: {
       lifecycle: effect.lifecycle,
       lifecycleChecksum: effect.lifecycleChecksum,
       occurrenceId: input.occurrenceId,
-      targetActorId: input.target.actor.id,
-      currentHitPoints: state.current,
-      temporaryHitPoints: state.temporary,
-      maximumHitPoints: input.target.effectiveMaximumHitPoints,
-      targetScalarValues: state.scalarValues,
-      targetConditionIds: state.conditions,
-      targetDerivedFacts: input.target.targetDerivedFacts,
-      defenses: input.target.defenses,
-      conditionImmunityIds: input.target.conditionImmunityIds,
-      conditionOutcomeRules: {
-        hitIsCritical: false,
-        saveAutoFailAbilityIds: encounterConditionSaveAutoFailAbilityIds(
-          input.target.conditionMechanics
-        )
-      },
+      ...activeEffectTargetFacts(input.target, state),
       perception: await input.resolvePerception({
         actors: input.actors,
         target: input.target,

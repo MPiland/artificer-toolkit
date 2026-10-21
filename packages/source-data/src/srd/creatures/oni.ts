@@ -93,16 +93,40 @@ export const oni: CreatureAuthored = {
       description:
         'Regeneration. The oni regains 10 hit points at the start of its turn if it has at least 1 hit point.',
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(211, 501),
+          order: 1,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
+            triggerCode: S.TRIGGER.START_OF_TURN,
             range: { id: S.actionId(211, 601), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ONI_REGENERATION
-        })
+          paths: [
+            {
+              id: S.actionId(211, 511),
+              order: 1,
+              pathCode: S.PATH_CODE.PASSIVE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(211, 512),
+                resultKind: 'SINGLE',
+                gate: { kind: 'TARGET_HIT_POINTS_AT_LEAST', amount: 1 },
+                outcomes: [
+                  {
+                    id: S.actionId(211, 513),
+                    effectKind: S.EFFECT_KIND.HEAL,
+                    valueKind: 'FIXED',
+                    scalingKind: S.SCALING.NONE,
+                    amount: 10
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 3
     },

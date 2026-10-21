@@ -32,7 +32,16 @@ describe.each([
   {
     label: 'Heat Metal',
     ruleKind: 'HEAT_METAL',
-    effectKinds: ['DAMAGE', 'RELEASE_CHOSEN_ITEM', 'APPLY_GRANT', 'DAMAGE', 'APPLY_GRANT']
+    effectKinds: [
+      'DAMAGE',
+      'RELEASE_CHOSEN_ITEM',
+      'APPLY_GRANT',
+      'DAMAGE',
+      'APPLY_GRANT',
+      // The repeat offer's carrier, one per save result (D166).
+      'APPLY_GRANT',
+      'APPLY_GRANT'
+    ]
   },
   { label: 'True Strike', ruleKind: 'TRUE_STRIKE', effectKinds: ['APPLY_GRANT'] }
 ])('SRD $label (D156 T2a3, T2k1)', ({ label, ruleKind, effectKinds }) => {

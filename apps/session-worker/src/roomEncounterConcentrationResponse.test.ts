@@ -667,7 +667,8 @@ it('atomically resolves a failed native Concentration save, retains the private 
     expect(execution).toMatchObject({
       status: 'COMPLETE',
       applicationOutputs: {
-        kind: 'CONCENTRATION_CHECK',
+        kind: 'DAMAGE_SAVE_CHECK',
+        source: 'CONCENTRATION',
         outcome: 'SAVE_FAILURE',
         cleanup: {
           maintainedStateId: slot.id,

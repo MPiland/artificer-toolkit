@@ -14,7 +14,8 @@ import type { CharacterRuleActionApplication } from '../characterRuleActionSyste
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
-import { OPTIONAL_SMITE_FEATURE_ID, optionalSmite } from '../testing/optionalSmite.js'
+import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import { optionalSmite } from '../testing/optionalSmite.js'
 import {
   SRD,
   evaluateSrdCharacter,
@@ -31,17 +32,17 @@ export const MISS = 0
 export const NATURAL_20 = 19
 const FIGHTER = srdByLabel(SRD.classes, 'Fighter')
 
-/** A Fighter who carries the optional smite rider and wields the given equipped weapon. */
-function smiter(weaponLabel: string) {
+/** A Fighter who carries the optional rider (the smite unless another Feature is given) and wields the given equipped weapon. */
+export function smiter(weaponLabel: string, rider: FeatureAuthored = optionalSmite()) {
   return evaluateSrdCharacter({
     abilities: { STRENGTH: 16, DEXTERITY: 16 },
     classes: [{ label: 'Fighter', level: 5 }],
     items: [{ label: weaponLabel, equipped: true }],
-    extraFeatures: [optionalSmite()],
+    extraFeatures: [rider],
     features: [
       {
         acquisitionId: 'acquired:optional-smite',
-        featureId: OPTIONAL_SMITE_FEATURE_ID,
+        featureId: rider.id,
         source: { kind: 'CLASS', classId: FIGHTER.id, classLevel: 1 },
         timing: { kind: 'CLASS_LEVEL', classId: FIGHTER.id, classLevel: 1 }
       }

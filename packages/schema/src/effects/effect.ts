@@ -37,14 +37,19 @@ const reactionActivationDtoSchema = lazySchema(() =>
   })
 )
 
-const resourceUseDtoSchema = lazySchema(() =>
-  z.object({
-    chargeId: authoredIdentifierSchema,
-    cost: z.number().check(z.int()).check(z.positive())
-  })
-)
+const resourceUseDtoShape = lazySchemaParts(() => ({
+  chargeId: authoredIdentifierSchema,
+  cost: z.number().check(z.int()).check(z.positive())
+}))
 
-const optionalOnHitDtoSchema = lazySchema(() => z.object({ kind: z.literal('SPELL_SLOT') }))
+const resourceUseDtoSchema = lazySchema(() => z.object(resourceUseDtoShape()))
+
+const optionalOnHitDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('SPELL_SLOT') }),
+    z.object({ kind: z.literal('RESOURCE_POOL'), ...resourceUseDtoShape() })
+  ])
+)
 
 const actionInvocationShape = lazySchemaParts(() => ({
   kind: z.optional(z.literal(invocationKindSchema._zod.def.entries.ACTION)),
@@ -96,7 +101,8 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
         triggerCodeSchema._zod.def.entries.INCOMING_SAVING_THROW,
         triggerCodeSchema._zod.def.entries.ENTER_AREA,
         triggerCodeSchema._zod.def.entries.INCOMING_WEAPON_HIT,
-        triggerCodeSchema._zod.def.entries.ROLL_INITIATIVE
+        triggerCodeSchema._zod.def.entries.ROLL_INITIATIVE,
+        triggerCodeSchema._zod.def.entries.START_OF_TURN
       ]),
       range: rangeDtoSchema,
       shape: z.optional(shapeDtoSchema),

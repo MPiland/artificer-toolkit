@@ -92,6 +92,8 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
     satisfied: boolean
     checksum: string
   } | null
+  /** How the damage that triggered this repeat save tilts its d20 (D167); absent on a turn tick. */
+  rollInfluence?: 'ADVANTAGE' | 'DISADVANTAGE' | null
   runtime: RulesRuntimeService
   adapters: CharacterRuleActionSystemAdapterRegistry
 }
@@ -370,7 +372,8 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
     defenses: target.defenses,
     conditionImmunityIds: target.conditionImmunityIds,
     conditionOutcomeRules: input.conditionOutcomeRules ?? null,
-    perception: input.perception ?? null
+    perception: input.perception ?? null,
+    rollInfluence: input.rollInfluence ?? null
   })
   return {
     activeEffectId,

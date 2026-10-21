@@ -2,6 +2,7 @@ import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/
 import { evaluateEncounterAttackAction } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { parseGrantedActionId } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
+import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
@@ -177,7 +178,8 @@ async function loadActionSource(
   const system =
     input.actor.kind === 'CREATURE' ||
     (input.actor.kind === 'CHARACTER' && input.actor.form !== null) ||
-    basicActions.length > 0
+    basicActions.length > 0 ||
+    parseRepeatPathActionId(input.actor.id, input.actionId)
       ? await tx.ports.requireSystem(input.gameSystemId)
       : undefined
   // A granted action resolves against the holder's effects and spent uses as they stand now (D160).
@@ -188,9 +190,25 @@ async function loadActionSource(
           spentKeys: await readTurnUses(tx, { state, actorId: input.actor.id })
         }
       : undefined
+  // A repeat offer resolves against every holder's effects: its carrier is on the creature it repeats on.
+  const repeat = parseRepeatPathActionId(input.actor.id, input.actionId)
+    ? {
+        effectsByHolder: await loadRunActiveEffects(tx, {
+          state,
+          actors: await readRunActors(tx, state)
+        })
+      }
+    : undefined
   // Only a Creature, or a Character in a Creature form, casts from the Run's pinned Spells (D163).
   const spells = system ? await readEncounterSpellPins(tx, state.id) : new Map()
-  return resolveEncounterActionSource({ ...input, system, basicActions, granted, spells })
+  return resolveEncounterActionSource({
+    ...input,
+    system,
+    basicActions,
+    granted,
+    repeat,
+    spells
+  })
 }
 
 /** Every current Run actor's active effects, keyed by actor; `given` effects are used as read. */

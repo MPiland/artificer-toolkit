@@ -4,6 +4,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   LiveSessionEncounterBasicActionResponseCommitInput,
+  LiveSessionEncounterD20WindowOpenCommitInput,
   LiveSessionEncounterEscapeResponseCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
@@ -18,16 +19,24 @@ import {
   encounterStoredRuleReceiptSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import {
+  chosenEncounterD20WindowOption,
+  encounterD20WindowSelectedIndex,
+  encounterD20WindowSelection
+} from '@artificer-toolkit/rules-runtime/encounterD20Window'
+import {
   readBasicActionCheckResponseAdmission,
+  readD20WindowResponseAdmission,
   readEscapeCheckResponseAdmission
 } from './basicActionCheckAdmission.js'
+import { projectNativeD20WindowPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
-import { addResponseChangesToRoot } from './consumedGrantPersistence.js'
+import { addResponseChangesToRoot, deleteGrants } from './consumedGrantPersistence.js'
 import {
   isConcealmentCheckSettlement,
   settleEncounterConcealmentCheck
@@ -49,6 +58,10 @@ type CheckResponseCommitInput =
 type CheckResponseAdmission =
   | Awaited<ReturnType<typeof readBasicActionCheckResponseAdmission>>
   | Awaited<ReturnType<typeof readEscapeCheckResponseAdmission>>
+type AdmittedCheck = Exclude<
+  CheckResponseAdmission | Awaited<ReturnType<typeof readD20WindowResponseAdmission>>,
+  { kind: 'REPLAY' }
+>
 
 /** What differs between the checks a root command can pend: its admission, its die and its effects. */
 type CheckPersistenceSpec<TInput extends CheckResponseCommitInput> = {
@@ -137,6 +150,164 @@ export function persistEncounterEscapeResponse(
   })
 }
 
+/** The Run's actors, after the read fence, and whether the room's rules cover exactly its rule actors. */
+async function readCheckScope(
+  ctx: EncounterWriteTransaction,
+  state: EncounterRunState,
+  input: Pick<LiveSessionEncounterBasicActionResponseCommitInput, 'revisions' | 'rules'>,
+  validateReadFence: CheckPersistenceSpec<LiveSessionEncounterBasicActionResponseCommitInput>['validateReadFence']
+) {
+  const actors = await readRunActors(ctx, state)
+  await validateReadFence(
+    state,
+    actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])),
+    input.revisions
+  )
+  const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
+  return {
+    actors,
+    rulesMatch:
+      input.rules.actors.length === ruleActors.length &&
+      input.rules.actors.every((entry) => ruleActors.some((rule) => rule.id === entry.actorId))
+  }
+}
+
+/**
+ * Pauses a rolled First Aid check on its roller's d20 window: the d20 is admitted as it would be at
+ * settlement, but the occurrence stays pending on the sealed window the roller answers next. Nothing
+ * of the check settles, and no rule result exists yet, so no receipt is written.
+ */
+export async function persistEncounterD20WindowOpen(
+  ctx: EncounterWriteTransaction,
+  input: LiveSessionEncounterD20WindowOpenCommitInput,
+  callbacks: {
+    validateReadFence: CheckPersistenceSpec<LiveSessionEncounterBasicActionResponseCommitInput>['validateReadFence']
+  }
+): Promise<EncounterCommandResultDto> {
+  const admission = await readBasicActionCheckResponseAdmission(ctx, {
+    ...input,
+    response: input.command
+  })
+  if (admission.kind === 'REPLAY') return admission.result
+  const { state, occurrence, pending } = admission
+  const { snapshot } = input
+  const window = snapshot.applicationContext
+  const { actors, rulesMatch } = await readCheckScope(
+    ctx,
+    state,
+    input,
+    callbacks.validateReadFence
+  )
+  if (
+    window.kind !== 'ENCOUNTER_D20_WINDOW' ||
+    pending.context.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' ||
+    snapshot.occurrenceId !== occurrence.id ||
+    checksumCanonicalJson(window.source.context) !== checksumCanonicalJson(pending.context) ||
+    window.rolled.initialFactsChecksum !== checksumRuleDocument(pending.continuation.facts) ||
+    window.rolled.execution.evidence.source.gameSystemId !== state.gameSystemId ||
+    !rulesMatch ||
+    (window.appRollId !== null) !== (admission.appRoll !== null) ||
+    (admission.appRoll !== null && window.appRollId !== admission.appRoll.rollId)
+  )
+    throw new Error('Live Session check result does not match its pending evidence.')
+  return recordCheckResponse(ctx, {
+    admission,
+    input,
+    actors,
+    endedEffects: [],
+    ruleResult: window.rolled.execution,
+    receipt: null,
+    next: { kind: 'PENDING', snapshot }
+  })
+}
+
+/**
+ * Commits the roller's answer to a d20 window: the held die's effect ended, the First Aid stabilize
+ * the final total earns, the occurrence's completion and the receipt, atomically. The roll card was
+ * deferred to here, so it shows the total the check settled with.
+ */
+export async function persistEncounterD20WindowAnswer(
+  ctx: EncounterWriteTransaction,
+  input: LiveSessionEncounterBasicActionResponseCommitInput,
+  callbacks: {
+    validateReadFence: CheckPersistenceSpec<LiveSessionEncounterBasicActionResponseCommitInput>['validateReadFence']
+    applyMechanics(
+      batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
+    ): Promise<EncounterMechanicsBatchResult>
+  }
+): Promise<EncounterCommandResultDto> {
+  const admission = await readD20WindowResponseAdmission(ctx, { ...input, response: input.command })
+  if (admission.kind === 'REPLAY') return admission.result
+  const { state, campaign, occurrence, pending, response } = admission
+  const { context: window, continuation } = pending
+  const { settlement } = input
+  if (isConcealmentCheckSettlement(settlement) || !settlement.window)
+    throw new Error('Live Session check result does not match its pending evidence.')
+  const { execution } = settlement
+  const selection = encounterD20WindowSelection(response.resolution)
+  const option = chosenEncounterD20WindowOption(window, selection)
+  const spentEffect = settlement.window.spentEffect
+  const { actors, rulesMatch } = await readCheckScope(
+    ctx,
+    state,
+    input,
+    callbacks.validateReadFence
+  )
+  const output =
+    execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'BASIC_ACTION_CHECK'
+      ? execution.applicationOutputs
+      : null
+  const rolledDice = window.rolled.d20.addedDice ?? []
+  const addedDie = output?.d20.addedDice?.at(rolledDice.length)
+  if (
+    !output ||
+    execution.status !== 'COMPLETE' ||
+    checksumCanonicalJson(settlement.context) !== checksumCanonicalJson(window.source.context) ||
+    execution.occurrenceId !== occurrence.id ||
+    execution.initialFactsChecksum !== window.rolled.initialFactsChecksum ||
+    checksumRuleDocument(execution.evidence) !==
+      checksumRuleDocument(window.rolled.execution.evidence) ||
+    !rulesMatch ||
+    settlement.appRollId !== window.appRollId ||
+    (option === null) !== (spentEffect === null) ||
+    (spentEffect !== null && spentEffect.id !== option?.effectId) ||
+    output.d20.selectedNatural !== window.rolled.d20.selectedNatural ||
+    (output.d20.addedDice?.length ?? 0) !== rolledDice.length + (option ? 1 : 0) ||
+    (option !== null &&
+      (addedDie?.rolledFaces.length !== option.count ||
+        addedDie.rolledFaces.some(
+          (face) => !Number.isSafeInteger(face) || face < 1 || face > option.faces
+        )))
+  )
+    throw new Error('Live Session check result does not match its pending evidence.')
+  if (spentEffect) await deleteGrants(ctx, [spentEffect])
+  const settled = await settleEncounterBasicActionCheck(ctx, {
+    campaign,
+    state,
+    actors,
+    settlement,
+    windowDice: option ? [option] : [],
+    rootCommandId: window.commandId,
+    initiatorUserId: admission.initiatorUserId,
+    occurredAt: input.occurredAt,
+    // The stored result keeps the version the d20 was evidenced at, before the window paused it.
+    occurrenceVersion: occurrence.version,
+    applyMechanics: callbacks.applyMechanics
+  })
+  return recordCheckResponse(ctx, {
+    admission,
+    input,
+    actors: settled.actors,
+    endedEffects: spentEffect ? [spentEffect] : [],
+    ruleResult: execution,
+    receipt: {
+      requestId: continuation.request.requestId,
+      value: encounterD20WindowSelectedIndex(window, selection)
+    },
+    next: { kind: 'COMPLETE' }
+  })
+}
+
 async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
   ctx: EncounterWriteTransaction,
   input: TInput,
@@ -145,18 +316,12 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
   const admission = await spec.admit(ctx, input)
   // A lost acknowledgement replays before checking inputs its commit consumed.
   if (admission.kind === 'REPLAY') return admission.result
-  const { run, state, campaign, membership, occurrence, pending, fingerprint, response } = admission
+  const { state, campaign, occurrence, pending } = admission
   const { context, continuation } = pending
   const { settlement } = input
   const { execution } = settlement
   const natural = spec.selectedNatural(execution)
-  const actors = await readRunActors(ctx, state)
-  await spec.validateReadFence(
-    state,
-    actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])),
-    input.revisions
-  )
-  const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
+  const { actors, rulesMatch } = await readCheckScope(ctx, state, input, spec.validateReadFence)
   if (
     checksumCanonicalJson(settlement.context) !== checksumCanonicalJson(context) ||
     execution.status !== 'COMPLETE' ||
@@ -164,8 +329,7 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
     execution.occurrenceId !== occurrence.id ||
     execution.initialFactsChecksum !== checksumRuleDocument(continuation.facts) ||
     execution.evidence.source.gameSystemId !== state.gameSystemId ||
-    input.rules.actors.length !== ruleActors.length ||
-    input.rules.actors.some((entry) => !ruleActors.some((rule) => rule.id === entry.actorId)) ||
+    !rulesMatch ||
     (settlement.appRollId !== null) !== (admission.appRoll !== null) ||
     (admission.appRoll !== null && settlement.appRollId !== admission.appRoll.rollId)
   )
@@ -181,26 +345,86 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
     occurredAt: input.occurredAt,
     occurrenceVersion
   })
+  return recordCheckResponse(ctx, {
+    admission,
+    input,
+    actors: settled.actors,
+    endedEffects: settled.endedEffects ?? [],
+    ruleResult: execution,
+    receipt: { requestId: continuation.request.requestId, value: natural },
+    next: { kind: 'COMPLETE' }
+  })
+}
+
+/**
+ * Writes what every accepted check answer leaves: the effects it ended (with the action's undo), the
+ * next Run version, the occurrence completed or kept pending on its next snapshot, the command and,
+ * when the answer produced a rule result, its receipt.
+ */
+async function recordCheckResponse(
+  ctx: EncounterWriteTransaction,
+  record: {
+    admission: AdmittedCheck
+    input: Pick<
+      LiveSessionEncounterBasicActionResponseCommitInput,
+      'occurredAt' | 'expectedUserId' | 'rules'
+    >
+    actors: EncounterRunActorState[]
+    endedEffects: ActiveRuleEffectRecord[]
+    ruleResult: Parameters<typeof checksumRuleDocument>[0]
+    receipt: { requestId: string; value: number } | null
+    next:
+      | { kind: 'COMPLETE' }
+      | { kind: 'PENDING'; snapshot: ServerRuleExecutionPendingSnapshotDto }
+  }
+): Promise<EncounterCommandResultDto> {
+  const { admission, input, next } = record
+  const { run, state, campaign, membership, occurrence, fingerprint, response } = admission
+  const occurrenceVersion = occurrence.version + 1
   // The effects the check ended come back with the action's undo.
   await addResponseChangesToRoot(ctx, {
     campaignId: campaign.id,
     actionOccurrenceId: occurrence.id,
-    endedGrants: settled.endedEffects ?? []
+    endedGrants: record.endedEffects
   })
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
     updatedAt: input.occurredAt
   })
-  const projection = await projectNativeGm(ctx, nextState, settled.actors, input.rules)
+  const nextOccurrence = encounterStoredRuleOccurrenceSchema.parse({
+    id: occurrence.id,
+    campaignId: campaign.id,
+    encounterId: run.id,
+    rootCommandId: occurrence.rootCommandId,
+    state: next.kind === 'PENDING' ? 'PENDING' : 'COMPLETED',
+    version: occurrenceVersion,
+    expectedEncounterVersion: nextState.version,
+    pendingSnapshotChecksum: await writePendingSnapshot(
+      ctx,
+      { id: occurrence.id, encounterId: run.id },
+      next.kind === 'PENDING' ? next.snapshot : null
+    ),
+    completedAt: next.kind === 'PENDING' ? null : input.occurredAt,
+    createdAt: occurrence.createdAt,
+    updatedAt: input.occurredAt
+  })
+  const projection = await projectNativeGm(ctx, nextState, record.actors, input.rules)
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
     occurrence: {
       occurrenceId: occurrence.id,
       occurrenceVersion,
-      status: 'COMPLETE',
-      pending: null
+      ...(next.kind === 'PENDING'
+        ? {
+            status: 'PENDING',
+            pending: projectNativeD20WindowPending(
+              { ...occurrence, ...nextOccurrence },
+              next.snapshot
+            )
+          }
+        : { status: 'COMPLETE', pending: null })
     }
   })
   await ctx.db.patch(run._id, {
@@ -209,24 +433,7 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
     stateChecksum: checksumCanonicalJson(nextState),
     updatedAt: input.occurredAt
   })
-  const completed = encounterStoredRuleOccurrenceSchema.parse({
-    id: occurrence.id,
-    campaignId: campaign.id,
-    encounterId: run.id,
-    rootCommandId: occurrence.rootCommandId,
-    state: 'COMPLETED',
-    version: occurrenceVersion,
-    expectedEncounterVersion: nextState.version,
-    pendingSnapshotChecksum: await writePendingSnapshot(
-      ctx,
-      { id: occurrence.id, encounterId: run.id },
-      null
-    ),
-    completedAt: input.occurredAt,
-    createdAt: occurrence.createdAt,
-    updatedAt: input.occurredAt
-  })
-  await ctx.db.patch(occurrence._id, changedFields(occurrence, completed))
+  await ctx.db.patch(occurrence._id, changedFields(occurrence, nextOccurrence))
   await insertRunCommand(
     ctx,
     encounterStoredRunCommandSchema.parse({
@@ -236,7 +443,7 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
       commandId: response.commandId,
       commandType: 'RESOLVE_RULE_OCCURRENCE',
       ruleOccurrenceId: occurrence.id,
-      ruleResultChecksum: checksumRuleDocument(execution),
+      ruleResultChecksum: checksumRuleDocument(record.ruleResult),
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
       commandFingerprint: fingerprint,
       actorUserId: input.expectedUserId,
@@ -246,33 +453,34 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
       createdAt: input.occurredAt
     })
   )
-  await ctx.db.insert(
-    'encounterRuleReceipts',
-    encounterStoredRuleReceiptSchema.parse({
-      id: crypto.randomUUID(),
-      campaignId: campaign.id,
-      encounterId: run.id,
-      occurrenceId: occurrence.id,
-      commandId: response.commandId,
-      commandType: 'RESOLVE_RULE_OCCURRENCE',
-      commandFingerprint: fingerprint,
-      encounterVersion: nextState.version,
-      commandMetadataJson: JSON.stringify(
-        serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
-          schemaVersion: 1,
-          transition: 'RESUME',
-          expectedAggregateVersion: response.expectedVersion,
-          expectedOccurrenceVersion: response.expectedOccurrenceVersion,
-          response: { requestId: continuation.request.requestId, value: natural },
-          optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
-        })
-      ),
-      resultJson: JSON.stringify(execution),
-      resultChecksum: checksumRuleDocument(execution),
-      actorUserId: input.expectedUserId,
-      correlationId: response.correlationId ?? null,
-      createdAt: input.occurredAt
-    })
-  )
+  if (record.receipt)
+    await ctx.db.insert(
+      'encounterRuleReceipts',
+      encounterStoredRuleReceiptSchema.parse({
+        id: crypto.randomUUID(),
+        campaignId: campaign.id,
+        encounterId: run.id,
+        occurrenceId: occurrence.id,
+        commandId: response.commandId,
+        commandType: 'RESOLVE_RULE_OCCURRENCE',
+        commandFingerprint: fingerprint,
+        encounterVersion: nextState.version,
+        commandMetadataJson: JSON.stringify(
+          serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
+            schemaVersion: 1,
+            transition: 'RESUME',
+            expectedAggregateVersion: response.expectedVersion,
+            expectedOccurrenceVersion: response.expectedOccurrenceVersion,
+            response: record.receipt,
+            optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+          })
+        ),
+        resultJson: JSON.stringify(record.ruleResult),
+        resultChecksum: checksumRuleDocument(record.ruleResult),
+        actorUserId: input.expectedUserId,
+        correlationId: response.correlationId ?? null,
+        createdAt: input.occurredAt
+      })
+    )
   return presentEncounterResultForMember(ctx, { campaign, membership, result })
 }

@@ -16,7 +16,11 @@ import {
   turnPendingActorId
 } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectNativeCleavingPending } from './cleavingPending.js'
-import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
+import { encounterD20WindowRollerActorId } from '@artificer-toolkit/rules-runtime/encounterD20Window'
+import {
+  projectNativeBasicActionCheckPending,
+  projectNativeD20WindowPending
+} from './basicActionCheckPending.js'
 import { projectNativeConcentrationPending } from './concentrationPending.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import {
@@ -112,7 +116,7 @@ export async function readPendingRunDecision(
     membership,
     actors
   })
-  if (context.kind === 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK') {
+  if (context.kind === 'ENCOUNTER_DAMAGE_SAVE_CHECK') {
     const actor = actors.find((entry) => entry.id === context.application.targetActorId)
     return actor && controlledActorIds.has(actor.id)
       ? withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
@@ -135,6 +139,10 @@ export async function readPendingRunDecision(
           (reasons) => projectNativeBasicActionCheckPending(occurrence, pendingSnapshot, reasons),
           context.consumedGrants
         )
+      : null
+  if (context.kind === 'ENCOUNTER_D20_WINDOW')
+    return controlledActorIds.has(encounterD20WindowRollerActorId(context))
+      ? projectNativeD20WindowPending(occurrence, pendingSnapshot)
       : null
   if (
     context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
