@@ -42,7 +42,7 @@ import {
   persistEncounterInitiativeRestores,
   type EncounterInitiativeRestoreCharacterRules
 } from './initiativeRestorePersistence.js'
-import { markTurnStarted } from './turnMovement.js'
+import { markTurnStarted, readTurnStartedBy } from './turnMovement.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import { persistEncounterTurnZoneEffects } from './turnZoneEffectsPersistence.js'
 import {
@@ -315,15 +315,25 @@ export async function persistEncounterTurnCommit(
     stage: 'START_OF_TURN',
     actorId: root.proposedTerminalTransition.currentActorId
   } as const
-  const incoming = await persistEncounterTurnEffects(
-    ctx,
-    {
-      ...effectCommit,
-      boundary: incomingBoundary,
-      phase: input.incomingTurn
-    },
-    callbacks.applyMechanics
-  )
+  // A turn that was already begun (Previous Turn, then Next) never runs its start-of-turn effects again.
+  const incomingBegun =
+    incomingBoundary.actorId !== null &&
+    (await readTurnStartedBy(ctx, {
+      encounterId: state.id,
+      round: root.proposedTerminalTransition.round,
+      actorId: incomingBoundary.actorId
+    })) !== null
+  const incoming = incomingBegun
+    ? { result: null, actors: [] }
+    : await persistEncounterTurnEffects(
+        ctx,
+        {
+          ...effectCommit,
+          boundary: incomingBoundary,
+          phase: input.incomingTurn
+        },
+        callbacks.applyMechanics
+      )
   // Passive zones are in place from the Encounter's start, before any first turn (D144, D155).
   if (root.commandType === 'START')
     await placeEncounterPassiveZones(
@@ -337,17 +347,20 @@ export async function persistEncounterTurnCommit(
       },
       callbacks
     )
-  const incomingZones = await persistEncounterTurnZoneEffects(
-    ctx,
-    { ...zoneCommit, boundary: incomingBoundary, plan: input.incomingZoneTurn },
-    zoneCallbacks
-  )
-  await persistEncounterGrantTicks(ctx, {
-    state,
-    stage: 'START_OF_TURN',
-    turnActorId: root.proposedTerminalTransition.currentActorId,
-    occurredAt: input.occurredAt
-  })
+  const incomingZones = incomingBegun
+    ? null
+    : await persistEncounterTurnZoneEffects(
+        ctx,
+        { ...zoneCommit, boundary: incomingBoundary, plan: input.incomingZoneTurn },
+        zoneCallbacks
+      )
+  if (!incomingBegun)
+    await persistEncounterGrantTicks(ctx, {
+      state,
+      stage: 'START_OF_TURN',
+      turnActorId: root.proposedTerminalTransition.currentActorId,
+      occurredAt: input.occurredAt
+    })
   // After every stage that plans against a Character's stream version: the raise advances it.
   if (root.initiative)
     await persistEncounterInitiativeRestores(
