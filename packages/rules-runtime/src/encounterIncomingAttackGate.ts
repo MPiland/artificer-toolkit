@@ -2,9 +2,9 @@ import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/cha
 import { incomingAttackGatePayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterIncomingGateOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
 import { heldSourceImmunityLabel } from './encounterSourceImmunity.js'
+import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
@@ -136,12 +136,11 @@ export function incomingGateOffer(input: {
     holderActorId: input.holderActorId,
     checkDefinitionId: savingThrow.abilityDefinitionId,
     dc,
-    d20: {
+    d20: freezeD20Context({
       rollMode: row.rollMode,
-      contributors: [...row.contributors],
-      contributorChecksum: checksumRuleDocument(row.contributors),
+      contributors: row.contributors,
       modifier: row.modifier,
-      ...(addedDice.length > 0 && { addedDice })
-    }
+      addedDice
+    })
   }
 }

@@ -30,6 +30,7 @@ import {
 import type { prepareEncounterActionEconomy } from './encounterActionEconomy.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import type { ReceiptApplications } from './encounterCharacterMechanicsBatch.js'
+import { freezeD20Context } from './encounterD20Settlement.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import {
   creatureActiveGrantAttackContributors,
@@ -500,10 +501,11 @@ export function prepareEncounterDisarmContest(input: {
     initiator: {
       actorId: actor.id,
       requestNodeId: 'initiator_d20',
-      rollMode: preparation.proposal.contest.initiatorMode,
-      contributors: [...preparation.proposal.contest.initiatorContributors],
-      contributorChecksum: checksumRuleDocument(preparation.proposal.contest.initiatorContributors),
-      modifier
+      ...freezeD20Context({
+        rollMode: preparation.proposal.contest.initiatorMode,
+        contributors: preparation.proposal.contest.initiatorContributors,
+        modifier
+      })
     },
     defender: {
       actorId: target.id,
@@ -512,9 +514,7 @@ export function prepareEncounterDisarmContest(input: {
         {
           checkDefinitionId,
           label: encounterBasicActionCheckLabel(input.system, checkDefinitionId),
-          ...defenderRoll,
-          contributorChecksum: checksumRuleDocument(defenderRoll.contributors),
-          modifier: targetCheckTotal
+          ...freezeD20Context({ ...defenderRoll, modifier: targetCheckTotal })
         }
       ]
     },

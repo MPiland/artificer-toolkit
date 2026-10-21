@@ -3,9 +3,9 @@ import {
   type AbilityModifierReference
 } from '@artificer-toolkit/shared/core'
 import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
+import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { actorContestFacts } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
@@ -85,11 +85,10 @@ export function prepareEncounterCastReactionCheck<
     throw new EncounterValidationError('The reacting creature has no total for the check.')
   return {
     checkDefinitionId: definition.id,
-    d20: {
+    d20: freezeD20Context({
       rollMode: d20.rollMode,
       contributors: d20.contributors,
-      contributorChecksum: checksumRuleDocument(d20.contributors),
       modifier: d20.modifier
-    }
+    })
   }
 }
