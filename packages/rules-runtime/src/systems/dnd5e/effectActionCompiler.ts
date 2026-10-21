@@ -84,12 +84,7 @@ import {
   encounterAreaTargetKind,
   encounterZoneChoiceTarget
 } from '../../encounterAreaAction.js'
-import {
-  damageTypeIdsText,
-  gateNodeInputs,
-  isGated,
-  type Dnd5eAuthoredGates
-} from './effectActionGates.js'
+import { gateFacts, gateNodeInputs, isGated, type Dnd5eAuthoredGates } from './effectActionGates.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../../hitPointTiers.js'
 import {
@@ -173,7 +168,6 @@ import {
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
-  DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY,
   DND5E_CONDITION_IMMUNE_FACT_KEYS,
   MAX_CONDITIONS_PER_PATH,
   conditionImmuneFactKey,
@@ -7887,15 +7881,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
-      ...(published.definition.nodes.some(
-        (node) => node.inputs.targetDamageTypesTaken !== undefined
-      )
-        ? {
-            [DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY]: damageTypeIdsText(
-              targetDamageTypesTaken ?? []
-            )
-          }
-        : {}),
+      ...gateFacts(published.definition, { targetDamageTypesTaken }),
       ...resolvedDamageExpressionFacts,
       ...weaponDamageDieFacts,
       ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0

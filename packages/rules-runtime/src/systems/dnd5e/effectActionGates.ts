@@ -212,3 +212,17 @@ export function gateEvidenceIsValid(
     trace.outputs.authorized === (otherwiseAuthorized && verdicts.every(Boolean))
   )
 }
+
+/** The facts a published graph's gate inputs read; a gate the graph does not bind adds none. */
+export function gateFacts(
+  graph: Pick<CompiledRuleGraph, 'nodes'>,
+  target: { targetDamageTypesTaken?: readonly string[] }
+): Record<string, RuleValue> {
+  return graph.nodes.some((node) => node.inputs.targetDamageTypesTaken !== undefined)
+    ? {
+        [DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY]: damageTypeIdsText(
+          target.targetDamageTypesTaken ?? []
+        )
+      }
+    : {}
+}

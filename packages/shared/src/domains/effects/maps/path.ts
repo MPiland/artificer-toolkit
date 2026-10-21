@@ -29,7 +29,6 @@ import type {
   PathChoiceOptionAuthored,
   PathHitPointTierRowAuthored,
   PathRollTableRowAuthored,
-  ResultBlockGateAuthored,
   ResultBlockAuthored,
   DegradeEquipmentDestroyWhenAuthored,
   ScalarReductionAuthored,
@@ -108,6 +107,7 @@ import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP, HELD_ESCAPE_DC_NODE_MAP } fr
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
+import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
@@ -256,7 +256,6 @@ const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
 const manifestOccupantSaveBonus = buildNodeMap<ManifestOccupantSaveBonusNode>()
 const resultBlock = buildNodeMap<ResultBlockAuthored>()
 const nonManifestResultBlock = buildNodeMap<ResultBlockAuthored<NonManifestOutcomeAuthored>>()
-const resultBlockGate = buildNodeMap<ResultBlockGateAuthored>()
 const hitPointTierRow = buildNodeMap<PathHitPointTierRowAuthored>()
 const nonManifestHitPointTierRow =
   buildNodeMap<PathHitPointTierRowAuthored<NonManifestOutcomeAuthored>>()
@@ -3626,39 +3625,6 @@ const NON_MANIFEST_RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored<NonManifes
         })
       )
   })
-
-const RESULT_BLOCK_GATE_NODE_MAP = resultBlockGate.define('resultBlockGate', ({ map, nodes }) => {
-  const { number, selectSingle } = nodes
-
-  map
-    .set(
-      'kind',
-      selectSingle(
-        ['kind'],
-        'Condition',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            {
-              code: 'TARGET_HIT_POINTS_AT_MOST',
-              label: 'Target Hit Points At Most',
-              description: "The target's current hit points are at most the amount."
-            },
-            {
-              code: 'TARGET_HIT_POINTS_AT_LEAST',
-              label: 'Target Hit Points At Least',
-              description: "The target's current hit points are at least the amount."
-            }
-          ]
-        },
-        { requiredIf: true }
-      )
-    )
-    .set(
-      'amount',
-      number(['amount'], 'Hit Points', { constraints: { minimum: 1 }, requiredIf: true })
-    )
-})
 
 const HIT_POINT_TIER_ROW_NODE_MAP: NodeMap<PathHitPointTierRowAuthored> = hitPointTierRow.define(
   'hitPointTierRow',
