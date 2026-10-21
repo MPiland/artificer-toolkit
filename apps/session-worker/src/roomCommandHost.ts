@@ -44,13 +44,18 @@ export interface RoomCommandHost {
   setCache(cache: TransientCache | null): void
   aggregateNeedsReload(): boolean
   setAggregateNeedsReload(value: boolean): void
-  refreshSceneCache(value: SocketAttachment): Promise<LiveSessionRoomSceneCapture | null>
+  refreshSceneCache(
+    value: SocketAttachment,
+    serialized?: boolean
+  ): Promise<LiveSessionRoomSceneCapture | null>
   roomCampaignId(): string | null
   bumpCacheGeneration(): void
   challenge(socket: WebSocket, expectedGeneration?: number): void
   flushOutbox(reason: LiveSessionCheckpointReason): Promise<void>
   loadRoomAggregate(sceneId: string | null): Promise<void>
-  authorizationBoundary(value: SocketAttachment): Promise<LiveSessionRoomAuthorization>
+  authorizationBoundary(
+    value: Pick<SocketAttachment, 'authorityEpoch'>
+  ): Promise<LiveSessionRoomAuthorization>
   prepareWithRetry<T>(
     authorization: LiveSessionRoomAuthorization,
     run: (
@@ -95,6 +100,7 @@ export interface RoomCommandHost {
   /** The outbox flush in flight, if any. */
   outboxFlushing(): Promise<void> | null
   closeRoomSockets(reason: string): void
+  waitUntil(work: Promise<unknown>): void
   presentationChanging(): boolean
   random(maximum: number): number
   checkpointThrough(
