@@ -27,6 +27,8 @@ import {
 } from '../encounterConditionMechanics.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
+import { EncounterValidationError } from '../encounterErrors.js'
+import { refuseUnmetTargetRequirements } from '../encounterTargetRequirements.js'
 import {
   currentConditionDefinition,
   srdConditionDefinitionSource
@@ -616,5 +618,100 @@ describe('a condition that flees its source (SPELLS-29.T2)', () => {
     expect(
       encounterFleeActionWarnings({ sourceActorIds: [], activationCode: 'ACTION', dash: false })
     ).toEqual([])
+  })
+})
+
+describe('a single-target action’s target requirements (SPELLS-33.T4i4a)', () => {
+  const SEEN = { attackerSeesTarget: 'SEES', targetSeesAttacker: 'UNSEEN' } as const
+  const refusals = (
+    requirements: Parameters<typeof refuseUnmetTargetRequirements>[0]['requirements'],
+    held: ReturnType<typeof holding>,
+    loadSight?: () => Promise<typeof SEEN>
+  ) => refuseUnmetTargetRequirements({ requirements, actorId: SOURCE_ID, target: held, loadSight })
+
+  it('a condition from the user is met only by a holding that records the user as its source', async () => {
+    const requirements = [
+      { kind: 'HAS_CONDITION', conditionIds: [FRIGHTENED], source: 'ACTOR' }
+    ] as const
+    await expect(
+      refusals(requirements, holding([FRIGHTENED], [owningEffect(1, FRIGHTENED, SOURCE_ID)]))
+    ).resolves.toBeUndefined()
+    await expect(
+      refusals(requirements, holding([FRIGHTENED], [owningEffect(1, FRIGHTENED, OTHER_SOURCE_ID)]))
+    ).rejects.toThrow(EncounterValidationError)
+    await expect(refusals(requirements, holding([], []))).rejects.toThrow(
+      'does not have the required condition'
+    )
+  })
+
+  it('a condition from anyone is met by any holding of it, applied by hand or innate', async () => {
+    const requirements = [
+      { kind: 'HAS_CONDITION', conditionIds: [FRIGHTENED, POISONED], source: 'ANY' }
+    ] as const
+    await expect(refusals(requirements, holding([FRIGHTENED], []))).resolves.toBeUndefined()
+    await expect(refusals(requirements, holding([PRONE], []))).rejects.toThrow(
+      EncounterValidationError
+    )
+    await expect(
+      refusals(requirements, { ...holding([], []), innateConditionIds: [POISONED] })
+    ).resolves.toBeUndefined()
+  })
+
+  it('sight is read in the direction the requirement names', async () => {
+    const held = holding([], [])
+    await expect(
+      refusals([{ kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' }], held, async () => SEEN)
+    ).resolves.toBeUndefined()
+    await expect(
+      refusals([{ kind: 'SIGHT', direction: 'TARGET_SEES_ACTOR' }], held, async () => SEEN)
+    ).rejects.toThrow('out of the required sight')
+  })
+
+  it('refuses a sight requirement it cannot answer rather than skipping it', async () => {
+    await expect(
+      refusals([{ kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' }], holding([], []))
+    ).rejects.toThrow('Target sight is unavailable.')
+  })
+
+  it('reads no sight for an action without a sight requirement', async () => {
+    let reads = 0
+    await refusals(
+      [{ kind: 'HAS_CONDITION', conditionIds: [FRIGHTENED], source: 'ANY' }],
+      holding([FRIGHTENED], []),
+      async () => {
+        reads += 1
+        return SEEN
+      }
+    )
+    expect(reads).toBe(0)
+  })
+
+  it('a target at 0 hit points is alive unless it is a dead Character', async () => {
+    const requirements = [{ kind: 'AT_ZERO_HIT_POINTS' }] as const
+    const at = (current: number, deathSaves: MovementTarget['state']['deathSaves']) => {
+      const held = holding([], [])
+      return { ...held, state: { ...held.state, current, deathSaves } }
+    }
+    await expect(refusals(requirements, at(0, null))).resolves.toBeUndefined()
+    await expect(
+      refusals(requirements, at(0, { successes: 0, failures: 2, stable: false }))
+    ).resolves.toBeUndefined()
+    await expect(
+      refusals(requirements, at(0, { successes: 0, failures: 3, stable: false }))
+    ).rejects.toThrow('not at 0 hit points')
+    await expect(refusals(requirements, at(1, null))).rejects.toThrow(EncounterValidationError)
+  })
+
+  it('every requirement must hold, and an action with none admits any target', async () => {
+    await expect(refusals(undefined, holding([], []))).resolves.toBeUndefined()
+    await expect(
+      refusals(
+        [
+          { kind: 'HAS_CONDITION', conditionIds: [FRIGHTENED], source: 'ANY' },
+          { kind: 'AT_ZERO_HIT_POINTS' }
+        ],
+        holding([FRIGHTENED], [])
+      )
+    ).rejects.toThrow('not at 0 hit points')
   })
 })

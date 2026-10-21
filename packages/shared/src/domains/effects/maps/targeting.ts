@@ -233,11 +233,16 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
       )
       .set(
         'targetRequirements',
-        groupArray(['targetRequirements'], 'Target Requirements', () => TARGET_REQUIREMENT_NODE_MAP, {
-          presentation: 'inline',
-          order: 13,
-          showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
-        })
+        groupArray(
+          ['targetRequirements'],
+          'Target Requirements',
+          () => TARGET_REQUIREMENT_NODE_MAP,
+          {
+            presentation: 'inline',
+            order: 13,
+            showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
+          }
+        )
       )
       .set(
         'maxTargets',
