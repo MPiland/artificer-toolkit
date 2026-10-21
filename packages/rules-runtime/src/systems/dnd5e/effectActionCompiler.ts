@@ -230,6 +230,7 @@ import {
 import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
 import {
   boundedDiceTerm,
+  boundedSingleDiceCount,
   dnd5eEffectScalingFacts,
   parseBoundedDiceConfiguration,
   scalingLevel,
@@ -3946,16 +3947,6 @@ function immediateFollowUpSaveMaximumReduction(
       outcome.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION'
   )
   return reductions.length === 1 ? reductions[0]! : null
-}
-
-function boundedSingleDiceCount(value: unknown): number | null {
-  try {
-    const { term, modifier } = parseBoundedDiceConfiguration(value)
-    return modifier === 0 ? term.count : null
-  } catch (error) {
-    if (error instanceof Dnd5eEffectActionCompilerError) return null
-    throw error
-  }
 }
 
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
