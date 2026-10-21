@@ -421,6 +421,16 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   if (!ownerFeature || capability.sourceId !== ownerFeature.id) {
     throw new Error('Encounter feature action capability owner Feature is stale.')
   }
+  if (capability.spellCastLevel !== undefined) {
+    // A Spell cast is built from the Run's pinned compilation (D163), not from a Feature Effect
+    // of the snapshot, so only its own compiled material is rechecked.
+    if (
+      capability.authoredEffectChecksum !== capability.compiledEffectChecksum ||
+      capability.compiledEffectChecksum !== checksumRuleDocument(capability.compiledEffect)
+    )
+      throw new Error('Encounter feature action capability Spell cast is stale.')
+    return
+  }
   const entry = featureEffectEntries(ownerFeature, features).find(
     (candidate) =>
       (candidate.featureOption?.id ?? null) === capability.featureOptionId &&

@@ -2,6 +2,7 @@ import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/s
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { describe, expect, it } from 'vitest'
 
+import { assertEncounterFeatureActionCapabilityCurrent } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -64,5 +65,19 @@ describe('Creature spell cast discovery (SPELLS-33.T3c2a1)', () => {
         spells
       })
     expect(() => discover(partial)).toThrow('not pinned')
+  })
+
+  it('rechecks an issued spell cast as current for its Creature, and refuses a tampered one', () => {
+    const actor = srdCreatureActor({ id: testUuid(0xe2), creature: MAGE })
+    const [cast] = discoverCasts()
+    expect(() =>
+      assertEncounterFeatureActionCapabilityCurrent({ actor, capability: cast! })
+    ).not.toThrow()
+    expect(() =>
+      assertEncounterFeatureActionCapabilityCurrent({
+        actor,
+        capability: { ...cast!, authoredEffectChecksum: 'tampered' }
+      })
+    ).toThrow('Spell cast is stale')
   })
 })
