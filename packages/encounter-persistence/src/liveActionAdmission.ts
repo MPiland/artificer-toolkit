@@ -72,9 +72,9 @@ export async function readLiveEncounterActionAdmission(
   // action: the transaction carries the retargeted command, not the stored root it replaces.
   const retarget =
     responseAdmission?.kind === 'READY' &&
-    responseAdmission.pending.context.attackRetarget &&
+    responseAdmission.pending.context.pause?.kind === 'ATTACK_RETARGET' &&
     responseAdmission.resolution.kind === 'OPTION'
-      ? chosenEncounterAttackRetarget(responseAdmission.pending.context.attackRetarget, {
+      ? chosenEncounterAttackRetarget(responseAdmission.pending.context.pause.payload, {
           kind: 'OPTION',
           optionId: responseAdmission.resolution.optionId
         })

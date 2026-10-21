@@ -838,10 +838,27 @@ Per-role visibility and the command flow are in
 [live-sessions.md](live-sessions.md#encounter-commands); the decision is
 [D103](../handoffs/phase-08-2-decisions.md).
 
+### One pending-choice pause (current, RULES-2.T4a; ADR 0039 decision 3)
+
+A held `ENCOUNTER_ACTION` occurrence waits on exactly one thing: `pause: { kind, payload }` on its pending
+context (`EncounterPauseDto`, `packages/schema/src/shared/encounterPause.ts`). The kinds are `LEGENDARY_RESISTANCE`,
+`REACTION`, `CAST_REACTION`, `INCOMING_GATE`, `ATTACK_RETARGET`, `ON_HIT` and `FORCED_MOVEMENT`; the schema checks
+each kind's roller and d20 rules in one place. `D20_WINDOW` is the same union's member for the post-roll window and is
+allowed only in the `ENCOUNTER_D20_WINDOW` context; nothing in `ENCOUNTER_ACTION` may produce it. Adding a kind adds a
+union member and its settle, never a second pause field.
+
+Every choice kind shares one lifecycle (`packages/rules-runtime/src/encounterSealedChoice.ts`): open a sealed bounded
+choice (`openEncounterSealedChoice`, or `openEncounterAuthoredChoice` for a feature's own graph), take the option an
+answer names (`chosenEncounterSealedOption`), and settle with exactly that index (`settleEncounterSealedChoice`). Each
+kind's module keeps what was offered and its staleness checksum. The incoming gate is the one member that waits on a
+d20 instead of a choice. The rules graphs resume only `LEGENDARY_RESISTANCE`, `REACTION`, `ON_HIT` and
+`FORCED_MOVEMENT`; a held cast, ward or retarget pauses before the graphs run. GM undo of a held action cancels it
+whatever its pause kind.
+
 ### Legendary Resistance on single-target saves (current, D104)
 
 A failed Creature save on a single-target `RESOLVE_ACTION` TEST that ends `ON_SAVE_FAIL` holds the action
-before its OUTCOME runs. The `ENCOUNTER_ACTION` pending context keeps a sealed `legendaryResistance` offer
+before its OUTCOME runs. The `ENCOUNTER_ACTION` pending context keeps a sealed `LEGENDARY_RESISTANCE` pause
 with the creature as roller, and nothing is spent while it waits. The answer is the existing `DECLINE` or
 `OPTION` resolution, read as the `LEGENDARY_RESISTANCE_CHOICE` summary; the room rebuilds the TEST from the
 retained faces without rolling, re-checks the offer against the creature's current pool, and continues the
@@ -853,8 +870,7 @@ paths share `decideEncounterLegendaryResistance`. The decision is [D104](../hand
 
 A reaction authored with `reactionTrigger: { kind: 'ATTACKED_SELF' }` (Shield) is offered to the attacked
 Character when a single-target `RESOLVE_ACTION` TEST resolves `ON_HIT` or `ON_CRIT`, before the OUTCOME. The
-`ENCOUNTER_ACTION` pending context keeps a sealed `reactionChoice` offer (a sibling of `legendaryResistance`,
-a stack so Counterspell chains can nest later) with the Character as roller; nothing is spent while it
+`ENCOUNTER_ACTION` pending context keeps a sealed `REACTION` pause (a stack so Counterspell chains can nest later) with the Character as roller; nothing is spent while it
 waits and the Scene is held (D26, text "Waiting on a reaction decision"). The answer is `DECLINE` or
 `OPTION`, read as the `REACTION_CHOICE` summary; the room re-opens the choice graph by occurrence id, as
 Legendary Resistance does.
@@ -912,7 +928,7 @@ that stores nothing; `executionCancelsTriggeringEvent` reads it from the committ
 Before a Character's single-target spell cast runs its graph, the Worker (`nativeEncounterCastReaction.ts`) asks
 `discoverCastReactionActions` which other Characters hold a reaction for it, keeps those whose own invocation range
 reaches the caster on the Scene and that the reactor can afford, and
-holds the cast in a `castReaction` pending offer (`REACTION_CHOICE` to the reactor). Declining records the reactor
+holds the cast in a `CAST_REACTION` pause (`REACTION_CHOICE` to the reactor). Declining records the reactor
 and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
 caster's slot and action and the reactor's slot and reaction are spent, nothing else is applied, and no
 Concentration starts. Undo restores both creatures. Character ACTORS-target and area casts hold the same
@@ -1040,7 +1056,8 @@ Spare the Dying and Sheet tracking of death saves are not built (target).
 **d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20
 before the check settles. Two commands act on one occurrence: the d20 response pends a second `ENCOUNTER_D20_WINDOW`
 `KERNEL_EVIDENCE` snapshot (discriminated `source`, today `BASIC_ACTION_CHECK`; no rule receipt, version +1), then
-`D20_WINDOW_USE { requestId, optionId, faces? }` or `D20_WINDOW_DECLINE` resumes the System-owned bounded choice (index 0 declines),
+its `pause` is the `D20_WINDOW` member of the one pause union. `D20_WINDOW_USE { requestId, optionId, faces? }` or
+`D20_WINDOW_DECLINE` resumes the System-owned bounded choice (index 0 declines),
 appends the die to the d20's `addedDice`, settles the check with the final total and ends the spending effect in the same transaction.
 A GM void of a window is refused. Options and their ids derive from the held grants and the roll's evidence checksum, so a homebrew
 die or trigger runs the same path. Rolled-die faces stay a d4 (`ROLLED_DIE_FACES`).
@@ -1290,11 +1307,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
-  d20 pause (`incomingGate` on the `ENCOUNTER_ACTION` context), anyone else is rolled server-side. A pass is remembered as
+  d20 pause (an `INCOMING_GATE` pause on the `ENCOUNTER_ACTION` context), anyone else is rolled server-side. A pass is remembered as
   `passedIncomingGate`, carried by every later pause so a replay skips the gate; a fail commits `ENCOUNTER_GATED_ACTION`, the
   source's spend with nothing of the action. Area effects are not gated. See the T2k3 handoff for the gaps.
-  Before a failed save loses the action (SPELLS-4.T2k3b) the attacker is offered another creature: `attackRetarget`
-  `{gate, options}` on the `ENCOUNTER_ACTION` context (`ATTACK_RETARGET_CHOICE` summary). `DECLINE` commits the same gated action;
+  Before a failed save loses the action (SPELLS-4.T2k3b) the attacker is offered another creature: an `ATTACK_RETARGET`
+  pause (`{gate, options}`) on the `ENCOUNTER_ACTION` context (`ATTACK_RETARGET_CHOICE` summary). `DECLINE` commits the same gated action;
   `OPTION` replays the command retargeted to the chosen creature (`retargetEncounterAction`; the admission and the worker derive
   the same command and fingerprint), so range, sight, visibility and any ward of the new target are evaluated afresh. The
   currentness checksum is exempt for that one transition.
@@ -1755,9 +1772,8 @@ passive weapon-attack invocation is merged into the weapon's compiled effect lik
 `optionalRider`, and the OUTCOME specialization keeps it only when its effect id is in the bound fact
 `dnd5e.selected-optional-riders`; its level-keyed rows read the paid slot from `dnd5e.spell-cast-level`
 (`selectScalingRow` clamps above the authored rows, which is how Divine Smite caps at 5d8). After a hit, and after
-any `reactionChoice` has resolved, the attacker's riders it can still pay for hold the occurrence with a sealed
-`onHitChoice` offer (a third sibling of `legendaryResistance` and `reactionChoice`, mutually exclusive with them,
-`ON_HIT_CHOICE` summary, the attacker's controller answers per D19). Option 0 is a decline; each other option pins
+any `REACTION` pause has resolved, the attacker's riders it can still pay for hold the occurrence with a sealed
+`ON_HIT` pause (`ON_HIT_CHOICE` summary, the attacker's controller answers per D19). Option 0 is a decline; each other option pins
 a rider and the way it is paid: a slot level (`SPELL_SLOT`) or a resource pool and its cost (`RESOURCE_POOL`, authored as
 `optionalOnHit: { kind: 'RESOURCE_POOL', chargeId, cost }`, offered only while exactly one resolved pool carries
 `chargeId` and holds `cost`). The use option id hashes the hit and the way of paying, so a changed pool or cost is stale. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot

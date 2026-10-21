@@ -110,7 +110,7 @@ export async function advanceNativeIncomingGate(input: {
       kind: 'PENDING' as const,
       continuation,
       rollerActorId: input.attacker.actor.id,
-      incomingGate: offer
+      pause: { kind: 'INCOMING_GATE' as const, payload: offer }
     }
   const random = input.random ?? nextRollInt
   const evaluated = await evaluateEncounterBasicActionCheck({

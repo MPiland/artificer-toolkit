@@ -193,7 +193,10 @@ export async function planNativeLiveBasicActionResponse(
     : null
   let rolled: Awaited<ReturnType<typeof rollEncounterCheck>>
   if (settledWindow)
-    rolled = { execution: settledWindow.context.rolled.execution, d20: settledWindow.d20 }
+    rolled = {
+      execution: settledWindow.context.pause.payload.rolled.execution,
+      d20: settledWindow.d20
+    }
   else {
     const answer = bindEncounterD20Evidence({
       response: { resolution: ready.command.resolution, appRoll: ready.appRoll },
@@ -300,7 +303,7 @@ export async function planNativeLiveBasicActionResponse(
     // A window's check keeps the version and facts its d20 was recorded under, before it paused.
     occurrenceVersion: response.expectedOccurrenceVersion + (settledWindow ? 0 : 1),
     initialFactsChecksum: settledWindow
-      ? settledWindow.context.rolled.initialFactsChecksum
+      ? settledWindow.context.pause.payload.rolled.initialFactsChecksum
       : checksumRuleDocument(continuation.facts)
   })
   const facts = buildEncounterActorRuleFacts({ actors })
@@ -320,7 +323,7 @@ export async function planNativeLiveBasicActionResponse(
         context,
         execution: result,
         appRollId: settledWindow
-          ? settledWindow.context.appRollId
+          ? settledWindow.context.pause.payload.appRollId
           : (ready.appRoll?.rollId ?? null),
         ...(settledWindow && { window: { spentEffect } })
       },

@@ -1,4 +1,5 @@
 import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterSealedChoiceSelection } from './encounterSealedChoice.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
@@ -10,8 +11,7 @@ import {
   encounterReactionAudit,
   sameEncounterReactionCandidate,
   settleEncounterReactionChoice,
-  type EncounterAttackReactionCandidate,
-  type EncounterReactionSelection
+  type EncounterAttackReactionCandidate
 } from './encounterReactionChoice.js'
 
 type ActionSource = Omit<
@@ -40,7 +40,7 @@ export async function resolveNativeActionReaction(
   input: ActionSource &
     CurrentReaction & {
       offer: EncounterReactionOfferDto
-      selection: EncounterReactionSelection
+      selection: EncounterSealedChoiceSelection
     }
 ) {
   const original = await reconstructNativeActionTest({
