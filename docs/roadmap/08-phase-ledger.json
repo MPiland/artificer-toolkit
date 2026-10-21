@@ -13359,9 +13359,10 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b", "RULES-2.T5"]
               },
-              "text": "0 HP interception (split 2026-10-20): Undead Fortitude (x2) and Wereboar Relentless on the T2i2 interception contract; a save DC derived from the triggering damage, with damage-type and critical-hit exclusions, goes to a ruling first. Parity proofs, a homebrew variant and 3 kind deletions."
+              "text": "0 HP interception (split 2026-10-20): Undead Fortitude (x2) and Wereboar Relentless on the T2i2 interception contract; a save DC derived from the triggering damage, with damage-type and critical-hit exclusions, goes to a ruling first. Parity proofs, a homebrew variant and 3 kind deletions.",
+              "note": "2026-10-21: held behind RULES-2.T5 so interception lands on the event table, not the per-feature contract (ADR 0039)."
             },
             {
               "id": "SPELLS-33.T4i3",
