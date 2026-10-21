@@ -1,5 +1,4 @@
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { describe, expect, it } from 'vitest'
 
@@ -8,6 +7,7 @@ import {
   featureModifiersReadEnemyProximity
 } from '../encounterActiveGrants.js'
 import { foldDnd5eCreatureFeatureGrants } from '../systems/dnd5e/creatureFeatureGrantFold.js'
+import { resolveDnd5eRollMode } from '../systems/dnd5e/rollModePolicy.js'
 
 const PACK_TACTICS_CREATURES = [
   'Giant Rat',
@@ -26,7 +26,7 @@ function modifiersOf(label: string) {
 }
 
 function attackMode(label: string, attackDomain: string, nearestEnemyFeet: number | null) {
-  return resolveD20Contributors(
+  return resolveDnd5eRollMode(
     creatureFeatureAttackContributors(
       HOLDER_ID,
       attackDomain,

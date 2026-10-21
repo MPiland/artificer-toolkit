@@ -63,8 +63,8 @@ export const integerRangeEvidenceRuleOperation = {
 
 /**
  * An `evidence.integer-range` that asks for its value only while `enabled` is true; otherwise it
- * settles at `min` without a request. A d20 test asks for a second die this way only when a fact
- * says the roll has advantage or disadvantage.
+ * settles at `min` without a request. A test asks for a second face this way only when a fact says
+ * its roll mode keeps one of two.
  */
 export const optionalIntegerRangeEvidenceRuleOperation = {
   key: 'evidence.optional-integer-range',
@@ -86,10 +86,10 @@ export const optionalIntegerRangeEvidenceRuleOperation = {
 } satisfies RuleOperationContract
 
 /**
- * The signed total of the dice a holder rolls with a d20 test after advantage or disadvantage keeps
- * one d20 (Bless's +1d4, Bane's -1d4). `min` and `max` bound the signed sum; it asks for the total
- * only while `enabled` is true and otherwise settles at `min` (0) without a request. A key of its
- * own keeps it apart from the d20 requests, which share the integer-range keys.
+ * The signed total of the dice a holder adds to a test after its roll mode keeps one face. `min` and
+ * `max` bound the signed sum; it asks for the total only while `enabled` is true and otherwise
+ * settles at `min` (0) without a request. A key of its own keeps it apart from the face requests,
+ * which share the integer-range keys.
  */
 export const addedDiceTotalEvidenceRuleOperation = {
   key: 'evidence.added-dice-total',
@@ -110,29 +110,29 @@ export const addedDiceTotalEvidenceRuleOperation = {
   }
 } satisfies RuleOperationContract
 
-/** Keeps one of two rolled faces by roll mode: the first on NORMAL, the higher or lower otherwise. */
-export const keepByRollModeRuleOperation = {
-  key: 'number.keep-by-roll-mode',
+/** Keeps one of two rolled faces: the first, the higher or the lower, as the System's roll mode says. */
+export const keepOneOfTwoRuleOperation = {
+  key: 'number.keep-one-of-two',
   contractVersion: 1,
   inputs: {
     first: RULE_VALUE_KIND.NUMBER,
     second: RULE_VALUE_KIND.NUMBER,
-    rollMode: RULE_VALUE_KIND.TEXT
+    keep: RULE_VALUE_KIND.TEXT
   },
   outputs: { value: RULE_VALUE_KIND.NUMBER },
   executionKind: 'PURE',
   execute(inputs) {
     const first = requireNumber(inputs, 'first')
     const second = requireNumber(inputs, 'second')
-    switch (inputs.rollMode) {
-      case 'NORMAL':
+    switch (inputs.keep) {
+      case 'FIRST':
         return { value: first }
-      case 'ADVANTAGE':
+      case 'HIGHER':
         return { value: Math.max(first, second) }
-      case 'DISADVANTAGE':
+      case 'LOWER':
         return { value: Math.min(first, second) }
       default:
-        throw new Error('Rule operation input "rollMode" must be a known roll mode.')
+        throw new Error('Rule operation input "keep" must be FIRST, HIGHER or LOWER.')
     }
   }
 } satisfies RuleOperationContract
@@ -163,6 +163,6 @@ export const coreRuleOperations = [
   integerRangeEvidenceRuleOperation,
   optionalIntegerRangeEvidenceRuleOperation,
   addedDiceTotalEvidenceRuleOperation,
-  keepByRollModeRuleOperation,
+  keepOneOfTwoRuleOperation,
   boundedChoiceIndexEvidenceRuleOperation
 ] as const satisfies readonly RuleOperationContract[]

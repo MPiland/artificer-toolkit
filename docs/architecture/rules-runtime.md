@@ -223,6 +223,14 @@ current).** Every recorded d20 contributor (`D20Contributor`) carries a `source:
 consumer parses `sourceId` or `domainKey`. An active effect has one `sourceId`
 (`createCharacterMechanicSourceKey`) and one typed source whichever holder, perception or relationship
 path names it. Rules-owned contributors use kind `RULE` with an id from `ROLL_MODE_RULE_SOURCE_IDS`.
+**Roll-mode capability (RULES-2.T7, current).** A contributor's `influence` is an opaque System
+vocabulary code. Neutral runtime resolves a d20's contributors to a roll mode and the face to keep
+(`FIRST | HIGHER | LOWER`) through `rollModeCapabilityRegistry.resolveRollMode({ gameSystemId,
+contributors })` (`rollModeCapabilityRegistry.ts`, installed in `platformPolicyModules.ts`), which fails
+closed on a System with no roll-mode policy, an influence code the System does not define, and a
+duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
+`ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
+`resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
@@ -236,8 +244,9 @@ written by `persistEncounterInitiativeRollCards` in the terminal turn commit fro
 `root.initiative` evidence; a flat score and tie-resolution dice post none, and a result of more than two
 dice or a die that is not a logged `1dN` throws. **Declared advantage and disadvantage (ENCOUNTER-10,
 current):** the declared graph's `d20-extra` node (`evidence.optional-integer-range`, which asks for its
-die only while the `initiative.extra-d20` fact is true) and its `number.keep-by-roll-mode` node roll two
-d20s and keep the higher or lower under the policy's resolved roll mode; the card replays both faces under
+die only while the `initiative.extra-d20` fact is true) and its `number.keep-one-of-two` node roll two
+d20s and keep the first, higher or lower face the `initiative.keep` fact names (the D&D roll-mode policy
+maps the resolved mode to it); the card replays both faces under
 that mode, so it matches the GM-rolled card. A tie resolver pinned to the same graph rolls its attempts
 the same way.) A die settled by a `SYSTEM_ROLL` answer already has its
 "Rolled by the app" attempt card, so the commit skips it; an auto-rolled or entered die (including one

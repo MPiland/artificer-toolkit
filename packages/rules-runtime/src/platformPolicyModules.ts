@@ -1,6 +1,12 @@
+import { createRollModeCapabilityRegistry } from './rollModeCapabilityRegistry.js'
 import { dnd5ePolicyModuleRegistration } from './systems/dnd5e/policyModuleRegistration.js'
+import { dnd5eRollModeCapabilityAdapter } from './systems/dnd5e/rollModePolicy.js'
 
 const installedRuntimeModules = [dnd5ePolicyModuleRegistration] as const
+
+export const rollModeCapabilityRegistry = createRollModeCapabilityRegistry([
+  dnd5eRollModeCapabilityAdapter
+])
 
 export function requireInstalledGameSystemPolicyModule(input: {
   gameSystemId: string

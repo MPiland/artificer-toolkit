@@ -561,6 +561,7 @@ export function buildMovementTarget<
       actorId: actorRule.actorId,
       initiativeModifier: actorRule.initiativeModifier,
       savingThrowDefinitions: withCreatureActiveGrantSaves(
+        gameSystemId,
         actorRule.savingThrowDefinitions ?? [],
         actor.id,
         activeEffects,

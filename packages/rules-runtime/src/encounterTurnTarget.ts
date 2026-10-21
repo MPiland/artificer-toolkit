@@ -40,7 +40,7 @@ export function rebuildEncounterTurnTarget<
     gameSystemId: input.state.gameSystemId
   })
   const rebuilt = input.source.holderState
-    ? withHolderDefenseGrants(conditioned, input.source.holderState)
+    ? withHolderDefenseGrants(input.state.gameSystemId, conditioned, input.source.holderState)
     : conditioned
   return input.source.occupantSaveBonus === undefined
     ? rebuilt

@@ -156,6 +156,7 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
     addedDice: activeAbilityCheckDice(target.activeEffects, abilityCode),
     minimumRoll: activeAbilityCheckMinimumRoll(target.activeEffects, abilityCode),
     ...withEncounterConditionCheckContributors({
+      gameSystemId: input.gameSystemId,
       holderActorId: target.actor.id,
       mechanics: target.conditionMechanics,
       roll: facts
@@ -184,6 +185,7 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
     const featureCheck =
       input.checkKind === 'SKILL' && skillId && target.holderState
         ? mergedRollContributors(
+            input.gameSystemId,
             check.evidence ?? [],
             encounterFeatureSkillCheckContributors({
               holderActorId: target.actor.id,
@@ -234,6 +236,7 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
           ? undefined
           : abilityModifier(abilityScore)
     const granted = mergedRollContributors(
+      input.gameSystemId,
       [],
       creatureActiveGrantCheckContributors(
         target.actor.id,

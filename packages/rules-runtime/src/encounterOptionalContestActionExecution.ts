@@ -1,3 +1,4 @@
+import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type {
   ContestDefenderCheckDto,
@@ -7,7 +8,6 @@ import type {
   ServerCompletedRuleExecutionDto,
   ServerRuleExecutionContinuationDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
-import type { D20Contributor } from '@artificer-toolkit/shared/rules'
 
 import {
   DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY,
@@ -32,7 +32,7 @@ type OptionalContestD20Policy = {
   actorId: string
   requestNodeId: 'initiator_d20' | 'target_d20'
   rollMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
-  contributors: readonly D20Contributor[]
+  contributors: readonly ReceiptD20ContributorDto[]
   contributorChecksum: string
   modifier: number
 }

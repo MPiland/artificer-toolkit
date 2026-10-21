@@ -36,6 +36,7 @@ import {
   creatureActiveGrantAttackContributors,
   creatureAttackAbility,
   creatureActiveGrantCheckContributors,
+  mergedCanonicalContributors,
   mergedRollContributors
 } from './encounterActiveGrants.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
@@ -256,7 +257,7 @@ export function readEncounterDisarmSelection(input: {
             ? { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
             : null,
         // Its active attack grants (a Help) are read here: a Creature has no policy to fold them.
-        relationshipContributors: mergedRollContributors(
+        relationshipContributors: mergedCanonicalContributors(
           prepared.relationshipContributors,
           creatureActiveGrantAttackContributors(
             actor.id,
@@ -264,7 +265,7 @@ export function readEncounterDisarmSelection(input: {
             creatureAttackAbility(source.capability.mechanicFacts.outcomes),
             sourceFacts.activeEffects
           )
-        ).contributors
+        )
       }
     }
   })()
@@ -438,9 +439,11 @@ export function prepareEncounterDisarmContest(input: {
           prepared.targetFacts.activeEffects
         )
   const defenderRoll = withEncounterConditionCheckContributors({
+    gameSystemId: state.gameSystemId,
     holderActorId: target.id,
     mechanics: prepared.targetFacts.conditionMechanics,
     roll: mergedRollContributors(
+      state.gameSystemId,
       preparation.proposal.contest.targetContributors,
       defenderGrantContributors
     )

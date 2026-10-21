@@ -5,6 +5,8 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
+import { keepOneOfTwoRuleOperation } from '@artificer-toolkit/shared/rules'
+import { dnd5eDeclaredInitiativeRollFacts } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
 import { persistEncounterInitiativeRollCards } from '../initiativeRollCards.js'
 
 const ACTOR_ID = '00000000-0000-4000-8000-0000000000a1'
@@ -19,10 +21,10 @@ function die(requestId: string, value: number, max = 20) {
   }
 }
 
-/** The graph node that keeps one of two faces by roll mode, as the settled graph records it. */
+/** The graph node that keeps one of two faces, as the settled graph records it. */
 function kept(value: number) {
   return {
-    operation: { key: 'number.keep-by-roll-mode', contractVersion: 1 },
+    operation: { key: keepOneOfTwoRuleOperation.key, contractVersion: 1 },
     inputs: {},
     outputs: { value }
   }
@@ -110,7 +112,7 @@ describe('persistEncounterInitiativeRollCards', () => {
   it('posts one card with both faces and the advantage mode, keeping the higher', async () => {
     const [card, ...others] = await persist(
       declaredRoot([die('first', 4), die('second', 17), kept(17)], {
-        facts: { 'initiative.roll-mode': 'ADVANTAGE' },
+        facts: dnd5eDeclaredInitiativeRollFacts('ADVANTAGE'),
         score: 20
       })
     )
@@ -126,7 +128,7 @@ describe('persistEncounterInitiativeRollCards', () => {
   it('posts one card with both faces and the disadvantage mode, keeping the lower', async () => {
     const [card, ...others] = await persist(
       declaredRoot([die('first', 17), die('second', 4), kept(4)], {
-        facts: { 'initiative.roll-mode': 'DISADVANTAGE' },
+        facts: dnd5eDeclaredInitiativeRollFacts('DISADVANTAGE'),
         score: 7
       })
     )
@@ -145,7 +147,7 @@ describe('persistEncounterInitiativeRollCards invariants', () => {
     await expect(
       persist(
         declaredRoot([die('first', 4), die('second', 17), die('third', 9)], {
-          facts: { 'initiative.roll-mode': 'ADVANTAGE' }
+          facts: dnd5eDeclaredInitiativeRollFacts('ADVANTAGE')
         })
       )
     ).rejects.toThrow(/more than two dice/)
@@ -155,7 +157,7 @@ describe('persistEncounterInitiativeRollCards invariants', () => {
     await expect(
       persist(
         declaredRoot([die('first', 4), die('second', 17)], {
-          facts: { 'initiative.roll-mode': 'NORMAL' }
+          facts: dnd5eDeclaredInitiativeRollFacts('NORMAL')
         })
       )
     ).rejects.toThrow(/roll mode/)
@@ -165,7 +167,7 @@ describe('persistEncounterInitiativeRollCards invariants', () => {
     await expect(
       persist(
         declaredRoot([die('first', 4), die('second', 6, 6)], {
-          facts: { 'initiative.roll-mode': 'ADVANTAGE' }
+          facts: dnd5eDeclaredInitiativeRollFacts('ADVANTAGE')
         })
       )
     ).rejects.toThrow(/1dN/)

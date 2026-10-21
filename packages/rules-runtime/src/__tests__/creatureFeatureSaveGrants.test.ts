@@ -1,9 +1,9 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { describe, expect, it } from 'vitest'
 
 import { foldDnd5eCreatureFeatureGrants } from '../systems/dnd5e/creatureFeatureGrantFold.js'
+import { resolveDnd5eRollMode } from '../systems/dnd5e/rollModePolicy.js'
 import {
   srdCondition,
   srdCreatureActor,
@@ -35,7 +35,7 @@ function saveRows(creature: CreatureAuthored): SaveRow[] {
 /** The roll mode of a save against one condition, or of a save against none when it is omitted. */
 function saveMode(rows: readonly SaveRow[], conditionTypeId?: string) {
   const scoped = rows.filter((row) => row.conditionTypeId === conditionTypeId)
-  return scoped.map((row) => resolveD20Contributors(row.contributors).rollMode)
+  return scoped.map((row) => resolveDnd5eRollMode(row.contributors).rollMode)
 }
 
 const CONDITIONS = {

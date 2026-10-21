@@ -823,6 +823,7 @@ export async function planNativeLiveContestRolls(input: {
     const d20Belief =
       execution.participant === 'INITIATOR' && attackSight
         ? encounterAttackD20Belief({
+            gameSystemId: state.gameSystemId,
             policy: contest.initiator,
             trueSight: attackSight.trueSight,
             believedSight: attackSight.believedSight

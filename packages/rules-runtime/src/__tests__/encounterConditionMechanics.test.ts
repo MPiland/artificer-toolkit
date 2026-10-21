@@ -214,6 +214,7 @@ describe('encounter condition mechanics (D94)', () => {
       ])
       expect(
         withEncounterConditionCheckContributors({
+          gameSystemId: SRD_SYSTEM_ID,
           holderActorId: ACTOR_ID,
           mechanics,
           roll: { contributors: [], rollMode: 'NORMAL' }
@@ -315,6 +316,7 @@ describe('encounter condition mechanics (D94)', () => {
       })
     const checkMode = (level: number) =>
       withEncounterConditionCheckContributors({
+        gameSystemId: SRD_SYSTEM_ID,
         holderActorId: ACTOR_ID,
         mechanics: at(level),
         roll: { contributors: [], rollMode: 'NORMAL' }
@@ -350,6 +352,7 @@ describe('encounter condition mechanics (D94)', () => {
 
   it('advantage and disadvantage from conditions cancel to a normal roll', async () => {
     const roll = withEncounterConditionCheckContributors({
+      gameSystemId: SRD_SYSTEM_ID,
       holderActorId: ACTOR_ID,
       mechanics: await mechanicsOf([POISONED]),
       roll: {
@@ -483,6 +486,7 @@ describe('a condition that follows its source (SPELLS-29)', () => {
       })
     const checkMode = (seen: readonly string[]) =>
       withEncounterConditionCheckContributors({
+        gameSystemId: SRD_SYSTEM_ID,
         holderActorId: ACTOR_ID,
         mechanics: inSight(seen),
         roll: { contributors: [], rollMode: 'NORMAL' }

@@ -3,7 +3,6 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules/contributors'
 import { describe, expect, it } from 'vitest'
 
@@ -32,6 +31,8 @@ import {
   srdAttackPerceptionLoaders,
   srdConditionId
 } from './encounterCreatureAction.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
+import { resolveDnd5eRollMode } from '../systems/dnd5e/rollModePolicy.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const ATTACKER_ID = testUuid(0xb1)
@@ -109,7 +110,7 @@ function truePolicy(
 ) {
   const contributors = [...mergeCanonicalD20Contributors(trueSight, others)]
   return {
-    rollMode: resolveD20Contributors(contributors).rollMode,
+    rollMode: resolveDnd5eRollMode(contributors).rollMode,
     contributors,
     contributorChecksum: checksumRuleDocument(contributors)
   }
@@ -131,6 +132,7 @@ describe('encounter attack d20 belief', () => {
     const policy = truePolicy(trueSight)
     expect(policy.rollMode).toBe('NORMAL')
     const belief = encounterAttackD20Belief({
+      gameSystemId: DND5E_SYSTEM_ID,
       policy,
       trueSight,
       believedSight: encounterAttackSightContributors({
@@ -161,6 +163,7 @@ describe('encounter attack d20 belief', () => {
     const policy = truePolicy(trueSight)
     expect(policy.rollMode).toBe('DISADVANTAGE')
     const belief = encounterAttackD20Belief({
+      gameSystemId: DND5E_SYSTEM_ID,
       policy,
       trueSight,
       believedSight: encounterAttackSightContributors({
@@ -196,6 +199,7 @@ describe('encounter attack d20 belief', () => {
       attacksAgainst: []
     })
     const belief = encounterAttackD20Belief({
+      gameSystemId: DND5E_SYSTEM_ID,
       policy: truePolicy(trueSight, [longRange]),
       trueSight,
       believedSight: encounterAttackSightContributors({
@@ -223,6 +227,7 @@ describe('encounter attack d20 belief', () => {
     })
     const policy = truePolicy(trueSight)
     const belief = encounterAttackD20Belief({
+      gameSystemId: DND5E_SYSTEM_ID,
       policy,
       trueSight,
       believedSight: encounterAttackSightContributors({
@@ -249,6 +254,7 @@ describe('encounter attack d20 belief', () => {
     const policy = truePolicy(trueSight)
     expect(policy.rollMode).toBe('DISADVANTAGE')
     const belief = encounterAttackD20Belief({
+      gameSystemId: DND5E_SYSTEM_ID,
       policy,
       trueSight,
       believedSight: encounterAttackSightContributors({

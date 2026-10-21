@@ -1,3 +1,4 @@
+import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
@@ -14,14 +15,13 @@ import {
 } from '@artificer-toolkit/shared/core'
 import {
   checksumRuleDocument,
-  compareCanonicalD20Contributors,
-  type D20Contributor
+  compareCanonicalD20Contributors
 } from '@artificer-toolkit/shared/rules'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 
 import { dnd5eAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_DISARM_POLICY_MODULE } from './policyModuleRegistration.js'
+import { resolveDnd5eRollMode } from './rollModePolicy.js'
 
 type D20Influence = 'ADVANTAGE' | 'DISADVANTAGE'
 type D20Mode = 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
@@ -33,7 +33,7 @@ interface Dnd5eOptionalActionPin {
   readonly moduleKey: string
 }
 
-type Dnd5eOptionalActionContributor = Readonly<D20Contributor>
+type Dnd5eOptionalActionContributor = Readonly<ReceiptD20ContributorDto>
 
 interface D20ContestEvidence {
   readonly initiatorTotal: number | null
@@ -115,7 +115,7 @@ function canonicalContributors(
 }
 
 function resolveMode(contributors: readonly Dnd5eOptionalActionContributor[]): D20Mode {
-  return resolveD20Contributors(contributors).rollMode
+  return resolveDnd5eRollMode(contributors).rollMode
 }
 
 function contributor(input: {

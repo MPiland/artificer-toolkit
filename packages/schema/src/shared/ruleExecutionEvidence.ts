@@ -56,6 +56,12 @@ export const rollModeContributorSourceDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A recorded d20 contributor on the wire. The kernel's influence is an opaque System code; the wire
+ * still carries the installed System's codes until System-supplied vocabulary lands (RULES-2.T9).
+ */
+export type ReceiptD20ContributorDto = D20Contributor<'ADVANTAGE' | 'DISADVANTAGE'>
+
 /** One recorded d20 contributor: its canonical identity and the typed source its reason label reads. */
 export const receiptD20ContributorSchema = lazySchema(() =>
   z.strictObject({
@@ -159,7 +165,7 @@ function contributorRollMode(
 // embeds a d20 policy or receipt and overflow the compiler's declaration size (TS7056).
 export type ServerRuleExecutionD20BeliefDto = {
   rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-  contributors: D20Contributor[]
+  contributors: ReceiptD20ContributorDto[]
   contributorChecksum: string
 }
 

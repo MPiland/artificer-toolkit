@@ -7,7 +7,6 @@ import {
   type EncounterOptionalCombatSnapshotDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import { resolveD20Contributors, type D20RollContributor } from '@artificer-toolkit/shared/rolls'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
@@ -15,6 +14,7 @@ import {
   DND5E_OVERRUN_POLICY_MODULE,
   DND5E_TUMBLE_POLICY_MODULE
 } from './policyModuleRegistration.js'
+import { resolveDnd5eRollMode } from './rollModePolicy.js'
 
 type ActionEconomy = 'ACTION' | 'BONUS_ACTION'
 type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
@@ -28,7 +28,8 @@ interface Dnd5eOptionalMovementPin {
 }
 
 /** A server-qualified contributor. This policy only appends its own size contributor. */
-interface Dnd5eOptionalMovementContributor extends D20RollContributor {
+interface Dnd5eOptionalMovementContributor {
+  readonly influence: 'ADVANTAGE' | 'DISADVANTAGE'
   readonly id: string
   readonly reason: 'EXISTING_QUALIFIED_FACT' | 'SHOVE_ASIDE_POLICY' | 'SIZE_RELATION'
 }
@@ -131,7 +132,7 @@ function resolvedInitiatorD20(
     targetSizeRank
   })
   if (contribution) contributors.push(contribution)
-  return resolveD20Contributors(contributors)
+  return { contributors, rollMode: resolveDnd5eRollMode(contributors).rollMode }
 }
 
 interface PassageProposal {
