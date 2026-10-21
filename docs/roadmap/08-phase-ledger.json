@@ -13310,7 +13310,7 @@
             },
             {
               "id": "SPELLS-33.T4i1b2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13319,7 +13319,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T4i1b1", "RULES-2.T6a"]
               },
-              "text": "Damage-type suppression gate (split 2026-10-20): suppressedByDamageTypes on the recurring trait, as a gate kind dispatched through the one gate table, with the compiler gate after RULES-2.T6a. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
+              "text": "Damage-type suppression gate (split 2026-10-20): suppressedByDamageTypes on the recurring trait, as a gate kind dispatched through the one gate table, with the compiler gate after RULES-2.T6a. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases.",
+              "note": "Merged m278 (03c87665c)."
             },
             {
               "id": "SPELLS-33.T4i1c",
