@@ -3,7 +3,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterAttackPerception } from './encounterAttackPerception.js'
 import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
-import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
+import { abilityScoreCapabilityRegistry } from './platformPolicyModules.js'
 
 /** What a holder's attack decoys (`ATTACK_DECOYS`) do to one attack made against it. */
 export type EncounterAttackDecoy = {
@@ -62,7 +62,8 @@ export function attackDecoyFor(input: {
   effects: readonly ActiveRuleEffectRecord[]
   /** The holder's ability scores by ability definition id. */
   scalarValues: Readonly<Record<string, number>>
-  abilities: readonly { id: string; code: string }[]
+  /** The Encounter's System and its ability catalog. */
+  system: { id: string; abilities: readonly { id: string; code: string }[] }
   /** The attacker's true perception of the holder. */
   perception: EncounterAttackPerception | null
 }): EncounterAttackDecoy | null {
@@ -81,8 +82,9 @@ export function attackDecoyFor(input: {
   if (!threshold) return null
   const roll = decoyRoll(input.occurrenceId, held.effect.id)
   if (roll < threshold.minimumRoll) return null
+  const { abilityModifier } = abilityScoreCapabilityRegistry.require(input.system.id)
   const modifiers = held.payload.armorClass.abilities.reduce((total, code) => {
-    const ability = input.abilities.find((entry) => entry.code === code)
+    const ability = input.system.abilities.find((entry) => entry.code === code)
     const score = ability ? input.scalarValues[ability.id] : undefined
     return total + (score === undefined ? 0 : abilityModifier(score))
   }, 0)
@@ -139,7 +141,7 @@ export async function prepareAttackBehindDecoys<
   occurrenceId: string
   /** The holder's active effects. */
   effects: readonly ActiveRuleEffectRecord[]
-  abilities: readonly { id: string; code: string }[]
+  system: { id: string; abilities: readonly { id: string; code: string }[] }
   prepare: (attackDecoy: EncounterAttackDecoy | null) => Promise<TPrepared>
   /**
    * The attacker's true perception of the holder, for a flow whose preparation does not read it
@@ -153,7 +155,7 @@ export async function prepareAttackBehindDecoys<
         occurrenceId: input.occurrenceId,
         effects: input.effects,
         scalarValues: unshielded.targetFacts.effectiveScalarValues,
-        abilities: input.abilities,
+        system: input.system,
         perception: input.perceive
           ? await input.perceive(unshielded)
           : (unshielded.attackSight?.actual ?? null)

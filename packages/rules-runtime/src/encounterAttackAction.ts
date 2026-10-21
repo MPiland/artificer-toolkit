@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { activeCapValueGrantMinimum } from './character/activeEffectGrantTotals.js'
-import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
+import { actionEconomyCapabilityRegistry } from './platformPolicyModules.js'
 import {
   encounterAttackActionState,
   snapshotFeatureDefinitions,
@@ -98,8 +98,8 @@ export async function evaluateEncounterAttackAction(
 ): Promise<EncounterAttackActionEvaluation> {
   const { actor, state } = input
   const creatureAlternatives = creatureAttackSlotAlternatives(actor)
-  const attack = actionEconomyCapabilityRegistry.isAttackActionAttack({
-    gameSystemId: state.gameSystemId,
+  const economyPolicy = actionEconomyCapabilityRegistry.require(state.gameSystemId)
+  const attack = economyPolicy.isAttackActionAttack({
     activationKind: input.activation.code,
     activationAmount: input.activation.amount,
     triggerCode: input.triggerCode,
@@ -110,8 +110,7 @@ export async function evaluateEncounterAttackAction(
     (attack ||
       (input.featureId !== undefined &&
         isAttackSlotFiller(creatureAlternatives, input.featureId) &&
-        actionEconomyCapabilityRegistry.spendsAttackAction({
-          gameSystemId: state.gameSystemId,
+        economyPolicy.spendsAttackAction({
           activationKind: input.activation.code,
           activationAmount: input.activation.amount
         })))

@@ -1,4 +1,3 @@
-import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type {
   CombatPerceptionCapabilityInstance,
   CombatPerceptionContributionResult,
@@ -26,34 +25,4 @@ export interface CombatPerceptionCapabilityAdapter {
   resolveCombatPerceptionWithContributions(
     input: CombatPerceptionResolutionInput
   ): CombatPerceptionContributionResult
-}
-
-function canonicalSystemId(value: string): string {
-  const parsed = postgresUuidSchema.safeParse(value)
-  if (!parsed.success)
-    throw new Error('Combat-perception System identity must be a PostgreSQL UUID.')
-  return parsed.data
-}
-
-export function createCombatPerceptionCapabilityRegistry(
-  adapters: readonly CombatPerceptionCapabilityAdapter[]
-) {
-  const bySystemId = new Map<string, CombatPerceptionCapabilityAdapter>()
-  for (const adapter of adapters) {
-    const gameSystemId = canonicalSystemId(adapter.gameSystemId)
-    if (bySystemId.has(gameSystemId)) {
-      throw new Error(`Duplicate combat-perception System adapter: ${gameSystemId}.`)
-    }
-    bySystemId.set(gameSystemId, adapter)
-  }
-  return {
-    resolveCombatPerceptionWithContributions(
-      input: CombatPerceptionResolutionInput & { gameSystemId: string }
-    ): CombatPerceptionContributionResult {
-      const { gameSystemId, ...resolution } = input
-      const adapter = bySystemId.get(canonicalSystemId(gameSystemId))
-      if (!adapter) throw new Error('The Game System does not provide combat-perception policy.')
-      return adapter.resolveCombatPerceptionWithContributions(resolution)
-    }
-  }
 }

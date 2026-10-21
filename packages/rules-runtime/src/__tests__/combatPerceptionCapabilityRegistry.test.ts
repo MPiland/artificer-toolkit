@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCombatPerceptionCapabilityRegistry } from '../combatPerceptionCapabilityRegistry.js'
 import { combatPerceptionCapabilityRegistry } from '../platformPolicyModules.js'
+import { createSystemCapabilityRegistry } from '../systemCapabilityRegistry.js'
 import { dnd5eCombatPerceptionCapabilityAdapter } from '../systems/dnd5e/combatPerception.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
@@ -25,22 +25,21 @@ const input = {
 describe('combat-perception capability registry', () => {
   it('fails closed for a Game System that provides no perception policy', () => {
     expect(() =>
-      combatPerceptionCapabilityRegistry.resolveCombatPerceptionWithContributions({
-        ...input,
-        gameSystemId: '11111111-1111-4111-8111-111111111111'
-      })
+      combatPerceptionCapabilityRegistry
+        .require('11111111-1111-4111-8111-111111111111')
+        .resolveCombatPerceptionWithContributions(input)
     ).toThrow('The Game System does not provide combat-perception policy.')
   })
 
   it('rejects a duplicate adapter and a non-UUID System identity', () => {
     expect(() =>
-      createCombatPerceptionCapabilityRegistry([
+      createSystemCapabilityRegistry('combat-perception', [
         dnd5eCombatPerceptionCapabilityAdapter,
         dnd5eCombatPerceptionCapabilityAdapter
       ])
     ).toThrow(`Duplicate combat-perception System adapter: ${DND5E_SYSTEM_ID}.`)
     expect(() =>
-      createCombatPerceptionCapabilityRegistry([
+      createSystemCapabilityRegistry('combat-perception', [
         { ...dnd5eCombatPerceptionCapabilityAdapter, gameSystemId: 'dnd5e' }
       ])
     ).toThrow('must be a PostgreSQL UUID')

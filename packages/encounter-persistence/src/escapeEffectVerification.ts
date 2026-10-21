@@ -3,7 +3,7 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { actionEconomyCapabilityRegistry } from '@artificer-toolkit/rules-runtime/actionEconomyCapabilityRegistry.default'
+import { actionEconomyCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { findEncounterHolderEscape } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -63,8 +63,7 @@ export function activationAllowanceMatches(
 ): boolean {
   const binding = !('amount' in activation)
     ? null
-    : actionEconomyCapabilityRegistry.resolveActionEconomyCapability({
-        gameSystemId: state.gameSystemId,
+    : actionEconomyCapabilityRegistry.require(state.gameSystemId).resolveActionEconomyCapability({
         activationKind: activation.code,
         activationAmount: activation.amount
       })

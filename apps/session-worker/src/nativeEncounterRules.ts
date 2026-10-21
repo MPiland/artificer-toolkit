@@ -630,7 +630,7 @@ export async function planNativeLiveEncounterAction(
   const prepared = await prepareAttackBehindDecoys({
     occurrenceId,
     effects: activeEffectsByActorId.get(targetActorId) ?? [],
-    abilities: system.abilities,
+    system,
     prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy)
   })
   // A spell that takes a list of creatures is not aimed at one.

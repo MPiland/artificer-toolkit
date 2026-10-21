@@ -25,8 +25,8 @@ import {
   zoneShapeAtSource,
   type PlacedZoneSource
 } from './encounterPlacedZone.js'
+import { abilityScoreCapabilityRegistry } from './platformPolicyModules.js'
 import { encounterSceneGridPolicyRegistry } from './sceneGridPolicyRegistry.js'
-import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
 
 const PASSIVE_ZONE_NAMESPACE = '13ea735c-3dd6-4f0c-929d-175f96c227f7'
 
@@ -81,7 +81,7 @@ export function planEncounterPassiveZones(input: {
               abilityDefinitions,
               spells: new Map()
             }).passiveZones,
-            source: creatureZoneSource(actor)
+            source: creatureZoneSource(actor, input.system.id)
           }
         : characterRules &&
           characterPassiveZones(characterRules, input.system.id, conditionDefinitionIds)
@@ -118,7 +118,8 @@ export function planEncounterPassiveZones(input: {
 }
 
 /** A Creature resolves a zone against its snapshot ability scores; it has no class levels. */
-function creatureZoneSource(actor: EncounterRunActorState): PlacedZoneSource {
+function creatureZoneSource(actor: EncounterRunActorState, gameSystemId: string): PlacedZoneSource {
+  const { abilityModifier } = abilityScoreCapabilityRegistry.require(gameSystemId)
   return {
     abilityModifier: (ability) => {
       const score = snapshotAbilityScore(actor, ability)

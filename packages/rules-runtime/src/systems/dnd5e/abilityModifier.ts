@@ -1,3 +1,6 @@
+import type { AbilityScoreCapabilityAdapter } from '../../abilityScoreCapability.js'
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE, DND5E_SYSTEM_ID } from './identity.js'
+
 /** The 5e modifier of an ability score. */
 export function abilityModifier(score: number): number {
   return Math.floor((score - 10) / 2)
@@ -15,4 +18,15 @@ export function resolveAbilityModifierBonus(
     payload.min ?? -999,
     Math.min(payload.max ?? 999, modifier * (payload.multiplier ?? 1))
   )
+}
+
+export const dnd5eAbilityScoreCapabilityAdapter: AbilityScoreCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  abilityModifier,
+  // Intelligence, Wisdom and Charisma; the form brings the physical ones.
+  formRetainedAbilityIds: {
+    INTELLIGENCE: DND5E_ABILITY_DEFINITION_ID_BY_CODE.INTELLIGENCE!,
+    WISDOM: DND5E_ABILITY_DEFINITION_ID_BY_CODE.WISDOM!,
+    CHARISMA: DND5E_ABILITY_DEFINITION_ID_BY_CODE.CHARISMA!
+  }
 }

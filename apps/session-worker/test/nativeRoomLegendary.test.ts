@@ -24,6 +24,7 @@ import {
 import {
   SRD_CONDITION_TYPES,
   SRD_DAMAGE_TYPES,
+  SRD_SYSTEM_ID,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -1203,7 +1204,7 @@ describe('a Legendary Action attack against a Mirror Image (SPELLS-4.T2k2b)', ()
             occurrenceId: `${occurrenceId}:legendary:0`,
             effects: [held],
             scalarValues: {},
-            abilities: [],
+            system: { id: SRD_SYSTEM_ID, abilities: [] },
             perception: null
           })
           if ((decoy !== null) === intercepts) return occurrenceId

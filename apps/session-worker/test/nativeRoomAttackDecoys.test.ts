@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { mirrorImage } from '@artificer-toolkit/source-data/srd/spells/mirror-image.js'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -105,7 +106,7 @@ async function decoyRoom(remaining: number, attackFace: number) {
           occurrenceId,
           effects: [held],
           scalarValues: {},
-          abilities: [],
+          system: { id: SRD_SYSTEM_ID, abilities: [] },
           perception: null
         })
         if ((decoy !== null) === intercepts) return occurrenceId

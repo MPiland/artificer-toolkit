@@ -35,7 +35,7 @@ import {
   inMemoryInitiativeRepository,
   serializeStagedInitiativeRoundState
 } from './encounterInitiativeStaging.js'
-import { dnd5eInitiativeFactAdapter } from './systems/dnd5e/initiativeFactAdapter.js'
+import { initiativeCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { encounterEvidenceMode } from './encounterEvidenceMode.js'
 import {
@@ -77,6 +77,8 @@ export async function prepareEncounterTurnInitiative(input: {
     initial && state.automationMode === 'MANUAL' ? null : state.initiativePolicySnapshot
   const snapshotChecksum =
     initial && state.automationMode === 'MANUAL' ? null : state.initiativePolicySnapshotChecksum
+  // A manual start rolls no policy, so it needs none from the System.
+  const adapter = snapshot ? initiativeCapabilityRegistry.require(state.gameSystemId) : null
   let round: number
   let beforePin: InitiativeRoot['initiativeBeforePin']
   let legacyOrderedActorIds: readonly string[]
@@ -91,8 +93,7 @@ export async function prepareEncounterTurnInitiative(input: {
       root.initiative ||
       root.stagedInitiative ||
       (root.startSystemId !== null && root.startSystemId !== state.gameSystemId) ||
-      (state.automationMode !== 'MANUAL' && (!snapshot || !snapshotChecksum)) ||
-      (snapshot && dnd5eInitiativeFactAdapter.gameSystemId !== state.gameSystemId)
+      (state.automationMode !== 'MANUAL' && (!snapshot || !snapshotChecksum))
     )
       throw new Error('Encounter start initiative is unavailable.')
     round = 1
@@ -107,8 +108,7 @@ export async function prepareEncounterTurnInitiative(input: {
       root.legendaryActionQueue ||
       root.initiative ||
       !snapshot ||
-      !snapshotChecksum ||
-      dnd5eInitiativeFactAdapter.gameSystemId !== state.gameSystemId
+      !snapshotChecksum
     )
       throw new Error('New-round initiative is unavailable.')
     round = advance.nextRound
@@ -343,7 +343,12 @@ export async function prepareEncounterTurnInitiative(input: {
   }
   let result: EncounterInitiativeLifecycleResult
   if (resume && pendingContext?.kind === 'ENCOUNTER_INITIATIVE') {
-    if (pendingSnapshot?.snapshotKind !== 'KERNEL_EVIDENCE' || !snapshot || !snapshotChecksum)
+    if (
+      pendingSnapshot?.snapshotKind !== 'KERNEL_EVIDENCE' ||
+      !snapshot ||
+      !snapshotChecksum ||
+      !adapter
+    )
       throw new Error('Encounter initiative continuation is unavailable.')
     const sources = await input.loadSources()
     const restored = restoreEncounterInitiativePending({
@@ -351,7 +356,7 @@ export async function prepareEncounterTurnInitiative(input: {
       entities: createEncounterInitiativeScoreEntities({
         state: staged.read(),
         sources,
-        adapter: dnd5eInitiativeFactAdapter
+        adapter
       }),
       actorIds: state.actorIds
     })
@@ -381,7 +386,7 @@ export async function prepareEncounterTurnInitiative(input: {
       snapshot,
       snapshotChecksum,
       sources,
-      adapter: dnd5eInitiativeFactAdapter,
+      adapter,
       mode: encounterEvidenceMode(state.automationMode, input.autoRoll),
       pending: restored.pending,
       requestId: resolution.requestId,
@@ -398,7 +403,7 @@ export async function prepareEncounterTurnInitiative(input: {
       snapshot,
       snapshotChecksum,
       sources: snapshot ? await input.loadSources() : { characterIds: [], actors: [] },
-      adapter: snapshot ? dnd5eInitiativeFactAdapter : null,
+      adapter,
       mode: encounterEvidenceMode(state.automationMode, input.autoRoll),
       legacyOrderedActorIds,
       integerSource: input.integerSource

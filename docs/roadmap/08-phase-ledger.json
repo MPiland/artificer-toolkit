@@ -1630,7 +1630,7 @@
         {
           "id": "PLATFORM-25",
           "title": "CI fixes mechanical failures and merges approved slices itself",
-          "status": "TODO",
+          "status": "DONE",
           "origin": ["User request 2026-10-18 (cycle-time gains)"],
           "journeyTests": ["scripts/mergeSlice.test.mjs"],
           "journeyStatus": "verified",
@@ -1696,7 +1696,7 @@
             },
             {
               "id": "PLATFORM-25.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-25.2"],
               "wsjf": {
                 "bv": 3,
@@ -1706,7 +1706,7 @@
                 "after": []
               },
               "text": "merge-slice ignores a cancelled duplicate run when the same workflow has a later or concurrent non-cancelled run on the tip (runsVerdict in scripts/mergeSlice.mjs), with a unit test that fails first.",
-              "note": "Found 2026-10-21: m-R2T4a refused on f4888465b because duplicate Tests/Live runs that were cancelled sorted ahead of the green ones. Worked around by re-running the cancelled runs."
+              "note": "Found 2026-10-21: m-R2T4a refused on f4888465b because duplicate Tests/Live runs that were cancelled sorted ahead of the green ones. Worked around by re-running the cancelled runs. Merged m288 (17b6cfd55)."
             }
           ]
         }
@@ -3204,7 +3204,7 @@
             },
             {
               "id": "RULES-2.T4a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.4"],
               "wsjf": {
                 "bv": 5,
@@ -3214,7 +3214,7 @@
                 "after": ["RULES-2.T3a", "SPELLS-31.T4c1a"]
               },
               "text": "One pending-choice pause: shared sealed-choice lifecycle (open, choose, settle, checksum, undo) and a single pause union in the action snapshot; converts reaction, cast reaction, on-hit, retarget, forced movement and Legendary Resistance; extends the T4c1a decision module.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m286 (9bbe8c5be)."
             },
             {
               "id": "RULES-2.T4b",
@@ -3227,20 +3227,61 @@
                 "size": 5,
                 "after": ["RULES-2.T4a"]
               },
-              "text": "Split planNativeLiveEncounterAction into one handler per pause kind."
+              "text": "Split planNativeLiveEncounterAction into one handler per pause kind.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
-              "id": "RULES-2.T5",
+              "id": "RULES-2.T5a",
               "status": "TODO",
               "closes": ["RULES-2.5"],
               "wsjf": {
                 "bv": 5,
                 "tc": 8,
                 "rr": 8,
-                "size": 8,
-                "after": ["RULES-2.T4a"]
+                "size": 5,
+                "after": ["RULES-2.T4a", "RULES-2.T11a"]
               },
-              "text": "Generic event hooks: typed event table, one reaction discovery entry and one dispatch site per event for trigger, end/consume and interception; retires the per-trigger discovery functions and per-feature end-event call sites."
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
+              "text": "Generic event hooks (split 2026-10-21): neutral event table (structural kinds with BEFORE/AFTER phases) in rules-runtime/events, one discovery entry point and one subscription-reading dispatch per event; a System eventVocabulary adapter maps the persisted codes (unchanged until T9); end, consume and repeat-save hooks replace the per-feature end-event call sites."
+            },
+            {
+              "id": "RULES-2.T5b",
+              "status": "TODO",
+              "closes": ["RULES-2.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["RULES-2.T5a", "RULES-2.T4b"]
+              },
+              "text": "Generic event hooks (split 2026-10-21): reaction hooks through the event table; retires the per-trigger reaction discovery files."
+            },
+            {
+              "id": "RULES-2.T5c",
+              "status": "TODO",
+              "closes": ["RULES-2.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T5a"]
+              },
+              "text": "Generic event hooks (split 2026-10-21): interception as BEFORE-phase intercepts at one pre-resolution site (incoming gate, counter, targeted-self); retarget stays the gate failure pause. Coordinate with T8."
+            },
+            {
+              "id": "RULES-2.T5d",
+              "status": "TODO",
+              "closes": ["RULES-2.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T5a", "RULES-2.T6f"]
+              },
+              "text": "Generic event hooks (split 2026-10-21): zone interactions (enter, leave, start and end of turn in a zone) through the event table."
             },
             {
               "id": "RULES-2.T6a",
@@ -3293,7 +3334,7 @@
                 "tc": 8,
                 "rr": 8,
                 "size": 8,
-                "after": ["RULES-2.T6c", "RULES-2.T5"]
+                "after": ["RULES-2.T6c", "RULES-2.T5a"]
               },
               "text": "Compiler: unify the four follow-up-save flavours into one lifetime and recurrence model."
             },
@@ -3347,7 +3388,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["RULES-2.T5"]
+                "after": ["RULES-2.T5a"]
               },
               "text": "Concentration becomes a neutral maintenance link; DC formula and ability stay D&D policy."
             },
@@ -3360,13 +3401,13 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 13,
-                "after": ["RULES-2.T5", "RULES-2.T7"]
+                "after": ["RULES-2.T5a", "RULES-2.T7"]
               },
-              "text": "System-supplied vocabulary: trigger names, damage and condition lists, creature type, alignment and similar lists move to a System vocabulary registry. Includes the schema wire enums for roll-mode influence (ADVANTAGE/DISADVANTAGE in DTOs, authored grant and condition influence, rollMode refinements), deferred from RULES-2.T7 (2026-10-21)."
+              "text": "System-supplied vocabulary: trigger names, damage and condition lists, creature type, alignment and similar lists move to a System vocabulary registry. Includes the schema wire enums for roll-mode influence (ADVANTAGE/DISADVANTAGE in DTOs, authored grant and condition influence, rollMode refinements), deferred from RULES-2.T7 (2026-10-21). Also the illumination levels (BRIGHT/DIM) in shared/vtt/combatPerception.ts, left fixed by RULES-2.T10 (2026-10-21)."
             },
             {
               "id": "RULES-2.T10",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3376,11 +3417,11 @@
                 "after": ["RULES-2.T1"]
               },
               "text": "Move combatPerception.ts out of the kernel directory into the System perception module.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m287 (9455a3208)."
             },
             {
               "id": "RULES-2.T11a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3389,8 +3430,8 @@
                 "size": 3,
                 "after": ["RULES-2.T1"]
               },
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
-              "text": "System import burn-down (split 2026-10-21): one generic fail-closed System capability registry, installed in platformPolicyModules, with the existing action-economy and roll-mode registries moved onto it; abilities, creature state and initiative adapters (allowlist -7)."
+              "text": "System import burn-down (split 2026-10-21): one generic fail-closed System capability registry, installed in platformPolicyModules, with the existing action-economy and roll-mode registries moved onto it; abilities, creature state and initiative adapters (allowlist -7).",
+              "note": "Merged m289 (119d14cc1). Allowlist 40 to 33; encounterEndedEffectRelease left for T5a."
             },
             {
               "id": "RULES-2.T11b",
@@ -3403,7 +3444,8 @@
                 "size": 3,
                 "after": ["RULES-2.T11a"]
               },
-              "text": "System import burn-down (split 2026-10-21): armor class and d20 test definition adapters (allowlist -5)."
+              "text": "System import burn-down (split 2026-10-21): armor class and d20 test definition adapters (allowlist -5).",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T11c",
@@ -3440,7 +3482,15 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["RULES-2.T6f", "RULES-2.T7", "RULES-2.T8", "RULES-2.T11d"]
+                "after": [
+                  "RULES-2.T6f",
+                  "RULES-2.T7",
+                  "RULES-2.T8",
+                  "RULES-2.T11d",
+                  "RULES-2.T5b",
+                  "RULES-2.T5c",
+                  "RULES-2.T5d"
+                ]
               },
               "text": "Second neutral tracer System (Fate-like fixture) driving the Encounter pipeline through the adapters."
             },
@@ -13435,10 +13485,10 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b", "RULES-2.T5"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b", "RULES-2.T5c"]
               },
               "text": "0 HP interception (split 2026-10-20): Undead Fortitude (x2) and Wereboar Relentless on the T2i2 interception contract; a save DC derived from the triggering damage, with damage-type and critical-hit exclusions, goes to a ruling first. Parity proofs, a homebrew variant and 3 kind deletions.",
-              "note": "2026-10-21: held behind RULES-2.T5 so interception lands on the event table, not the per-feature contract (ADR 0039)."
+              "note": "2026-10-21: held behind RULES-2.T5c so interception lands on the event table, not the per-feature contract (ADR 0039)."
             },
             {
               "id": "SPELLS-33.T4i3a",

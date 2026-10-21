@@ -114,19 +114,20 @@ export function resolveEncounterCombatPerception(
     subjectEffects: input.subjectEffects,
     localAreaEffects: input.localAreaEffects
   })
-  return combatPerceptionCapabilityRegistry.resolveCombatPerceptionWithContributions({
-    gameSystemId: input.gameSystemId,
-    requirement: input.requirement,
-    environment,
-    capabilities,
-    observerContributions: [
-      ...contributions.observerContributions,
-      ...(input.observerConditionContributions ?? [])
-    ],
-    subjectContributions: [
-      ...contributions.subjectContributions,
-      ...(input.subjectConditionContributions ?? [])
-    ],
-    localAreaContributions: contributions.localAreaContributions
-  })
+  return combatPerceptionCapabilityRegistry
+    .require(input.gameSystemId)
+    .resolveCombatPerceptionWithContributions({
+      requirement: input.requirement,
+      environment,
+      capabilities,
+      observerContributions: [
+        ...contributions.observerContributions,
+        ...(input.observerConditionContributions ?? [])
+      ],
+      subjectContributions: [
+        ...contributions.subjectContributions,
+        ...(input.subjectConditionContributions ?? [])
+      ],
+      localAreaContributions: contributions.localAreaContributions
+    })
 }

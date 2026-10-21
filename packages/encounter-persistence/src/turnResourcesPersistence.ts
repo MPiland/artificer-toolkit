@@ -23,7 +23,7 @@ import {
   withEncounterRuleUsageUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { actionEconomyCapabilityRegistry } from '@artificer-toolkit/rules-runtime/actionEconomyCapabilityRegistry.default'
+import { actionEconomyCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { applyStagedLegendaryActionRefreshes } from '@artificer-toolkit/rules-runtime/encounterLegendaryActionDiscovery'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
@@ -498,8 +498,9 @@ export async function persistEncounterTurnResources(
   }
 
   if (economyRefreshes.length) {
-    const expectedDefinitions =
-      actionEconomyCapabilityRegistry.requireRefreshCapabilityDefinitionIds(state.gameSystemId)
+    const expectedDefinitions = actionEconomyCapabilityRegistry
+      .require(state.gameSystemId)
+      .refreshCapabilityDefinitionIds()
     if (
       !enteringId ||
       economyRefreshes.some(

@@ -47,7 +47,7 @@ import {
   revertEncounterActorItemDraw,
   revertEncounterActorItemRelease
 } from '@artificer-toolkit/rules-runtime/encounterActorOptionalContestContext'
-import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
+import { creatureConditionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { updateSpellSlotUsage } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
@@ -501,10 +501,11 @@ export async function revertLastEncounterAction(
           unavailable("Undo can't restore a reapplied condition; adjust manually.")
         // D63: dropping to 0 added the System's 0 hit point condition, and healing from 0 removed it.
         const { before, after } = action.targetTransition
-        const zeroHitPointsConditionId = characterZeroHitPointsConditionId(state.gameSystemId)
+        const { zeroHitPointsConditionDefinitionId: zeroHitPointsConditionId } =
+          creatureConditionCapabilityRegistry.require(state.gameSystemId)
         const droppedToZero = before.currentHitPoints > 0 && after.currentHitPoints === 0
         if (
-          zeroHitPointsConditionId !== undefined &&
+          zeroHitPointsConditionId !== null &&
           before.currentHitPoints === 0 &&
           after.currentHitPoints > 0 &&
           before.conditionIds.includes(zeroHitPointsConditionId)
@@ -515,7 +516,7 @@ export async function revertLastEncounterAction(
           inverse.hitPoints = before
           inverse.removedConditionIds = new Set([
             ...addedConditionIds,
-            ...(zeroHitPointsConditionId !== undefined &&
+            ...(zeroHitPointsConditionId !== null &&
             droppedToZero &&
             !before.conditionIds.includes(zeroHitPointsConditionId)
               ? [zeroHitPointsConditionId]

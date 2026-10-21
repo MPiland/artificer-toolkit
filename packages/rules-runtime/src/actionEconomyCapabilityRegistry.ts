@@ -1,5 +1,3 @@
-import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-
 export type ActionEconomyCapabilityBinding =
   | { kind: 'NONE' }
   | {
@@ -43,70 +41,6 @@ export interface ActionEconomyCapabilityAdapter {
   }): boolean
   /** The capability an actor that can't act (incapacitated) has suppressed. */
   actorActionCapabilityDefinitionId(): string
+  /** The allowances a turn start refreshes: distinct, sorted ascending. */
   refreshCapabilityDefinitionIds(): readonly string[]
-}
-
-function canonicalSystemId(value: string): string {
-  const parsed = postgresUuidSchema.safeParse(value)
-  if (!parsed.success) throw new Error('Action-economy System identity must be a PostgreSQL UUID.')
-  return parsed.data
-}
-
-export function createActionEconomyCapabilityRegistry(
-  adapters: readonly ActionEconomyCapabilityAdapter[]
-) {
-  const bySystemId = new Map<string, ActionEconomyCapabilityAdapter>()
-  for (const adapter of adapters) {
-    const gameSystemId = canonicalSystemId(adapter.gameSystemId)
-    if (bySystemId.has(gameSystemId)) {
-      throw new Error(`Duplicate action-economy System adapter: ${gameSystemId}.`)
-    }
-    bySystemId.set(gameSystemId, adapter)
-  }
-  return {
-    resolveActionEconomyCapability(input: {
-      gameSystemId: string
-      activationKind: string
-      activationAmount: number
-    }): ActionEconomyCapabilityBinding {
-      const adapter = bySystemId.get(canonicalSystemId(input.gameSystemId))
-      if (!adapter) {
-        throw new Error('The Game System does not provide action-economy policy.')
-      }
-      return adapter.resolveActionEconomyCapability({
-        activationKind: input.activationKind,
-        activationAmount: input.activationAmount
-      })
-    },
-    spendsAttackAction(input: {
-      gameSystemId: string
-      activationKind: string
-      activationAmount: number
-    }): boolean {
-      return (
-        bySystemId.get(canonicalSystemId(input.gameSystemId))?.spendsAttackAction(input) ?? false
-      )
-    },
-    isAttackActionAttack(input: {
-      gameSystemId: string
-      activationKind: string
-      activationAmount: number
-      triggerCode: string
-      replacesAttack: boolean
-    }): boolean {
-      return (
-        bySystemId.get(canonicalSystemId(input.gameSystemId))?.isAttackActionAttack(input) ?? false
-      )
-    },
-    requireActorActionCapabilityDefinitionId(gameSystemId: string): string {
-      const adapter = bySystemId.get(canonicalSystemId(gameSystemId))
-      if (!adapter) throw new Error('The Game System does not provide action-economy policy.')
-      return adapter.actorActionCapabilityDefinitionId()
-    },
-    requireRefreshCapabilityDefinitionIds(gameSystemId: string): readonly string[] {
-      const adapter = bySystemId.get(canonicalSystemId(gameSystemId))
-      if (!adapter) return []
-      return [...new Set(adapter.refreshCapabilityDefinitionIds())].sort()
-    }
-  }
 }

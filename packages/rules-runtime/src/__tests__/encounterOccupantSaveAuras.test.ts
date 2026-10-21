@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 
-import { characterZeroHitPointsConditionId } from '../characterZeroHitPoints.js'
+import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js'
 import { planEncounterPassiveZones } from '../encounterPassiveZones.js'
 import { plannedSpatialEffectRecord } from '../encounterPlacedZone.js'
 import {
@@ -169,7 +169,8 @@ describe('the save-bonus auras holding an actor (SPELLS-20 T5c, D155)', () => {
 describe('a save inside a save-bonus aura (SPELLS-20 T5c, D155)', () => {
   const target = srdCreatureTarget(goblinActor('FRIENDLY'))
   const rows = target.targetDerivedFacts.savingThrowDefinitions as { modifier: number }[]
-  const unconscious = characterZeroHitPointsConditionId(DND5E_SYSTEM_ID)!
+  const unconscious =
+    creatureConditionCapabilityRegistry.require(DND5E_SYSTEM_ID).zeroHitPointsConditionDefinitionId!
   const characterAura = (
     amount: number,
     effectId = testUuid(0x5c10)

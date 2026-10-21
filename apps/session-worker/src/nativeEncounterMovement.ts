@@ -220,7 +220,7 @@ export async function prepareNativeLiveMovement(
         prepareAttackBehindDecoys({
           occurrenceId: `${reaction.occurrenceId}:${mechanics.actor.id}`,
           effects: reaction.targets.get(mechanics.target.id)?.activeEffects ?? [],
-          abilities: system.abilities,
+          system,
           prepare: (attackDecoy) =>
             prepareEncounterActionMechanics({
               ...mechanics,

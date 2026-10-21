@@ -298,7 +298,7 @@ export function createNativeLiveTurnStages(
           return prepareAttackBehindDecoys({
             occurrenceId: decoyOccurrenceId,
             effects: targets.get(mechanics.target.id)?.activeEffects ?? [],
-            abilities: system.abilities,
+            system,
             prepare: (attackDecoy) =>
               prepareEncounterActionMechanics<CharacterFacts>({
                 ...mechanics,

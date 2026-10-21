@@ -8,7 +8,7 @@ import type { TurnActionEconomyRefreshDto } from '@artificer-toolkit/schema/shar
 import { ruleCapabilityReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
+import { actionEconomyCapabilityRegistry } from './platformPolicyModules.js'
 import { activeSetValueGrantMaximum } from './character/activeEffectGrantTotals.js'
 import {
   encounterActiveGrantCapabilitySuppressions,
@@ -64,9 +64,9 @@ export async function stageEncounterActionEconomyRefreshes(input: {
     throw new Error('Encounter action-economy refresh actor is stale.')
   let actor = input.actor
   const refreshes: TurnActionEconomyRefreshDto[] = []
-  for (const definitionId of actionEconomyCapabilityRegistry.requireRefreshCapabilityDefinitionIds(
-    input.state.gameSystemId
-  )) {
+  for (const definitionId of actionEconomyCapabilityRegistry
+    .require(input.state.gameSystemId)
+    .refreshCapabilityDefinitionIds()) {
     const beforeUsed = encounterRuleUsageUsed(actor, definitionId)
     if (beforeUsed === 0) continue
     const definition = await input.definitions.requireCurrent(definitionId)
@@ -112,11 +112,12 @@ export type ActionEconomyInput = {
 /** The allowance capability an activation binds to, resolved against the actor's conditions and effects. */
 async function resolveActionAllowance(input: ActionEconomyInput) {
   if (input.state.automationMode === 'MANUAL') return null
-  const binding = actionEconomyCapabilityRegistry.resolveActionEconomyCapability({
-    gameSystemId: input.state.gameSystemId,
-    activationKind: input.activation.code,
-    activationAmount: input.activation.amount
-  })
+  const binding = actionEconomyCapabilityRegistry
+    .require(input.state.gameSystemId)
+    .resolveActionEconomyCapability({
+      activationKind: input.activation.code,
+      activationAmount: input.activation.amount
+    })
   if (binding.kind === 'NONE') return null
   if (
     input.actor.encounterId !== input.state.id ||

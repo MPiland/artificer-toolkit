@@ -7,25 +7,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { jsonValueSchema, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
-import { DND5E_ABILITY_DEFINITION_ID_BY_CODE, DND5E_SYSTEM_ID } from './systems/dnd5e/identity.js'
-
-/**
- * The ability scores a Character keeps in a Creature form (D130 amendment), by authored code and
- * definition id. D&D: Intelligence, Wisdom and Charisma; the form brings the physical ones.
- */
-const retainedFormAbilityIdsBySystemId: ReadonlyMap<
-  string,
-  Readonly<Record<string, string>>
-> = new Map([
-  [
-    DND5E_SYSTEM_ID,
-    {
-      INTELLIGENCE: DND5E_ABILITY_DEFINITION_ID_BY_CODE.INTELLIGENCE!,
-      WISDOM: DND5E_ABILITY_DEFINITION_ID_BY_CODE.WISDOM!,
-      CHARISMA: DND5E_ABILITY_DEFINITION_ID_BY_CODE.CHARISMA!
-    }
-  ]
-])
+import { abilityScoreCapabilityRegistry } from './platformPolicyModules.js'
 
 function jsonRecord(value: unknown): Record<string, JsonValue> {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
@@ -43,7 +25,7 @@ function withRetainedAbilities(
   scores: Readonly<Record<string, number>>
 ): EncounterRunActorState['snapshot'] {
   const retained = Object.entries(
-    (systemId === null ? undefined : retainedFormAbilityIdsBySystemId.get(systemId)) ?? {}
+    systemId === null ? {} : abilityScoreCapabilityRegistry.require(systemId).formRetainedAbilityIds
   )
   if (retained.length === 0) return snapshot
   const root = jsonRecord(snapshot)
