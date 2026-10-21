@@ -3505,7 +3505,8 @@ const NON_MANIFEST_OUTCOME_NODE_MAP: NodeMap<NonManifestOutcomeNode> = nonManife
 
 const RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored> = resultBlock.define(
   'resultBlock',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
+    const { table } = data
     const { text, selectSingle, selectMulti, groupObject, groupArray } = nodes
 
     map
@@ -3566,7 +3567,8 @@ const RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored> = resultBlock.define(
 )
 
 const NON_MANIFEST_RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored<NonManifestOutcomeAuthored>> =
-  nonManifestResultBlock.define('nonManifestResultBlock', ({ map, nodes }) => {
+  nonManifestResultBlock.define('nonManifestResultBlock', ({ map, nodes, data }) => {
+    const { table } = data
     const { text, selectSingle, selectMulti, groupObject, groupArray } = nodes
 
     map
