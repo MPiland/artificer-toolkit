@@ -14981,7 +14981,7 @@
             },
             {
               "id": "SPELLS-31.T5t",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -14995,7 +14995,7 @@
                 ]
               },
               "text": "Spell grants on chosen features (Eldritch Invocations, feats, options, background features) become spell access: buildCharacterSpellRuleFacts reads snapshot.features by provenance, with spell-access source kinds for FEAT, OPTION and BACKGROUND. List every chosen-feature grant this moves from MANUAL to automated, and prove the Chains of Carceri journey (cast, lockout, creature-type narrowing) end to end (D156 SPELLS-31.T5l ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m260 (e732d8db6)."
             }
           ]
         },
