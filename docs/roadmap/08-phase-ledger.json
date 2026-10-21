@@ -11839,7 +11839,7 @@
               "note": "Merged m141 (b066f0945)."
             },
             {
-              "id": "SPELLS-31.T4c1",
+              "id": "SPELLS-31.T4c1a",
               "status": "TODO",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
@@ -11849,8 +11849,34 @@
                 "size": 5,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
               },
-              "text": "D168 d20-test result window (split 2026-10-20): after the roll, before the outcome, the window offers eligible options to their controllers (D19) via the pending-context pipeline, with undo; ADD_BONUS_DIE gains an opt-in after-roll consume mode. Converts Dark One's Own Luck and Peerless Skill, with parity proofs, a homebrew variant and kind deletions.",
+              "text": "D168 result window, shared pieces + ability checks (split 2026-10-20): ADD_BONUS_DIE AFTER_ROLL consume mode, die face from a holder scaling value frozen at apply, the generic result-window pending (schema, snapshot, persistence, undo, drawer) on Encounter ability checks (basic, concealment, escape), one post-roll pause seam shared with onHitChoice. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey.",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T4c1b",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4c1a"]
+              },
+              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey."
+            },
+            {
+              "id": "SPELLS-31.T4c1c",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T4c1a"]
+              },
+              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck."
             },
             {
               "id": "SPELLS-31.T4c2",
@@ -11861,9 +11887,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4c1"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1b", "SPELLS-31.T4c1c"]
               },
-              "text": "D168 dice scaled by the granting creature (split 2026-10-20): a grant die face references the granting creature's scaling value, resolved at apply time and frozen. Converts Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save), with a parity proof, a homebrew variant and the kind deleted."
+              "text": "D168 dice scaled by the granting creature (split 2026-10-20): a grant die face references the granting creature's scaling value, resolved at apply time and frozen. Converts Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save), with a parity proof, a homebrew variant and the kind deleted. Includes the result window on attack rolls."
             },
             {
               "id": "SPELLS-31.T4c3",
@@ -11874,7 +11900,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T4c1"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1b"]
               },
               "text": "D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted."
             },
