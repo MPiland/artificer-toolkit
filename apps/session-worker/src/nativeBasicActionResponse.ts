@@ -100,7 +100,8 @@ export async function planNativeLiveBasicActionResponse(
       state,
       actor: roller,
       activeEffectsByActorId,
-      captures: executionOptions.captures
+      captures: executionOptions.captures,
+      random: executionOptions.random
     })
     reads.observe(rollerTarget.revisions)
     const source = resolveEncounterActionSource({
@@ -172,7 +173,8 @@ export async function planNativeLiveBasicActionResponse(
     state,
     actor: targetActor,
     activeEffectsByActorId,
-    captures: executionOptions.captures
+    captures: executionOptions.captures,
+    random: executionOptions.random
   })
   reads.observe(prepared.revisions)
   const target = prepared.target

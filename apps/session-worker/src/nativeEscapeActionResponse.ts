@@ -75,7 +75,8 @@ export async function planNativeLiveEscapeResponse(
     state,
     actor: holder,
     activeEffectsByActorId,
-    captures: executionOptions.captures
+    captures: executionOptions.captures,
+    random: executionOptions.random
   })
   reads.observe(prepared.revisions)
   // The roll was spent either way; the relationship may have ended while it waited.

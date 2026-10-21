@@ -29,7 +29,7 @@ export async function planNativeLiveConcentrationResponse(
   response: ResolveRuleOccurrenceInputDto,
   executionOptions: {
     runtime: RulesRuntimeService
-    random?: (maximum: number) => number
+    random(maximum: number): number
     captures: LiveCaptureReads
   }
 ) {
@@ -94,7 +94,8 @@ export async function planNativeLiveConcentrationResponse(
       state,
       actor,
       activeEffectsByActorId,
-      captures: executionOptions.captures
+      captures: executionOptions.captures,
+      random: executionOptions.random
     })
     revisions = mergeNativeRulesRevisions(revisions, prepared.revisions)
     projectedTargets.set(actor.id, prepared.target)

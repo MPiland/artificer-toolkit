@@ -92,7 +92,8 @@ export async function planNativeLiveEscape(
           state,
           actor: entry,
           activeEffectsByActorId,
-          captures: executionOptions.captures
+          captures: executionOptions.captures,
+          random: executionOptions.random
         })
         reads.observe(prepared.revisions)
         return prepared.target
@@ -123,7 +124,8 @@ export async function planNativeLiveEscape(
     state,
     actor,
     activeEffectsByActorId,
-    captures: executionOptions.captures
+    captures: executionOptions.captures,
+    random: executionOptions.random
   })
   reads.observe(prepared.revisions)
   const holder = prepared.target

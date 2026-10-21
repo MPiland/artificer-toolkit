@@ -98,6 +98,7 @@ export async function readNativeLiveMovementInputs(input: {
   occurrenceId: string
   runtime: RulesRuntimeService
   captures: LiveCaptureReads
+  random(maximum: number): number
 }) {
   const { scene, runtime, occurrenceId, captures } = input
   const scope = liveSessionEncounterRulesInputSchema.parse({
@@ -256,7 +257,8 @@ export async function readNativeLiveMovementInputs(input: {
           state,
           actor,
           activeEffectsByActorId,
-          captures
+          captures,
+          random: input.random
         })
       )
   )

@@ -364,15 +364,20 @@ describe('damage interception with a save, exclusions and a cap', () => {
   })
   const settle = (
     application: CharacterRuleActionApplication,
-    interceptions: readonly HeldDamageInterception[],
-    saveRolls: readonly InterceptionSaveRoll[] = []
+    held: readonly HeldDamageInterception[],
+    saveRoll?: InterceptionSaveRoll
   ) => {
+    // The caller rolled one die per interception that asks a save, before the blow lands.
+    const interceptions = saveRoll
+      ? held.map((interception) =>
+          interception.save ? { ...interception, saveRoll } : interception
+        )
+      : held
     const [planned] = applyDamageInterceptions({
       applications: [application],
       currentHitPoints: state.current,
       temporaryHitPoints: 0,
-      interceptions,
-      saveRolls
+      interceptions
     })
     const folded = foldCharacterMechanicsApplications({
       targetActorId: HOLDER_ID,
@@ -382,8 +387,7 @@ describe('damage interception with a save, exclusions and a cap', () => {
       deathSaves: null,
       conditionIds: [],
       applications: planned ? [planned] : [],
-      damageInterceptions: interceptions,
-      interceptionSaveRolls: saveRolls
+      damageInterceptions: interceptions
     })
     return { planned, folded }
   }
@@ -413,7 +417,7 @@ describe('damage interception with a save, exclusions and a cap', () => {
   })
 
   it('leaves the holder at the interception total when it passes a save at 5 plus the damage', () => {
-    const { planned, folded } = settle(blow(10), [fortitude], [{ rawDie: 12, addedTotal: 3 }])
+    const { planned, folded } = settle(blow(10), [fortitude], { rawDie: 12, addedTotal: 3 })
     expect(planned).toMatchObject({
       interceptedBy: fortitude.effectId,
       afterCurrentHitPoints: 1,
@@ -425,7 +429,7 @@ describe('damage interception with a save, exclusions and a cap', () => {
   })
 
   it('scales the DC with the damage taken, the whole blow rather than the overflow past 0', () => {
-    const roll = [{ rawDie: 12, addedTotal: 3 }]
+    const roll = { rawDie: 12, addedTotal: 3 }
     // 15 against 10 hit points: the overflow is 5, but the blow is 15 and the DC 20.
     const { planned } = settle(blow(15), [fortitude], roll)
     expect(planned).not.toHaveProperty('interceptedBy')
@@ -437,11 +441,10 @@ describe('damage interception with a save, exclusions and a cap', () => {
   })
 
   it('spends nothing on a failed save and lets the next interception meet the blow', () => {
-    const { planned, folded } = settle(
-      blow(10),
-      [fortitude, relentless],
-      [{ rawDie: 1, addedTotal: 0 }]
-    )
+    const { planned, folded } = settle(blow(10), [fortitude, relentless], {
+      rawDie: 1,
+      addedTotal: 0
+    })
     expect(planned).toMatchObject({
       interceptedBy: relentless.effectId,
       interceptionSaves: [{ effectId: fortitude.effectId, passed: false }]
@@ -451,7 +454,7 @@ describe('damage interception with a save, exclusions and a cap', () => {
 
   it('does not ask the save of a blow its exclusions do not admit', () => {
     for (const excluded of [{ damageTypeId: RADIANT_ID }, { critical: true }]) {
-      const { planned } = settle(blow(10, excluded), [fortitude], [{ rawDie: 20, addedTotal: 9 }])
+      const { planned } = settle(blow(10, excluded), [fortitude], { rawDie: 20, addedTotal: 9 })
       expect(planned).not.toHaveProperty('interceptedBy')
       expect(planned).not.toHaveProperty('interceptionSaves')
       expect(planned).toMatchObject({ afterCurrentHitPoints: 0 })
@@ -470,11 +473,11 @@ describe('damage interception with a save, exclusions and a cap', () => {
   })
 
   it('refuses a save the planner did not record, or one the fold would settle differently', () => {
-    const roll = [{ rawDie: 12, addedTotal: 3 }]
+    const roll = { rawDie: 12, addedTotal: 3 }
     const { planned } = settle(blow(10), [fortitude], roll)
     if (planned?.kind !== 'DAMAGE') throw new Error('Expected a damage application.')
     const { interceptionSaves: _saves, ...unrecorded } = planned
-    const fold = (application: CharacterRuleActionApplication, rolls = roll) =>
+    const fold = (application: CharacterRuleActionApplication, saveRoll = roll) =>
       foldCharacterMechanicsApplications({
         targetActorId: HOLDER_ID,
         currentHitPoints: state.current,
@@ -483,11 +486,10 @@ describe('damage interception with a save, exclusions and a cap', () => {
         deathSaves: null,
         conditionIds: [],
         applications: [application],
-        damageInterceptions: [fortitude],
-        interceptionSaveRolls: rolls
+        damageInterceptions: [{ ...fortitude, saveRoll }]
       })
     expect(() => fold(unrecorded)).toThrow('The Character damage interception is invalid.')
-    expect(() => fold(planned, [{ rawDie: 2, addedTotal: 3 }])).toThrow(
+    expect(() => fold(planned, { rawDie: 2, addedTotal: 3 })).toThrow(
       'The Character damage interception is invalid.'
     )
     expect(() => fold(planned)).not.toThrow()
