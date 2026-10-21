@@ -27,12 +27,16 @@ import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleR
 import {
   creatureActiveGrantAttackContributors,
   creatureActiveGrantCheckContributors,
+  encounterActiveGrantCapabilitySuppressions,
   encounterAttackAddedDice,
   encounterGrantsEnabledDomain,
   encounterSavingThrowAddedDice,
+  encounterSourceSightSaveGrants,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
-  withCreatureActiveGrantSkillTotal
+  withCreatureActiveGrantSaves,
+  withCreatureActiveGrantSkillTotal,
+  withHolderStateGrantSaves
 } from '../encounterActiveGrants.js'
 import { planEncounterMaintenanceOwner } from '../encounterActionMaintenance.js'
 import { rollModeSourceKey } from '../encounterRollModeReasons.js'
@@ -42,7 +46,7 @@ import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPoli
 import { dnd5eAttackRollContributors } from '../systems/dnd5e/characterRollModes.js'
 import { selectDnd5eTargetSavingThrow } from '../systems/dnd5e/effectActionCompiler.js'
 import { DND5E_CHARACTER_WIDE_TARGET } from '../systems/dnd5e/modifierApplicability.js'
-import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from '../systems/dnd5e/identity.js'
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE, DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { ENCOUNTER_ID, creatureActor, creatureRuleFacts } from '../testing/dnd5eSrdEncounter.js'
 import {
   aidEffect,
@@ -86,7 +90,7 @@ describe('the Antitoxin active effect', () => {
   it('is a valid persisted definition carrying six poison-scoped save advantages', () => {
     const { definition } = antitoxin()
     expect(activeRuleEffectDefinitionDtoSchema.parse(definition)).toEqual(definition)
-    expect(definition.schemaVersion === 2 && definition.stateContributions).toMatchObject([
+    expect(definition.stateContributions).toMatchObject([
       { kind: 'MODIFIER_GRANT', sourceLabel: 'Antitoxin (vial)', modifiers: expect.any(Array) }
     ])
   })
@@ -124,7 +128,6 @@ describe('rolled dice from active grants (D156)', () => {
 
   it('names a hidden source "Unseen source"', () => {
     const hidden = bless()
-    if (hidden.definition.schemaVersion !== 2) throw new Error('Bless plans a version 2 effect.')
     const definition = {
       ...hidden.definition,
       stateContributions: hidden.definition.stateContributions.map((contribution) =>
@@ -145,11 +148,11 @@ describe('rolled dice from active grants (D156)', () => {
       SPELL: [baneDie, blessDie],
       UNARMED: [baneDie, blessDie]
     })
-    expect(encounterSavingThrowAddedDice([bless()])).toEqual(
+    expect(encounterSavingThrowAddedDice(DND5E_SYSTEM_ID, [bless()])).toEqual(
       Object.fromEntries(Object.values(SRD_ABILITY_DEFINITION_IDS).map((id) => [id, [blessDie]]))
     )
     expect(encounterAttackAddedDice([], null)).toEqual({})
-    expect(encounterSavingThrowAddedDice([])).toEqual({})
+    expect(encounterSavingThrowAddedDice(DND5E_SYSTEM_ID, [])).toEqual({})
   })
 
   it('ignores fixed bonuses and roll modes on the same domains', () => {
@@ -400,8 +403,6 @@ describe('Creature holder of an active grant', () => {
 
   it('keeps the authored content a defense is limited to, and treats an empty list as unfiltered (REACTION-4.1)', () => {
     const withSources = (effect: ReturnType<typeof protectionFromEnergyEffect>, ids: string[]) => {
-      if (effect.definition.schemaVersion !== 2)
-        throw new Error('A grant stores a version 2 definition.')
       return {
         ...effect,
         definition: {
@@ -485,7 +486,6 @@ describe('Creature holder of an active grant', () => {
 
   it('applies a Strength check grant to its Athletics skill check, and to no other skill', () => {
     const help = helpEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
-    if (help.definition.schemaVersion !== 2) throw new Error('Expected a modifier grant.')
     const strengthHelp = {
       ...help,
       definition: {
@@ -791,5 +791,37 @@ describe('a held d20 floor on ability checks', () => {
     const tied = glibnessHeld(EFFECT_ID)
     expect(activeAbilityCheckMinimumRoll([lowest, tied], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
     expect(activeAbilityCheckMinimumRoll([tied, lowest], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
+  })
+})
+
+describe('active grants on a System that does not install their policy', () => {
+  const unknownSystemId = '00000000-0000-4000-8000-0000000000ff'
+
+  it('fails closed instead of reading another System allowances, abilities or save scope', () => {
+    expect(() => encounterActiveGrantCapabilitySuppressions(unknownSystemId, [])).toThrow(
+      'The Game System does not provide action-economy policy.'
+    )
+    expect(() => withCreatureActiveGrantSaves(unknownSystemId, [], 'holder', [], [])).toThrow(
+      'The Game System does not provide ability-score policy.'
+    )
+    expect(() =>
+      withHolderStateGrantSaves(unknownSystemId, [], 'holder', [], {
+        kind: 'CREATURE',
+        creatureTypeIds: [],
+        canAct: true,
+        speedAboveZero: true,
+        freeHand: true,
+        turnMovement: { usedFeet: 0, speedFeet: 0 },
+        stowableHeldItemInstanceId: null
+      })
+    ).toThrow('The Game System does not provide ability-score policy.')
+    expect(() =>
+      encounterSourceSightSaveGrants({
+        gameSystemId: unknownSystemId,
+        holderActorId: 'holder',
+        effects: [],
+        grantFold: null
+      })
+    ).toThrow('The Game System does not provide ability-score policy.')
   })
 })

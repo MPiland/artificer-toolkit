@@ -30,8 +30,6 @@ export function endTriggerEffectSeed(input: {
       spell: invisibility,
       lifetimeScope: 'ENCOUNTER'
     })
-    if (planned.definition.schemaVersion !== 2)
-      throw new Error('A condition-owning effect is version 2.')
     await effects.create({
       id: input.effectId,
       owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: input.holderActorId },

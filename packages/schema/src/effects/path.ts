@@ -216,10 +216,16 @@ const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
     lifecycle: z.optional(pathLifecycleDtoSchema),
     failureMarginRider: z.optional(failureMarginRiderDtoSchema),
     gate: z.optional(
-      z.object({
-        kind: z.enum(['TARGET_HIT_POINTS_AT_MOST', 'TARGET_HIT_POINTS_AT_LEAST']),
-        amount: z.number().check(z.int()).check(z.gte(1))
-      })
+      z.discriminatedUnion('kind', [
+        z.object({
+          kind: z.enum(['TARGET_HIT_POINTS_AT_MOST', 'TARGET_HIT_POINTS_AT_LEAST']),
+          amount: z.number().check(z.int()).check(z.gte(1))
+        }),
+        z.object({
+          kind: z.literal('REDUCED_TO_ZERO_BY'),
+          damageOutcomeId: postgresUuidSchema
+        })
+      ])
     ),
     suppressedByDamageTypeIds: z.optional(damageTypeFilterDtoSchema),
     outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)

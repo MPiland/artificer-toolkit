@@ -21,7 +21,7 @@ import {
   type ScenePoint,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
-import type { ForcedMovementPreview } from './nativeEncounterAreaRules.js'
+import type { ForcedMovementPreview } from './nativeAreaPreparation.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'

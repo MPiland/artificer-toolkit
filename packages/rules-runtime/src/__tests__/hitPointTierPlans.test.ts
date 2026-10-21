@@ -19,14 +19,12 @@ function compiledTieredCast(
   const spell = divineWord
   return compiledTestSpellCast({
     spell,
-    registry: {
-      get: () => ({
-        ...dnd5eCharacterRuleActionSystemAdapter,
-        activeEffectPlans: (input) => {
-          const plans = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.(input) ?? []
-          return planOverride ? planOverride(plans) : plans
-        }
-      })
+    adapter: {
+      ...dnd5eCharacterRuleActionSystemAdapter,
+      activeEffectPlans: (input) => {
+        const plans = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.(input) ?? []
+        return planOverride ? planOverride(plans) : plans
+      }
     },
     cast: {
       sequence: 0,

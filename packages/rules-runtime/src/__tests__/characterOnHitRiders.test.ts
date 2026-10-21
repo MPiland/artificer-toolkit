@@ -7,14 +7,14 @@ import {
 import { describe, expect, it } from 'vitest'
 
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import {
   buildCompiledActionCompilerSource,
   compileCharacterActionEntryPoints
 } from '../encounterActionEntryPointCompiler.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
-import type { Dnd5eEnemyProximity } from '../systems/dnd5e/attackRestrictions.js'
+import type { EnemyProximity } from '../encounterEnemyProximity.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -85,7 +85,7 @@ async function longswordHit(input: {
   weapon?: 'Longsword' | 'Rapier'
   influence?: 'ADVANTAGE' | 'DISADVANTAGE'
   /** What the Scene measured of the target's enemies; absent for an attack without a Scene. */
-  enemyProximity?: Dnd5eEnemyProximity
+  enemyProximity?: EnemyProximity
 }) {
   const character = rogue({
     level: input.level,

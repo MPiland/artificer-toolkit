@@ -53,7 +53,6 @@ import {
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { sourceImmunityEffect } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
-import { incomingGateImmunityPlan } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   actionEndedEffects,
@@ -63,7 +62,7 @@ import {
   targetEndedEffects,
   withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import {
   snapshotCreatureTypeId,
   withFeatureChargeUsed
@@ -156,14 +155,14 @@ import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.j
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
 import {
-  discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
   planNativeLiveEncounterAreaAnswer,
   planNativeLiveEncounterAreaForcedMovement,
   planNativeLiveEncounterAreaLegendaryResistance,
-  planNativeLiveEncounterAreaRemoval,
-  type ForcedMovementPick
+  planNativeLiveEncounterAreaRemoval
 } from './nativeEncounterAreaRules.js'
+import { discoverNativeLegendaryResistance } from './nativeAreaRevalidation.js'
+import { type ForcedMovementPick } from './nativeAreaPreparation.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
@@ -188,6 +187,7 @@ import {
   evaluateInstalledEncounterActors,
   isInstalledMeleeAttackTrigger
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { passedWardImmunityPlan } from '@artificer-toolkit/rules-runtime/encounterWardImmunity'
 import { isMeleeRetaliationHit } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
@@ -518,7 +518,7 @@ export async function planNativeLiveEncounterAction(
         sceneVersion: sceneInputs.sceneVersion,
         sourceToken: sceneInputs.sourceToken,
         targetToken: sceneInputs.targetToken,
-        grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+        grid: resolveEncounterSceneGrid({
           encounter: state,
           sceneGrid: sceneInputs.sceneGrid
         })
@@ -1458,17 +1458,10 @@ export async function planNativeLiveEncounterAction(
         basicActionDefinitionId: encounterBasicActionDefinitionId(command.actionId)
       })
     : null
-  // A creature that passed a ward carrying a success immunity (Nature's Sanctuary) leaves that immunity on
-  // the ward's holder with this action, so it is not asked for the save again.
-  const passedWard = gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null
-  const gateImmunity = passedWard?.payload.successImmunity
-    ? incomingGateImmunityPlan({
-        wardId: passedWard.wardId,
-        duration: passedWard.payload.successImmunity.duration
-      })
-    : null
-  if (passedWard?.payload.successImmunity && !gateImmunity)
-    throw new Error('The ward success immunity has no countable duration.')
+  const gateImmunity = passedWardImmunityPlan({
+    gameSystemId: state.gameSystemId,
+    ward: gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null
+  })
   const gateImmunityGrant = gateImmunity
     ? {
         id: crypto.randomUUID(),

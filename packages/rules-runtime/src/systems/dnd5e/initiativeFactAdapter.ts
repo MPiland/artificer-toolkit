@@ -295,6 +295,8 @@ export function createDnd5eSpeedFactorInitiativeDefinition() {
   })
 }
 
+const ROLL_MODES = Object.keys(DND5E_KEEP_BY_ROLL_MODE) as RollMode[]
+
 /**
  * The facts the declared initiative graph rolls its d20s by: a second d20 and the face kept. The
  * settled evidence records only these, so a reader recovers the roll mode from the kept face.
@@ -308,6 +310,10 @@ export function dnd5eDeclaredInitiativeRollFacts(rollMode: RollMode) {
 
 export const dnd5eInitiativeFactAdapter: InitiativeFactAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
+  declaredRollMode(facts) {
+    const keep = facts[DND5E_INITIATIVE_FACT_KEYS.keep]
+    return ROLL_MODES.find((mode) => DND5E_KEEP_BY_ROLL_MODE[mode] === keep) ?? null
+  },
   bindActor(source) {
     if (source.kind === 'CUSTOM') return { automatic: false }
     const { modifier, rollMode } = readInitiativeSourceRoll(source)

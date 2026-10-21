@@ -39,6 +39,11 @@ export interface ActionEconomyCapabilityAdapter {
     /** The action takes the place of one attack (a basic action that costs ATTACK). */
     replacesAttack: boolean
   }): boolean
+  /**
+   * The allowance each count value domain names: an active `SET_VALUE 0` grant on the domain
+   * suppresses it (D99).
+   */
+  allowanceDefinitionIdByCountDomain: Readonly<Partial<Record<string, string>>>
   /** The capability an actor that can't act (incapacitated) has suppressed. */
   actorActionCapabilityDefinitionId(): string
   /** The allowances a turn start refreshes: distinct, sorted ascending. */

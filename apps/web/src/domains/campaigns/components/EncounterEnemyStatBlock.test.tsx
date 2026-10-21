@@ -1,3 +1,4 @@
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
@@ -39,7 +40,7 @@ const enemy = tabletopGmEncounter.actors.find((actor) => actor.kind === 'CREATUR
 function actorWith(statBlock: Partial<NonNullable<EncounterGmActorDto['statBlock']>>) {
   return encounterGmActorDtoSchema.parse({
     ...enemy,
-    systemId: '00000000-0000-4000-8000-000000000001',
+    systemId: SRD_SYSTEM_ID,
     statBlock: {
       armorClass: 19,
       abilityScores: null,

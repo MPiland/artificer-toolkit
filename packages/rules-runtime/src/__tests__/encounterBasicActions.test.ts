@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import type { BasicActionReusableDefinitionDocumentDto } from '@artificer-toolkit/schema/shared/basicActions'
 import {
   reusableDefinitionDocumentDtoSchema,
@@ -166,7 +168,8 @@ function target(
     sourceSightSaves: [],
     conditionDefinitions: [],
     conditionMechanics: [],
-    attackTraitGrants: [],
+    grantedAttackTraits: [],
+    movementPassage: movementPassageOfModifiers(DND5E_SYSTEM_ID, []),
     featureModifiers: [],
     innateConditionIds: []
   }

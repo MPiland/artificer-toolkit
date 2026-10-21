@@ -8,10 +8,10 @@ import type {
   CompiledManifestComponent
 } from '@artificer-toolkit/shared/compilers'
 
+import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { castChoiceOptions } from './encounterCastChoice.js'
 import { placedSpaceEntries, type PlacedSpaceManifest } from './placedSpaceEntries.js'
-import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
 
 /**
  * An authored zone an action places, with the behavior its entry runs: left at a chosen point, or
@@ -206,11 +206,11 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
  */
 export function passiveMeleeRetaliationZone(
   compiledEffect: CompiledEffectGroup,
-  label: string | undefined
+  label: string | undefined,
+  attackKind: AttackProfileCapabilityAdapter['attackKind']
 ): PlacedSpaceZone | null {
   const { invocation, entries } = compiledEffect
-  if (invocation.kind !== 'PASSIVE' || dnd5eAttackKind(invocation.triggerCode) !== 'MELEE')
-    return null
+  if (invocation.kind !== 'PASSIVE' || attackKind(invocation.triggerCode) !== 'MELEE') return null
   const { range } = invocation
   const [entry] = entries
   if (!label || range.rangeKind !== 'DISTANCE' || !entry)

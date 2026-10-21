@@ -71,7 +71,7 @@ import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/
 import { sightGovernedStageD20 } from '@artificer-toolkit/rules-runtime/encounterSightGovernedD20'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { requireEncounterD20Evidence } from './nativeD20Evidence.js'
@@ -459,7 +459,7 @@ export async function planNativeLiveContest(
         sceneVersion: scene.sceneVersion,
         sourceToken: scene.sourceToken,
         targetToken: scene.targetToken,
-        grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+        grid: resolveEncounterSceneGrid({
           encounter: state,
           sceneGrid: scene.sceneGrid
         })

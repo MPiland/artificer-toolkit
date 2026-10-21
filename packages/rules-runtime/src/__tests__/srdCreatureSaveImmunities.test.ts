@@ -5,8 +5,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { compileEncounterFeatureActionPlan } from '../encounterActionEntryPointCompiler.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
-import { createEncounterFeatureActionCapabilityDiscoveryRegistry } from '../encounterFeatureActionCapabilityDiscovery.js'
-import { dnd5eEncounterFeatureActionCapabilityAdapter } from '../systems/dnd5e/encounterFeatureActionCapabilityDiscovery.js'
+import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import {
@@ -29,9 +28,6 @@ const PARALYZED = srdCondition('Paralyzed')
 const OGRE_WISDOM_MODIFIER = -2
 const conditionDefinitionIds = srdSystemRecord.conditionTypes.map(({ id }) => id)
 const abilityDefinitions = (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-const discovery = createEncounterFeatureActionCapabilityDiscoveryRegistry([
-  dnd5eEncounterFeatureActionCapabilityAdapter
-])
 
 const SAVE_IMMUNITIES = [
   { creature: 'Cloaker', feature: 'Moan' },
@@ -46,7 +42,7 @@ function compiledAction(creatureLabel: string, featureLabel: string) {
   const creature = srdByLabel(SRD.creatures, creatureLabel)
   const feature = creatureFeature(creature, featureLabel)
   const actor = srdCreatureActor({ id: testUuid(0x5300), creature })
-  const discovered = discovery.discover({
+  const discovered = discoverUncompiledEncounterFeatureActions({
     spells: new Map(),
     actor,
     conditionDefinitionIds,

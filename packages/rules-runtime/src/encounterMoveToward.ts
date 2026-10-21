@@ -4,7 +4,12 @@ import {
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
-import type { Dnd5eMoveToward } from './systems/dnd5e/attackRestrictions.js'
+
+/**
+ * How far the attacker's latest voluntary move this turn closed its distance to the target, from
+ * the Scene (D164); 0 when it made none, or has been moved since.
+ */
+export type MoveToward = { closedFeet: number }
 
 type PlacedToken = Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
 
@@ -25,7 +30,7 @@ export function movedTowardTarget(input: {
   lastMove: TurnLastMove | null
   attackerToken: PlacedToken
   targetToken: PlacedToken
-}): Dnd5eMoveToward {
+}): MoveToward {
   const { lastMove, attackerToken } = input
   if (
     !lastMove ||

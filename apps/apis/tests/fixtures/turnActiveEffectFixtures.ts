@@ -371,7 +371,8 @@ export async function seedTurnSaveEffect(
           ? { kind: 'CHARACTER', characterId: actor.sourceId }
           : { kind: 'ENCOUNTER_ACTOR', encounterId: base.run.id, targetActorId: actor.id },
       definition: activeRuleEffectDefinitionDtoSchema.parse({
-        schemaVersion: 1,
+        schemaVersion: 2,
+        stateContributions: [],
         origin: {
           kind: 'ENCOUNTER',
           sourceAggregateId: base.run.id,

@@ -60,7 +60,6 @@ import {
 import { featureChargeUsed } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
 import { isInEffectEventScope } from './events/encounterEventHooks.js'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   encounterHeldActorIds,
   mergeCanonicalD20Contributors,
@@ -71,28 +70,16 @@ import {
   encounterActionLongRangeContributor,
   type EncounterActionSceneContext
 } from './encounterActionTargetPolicy.js'
-import {
-  dnd5eAttackDamageDefenses,
-  dnd5eCharacterAttackTraits,
-  dnd5eGrantedAttackTraits
-} from './systems/dnd5e/attackDamageDefenses.js'
-import { DND5E_CHARACTER_WIDE_TARGET } from './systems/dnd5e/modifierApplicability.js'
 import { activeAttackCriticalRules, activeDamageDice } from './character/activeEffectGrantTotals.js'
-import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './systems/dnd5e/attackKind.js'
-import {
-  effectReadsEnemyProximity,
-  effectReadsMoveToward,
-  effectReadsTurnUses,
-  spentTurnUses,
-  type Dnd5eEnemyProximity,
-  type Dnd5eMoveToward
-} from './systems/dnd5e/attackRestrictions.js'
-import { dndSourceFromCompilerSource } from './systems/dnd5e/effectActionCompiler.js'
-import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
-import { dnd5eAttackCriticalRules } from './systems/dnd5e/characterCriticalRules.js'
-import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
 import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
+import {
+  attackProfileCapabilityRegistry,
+  characterRuleActionSystemAdapterRegistry
+} from './platformEncounterPolicy.js'
+import type { CharacterAttack } from './attackProfileCapability.js'
+import type { EnemyProximity } from './encounterEnemyProximity.js'
+import type { MoveToward } from './encounterMoveToward.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type {
   EncounterActionSourceRequest,
@@ -268,8 +255,7 @@ export async function prepareEncounterActionSource<
             fallsBackToFirst
           )
         )
-  const adapter = characterRuleActionSystemAdapterRegistry.get(state.gameSystemId)
-  if (!adapter) throw new Error('The Encounter Game System cannot execute this action.')
+  const adapter = characterRuleActionSystemAdapterRegistry.require(state.gameSystemId)
   const targetPolicy =
     source.kind === 'CHARACTER_ACTION'
       ? source.entry.targetPolicy
@@ -339,7 +325,7 @@ export async function prepareEncounterActionMechanics<
   loadEnemyProximity?: (input: {
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
-  }) => Promise<Dnd5eEnemyProximity | null>
+  }) => Promise<EnemyProximity | null>
   /**
    * How far the attacker's latest move this turn closed its distance to the target, for an attack
    * with a path that asks (a creature's Charge). Called only for such an attack; null when it has
@@ -348,7 +334,7 @@ export async function prepareEncounterActionMechanics<
   loadMoveToward?: (input: {
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
-  }) => Promise<Dnd5eMoveToward | null>
+  }) => Promise<MoveToward | null>
   /**
    * The once-per-turn uses the attacker has spent this turn (sorted usage keys), for an attack with
    * a path limited that way (Sneak Attack). Called only for such an attack.
@@ -576,26 +562,25 @@ export async function prepareEncounterActionMechanics<
       ? evaluateEncounterWeaponDraw({ weapon: boundWeapon, hands, holds: acceptance.handHolds })
       : ({ kind: 'NONE' } as const)
   if (weaponDraw.kind === 'RELEASE_REQUIRED') throw new HandReleaseRequiredError()
-  // Only attack damage meets "from nonmagical attacks" defenses; a Creature's attack is magical
-  // when it is a spell attack or an ATTACK_TRAIT grant of its features applies (Magic Weapons).
-  const creatureGranted = dnd5eGrantedAttackTraits(
-    sourceFacts.attackTraitGrants,
-    DND5E_CHARACTER_WIDE_TARGET
-  )
+  const profile = attackProfileCapabilityRegistry.require(state.gameSystemId)
+  // A Character attack's modifiers are evaluated for its action, its ammunition and its ability.
+  const characterAttack = (candidate: CharacterAttack['candidate']): CharacterAttack => ({
+    candidate,
+    ammunition: characterActionState?.ammunition ?? null,
+    attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
+  })
+  // Only attack damage meets "from nonmagical attacks" defenses; any other attack than a
+  // Character action's has its kind's traits and those its holder's grants give (Magic Weapons).
   const attackTraits =
     attackKind === null
       ? null
       : source.kind === 'CHARACTER_ACTION'
-        ? dnd5eCharacterAttackTraits({
+        ? profile.characterAttackTraits({
             candidate: source.candidate,
             attackKind,
             policy: source.effectivePolicyOutput
           })
-        : {
-            magical: isDnd5eSpellAttackKind(attackKind) || creatureGranted.has('MAGICAL'),
-            silvered: creatureGranted.has('SILVERED'),
-            adamantine: creatureGranted.has('ADAMANTINE')
-          }
+        : profile.featureAttackTraits(attackKind, sourceFacts.grantedAttackTraits)
   // A target's ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it their
   // advantage or disadvantage, or take every advantage away (Elusive), those that require the holder
   // to see the attacker only when it can, those limited to an occasion only on it, and only from the
@@ -603,7 +588,7 @@ export async function prepareEncounterActionMechanics<
   // beyond a ranged attack's normal range (D62). The attacker's and the target's condition
   // mechanics add their own contributors (D94), and so does sight: an unseen attacker has
   // advantage, an unseen target disadvantage.
-  const attackDomain = isDnd5eSpellAttackKind(attackKind) ? 'SPELL' : attackKind
+  const attackDomain = attackKind === null ? null : profile.attackDomain(attackKind)
   const attacksAgainst = targetFacts.attackAgainstContributors.filter(
     (entry) =>
       entry.attackDomain === attackDomain &&
@@ -617,16 +602,17 @@ export async function prepareEncounterActionMechanics<
     targetPolicy,
     sceneContext: input.sceneContext ?? null
   })
-  const dndSource =
-    plan.kind === 'TEST_OUTCOME' ? dndSourceFromCompilerSource(plan.compilerSource) : null
-  const compiledEffect = dndSource?.compiledEffect ?? null
+  const compilerSource = plan.kind === 'TEST_OUTCOME' ? plan.compilerSource : null
+  const compiledReads = compilerSource
+    ? profile.compiledAttackReads(compilerSource.compiledEffect)
+    : null
   // A target's grants that hold only while it sees the effect's source (Danger Sense) decide a save
   // by sight, as an attack's unseen attacker does; a save riding on an attack keeps its rows.
   const sourceSightSaves =
-    attackKind === null && dndSource?.savingThrowAbilityDefinitionId
+    attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
       ? targetFacts.sourceSightSaves.filter(
           ({ abilityDefinitionId }) =>
-            abilityDefinitionId === dndSource.savingThrowAbilityDefinitionId
+            abilityDefinitionId === compilerSource.savingThrowAbilityDefinitionId
         )
       : []
   const perception =
@@ -640,7 +626,7 @@ export async function prepareEncounterActionMechanics<
   const enemyProximity =
     attackKind !== null &&
     input.loadEnemyProximity &&
-    ((compiledEffect && effectReadsEnemyProximity(compiledEffect)) ||
+    (compiledReads?.enemyProximity ||
       (source.kind !== 'CHARACTER_ACTION' &&
         featureModifiersReadEnemyProximity(sourceFacts.featureModifiers)))
       ? await input.loadEnemyProximity({ sourceFacts, targetFacts })
@@ -653,17 +639,11 @@ export async function prepareEncounterActionMechanics<
       ? await input.loadTargetHasNotTakenTurn({ targetFacts })
       : false
   const moveToward =
-    attackKind !== null &&
-    input.loadMoveToward &&
-    compiledEffect &&
-    effectReadsMoveToward(compiledEffect)
+    attackKind !== null && input.loadMoveToward && compiledReads?.moveToward
       ? await input.loadMoveToward({ sourceFacts, targetFacts })
       : null
   const turnUses =
-    attackKind !== null &&
-    input.loadTurnUses &&
-    compiledEffect &&
-    effectReadsTurnUses(compiledEffect)
+    attackKind !== null && input.loadTurnUses && compiledReads?.turnUses
       ? await input.loadTurnUses()
       : null
   const sightContributors = (seen: EncounterAttackPerception) =>
@@ -773,7 +753,7 @@ export async function prepareEncounterActionMechanics<
           dealerActorId: actor.id,
           dealerEffects: sourceFacts.activeEffects,
           targetEffects: targetFacts.activeEffects,
-          attackDomain: attackKind === null ? null : dnd5eAttackModifierDomain(attackKind)
+          attackDomain
         }),
         // The critical range and extra critical dice the attacker's grants give this attack.
         ...(attackKind === null
@@ -781,20 +761,14 @@ export async function prepareEncounterActionMechanics<
           : {
               attackCriticalRules:
                 source.kind === 'CHARACTER_ACTION'
-                  ? dnd5eAttackCriticalRules(
+                  ? profile.characterAttackCriticalRules(
                       source.effectivePolicyOutput,
-                      dnd5eAttackModifierDomain(attackKind),
-                      {
-                        ...dnd5eCharacterActionTarget(
-                          source.candidate,
-                          characterActionState?.ammunition
-                        ),
-                        attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
-                      }
+                      profile.attackDomain(attackKind),
+                      characterAttack(source.candidate)
                     )
                   : activeAttackCriticalRules(
                       sourceFacts.activeEffects,
-                      dnd5eAttackModifierDomain(attackKind)
+                      profile.attackDomain(attackKind)
                     )
             }),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
@@ -804,13 +778,11 @@ export async function prepareEncounterActionMechanics<
               attackKind,
               source.kind === 'CHARACTER_ACTION'
                 ? mergeCanonicalD20Contributors(
-                    dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, {
-                      ...dnd5eCharacterActionTarget(
-                        source.candidate,
-                        characterActionState?.ammunition
-                      ),
-                      attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
-                    }),
+                    profile.characterAttackRollContributors(
+                      source.effectivePolicyOutput,
+                      attackKind,
+                      characterAttack(source.candidate)
+                    ),
                     contributors
                   )
                 : mergeCanonicalD20Contributors(
@@ -842,11 +814,11 @@ export async function prepareEncounterActionMechanics<
       targetActorId: target.id,
       targetDerivedFacts: attackDecoy
         ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
-        : attackSight && attackKind === null && dndSource?.savingThrowAbilityDefinitionId
+        : attackSight && attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
           ? withSourceSightSave(
               state.gameSystemId,
               targetFacts.targetDerivedFacts,
-              dndSource.savingThrowAbilityDefinitionId,
+              compilerSource.savingThrowAbilityDefinitionId,
               attackSight.trueSight
             )
           : targetFacts.targetDerivedFacts,
@@ -867,7 +839,7 @@ export async function prepareEncounterActionMechanics<
       temporaryHitPoints: targetFacts.state.temporary,
       maximumHitPoints: targetFacts.effectiveMaximumHitPoints,
       targetScalarValues: targetFacts.effectiveScalarValues,
-      defenses: dnd5eAttackDamageDefenses(
+      defenses: profile.attackDamageDefenses(
         targetFacts.defenses,
         targetFacts.qualifiedDefenses,
         attackTraits,
@@ -884,14 +856,16 @@ export async function prepareEncounterActionMechanics<
  * phase dealt, which its evidence binds by entry (D119). A miss or an unmet gate binds none.
  */
 export function encounterActionSpentTurnUses(
-  prepared: { plan: Awaited<ReturnType<typeof prepareEncounterActionSource>>['plan'] },
+  prepared: Pick<Awaited<ReturnType<typeof prepareEncounterActionSource>>, 'plan' | 'adapter'>,
   evidence: { sourceEntryBindings?: readonly { sourceEntryId: string }[] }
 ): string[] {
-  const { plan } = prepared
+  const { plan, adapter } = prepared
   return plan.kind === 'TEST_OUTCOME'
-    ? spentTurnUses(
-        dndSourceFromCompilerSource(plan.compilerSource).compiledEffect,
-        new Set((evidence.sourceEntryBindings ?? []).map((binding) => binding.sourceEntryId))
-      )
+    ? attackProfileCapabilityRegistry
+        .require(adapter.gameSystemId)
+        .spentTurnUses(
+          plan.compilerSource.compiledEffect,
+          new Set((evidence.sourceEntryBindings ?? []).map((binding) => binding.sourceEntryId))
+        )
     : []
 }

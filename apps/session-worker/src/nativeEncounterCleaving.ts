@@ -31,7 +31,7 @@ import {
   createNativeCleavingChoice,
   type NativeCleavingCandidate
 } from '@artificer-toolkit/rules-runtime/encounterCleavingChoice'
-import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import type { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
@@ -147,7 +147,7 @@ async function readNativeLiveCleavingCandidates(
               const geometry = captured.context
                 ? {
                     ...captured.context,
-                    grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+                    grid: resolveEncounterSceneGrid({
                       encounter: state,
                       sceneGrid: captured.context.sceneGrid
                     })

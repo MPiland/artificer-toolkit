@@ -235,7 +235,7 @@ export function dnd5eTargetOnlyOutcome(
   return null
 }
 
-/** The outcome an active-effect plan owns when one is authored, which a test cannot gate yet. */
+/** The outcome an active-effect plan owns, which a test graph never proposes. */
 function activeEffectPlanOutcomeKind(
   outcome: Dnd5eAuthoredOutcome
 ): 'MODIFIER_GRANT' | 'ACTOR_LINK' | 'CREATURE_FORM' | 'CONCEAL' | 'DETECT_CONCEALED' | null {
@@ -248,9 +248,16 @@ function activeEffectPlanOutcomeKind(
   return null
 }
 
+/**
+ * Refuses an outcome a test graph reached that its active-effect plan should own. A concealment is
+ * settled from its holder's own check total, which an attack or a save never produces; any other is
+ * one its plan could not carry on the test's result path.
+ */
 export function dnd5eUnsupportedPlanUnderTest(kind: string): never {
   return unsupported(
-    `D&D ${kind} under a test needs an active-effect plan gated on the test's result path, which the runtime does not have yet.`
+    kind === 'CONCEAL' || kind === 'DETECT_CONCEALED'
+      ? `D&D ${kind} is settled from its holder's own check total, which an attack or a saving throw never produces.`
+      : `D&D ${kind} under a test must be one bounded effect its active-effect plan carries on the test's result path.`
   )
 }
 

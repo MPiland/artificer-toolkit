@@ -1,5 +1,3 @@
-import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
-import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   activeOptionalCombatDefinitions,
@@ -18,45 +16,25 @@ import {
   compareCanonicalD20Contributors
 } from '@artificer-toolkit/shared/rules'
 
+import type {
+  DisarmContestProposal,
+  DisarmPreparationInput,
+  OptionalCombatD20Contributor,
+  OptionalCombatPolicyInput,
+  OptionalCombatPolicyPin,
+  OptionalCombatResolution
+} from '../../optionalCombatPolicyCapability.js'
 import { dnd5eAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_DISARM_POLICY_MODULE } from './policyModuleRegistration.js'
 import { resolveDnd5eRollMode } from './rollModePolicy.js'
 
 type D20Influence = 'ADVANTAGE' | 'DISADVANTAGE'
-type D20Mode = 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
-
-interface Dnd5eOptionalActionPin {
-  readonly definitionChecksum: string
-  readonly definitionId: string
-  readonly definitionVersion: number
-  readonly moduleKey: string
-}
-
-type Dnd5eOptionalActionContributor = Readonly<ReceiptD20ContributorDto>
-
-interface D20ContestEvidence {
-  readonly initiatorTotal: number | null
-  readonly targetTotal: number | null
-}
-
-interface Dnd5ePolicyInput {
-  readonly automationMode: AutomationModeDto
-  readonly gameSystemId: string
-  readonly optionalCombatSnapshot: unknown
-  readonly optionalCombatSnapshotChecksum: string | null | undefined
-}
 
 type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
 
-type Dnd5eOptionalActionResolution<T> =
-  | { readonly kind: 'INERT' }
-  | { readonly kind: 'JUDGMENT_REQUIRED'; readonly reason: string }
-  | { readonly kind: 'NOT_APPLICABLE' }
-  | { readonly kind: 'PROPOSED'; readonly proposal: T }
-
 function exactDefinition(
-  input: Dnd5ePolicyInput & {
+  input: OptionalCombatPolicyInput & {
     readonly kind: Dnd5eOptionalCombatRuleKindDto
     readonly module: { readonly key: string; readonly contractVersion: number }
   }
@@ -90,11 +68,12 @@ function exactDefinition(
   return matches.length === 1 ? matches[0]! : null
 }
 
-function pin(definition: PolicyDefinition): Dnd5eOptionalActionPin {
+function pin(definition: PolicyDefinition): OptionalCombatPolicyPin {
   return {
     definitionId: definition.definitionId,
     definitionVersion: definition.definitionVersion,
     definitionChecksum: definition.definitionChecksum,
+    moduleContractVersion: definition.document.module.contractVersion,
     moduleKey: definition.document.module.policyModuleKey
   }
 }
@@ -105,8 +84,8 @@ function exactUuid(value: string): boolean {
 }
 
 function canonicalContributors(
-  contributors: readonly Dnd5eOptionalActionContributor[]
-): readonly Dnd5eOptionalActionContributor[] | null {
+  contributors: readonly OptionalCombatD20Contributor[]
+): readonly OptionalCombatD20Contributor[] | null {
   const ordered = [...contributors].sort(compareCanonicalD20Contributors)
   for (let index = 1; index < ordered.length; index += 1) {
     if (compareCanonicalD20Contributors(ordered[index - 1]!, ordered[index]!) === 0) return null
@@ -114,7 +93,7 @@ function canonicalContributors(
   return ordered
 }
 
-function resolveMode(contributors: readonly Dnd5eOptionalActionContributor[]): D20Mode {
+function resolveMode(contributors: readonly OptionalCombatD20Contributor[]) {
   return resolveDnd5eRollMode(contributors).rollMode
 }
 
@@ -122,7 +101,7 @@ function contributor(input: {
   definition: PolicyDefinition
   influence: D20Influence
   reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS' | 'SIZE_RELATION'
-}): Dnd5eOptionalActionContributor {
+}): OptionalCombatD20Contributor {
   return {
     sourceId: checksumRuleDocument({
       definitionChecksum: input.definition.definitionChecksum,
@@ -137,70 +116,14 @@ function contributor(input: {
   }
 }
 
-interface Dnd5eDisarmProposal {
-  readonly contest: D20ContestEvidence & {
-    readonly targetCheckDefinitionId: string
-    readonly initiatorMode: D20Mode
-    readonly targetMode: D20Mode
-    readonly initiatorContributors: readonly Dnd5eOptionalActionContributor[]
-    readonly targetContributors: readonly Dnd5eOptionalActionContributor[]
-  }
-  readonly disposition: {
-    readonly placement: 'JUDGMENT_REQUIRED'
-    readonly heldItemId: string
-    readonly ownerActorId: string
-    readonly ownerState: 'CHARACTER_SHEET' | 'ENCOUNTER_ACTOR'
-    readonly transition: 'NO_LONGER_HELD'
-  }
-  readonly pin: Dnd5eOptionalActionPin
-}
-
-type Dnd5eDisarmPreparation = Omit<Dnd5eDisarmProposal, 'contest'> & {
-  readonly contest: Omit<Dnd5eDisarmProposal['contest'], 'initiatorTotal' | 'targetTotal'>
-}
-
-type Dnd5eDisarmPolicyFacts = Dnd5ePolicyInput & {
-  readonly attackerActorId: string
-  /** Exact authored size code; D&D policy alone owns category ordering. */
-  readonly attackerSize: string | null
-  readonly heldItemId: string | null
-  readonly targetActorId: string
-  readonly targetCheckDefinitionId: string | null
-  /** Exact target item facts; D&D policy owns handedness interpretation. */
-  readonly targetEquipment: {
-    readonly properties: readonly string[]
-  } | null
-  readonly targetItemOwnerState: 'CHARACTER_SHEET' | 'ENCOUNTER_ACTOR' | null
-  /** Exact authored size code; D&D policy alone owns category ordering. */
-  readonly targetSize: string | null
-  /** Exact authored action trigger; D&D policy owns its interpretation. */
-  readonly triggerCode: string | null
-  /** Exact selected action's Equipment binding; labels never participate. */
-  readonly sourceEquipment: {
-    readonly category: string | null
-    readonly id: string
-    readonly properties: readonly string[]
-    readonly state: 'EQUIPPED' | 'HELD'
-  } | null
-  /** Exact source policy plus target-specific active relationship contributors. */
-  readonly attack: {
-    readonly modifier: number | null
-    readonly rollMode: D20Mode | null
-    readonly baseContributors: Readonly<
-      Record<'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED', readonly Dnd5eOptionalActionContributor[]>
-    > | null
-    readonly relationshipContributors: readonly Dnd5eOptionalActionContributor[]
-  } | null
-}
-
 /**
  * Resolves every pinned D&D policy fact required before contest dice exist.
  * The Encounter layer carries this opaque result into its one-stage graph; it
  * never reconstructs size, handedness, or UUID check policy itself.
  */
 export function prepareDnd5eDisarmContest(
-  input: Dnd5eDisarmPolicyFacts
-): Dnd5eOptionalActionResolution<Dnd5eDisarmPreparation> {
+  input: DisarmPreparationInput
+): OptionalCombatResolution<DisarmContestProposal> {
   const definition = exactDefinition({
     ...input,
     kind: 'DISARM',
@@ -257,11 +180,11 @@ export function prepareDnd5eDisarmContest(
   ) {
     return { kind: 'JUDGMENT_REQUIRED', reason: 'DISARM_GRIP_UNRESOLVED' }
   }
-  const initiatorContributors: Dnd5eOptionalActionContributor[] = [
+  const initiatorContributors: OptionalCombatD20Contributor[] = [
     ...baseContributors,
     ...relationshipContributors
   ]
-  const targetContributors: Dnd5eOptionalActionContributor[] = []
+  const targetContributors: OptionalCombatD20Contributor[] = []
   if (input.targetEquipment.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED))
     initiatorContributors.push(
       contributor({

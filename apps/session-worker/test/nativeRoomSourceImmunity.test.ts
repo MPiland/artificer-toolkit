@@ -119,8 +119,7 @@ async function immunities(room: Room) {
   const { activeEffects } = await readRoomHistory(room.room.base.stub)
   return activeEffects.flatMap((effect) => {
     const definition = activeRuleEffectDefinitionDtoSchema.parse(JSON.parse(effect.definitionJson))
-    return definition.schemaVersion === 2 &&
-      definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY')
+    return definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY')
       ? [effect.targetActorId]
       : []
   })

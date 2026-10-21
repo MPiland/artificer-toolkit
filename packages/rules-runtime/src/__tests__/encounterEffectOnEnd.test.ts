@@ -7,7 +7,8 @@ import { onEndGrantEffect, onEndGrantEffectId } from '../encounterEffectOnEnd.js
 import {
   DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
   DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
-  DND5E_REACTION_ALLOWANCE_DEFINITION_ID
+  DND5E_REACTION_ALLOWANCE_DEFINITION_ID,
+  DND5E_SYSTEM_ID
 } from '../systems/dnd5e/identity.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
@@ -43,7 +44,6 @@ function hasteRecord() {
 describe('Haste authored from core options (SPELLS-4.T2l-a)', () => {
   it('doubles speed, adds 2 AC and grants Dexterity-save advantage while it lasts, and suppresses nothing', () => {
     const { definition } = hasteRecord()
-    if (definition.schemaVersion !== 2) throw new Error('Expected a version 2 definition.')
     const [contribution] = definition.stateContributions
     expect(contribution).toMatchObject({ kind: 'MODIFIER_GRANT' })
     if (contribution?.kind !== 'MODIFIER_GRANT') throw new Error('Expected a grant.')
@@ -58,7 +58,7 @@ describe('Haste authored from core options (SPELLS-4.T2l-a)', () => {
       ['SAVING_THROW_MODIFIER', 'ADVANTAGE']
     ])
     expect(contribution.onEnd?.turns).toBe(1)
-    expect(encounterActiveGrantCapabilitySuppressions([hasteRecord()])).toEqual([])
+    expect(encounterActiveGrantCapabilitySuppressions(DND5E_SYSTEM_ID, [hasteRecord()])).toEqual([])
     expect(listActiveGrantListings([hasteRecord()]).map(({ polarity }) => polarity)).toEqual([
       'BENEFICIAL'
     ])
@@ -84,7 +84,7 @@ describe('the lethargy an ended Haste leaves (SPELLS-4.T2l-a)', () => {
     if (!follow) throw new Error('Haste leaves no follow-on.')
     const effect = { id: follow.id, definition: follow.definition }
 
-    const suppressions = encounterActiveGrantCapabilitySuppressions([effect])
+    const suppressions = encounterActiveGrantCapabilitySuppressions(DND5E_SYSTEM_ID, [effect])
     expect(suppressions.every(({ activeEffectId }) => activeEffectId === follow.id)).toBe(true)
     expect(suppressions.flatMap(({ capabilityDefinitionIds }) => capabilityDefinitionIds)).toEqual([
       DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
