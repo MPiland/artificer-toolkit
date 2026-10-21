@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import {
   SRD_ABILITIES,
@@ -264,7 +266,8 @@ describe('Creature movement target', () => {
       sourceSightSaves: [],
       conditionDefinitions: [],
       conditionMechanics: [],
-      attackTraitGrants: [],
+      grantedAttackTraits: [],
+      movementPassage: movementPassageOfModifiers(DND5E_SYSTEM_ID, []),
       featureModifiers: [],
       innateConditionIds: [],
       targetDerivedFacts: {

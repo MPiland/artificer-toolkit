@@ -7,9 +7,11 @@ import {
 } from '../platformPolicyModules.js'
 import {
   armorClassCapabilityRegistry,
+  attackProfileCapabilityRegistry,
   contestCheckCapabilityRegistry,
   d20TestDefinitionCapabilityRegistry,
   initiativeCapabilityRegistry,
+  modifierScopeCapabilityRegistry,
   optionalCombatPolicyCapabilityRegistry
 } from '../platformEncounterPolicy.js'
 import { createSystemCapabilityRegistry } from '../systemCapabilityRegistry.js'
@@ -165,7 +167,50 @@ describe('installed D&D capability adapters', () => {
         passageAlreadyUsedThisTurn: false
       })
     ).toEqual({ kind: 'INERT' })
+    expect(
+      policy.prepareDisarmContest({
+        automationMode: 'MANUAL',
+        gameSystemId: DND5E_SYSTEM_ID,
+        optionalCombatSnapshot: null,
+        optionalCombatSnapshotChecksum: null,
+        attackerActorId: '00000000-0000-4000-8000-000000000703',
+        attackerSize: null,
+        heldItemId: null,
+        targetActorId: '00000000-0000-4000-8000-000000000702',
+        targetCheckDefinitionId: null,
+        targetEquipment: null,
+        targetItemOwnerState: null,
+        targetSize: null,
+        triggerCode: null,
+        sourceEquipment: null,
+        attack: null
+      })
+    ).toEqual({ kind: 'INERT' })
     expect(optionalCombatPolicyCapabilityRegistry.find(UNKNOWN_SYSTEM_ID)).toBeUndefined()
+  })
+
+  it('installs the D&D attack profile: kinds, domains and the traits a feature attack carries', () => {
+    const profile = attackProfileCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(profile.attackKind('MELEE_SPELL_ATTACK')).toBe('MELEE_SPELL')
+    expect(profile.attackKind('SAVING_THROW')).toBeNull()
+    expect(profile.attackDomain('RANGED_SPELL')).toBe('SPELL')
+    expect(profile.attackDomain('UNARMED')).toBe('UNARMED')
+    expect(profile.featureAttackTraits('RANGED_SPELL', [])).toEqual({
+      magical: true,
+      silvered: false,
+      adamantine: false
+    })
+    expect(profile.featureAttackTraits('MELEE', ['SILVERED'])).toEqual({
+      magical: false,
+      silvered: true,
+      adamantine: false
+    })
+  })
+
+  it('installs the D&D modifier scope', () => {
+    expect(modifierScopeCapabilityRegistry.require(DND5E_SYSTEM_ID).gameSystemId).toBe(
+      DND5E_SYSTEM_ID
+    )
   })
 
   it.each([
@@ -173,7 +218,9 @@ describe('installed D&D capability adapters', () => {
     ['armor-class', armorClassCapabilityRegistry],
     ['d20-test-definition', d20TestDefinitionCapabilityRegistry],
     ['contest-check', contestCheckCapabilityRegistry],
-    ['optional-combat', optionalCombatPolicyCapabilityRegistry]
+    ['optional-combat', optionalCombatPolicyCapabilityRegistry],
+    ['attack-profile', attackProfileCapabilityRegistry],
+    ['modifier-scope', modifierScopeCapabilityRegistry]
   ] as const)('%s fails closed on a System that does not install it', (capability, registry) => {
     expect(() => registry.require(UNKNOWN_SYSTEM_ID)).toThrow(
       `The Game System does not provide ${capability} policy.`

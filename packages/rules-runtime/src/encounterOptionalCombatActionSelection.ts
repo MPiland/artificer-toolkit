@@ -20,16 +20,16 @@ interface PositionField {
   readonly role: SelectionRole
 }
 
-type Dnd5eOptionalCombatActionSelectionField = EntityField | PositionField
+type OptionalCombatActionSelectionField = EntityField | PositionField
 
-export interface Dnd5eOptionalCombatActionSelectionDescriptor {
+export interface OptionalCombatActionSelectionDescriptor {
   readonly optionId: string
   readonly definitionId: string
   readonly selectionContract: string
-  readonly fields: readonly Dnd5eOptionalCombatActionSelectionField[]
+  readonly fields: readonly OptionalCombatActionSelectionField[]
 }
 
-interface Dnd5eOptionalCombatActionSelection {
+interface OptionalCombatActionSelection {
   readonly definition: OptionalDefinition
   readonly entities: Readonly<Partial<Record<SelectionRole, string>>>
   readonly positions: Readonly<Partial<Record<SelectionRole, { x: number; y: number }>>>
@@ -102,10 +102,9 @@ function intersect(
 
 /**
  * Builds the exact server-owned selection contract for one optional action.
- * Codes remain inside the D&D adapter; only checksums and UUID values cross the
- * Encounter transport boundary.
+ * Only checksums and UUID values cross the Encounter transport boundary.
  */
-export function createDnd5eOptionalCombatActionSelectionDescriptor(input: {
+export function createOptionalCombatActionSelectionDescriptor(input: {
   readonly actionId: string
   readonly actorId: string
   readonly definition: OptionalDefinition
@@ -114,13 +113,13 @@ export function createDnd5eOptionalCombatActionSelectionDescriptor(input: {
   readonly allowedDestinationPositions?: readonly { readonly x: number; readonly y: number }[]
   readonly targetCheckDefinitionIds?: readonly string[]
   readonly targetActorId: string
-}): Dnd5eOptionalCombatActionSelectionDescriptor {
+}): OptionalCombatActionSelectionDescriptor {
   exactDefinition(input.definition)
   const actorId = postgresUuidSchema.parse(input.actorId)
   const targetActorId = postgresUuidSchema.parse(input.targetActorId)
   if (actorId === targetActorId) throw new Error('Optional combat actions require another target.')
   const parameters = input.definition.document.parameters
-  const fields: Dnd5eOptionalCombatActionSelectionField[] = []
+  const fields: OptionalCombatActionSelectionField[] = []
   switch (parameters.kind) {
     case 'DISARM':
       fields.push(
@@ -191,11 +190,11 @@ export function createDnd5eOptionalCombatActionSelectionDescriptor(input: {
 }
 
 /** Rejects stale, extra, duplicate, or out-of-contract client selections. */
-export function resolveDnd5eOptionalCombatActionSelection(input: {
+export function resolveOptionalCombatActionSelection(input: {
   readonly definition: OptionalDefinition
-  readonly descriptor: Dnd5eOptionalCombatActionSelectionDescriptor
+  readonly descriptor: OptionalCombatActionSelectionDescriptor
   readonly intent: OptionalCombatActionIntentDto
-}): Dnd5eOptionalCombatActionSelection {
+}): OptionalCombatActionSelection {
   exactDefinition(input.definition)
   if (
     input.intent.definitionId !== input.descriptor.definitionId ||

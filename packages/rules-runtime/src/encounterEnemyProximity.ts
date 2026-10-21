@@ -6,7 +6,12 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
-import type { Dnd5eEnemyProximity } from './systems/dnd5e/attackRestrictions.js'
+
+/**
+ * Who stands near an attack's target, from the Scene: the distance in feet to the nearest creature
+ * hostile to the target and able to act, or `null` when there is none.
+ */
+export type EnemyProximity = { nearestFeet: number | null }
 
 type PlacedActor = { actorId: string } & Pick<
   SceneToken,
@@ -28,15 +33,17 @@ export async function nearestAbleEnemyProximity(input: {
   /** The Scene's tokens bound to the Run's actors, the target's and the attacker's included. */
   tokens: readonly PlacedActor[]
   canAct: (actorId: string) => Promise<boolean>
-}): Promise<Dnd5eEnemyProximity> {
+}): Promise<EnemyProximity> {
   const target = input.actors.find((actor) => actor.id === input.targetActorId)
   const targetToken = input.tokens.find((token) => token.actorId === input.targetActorId)
   if (!target || !targetToken) throw new Error('Encounter action facts are stale.')
   const enemies = input.tokens
     .flatMap((token) => {
-      if (token.actorId === input.attackerActorId || token.actorId === input.targetActorId) return []
+      if (token.actorId === input.attackerActorId || token.actorId === input.targetActorId)
+        return []
       const actor = input.actors.find((candidate) => candidate.id === token.actorId)
-      return actor && encounterActorRelationship(target.disposition, actor.disposition) === 'HOSTILE'
+      return actor &&
+        encounterActorRelationship(target.disposition, actor.disposition) === 'HOSTILE'
         ? [
             {
               actorId: token.actorId,
@@ -50,6 +57,7 @@ export async function nearestAbleEnemyProximity(input: {
         : []
     })
     .sort((left, right) => left.feet - right.feet)
-  for (const enemy of enemies) if (await input.canAct(enemy.actorId)) return { nearestFeet: enemy.feet }
+  for (const enemy of enemies)
+    if (await input.canAct(enemy.actorId)) return { nearestFeet: enemy.feet }
   return { nearestFeet: null }
 }

@@ -5,8 +5,10 @@
 // growth past the cap fails, and an entry is lowered or removed as the file shrinks.
 //
 // Import fence: a neutral rules-runtime module (outside `systems/` and `character/`) never imports
-// `systems/*`; it reaches System behaviour through a capability registry. `scripts/systemsImportAllowlist.json`
-// lists the modules that still do.
+// `systems/*`, and neither does a module of a rules-runtime consumer (`FENCED_CONSUMERS`) through
+// `@artificer-toolkit/rules-runtime/systems/*`; both reach System behaviour through a capability registry.
+// `scripts/systemsImportAllowlist.json` names the composition roots that install System adapters, each with
+// its reason, and lists the `importers` that still import `systems/` directly.
 //
 // With `--base <ref>` both lists are also compared with the ones at the merge base: a cap may not rise and
 // neither list may gain an entry, so a slice cannot buy itself room.
@@ -26,6 +28,13 @@ export const FENCE_ALLOWLIST = 'scripts/systemsImportAllowlist.json'
 const RULES_RUNTIME = 'packages/rules-runtime/src/'
 const SYSTEMS = `${RULES_RUNTIME}systems`
 const UNFENCED = [`${SYSTEMS}/`, `${RULES_RUNTIME}character/`]
+const FENCED_CONSUMERS = [
+  'packages/encounter-persistence/',
+  'apps/session-worker/src/',
+  'apps/apis/convex/',
+  'apps/web/src/'
+]
+const SYSTEMS_PACKAGE = '@artificer-toolkit/rules-runtime/systems'
 
 const sourceModule = (file) =>
   /\.[cm]?[jt]sx?$/.test(file) &&
@@ -35,7 +44,8 @@ const sourceModule = (file) =>
   !isTestPath(file)
 
 const fencedModule = (file) =>
-  file.startsWith(RULES_RUNTIME) && !UNFENCED.some((prefix) => file.startsWith(prefix))
+  (file.startsWith(RULES_RUNTIME) && !UNFENCED.some((prefix) => file.startsWith(prefix))) ||
+  FENCED_CONSUMERS.some((prefix) => file.startsWith(prefix))
 
 /** Non-blank lines once comments are blanked out. */
 export const codeLines = (filename, source) => {
@@ -45,7 +55,10 @@ export const codeLines = (filename, source) => {
   return code.split('\n').filter((line) => /\S/.test(line)).length
 }
 
-/** Import, re-export and dynamic import specifiers of a module that resolve into rules-runtime `systems/`. */
+/**
+ * Import, re-export and dynamic import specifiers of a module that resolve into rules-runtime `systems/`:
+ * relative ones from inside the package, `@artificer-toolkit/rules-runtime/systems/*` from anywhere.
+ */
 export const systemsImports = (file, source) => {
   const specifiers = []
   const visit = (node) => {
@@ -66,6 +79,7 @@ export const systemsImports = (file, source) => {
   }
   visit(parseSync(file, source).program)
   return specifiers.filter((specifier) => {
+    if (specifier === SYSTEMS_PACKAGE || specifier.startsWith(`${SYSTEMS_PACKAGE}/`)) return true
     if (!specifier.startsWith('.')) return false
     const target = path.posix.join(path.posix.dirname(file), specifier)
     return target === SYSTEMS || target.startsWith(`${SYSTEMS}/`)
@@ -74,7 +88,7 @@ export const systemsImports = (file, source) => {
 
 const readJson = (root, file) => JSON.parse(readFileSync(path.join(root, file), 'utf8'))
 
-// The list as committed at <base>, or undefined when <base> predates it.
+// The list as committed at <base>, or undefined when <base> predates it (or its shape, for the allowlist).
 const baseJson = (root, base, file) => {
   const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: 'pipe' })
   const mergeBase = git('merge-base', 'HEAD', base).trim()
@@ -95,7 +109,8 @@ export const ratchetProblems = (root, { base } = {}) => {
     .filter((file) => sourceModule(file) && existsSync(path.join(root, file)))
   const source = (file) => readFileSync(path.join(root, file), 'utf8')
   const budget = readJson(root, SIZE_BUDGET)
-  const allowlist = readJson(root, FENCE_ALLOWLIST)
+  const { compositionRoots, importers: allowlist } = readJson(root, FENCE_ALLOWLIST)
+  const fenceEntries = [...Object.keys(compositionRoots), ...allowlist]
   const problems = []
 
   const sizes = new Map(files.map((file) => [file, codeLines(file, source(file))]))
@@ -126,9 +141,9 @@ export const ratchetProblems = (root, { base } = {}) => {
     files.filter((file) => fencedModule(file) && systemsImports(file, source(file)).length > 0)
   )
   for (const file of importers)
-    if (!allowlist.includes(file))
+    if (!fenceEntries.includes(file))
       problems.push(`${file}: imports systems/ directly; reach it through a capability registry.`)
-  for (const file of allowlist)
+  for (const file of fenceEntries)
     if (!importers.has(file))
       problems.push(`${FENCE_ALLOWLIST}: ${file} no longer imports systems/; remove it.`)
 
@@ -146,10 +161,15 @@ export const ratchetProblems = (root, { base } = {}) => {
           )
       }
     const baseAllowlist = baseJson(root, base, FENCE_ALLOWLIST)
-    if (baseAllowlist)
-      for (const file of allowlist)
-        if (!baseAllowlist.includes(file))
+    if (baseAllowlist?.importers) {
+      const baseEntries = [
+        ...Object.keys(baseAllowlist.compositionRoots),
+        ...baseAllowlist.importers
+      ]
+      for (const file of fenceEntries)
+        if (!baseEntries.includes(file))
           problems.push(`${FENCE_ALLOWLIST}: ${file} is new; the allowlist only shrinks.`)
+    }
   }
   return problems
 }

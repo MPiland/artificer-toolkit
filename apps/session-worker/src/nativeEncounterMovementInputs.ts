@@ -428,6 +428,7 @@ export async function readNativeLiveMovementInputs(input: {
       )) ||
     (moverTarget &&
       encounterActorMovementProvokesNoOpportunityAttacks(
+        state.gameSystemId,
         moverTarget.actor,
         moverTarget.effectiveRulePolicyOutput
       )) ||
