@@ -66,7 +66,6 @@ function heldCarrier() {
     sourceLabel: 'Heat Metal'
   })
   const { definition } = planned
-  if (definition.schemaVersion !== 2) throw new Error('The planner must store a version 2 grant.')
   return {
     id: CARRIER_ID,
     owner: {

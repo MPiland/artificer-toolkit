@@ -989,7 +989,6 @@ export function activeEffectSourceAttackContributors(input: {
 }): EncounterRelationshipD20Contributor[] {
   const fromTarget = input.effects.filter(
     ({ definition }) =>
-      definition.schemaVersion === 2 &&
       definition.origin.kind === 'ENCOUNTER' &&
       definition.origin.sourceActorId === input.targetActorId
   )

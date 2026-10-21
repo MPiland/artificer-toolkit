@@ -647,10 +647,8 @@ describe('seeded SRD Creature hit riders in the room', () => {
 
     /** The relationship effects holding the Character. */
     async function holds(base: Fixture) {
-      return (await characterEffects(base)).filter(
-        ({ definition }) =>
-          definition.schemaVersion === 2 &&
-          definition.stateContributions.some(({ kind }) => kind === 'ACTOR_RELATIONSHIP')
+      return (await characterEffects(base)).filter(({ definition }) =>
+        definition.stateContributions.some(({ kind }) => kind === 'ACTOR_RELATIONSHIP')
       )
     }
 
@@ -757,10 +755,8 @@ describe('seeded SRD Creature hit riders in the room', () => {
 
     /** The Help grants holding the Character. */
     async function helps(base: Fixture) {
-      return (await characterEffects(base)).filter(
-        ({ definition }) =>
-          definition.schemaVersion === 2 &&
-          definition.stateContributions.some(({ kind }) => kind === 'MODIFIER_GRANT')
+      return (await characterEffects(base)).filter(({ definition }) =>
+        definition.stateContributions.some(({ kind }) => kind === 'MODIFIER_GRANT')
       )
     }
 

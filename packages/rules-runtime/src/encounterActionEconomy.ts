@@ -35,17 +35,15 @@ export function activeEffectCapabilitySuppressions(
 ) {
   return [
     ...effects.flatMap((effect) =>
-      effect.definition.schemaVersion === 2
-        ? effect.definition.stateContributions.flatMap((contribution) =>
-            contribution.kind === 'ACTOR_RELATIONSHIP'
-              ? contribution.capabilitySuppressions.map((suppression) => ({
-                  activeEffectId: effect.id,
-                  contributionId: suppression.contributionId,
-                  capabilityDefinitionIds: suppression.capabilityDefinitionIds
-                }))
-              : []
-          )
-        : []
+      effect.definition.stateContributions.flatMap((contribution) =>
+        contribution.kind === 'ACTOR_RELATIONSHIP'
+          ? contribution.capabilitySuppressions.map((suppression) => ({
+              activeEffectId: effect.id,
+              contributionId: suppression.contributionId,
+              capabilityDefinitionIds: suppression.capabilityDefinitionIds
+            }))
+          : []
+      )
     ),
     ...encounterActiveGrantCapabilitySuppressions(gameSystemId, effects)
   ]

@@ -23,7 +23,8 @@ function effectId(offset: number) {
 }
 
 const definition: ActiveRuleEffectDefinitionDto = {
-  schemaVersion: 1,
+  schemaVersion: 2,
+  stateContributions: [],
   origin: {
     kind: 'ENCOUNTER',
     sourceAggregateId: ids.encounter,

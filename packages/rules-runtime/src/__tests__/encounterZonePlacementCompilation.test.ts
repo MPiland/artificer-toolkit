@@ -207,11 +207,9 @@ describe('a creature that fails the zone’s entry save', () => {
     const grant = plannedEntryGrant({ resultPath: 'ON_SAVE_FAIL' })
     expect(grant?.definition.schemaVersion).toBe(2)
     expect(
-      grant?.definition.schemaVersion === 2 &&
-        grant.definition.stateContributions.every(
-          (contribution) =>
-            contribution.kind !== 'MODIFIER_GRANT' || !('endOnEvents' in contribution)
-        )
+      grant?.definition.stateContributions.every(
+        (contribution) => contribution.kind !== 'MODIFIER_GRANT' || !('endOnEvents' in contribution)
+      )
     ).toBe(true)
   })
 

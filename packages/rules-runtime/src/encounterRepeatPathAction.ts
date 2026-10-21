@@ -71,12 +71,9 @@ export function discoverEncounterRepeatPath(input: {
   const carrier = input.effectsByHolder
     .get(offer.holderActorId)
     ?.find((effect) => effect.id === offer.effectId)
-  const grant =
-    carrier?.definition.schemaVersion === 2
-      ? carrier.definition.stateContributions.find(
-          (contribution) => contribution.kind === 'MODIFIER_GRANT'
-        )
-      : undefined
+  const grant = carrier?.definition.stateContributions.find(
+    (contribution) => contribution.kind === 'MODIFIER_GRANT'
+  )
   if (!grant) throw new Error('The selected repeat action is stale.')
   const capability: EncounterRepeatPathCapabilityDescriptor = {
     kind: 'REPEAT_PATH',

@@ -35,14 +35,12 @@ export function planSpatialHeldCondition(input: {
       (application) =>
         application.kind === 'CONDITION_APPLY' && application.conditionId === held.conditionId
     ) ||
-    holder.activeEffects.some(
-      ({ definition }) =>
-        definition.schemaVersion === 2 &&
-        definition.stateContributions.some(
-          (contribution) =>
-            contribution.kind === 'CONDITION_OWNERSHIP' &&
-            contribution.heldBySpatialEffectId === zone.id
-        )
+    holder.activeEffects.some(({ definition }) =>
+      definition.stateContributions.some(
+        (contribution) =>
+          contribution.kind === 'CONDITION_OWNERSHIP' &&
+          contribution.heldBySpatialEffectId === zone.id
+      )
     )
   )
     return null
@@ -105,10 +103,7 @@ export function planSpatialHeldCondition(input: {
 
 /** The zone an effect holds its condition for until the holder leaves the zone's area, or null. */
 export function heldUntilLeavingZoneId({ definition }: Pick<ActiveRuleEffectRecord, 'definition'>) {
-  if (
-    definition.schemaVersion !== 2 ||
-    !endSubscriptions({ definition }).some((subscription) => subscription.event === 'AREA_LEFT')
-  )
+  if (!endSubscriptions({ definition }).some((subscription) => subscription.event === 'AREA_LEFT'))
     return null
   for (const contribution of definition.stateContributions)
     if (contribution.kind === 'CONDITION_OWNERSHIP' && contribution.heldBySpatialEffectId)

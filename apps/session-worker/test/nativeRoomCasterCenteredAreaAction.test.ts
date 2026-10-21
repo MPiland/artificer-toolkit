@@ -297,12 +297,10 @@ describe('room radius centered on the caster that excludes a creature type (SPEL
           const definition = activeRuleEffectDefinitionDtoSchema.parse(
             JSON.parse(effect.definitionJson)
           )
-          const immune =
-            definition.schemaVersion === 2 &&
-            definition.stateContributions.some(
-              (contribution) =>
-                contribution.kind === 'SOURCE_IMMUNITY' && contribution.immuneToId === moanEffectId
-            )
+          const immune = definition.stateContributions.some(
+            (contribution) =>
+              contribution.kind === 'SOURCE_IMMUNITY' && contribution.immuneToId === moanEffectId
+          )
           return { targetActorId: effect.targetActorId, immune }
         })
         .sort((left, right) => left.targetActorId.localeCompare(right.targetActorId))

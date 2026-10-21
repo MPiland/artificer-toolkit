@@ -58,7 +58,8 @@ const ids = {
 
 function ownerDefinition(characterId: string): ActiveRuleEffectDefinitionDto {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    stateContributions: [],
     origin: {
       kind: 'CHARACTER',
       sourceAggregateId: characterId,
