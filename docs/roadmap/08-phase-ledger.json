@@ -3145,7 +3145,7 @@
                 "size": 3
               },
               "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T2",
@@ -3158,7 +3158,7 @@
                 "size": 3
               },
               "text": "Golden compile-checksum harness over the SRD corpus (graph checksum and plan shape per authored effect).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T3a",
@@ -3405,7 +3405,7 @@
                 "size": 2
               },
               "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             }
           ]
         }
