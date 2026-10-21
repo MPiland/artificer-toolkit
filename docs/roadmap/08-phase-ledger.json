@@ -13353,6 +13353,19 @@
               "note": "Merged m279 (b71689a96)."
             },
             {
+              "id": "SPELLS-33.T4i1e",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": ["SPELLS-33.T4i1c"]
+              },
+              "text": "Bug (found 2026-10-21): Previous Turn then Next re-rolls Recharge and the turn-start death save, because neither stage checks the begun-turn marker T4i1c added (encounterTurnPreparation.ts:289/:324; turnCommitPersistence.ts:308, :459, :473). Every turn-start stage skips a begun (round, actor) turn through the one startedByCommandId check, not a per-stage guard, with room regression tests for Recharge and for the death save that fail before the fix."
+            },
+            {
               "id": "SPELLS-33.T4i2",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
