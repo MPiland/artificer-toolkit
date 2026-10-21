@@ -4,7 +4,7 @@ export const NO_HIT_POINT_FLOOR = -1
 /** The ceiling of a band with no upper neighbour. */
 export const NO_HIT_POINT_CEILING = Number.MAX_SAFE_INTEGER
 
-/** The band a result-block gate bounds: at most its amount, or at least it. */
+/** The band a hit-point result-block gate bounds: at most its amount, or at least it. */
 export function hitPointGateBand(gate: {
   kind: 'TARGET_HIT_POINTS_AT_MOST' | 'TARGET_HIT_POINTS_AT_LEAST'
   amount: number
