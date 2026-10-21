@@ -31,7 +31,7 @@ import {
   record
 } from './character/activeEffectGrantTotals.js'
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
-import { effectEventScope, type EffectEventScope } from './encounterGrantLifetimes.js'
+import { effectEventScope, type EffectEventScope } from './events/encounterEventHooks.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
 import { rollModeCapabilityRegistry } from './platformPolicyModules.js'

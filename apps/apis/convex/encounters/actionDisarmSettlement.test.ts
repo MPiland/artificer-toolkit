@@ -9,7 +9,7 @@ import {
   contestDefenderPolicy,
   executeEncounterOptionalContestAction
 } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
-import { prepareDnd5eOptionalCombatContestPendingContext } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestPendingContext'
+import { prepareEncounterContestPendingContext } from '@artificer-toolkit/rules-runtime/encounterContestPendingContext'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { srdPrintedArmorClass, srdWolf } from '../../tests/fixtures/srdCreatures'
@@ -80,7 +80,7 @@ async function settle(
     })
     if (execution.kind !== 'COMPLETE') throw new Error('Automatic contest did not complete.')
     expect(faces.next().done).toBe(true)
-    const contest = prepareDnd5eOptionalCombatContestPendingContext({
+    const contest = prepareEncounterContestPendingContext({
       ...preparation.contest,
       rollEvidence: {
         initiator: {

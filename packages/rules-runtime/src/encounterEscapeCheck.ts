@@ -12,7 +12,7 @@ import {
   endedMaintenanceConditions,
   planEncounterMaintenanceOwner
 } from './encounterActionMaintenance.js'
-import { effectsEndedBy } from './encounterGrantLifetimes.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
@@ -275,10 +275,16 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
       label: encounterBasicActionCheckLabel(input.system, input.checkDefinitionId)
     },
     d20: freezeD20Context({ ...facts, modifier: facts.modifier }),
-    consumedGrants: effectsEndedBy(holder.activeEffects, {
-      event: 'ON_ABILITY_CHECK',
-      abilityCode: checkAbilityCode(input.system, checkKind, input.checkDefinitionId)
-    })
+    consumedGrants: discoverEncounterEventHooks({
+      effects: holder.activeEffects,
+      events: [
+        {
+          kind: 'TEST',
+          test: 'CHECK',
+          ability: { code: checkAbilityCode(input.system, checkKind, input.checkDefinitionId) }
+        }
+      ]
+    }).ended
   })
 }
 

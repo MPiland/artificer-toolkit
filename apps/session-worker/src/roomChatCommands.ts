@@ -37,6 +37,23 @@ import {
   retainRoomPrivateRoll,
   reviseRoomPrivateRollBinding
 } from './roomPrivateRolls.js'
+import {
+  liveSessionWebSocketServerMessageDtoSchema,
+  type LiveSessionWebSocketServerMessageDto
+} from '@artificer-toolkit/schema/api/liveSessions'
+import { type LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSessionCommands'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { encounterCommandRefusal, RoomAdmissionExpiredError } from './nativeRoomEncounterCommand.js'
+import {
+  accountBucket,
+  replayReceipt,
+  send,
+  type Admission,
+  type SocketAttachment
+} from './roomSocket.js'
+import { RoomRateLimitedError } from './roomRateLimits.js'
+import { admitsRoomMember } from './roomAuthorization.js'
+import type { RoomCommandHost } from './roomCommandHost.js'
 
 /** A refusal the sender should read, as opposed to an unavailable room. */
 export class CampaignChatCommandError extends Error {}
@@ -302,4 +319,172 @@ export async function executeRoomCampaignChatCommand(input: {
 
   const entry = await postEntry(access, clientNonce, content)
   return { entry, privateRoll: null, recipientUserIds, replayed: false }
+}
+
+/** The room steps a Campaign chat command uses. */
+export type RoomCampaignChatHost = Pick<
+  RoomCommandHost,
+  | 'aggregateNeedsReload'
+  | 'authorization'
+  | 'authorizationBoundary'
+  | 'buckets'
+  | 'cache'
+  | 'flushOutbox'
+  | 'inputs'
+  | 'journal'
+  | 'liveAdmission'
+  | 'loadRoomAggregate'
+  | 'random'
+  | 'rejectCommand'
+  | 'scheduleAlarm'
+  | 'store'
+  | 'webSockets'
+>
+
+/**
+ * General chat and Campaign rolls (D69): the entry fans out to its conversation immediately and
+ * reaches Convex with the room's next checkpoint. The D72 charge, the journal receipt and the
+ * records commit together, so an exact retry replays the original entry for free.
+ */
+export async function executeCampaignChatCommand(
+  host: RoomCampaignChatHost,
+  socket: WebSocket,
+  admission: Admission,
+  value: SocketAttachment,
+  command: Extract<LiveSessionCommandDto, { scope: 'CAMPAIGN_CHAT' }>
+): Promise<void> {
+  const commandId = command.command.commandId
+  const fingerprint = checksumCanonicalJson(command)
+  const prior = host.journal.lookupCommand({
+    actorId: admission.userId,
+    commandId,
+    fingerprint
+  })
+  if (prior.kind === 'MISMATCHED_REUSE') {
+    host.rejectCommand(
+      socket,
+      commandId,
+      'INVALID_COMMAND',
+      'The command ID was already used for different input.'
+    )
+    return
+  }
+  if (prior.kind === 'REPLAY') {
+    send(socket, replayReceipt(prior.receipt.receiptJson))
+    return
+  }
+  try {
+    const bucket = accountBucket('TABLE', value, admission)
+    if (!host.buckets.admits(bucket)) throw new RoomRateLimitedError()
+    if (host.aggregateNeedsReload()) await host.flushOutbox('RELOAD')
+    await host.loadRoomAggregate(host.cache()?.scene?.id ?? null)
+    const current = host.journal.readCurrent()
+    if (!current || current.authorityEpoch !== value.authorityEpoch || current.status !== 'ACTIVE')
+      throw new Error('Live Session authority changed.')
+    const authorization = await host.authorizationBoundary(value)
+    if (
+      host.liveAdmission(socket)?.generation !== admission.generation ||
+      !admitsRoomMember(authorization, admission)
+    )
+      return
+    host.store.assertAuthorityHead({
+      epoch: current.authorityEpoch,
+      sequence: current.sequence,
+      checksum: current.stateChecksum
+    })
+    let receipt: LiveSessionWebSocketServerMessageDto | null = null
+    let replayed = false
+    const executed = await host.store.transact(
+      async (transaction) => {
+        const posted = await executeRoomCampaignChatCommand({
+          store: host.store,
+          transaction,
+          inputs: host.inputs,
+          authorization,
+          campaignId: value.campaignId,
+          epoch: value.authorityEpoch,
+          userId: admission.userId,
+          command: command.command,
+          random: host.random
+        })
+        replayed = posted.replayed
+        receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
+          type: 'COMMAND_COMMITTED',
+          commandId,
+          sequence: current.sequence + 1,
+          delta: {
+            scope: 'CAMPAIGN_CHAT',
+            entry: posted.entry,
+            privateRoll: posted.privateRoll
+          }
+        })
+        return posted
+      },
+      (entry) => {
+        const latest = host.authorization.current(value.authorityEpoch)
+        if (
+          host.liveAdmission(socket)?.generation !== admission.generation ||
+          !latest ||
+          !admitsRoomMember(latest, admission) ||
+          checksumCanonicalJson(latest.revisions) !== checksumCanonicalJson(authorization.revisions)
+        )
+          throw new RoomAdmissionExpiredError()
+        if (!receipt || entry.sequence !== current.sequence + 1)
+          throw new Error('Room chat command sequence does not match its authority.')
+        // A replayed entry spends nothing, as an exact retry in this epoch spends nothing.
+        if (!replayed) host.buckets.charge(bucket)
+        const committed = host.journal.commitInTransaction({
+          actorId: admission.userId,
+          authorityEpoch: value.authorityEpoch,
+          commandId,
+          fingerprint,
+          expectedSequence: current.sequence,
+          expectedStateChecksum: current.stateChecksum,
+          nextStateChecksum: entry.chainChecksum,
+          nextStateJson: current.stateJson,
+          receiptJson: JSON.stringify(receipt)
+        })
+        if (committed.kind !== 'COMMITTED')
+          throw new Error('Room chat command unexpectedly replayed inside its transaction.')
+      }
+    )
+    if (!receipt) throw new Error('Room chat command receipt is unavailable.')
+    for (const recipient of host.webSockets()) {
+      const member = host.liveAdmission(recipient)
+      if (!member || !admitsRoomMember(authorization, member)) continue
+      // Every member advances the same room sequence; only the conversation reads the entry.
+      send(
+        recipient,
+        executed.recipientUserIds.includes(member.userId)
+          ? member.userId === admission.userId
+            ? receipt
+            : {
+                type: 'COMMAND_COMMITTED',
+                commandId,
+                sequence: current.sequence + 1,
+                delta: {
+                  scope: 'CAMPAIGN_CHAT',
+                  entry: executed.entry,
+                  privateRoll: null
+                }
+              }
+          : {
+              type: 'COMMAND_COMMITTED',
+              commandId,
+              sequence: current.sequence + 1,
+              delta: null
+            }
+      )
+    }
+    await host.scheduleAlarm()
+  } catch (error) {
+    if (error instanceof RoomRateLimitedError)
+      host.rejectCommand(socket, commandId, 'RATE_LIMITED', error.message)
+    else if (error instanceof CampaignChatCommandError)
+      host.rejectCommand(socket, commandId, 'DOMAIN_REJECTED', error.message)
+    else {
+      const refusal = encounterCommandRefusal(error)
+      host.rejectCommand(socket, commandId, refusal.code, refusal.message)
+    }
+  }
 }

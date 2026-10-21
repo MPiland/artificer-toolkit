@@ -1,5 +1,5 @@
 import { incomingDamageGrantRecords } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterIdleTurnMark } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import type {
@@ -135,10 +135,10 @@ export async function endGrantsOnHitPointsRegained(
   ctx: EncounterWriteContext,
   owner: ActiveRuleEffectRecord['owner']
 ) {
-  const ended = effectsEndedBy(
-    await createActiveRuleEffectStore(ctx).list(owner),
-    'ON_HIT_POINTS_REGAINED'
-  )
+  const { ended } = discoverEncounterEventHooks({
+    effects: await createActiveRuleEffectStore(ctx).list(owner),
+    events: [{ kind: 'HIT_POINTS_REGAINED' }]
+  })
   await deleteGrants(ctx, ended)
   return ended
 }

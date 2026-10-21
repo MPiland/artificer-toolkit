@@ -42,6 +42,19 @@ import {
   roomEncounterWriteTransaction,
   type RoomEncounterWriteTransaction
 } from './roomEncounterWritePorts.js'
+import {
+  liveSessionWebSocketServerMessageDtoSchema,
+  type LiveSessionWebSocketServerMessageDto
+} from '@artificer-toolkit/schema/api/liveSessions'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { createNativeLiveSessionState } from './nativeLiveSessionState.js'
+import { encounterCommandRefusal, RoomAdmissionExpiredError } from './nativeRoomEncounterCommand.js'
+import { send, type Admission, type SocketAttachment } from './roomSocket.js'
+import { composeRoomSceneVision } from './roomSceneVision.js'
+import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { admitsRoomMember } from './roomAuthorization.js'
+import type { RoomCommandHost } from './roomCommandHost.js'
 
 /** Character play and its Sheet receipt join the caller's atomic room command commit. */
 export async function executeRoomCharacterSheetCommand(input: {
@@ -350,5 +363,314 @@ export async function executeRoomCharacterSheetCommand(input: {
     replayed: false,
     chatEntries: ctx.postedChatEntries,
     privateRolls: ctx.retainedPrivateRolls
+  }
+}
+
+/** The room steps a held Character Sheet command uses. */
+export type RoomCharacterSheetHost = Pick<
+  RoomCommandHost,
+  | 'aggregateNeedsReload'
+  | 'authorization'
+  | 'authorizationBoundary'
+  | 'broadcastStateSync'
+  | 'cache'
+  | 'flushOutbox'
+  | 'inputs'
+  | 'journal'
+  | 'liveAdmission'
+  | 'loadRoomAggregate'
+  | 'prepareWithRetry'
+  | 'presentationChanging'
+  | 'rejectCommand'
+  | 'scheduleAlarm'
+  | 'sendDomainRejection'
+  | 'setCache'
+  | 'store'
+  | 'webSockets'
+>
+
+/** Held Sheet play, its private history and the journal receipt commit before acknowledgement. */
+export async function executeCharacterSheetCommand(
+  host: RoomCharacterSheetHost,
+  socket: WebSocket,
+  admission: Admission,
+  value: SocketAttachment,
+  command: Extract<LiveSessionCommandDto, { scope: 'CHARACTER_SHEET' }>
+): Promise<void> {
+  const commandId = command.command.commandId
+  const fingerprint = checksumCanonicalJson(command)
+  try {
+    if (host.aggregateNeedsReload()) await host.flushOutbox('RELOAD')
+    await host.loadRoomAggregate(host.cache()?.scene?.id ?? null)
+    const current = host.journal.readCurrent()
+    if (!current || current.authorityEpoch !== value.authorityEpoch || current.status !== 'ACTIVE')
+      throw new Error('Live Session authority changed.')
+    const authorization = await host.authorizationBoundary(value)
+    if (
+      host.liveAdmission(socket)?.generation !== admission.generation ||
+      !admitsRoomMember(authorization, admission)
+    )
+      return
+    const assigned = authorization.campaign.assignments.find(
+      (entry) => entry.characterId === command.characterId.toLowerCase()
+    )
+    const character = authorization.characters.find(
+      (entry) => entry.characterId === command.characterId.toLowerCase()
+    )
+    if (
+      !assigned ||
+      !character ||
+      assigned.userId !== character.ownerUserId ||
+      (admission.role !== 'OWNER' && assigned.userId !== admission.userId)
+    )
+      throw new CharacterSheetCommandError('Assigned Character not found.')
+    if (character.ownerUserId !== admission.userId)
+      assertCampaignGmSheetCommandAllowed(command.command)
+    host.store.assertAuthorityHead({
+      epoch: current.authorityEpoch,
+      sequence: current.sequence,
+      checksum: current.stateChecksum
+    })
+    const prior = host.journal.lookupCommand({
+      actorId: admission.userId,
+      commandId,
+      fingerprint
+    })
+    if (prior.kind === 'MISMATCHED_REUSE') {
+      host.rejectCommand(
+        socket,
+        commandId,
+        'INVALID_COMMAND',
+        'The command ID was already used for different input.'
+      )
+      return
+    }
+    if (prior.kind === 'REPLAY') {
+      const receipt = liveSessionWebSocketServerMessageDtoSchema.parse(
+        JSON.parse(prior.receipt.receiptJson)
+      )
+      if (
+        receipt.type !== 'COMMAND_COMMITTED' ||
+        receipt.delta?.scope !== 'CHARACTER_SHEET' ||
+        receipt.delta.result.characterId !== character.characterId
+      )
+        throw new Error('Stored Character Sheet receipt scope mismatch.')
+      const run = await host.store.store
+        .query('encounterRuns')
+        .withIndex('by_publicId', (query) => query.eq('id', command.encounterId.toLowerCase()))
+        .unique()
+      if (!run) throw new CharacterSheetCommandError('Encounter is unavailable.')
+      const state = readRunState(run)
+      if (state.status !== 'ACTIVE' || state.campaignId !== value.campaignId)
+        throw new CharacterSheetCommandError('Character is not held by this active Encounter.')
+      const held = (await readRunActors({ db: host.store.store }, state)).some(
+        (actor) =>
+          actor.kind === 'CHARACTER' &&
+          actor.sourceId === character.characterId &&
+          actor.frozenState === null
+      )
+      if (!held) {
+        // A caster outside the Run holds no play here: the stored acknowledgement is the replay.
+        if (command.command.type !== 'END_CONCENTRATION')
+          throw new CharacterSheetCommandError('Character is not held by this active Encounter.')
+        send(socket, receipt)
+        return
+      }
+      // Member admission above already requires an ACTIVE Campaign: archived Campaigns have no members.
+      const [play, campaignPlay] = await Promise.all([
+        host.store.store
+          .query('characterPlayStates')
+          .withIndex('by_characterId', (query) => query.eq('characterId', character.characterId))
+          .unique(),
+        host.inputs.play(host.inputs.revisions(value.campaignId, authorization.revisions))
+      ])
+      if (
+        !play ||
+        campaignPlay.campaign.id !== value.campaignId ||
+        state.gameSystemId !== campaignPlay.campaign.gameSystemId ||
+        play.userId !== character.ownerUserId
+      )
+        throw new Error('Current Character Sheet replay scope mismatch.')
+      readCharacterPlay(play)
+      const result = await readCharacterCommandReplay(
+        {
+          characterId: character.characterId,
+          userId: admission.userId,
+          command: command.command,
+          streamVersion: play.streamVersion,
+          contentMaturity: campaignPlay.campaign.contentMaturity,
+          viewer: character.ownerUserId === admission.userId ? 'CHARACTER_OWNER' : 'CAMPAIGN_OWNER'
+        },
+        () =>
+          host.store.store
+            .query('characterCommandReceipts')
+            .withIndex('by_characterId_commandId', (query) =>
+              query
+                .eq('characterId', character.characterId)
+                .eq('commandId', commandId.toLowerCase())
+            )
+            .unique()
+      )
+      if (
+        !result ||
+        result.historyEntry?.eventType !== command.command.type ||
+        result.historyEntry?.eventId !== receipt.delta.result.historyEntry?.eventId
+      )
+        throw new Error('Stored Character Sheet replay identity mismatch.')
+      send(socket, {
+        ...receipt,
+        sequence:
+          result.streamVersion === receipt.delta.result.streamVersion
+            ? receipt.sequence
+            : current.sequence,
+        delta: { scope: 'CHARACTER_SHEET', result }
+      })
+      return
+    }
+    const sceneCache = host.cache()
+    let receipt: LiveSessionWebSocketServerMessageDto | null = null
+    let nextStateJson = current.stateJson
+    const { result, authorization: committedAuthorization } = await host.prepareWithRetry(
+      authorization,
+      (prepared, random) =>
+        host.store.transact(
+          async (transaction) => {
+            const executed = await executeRoomCharacterSheetCommand({
+              store: host.store,
+              transaction,
+              inputs: host.inputs,
+              authorization: prepared,
+              campaignId: value.campaignId,
+              epoch: value.authorityEpoch,
+              userId: admission.userId,
+              command,
+              random
+            })
+            const composition = sceneCache?.uncomposedScene
+              ? await composeRoomSceneVision({
+                  store: host.store,
+                  transaction,
+                  inputs: host.inputs,
+                  authorization: prepared,
+                  campaignId: value.campaignId,
+                  epoch: value.authorityEpoch,
+                  scene: sceneCache.uncomposedScene
+                })
+              : null
+            if (composition)
+              nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
+            receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
+              type: 'COMMAND_COMMITTED',
+              commandId,
+              sequence: current.sequence + 1,
+              delta: {
+                scope: 'CHARACTER_SHEET',
+                result: executed.acknowledgement
+              }
+            })
+            return { ...executed, composition }
+          },
+          (entry) => {
+            const latest = host.authorization.current(value.authorityEpoch)
+            if (
+              host.liveAdmission(socket)?.generation !== admission.generation ||
+              !latest ||
+              !admitsRoomMember(latest, admission) ||
+              checksumCanonicalJson(latest.revisions) !==
+                checksumCanonicalJson(prepared.revisions) ||
+              host.cache() !== sceneCache ||
+              host.presentationChanging()
+            )
+              throw new RoomAdmissionExpiredError()
+            if (!receipt || entry.sequence !== current.sequence + 1)
+              throw new Error('Room Sheet command sequence does not match its authority.')
+            const committed = host.journal.commitInTransaction({
+              actorId: admission.userId,
+              authorityEpoch: value.authorityEpoch,
+              commandId,
+              fingerprint,
+              expectedSequence: current.sequence,
+              expectedStateChecksum: current.stateChecksum,
+              nextStateChecksum: entry.chainChecksum,
+              nextStateJson,
+              receiptJson: JSON.stringify(receipt)
+            })
+            if (committed.kind !== 'COMMITTED')
+              throw new Error(
+                'Room Sheet command unexpectedly replayed inside its write transaction.'
+              )
+          }
+        )
+    )
+    host.authorization.applyCharacters(
+      value.authorityEpoch,
+      committedAuthorization.characters.map((entry) =>
+        entry.characterId === character.characterId
+          ? {
+              ...entry,
+              partyVisibility: result.facts?.sheetState.partyVisibility ?? entry.partyVisibility
+            }
+          : entry
+      )
+    )
+    if (result.composition && sceneCache)
+      host.setCache({
+        ...sceneCache,
+        scene: result.composition.scene,
+        characterRevisions: result.composition.characterRevisions
+      })
+    if (!receipt) throw new Error('Room Sheet command receipt is unavailable.')
+    for (const recipient of host.webSockets()) {
+      const member = host.liveAdmission(recipient)
+      if (!member || !admitsRoomMember(committedAuthorization, member)) continue
+      // Character history is private; every member still advances the same room sequence.
+      send(
+        recipient,
+        member.userId === admission.userId
+          ? receipt
+          : {
+              type: 'COMMAND_COMMITTED',
+              commandId,
+              delta: null,
+              sequence: host.journal.readCurrent()!.sequence
+            }
+      )
+      // A Concentration end or death save card the command caused tells the whole table, as the
+      // encounter route does.
+      for (const entry of result.chatEntries)
+        send(recipient, {
+          type: 'COMMAND_COMMITTED',
+          commandId,
+          sequence: current.sequence + 1,
+          delta: { scope: 'CAMPAIGN_CHAT', entry, privateRoll: null }
+        })
+      // A roll retained for the GM reaches that user's sockets alone.
+      for (const { userId, roll } of result.privateRolls)
+        if (userId === member.userId)
+          send(recipient, {
+            type: 'COMMAND_COMMITTED',
+            commandId,
+            sequence: current.sequence + 1,
+            delta: { scope: 'CAMPAIGN_CHAT', entry: null, privateRoll: roll }
+          })
+    }
+    if (
+      result.composition &&
+      (command.command.type === 'SET_PARTY_VISIBILITY' ||
+        !equalCanonicalJson(sceneCache?.scene?.tokens, result.composition.scene.tokens))
+    )
+      host.broadcastStateSync()
+    await host.scheduleAlarm()
+  } catch (error) {
+    if (error instanceof CharacterSheetCommandError) {
+      host.rejectCommand(socket, commandId, 'DOMAIN_REJECTED', error.message)
+      return
+    }
+    if (error instanceof EncounterDomainRejection) {
+      host.sendDomainRejection(socket, commandId, error)
+      return
+    }
+    const refusal = encounterCommandRefusal(error)
+    host.rejectCommand(socket, commandId, refusal.code, refusal.message)
   }
 }

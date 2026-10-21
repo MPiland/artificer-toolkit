@@ -9,11 +9,9 @@ import type {
   ServerRuleExecutionContinuationDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 
-import {
-  DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY,
-  DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY,
-  type Dnd5eOptionalCombatContestGraph
-} from './systems/dnd5e/optionalCombatContestGraph.js'
+import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
+
+import { contestCheckCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
@@ -193,7 +191,7 @@ export async function executeEncounterOptionalContestAction(input: {
   autoRoll: EncounterAutoRollByActorId
   continuation?: ServerRuleExecutionContinuationDto
   /** The two-d20 contest graph: the optional combat contest or a basic action's contest. */
-  published: Dnd5eOptionalCombatContestGraph['published']
+  published: ServerPublishedRuleDefinitionDto
   initiator: OptionalContestD20Policy
   defender: OptionalContestD20Policy
   /** How sight governs the initiator's attack d20, or null when it does not. */
@@ -230,13 +228,14 @@ export async function executeEncounterOptionalContestAction(input: {
   }
   // The graph replays from its start with every settled d20: request ids are deterministic, and the
   // defender's modifier binds to the sealed check it answers with (D152 amendment).
+  const contest = contestCheckCapabilityRegistry.require(input.published.gameSystemId)
   let execution = await input.runtime.executeResolved({
     command: {
       definitionId: input.published.id,
       occurrenceId: input.occurrenceId,
       facts: {
-        [DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY]: input.initiator.modifier,
-        [DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY]: input.defender.modifier
+        [contest.initiatorModifierFactKey]: input.initiator.modifier,
+        [contest.targetModifierFactKey]: input.defender.modifier
       }
     },
     published: input.published
