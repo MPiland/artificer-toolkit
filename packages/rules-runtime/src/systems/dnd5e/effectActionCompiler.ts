@@ -41,10 +41,8 @@ import {
   compareThresholdRuleOperation,
   type CompiledRuleGraph,
   type RuleGraphDefinition,
-  type RuleInputBinding,
-  type RuleValue
+  type RuleInputBinding
 } from '@artificer-toolkit/shared/rules'
-import { parseRollExpression, type ParsedRollExpression } from '@artificer-toolkit/shared/rolls'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { v5 as uuidv5 } from 'uuid'
@@ -99,7 +97,6 @@ import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } fr
 import {
   attackRestrictionsMet,
   oncePerTurnUsageKey,
-  type Dnd5eAttackRollMode,
   type Dnd5eEnemyProximity,
   type Dnd5eMoveToward
 } from './attackRestrictions.js'
@@ -231,6 +228,14 @@ import {
   interpretSpatial
 } from './effectActionInterpretation.js'
 import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
+import {
+  boundedDiceTerm,
+  dnd5eEffectScalingFacts,
+  parseBoundedDiceConfiguration,
+  scalingLevel,
+  type BoundedDiceTerm,
+  type Dnd5eEffectScalingFacts
+} from './effectActionScalingFacts.js'
 
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
 const DND5E_ORDINARY_SIGHT_NAMESPACE = '6871f0d5-9ac4-45d4-84c0-30cbd4e7df0c'
@@ -294,43 +299,11 @@ type SpecializedOutcome =
       'amountSource' | 'recoveryTags'
     >)
 
-/** Server-derived facts only. They select an authored scaling row; they never alter graph topology. */
-type Dnd5eEffectScalingFacts = Readonly<{
-  characterLevel?: number
-  parentClassLevel?: number
-  spellCastLevel?: number
-  classLevels?: Readonly<Record<string, number>>
-  selectedOptionalRiderIds?: readonly string[]
-  attackRollMode?: Dnd5eAttackRollMode
-  targetCreatureTypeId?: string
-  attackEnemyProximity?: Dnd5eEnemyProximity
-  attackMoveToward?: Dnd5eMoveToward
-  attackTurnUses?: readonly string[]
-  damageAddedDice?: readonly DamageAddedDieDto[]
-  criticalExtraDice?: number
-  /** By how much the completed saving throw fell short of its DC. */
-  saveFailedBy?: number
-  /** The target's current hit points, which select the hit-point tier of a tiered result. */
-  targetCurrentHitPoints?: number
-  resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
-  resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
-  weaponDamageDieFaces?: number
-}>
-
 type Dnd5eEffectActionTemplate = Readonly<{
   phase: 'TEST' | 'OUTCOME'
   published: ServerPublishedRuleDefinitionDto
   templateChecksum: string
 }>
-
-function saveFailedBy(
-  facts: Readonly<Record<string, RuleValue>>,
-  testOutputs: Readonly<Record<string, RuleValue>> | undefined
-): number | undefined {
-  const dc = facts[DND5E_SAVE_DC_FACT_KEY]
-  const total = testOutputs?.total
-  return typeof dc === 'number' && typeof total === 'number' ? dc - total : undefined
-}
 
 function templateIdentity(template: Dnd5eEffectActionTemplate) {
   return {
@@ -339,179 +312,6 @@ function templateIdentity(template: Dnd5eEffectActionTemplate) {
     definitionFamilyKey: template.published.definitionFamilyKey,
     checksum: template.templateChecksum
   }
-}
-
-function dndScalingFactsFromRuleValues(
-  facts: Readonly<Record<string, RuleValue>>
-): Dnd5eEffectScalingFacts {
-  const positiveInteger = (value: RuleValue | undefined): number | undefined =>
-    typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : undefined
-  const classLevels = parseClassLevels(facts[DND5E_CLASS_LEVELS_FACT_KEY])
-  const totalLevel = Object.values(classLevels).reduce((sum, level) => sum + level, 0)
-  return {
-    // A Character's level is the sum of its class levels; a Creature has none.
-    characterLevel: totalLevel > 0 ? totalLevel : undefined,
-    parentClassLevel: positiveInteger(facts.parentClassLevel),
-    spellCastLevel: positiveInteger(facts[DND5E_SPELL_CAST_LEVEL_FACT_KEY]),
-    classLevels,
-    selectedOptionalRiderIds: parseSelectedOptionalRiderIds(
-      facts[DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY]
-    ),
-    targetCreatureTypeId:
-      typeof facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY] === 'string'
-        ? facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY]
-        : undefined,
-    attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
-    attackMoveToward: parseMoveToward(facts[DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]),
-    attackTurnUses: parseTurnUses(facts[DND5E_ATTACK_TURN_USES_FACT_KEY]),
-    damageAddedDice: parseDamageAddedDice(facts[DND5E_DAMAGE_ADDED_DICE_FACT_KEY]),
-    criticalExtraDice: positiveInteger(facts[DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]),
-    resolvedDamageExpressions: Object.fromEntries(
-      Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {
-        const expression = facts[key]
-        return typeof expression === 'string' ? [[path, expression]] : []
-      })
-    ),
-    resolvedDamageOutcomeExpressions: parseResolvedOutcomeExpressions(
-      facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
-    ),
-    weaponDamageDieFaces: positiveInteger(facts[DND5E_WEAPON_DAMAGE_DIE_FACT_KEY]),
-    targetCurrentHitPoints:
-      typeof facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] === 'number'
-        ? facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]
-        : undefined
-  }
-}
-
-function parseSelectedOptionalRiderIds(value: RuleValue | undefined): readonly string[] {
-  if (value === undefined) return []
-  let parsed: unknown
-  try {
-    parsed = typeof value === 'string' ? JSON.parse(value) : undefined
-  } catch {
-    parsed = undefined
-  }
-  if (!Array.isArray(parsed) || !parsed.every((id) => typeof id === 'string'))
-    unsupported('D&D selected optional riders are malformed.')
-  return parsed
-}
-
-function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity | undefined {
-  if (value === undefined) return undefined
-  if (typeof value !== 'string') unsupported('D&D enemy proximity is malformed.')
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch {
-    unsupported('D&D enemy proximity is malformed.')
-  }
-  const nearestFeet =
-    typeof parsed === 'object' && parsed !== null && 'nearestFeet' in parsed
-      ? parsed.nearestFeet
-      : undefined
-  if (nearestFeet !== null && !(typeof nearestFeet === 'number' && nearestFeet >= 0))
-    unsupported('D&D enemy proximity is malformed.')
-  return { nearestFeet }
-}
-
-function parseMoveToward(value: RuleValue | undefined): Dnd5eMoveToward | undefined {
-  if (value === undefined) return undefined
-  if (typeof value !== 'string') unsupported('D&D move toward target is malformed.')
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch {
-    unsupported('D&D move toward target is malformed.')
-  }
-  const closedFeet =
-    typeof parsed === 'object' && parsed !== null && 'closedFeet' in parsed
-      ? parsed.closedFeet
-      : undefined
-  if (!(typeof closedFeet === 'number' && closedFeet >= 0))
-    unsupported('D&D move toward target is malformed.')
-  return { closedFeet }
-}
-
-function parseDamageAddedDice(
-  value: RuleValue | undefined
-): readonly DamageAddedDieDto[] | undefined {
-  if (value === undefined) return undefined
-  let parsed: unknown
-  try {
-    parsed = typeof value === 'string' ? JSON.parse(value) : undefined
-  } catch {
-    parsed = undefined
-  }
-  const dice = damageAddedDiceDtoSchema.safeParse(parsed)
-  if (!dice.success) unsupported('D&D added damage dice are malformed.')
-  return dice.data
-}
-
-function parseTurnUses(value: RuleValue | undefined): readonly string[] | undefined {
-  if (value === undefined) return undefined
-  let parsed: unknown
-  try {
-    parsed = typeof value === 'string' ? JSON.parse(value) : undefined
-  } catch {
-    parsed = undefined
-  }
-  if (!Array.isArray(parsed) || parsed.some((key) => typeof key !== 'string'))
-    unsupported('D&D turn uses are malformed.')
-  return parsed
-}
-
-function parseClassLevels(value: RuleValue | undefined): Record<string, number> {
-  if (value === undefined) return {}
-  if (typeof value !== 'string') unsupported('D&D class levels are malformed.')
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch {
-    unsupported('D&D class levels are malformed.')
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    unsupported('D&D class levels are malformed.')
-  }
-  const entries = Object.entries(parsed)
-  if (
-    entries.length > 40 ||
-    entries.some(
-      ([classId, level]) =>
-        classId.length === 0 ||
-        classId.length > 240 ||
-        typeof level !== 'number' ||
-        !Number.isSafeInteger(level) ||
-        level < 1
-    )
-  ) {
-    unsupported('D&D class levels are malformed.')
-  }
-  return Object.fromEntries(entries)
-}
-
-function parseResolvedOutcomeExpressions(value: RuleValue | undefined): Record<string, string> {
-  if (value === undefined) return {}
-  if (typeof value !== 'string') unsupported('D&D resolved outcome expressions are malformed.')
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch {
-    unsupported('D&D resolved outcome expressions are malformed.')
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    unsupported('D&D resolved outcome expressions are malformed.')
-  }
-  const entries = Object.entries(parsed)
-  if (
-    entries.length > 1_000 ||
-    entries.some(
-      ([outcomeId, expression]) =>
-        outcomeId.length === 0 || outcomeId.length > 240 || typeof expression !== 'string'
-    )
-  ) {
-    unsupported('D&D resolved outcome expressions are malformed.')
-  }
-  return Object.fromEntries(entries.sort(([left], [right]) => left.localeCompare(right)))
 }
 
 /**
@@ -1347,18 +1147,7 @@ function relationshipRecurrenceGraph(input: {
   if (!('diceConfig' in input.recurrenceDamage))
     unsupported('D&D relationship recurrence dice are unavailable.')
   const parsed = parseBoundedDiceConfiguration(input.recurrenceDamage.diceConfig!)
-  const term = parsed.terms[0]
-  if (
-    !term ||
-    parsed.terms.length !== 1 ||
-    term.reroll ||
-    term.selection ||
-    term.count < 1 ||
-    term.count > 31 ||
-    term.die < 2 ||
-    term.die > 1000
-  )
-    unsupported('D&D relationship recurrence dice exceed the bounded exact-dice contract.')
+  const { term } = parsed
   const dice = Array.from({ length: term.count }, (_, index) => ({
     id: `relationship-die-${index + 1}`,
     operation: { key: 'evidence.integer-range', contractVersion: 1 },
@@ -4136,7 +3925,7 @@ function primaryDamageDiceCount(outcome: ImmediatePrimaryDamageEntry['outcome'])
   if (/^[1-9]\d*$/.test(outcome.dice)) return outcome.bonuses?.length ? null : 0
   try {
     validateDamageBonuses(outcome.bonuses)
-    const count = parseBoundedDiceConfiguration(outcome.dice).terms[0]!.count
+    const count = parseBoundedDiceConfiguration(outcome.dice).term.count
     return count <= 15 ? count : null
   } catch (error) {
     if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
@@ -4161,9 +3950,8 @@ function immediateFollowUpSaveMaximumReduction(
 
 function boundedSingleDiceCount(value: unknown): number | null {
   try {
-    const parsed = parseBoundedDiceConfiguration(value)
-    const term = parsed.terms[0]
-    return term && parsed.modifier === 0 ? term.count : null
+    const { term, modifier } = parseBoundedDiceConfiguration(value)
+    return modifier === 0 ? term.count : null
   } catch (error) {
     if (error instanceof Dnd5eEffectActionCompilerError) return null
     throw error
@@ -4195,31 +3983,6 @@ function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSou
           (action.conditionDefinitionIds ?? []).includes(outcome.conditionId)
       ))
   )
-}
-
-function parseBoundedDiceConfiguration(value: unknown): ParsedRollExpression {
-  if (typeof value !== 'string') unsupported('D&D dice configuration is unavailable.')
-  let parsed: ParsedRollExpression
-  try {
-    parsed = parseRollExpression(value)
-  } catch {
-    unsupported('D&D dice configuration is malformed.')
-  }
-  const term = parsed.terms[0]
-  if (
-    parsed.terms.length !== 1 ||
-    parsed.transform.kind !== 'NONE' ||
-    !term ||
-    term.reroll ||
-    term.selection ||
-    term.count < 1 ||
-    term.count > 31 ||
-    term.die < 2 ||
-    term.die > 1000
-  ) {
-    unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
-  }
-  return parsed
 }
 
 function authoredHealingDiceTerm(published: ServerPublishedRuleDefinitionDto): {
@@ -4401,7 +4164,7 @@ function validateDiceOutcomeGroup(
           dice !== undefined &&
           !/^[1-9]\d*$/.test(dice) &&
           // A critical hit doubles the dice and Brutal Critical adds up to 3 (31 dice at most).
-          parseBoundedDiceConfiguration(dice).terms[0]!.count > 14
+          parseBoundedDiceConfiguration(dice).term.count > 14
       )
     )
       unsupported('D&D critical dice exceed the bounded exact-dice contract.')
@@ -5308,25 +5071,6 @@ function compileDnd5eEffectActionTestTemplate({
   return { phase: 'TEST', published, templateChecksum: published.checksum }
 }
 
-function scalingLevel(source: unknown, facts: Dnd5eEffectScalingFacts): number {
-  const positiveLevel = (value: unknown): number | null =>
-    typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null
-  if (source === 'CHARACTER_LEVEL') {
-    const value = positiveLevel(facts.characterLevel)
-    if (value !== null) return value
-  }
-  if (source === 'PARENT_CLASS_LEVEL') {
-    const value = positiveLevel(facts.parentClassLevel)
-    if (value !== null) return value
-  }
-  if (source === 'SPELL_CAST_LEVEL') {
-    const value = positiveLevel(facts.spellCastLevel)
-    if (value !== null) return value
-  }
-  if (source === 'CLASS_LEVEL') return -1
-  unsupported('D&D dice scaling facts are unavailable.')
-}
-
 function compiledOutcomeIdentity(entry: CompiledEffectGroup['entries'][number]): string {
   if (typeof entry.entryId !== 'string' || entry.entryId.length === 0)
     unsupported('D&D outcome identity is unavailable.')
@@ -5371,19 +5115,9 @@ function exactDiceConfiguration(
   if (outcome.scalingKind === 'NONE' && typeof outcome.dice === 'string') {
     authored = outcome.dice
   } else {
-    const source = outcome.scalingSource
-    let level = scalingLevel(source, facts)
-    if (source === 'CLASS_LEVEL') {
-      const classId = outcome.classId
-      if (typeof classId !== 'string') unsupported('D&D class dice scaling has no class identity.')
-      const value = facts.classLevels?.[classId]
-      if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0)
-        unsupported('D&D class dice scaling facts are unavailable.')
-      level = value
-    }
     const selected = selectScalingRow(
       outcomes.filter((candidate) => typeof candidate.dice === 'string'),
-      level
+      scalingLevel(outcome, facts)
     )
     if (!selected || typeof selected.dice !== 'string')
       unsupported('D&D dice scaling does not select an authored value.')
@@ -5397,16 +5131,16 @@ function exactDiceConfiguration(
   // The path's one resolved expression is the weapon's own; an optional rider is not part of the action's
   // listed outcomes, so it rolls its authored dice rather than the weapon's.
   const resolved =
-    facts.resolvedDamageOutcomeExpressions?.[outcomeId] ??
-    (optionalRider ? undefined : facts.resolvedDamageExpressions?.[selectedPath])
+    facts.resolvedDamageOutcomeExpressions[outcomeId] ??
+    (optionalRider ? undefined : facts.resolvedDamageExpressions[selectedPath])
   if (!resolved) {
     if ((Array.isArray(outcome.bonuses) && outcome.bonuses.length > 0) || halfHitPointsDice)
       unsupported('D&D resolved damage expression is unavailable.')
     return authored
   }
-  const resolvedTerm = parseBoundedDiceConfiguration(resolved).terms[0]!
+  const resolvedTerm = parseBoundedDiceConfiguration(resolved).term
   const matchesAuthoredDice = (dice: string) => {
-    const authoredTerm = parseBoundedDiceConfiguration(dice).terms[0]!
+    const authoredTerm = parseBoundedDiceConfiguration(dice).term
     return authoredTerm.count === resolvedTerm.count && authoredTerm.die === resolvedTerm.die
   }
   // A weapon die a grant set (Shillelagh's d8) replaces the authored die of the weapon's own damage.
@@ -5446,31 +5180,6 @@ function criticalHitDice(
   return isCriticalHitDamage(selectedPath, entry)
     ? { extraDice: facts.criticalExtraDice ?? 0 }
     : undefined
-}
-
-type BoundedDiceTerm = ReturnType<typeof parseBoundedDiceConfiguration>['terms'][number]
-
-/**
- * The one exact dice term a graph can roll, doubled for a critical hit plus the extra dice the
- * attack's critical rules add (D158), with the flat modifier it carries.
- */
-function boundedDiceTerm(diceConfig: string, critical?: { extraDice: number }) {
-  const parsed = parseBoundedDiceConfiguration(diceConfig)
-  const authoredTerm = parsed.terms[0]
-  if (!authoredTerm) unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
-  const term = critical
-    ? { ...authoredTerm, count: authoredTerm.count * 2 + critical.extraDice }
-    : authoredTerm
-  if (
-    term.reroll ||
-    term.selection ||
-    term.count < 1 ||
-    term.count > 31 ||
-    term.die < 2 ||
-    term.die > 1000
-  )
-    unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
-  return { modifier: parsed.modifier, term }
 }
 
 /**
@@ -5735,18 +5444,8 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
   if (shape === 'FULL_OR_HALF_DAMAGE' && !nestedDamage)
     unsupported('D&D immediate follow-up save damage is unavailable.')
   const parsed = nestedDamage ? parseBoundedDiceConfiguration(nestedDamage.dice) : null
-  const term = parsed?.terms[0]
-  if (
-    nestedDamage &&
-    (!term ||
-      term.reroll ||
-      term.selection ||
-      term.count < 1 ||
-      term.count > 31 ||
-      term.die < 2 ||
-      term.die > 1000 ||
-      parsed.modifier !== 0)
-  ) {
+  const term = parsed?.term
+  if (parsed && parsed.modifier !== 0) {
     unsupported('D&D immediate follow-up save dice exceed the exact bounded contract.')
   }
   const dieId = (index: number) => `nested-save-die-${index + 1}`
@@ -6246,7 +5945,7 @@ function isChosenEntry(
   facts: Dnd5eEffectScalingFacts
 ): boolean {
   const optionalRider = entry && 'optionalRider' in entry ? entry.optionalRider : undefined
-  return !optionalRider || (facts.selectedOptionalRiderIds ?? []).includes(optionalRider.riderId)
+  return !optionalRider || facts.selectedOptionalRiderIds.includes(optionalRider.riderId)
 }
 
 function assertKnownTestResultPath(
@@ -6313,8 +6012,6 @@ function pathOwed(
     if (facts.attackTurnUses.includes(usageKey)) return false
   }
   if (!('restrictions' in entry) || !entry.restrictions) return true
-  if (facts.attackRollMode === undefined)
-    unsupported('D&D path restrictions need the roll mode of an attack.')
   return attackRestrictionsMet(entry.restrictions, {
     rollMode: facts.attackRollMode,
     enemyProximity: facts.attackEnemyProximity ?? null,
@@ -7633,11 +7330,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const outcome = specializeDnd5eEffectActionOutcomeBody({
       action,
       selectedPath,
-      facts: {
-        ...dndScalingFactsFromRuleValues(facts),
-        attackRollMode: testRollMode,
-        saveFailedBy: saveFailedBy(facts, testOutputs)
-      }
+      facts: dnd5eEffectScalingFacts({ facts, testOutputs, testRollMode })
     })
     return outcome
       ? {
@@ -7841,12 +7534,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         )
       const parsed = parseBoundedDiceConfiguration(healingOutcomes[0]!.expression)
       const authoredTerm = authoredHealingDiceTerm(published)
-      const resolvedTerm = parsed.terms[0]
-      if (
-        !resolvedTerm ||
-        resolvedTerm.count !== authoredTerm.count ||
-        resolvedTerm.die !== authoredTerm.die
-      )
+      const resolvedTerm = parsed.term
+      if (resolvedTerm.count !== authoredTerm.count || resolvedTerm.die !== authoredTerm.die)
         throw new Dnd5eEffectActionCompilerError(
           'D&D resolved healing expression does not match the authored dice.'
         )
