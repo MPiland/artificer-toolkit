@@ -13320,7 +13320,7 @@
             },
             {
               "id": "SPELLS-33.T4i4a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13330,7 +13330,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
               "text": "Single-target targetRequirements (split 2026-10-20): HAS_CONDITION {conditionIds, source ACTOR|ANY}, SIGHT {direction} through one shared sight evaluator used by zones and targeting, AT_ZERO_HIT_POINTS (alive). Proof: a homebrew action authored through the real authoring path with runtime admission tests and node-map parity.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m263 (0b3862ca4)."
             },
             {
               "id": "SPELLS-33.T4i4b",
