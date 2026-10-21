@@ -6397,7 +6397,7 @@
                   "SPELLS-33.T4i1b",
                   "SPELLS-33.T4i2",
                   "SPELLS-33.T4i3",
-                  "SPELLS-33.T4i4"
+                  "SPELLS-33.T4i4b"
                 ]
               },
               "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i."
@@ -12962,7 +12962,7 @@
               "text": "REDUCED_TO_ZERO_BY gate (split 2026-10-20): Giant Centipede venom and Solar Slaying Longbow; removes both SRD_CREATURE_ATTACK_UNSUPPORTED entries with a room proof each. Parity proofs, a homebrew variant and 2 kind deletions."
             },
             {
-              "id": "SPELLS-33.T4i4",
+              "id": "SPELLS-33.T4i4a",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12972,8 +12972,21 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
-              "text": "Source-relative kill riders (split 2026-10-20): Sea Hag Death Glare and Will-o'-Wisp Consume Life; any new condition-from-source or sees-source predicate goes to a ruling first. Parity proofs, a homebrew variant and 2 kind deletions.",
+              "text": "Single-target targetRequirements (split 2026-10-20): HAS_CONDITION {conditionIds, source ACTOR|ANY}, SIGHT {direction} through one shared sight evaluator used by zones and targeting, AT_ZERO_HIT_POINTS (alive). Proof: a homebrew action authored through the real authoring path with runtime admission tests and node-map parity.",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T4i4b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T4i4a"]
+              },
+              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds."
             },
             {
               "id": "SPELLS-33.T4j",
