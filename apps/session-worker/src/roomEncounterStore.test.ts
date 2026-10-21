@@ -117,6 +117,7 @@ describe('room Encounter store', () => {
         speedBonuses: 0,
         speedId: null,
         usedOncePerTurn: [],
+        startedByCommandId: null,
         lastMove: null,
         teleportAllowances: []
       }
@@ -430,6 +431,7 @@ describe('room Encounter store', () => {
           speedBonuses: 0,
           speedId: null,
           usedOncePerTurn: [],
+          startedByCommandId: null,
           lastMove: null,
           teleportAllowances: []
         })
@@ -530,6 +532,7 @@ describe('room Encounter store', () => {
                   speedBonuses: 0,
                   speedId: null,
                   usedOncePerTurn: [],
+                  startedByCommandId: null,
                   lastMove: null,
                   teleportAllowances: []
                 }
@@ -882,6 +885,7 @@ describe('room Encounter store', () => {
         speedBonuses: 0,
         speedId: null,
         usedOncePerTurn: [],
+        startedByCommandId: null,
         lastMove: null,
         teleportAllowances: []
       })

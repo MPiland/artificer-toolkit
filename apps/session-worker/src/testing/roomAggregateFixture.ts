@@ -82,6 +82,7 @@ export async function command(room: RoomEncounterStore, ordinal: number) {
       speedBonuses: 0,
       speedId: null,
       usedOncePerTurn: [],
+      startedByCommandId: null,
       lastMove: null,
       teleportAllowances: []
     })
