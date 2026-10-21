@@ -112,6 +112,26 @@ checksum and reseeds development data in the same change, because published grap
 these checksums. Regenerate with `vitest run -u` on that test only. Passive Creature traits compiled by other
 adapter methods (zones, damage grants) are not covered.
 
+### Effect-action compiler module map (current, RULES-2.T6a)
+
+`systems/dnd5e/effectActionCompiler.ts` compiles an authored Effect and holds the adapter. Its operation registry and
+its runtime interpretation (the code that re-checks a committed graph's evidence and returns the applications) live in
+sibling modules. Imports run one way, down this list; no module imports the compiler, and none re-exports another's
+names.
+
+| Module                           | Owns                                                                                                                                               |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, forced-movement collision encoding, node-id helpers       |
+| `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                               |
+| `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                 |
+| `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module |
+| `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                    |
+
+All five are D&D 2014 policy (their keys, messages and facts name D&D), so they stay under `systems/dnd5e`. Nothing
+moved here is System-neutral yet; the neutral pieces (the generic proposal-operation factories, the interpretation
+dispatcher) are a later RULES-2 step once the compiler stops naming D&D facts. Each file stays under the 1,500-line
+budget, and the golden above gates every move.
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014. Reusable mechanics remain

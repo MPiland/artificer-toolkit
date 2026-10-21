@@ -1,6 +1,6 @@
 import { runInDurableObject } from 'cloudflare:test'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
-import { DND5E_TARGET_STATE_CHECKSUM_FACT_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
+import { DND5E_TARGET_STATE_CHECKSUM_FACT_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionContracts'
 import {
   creatureFeature,
   srdCreatureActor

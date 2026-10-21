@@ -10,7 +10,7 @@ import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionContracts'
 const ids = {
   command: '00000000-0000-4000-8000-000000000101',
   occurrence: '00000000-0000-4000-8000-000000000102'

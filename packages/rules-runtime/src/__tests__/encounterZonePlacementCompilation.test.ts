@@ -20,7 +20,7 @@ import { planSpatialEntryGrant } from '../encounterSpatialEntryGrant.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY
-} from '../systems/dnd5e/effectActionCompiler.js'
+} from '../systems/dnd5e/effectActionContracts.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import {
   ENCOUNTER_ID,

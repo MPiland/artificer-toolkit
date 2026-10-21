@@ -19,12 +19,12 @@ import {
   DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
   DND5E_SAVE_MODIFIER_FACT_KEY,
-  DND5E_SAVE_TEST_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
-} from '../systems/dnd5e/effectActionCompiler.js'
+} from '../systems/dnd5e/effectActionContracts.js'
+import { DND5E_SAVE_TEST_OPERATION_KEY } from '../systems/dnd5e/dnd5eTestOperationKeys.js'
 import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from '../systems/dnd5e/d20AddedDiceGraph.js'
 
 /** No d20 reaches it, so a spatial save effect always fails its save. */
