@@ -48,7 +48,7 @@ import {
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { decodeJwt } from 'jose'
 import { z } from 'zod'
-import { DurableCommandJournal, DurableCommandJournalError } from './durableCommandJournal.js'
+import { DurableCommandJournal } from './durableCommandJournal.js'
 import type { SessionWorkerEnvironment } from './environment.js'
 import { isLocalDevelopment } from './contentSnapshotStorage.js'
 import {
@@ -95,6 +95,7 @@ import {
 } from './roomSocket.js'
 import { readRoomSceneState } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
+import { RoomStorageAuthority } from './roomStorageAuthority.js'
 import { journalInputReload, loadRoomAggregate, reloadRoomAggregate } from './roomAggregateLoad.js'
 import { endBrokenRelationships, reconcileActorDepartures } from './roomActorSweeps.js'
 import { restoreLocalPlayAuthorization } from './roomLocalPlayAuthorization.js'
@@ -226,7 +227,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     string,
     { barriers: CampaignSceneStateDto['barriers']; index: SceneBarrierIndex }
   >()
-  #activation: Promise<void> | null = null
+  readonly #authority: RoomStorageAuthority
   /** Set once Campaign deletion emptied the storage; this instance then answers nothing else. */
   #storageDeleted = false
   /**
@@ -261,7 +262,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   readonly #storage: DurableObjectStorage
   #commandChain: Promise<void> = Promise.resolve()
   #outboxFlush: Promise<void> | null = null
-  #storageRecovery: Promise<void> | null = null
   #rulesRuntime: RulesRuntimeService | null = null
 
   constructor(ctx: DurableObjectState, env: SessionWorkerEnvironment) {
@@ -349,6 +349,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
     )
     const feedDependencies = {
+      env: this.env,
+      storage: this.#storage,
+      checkpoints: this.#checkpoints,
       store: this.#roomStore,
       inputs: this.#roomInputs,
       authorize: (scope: FeedScope) => this.#authorizationBoundary(scope),
@@ -401,6 +404,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     // cache are restored from SQLite, so a wake costs no sign-in round. A socket that was challenged,
     // never admitted, or whose token expired asleep authenticates again.
     this.#host = {
+      env: this.env,
+      storage: this.#storage,
+      checkpoints: this.#checkpoints,
       store: this.#roomStore,
       inputs: this.#roomInputs,
       journal: this.#journal,
@@ -432,6 +438,19 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       scheduleAlarm: () => this.#scheduleAlarm(),
       rejectCommand: (...args) => this.#rejectCommand(...args),
       webSockets: () => this.ctx.getWebSockets(),
+      commandsSettled: () => this.#commandChain,
+      afterCommands: (run) => {
+        const result = this.#commandChain.then(run)
+        this.#commandChain = result.then(
+          () => undefined,
+          () => undefined
+        )
+        return result
+      },
+      outboxFlushing: () => this.#outboxFlush,
+      closeRoomSockets: (reason) => {
+        this.#closeSockets({ type: 'CLOSE_ROOM' }, reason)
+      },
       presentationChanging: () => this.#presentationChanging,
       random: this.#random,
       checkpointThrough: (epoch, sequence, reason) =>
@@ -443,6 +462,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       boundTokenControl: (scene, admission, epoch) =>
         this.#boundTokenControl(scene, admission, epoch)
     }
+    this.#authority = new RoomStorageAuthority(this.#host)
     for (const socket of ctx.getWebSockets()) this.#wake(socket)
   }
 
@@ -886,7 +906,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   async alarm(): Promise<void> {
     this.#meter.request('ALARM')
     this.#reauthenticateExpiringAdmissions()
-    if (await this.#recoverStorageIfNeeded()) {
+    if (await this.#authority.recoverIfNeeded()) {
       await this.#scheduleAlarm()
       return
     }
@@ -1083,7 +1103,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           settle()
         }
       }
-      if (await this.#recoverStorageIfNeeded(value.authorityEpoch)) return
+      if (await this.#authority.recoverIfNeeded(value.authorityEpoch)) return
       this.#meter.epoch(value.authorityEpoch)
       // Reconnect reads the acknowledged product state after the room's pending prefix is saved.
       await this.#flushOutbox('ADMISSION')
@@ -1104,7 +1124,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#challenge(socket, generation)
         return
       }
-      await this.#ensureAuthority(
+      await this.#authority.ensure(
         value,
         accessToken,
         capture.origin.role,
@@ -1222,193 +1242,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     // A reconnect inside the idle window cancels the pending release.
     await this.#refreshIdleRelease()
     return true
-  }
-
-  async #ensureAuthority(
-    value: SocketAttachment,
-    accessToken: string,
-    role: 'OWNER' | 'PLAYER',
-    userId: string,
-    sceneId: string | null
-  ): Promise<void> {
-    if (!this.#activation) {
-      const work = (async () => {
-        const bootstrap = await callLiveSessionRoute(this.env, accessToken, 'bootstrap', {
-          authorityEpoch: value.authorityEpoch,
-          campaignId: value.campaignId,
-          expectedRole: role,
-          expectedUserId: userId
-        })
-        let current = this.#journal.readCurrent()
-        if (
-          current &&
-          current.authorityEpoch !== value.authorityEpoch &&
-          bootstrap.persistedSequence === 0
-        ) {
-          // Convex verified the replacement epoch; a never-used or released journal can be rebuilt.
-          this.#journal.discardReplaceableAuthority(current.authorityEpoch)
-          current = null
-          this.#cache = null
-        }
-        if (!current) {
-          if (bootstrap.persistedSequence !== 0) {
-            await this.#recoverStorage(value.authorityEpoch)
-            throw new Error('Live Session storage was lost; reconnect to its replacement epoch.')
-          }
-          const initial = createNativeLiveSessionState()
-          current = this.#journal.activate({
-            authorityEpoch: value.authorityEpoch,
-            snapshotChecksum: initial.stateChecksum,
-            stateJson: initial.stateJson
-          })
-        }
-        if (current.authorityEpoch !== value.authorityEpoch || current.status !== 'ACTIVE')
-          throw new Error('Live Session authority changed.')
-        if (
-          bootstrap.persistedSequence < current.publishedSequence ||
-          bootstrap.persistedSequence > current.sequence
-        )
-          throw new Error('Live Session publication state is inconsistent.')
-        if (current.publishedSequence < bootstrap.persistedSequence) {
-          await this.#flushOutbox('ACTIVATION')
-          current = this.#journal.readCurrent()
-          if (!current || current.publishedSequence !== bootstrap.persistedSequence)
-            throw new Error('Live Session checkpoint recovery is incomplete.')
-        }
-        if (current.sequence === 0) {
-          const activated = await callLiveSessionRoute(this.env, null, 'activate', {
-            activationFingerprint: bootstrap.activationFingerprint,
-            campaignId: value.campaignId,
-            epoch: value.authorityEpoch,
-            stateChecksum: current.stateChecksum
-          })
-          if (
-            activated.phase !== 'DO_ACTIVE' ||
-            activated.persistedSequence !== 0 ||
-            activated.persistedStateChecksum !== current.stateChecksum
-          )
-            throw new Error('Live Session activation did not commit.')
-        } else if (
-          current.publishedSequence !== bootstrap.persistedSequence ||
-          current.publishedChecksum !== bootstrap.persistedStateChecksum
-        )
-          throw new Error('Live Session publication checksum is inconsistent.')
-        await this.#flushOutbox('ACTIVATION')
-      })()
-      this.#activation = work
-      void work.catch(() => {
-        if (this.#activation === work) this.#activation = null
-      })
-    }
-    await this.#activation
-    const current = this.#journal.readCurrent()
-    if (!current || current.authorityEpoch !== value.authorityEpoch || current.status !== 'ACTIVE')
-      throw new Error('Live Session authority changed.')
-    // The room store runs one operation at a time: a hydrate racing a command would rewind the store
-    // behind the journal, so admissions load behind the running commands.
-    const load = this.#commandChain.then(() => loadRoomAggregate(this.#host, sceneId))
-    this.#commandChain = load.then(
-      () => undefined,
-      () => undefined
-    )
-    await load
-  }
-
-  /** Corrupt SQLite or a missing unpublished prefix can only resume under a new Convex fence. */
-  async #recoverStorageIfNeeded(fallbackEpoch?: string): Promise<boolean> {
-    await this.#commandChain
-    if (this.#storageRecovery) {
-      await this.#storageRecovery
-      return true
-    }
-    let damaged = this.#roomStore.corruption !== null
-    try {
-      const current = this.#journal.readCurrent()
-      if (current) {
-        try {
-          hydrateNativeLiveSessionState(current.stateJson)
-        } catch {
-          damaged = true
-        }
-      }
-      if (current && current.sequence > 0 && this.#roomStore.epoch === null) damaged = true
-      if (current && current.sequence !== current.publishedSequence) {
-        try {
-          this.#roomStore.assertAuthorityHead({
-            epoch: current.authorityEpoch,
-            sequence: current.sequence,
-            checksum: current.stateChecksum
-          })
-        } catch {
-          damaged = true
-        }
-      }
-    } catch (error) {
-      if (!(error instanceof DurableCommandJournalError) || error.code !== 'CORRUPT_JOURNAL')
-        throw error
-      damaged = true
-    }
-    if (!damaged) return false
-    const epoch = this.#journal.authorityEpoch ?? fallbackEpoch
-    if (!epoch) throw new Error('Corrupt room storage has no authority fence.')
-    await this.#recoverStorage(epoch)
-    return true
-  }
-
-  /** No abandoned suffix is published; the replacement first hydrates the acknowledged product state. */
-  #recoverStorage(epoch: string): Promise<void> {
-    if (this.#storageRecovery) return this.#storageRecovery
-    this.#closeSockets(
-      { type: 'CLOSE_ROOM' },
-      'Live Session storage recovered; reconnect to resynchronize.'
-    )
-    const work = (async () => {
-      await this.#commandChain
-      if (this.#outboxFlush) await this.#outboxFlush.catch(() => undefined)
-      const campaignId = this.#roomCampaignId()
-      if (!campaignId) throw new Error('Live Session room identity is missing.')
-      const replacement = await callLiveSessionRoute(this.env, null, 'recoverStorage', {
-        campaignId,
-        epoch
-      })
-      if (
-        replacement.epoch === epoch ||
-        replacement.phase !== 'ACTIVATING' ||
-        replacement.persistedSequence !== 0
-      )
-        throw new Error('Live Session storage recovery did not reserve a replacement epoch.')
-      const initial = createNativeLiveSessionState()
-      this.#roomStore.hydrate({
-        epoch: replacement.epoch,
-        documents: [],
-        records: [],
-        checkpoint: {
-          epoch: replacement.epoch,
-          sequence: 0,
-          checksum: initial.stateChecksum
-        },
-        commitDurable: () => {
-          this.#journal.discardFencedAuthorityInTransaction(epoch)
-          this.#checkpoints.discardFencedCheckpointInTransaction()
-          this.#storage.sql.exec('DELETE FROM room_idle_release')
-          return undefined
-        }
-      })
-      this.#activation = null
-      this.#aggregateNeedsReload = true
-      this.#authorization.invalidate()
-      this.#bumpCacheGeneration()
-    })()
-    this.#storageRecovery = work
-    void work.then(
-      () => {
-        if (this.#storageRecovery === work) this.#storageRecovery = null
-      },
-      () => {
-        if (this.#storageRecovery === work) this.#storageRecovery = null
-      }
-    )
-    return work
   }
 
   /**
@@ -2942,7 +2775,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   async #presentScene(input: LiveSessionPresentationControlInput) {
-    if (this.#activation) await this.#activation
+    await this.#authority.activating()
     this.#presentationChanging = true
     this.#bumpCacheGeneration()
     this.#movementIndexes.clear()
@@ -3018,7 +2851,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#buckets.clear()
     this.#fogUploads.clear()
     // The next admitted socket bootstraps a fresh epoch over the released journal.
-    this.#activation = null
+    this.#authority.reset()
     this.#storage.sql.exec('DELETE FROM room_idle_release WHERE id = 1')
     return closed
   }
