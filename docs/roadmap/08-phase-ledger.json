@@ -12959,7 +12959,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
-              "text": "Source-relative kill riders (split 2026-10-20): Sea Hag Death Glare and Will-o'-Wisp Consume Life; any new condition-from-source or sees-source predicate goes to a ruling first. Parity proofs, a homebrew variant and 2 kind deletions."
+              "text": "Source-relative kill riders (split 2026-10-20): Sea Hag Death Glare and Will-o'-Wisp Consume Life; any new condition-from-source or sees-source predicate goes to a ruling first. Parity proofs, a homebrew variant and 2 kind deletions.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4j",
