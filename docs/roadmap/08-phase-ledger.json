@@ -3421,7 +3421,7 @@
             },
             {
               "id": "RULES-2.T11a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3430,8 +3430,8 @@
                 "size": 3,
                 "after": ["RULES-2.T1"]
               },
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
-              "text": "System import burn-down (split 2026-10-21): one generic fail-closed System capability registry, installed in platformPolicyModules, with the existing action-economy and roll-mode registries moved onto it; abilities, creature state and initiative adapters (allowlist -7)."
+              "text": "System import burn-down (split 2026-10-21): one generic fail-closed System capability registry, installed in platformPolicyModules, with the existing action-economy and roll-mode registries moved onto it; abilities, creature state and initiative adapters (allowlist -7).",
+              "note": "Merged m289 (119d14cc1). Allowlist 40 to 33; encounterEndedEffectRelease left for T5a."
             },
             {
               "id": "RULES-2.T11b",
@@ -3444,7 +3444,8 @@
                 "size": 3,
                 "after": ["RULES-2.T11a"]
               },
-              "text": "System import burn-down (split 2026-10-21): armor class and d20 test definition adapters (allowlist -5)."
+              "text": "System import burn-down (split 2026-10-21): armor class and d20 test definition adapters (allowlist -5).",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T11c",
