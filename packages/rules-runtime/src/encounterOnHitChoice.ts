@@ -8,10 +8,12 @@ import {
 import type {
   ServerCompletedRuleExecutionDto,
   ServerRuleExecutionContinuationDto,
+  ServerRuleExecutionD20EvidenceDto,
   ServerRuleExecutionD20PolicyDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
+import type { PendingNativeActionGraphs } from './encounterActionExecution.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   chosenEncounterSealedOption,
@@ -28,7 +30,7 @@ export const ENCOUNTER_ON_HIT_CHOICE_DEFINITION_ID = '8e5c2f0a-3d71-4b9e-a6c4-1f
 export type EncounterOnHitCandidate = EncounterOnHitCost
 
 /** The options offered for one hit: each candidate, identified by the hit it was offered for. */
-export function encounterOnHitOptions(
+function encounterOnHitOptions(
   testExecutionChecksum: string,
   candidates: readonly EncounterOnHitCandidate[]
 ): EncounterOnHitOptionDto[] {
@@ -53,6 +55,45 @@ export function openEncounterOnHitChoice(input: {
     },
     declinable: true
   })
+}
+
+/** Holds a hit before its OUTCOME so the attacker may add an optional on-hit rider to it. */
+export async function holdForOnHitChoice(input: {
+  runtime: RulesRuntimeService
+  occurrenceId: string
+  candidates: readonly EncounterOnHitCandidate[]
+  twoPhase: Extract<NonNullable<PendingNativeActionGraphs['twoPhase']>, { phase: 'TEST' }>
+  execution: ServerCompletedRuleExecutionDto
+  testD20: ServerRuleExecutionD20EvidenceDto
+  d20: ServerRuleExecutionD20PolicyDto
+  gameSystemId: string
+  reaction: EncounterOnHitOfferDto['reaction']
+}): Promise<PendingNativeActionGraphs> {
+  const testExecutionChecksum = checksumRuleDocument(input.execution)
+  const options = encounterOnHitOptions(testExecutionChecksum, input.candidates)
+  return {
+    kind: 'PENDING',
+    continuation: await openEncounterOnHitChoice({
+      runtime: input.runtime,
+      occurrenceId: input.occurrenceId,
+      gameSystemId: input.gameSystemId,
+      optionCount: options.length
+    }),
+    d20Policy: null,
+    twoPhase: input.twoPhase,
+    roller: 'SOURCE',
+    pause: {
+      kind: 'ON_HIT',
+      payload: {
+        testExecution: input.execution,
+        testD20: input.testD20,
+        d20: input.d20,
+        testExecutionChecksum,
+        reaction: input.reaction,
+        options
+      }
+    }
+  }
 }
 
 /** The option a decision answers, or null for a decline. An option the offer never issued is refused. */

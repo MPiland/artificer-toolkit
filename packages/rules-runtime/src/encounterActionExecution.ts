@@ -54,11 +54,7 @@ import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
 import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
 import type { z } from 'zod'
-import {
-  encounterOnHitOptions,
-  openEncounterOnHitChoice,
-  type EncounterOnHitCandidate
-} from './encounterOnHitChoice.js'
+import { holdForOnHitChoice, type EncounterOnHitCandidate } from './encounterOnHitChoice.js'
 import {
   encounterReactionPin,
   openEncounterReactionChoice,
@@ -880,45 +876,6 @@ function outcomeSelectionFacts(input: {
         published: input.published
       }).facts
     : input.testFacts
-}
-
-/** Holds a hit before its OUTCOME so the attacker may add an optional on-hit rider to it. */
-async function holdForOnHitChoice(input: {
-  runtime: RulesRuntimeService
-  occurrenceId: string
-  candidates: readonly EncounterOnHitCandidate[]
-  twoPhase: Extract<NativeTwoPhase, { phase: 'TEST' }>
-  execution: ServerCompletedRuleExecutionDto
-  testD20: ServerRuleExecutionD20EvidenceDto
-  d20: ServerRuleExecutionD20PolicyDto
-  gameSystemId: string
-  reaction: NativeActionReactionAudit | null
-}): Promise<PendingNativeActionGraphs> {
-  const testExecutionChecksum = checksumRuleDocument(input.execution)
-  const options = encounterOnHitOptions(testExecutionChecksum, input.candidates)
-  return {
-    kind: 'PENDING',
-    continuation: await openEncounterOnHitChoice({
-      runtime: input.runtime,
-      occurrenceId: input.occurrenceId,
-      gameSystemId: input.gameSystemId,
-      optionCount: options.length
-    }),
-    d20Policy: null,
-    twoPhase: input.twoPhase,
-    roller: 'SOURCE',
-    pause: {
-      kind: 'ON_HIT',
-      payload: {
-        testExecution: input.execution,
-        testD20: input.testD20,
-        d20: input.d20,
-        testExecutionChecksum,
-        reaction: input.reaction,
-        options
-      }
-    }
-  }
 }
 
 /** Executes the selected OUTCOME after a sealed TEST boundary, without replaying TEST randomness. */
