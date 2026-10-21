@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest'
 import {
   abilityScoreCapabilityRegistry,
   actionEconomyCapabilityRegistry,
-  creatureConditionCapabilityRegistry,
-  initiativeCapabilityRegistry
+  creatureConditionCapabilityRegistry
 } from '../platformPolicyModules.js'
+import { initiativeCapabilityRegistry } from '../platformEncounterPolicy.js'
 import { createSystemCapabilityRegistry } from '../systemCapabilityRegistry.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,

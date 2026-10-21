@@ -35,7 +35,7 @@ import {
   inMemoryInitiativeRepository,
   serializeStagedInitiativeRoundState
 } from './encounterInitiativeStaging.js'
-import { initiativeCapabilityRegistry } from './platformPolicyModules.js'
+import { initiativeCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { encounterEvidenceMode } from './encounterEvidenceMode.js'
 import {

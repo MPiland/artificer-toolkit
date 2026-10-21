@@ -247,8 +247,10 @@ neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `creatureConditionCapability`, `initiativeFactAdapter`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps), `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
-`initiativeCapabilityRegistry`. Ability id↔code stays System vocabulary data (`system.abilities`).
+Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions).
+The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
+`platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`), keeping Encounter modules out of
+the browser (ADR 0036 S6, `apps/web/src/lib/rulesRuntimeBoundary.test.ts`). Ability id↔code stays System vocabulary data (`system.abilities`).
 Neutral modules reach System behaviour only through these registries; the `systems/*` import
 allowlist (`scripts/systemsImportAllowlist.json`) only shrinks.
 Attack-perception contributors are `rule:unseen-attacker`

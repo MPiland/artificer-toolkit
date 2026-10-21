@@ -1,13 +1,11 @@
 import type { AbilityScoreCapabilityAdapter } from './abilityScoreCapability.js'
 import type { ActionEconomyCapabilityAdapter } from './actionEconomyCapabilityRegistry.js'
 import type { CreatureConditionCapabilityAdapter } from './creatureConditionCapability.js'
-import type { InitiativeFactAdapter } from './initiativeFactAdapter.js'
 import { createRollModeCapabilityRegistry } from './rollModeCapabilityRegistry.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
 import { dnd5eAbilityScoreCapabilityAdapter } from './systems/dnd5e/abilityModifier.js'
 import { dnd5eActionEconomyCapabilityAdapter } from './systems/dnd5e/actionEconomyPolicy.js'
 import { dnd5eCreatureConditionCapabilityAdapter } from './systems/dnd5e/identity.js'
-import { dnd5eInitiativeFactAdapter } from './systems/dnd5e/initiativeFactAdapter.js'
 import { dnd5ePolicyModuleRegistration } from './systems/dnd5e/policyModuleRegistration.js'
 import { dnd5eRollModeCapabilityAdapter } from './systems/dnd5e/rollModePolicy.js'
 
@@ -31,11 +29,6 @@ export const creatureConditionCapabilityRegistry =
   createSystemCapabilityRegistry<CreatureConditionCapabilityAdapter>('creature-condition', [
     dnd5eCreatureConditionCapabilityAdapter
   ])
-
-export const initiativeCapabilityRegistry = createSystemCapabilityRegistry<InitiativeFactAdapter>(
-  'initiative',
-  [dnd5eInitiativeFactAdapter]
-)
 
 export function requireInstalledGameSystemPolicyModule(input: {
   gameSystemId: string
