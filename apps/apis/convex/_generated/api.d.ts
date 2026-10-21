@@ -25768,7 +25768,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -36788,7 +36794,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -47817,7 +47829,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -58837,7 +58855,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -69892,7 +69916,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -80912,7 +80942,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -91901,7 +91937,13 @@ export declare const api: {
                       }
                     | {
                         kind: "PASSIVE";
-                        optionalOnHit?: { kind: "SPELL_SLOT" };
+                        optionalOnHit?:
+                          | { kind: "SPELL_SLOT" }
+                          | {
+                              chargeId: string;
+                              cost: number;
+                              kind: "RESOURCE_POOL";
+                            };
                         range:
                           | {
                               id: string;
@@ -102812,7 +102854,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -113832,7 +113880,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -127261,11 +127315,21 @@ export declare const api: {
                 kind: "ON_HIT_CHOICE";
                 occurrenceId: string;
                 occurrenceVersion: number;
-                options: Array<{
-                  optionId: string;
-                  riderId: string;
-                  slotLevel: number;
-                }>;
+                options: Array<
+                  | {
+                      kind: "SPELL_SLOT";
+                      optionId: string;
+                      riderId: string;
+                      slotLevel: number;
+                    }
+                  | {
+                      cost: number;
+                      kind: "RESOURCE_POOL";
+                      optionId: string;
+                      poolId: string;
+                      riderId: string;
+                    }
+                >;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -127623,11 +127687,21 @@ export declare const api: {
                   kind: "ON_HIT_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
-                  options: Array<{
-                    optionId: string;
-                    riderId: string;
-                    slotLevel: number;
-                  }>;
+                  options: Array<
+                    | {
+                        kind: "SPELL_SLOT";
+                        optionId: string;
+                        riderId: string;
+                        slotLevel: number;
+                      }
+                    | {
+                        cost: number;
+                        kind: "RESOURCE_POOL";
+                        optionId: string;
+                        poolId: string;
+                        riderId: string;
+                      }
+                  >;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -128505,11 +128579,21 @@ export declare const api: {
             kind: "ON_HIT_CHOICE";
             occurrenceId: string;
             occurrenceVersion: number;
-            options: Array<{
-              optionId: string;
-              riderId: string;
-              slotLevel: number;
-            }>;
+            options: Array<
+              | {
+                  kind: "SPELL_SLOT";
+                  optionId: string;
+                  riderId: string;
+                  slotLevel: number;
+                }
+              | {
+                  cost: number;
+                  kind: "RESOURCE_POOL";
+                  optionId: string;
+                  poolId: string;
+                  riderId: string;
+                }
+            >;
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -129383,11 +129467,21 @@ export declare const api: {
                 kind: "ON_HIT_CHOICE";
                 occurrenceId: string;
                 occurrenceVersion: number;
-                options: Array<{
-                  optionId: string;
-                  riderId: string;
-                  slotLevel: number;
-                }>;
+                options: Array<
+                  | {
+                      kind: "SPELL_SLOT";
+                      optionId: string;
+                      riderId: string;
+                      slotLevel: number;
+                    }
+                  | {
+                      cost: number;
+                      kind: "RESOURCE_POOL";
+                      optionId: string;
+                      poolId: string;
+                      riderId: string;
+                    }
+                >;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
