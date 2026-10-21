@@ -36,6 +36,7 @@ import {
   isEncounterActorDefeated,
   isEncounterTargetDying
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { resolveCheckActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -79,13 +80,18 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import {
   prepareNativeLiveMovementTarget,
-  readNativeLiveActorsAndEffects
+  readNativeLiveActorsAndEffects,
+  readNativeLiveSpellPins
 } from './nativeEncounterTargets.js'
 import {
   readNativeLiveEnemyProximity,
   readNativeLiveMoveToward
 } from './nativeAttackEnemyProximity.js'
-import { readNativeLiveTurnMovedFeet, readNativeLiveTurnUses } from './nativeTurnUses.js'
+import {
+  readNativeLiveHasNotTakenTurn,
+  readNativeLiveTurnMovedFeet,
+  readNativeLiveTurnUses
+} from './nativeTurnUses.js'
 import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
@@ -117,8 +123,9 @@ import { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encou
 import type { EncounterOnHitSelection } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
   onHitCandidates,
+  onHitResourceConsumption,
   onHitSpellConsumption
-} from '@artificer-toolkit/rules-runtime/character/characterOnHitSlots'
+} from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
 import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -645,6 +652,7 @@ export async function planNativeLiveEncounterAction(
             }
           : undefined,
         system,
+        spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
           actorId: input.actor.id,
           actionId: input.actionId,
@@ -716,6 +724,8 @@ export async function planNativeLiveEncounterAction(
           capture
         }),
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
+      loadTargetHasNotTakenTurn: ({ targetFacts }) =>
+        readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
@@ -1229,6 +1239,7 @@ export async function planNativeLiveEncounterAction(
   const discoverReaction = discoverNativeAttackReaction({
     state,
     system,
+    spells: await readNativeLiveSpellPins(capture),
     attack: prepared,
     reactionSpentActorIds: failedCounters.map(({ reaction }) => reaction.reactorActorId),
     prepareReaction: (actionId) =>
@@ -1275,18 +1286,22 @@ export async function planNativeLiveEncounterAction(
       adjustedBinding: applied?.adjustedBinding ?? prepared.binding
     }
   }
-  // The optional on-hit riders the attacker could pay for now: a Character's slots pay them, unless
-  // the action already spends one.
+  // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
+  // pay them. An action that already spends a slot offers no slot rider, and one that already spends a
+  // pool offers no pool rider.
   const attackPlan = prepared.plan
   const onHitNow =
-    prepared.source.kind === 'CHARACTER_ACTION' &&
-    attackPlan.kind === 'TEST_OUTCOME' &&
-    !prepared.characterActionState?.spellConsumption
+    prepared.source.kind === 'CHARACTER_ACTION' && attackPlan.kind === 'TEST_OUTCOME'
       ? onHitCandidates({
-          riders: prepared.adapter.optionalOnHitRiders({
-            compilerSource: attackPlan.compilerSource
-          }),
-          spellSlots: prepared.source.effectivePolicyOutput.spellSlots
+          riders: prepared.adapter
+            .optionalOnHitRiders({ compilerSource: attackPlan.compilerSource })
+            .filter(({ cost }) =>
+              cost.kind === 'SPELL_SLOT'
+                ? !prepared.characterActionState?.spellConsumption
+                : !prepared.characterActionState?.resourceConsumption
+            ),
+          spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
+          resources: prepared.source.effectivePolicyOutput.resources
         })
       : []
   const answered = resistanceAnswer
@@ -1404,24 +1419,43 @@ export async function planNativeLiveEncounterAction(
           : null))
   if (execution.kind === 'PENDING')
     return { ...preflight(), kind: 'PENDING' as const, execution, failedCounters }
-  // The slot an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
+  // What an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
   // fence above was taken on the unspent attack.
   const chosenOnHit =
     answeredOnHit?.audit.option ??
     (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
+  const onHitSpend = (() => {
+    if (!chosenOnHit || prepared.source.kind !== 'CHARACTER_ACTION') return null
+    const { source } = prepared
+    if (chosenOnHit.kind === 'SPELL_SLOT')
+      return {
+        spellConsumption: onHitSpellConsumption({
+          spellSlots: source.effectivePolicyOutput.spellSlots,
+          slotLevel: chosenOnHit.slotLevel,
+          characterId: source.characterId,
+          expectedStreamVersion: source.characterStreamVersion
+        })
+      }
+    const { characterFacts } = prepared.sourceFacts
+    if (!characterFacts)
+      throw new StaleCharacterActionError('The selected Character action source is stale.')
+    return {
+      resourceConsumption: onHitResourceConsumption({
+        resources: source.effectivePolicyOutput.resources,
+        resourceUsage: characterFacts.sheetState.resourceUsage,
+        poolId: chosenOnHit.poolId,
+        cost: chosenOnHit.cost,
+        characterId: source.characterId,
+        expectedStreamVersion: source.characterStreamVersion,
+        automationMode: state.automationMode
+      })
+    }
+  })()
   const settledPrepared =
-    chosenOnHit && prepared.source.kind === 'CHARACTER_ACTION' && prepared.characterActionState
+    onHitSpend && prepared.characterActionState
       ? {
           ...prepared,
-          characterActionState: {
-            ...prepared.characterActionState,
-            spellConsumption: onHitSpellConsumption({
-              spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
-              slotLevel: chosenOnHit.slotLevel,
-              characterId: prepared.source.characterId,
-              expectedStreamVersion: prepared.source.characterStreamVersion
-            })
-          }
+          characterActionState: { ...prepared.characterActionState, ...onHitSpend }
         }
       : prepared
   const preparedEffects = prepareNativeActionEffectsPlan({
@@ -1437,7 +1471,8 @@ export async function planNativeLiveEncounterAction(
         ? discoverEncounterFeatureActions({
             actor: prepared.target,
             conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-            abilityDefinitions: systemAbilityDefinitions(system)
+            abilityDefinitions: systemAbilityDefinitions(system),
+            spells: new Map()
           }).passiveWeaponHits
         : []
   })

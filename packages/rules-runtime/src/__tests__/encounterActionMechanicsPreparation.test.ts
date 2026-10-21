@@ -138,7 +138,11 @@ describe('encounter action discovery: attack rolls', () => {
     })
 
     expect(featureActionId(withRoll, QUILL_VOLLEY_ID)).toEqual(expect.any(String))
-    const discovery = discoverEncounterFeatureActions({ actor: withoutRoll, ...systemBindings })
+    const discovery = discoverEncounterFeatureActions({
+      spells: new Map(),
+      actor: withoutRoll,
+      ...systemBindings
+    })
     expect(discovery.available).toEqual([])
     expect(discovery.unavailable).toEqual([
       {
@@ -150,6 +154,7 @@ describe('encounter action discovery: attack rolls', () => {
     ])
     expect(() =>
       resolveEncounterActionSource({
+        spells: new Map(),
         actor: withoutRoll,
         actionId: discovery.unavailable[0]!.actionId,
         gameSystemId: SRD_SYSTEM_ID,
@@ -172,6 +177,7 @@ describe('encounter action discovery: attack rolls', () => {
     ])
 
     const reactionFacts = buildEncounterMovementReactionFacts({
+      spells: new Map(),
       state,
       userId: SOURCE_ID,
       campaignOwnerUserId: SOURCE_ID,

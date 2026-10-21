@@ -1,6 +1,12 @@
-import { readBasicActionCheckSnapshot } from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
+import {
+  readBasicActionCheckSnapshot,
+  readD20WindowSnapshot
+} from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import { liveSessionEncounterBasicActionResponseCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import {
+  liveSessionEncounterBasicActionResponseCommitInputSchema,
+  liveSessionEncounterD20WindowOpenCommitInputSchema
+} from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import {
   liveSessionEncounterRulesInputSchema,
   type LiveSessionEncounterRulesInput
@@ -10,9 +16,15 @@ import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtim
 import {
   completeEncounterBasicActionCheckResult,
   encounterBasicActionStabilizeApplication,
-  evaluateEncounterBasicActionCheck,
+  evaluateRolledEncounterBasicActionCheck,
   rollEncounterCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import {
+  encounterD20WindowSelection,
+  encounterHeldCheckDice,
+  openEncounterD20Window,
+  settleEncounterD20Window
+} from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { isEncounterTargetDying } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
@@ -26,7 +38,8 @@ import { settleNativeConcealmentCheck } from './nativeConcealmentCheck.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
-  readNativeLiveActorsAndEffects
+  readNativeLiveActorsAndEffects,
+  readNativeLiveSpellPins
 } from './nativeEncounterTargets.js'
 
 /**
@@ -63,7 +76,15 @@ export async function planNativeLiveBasicActionResponse(
   const ready = admission.ready
   if (!ready || ready.command.type !== 'RESOLVE_RULE_OCCURRENCE' || !ready.snapshot)
     throw new Error('The basic action check is unavailable.')
-  const { context, continuation, snapshot } = readBasicActionCheckSnapshot(ready.snapshot)
+  // A d20 window holds the roll its roller already made; the check it follows is frozen inside it.
+  const pendingWindow = readD20WindowSnapshot(ready.snapshot)
+  const { context, continuation, snapshot } = pendingWindow
+    ? {
+        context: pendingWindow.context.source.context,
+        continuation: pendingWindow.continuation,
+        snapshot: pendingWindow.snapshot
+      }
+    : readBasicActionCheckSnapshot(ready.snapshot)
   const { state, system } = await capture({ kind: 'INPUTS' })
   if (state.id !== initial.encounterId || state.version !== initial.expectedVersion)
     throw new Error('Basic action check Run inputs changed during capture.')
@@ -87,6 +108,7 @@ export async function planNativeLiveBasicActionResponse(
       actionId: context.actionId,
       gameSystemId: state.gameSystemId,
       system,
+      spells: await readNativeLiveSpellPins(capture),
       basicActions: await readEncounterBasicActionEntries({
         actorId: roller.id,
         actionId: context.actionId,
@@ -155,20 +177,83 @@ export async function planNativeLiveBasicActionResponse(
   const target = prepared.target
   // The roll was spent either way; the target may have stabilized or died while it waited.
   const targetStillDying = isEncounterTargetDying(target)
-  // An app roll settles with the faces Convex recorded for it, never client-supplied values.
-  const answer = withEncounterAppRoll(ready.command.resolution, ready.appRoll)
-  if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL')
-    throw new Error('A basic action check requires d20 evidence.')
-  const evaluated = await evaluateEncounterBasicActionCheck({
-    runtime: executionOptions.runtime,
-    context,
-    continuation,
-    answer,
-    rollD20: () => executionOptions.random(20) + 1,
-    random: executionOptions.random,
-    expectedOccurrenceId: snapshot.occurrenceId
-  })
   const occurredAt = new Date().toISOString()
+  const settledWindow = pendingWindow
+    ? {
+        context: pendingWindow.context,
+        ...(await settleEncounterD20Window({
+          runtime: executionOptions.runtime,
+          context: pendingWindow.context,
+          continuation: pendingWindow.continuation,
+          selection: encounterD20WindowSelection(ready.command.resolution),
+          random: executionOptions.random
+        }))
+      }
+    : null
+  let rolled: Awaited<ReturnType<typeof rollEncounterCheck>>
+  if (settledWindow)
+    rolled = { execution: settledWindow.context.rolled.execution, d20: settledWindow.d20 }
+  else {
+    // An app roll settles with the faces Convex recorded for it, never client-supplied values.
+    const answer = withEncounterAppRoll(ready.command.resolution, ready.appRoll)
+    if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL')
+      throw new Error('A basic action check requires d20 evidence.')
+    rolled = await rollEncounterCheck({
+      runtime: executionOptions.runtime,
+      context,
+      continuation,
+      answer,
+      rollD20: () => executionOptions.random(20) + 1,
+      random: executionOptions.random,
+      expectedOccurrenceId: snapshot.occurrenceId
+    })
+  }
+  // The roller's after-roll dice pause the roll once it is seen, before the check settles.
+  const heldDice = !settledWindow
+    ? encounterHeldCheckDice(
+        system,
+        activeEffectsByActorId.get(context.helperActorId) ?? [],
+        context.check.checkDefinitionId
+      )
+    : []
+  if (heldDice.length > 0) {
+    const window = await openEncounterD20Window({
+      runtime: executionOptions.runtime,
+      occurrenceId: snapshot.occurrenceId,
+      gameSystemId: state.gameSystemId,
+      source: { kind: 'BASIC_ACTION_CHECK', context },
+      rolled: {
+        execution: rolled.execution,
+        initialFactsChecksum: checksumRuleDocument(continuation.facts),
+        d20: rolled.d20
+      },
+      appRollId: ready.appRoll?.rollId ?? null,
+      heldDice,
+      optionalCombatSnapshotChecksum:
+        ready.snapshot.snapshotKind === 'KERNEL_EVIDENCE'
+          ? (ready.snapshot.optionalCombatSnapshotChecksum ?? null)
+          : null
+    })
+    const windowFacts = buildEncounterActorRuleFacts({ actors })
+    return {
+      kind: 'WINDOW_OPEN' as const,
+      input: liveSessionEncounterD20WindowOpenCommitInputSchema.parse({
+        ...scope,
+        command: ready.command,
+        revisions: reads.revisions(),
+        occurredAt,
+        snapshot: window.snapshot,
+        rules: reconcileEncounterActorRuleOutput(
+          evaluateInstalledEncounterActors({
+            gameSystemId: state.gameSystemId,
+            facts: windowFacts
+          }),
+          windowFacts
+        )
+      })
+    }
+  }
+  const evaluated = evaluateRolledEncounterBasicActionCheck(rolled, context.check.dc)
   const stabilized =
     evaluated.reachesDc && targetStillDying
       ? planEncounterMechanicsBatch({
@@ -211,12 +296,20 @@ export async function planNativeLiveBasicActionResponse(
           afterStreamVersion: stabilized.characterStreamVersion
         }
       : null,
-    occurrenceVersion: response.expectedOccurrenceVersion + 1,
-    initialFactsChecksum: checksumRuleDocument(continuation.facts)
+    // A window's check keeps the version and facts its d20 was recorded under, before it paused.
+    occurrenceVersion: response.expectedOccurrenceVersion + (settledWindow ? 0 : 1),
+    initialFactsChecksum: settledWindow
+      ? settledWindow.context.rolled.initialFactsChecksum
+      : checksumRuleDocument(continuation.facts)
   })
   const facts = buildEncounterActorRuleFacts({ actors })
+  const spentEffect = settledWindow?.option
+    ? (activeEffectsByActorId
+        .get(context.helperActorId)
+        ?.find((effect) => effect.id === settledWindow.option?.effectId) ?? null)
+    : null
   return {
-    kind: 'PLANNED' as const,
+    kind: settledWindow ? ('WINDOW_ANSWER' as const) : ('PLANNED' as const),
     input: liveSessionEncounterBasicActionResponseCommitInputSchema.parse({
       ...scope,
       command: ready.command,
@@ -225,7 +318,10 @@ export async function planNativeLiveBasicActionResponse(
       settlement: {
         context,
         execution: result,
-        appRollId: ready.appRoll?.rollId ?? null
+        appRollId: settledWindow
+          ? settledWindow.context.appRollId
+          : (ready.appRoll?.rollId ?? null),
+        ...(settledWindow && { window: { spentEffect } })
       },
       rules: reconcileEncounterActorRuleOutput(
         evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),

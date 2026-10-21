@@ -153,6 +153,7 @@ type AuthoringDefaultKind =
   | 'string'
   | 'summonStatBlock'
   | 'targetCount'
+  | 'targetRequirement'
   | 'hitPointPool'
   | 'hitPointPoolScalingBreakpoint'
   | 'targeting'
@@ -330,6 +331,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   string: ['actionEffectId', 'vehicleString', 'string', 'logisticsNote', 'regionalEffect', 'tag'],
   summonStatBlock: ['summonStatBlock'],
   targetCount: ['targetCount'],
+  targetRequirement: ['targetRequirement'],
   targeting: ['targeting'],
   damageDieCastLevelScaling: ['damageDieCastLevelScaling'],
   damageLevelScalingEntry: ['damageLevelScalingEntry'],

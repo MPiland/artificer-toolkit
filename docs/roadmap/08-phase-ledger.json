@@ -3063,6 +3063,367 @@
               "id": "RULES-1.6"
             }
           ]
+        },
+        {
+          "id": "RULES-2",
+          "title": "Composable, System-neutral rules engine (ADR 0039)",
+          "status": "TODO",
+          "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 13
+          },
+          "acs": [
+            {
+              "id": "RULES-2.1",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "CI fails a non-test file over 1,500 lines unless it is in the file-size budget, fails any growth of a budgeted file, and fails any new direct import of systems/* from neutral runtime; both lists may only shrink."
+            },
+            {
+              "id": "RULES-2.2",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "A golden harness compiles every SRD authored effect and pins its graph checksum and plan shape; every refactor step keeps it green or explains each changed checksum and reseeds development data in the same change."
+            },
+            {
+              "id": "RULES-2.3",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "Every d20 check, save and contest settles through one frozen d20 context and one settlement function that verifies its outputs, in rules-runtime and the Session Worker."
+            },
+            {
+              "id": "RULES-2.4",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "Every pending choice (reaction, cast reaction, on-hit, retarget, forced movement, Legendary Resistance, the D168 post-roll window) uses one sealed-choice lifecycle and one pause union in the action snapshot, with one Worker handler per pause kind."
+            },
+            {
+              "id": "RULES-2.5",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "Triggers, end and consume events and interception run through one typed event table with one discovery entry and one dispatch site per event; a feature subscribes through authored data without a new call site."
+            },
+            {
+              "id": "RULES-2.6",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "The effect-action compiler is decomposed into single-responsibility modules composing test phase, outcomes, lifetime, targeting, activation and zones; it refuses only invalid input or a genuine rule, and System-neutral pieces live outside systems/dnd5e."
+            },
+            {
+              "id": "RULES-2.7",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "Neutral runtime reaches System behaviour only through a capability registry keyed by gameSystemId; roll-mode influence, Concentration (as a maintenance link) and vocabulary are System-supplied; a second neutral tracer System runs the Encounter pipeline through the adapters."
+            },
+            {
+              "id": "RULES-2.8",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "The Session room and the area commit are split by responsibility below the file-size budget, and initiative cursor ordering has one home."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RULES-2.T1",
+              "status": "TODO",
+              "closes": ["RULES-2.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+            },
+            {
+              "id": "RULES-2.T2",
+              "status": "DONE",
+              "closes": ["RULES-2.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Golden compile-checksum harness over the SRD corpus (graph checksum and plan shape per authored effect).",
+              "note": "Merged m265 (cad91118f)."
+            },
+            {
+              "id": "RULES-2.T3a",
+              "status": "TODO",
+              "closes": ["RULES-2.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["RULES-2.T2"]
+              },
+              "text": "One d20 test settlement: freezeD20Context plus settleEncounterD20Test with output verification, replacing the ~10 copies of answer/added-dice/resume and the frozen-context blocks.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+            },
+            {
+              "id": "RULES-2.T3b",
+              "status": "TODO",
+              "closes": ["RULES-2.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T3a"]
+              },
+              "text": "Session Worker: one app-roll binding and d20-evidence requirement replacing the 8 copies."
+            },
+            {
+              "id": "RULES-2.T4a",
+              "status": "TODO",
+              "closes": ["RULES-2.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T3a", "SPELLS-31.T4c1a"]
+              },
+              "text": "One pending-choice pause: shared sealed-choice lifecycle (open, choose, settle, checksum, undo) and a single pause union in the action snapshot; converts reaction, cast reaction, on-hit, retarget, forced movement and Legendary Resistance; extends the T4c1a decision module."
+            },
+            {
+              "id": "RULES-2.T4b",
+              "status": "TODO",
+              "closes": ["RULES-2.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["RULES-2.T4a"]
+              },
+              "text": "Split planNativeLiveEncounterAction into one handler per pause kind."
+            },
+            {
+              "id": "RULES-2.T5",
+              "status": "TODO",
+              "closes": ["RULES-2.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T4a"]
+              },
+              "text": "Generic event hooks: typed event table, one reaction discovery entry and one dispatch site per event for trigger, end/consume and interception; retires the per-trigger discovery functions and per-feature end-event call sites."
+            },
+            {
+              "id": "RULES-2.T6a",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["RULES-2.T2"]
+              },
+              "text": "Compiler: extract runtime interpretation and the operation registry into their own modules.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+            },
+            {
+              "id": "RULES-2.T6b",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T6a"]
+              },
+              "text": "Compiler: scaling facts and dice contract with validation at the boundary."
+            },
+            {
+              "id": "RULES-2.T6c",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T6b"]
+              },
+              "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase."
+            },
+            {
+              "id": "RULES-2.T6d",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T6c", "RULES-2.T5"]
+              },
+              "text": "Compiler: unify the four follow-up-save flavours into one lifetime and recurrence model."
+            },
+            {
+              "id": "RULES-2.T6e",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T6d"]
+              },
+              "text": "Compiler: table-driven dispatch; remove combination refusals that are not genuine rules."
+            },
+            {
+              "id": "RULES-2.T6f",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T6e"]
+              },
+              "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e."
+            },
+            {
+              "id": "RULES-2.T7",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["RULES-2.T3a"]
+              },
+              "text": "Neutral roll-modifier pipeline: contributor influence becomes System vocabulary, not an advantage field; keep-by-roll-mode wording neutral."
+            },
+            {
+              "id": "RULES-2.T8",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["RULES-2.T5"]
+              },
+              "text": "Concentration becomes a neutral maintenance link; DC formula and ability stay D&D policy."
+            },
+            {
+              "id": "RULES-2.T9",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["RULES-2.T5", "RULES-2.T7"]
+              },
+              "text": "System-supplied vocabulary: trigger names, damage and condition lists, creature type, alignment and similar lists move to a System vocabulary registry."
+            },
+            {
+              "id": "RULES-2.T10",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T1"]
+              },
+              "text": "Move combatPerception.ts out of the kernel directory into the System perception module."
+            },
+            {
+              "id": "RULES-2.T11",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["RULES-2.T1"]
+              },
+              "text": "Burn down the direct systems/dnd5e imports from neutral runtime through registered capability adapters."
+            },
+            {
+              "id": "RULES-2.T12",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["RULES-2.T6f", "RULES-2.T7", "RULES-2.T8", "RULES-2.T11"]
+              },
+              "text": "Second neutral tracer System (Fate-like fixture) driving the Encounter pipeline through the adapters."
+            },
+            {
+              "id": "RULES-2.T13",
+              "status": "TODO",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["RULES-2.T4b"]
+              },
+              "text": "Split nativeLiveSessionRoom and completeAreaCommit by responsibility below the file-size budget."
+            },
+            {
+              "id": "RULES-2.T14",
+              "status": "DONE",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order.",
+              "note": "Merged m267 (74371bfed)."
+            },
+            {
+              "id": "RULES-2.T15",
+              "status": "DONE",
+              "closes": ["RULES-2.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 1,
+                "after": ["RULES-2.T2"]
+              },
+              "text": "Bug: compiling the SRD Antitoxin (vial) equipment Effect (00000060-0000-0210-0079-000000000001) throws a plain Error \"Rule documents must contain JSON values only\" instead of a plan or refusal. Find the non-JSON value (likely undefined in authored data or its compile), fix at the source, add a regression test that fails before the fix, and re-pin the golden line.",
+              "note": "Merged m269 (5bcadf7a5)."
+            }
+          ]
         }
       ]
     },
@@ -6394,7 +6755,10 @@
                   "SPELLS-33.T6e2",
                   "SPELLS-33.T6i2",
                   "SPELLS-33.T6m2",
-                  "SPELLS-33.T4i"
+                  "SPELLS-33.T4i1b",
+                  "SPELLS-33.T4i2",
+                  "SPELLS-33.T4i3",
+                  "SPELLS-33.T4i4b"
                 ]
               },
               "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i."
@@ -8804,7 +9168,7 @@
             },
             {
               "id": "SPELLS-4.T2i4b2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8814,8 +9178,7 @@
                 "after": ["SPELLS-4.T2i4b1"]
               },
               "text": "Divine Word: data, parity proof, room journey, delete DIVINE_WORD, docs; remove the compiledTieredCast test stand-in and compiledTestSpellCast registry argument.",
-              "note": "Split from T2i4b 2026-10-20.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m259 (e375c2d4b)."
             },
             {
               "id": "SPELLS-4.T2i2a",
@@ -9012,6 +9375,19 @@
               "text": "Per-turn retarget (D160, split 2026-10-20): a repeat offer with a fresh target pick and a persisted already-saved exclusion. Converts Eyebite Asleep and its per-turn retarget, with a parity proof; Panicked and Sickened and the EYEBITE kind deletion stay with T2l2."
             },
             {
+              "id": "SPELLS-4.T2lb2c",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2lb2a"]
+              },
+              "text": "Web repeat-offer row (split from T2lb2a at review, 2026-10-20): the Character sees and uses a REPEAT_SOURCE_PATH offer (cast level, frozen DC) from the tabletop effect offers, with a browser journey for the Heat Metal repeat."
+            },
+            {
               "id": "SPELLS-4.T2l2",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
@@ -9117,10 +9493,10 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2m1b2a"]
+                "after": ["SPELLS-4.T2m1b2a", "RULES-2.T3a", "RULES-2.T6d"]
               },
               "text": "Damage repeat save for the remaining damage sources (area one per holder, turn effects, cleaving, movement, legendary); the shared damage-save reader contract for T2m3 and SPELLS-33.T6e2/T4m; parity proof, area journey and HIDEOUS_LAUGHTER remnant check (D167).",
-              "note": "Split from T2m1b2 2026-10-20 (D167 amendment)."
+              "note": "Split from T2m1b2 2026-10-20 (D167 amendment). Held 2026-10-20 behind RULES-2.T3a and T6d (one d20 settlement, one repeat-save model)."
             },
             {
               "id": "SPELLS-4.T2m1d",
@@ -11837,7 +12213,34 @@
               "note": "Merged m141 (b066f0945)."
             },
             {
-              "id": "SPELLS-31.T4c",
+              "id": "SPELLS-31.T4c1a",
+              "status": "DONE",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
+              },
+              "text": "D168 result window core (re-split 2026-10-20): ADD_BONUS_DIE AFTER_ROLL timing, the ENCOUNTER_D20_WINDOW pending kind with a discriminated source, use/decline resolutions, one shared pure decision module, two-step persist/void/replay, room wiring on the First Aid check, drawer. Options are AFTER_ROLL dice held on the roller's own active effects, spent by ending the effect. Proof: authoring-parity with a homebrew held die and a room journey.",
+              "note": "Merged m268 (52b690710)."
+            },
+            {
+              "id": "SPELLS-31.T4c1p",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T5ra"]
+              },
+              "text": "Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind."
+            },
+            {
+              "id": "SPELLS-31.T4c1a2",
               "status": "TODO",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
@@ -11845,9 +12248,66 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
+                "after": ["SPELLS-31.T4c1a", "RULES-2.T3a"]
               },
-              "text": "Join SPELLS-4.T2c: Bardic Inspiration, Peerless Skill, Cutting Words (with resource uses), Dark One's Own Luck. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
+            },
+            {
+              "id": "SPELLS-31.T4c1b",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T4a"]
+              },
+              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union."
+            },
+            {
+              "id": "SPELLS-31.T4c1c",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T3a"]
+              },
+              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
+            },
+            {
+              "id": "SPELLS-31.T4c2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T4c1a",
+                  "SPELLS-31.T4c1b",
+                  "SPELLS-31.T4c1c",
+                  "SPELLS-31.T4c1a2"
+                ]
+              },
+              "text": "D168 dice scaled by the granting creature (split 2026-10-20): a grant die face references the granting creature's scaling value, resolved at apply time and frozen. Converts Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save), with a parity proof, a homebrew variant and the kind deleted. Includes the result window on attack rolls."
+            },
+            {
+              "id": "SPELLS-31.T4c3",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1b"]
+              },
+              "text": "D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted."
             },
             {
               "id": "SPELLS-31.T4e",
@@ -12315,10 +12775,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 8,
                 "after": ["SPELLS-31.T5o"]
               },
-              "text": "Extra turn (split from T5o, 2026-10-20): an EXTRA_TURN outcome on the ROLL_INITIATIVE trigger, adding a first-round turn-order entry at an initiative offset (Thief's Reflexes: initiative minus 10, round 1 only). Authoring-parity proof and room journey; deletes its kind."
+              "text": "Extra turn (split from T5o, 2026-10-20): an EXTRA_TURN outcome on the ROLL_INITIATIVE trigger, adding a first-round turn-order entry at an initiative offset (Thief's Reflexes: initiative minus 10, round 1 only). Authoring-parity proof and room journey; deletes its kind. Re-sized 3->8 (2026-10-20): a repeated-actor initiative entry needs a participant key other than the actor id, a cursor that tolerates a repeated actor, replay, reinforcement and removal handling; one vertical slice, not an outcome-only split. Rulings: the extra entry is a full turn (turn resources reset, durations counted in the actor's turns tick on it); the surprise clause stays description-only (D165); SIDE_ROLL placement is ruled at start."
             },
             {
               "id": "SPELLS-31.T5p",
@@ -12347,8 +12807,8 @@
               "text": "New option (ruling at start): ability score caps and check bonuses; ASI maximum 20, Primal Champion, Jack of All Trades, Remarkable Athlete. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
             {
-              "id": "SPELLS-31.T5r",
-              "status": "TODO",
+              "id": "SPELLS-31.T5ra",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12357,7 +12817,21 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (D156 SPELLS-31.T3a ruling): optionalOnHit gains the RESOURCE_POOL cost D123 names ({ kind: 'RESOURCE_POOL', chargeId, cost }) in the onHitChoice offer, transport and payment path. Converts Stunning Strike, with an authoring-parity proof; the kind deleted."
+              "text": "optionalOnHit RESOURCE_POOL cost (D123) end to end (split 2026-10-20): authored type, DTO, node map, offer union, transport, drawer, pool candidates and payment through one extracted spend helper, session-worker wiring. Proof: a homebrew ki-costed rider authored through the real authoring path, with accept, decline and insufficient-pool cases.",
+              "note": "Merged m266 (fbc889988)."
+            },
+            {
+              "id": "SPELLS-31.T5rb",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T5ra", "RULES-2.T6b"]
+              },
+              "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted. Also labels the resource pool on the web drawer option (from T5ra review). Held behind RULES-2.T6b: the DERIVED_DC rider-merge path is a dice-contract fact, not a new compiler shape."
             },
             {
               "id": "SPELLS-31.T5s",
@@ -12375,7 +12849,7 @@
             },
             {
               "id": "SPELLS-31.T5t",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 8,
@@ -12385,7 +12859,7 @@
                 "after": ["SPELLS-31.T5l"]
               },
               "text": "Spell grants on chosen features (Eldritch Invocations, feats, options, background features) become spell access: buildCharacterSpellRuleFacts reads snapshot.features by provenance, with spell-access source kinds for FEAT, OPTION and BACKGROUND. List every chosen-feature grant this moves from MANUAL to automated, and prove the Chains of Carceri journey (cast, lockout, creature-type narrowing) end to end (D156 SPELLS-31.T5l ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m260 (e732d8db6)."
             }
           ]
         },
@@ -12699,7 +13173,7 @@
             },
             {
               "id": "SPELLS-33.T3c2a2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 8,
@@ -12709,8 +13183,7 @@
                 "after": ["SPELLS-33.T3c2a2a"]
               },
               "text": "Load the pinned spells in Convex and the Session Worker room and pass them to the 5 discover callers; replay-safety proof (a source spell edited or deleted after pinning gives the same discovery, no recompile).",
-              "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port. Re-sized 3->5 2026-10-20: spells is a required discovery input across Convex and room callers, one slice.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m262 (d11c15ce4; the merge commit is mistitled SCENE-5.T2 by an orchestrator script error, its tree is this slice)."
             },
             {
               "id": "SPELLS-33.T3c2b",
@@ -12809,7 +13282,34 @@
               "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
             {
-              "id": "SPELLS-33.T4i",
+              "id": "SPELLS-33.T4i1a",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
+              },
+              "text": "Passive start-of-turn trait stage (split 2026-10-20): a turn-start stage discovered from the actor's features (Recharge precedent) that runs a PASSIVE result block with recurringKind START_OF_TURN and no duration through the existing outcome path, with plan checksum and undo; a TARGET_HIT_POINTS_AT_LEAST gate. Converts Oni and Shield Guardian regeneration, with parity proofs, a homebrew variant and kind deletions.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T4i1b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T4i1a"]
+              },
+              "text": "Damage-type suppression (split 2026-10-20): suppressedByDamageTypes on the recurring trait, with damage types taken since the actor's last turn start written in the one damage-application seam and covered by undo. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
+            },
+            {
+              "id": "SPELLS-33.T4i2",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12819,7 +13319,47 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
-              "text": "regeneration, Undead Fortitude, hit point threshold riders (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Also removes the Giant Centipede Bite and Solar Slaying Longbow SRD_CREATURE_ATTACK_UNSUPPORTED entries, with a room proof for each attack (from ATTACK-5.T4d/T4e, 2026-10-20)."
+              "text": "0 HP interception (split 2026-10-20): Undead Fortitude (x2) and Wereboar Relentless on the T2i2 interception contract; a save DC derived from the triggering damage, with damage-type and critical-hit exclusions, goes to a ruling first. Parity proofs, a homebrew variant and 3 kind deletions."
+            },
+            {
+              "id": "SPELLS-33.T4i3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
+              },
+              "text": "REDUCED_TO_ZERO_BY gate (split 2026-10-20): Giant Centipede venom and Solar Slaying Longbow; removes both SRD_CREATURE_ATTACK_UNSUPPORTED entries with a room proof each. Parity proofs, a homebrew variant and 2 kind deletions."
+            },
+            {
+              "id": "SPELLS-33.T4i4a",
+              "status": "DONE",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
+              },
+              "text": "Single-target targetRequirements (split 2026-10-20): HAS_CONDITION {conditionIds, source ACTOR|ANY}, SIGHT {direction} through one shared sight evaluator used by zones and targeting, AT_ZERO_HIT_POINTS (alive). Proof: a homebrew action authored through the real authoring path with runtime admission tests and node-map parity.",
+              "note": "Merged m263 (0b3862ca4)."
+            },
+            {
+              "id": "SPELLS-33.T4i4b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T4i4a", "RULES-2.T6c"]
+              },
+              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry."
             },
             {
               "id": "SPELLS-33.T4j",
@@ -13193,7 +13733,7 @@
             },
             {
               "id": "SPELLS-33.T6d3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13203,7 +13743,7 @@
                 "after": ["SPELLS-33.T6d3a"]
               },
               "text": "Assassinate and Surprise Attack (2 kinds): new TARGET_HAS_NOT_TAKEN_TURN predicate derived from initiative for Assassinate advantage; surprise parts description-only (D165). Authoring-parity proof; deletes the kinds (D156; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m261 (640159eb2)."
             },
             {
               "id": "SPELLS-33.T6e",

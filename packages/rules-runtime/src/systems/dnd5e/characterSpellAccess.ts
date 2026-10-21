@@ -23,7 +23,7 @@ function denialReason(
   }
   if (
     candidate.scalingKind === 'PER_LEVEL' &&
-    (candidate.sourceKind === 'RACE' || candidate.sourceKind === 'SUBRACE') &&
+    candidate.owningClassId === null &&
     candidate.scalingSource !== 'CHARACTER_LEVEL'
   ) {
     return 'UNSUPPORTED_SCALING_SOURCE'
@@ -85,6 +85,7 @@ export function evaluateDnd5eCharacterSpellAccess(
       grantId: candidate.grantId,
       sourceKind: candidate.sourceKind,
       sourceId: candidate.sourceId,
+      acquiredParentId: candidate.acquiredParentId,
       owningClassId: candidate.owningClassId,
       timingKind:
         candidate.owningClassId === null ? ('CHARACTER_LEVEL' as const) : ('CLASS_LEVEL' as const),

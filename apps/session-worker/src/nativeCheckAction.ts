@@ -21,6 +21,7 @@ import {
   prepareEncounterBasicActionCheck,
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterHeldCheckDice } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -178,7 +179,11 @@ export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInpu
       occurrenceId,
       addedDice: context.d20.addedDice
     })
-    const { autoRoll } = input
+    // A roller holding after-roll dice decides on their own roll, so it pends for their d20 window.
+    const autoRoll =
+      encounterHeldCheckDice(input.system, input.actorEffects, checkDefinitionId).length > 0
+        ? null
+        : input.autoRoll
     if (!autoRoll)
       check = {
         kind: 'PENDING',

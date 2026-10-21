@@ -63,7 +63,6 @@ export const antitoxinVial: EquipmentAuthored = {
                     modifierKind: S.MODIFIER_KIND.ADVANTAGE,
                     scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
                     selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
-                    payload: undefined,
                     order: index + 1
                   }))
                 }

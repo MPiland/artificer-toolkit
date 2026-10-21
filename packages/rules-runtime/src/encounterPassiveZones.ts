@@ -78,7 +78,8 @@ export function planEncounterPassiveZones(input: {
             passiveZones: discoverEncounterFeatureActions({
               actor,
               conditionDefinitionIds,
-              abilityDefinitions
+              abilityDefinitions,
+              spells: new Map()
             }).passiveZones,
             source: creatureZoneSource(actor)
           }

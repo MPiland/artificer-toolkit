@@ -43,7 +43,8 @@ import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
-  readNativeLiveActorsAndEffects
+  readNativeLiveActorsAndEffects,
+  readNativeLiveSpellPins
 } from './nativeEncounterTargets.js'
 
 const TELEPORT_REFUSALS = {
@@ -128,6 +129,7 @@ export async function readNativeLiveMovementInputs(input: {
     throw new Error('Movement inputs are unavailable.')
   const { header, save } = movement
   const { state, system } = inputs
+  const spells = await readNativeLiveSpellPins(capture)
   if (
     save.id !== scope.movement?.saveId ||
     save.sceneId !== scene.id ||
@@ -376,6 +378,7 @@ export async function readNativeLiveMovementInputs(input: {
             campaignOwnerUserId: movement.campaignOwnerUserId,
             targets,
             system,
+            spells,
             definitions
           }),
           runtime: capturedRuntime
@@ -450,6 +453,7 @@ export async function readNativeLiveMovementInputs(input: {
     autoRollByActorId: movement.autoRollByActorId,
     state,
     system,
+    spells,
     actors,
     targets,
     actorIdByTokenId,

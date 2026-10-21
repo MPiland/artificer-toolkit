@@ -159,6 +159,7 @@ export async function assistedPartyFixture(
       .unique()
     if (!wolfRow) throw new Error('Missing the Wolf actor row.')
     const bite = discoverEncounterFeatureActionCapabilities({
+      spells: new Map(),
       actor: await readTestActor(ctx, wolfRow),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

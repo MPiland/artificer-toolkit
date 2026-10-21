@@ -421,6 +421,16 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   if (!ownerFeature || capability.sourceId !== ownerFeature.id) {
     throw new Error('Encounter feature action capability owner Feature is stale.')
   }
+  if (capability.spellCastLevel !== undefined) {
+    // A Spell cast is built from the Run's pinned compilation (D163), not from a Feature Effect
+    // of the snapshot, so only its own compiled material is rechecked.
+    if (
+      capability.authoredEffectChecksum !== capability.compiledEffectChecksum ||
+      capability.compiledEffectChecksum !== checksumRuleDocument(capability.compiledEffect)
+    )
+      throw new Error('Encounter feature action capability Spell cast is stale.')
+    return
+  }
   const entry = featureEffectEntries(ownerFeature, features).find(
     (candidate) =>
       (candidate.featureOption?.id ?? null) === capability.featureOptionId &&
@@ -610,8 +620,12 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
       actor: EncounterProjectionActorInput
       conditionDefinitionIds?: readonly string[]
       abilityDefinitions?: readonly { id: string; code: string }[]
-      /** The compiled spells the Creature's spell grants name; without them it casts none. */
-      spells?: ReadonlyMap<string, CompiledSpell>
+      /**
+       * The Run's pinned Spells (D163) the Creature's spell grants name. Required so a caller that
+       * misses it is a type error, not a Creature that silently casts nothing; a caller that needs
+       * no casts passes an empty map.
+       */
+      spells: ReadonlyMap<string, CompiledSpell>
     }): EncounterFeatureActionDiscovery {
       if (input.actor.kind === 'CUSTOM' || input.actor.kind === 'CHARACTER')
         return {
@@ -740,7 +754,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
         }
       }
       const spells = input.spells
-      if (spells?.size) {
+      if (spells.size) {
         const casts = listCreatureSpellCasts({
           actor: input.actor,
           features,

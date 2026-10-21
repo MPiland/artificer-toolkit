@@ -90,7 +90,7 @@ import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterM
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
 import { measureNativeEnemyProximity } from './nativeAttackEnemyProximity.js'
-import { readNativeLiveTurnUses } from './nativeTurnUses.js'
+import { readNativeLiveHasNotTakenTurn, readNativeLiveTurnUses } from './nativeTurnUses.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import {
   prepareNativeLiveMovementConcentration,
@@ -131,7 +131,8 @@ export async function prepareNativeLiveMovement(
   }
 ) {
   const captured = await readNativeLiveMovementInputs(input)
-  const { state, save, response, system, definitions, capture, spatialEffects, runtime } = captured
+  const { state, save, response, system, spells, definitions, capture, spatialEffects, runtime } =
+    captured
   if (save.input.type !== 'MOVE_SCENE_TOKEN' || save.input.expectedEncounterVersion === null)
     throw new Error('Movement requires an Encounter move.')
   const { random, scene } = input
@@ -153,6 +154,7 @@ export async function prepareNativeLiveMovement(
         state,
         targets,
         system,
+        spells,
         definitions,
         userId,
         campaignOwnerUserId: captured.facts.campaignOwnerUserId
@@ -257,7 +259,8 @@ export async function prepareNativeLiveMovement(
                 ])
                 return { actual, believed }
               },
-              loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
+              loadSource: async (source) =>
+                resolveEncounterActionSource({ ...source, system, spells }),
               // The reaction attack is made from where the mover is in contact with the reactor.
               loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
                 measureNativeEnemyProximity({
@@ -291,6 +294,8 @@ export async function prepareNativeLiveMovement(
                   definitions
                 }),
               loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
+              loadTargetHasNotTakenTurn: ({ targetFacts }) =>
+                readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
               loadRelationshipFacts: async (relationship) => {
                 return lockedRelationshipActionFacts({
                   actionEffectId: relationship.actionEffectId,

@@ -567,6 +567,12 @@ Branch `ci/spells-33-t3c2a2b`. Size ~3. Do not edit the ledger. T3c2a2a (D163 pi
 - Replay safety proofs: a Spell edited or deleted after the pin gives the same discovery (no recompile, no source read); a missing pin for a named Spell fails closed rather than dropping the cast.
 - Character-kind actors that enter a Creature form are not pinned (they use their own Spells); pins are not released per actor.
 
+## T3c2a2b done: Spell pins feed discovery (`ci/spells-33-t3c2a2b`)
+
+- `spells: ReadonlyMap<string, CompiledSpell>` is required on `discoverEncounterFeatureActions` and each caller that reaches spell grants. Convex loaders (`actionChoiceReads`, `actionPreparationReads`) read `readEncounterSpellPins`; the room reads the new `SPELL_PINS` capture (`readNativeLiveSpellPins`, `roomEncounterTurnCapture.ts`). Passive-only callers pass an explicit `new Map()`.
+- `listCreatureSpellCasts` throws `Spell <id> is not pinned to this Run.` when a non-empty pin map lacks a Spell the Creature names. An empty map offers no casts (passive-only callers, and a Run with no pins).
+- For T3c2b: the room turn preparation callers (`nativeEncounterTurnPreparation`, `nativeContest`, `nativeBasicActionResponse`, movement and area rules) already load the pins; resolve a cast by `capability.spellCast` against that same map. Fixture hook: `pinSpells: true` on `actionRoom` pins the SRD Spells the Run's Creatures name. Proofs: `spellPins.test.ts` (replay safety), `nativeRoomPinnedSpellCasts.test.ts` (room), `nativeLiveCaptureReads.test.ts` (capture).
+
 ## T3c2b resume: creature cast, slot spend and undo in the room (fresh session, after T3c2a)
 
 Branch `ci/spells-33-t3c2b`. Size ~5. Do not edit the ledger.
@@ -634,3 +640,7 @@ Class B, new generic option (D156). A Feature or option effect may carry `grante
 
 - Proofs: `creatureGrantedSpellCastAuthoringParity.test.ts` (node map unchanged, no closed rule, pool spend), `feature-granted-spell-cast-contracts.test.ts` (schema rules).
 - Data and schema only: discovery does not yet emit a capability for it. The runtime path (list the holder's granted spells of the kind, spend the slot) belongs to T3c2a/T3c2b, which should read `effect.grantedSpellCast` in `encounterFeatureActionCapabilityDiscovery.ts`.
+
+## T4i4: Sea Hag Death Glare and Will-o'-Wisp Consume Life (T4i4a done, `ci/spells-33-t4i4a`; T4i4b held)
+
+T4i4a added the generic single-target `targetRequirements` (`HAS_CONDITION`, `SIGHT`, `AT_ZERO_HIT_POINTS`), checked at admission with one shared sight evaluator (`encounterSightHolds`). T4i4b (the two conversions, KILL after a saving throw, `REDUCE_TO_ZERO_HIT_POINTS`, deleting both closed-rule kinds) is held behind RULES-2.T6c, the compiler's outcomes registry (ADR 0039): the new outcomes land in that registry rather than widening `effectActionCompiler.ts`.

@@ -86,7 +86,8 @@ import {
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
-  readNativeLiveActorsAndEffects
+  readNativeLiveActorsAndEffects,
+  readNativeLiveSpellPins
 } from './nativeEncounterTargets.js'
 import { createNativeActiveEffect, nativeEffectOwner } from './nativeEncounterSettlement.js'
 import { interpretForcedMovements } from './nativeEncounterActionInputs.js'
@@ -501,6 +502,7 @@ export async function planNativeLiveContest(
       resolveEncounterActionSource({
         ...input,
         system,
+        spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
           actorId: input.actor.id,
           actionId: input.actionId,

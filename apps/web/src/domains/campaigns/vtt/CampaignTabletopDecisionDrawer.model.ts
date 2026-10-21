@@ -79,6 +79,7 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'ACTION_OUTCOME_EVIDENCE') return 'Action outcome required'
   if (kind === 'AREA_SAVES') return 'Area saves'
   if (kind === 'CONTEST_CHECK') return 'Contest check'
+  if (kind === 'D20_WINDOW') return 'Add a die to the roll?'
   return 'Initiative order required'
 }
 

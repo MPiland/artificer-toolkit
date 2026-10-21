@@ -1,3 +1,4 @@
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { AuthoredVersionVector } from '@artificer-toolkit/schema/projections/identity'
 import type {
   EncounterRunActorState,
@@ -37,6 +38,8 @@ export async function prepareEncounterInitiativeDeclarationSources<
   campaignId: string
   actors: readonly EncounterRunActorState[]
   system: SystemAuthoredDto
+  /** The Run's pinned Spells (D163), handed to each Creature source. */
+  spells: ReadonlyMap<string, CompiledSpell>
   loadCharacter(actor: EncounterRunCharacterActorState): Promise<TFacts | null>
   readPublishedSpell(
     spellId: string,
@@ -50,12 +53,13 @@ export async function prepareEncounterInitiativeDeclarationSources<
   const sources: InitiativeDeclarationSourceWithController[] = []
   for (const actor of actors) {
     if (actor.kind !== 'CHARACTER') {
-      sources.push({
-        kind: actor.kind,
-        actor,
-        controllerUserId: null,
-        ...(actor.kind === 'CREATURE'
+      sources.push(
+        actor.kind === 'CREATURE'
           ? {
+              kind: 'CREATURE',
+              actor,
+              controllerUserId: null,
+              spells: input.spells,
               system: {
                 conditionTypes: system.conditionTypes,
                 abilities:
@@ -64,8 +68,8 @@ export async function prepareEncounterInitiativeDeclarationSources<
                     : []
               }
             }
-          : {})
-      })
+          : { kind: 'CUSTOM', actor, controllerUserId: null }
+      )
       continue
     }
     const facts = await input.loadCharacter(actor)

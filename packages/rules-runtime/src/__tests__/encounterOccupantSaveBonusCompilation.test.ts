@@ -100,6 +100,7 @@ function coreOptionsAura(change?: (parts: ReturnType<typeof auraParts>) => void)
 
 function discover(feature: CreatureFeature) {
   return discoverEncounterFeatureActions({
+    spells: new Map(),
     actor: srdCreatureActor({
       id: testUuid(0x1a50),
       creature: withFeature(srdByLabel(SRD.creatures, 'Goblin'), feature)

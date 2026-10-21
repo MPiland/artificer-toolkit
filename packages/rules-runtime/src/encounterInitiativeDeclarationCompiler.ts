@@ -1,3 +1,4 @@
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
@@ -48,7 +49,13 @@ export type InitiativeDeclarationSource =
         authoredVersionVector: AuthoredVersionVector
       }
     }
-  | { kind: 'CREATURE'; actor: Actor; system?: CreatureSystem }
+  | {
+      kind: 'CREATURE'
+      actor: Actor
+      system?: CreatureSystem
+      /** The Run's pinned Spells (D163). */
+      spells: ReadonlyMap<string, CompiledSpell>
+    }
   | { kind: 'CUSTOM'; actor: Pick<Actor, 'id'> }
 
 type Option = ServerInitiativeDeclarationRequestDto['primaryOptions'][number]
@@ -56,7 +63,8 @@ function creatureCapabilities(source: Extract<InitiativeDeclarationSource, { kin
   return discoverEncounterFeatureActionCapabilities({
     actor: source.actor,
     conditionDefinitionIds: source.system?.conditionTypes.map((condition) => condition.id),
-    abilityDefinitions: source.system?.abilities
+    abilityDefinitions: source.system?.abilities,
+    spells: source.spells
   })
 }
 function publishedChecksum(entry: CompiledActionEntryPoint): string {

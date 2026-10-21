@@ -3,7 +3,11 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { optionalSmite } from '@artificer-toolkit/rules-runtime/testing/optionalSmite'
+import {
+  OPTIONAL_POOL_STRIKE_CHARGE_ID,
+  optionalPoolStrike,
+  optionalSmite
+} from '@artificer-toolkit/rules-runtime/testing/optionalSmite'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
@@ -135,7 +139,12 @@ describe('room optional on-hit rider paid with a spell slot (ATTACK-9.4)', () =>
     expect(pending.attackerActorId).toBe(FIGHTER_ACTOR_ID)
     expect(pending.allowedResponses).toEqual(['DECLINE', 'OPTION'])
     // One option for each slot level the room's Character holds.
-    expect(pending.options.map(({ slotLevel }) => slotLevel)).toEqual([1, SECOND_LEVEL, 3, 4, 5])
+    expect(
+      pending.options.map((option) => [
+        option.kind,
+        option.kind === 'SPELL_SLOT' ? option.slotLevel : null
+      ])
+    ).toEqual([1, SECOND_LEVEL, 3, 4, 5].map((level) => ['SPELL_SLOT', level]))
     const history = await readRoomHistory(room.room.base.stub)
     expect(history.receipts.filter(({ commandType }) => commandType === 'RESOLVE_ACTION')).toEqual(
       []
@@ -147,7 +156,9 @@ describe('room optional on-hit rider paid with a spell slot (ATTACK-9.4)', () =>
     const room = await smiterRoom(HIT_FACE)
     const before = await readRoomHistory(room.room.base.stub)
     const { decision, pending } = await strikeToTheOffer(room)
-    const option = pending.options.find(({ slotLevel }) => slotLevel === SECOND_LEVEL)!
+    const option = pending.options.find(
+      (option) => option.kind === 'SPELL_SLOT' && option.slotLevel === SECOND_LEVEL
+    )!
 
     const used = await room.resolve(decision, { kind: 'OPTION', optionId: option.optionId })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
@@ -181,7 +192,9 @@ describe('room optional on-hit rider paid with a spell slot (ATTACK-9.4)', () =>
   it('doubles the rider’s dice on a critical hit', async () => {
     const room = await smiterRoom(CRITICAL_FACE)
     const { decision, pending } = await strikeToTheOffer(room)
-    const option = pending.options.find(({ slotLevel }) => slotLevel === SECOND_LEVEL)!
+    const option = pending.options.find(
+      (option) => option.kind === 'SPELL_SLOT' && option.slotLevel === SECOND_LEVEL
+    )!
 
     const used = await room.resolve(decision, { kind: 'OPTION', optionId: option.optionId })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
@@ -207,7 +220,9 @@ describe('room optional on-hit rider paid with a spell slot (ATTACK-9.4)', () =>
   it('adds the SRD Divine Smite’s extra d8 against an undead, doubled on a critical hit', async () => {
     const room = await smiterRoom(CRITICAL_FACE, { feature: srdDivineSmite, target: srdGhoul })
     const { decision, pending } = await strikeToTheOffer(room)
-    const option = pending.options.find(({ slotLevel }) => slotLevel === SECOND_LEVEL)!
+    const option = pending.options.find(
+      (option) => option.kind === 'SPELL_SLOT' && option.slotLevel === SECOND_LEVEL
+    )!
 
     const used = await room.resolve(decision, { kind: 'OPTION', optionId: option.optionId })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
@@ -215,5 +230,77 @@ describe('room optional on-hit rider paid with a spell slot (ATTACK-9.4)', () =>
     // 3d8 for the 2nd-level slot and 1d8 against the undead, every die doubled by the critical hit.
     const radiantDamage = damageOfType(await settledAttack(room), RADIANT_ID)
     expect(radiantDamage.reduce((total, amount) => total + amount, 0)).toBe(2 * (3 + 1))
+  })
+})
+
+const FORCE_ID = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FORCE')!.id
+
+/** The Character's recorded uses of the pool the homebrew strike spends. */
+const readPoolUsed = (room: Room) =>
+  runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const row = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((candidate) => candidate.characterId === FIGHTER_ID)
+    if (!row) throw new Error('Missing room Character play state.')
+    return (readCharacterPlay(row).resourceUsage ?? [])
+      .filter(
+        ({ owner }) =>
+          owner.kind === 'AUTHORED_SOURCE' && owner.chargeId === OPTIONAL_POOL_STRIKE_CHARGE_ID
+      )
+      .map(({ used }) => used)
+  })
+
+/** The room's Character carries a homebrew strike that spends 2 of its pool of `maximum` charges. */
+const strikerRoom = (maximum: number) =>
+  smiterRoom(HIT_FACE, {
+    feature: optionalPoolStrike({ maximum, cost: 2, diceConfig: '2d6', damageTypeCode: 'FORCE' }),
+    target: plainWolf
+  })
+
+describe('room optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a)', () => {
+  it('offers the pool, spends its charges with the outcome and returns them on undo', async () => {
+    const room = await strikerRoom(3)
+    const before = await readRoomHistory(room.room.base.stub)
+    const { decision, pending } = await strikeToTheOffer(room)
+
+    expect(pending.options).toMatchObject([{ kind: 'RESOURCE_POOL', cost: 2 }])
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0]!.optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const batch = await settledAttack(room)
+    expect(damageOfType(batch, FORCE_ID)).toEqual([2])
+    expect(batch.spellCastConsumption).toBeNull()
+    expect(await readPoolUsed(room)).toEqual([2])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await readPoolUsed(room)).toEqual([0])
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+  })
+
+  it('spends nothing when declined', async () => {
+    const room = await strikerRoom(3)
+    const { decision } = await strikeToTheOffer(room)
+
+    const declined = await room.resolve(decision, { kind: 'DECLINE' })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    expect(damageOfType(await settledAttack(room), FORCE_ID)).toEqual([])
+    expect(await readPoolUsed(room)).toEqual([])
+  })
+
+  it('offers no choice when the pool cannot cover the cost', async () => {
+    const room = await strikerRoom(1)
+    const { answer } = await room.startAction(WOLF_ID, ['TARGET_RANGE_UNCHECKED'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(damageOfType(await settledAttack(room), FORCE_ID)).toEqual([])
   })
 })
