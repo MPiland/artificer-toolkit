@@ -552,6 +552,17 @@ carry the input, so ungated checksums do not move), the evidence check requires 
 which also covers holy water) and Troll (acid, fire; heals at 0 hit points) author Regeneration this way, and
 `CREATURE_VAMPIRE_REGENERATION` is deleted. Sunlight and running water stay deferred edge cases.
 
+**Reduced-to-0 gate (current, SPELLS-33.T4i3a).** `REDUCED_TO_ZERO_BY { damageOutcomeId }` is the third gate kind: a KILL,
+CONDITION or fixed HEAL outcome follows only if the named damage outcome of the same path took the target from above 0 to 0
+hit points. It is a gate-table entry, not a rung of the `hitPointBand` ladder (ADR 0039). The compiler resolves
+`damageOutcomeId` by `entryId` to the earlier damage group's node id and binds it as the literal `reducedToZeroByNodeId`
+(`''` when unauthored, so the other kinds stay wide open). The graph cannot see damage defenses, so it admits;
+`interpretDirect` holds the proposal back unless a traced DAMAGE application from that node has `beforeCurrentHitPoints > 0`
+and `afterCurrentHitPoints === 0` (`reducedToZeroGateHolds`), so resistance that leaves the target standing withholds it.
+Gate evidence is checked against the hit points the graph's facts were taken at (`startingHitPoints`), not those left by
+earlier applications. A gate naming no earlier damage group of the path is refused at compile time. Adding the input
+changed every gated v2 graph's checksum once.
+
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 
 A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`conditionalAttackAdvantageGrants`, Pack Tactics and Assassinate) reaches
