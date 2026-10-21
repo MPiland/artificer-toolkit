@@ -72,7 +72,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eKillProposalOperation,
     dnd5eHitPointGatedConditionApplyProposalOperation,
     dnd5eHitPointGatedHealProposalOperation,
-  dnd5eHitPointGatedKillProposalOperation,
+    dnd5eHitPointGatedKillProposalOperation,
     dnd5eDepartProposalOperation,
     dnd5eModifierGrantProposalOperation,
     dnd5eActorLinkProposalOperation,

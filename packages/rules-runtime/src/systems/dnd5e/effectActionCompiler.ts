@@ -9490,7 +9490,8 @@ function interpretDirectProposal(
     ]
   }
   const gatedHeal =
-    trace.operation.key === DND5E_HEAL_PROPOSAL_OPERATION_KEY && trace.operation.contractVersion === 2
+    trace.operation.key === DND5E_HEAL_PROPOSAL_OPERATION_KEY &&
+    trace.operation.contractVersion === 2
   if (gatedHeal) {
     if (!hitPointGateEvidenceIsValid(input, publishedNode, trace))
       throw new Dnd5eEffectActionCompilerError(
