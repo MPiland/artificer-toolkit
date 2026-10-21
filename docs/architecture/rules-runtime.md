@@ -971,10 +971,26 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   (`DAMAGE_INTERCEPTION`, Death Ward) meets a `BEFORE` `DAMAGED` taking its holder from above 0 hit points to 0, and a
   `KILLED` when it negates kills: `hitPointsAfterDamage` and `killInterception` (`encounterDamageInterception.ts`)
   ask discovery, and both the planner (`applyDamageInterceptions`) and the fold that validates it call them, so a
-  filter added to the subscription (SPELLS-33.T4i2) reaches both. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
+  filter added to the subscription reaches both. The `BEFORE` `DAMAGED` event carries the whole blow (`damageTaken`,
+  `damageTypeId`, `critical`), and a damage interception may filter on it (SPELLS-33.T4i2a): `excludes` (damage types
+  and critical hits it does not meet) and `maxDamageTaken`. Its optional `save` (ability, DC `base` plus the damage
+  taken when `plusDamageTaken`) is spent only on a pass: each save takes the next of the batch's
+  `interceptionSaveRolls` (`{ rawDie, addedTotal }`, caller-supplied like `deathSave`), a failure lets the blow meet
+  the next interception, and a missing die is an `EncounterValidationError`. The DAMAGE receipt records every save
+  asked as `interceptionSaves`; the fold recomputes them and refuses a mismatch. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
   meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
   passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
   `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.
+- **Maintenance link** (RULES-2.T8; System capability `maintenance-link`, `MaintenanceLinkCapabilityAdapter`). Concentration
+  is a neutral link keyed by the System's `maintenanceDefinitionId`; the 5e adapter (`systems/dnd5e/concentrationPolicy.ts`)
+  supplies `MaintenanceLinkHook`s in priority order: `BREAK` on `DEFEATED`, `INCAPACITATED` of the holder or
+  `MAINTENANCE_BARRED` (a held casting lock), each naming its persisted end reason, and `SAVE` on any `DAMAGED`. Discovery
+  returns `maintenanceBreakReason` (the first break met) and `maintenanceSave`. `encounterConcentrationEndReason` raises
+  one event, short-circuiting in that order, and `concentrationSaveApplications` binds the damage applications that owe a
+  save, from both the Worker and the movement path. The adapter also owns the Constitution ability, the DC formula and the
+  holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
+  dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`
+  one, so no Concentration or incoming-gate importer reaches into `systems/dnd5e`.
 
 **One dispatch per event** means one subscription-reading dispatch per event kind, not one raise site. Callers state
 facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decides what fires; the release helpers in

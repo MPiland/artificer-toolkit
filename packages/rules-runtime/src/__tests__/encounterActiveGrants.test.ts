@@ -42,7 +42,7 @@ import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPoli
 import { dnd5eAttackRollContributors } from '../systems/dnd5e/characterRollModes.js'
 import { selectDnd5eTargetSavingThrow } from '../systems/dnd5e/effectActionCompiler.js'
 import { DND5E_CHARACTER_WIDE_TARGET } from '../systems/dnd5e/modifierApplicability.js'
-import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from '../systems/dnd5e/identity.js'
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE, DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { ENCOUNTER_ID, creatureActor, creatureRuleFacts } from '../testing/dnd5eSrdEncounter.js'
 import {
   aidEffect,
@@ -145,11 +145,11 @@ describe('rolled dice from active grants (D156)', () => {
       SPELL: [baneDie, blessDie],
       UNARMED: [baneDie, blessDie]
     })
-    expect(encounterSavingThrowAddedDice([bless()])).toEqual(
+    expect(encounterSavingThrowAddedDice(DND5E_SYSTEM_ID, [bless()])).toEqual(
       Object.fromEntries(Object.values(SRD_ABILITY_DEFINITION_IDS).map((id) => [id, [blessDie]]))
     )
     expect(encounterAttackAddedDice([], null)).toEqual({})
-    expect(encounterSavingThrowAddedDice([])).toEqual({})
+    expect(encounterSavingThrowAddedDice(DND5E_SYSTEM_ID, [])).toEqual({})
   })
 
   it('ignores fixed bonuses and roll modes on the same domains', () => {

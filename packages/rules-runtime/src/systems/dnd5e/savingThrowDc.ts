@@ -1,10 +1,4 @@
-/** The facts a saving-throw DC reads from the creature that owns it. */
-export type SavingThrowDcFacts = {
-  spellSaveDc: number | null
-  proficiencyBonus: number | null
-  /** The owner's modifier for an ability definition, or null when the owner lacks that ability. */
-  abilityModifier: (abilityDefinitionId: string) => number | null
-}
+import type { SavingThrowDcFacts } from '../../savingThrowCapability.js'
 
 type SavingThrowDcBonus =
   | { bonusKind: 'STATIC_BONUS'; amount: number }

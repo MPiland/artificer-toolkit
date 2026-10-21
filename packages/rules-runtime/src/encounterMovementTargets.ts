@@ -486,7 +486,7 @@ export function buildMovementTarget<
         ...effectiveRulePolicyOutput,
         // The form's ability scores resolve its attacks' damage, as a Creature's stat block does (T4d).
         ...(formStatBlock ? { statBlock: formStatBlock } : {}),
-        savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
+        savingThrowAddedDice: encounterSavingThrowAddedDice(gameSystemId, activeEffects),
         targetProtection: {
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
@@ -574,7 +574,7 @@ export function buildMovementTarget<
         activeEffects,
         creatureFacts?.modifiers ?? []
       ),
-      savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
+      savingThrowAddedDice: encounterSavingThrowAddedDice(gameSystemId, activeEffects),
       featureResources: actorRule.featureResources,
       creatureTypeId: snapshotCreatureTypeId(actor),
       targetProtection,

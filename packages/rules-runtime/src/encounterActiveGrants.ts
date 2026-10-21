@@ -34,7 +34,10 @@ import { normalizeCharacterGrantRestrictions } from './character/characterGrantF
 import { effectEventScope, type EffectEventScope } from './events/encounterEventHooks.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
-import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
+import {
+  abilityScoreCapabilityRegistry,
+  rollModeCapabilityRegistry
+} from './platformPolicyModules.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
   DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -843,19 +846,20 @@ export function encounterAttackAddedDice(
 }
 
 /**
- * A holder's added saving-throw dice (D156) by D&D ability definition id: the
+ * A holder's added saving-throw dice (D156) by ability definition id: the
  * `savingThrowAddedDice` target fact its save graphs read. Abilities with no dice are omitted.
  */
 export function encounterSavingThrowAddedDice(
+  gameSystemId: string,
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ): Record<string, D20AddedDieDto[]> {
   return Object.fromEntries(
-    Object.entries(DND5E_ABILITY_DEFINITION_ID_BY_CODE).flatMap(
-      ([ability, abilityDefinitionId]) => {
-        const dice = activeSavingThrowDice(effects, ability)
-        return dice.length > 0 ? [[abilityDefinitionId, dice]] : []
-      }
-    )
+    Object.entries(
+      abilityScoreCapabilityRegistry.require(gameSystemId).abilityDefinitionIdByCode
+    ).flatMap(([ability, abilityDefinitionId]) => {
+      const dice = activeSavingThrowDice(effects, ability)
+      return dice.length > 0 ? [[abilityDefinitionId, dice]] : []
+    })
   )
 }
 
