@@ -12214,7 +12214,7 @@
             },
             {
               "id": "SPELLS-31.T4c1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12224,7 +12224,7 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
               },
               "text": "D168 result window core (re-split 2026-10-20): ADD_BONUS_DIE AFTER_ROLL timing, the ENCOUNTER_D20_WINDOW pending kind with a discriminated source, use/decline resolutions, one shared pure decision module, two-step persist/void/replay, room wiring on the First Aid check, drawer. Options are AFTER_ROLL dice held on the roller's own active effects, spent by ending the effect. Proof: authoring-parity with a homebrew held die and a room journey.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m268 (52b690710)."
             },
             {
               "id": "SPELLS-31.T4c1p",
