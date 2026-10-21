@@ -246,7 +246,7 @@ hit point condition, D63); Encounter callers use `require`. The adapter interfac
 neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `creatureConditionCapability`, `initiativeFactAdapter`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
-`actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
+`combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
 Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
 `platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`), keeping Encounter modules out of
@@ -2336,6 +2336,14 @@ no Creature check reads roll modes yet.
 (`pinnedSenseDefinitions` on the Character mechanics projection, `senseDefinitionId` identity), Scene
 illumination and obscurement, line of effect, and typed active-effect contributions. Unknown definitions
 fail closed to Manual/Judgment. Fog and viewer projection are never mechanics inputs.
+
+The perception vocabulary and data shapes (channels, access grades, illumination, obscurement, capability and
+contribution types) live in `packages/shared/src/domains/vtt/combatPerception.ts` because Scene, schema and
+runtime share them. The resolution rules are D&D policy in `systems/dnd5e/combatPerception.ts`, reached through
+`combatPerceptionCapabilityRegistry.require(gameSystemId).resolveCombatPerceptionWithContributions(...)`
+(adapter interface in `combatPerceptionCapabilityRegistry.ts`, installed in `platformPolicyModules.ts` on the
+generic System capability registry), which fails closed on a System
+that provides no perception policy. The Rules Kernel holds no perception rules (ADR 0039 decision 5, RULES-2.T10).
 
 Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`
 (the same SOURCE light shape equipment torches and lanterns and the Light and Continual Flame spells author)

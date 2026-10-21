@@ -10,7 +10,7 @@ import type {
   CombatPerceptionIlluminationAccess,
   CombatPerceptionObscurement,
   CombatPerceptionRange
-} from '../rules/combatPerception.js'
+} from './combatPerception.js'
 
 export const VTT_SCENE_LIMITS = {
   annotations: 1_000,

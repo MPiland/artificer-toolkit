@@ -3,25 +3,23 @@ import { v5 as uuidv5 } from 'uuid'
 import type { PinnedSenseDefinition } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import {
-  resolveCombatPerceptionWithContributions,
-  type CombatPerceptionCapabilityInstance,
-  type CombatPerceptionChannel,
-  type CombatPerceptionEnvironment,
-  type CombatPerceptionContributionResult
-} from '@artificer-toolkit/shared/rules'
-import {
   resolveSceneCombatPerceptionEnvironment,
   senseRangeInSceneUnits,
   type CampaignSceneState,
+  type CombatPerceptionCapabilityInstance,
+  type CombatPerceptionChannel,
+  type CombatPerceptionContributionResult,
+  type CombatPerceptionContributionSource,
+  type CombatPerceptionEnvironment,
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 
+import { combatPerceptionCapabilityRegistry } from './platformPolicyModules.js'
 import {
   deriveCombatPerceptionContributionPartitions,
   type LockedCombatPerceptionEffect
 } from './encounterCombatPerceptionContributions.js'
-import type { CombatPerceptionContributionSource } from '@artificer-toolkit/shared/rules'
 
 const PINNED_SENSE_INSTANCE_NAMESPACE = 'e526f4c9-a37d-46a8-8f85-73568add6b56'
 
@@ -67,6 +65,7 @@ function combatPerceptionCapabilitiesFromPinnedSenses(input: {
  */
 export function resolveEncounterCombatPerception(
   input: {
+    gameSystemId: string
     requirement: CombatPerceptionRequirementDto
     observerActorId: string
     sceneGrid: SceneGrid
@@ -115,18 +114,20 @@ export function resolveEncounterCombatPerception(
     subjectEffects: input.subjectEffects,
     localAreaEffects: input.localAreaEffects
   })
-  return resolveCombatPerceptionWithContributions({
-    requirement: input.requirement,
-    environment,
-    capabilities,
-    observerContributions: [
-      ...contributions.observerContributions,
-      ...(input.observerConditionContributions ?? [])
-    ],
-    subjectContributions: [
-      ...contributions.subjectContributions,
-      ...(input.subjectConditionContributions ?? [])
-    ],
-    localAreaContributions: contributions.localAreaContributions
-  })
+  return combatPerceptionCapabilityRegistry
+    .require(input.gameSystemId)
+    .resolveCombatPerceptionWithContributions({
+      requirement: input.requirement,
+      environment,
+      capabilities,
+      observerContributions: [
+        ...contributions.observerContributions,
+        ...(input.observerConditionContributions ?? [])
+      ],
+      subjectContributions: [
+        ...contributions.subjectContributions,
+        ...(input.subjectConditionContributions ?? [])
+      ],
+      localAreaContributions: contributions.localAreaContributions
+    })
 }
