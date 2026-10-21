@@ -1,17 +1,9 @@
 import {
   liveSessionWebSocketServerMessageDtoSchema,
-  type LiveSessionCommandRejectionCodeDto,
-  type LiveSessionCorrectionDto,
   type LiveSessionWebSocketClientMessageDto,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import type { LiveSessionCheckpointReason } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
-import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
-import {
-  sceneCommandResultDtoSchema,
-  type CampaignSceneStateDto,
-  type SceneCommandResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
+import { sceneCommandResultDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { applySceneDelta, projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 import type {
@@ -19,8 +11,6 @@ import type {
   ResolveRuleOccurrenceInputDto,
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { DurableCommandJournal } from './durableCommandJournal.js'
 import { createNativeLiveSessionState } from './nativeLiveSessionState.js'
 import { LiveSessionRouteError } from './liveSessionRoutes.js'
 import {
@@ -28,8 +18,7 @@ import {
   sceneNotPresentedRejection
 } from './nativeRoomEncounterCommand.js'
 import type { StagedSceneCommand, StagedSceneContext } from './roomSceneGeometryPlan.js'
-import { RoomEncounterStore } from './roomEncounterStore.js'
-import { RoomInputs } from './roomInputs.js'
+import type { RoomCommandHost } from './roomCommandHost.js'
 import { executeRoomSceneGeometry } from './roomSceneGeometryCommand.js'
 import {
   accountBucket,
@@ -37,8 +26,7 @@ import {
   send,
   viewer,
   type Admission,
-  type SocketAttachment,
-  type TransientCache
+  type SocketAttachment
 } from './roomSocket.js'
 import { readRoomSceneHeader } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
@@ -47,73 +35,37 @@ import {
   RoomSceneCommandRefusal,
   type RoomSceneEditWork
 } from './roomSceneEdits.js'
-import { RoomSceneFogUploads } from './roomSceneFogUploads.js'
-import { RoomAccountBuckets, RoomRateLimitedError } from './roomRateLimits.js'
-import type { RoomSceneTokens } from './roomEncounterReadPorts.js'
+import { RoomRateLimitedError } from './roomRateLimits.js'
 import { readRoomEncounterPlayAuthorization } from './roomEncounterCommands.js'
-import { admitsRoomMember, RoomAuthorization } from './roomAuthorization.js'
+import { admitsRoomMember } from './roomAuthorization.js'
 
-/**
- * What the room lends its Scene commits: its stores and rate buckets, the cached Scene, and the
- * room-level steps around a commit (aggregate reload, authorization, fanout, alarm). The room
- * builds one in its constructor; the commit functions own the transaction shape, never the room.
- */
-export interface RoomSceneCommitHost {
-  readonly store: RoomEncounterStore
-  readonly inputs: RoomInputs
-  readonly journal: DurableCommandJournal
-  readonly buckets: RoomAccountBuckets
-  readonly authorization: RoomAuthorization
-  readonly fogUploads: RoomSceneFogUploads
-  cache(): TransientCache | null
-  setCache(cache: TransientCache): void
-  aggregateNeedsReload(): boolean
-  flushOutbox(reason: LiveSessionCheckpointReason): Promise<void>
-  loadRoomAggregate(sceneId: string | null): Promise<void>
-  authorizationBoundary(value: SocketAttachment): Promise<LiveSessionRoomAuthorization>
-  prepareWithRetry<T>(
-    authorization: LiveSessionRoomAuthorization,
-    run: (
-      authorization: LiveSessionRoomAuthorization,
-      random: (maximum: number) => number
-    ) => Promise<T>
-  ): Promise<{ result: T; authorization: LiveSessionRoomAuthorization }>
-  liveAdmission(socket: WebSocket): Admission | null
-  sceneTokens(authorityEpoch: string): RoomSceneTokens
-  liveRulesRuntime(): RulesRuntimeService
-  sceneCommittedFor(input: {
-    admission: Pick<Admission, 'role' | 'userId'>
-    epoch: string
-    committed: { commandId: string; sequence: number }
-    before: CampaignSceneStateDto
-    after: CampaignSceneStateDto
-    result: SceneCommandResultDto
-    occurrence: SceneCommandResultDto['occurrence']
-  }): LiveSessionWebSocketServerMessageDto
-  broadcastSceneCommitted(
-    committed: { commandId: string; sequence: number },
-    before: CampaignSceneStateDto,
-    after: CampaignSceneStateDto,
-    result: SceneCommandResultDto,
-    sender: { socket: WebSocket; message: LiveSessionWebSocketServerMessageDto }
-  ): void
-  broadcastStateSync(): void
-  scheduleAlarm(): Promise<void>
-  rejectCommand(
-    socket: WebSocket,
-    commandId: string,
-    code: LiveSessionCommandRejectionCodeDto,
-    message: string,
-    currentSequence?: number,
-    correction?: LiveSessionCorrectionDto
-  ): void
-  controlledScene(scene: CampaignSceneStateDto, authorityEpoch: string): CampaignSceneStateDto
-  boundTokenControl(
-    scene: CampaignSceneStateDto,
-    admission: Pick<Admission, 'role' | 'userId'>,
-    authorityEpoch: string
-  ): ReadonlyMap<string, boolean>
-}
+/** The room steps and stores a Scene commit uses; each is lent by `RoomCommandHost`. */
+export type RoomSceneCommitHost = Pick<
+  RoomCommandHost,
+  | 'store'
+  | 'inputs'
+  | 'journal'
+  | 'buckets'
+  | 'authorization'
+  | 'fogUploads'
+  | 'cache'
+  | 'setCache'
+  | 'aggregateNeedsReload'
+  | 'flushOutbox'
+  | 'loadRoomAggregate'
+  | 'authorizationBoundary'
+  | 'prepareWithRetry'
+  | 'liveAdmission'
+  | 'sceneTokens'
+  | 'liveRulesRuntime'
+  | 'sceneCommittedFor'
+  | 'broadcastSceneCommitted'
+  | 'broadcastStateSync'
+  | 'scheduleAlarm'
+  | 'rejectCommand'
+  | 'controlledScene'
+  | 'boundTokenControl'
+>
 
 /**
  * A movement decision's answer or GM void commits through the room with its presented Scene

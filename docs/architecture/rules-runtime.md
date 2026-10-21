@@ -237,7 +237,7 @@ closed on a System with no roll-mode policy, an influence code the System does n
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
 `resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
-**System capability registries (RULES-2.T11a–b, current).** Every System capability is one
+**System capability registries (RULES-2.T11a–c, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the
 capability; a duplicate or non-UUID adapter identity throws at install. `find(gameSystemId)` is for
@@ -245,7 +245,7 @@ optional capabilities only, where the rule is valid for a System without the cap
 hit point condition, D63); Encounter callers use `require`. The adapter interfaces live in
 neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `creatureConditionCapability`, `initiativeFactAdapter`, `armorClassCapability`,
-`d20TestDefinitionCapability`), the D&D adapters in `systems/dnd5e/`, and
+`d20TestDefinitionCapability`, `contestCheckCapability`, `optionalCombatPolicyCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
 Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions).
@@ -253,7 +253,12 @@ The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
 `platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`; `armorClassCapabilityRegistry`
 for a Creature's loadout armor class and the shield a two-handed grip stows;
 `d20TestDefinitionCapabilityRegistry` for the basic action check and death save graphs and their
-added-dice facts, where a System without death saves omits `deathSaveDefinition`), keeping Encounter modules out of
+added-dice facts, where a System without death saves omits `deathSaveDefinition`;
+`contestCheckCapabilityRegistry` for the two-participant contest graph and its modifier fact keys;
+`optionalCombatPolicyCapabilityRegistry` for Overrun, Tumble and Cleaving, where a sealed passage
+choice uses `require` and Cleaving uses `find`, since a System without optional combat offers no
+Cleaving choice). Sealing and currentness of a pending contest is System-neutral
+(`encounterContestPendingContext.ts`). Installing them there keeps Encounter modules out of
 the browser (ADR 0036 S6, `apps/web/src/lib/rulesRuntimeBoundary.test.ts`). Ability id↔code stays System vocabulary data (`system.abilities`).
 Neutral modules reach System behaviour only through these registries; the `systems/*` import
 allowlist (`scripts/systemsImportAllowlist.json`) only shrinks.
@@ -877,7 +882,7 @@ whatever its pause kind.
 
 **Worker handler layout (current, RULES-2.T4b).** `planNativeLiveEncounterAction` no longer answers pauses inline. `apps/session-worker/src/nativePauseHandlers.ts` holds one exhaustive table, `{ [Kind in NativePauseKind]: NativePauseHandler<Kind> }`, so a new pause kind fails to compile until it has a handler. Each handler has `read` (turn the response into that kind's typed answer, refusing a missing decision or die) and, for the kinds the rules graphs resume, `settle` (continue the action into its execution). One module per kind: `nativePauseLegendaryResistance`, `nativePauseReaction` (`REACTION` and `ON_HIT`, which share the target's current reaction), `nativePauseForcedMovement`, and read-only `nativePauseCastReaction`, `nativePauseIncomingGate`, `nativePauseAttackRetarget`: cast, ward and retarget answers feed their own earlier steps of the planner. Shared types live in `nativePauseTypes.ts`. The planner calls `readNativePauseAnswer` once, then `settleNativePauseAnswer` where it used to branch per kind.
 
-**Live room layout (current, RULES-2.T13a).** `NativeLiveSessionRoom` keeps the Durable Object lifecycle, command dispatch and field wiring; it hands each responsibility to a module with a typed port instead of growing in place. `roomSocket.ts` owns the shared room vocabulary (socket attachment schema, `Admission`, `TransientCache`, `send`, `viewer`, `accountBucket`). `roomSceneCommit.ts` owns the Scene commit paths (fog staging, inline edit/undo/fog publication, geometry and movement-decision commits) and declares `RoomSceneCommitHost`, the stores and room steps (aggregate reload, authorization boundary, fanout, alarm) the room builds once in its constructor. Later T13 slices move encounter command execution, sheet and chat execution, admission and recovery, and the scene cache and outbox the same way.
+**Live room layout (current, RULES-2.T13a).** `NativeLiveSessionRoom` keeps the Durable Object lifecycle, command dispatch and field wiring; it hands each responsibility to a module with a typed port instead of growing in place. `roomSocket.ts` owns the shared room vocabulary (socket attachment schema, `Admission`, `TransientCache`, `send`, `viewer`, `accountBucket`). `roomSceneCommit.ts` owns the Scene commit paths (fog staging, inline edit/undo/fog publication, geometry and movement-decision commits) and declares `RoomSceneCommitHost`, the stores and room steps (aggregate reload, authorization boundary, fanout, alarm) the room builds once in its constructor. **(T13b)** `roomCommandHost.ts` is now the one definition of what the room lends (`RoomCommandHost`); each module declares the `Pick` it uses (`RoomSceneCommitHost`, `RoomEncounterExecutionHost`, `RoomEncounterBindingHost`). `roomEncounterExecution.ts` runs every Encounter command (the ACTIVE-Run path and the local Encounter path, including movement decisions through `roomSceneCommit.ts`); `roomEncounterBindingCommand.ts` commits the GM's Encounter-to-Scene binding. **(T13c)** `roomCharacterSheetCommands.ts` runs held Character Sheet commands (`RoomCharacterSheetHost`) and `roomChatCommands.ts` runs Campaign chat commands (`RoomCampaignChatHost`), each beside the pure per-command helper it already owned. Later T13 slices move admission and recovery, and the scene cache and outbox the same way.
 
 ### Event hooks (current, RULES-2.T5a; ADR 0039 decision 4)
 

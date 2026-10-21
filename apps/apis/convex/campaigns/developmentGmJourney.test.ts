@@ -1,6 +1,6 @@
 import { createFunctionHandle } from 'convex/server'
 import { convexToJson, type Value } from 'convex/values'
-import { it } from 'vitest'
+import { afterEach, beforeEach, it, vi } from 'vitest'
 import type { DevelopmentCampaignInspection } from '@artificer-toolkit/schema/api/developmentCampaignLifecycle'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -17,6 +17,11 @@ import { ensureAuthoredRouteId } from '../content/routeIds'
 import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
 
 const tableNames = Object.keys(schema.tables) as TableNames[]
+
+// convex-test runs scheduled jobs on real timers, so setup jobs would move pending -> inProgress
+// between the verifier's whole-state snapshots. Faked timers keep every job pending until cancelled.
+beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }))
+afterEach(() => vi.useRealTimers())
 
 it('proves native GM overlays through public Campaign handlers', async () => {
   const { owner: player, other: owner, ...base } = await readySheetFixture()
