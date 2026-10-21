@@ -1539,10 +1539,20 @@ describe('hit-point gate, hit-point tiers and kill (SPELLS-4.T2i)', () => {
     expect(effectDtoSchema.parse(gated(gate)).paths[0]).toMatchObject({ resultBlock: { gate } })
   })
 
+  it('keeps a reduced-to-0 gate naming the damage outcome it follows', () => {
+    const gate = {
+      kind: 'REDUCED_TO_ZERO_BY',
+      damageOutcomeId: '00000000-0000-4000-8000-0000000001b1'
+    }
+    expect(effectDtoSchema.parse(gated(gate)).paths[0]).toMatchObject({ resultBlock: { gate } })
+  })
+
   it.each([
     ['a zero amount', { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 0 }],
     ['a fractional amount', { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 1.5 }],
-    ['an unknown kind', { kind: 'TARGET_IS_BLOODIED', amount: 10 }]
+    ['an unknown kind', { kind: 'TARGET_IS_BLOODIED', amount: 10 }],
+    ['a reduced-to-0 gate without its damage outcome', { kind: 'REDUCED_TO_ZERO_BY' }],
+    ['a reduced-to-0 gate with a hit-point amount', { kind: 'REDUCED_TO_ZERO_BY', amount: 5 }]
   ])('refuses a gate with %s', (_label, gate) => {
     expect(effectDtoSchema.safeParse(gated(gate)).success).toBe(false)
   })

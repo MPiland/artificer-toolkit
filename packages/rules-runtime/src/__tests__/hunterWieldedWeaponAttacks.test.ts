@@ -5,7 +5,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { encounterActionChoiceRange } from '../encounterActionRange.js'
 import {
   buildCompiledActionCompilerSource,

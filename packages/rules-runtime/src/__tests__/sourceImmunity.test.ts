@@ -9,7 +9,7 @@ import {
 
 import { buildCharacterSpellCastRuleFacts } from '../character/characterSpellCastRuleFacts.js'
 import { buildCharacterSpellRuleFacts } from '../character/characterSpellRuleFacts.js'
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'

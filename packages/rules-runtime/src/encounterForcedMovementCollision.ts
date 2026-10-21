@@ -12,7 +12,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import type { CharacterRuleActionForcedMovementCollision } from './characterRuleActionSystemAdapter.js'
 import type { EncounterBasicActionCapabilityDescriptor } from './encounterBasicActionCapabilityDiscovery.js'
-import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscovery.js'
 
 const COLLISION_FEET_PER_DIE_GROUP = 10
 const DICE_TERM = /^([1-9]\d?)d([1-9]\d{0,2})$/

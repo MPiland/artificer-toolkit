@@ -10,7 +10,7 @@ import {
   resolveEffectOffer
 } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
@@ -99,7 +99,7 @@ export async function planNativeLiveMoveHeldEffect(
     targetPolicy: effectOfferTargetPolicy(offer.range),
     sceneContext: sceneInputs && {
       ...sceneInputs,
-      grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+      grid: resolveEncounterSceneGrid({
         encounter: state,
         sceneGrid: sceneInputs.sceneGrid
       })

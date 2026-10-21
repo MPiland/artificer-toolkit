@@ -34,8 +34,7 @@ import {
   readSpellCastSlot
 } from '../character/characterSpellCastActions.js'
 import { spellCastActionId } from '../spellCastCandidates.js'
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
-import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../encounterAreaAction.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
@@ -1745,8 +1744,7 @@ describe('a repeat save attempted only by what the target perceives (SPELLS-29.T
       },
       defenses: [],
       perception: { requirement: 'SEE', satisfied: input.seesSource, checksum: 'a'.repeat(64) },
-      runtime: createSrdRulesRuntime(),
-      adapters: characterRuleActionSystemAdapterRegistry
+      runtime: createSrdRulesRuntime()
     })
   }
 

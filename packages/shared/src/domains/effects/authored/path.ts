@@ -132,11 +132,20 @@ export type PathLifecycleAuthored = {
  * A condition on the target that the result block checks when the action resolves, before its own
  * effects: while unmet, the block does nothing to that target.
  */
-export type ResultBlockGateAuthored = {
-  kind: 'TARGET_HIT_POINTS_AT_MOST' | 'TARGET_HIT_POINTS_AT_LEAST'
-  /** The target's current hit points must be at most (AT_MOST) or at least (AT_LEAST) this many. */
-  amount: number // int >= 1
-}
+export type ResultBlockGateAuthored =
+  | {
+      kind: 'TARGET_HIT_POINTS_AT_MOST' | 'TARGET_HIT_POINTS_AT_LEAST'
+      /** The target's current hit points must be at most (AT_MOST) or at least (AT_LEAST) this many. */
+      amount: number // int >= 1
+    }
+  | {
+      /**
+       * The block's other outcomes apply only if the named damage outcome of the same path took the
+       * target from above 0 hit points to 0. The damage outcome itself is never gated by it.
+       */
+      kind: 'REDUCED_TO_ZERO_BY'
+      damageOutcomeId: string
+    }
 
 export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> = {
   id: string

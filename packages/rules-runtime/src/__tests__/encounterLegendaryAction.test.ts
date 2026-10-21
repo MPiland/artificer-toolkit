@@ -33,7 +33,7 @@ import { discoverTurnLegendaryWindows } from '../encounterTurnLegendaryDiscovery
 import {
   evaluateLegendaryActionEligibility,
   requireLegendaryActionCapabilityDefinitionIds
-} from '../legendaryActionEligibilityRegistry.js'
+} from '../legendaryActionEligibilityService.js'
 import {
   createSrdRulesRuntime,
   creatureFeature,

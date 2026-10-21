@@ -8,17 +8,13 @@ import { SRD_STEALTH_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocabul
 
 import { normalizeCharacterGrantRestrictions } from '../character/characterGrantFoldRestrictionFacts.js'
 import { compileEncounterFeatureActionPlan } from '../encounterActionEntryPointCompiler.js'
-import { createEncounterFeatureActionCapabilityDiscoveryRegistry } from '../encounterFeatureActionCapabilityDiscovery.js'
-import { dnd5eEncounterFeatureActionCapabilityAdapter } from '../systems/dnd5e/encounterFeatureActionCapabilityDiscovery.js'
+import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 const conditionDefinitionIds = srdSystemRecord.conditionTypes.map(({ id }) => id)
 const abilityDefinitions = (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-const discovery = createEncounterFeatureActionCapabilityDiscoveryRegistry([
-  dnd5eEncounterFeatureActionCapabilityAdapter
-])
 
 const srdClassFeature = (classLabel: string, featureLabel: string) => {
   const feature = srdBaselineContent.subjects.classes
@@ -39,9 +35,12 @@ function plannedAction(effects: NonNullable<CreatureAuthored['features']>[number
   }
   const feature = creatureFeature(creature, 'Invisibility')
   const actor = srdCreatureActor({ id: testUuid(0x2200), creature })
-  const capability = discovery
-    .discover({ spells: new Map(), actor, conditionDefinitionIds, abilityDefinitions })
-    .available.find((candidate) => candidate.ownerFeatureId === feature.id)
+  const capability = discoverUncompiledEncounterFeatureActions({
+    spells: new Map(),
+    actor,
+    conditionDefinitionIds,
+    abilityDefinitions
+  }).available.find((candidate) => candidate.ownerFeatureId === feature.id)
   if (!capability) throw new Error('The feature is not offered as an action.')
   const executionPlan = compileEncounterFeatureActionPlan(
     dnd5eCharacterRuleActionSystemAdapter,

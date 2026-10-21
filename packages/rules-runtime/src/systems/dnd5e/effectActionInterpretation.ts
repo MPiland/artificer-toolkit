@@ -62,7 +62,7 @@ import {
   type DirectInterpretationInput,
   conditionImmunityFacts
 } from './effectActionEvidenceChecks.js'
-import { gateEvidenceIsValid } from './effectActionGates.js'
+import { gateEvidenceIsValid, reducedToZeroGateHolds } from './effectActionGates.js'
 import {
   parseRecoveryTags,
   isDnd5eTestOutcomeRule,
@@ -1057,7 +1057,7 @@ export function interpretDirect(
         ? input.execution.evidence.trace.find((entry) => entry.nodeId === amountBinding.nodeId)
             ?.outputs[amountBinding.port]
         : undefined
-    const direct = interpretDirectProposal(
+    const interpreted = interpretDirectProposal(
       {
         ...input,
         execution: {
@@ -1081,6 +1081,9 @@ export function interpretDirect(
       },
       graph
     )
+    // A proposal gated on damage that reduced the target to 0 is left unapplied when it did not.
+    const direct =
+      proposalNode && !reducedToZeroGateHolds(proposalNode.inputs, applications) ? [] : interpreted
     applications.push(
       ...direct.map((application) =>
         nestedPaths
@@ -1100,11 +1103,13 @@ export function interpretDirect(
         application.kind === 'DEPART'
       )
         continue
+      const startingHitPoints = input.startingHitPoints ?? input.currentHitPoints
       input =
         application.kind === 'KILL'
-          ? { ...input, currentHitPoints: 0, temporaryHitPoints: 0 }
+          ? { ...input, startingHitPoints, currentHitPoints: 0, temporaryHitPoints: 0 }
           : {
               ...input,
+              startingHitPoints,
               currentHitPoints: application.afterCurrentHitPoints,
               temporaryHitPoints: application.afterTemporaryHitPoints
             }

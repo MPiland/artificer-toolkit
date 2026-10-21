@@ -11,7 +11,7 @@ import {
   hydrateStoredCompilation
 } from './authoredPublicationHydrate.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
-import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscovery.js'
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
 import type { CharacterRuleSpellPublication } from './character/contextPreparation.js'
 import type { prepareCharacterSheetFromContext } from './character/sheetPreparation.js'

@@ -11,7 +11,7 @@ import type {
 } from '@artificer-toolkit/shared/subjects/authored'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { chosenZonePlacement } from '../encounterZonePlacement.js'
 import { testUuid } from './dnd5eSrdEncounter.js'

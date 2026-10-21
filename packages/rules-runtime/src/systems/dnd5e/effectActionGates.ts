@@ -1,3 +1,4 @@
+import type { ResultBlockGateAuthored } from '@artificer-toolkit/shared/authored'
 import {
   RULE_VALUE_KIND,
   type CompiledRuleGraph,
@@ -5,6 +6,7 @@ import {
   type RuleValue,
   type RuleValueKind
 } from '@artificer-toolkit/shared/rules'
+import type { CharacterRuleActionApplication } from '../../characterRuleActionSystemAdapter.js'
 import {
   NO_HIT_POINT_CEILING,
   NO_HIT_POINT_FLOOR,
@@ -18,9 +20,11 @@ import {
 
 /** The authored gate fields of a direct entry: a hit-point gate and the damage types that suppress it. */
 export type Dnd5eAuthoredGates = {
-  gate?: Parameters<typeof hitPointGateBand>[0]
+  gate?: ResultBlockGateAuthored
   /** A band computed by the compiler (a hit-point tier's), standing in for an authored gate. */
   hitPointBand?: { above: number; atMost: number }
+  /** The node of the damage proposal the entry follows, resolved by the compiler from an authored `REDUCED_TO_ZERO_BY` gate. */
+  reducedToZeroByNodeId?: string
   suppressedByDamageTypeIds?: readonly string[]
 }
 
@@ -84,7 +88,30 @@ export function authoredHitPointBand(gate: Dnd5eAuthoredGates['gate']): {
   above: number
   atMost: number
 } {
-  return gate ? hitPointGateBand(gate) : { above: NO_HIT_POINT_FLOOR, atMost: NO_HIT_POINT_CEILING }
+  return gate && gate.kind !== 'REDUCED_TO_ZERO_BY'
+    ? hitPointGateBand(gate)
+    : { above: NO_HIT_POINT_FLOOR, atMost: NO_HIT_POINT_CEILING }
+}
+
+/**
+ * Whether a proposal's reduced-to-0 gate holds on the applications committed before it: the damage
+ * proposal it names took the target from above 0 hit points to 0. A proposal with no such gate is
+ * unaffected. Damage defenses resolve in interpretation, so only the applications can answer this.
+ */
+export function reducedToZeroGateHolds(
+  inputs: NodeInputs,
+  applications: readonly CharacterRuleActionApplication[]
+): boolean {
+  const binding = inputs.reducedToZeroByNodeId
+  if (binding?.kind !== 'LITERAL' || typeof binding.value !== 'string' || binding.value === '')
+    return true
+  return applications.some(
+    (application) =>
+      application.kind === 'DAMAGE' &&
+      application.sourceNodeId === binding.value &&
+      application.beforeCurrentHitPoints > 0 &&
+      application.afterCurrentHitPoints === 0
+  )
 }
 
 export const DND5E_GATE_KINDS = {
@@ -126,6 +153,24 @@ export const DND5E_GATE_KINDS = {
         facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] === currentHitPoints
         ? withinHitPointBand(currentHitPoints, band.above, band.atMost)
         : null
+    }
+  },
+  /**
+   * The target was taken from above 0 to 0 hit points by the named damage proposal of the same
+   * graph. Damage defenses resolve only when a trace is interpreted, so the graph admits and the
+   * interpreter holds the proposal back unless that damage application reduced the target
+   * ({@link reducedToZeroGateNodeId}); '' leaves the proposal ungated by it.
+   */
+  REDUCED_TO_ZERO_BY: {
+    inputKinds: { reducedToZeroByNodeId: RULE_VALUE_KIND.TEXT },
+    nodeInputs: ({ reducedToZeroByNodeId }) => ({
+      reducedToZeroByNodeId: { kind: 'LITERAL', value: reducedToZeroByNodeId ?? '' }
+    }),
+    admits: ({ reducedToZeroByNodeId }) =>
+      typeof reducedToZeroByNodeId === 'string' ? true : null,
+    evidenceAdmits: ({ inputs }) => {
+      const binding = inputs.reducedToZeroByNodeId
+      return binding?.kind === 'LITERAL' && typeof binding.value === 'string' ? true : null
     }
   },
   DAMAGE_TYPE_SUPPRESSION: {
@@ -170,7 +215,12 @@ export const DND5E_GATE_INPUT_KINDS: Readonly<Record<string, RuleValueKind>> = O
 
 /** Whether an entry authors any gate, and so compiles to a gated (version 2) proposal. */
 export function isGated(entry: Dnd5eAuthoredGates): boolean {
-  return entry.gate !== undefined || (entry.suppressedByDamageTypeIds?.length ?? 0) > 0
+  return (
+    entry.gate !== undefined ||
+    entry.hitPointBand !== undefined ||
+    entry.reducedToZeroByNodeId !== undefined ||
+    (entry.suppressedByDamageTypeIds?.length ?? 0) > 0
+  )
 }
 
 /** The node inputs of a gated entry: every gate kind binds its own, open when not authored. */
@@ -192,6 +242,8 @@ export function gatesAdmit(inputs: GateInputs): boolean | null {
 export function gateEvidenceIsValid(
   input: { execution: { evidence: { facts: Readonly<Record<string, RuleValue>> } } } & {
     currentHitPoints: number
+    /** The hit points the graph's facts were taken at, when earlier applications have moved `currentHitPoints`. */
+    startingHitPoints?: number
   },
   publishedNode: { inputs: NodeInputs },
   trace: { operation: { contractVersion: number }; outputs: Record<string, unknown> },
@@ -206,7 +258,7 @@ export function gateEvidenceIsValid(
     gate.evidenceAdmits({
       inputs: publishedNode.inputs,
       facts: input.execution.evidence.facts,
-      currentHitPoints: input.currentHitPoints
+      currentHitPoints: input.startingHitPoints ?? input.currentHitPoints
     })
   )
   return (

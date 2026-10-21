@@ -3,7 +3,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import { resolveEffectOffer } from './encounterEffectOffers.js'
-import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscovery.js'
 
 /**
  * The server-only capability of a repeat a held effect offers its source (D166): the paths of the

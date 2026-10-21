@@ -155,9 +155,25 @@ event owns, which settle no target application). A path-gated proposal's interpr
 literal of its payload, then interprets it as its direct proposal.
 
 `MODIFIER_GRANT`, `ACTOR_LINK`, `CREATURE_FORM`, `CONCEAL` and `DETECT_CONCEALED` have no path-gated form: their state
-lives in an active-effect plan, which cannot yet be gated on a test's result path. Under a test the compiler refuses
-them and names that missing primitive (RULES-2.T6d adds it). `KILL` under a test stays limited to hit-point tiers,
-which is a rule, not a missing primitive.
+lives in an active-effect plan, not in the test graph. A plan authored on a test's result path carries a **result
+gate** (current, RULES-2.T6d1): `resultGate.paths` lists the resolved paths that make it, which the System compiler
+fills from its path rule (`dnd5eResultGate`: an authored `ON_HIT` lists `ON_HIT` and `ON_CRIT`). The neutral
+`prepareRecurringActiveEffect` makes the effect only when the test's `d20.resultPath` is one of them, for every
+contribution kind, with no System import. It replaced the per-kind `grant-authored-path` and `form-authored-path`
+facts; a relationship keeps `relationship-authored-path` only as its application trace's `authoredPath`. So a grant
+on a hit or a miss, and a link or a creature form on either save result, compile under a test. `CONCEAL` and
+`DETECT_CONCEALED` stay refused under an attack or a save, for a rule: they are settled from the holder's own check
+total, which neither test produces. `KILL` under a test stays limited to hit-point tiers, which is also a rule.
+
+**Effect lifetime (current, RULES-2.T6d1).** An active-effect plan's lifetime is its neutral fields: the clock
+(`recurrenceStage`, `initialRemaining`, `tickAnchor`), the repeat (`saveThresholds`, `lifecycle.repeatTriggers`), the
+ends (`lifecycle`) and `resultGate`. D&D builds the repeated save of every follow-up flavour (the action's own
+recurring save, a failed save's or a cast's follow-up, a hit's nested save, and a placed zone's save) through one
+builder, `dnd5eRepeatSave` in `systems/dnd5e/effectActionFollowUp`: ability, pinned DC (a fixed DC in the plan, the
+caster's DC as a cast fact), request node, held and escalating conditions, and the perception roll influence or
+attempt gate. `conditionDurationTurns` there is the one turn count for a timed duration. The compiler picks a plan
+through `repeatingFollowUpSavePlan` (the save repeats) and `timedActiveEffectPlan` (the duration counts) in one order,
+shared by `dnd5eActiveEffectPlans` and the Concentration check.
 
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
 `ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the
@@ -268,7 +284,7 @@ closed on a System with no roll-mode policy, an influence code the System does n
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
 `resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
-**System capability registries (RULES-2.T11a–f, current).** Every System capability is one
+**System capability registries (RULES-2.T11a–g, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the
 capability; a duplicate or non-UUID adapter identity throws at install. `find(gameSystemId)` is for
@@ -280,7 +296,9 @@ neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions).
+Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
+`characterActionCapabilityRegistry` (the Sheet's Character action discovery,
+`discoverCharacterActionCapabilities`).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
 `platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`; `armorClassCapabilityRegistry`
 for a Creature's loadout armor class and the shield a two-handed grip stows;
@@ -293,7 +311,17 @@ Cleaving choice; `attackProfileCapabilityRegistry` for an attack's kind and modi
 traits a holder's grants or a Character's action give it, its critical rules and roll contributors,
 the damage defenses it meets, the itemless restrictions a feature attack reduces and what its compiled
 effect reads and spends; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
-Character-wide, which movement passage and opportunity-attack immunity read). A `MovementTarget`
+Character-wide, which movement passage and opportunity-attack immunity read;
+`characterRuleActionSystemAdapterRegistry` for compiling, binding and interpreting rule actions and
+frozen active effects, where entry-point compilation and perception use `find` because a System
+without it plays its entries manually; `encounterFeatureActionCapabilityRegistry` for feature action
+discovery and effect binding (`encounterFeatureActionCapabilityDiscovery.ts`);
+`legendaryActionEligibilityCapabilityRegistry` and `movementReactionEligibilityCapabilityRegistry`
+for eligibility and the capability definitions it requires; `sceneGridPolicyCapabilityRegistry`, an
+optional `find` capability through `resolveEncounterSceneGrid`, where a System without it plays on the
+Scene's own grid). The four `platform*` files are the only composition roots: no other neutral
+module installs an adapter, and a `systems/dnd5e` adapter never value-imports a platform file, so
+`passiveMeleeRetaliationZone` takes the attack kind instead of reading the registry. A `MovementTarget`
 carries its actor's `movementPassage` and `grantedAttackTraits`, resolved once through these
 registries from the Run's `gameSystemId`. Sealing and currentness of a pending contest, the optional action selection contract
 (`encounterOptionalCombatActionSelection.ts`) and the Scene's enemy-proximity and move-toward facts
@@ -567,6 +595,17 @@ carry the input, so ungated checksums do not move), the evidence check requires 
 which also covers holy water) and Troll (acid, fire; heals at 0 hit points) author Regeneration this way, and
 `CREATURE_VAMPIRE_REGENERATION` is deleted. Sunlight and running water stay deferred edge cases.
 
+**Reduced-to-0 gate (current, SPELLS-33.T4i3a).** `REDUCED_TO_ZERO_BY { damageOutcomeId }` is the third gate kind: a KILL,
+CONDITION or fixed HEAL outcome follows only if the named damage outcome of the same path took the target from above 0 to 0
+hit points. It is a gate-table entry, not a rung of the `hitPointBand` ladder (ADR 0039). The compiler resolves
+`damageOutcomeId` by `entryId` to the earlier damage group's node id and binds it as the literal `reducedToZeroByNodeId`
+(`''` when unauthored, so the other kinds stay wide open). The graph cannot see damage defenses, so it admits;
+`interpretDirect` holds the proposal back unless a traced DAMAGE application from that node has `beforeCurrentHitPoints > 0`
+and `afterCurrentHitPoints === 0` (`reducedToZeroGateHolds`), so resistance that leaves the target standing withholds it.
+Gate evidence is checked against the hit points the graph's facts were taken at (`startingHitPoints`), not those left by
+earlier applications. A gate naming no earlier damage group of the path is refused at compile time. Adding the input
+changed every gated v2 graph's checksum once.
+
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 
 A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`conditionalAttackAdvantageGrants`, Pack Tactics and Assassinate) reaches
@@ -723,7 +762,7 @@ on the window's application. Both replay from that evidence (`retained`), so a s
 re-run rolls no fresh die.
 A creature's passive melee trait with no zone (Remorhaz Heated Body, SPELLS-33 T4k2) is the same zone derived from the
 trait: a PASSIVE effect whose melee attack trigger and distance range say how near a hitter must stand, with direct
-dice damage on `ON_USE`. `passiveMeleeRetaliationZone` stands for it as a SOURCE sphere of that range with one
+dice damage on `ON_USE`. `passiveMeleeRetaliationZone` (given the System's attack kind) stands for it as a SOURCE sphere of that range with one
 `MELEE_HIT_ON_SOURCE` component whose behavior is the trait's own effect, so discovery, placement on the token, the
 selection, the system-rolled plan, persistence and the damage-ends seam are the zone path above. Placement centers every
 passive zone on its holder whatever range its trait authors. A hit by touch is not modeled.
