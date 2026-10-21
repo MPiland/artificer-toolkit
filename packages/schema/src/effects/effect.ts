@@ -44,7 +44,16 @@ const resourceUseDtoSchema = lazySchema(() =>
   })
 )
 
-const optionalOnHitDtoSchema = lazySchema(() => z.object({ kind: z.literal('SPELL_SLOT') }))
+const optionalOnHitDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('SPELL_SLOT') }),
+    z.object({
+      kind: z.literal('RESOURCE_POOL'),
+      chargeId: authoredIdentifierSchema,
+      cost: z.number().check(z.int()).check(z.positive())
+    })
+  ])
+)
 
 const actionInvocationShape = lazySchemaParts(() => ({
   kind: z.optional(z.literal(invocationKindSchema._zod.def.entries.ACTION)),

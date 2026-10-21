@@ -360,3 +360,100 @@ describe('class features resolved from core options through the class node map (
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
   })
 })
+
+/**
+ * SPELLS-31.T5r-a (D156): an optional on-hit rider paid from a resource pool is authored from the
+ * `optionalOnHit` core option, so a ki-costed rider and a homebrew rider on another pool, cost and
+ * damage both pass the class node map exactly as authored; the pool binding applies to that kind only.
+ */
+function poolRiderFeature(input: {
+  chargeId: string
+  cost: number
+  diceConfig: string
+  damageTypeId: string
+}): FeatureAuthored {
+  return {
+    id: '00000000-0000-4000-8000-0000000000a1',
+    label: 'Pool Rider',
+    description: 'After a hit you may spend charges of a pool to add damage.',
+    availableAtLevel: 3,
+    order: 99,
+    effects: [
+      {
+        id: '00000000-0000-4000-8000-0000000000a2',
+        order: 1,
+        invocation: {
+          kind: 'PASSIVE',
+          triggerCode: 'MELEE_WEAPON_ATTACK',
+          range: { id: '00000000-0000-4000-8000-0000000000a3', rangeKind: 'SPECIAL' },
+          targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'HOSTILE' },
+          optionalOnHit: { kind: 'RESOURCE_POOL', chargeId: input.chargeId, cost: input.cost }
+        },
+        paths: [
+          {
+            id: '00000000-0000-4000-8000-0000000000a4',
+            order: 1,
+            pathCode: 'ON_HIT',
+            groupType: 'SINGLE',
+            originKind: 'SOURCE',
+            selectionKind: 'FIXED',
+            resultBlock: {
+              id: '00000000-0000-4000-8000-0000000000a5',
+              resultKind: 'SINGLE',
+              outcomes: [
+                {
+                  id: '00000000-0000-4000-8000-0000000000a6',
+                  effectKind: 'DAMAGE',
+                  damageTypeId: input.damageTypeId,
+                  valueKind: 'DICE',
+                  diceConfig: input.diceConfig,
+                  scalingKind: 'NONE'
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+
+function withFeature(record: ClassAuthored, added: FeatureAuthored): ClassAuthored {
+  const variant = structuredClone(record)
+  variant.features = [...(variant.features ?? []), added]
+  return variant
+}
+
+describe('an optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a, D156)', () => {
+  const kiChargeId = feature(monk, 'Ki').charges?.id
+  if (!kiChargeId) throw new Error('Ki must author its charges.')
+  const radiant = SRD_DAMAGE_TYPES.find(({ code }) => code === 'RADIANT')!.id
+
+  it.each([
+    ['a ki-costed rider', { chargeId: kiChargeId, cost: 1, diceConfig: '1d6', damageTypeId: fire }],
+    [
+      'a homebrew rider on another pool, cost and damage',
+      { chargeId: 'homebrew-pool', cost: 3, diceConfig: '2d8', damageTypeId: radiant }
+    ]
+  ])('keeps %s exactly as authored', async (_label, input) => {
+    const authored = withFeature(monk, poolRiderFeature(input))
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+  })
+
+  it('clears the pool binding from a rider that is paid another way', async () => {
+    const authored = withFeature(
+      monk,
+      poolRiderFeature({ chargeId: kiChargeId, cost: 1, diceConfig: '1d6', damageTypeId: fire })
+    )
+    const rider = authored.features!.at(-1)!.effects![0]!
+    Object.assign(rider.invocation, {
+      optionalOnHit: { kind: 'SPELL_SLOT', chargeId: kiChargeId, cost: 1 }
+    })
+    const result = await normalize(authored)
+    const features = getValueAtPath(result.values, ['features']) as FeatureAuthored[]
+    expect(features.at(-1)!.effects![0]!.invocation.optionalOnHit).toEqual({ kind: 'SPELL_SLOT' })
+    expect(result.clearedPaths.length).toBeGreaterThan(0)
+  })
+})

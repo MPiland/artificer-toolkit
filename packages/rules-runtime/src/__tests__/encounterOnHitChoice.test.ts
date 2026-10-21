@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
-import { onHitCandidates, onHitSlotChoices } from '../character/characterOnHitSlots.js'
+import { onHitCandidates, onHitSlotChoices } from '../character/characterOnHitCosts.js'
 import { advanceNativeActionGraphs } from '../encounterActionExecution.js'
 import { resolveNativeActionOnHit } from '../encounterActionOnHit.js'
 import type { EncounterOnHitCandidate, EncounterOnHitSelection } from '../encounterOnHitChoice.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
-import { OPTIONAL_SMITE_EFFECT_ID } from '../testing/optionalSmite.js'
+import {
+  OPTIONAL_POOL_STRIKE_CHARGE_ID,
+  OPTIONAL_POOL_STRIKE_EFFECT_ID,
+  OPTIONAL_SMITE_EFFECT_ID,
+  optionalPoolStrike
+} from '../testing/optionalSmite.js'
 import { outcomeDice, srdDamageTypeId } from './encounterCreatureAction.js'
 import {
   HIT,
@@ -16,22 +21,26 @@ import {
   scriptedRolls,
   smiteRuntime,
   smiteTargetBinding,
+  smiter,
   smiterWeaponAttack
 } from './optionalSmiteAttack.js'
+import type { SrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 
 const RADIANT = srdDamageTypeId('RADIANT')
 const SLASHING = srdDamageTypeId('SLASHING')
 const smiteAt = (slotLevel: number): EncounterOnHitCandidate => ({
+  kind: 'SPELL_SLOT',
   riderId: OPTIONAL_SMITE_EFFECT_ID,
   slotLevel
 })
 
 /** A Longsword attack made through the Encounter graphs, holding a hit for the attacker's choice. */
-function longswordAttack(rolls: readonly number[]) {
-  const { plan, actionMechanic } = smiterWeaponAttack('Longsword', {
-    attackKind: 'MELEE',
-    grip: 'ONE_HANDED'
-  })
+function longswordAttack(rolls: readonly number[], character?: SrdCharacter) {
+  const { plan, actionMechanic } = smiterWeaponAttack(
+    'Longsword',
+    { attackKind: 'MELEE', grip: 'ONE_HANDED' },
+    character
+  )
   const scripted = scriptedRolls(rolls)
   const source = {
     runtime: smiteRuntime(),
@@ -208,16 +217,153 @@ describe('which optional on-hit riders a Character can pay for (D123)', () => {
 
     expect(onHitSlotChoices(spellSlots).map(({ level }) => level)).toEqual([1, 2])
     expect(
-      onHitCandidates({ riders: [{ riderId: OPTIONAL_SMITE_EFFECT_ID }], spellSlots })
+      onHitCandidates({
+        riders: [{ riderId: OPTIONAL_SMITE_EFFECT_ID, cost: { kind: 'SPELL_SLOT' } }],
+        spellSlots,
+        resources: []
+      })
     ).toEqual([smiteAt(1), smiteAt(2)])
     expect(
       onHitCandidates({
-        riders: [{ riderId: OPTIONAL_SMITE_EFFECT_ID }],
+        riders: [{ riderId: OPTIONAL_SMITE_EFFECT_ID, cost: { kind: 'SPELL_SLOT' } }],
+        resources: [],
         spellSlots: {
           ...spellSlots,
           maxByLevel: spellSlots.maxByLevel.map((slot) => ({ ...slot, remaining: 0 }))
         }
       })
     ).toEqual([])
+  })
+})
+
+const POOL_ID = 'CLASS:monk:charge-1'
+const poolStrikeAt = (cost: number, poolId = POOL_ID): EncounterOnHitCandidate => ({
+  kind: 'RESOURCE_POOL',
+  riderId: OPTIONAL_POOL_STRIKE_EFFECT_ID,
+  poolId,
+  cost
+})
+const poolResource = (
+  overrides: Partial<Parameters<typeof onHitCandidates>[0]['resources'][number]> = {}
+): Parameters<typeof onHitCandidates>[0]['resources'][number] => ({
+  sequence: 0,
+  poolId: POOL_ID,
+  ownerKind: 'SOURCE',
+  itemInstanceId: null,
+  sourceId: 'monk',
+  chargeId: OPTIONAL_POOL_STRIKE_CHARGE_ID,
+  resourceDefinitionId: 'ki',
+  chargeCalculationId: POOL_ID,
+  state: 'RESOLVED',
+  maximum: 5,
+  rawUsed: 2,
+  effectiveUsed: 2,
+  remaining: 3,
+  reasonCode: 'CALCULATED',
+  baseContribution: { sourceId: 'charge-1', value: 5 },
+  bonusContributions: [],
+  resetKind: 'SHORT_REST',
+  resetResolution: { baseResetKind: 'SHORT_REST', appliedGrantId: null, source: null },
+  ...overrides
+})
+const poolRider = (cost: number) => ({
+  riderId: OPTIONAL_POOL_STRIKE_EFFECT_ID,
+  cost: { kind: 'RESOURCE_POOL' as const, chargeId: OPTIONAL_POOL_STRIKE_CHARGE_ID, cost }
+})
+const emptySlots = {
+  calculationId: 'slots',
+  sourceClassIds: [],
+  maxByLevel: [],
+  pactMagic: null,
+  fusionStrategy: 'NONE' as const
+}
+
+describe('an optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a, D156)', () => {
+  const homebrewStrike = optionalPoolStrike({
+    maximum: 5,
+    cost: 2,
+    diceConfig: '2d6',
+    damageTypeCode: 'FORCE'
+  })
+  const strikerAttack = (rolls: readonly number[]) =>
+    longswordAttack(rolls, smiter('Longsword', homebrewStrike))
+
+  it('finds the rider and its pool cost on a melee weapon attack', () => {
+    expect(
+      dnd5eCharacterRuleActionSystemAdapter.optionalOnHitRiders({
+        compilerSource: smiterWeaponAttack(
+          'Longsword',
+          { attackKind: 'MELEE', grip: 'ONE_HANDED' },
+          smiter('Longsword', homebrewStrike)
+        ).compilerSource
+      })
+    ).toEqual([poolRider(2)])
+  })
+
+  it('offers the pool only while exactly one resolved pool holds the cost', () => {
+    const offer = (resources: Parameters<typeof onHitCandidates>[0]['resources']) =>
+      onHitCandidates({ riders: [poolRider(2)], spellSlots: emptySlots, resources })
+
+    expect(offer([poolResource()])).toEqual([poolStrikeAt(2)])
+    expect(offer([poolResource({ remaining: 2 })])).toEqual([poolStrikeAt(2)])
+    expect(offer([poolResource({ remaining: 1 })])).toEqual([])
+    expect(offer([poolResource({ state: 'UNRESOLVED', remaining: null })])).toEqual([])
+    expect(offer([poolResource({ chargeId: 'other' })])).toEqual([])
+    expect(offer([poolResource(), poolResource({ poolId: 'CLASS:monk:charge-2' })])).toEqual([])
+  })
+
+  it('holds the hit on the pool option, and adds the rider damage when it is used', async () => {
+    const attack = strikerAttack([HIT, 3, 0, 1])
+    const held = await attack.advance([poolStrikeAt(2)])
+    expect(held).toMatchObject({
+      kind: 'PENDING',
+      onHitChoice: {
+        options: [
+          {
+            kind: 'RESOURCE_POOL',
+            riderId: OPTIONAL_POOL_STRIKE_EFFECT_ID,
+            poolId: POOL_ID,
+            cost: 2
+          }
+        ]
+      }
+    })
+    if (held.kind !== 'PENDING' || !held.onHitChoice) throw new Error('Expected a held hit.')
+    const { execution, audit } = await attack.answer(held, [poolStrikeAt(2)], {
+      kind: 'OPTION',
+      optionId: held.onHitChoice.options[0]!.useOptionId
+    })
+
+    expect(audit).toMatchObject({
+      selection: 'USE',
+      option: { kind: 'RESOURCE_POOL', poolId: POOL_ID, cost: 2 }
+    })
+    expect(damage(completed(execution))).toEqual([
+      { requested: 4 + 3, resolved: 4 + 3, damageTypeId: SLASHING },
+      { requested: 1 + 2, resolved: 1 + 2, damageTypeId: srdDamageTypeId('FORCE') }
+    ])
+  })
+
+  it('adds nothing when the attacker declines', async () => {
+    const attack = strikerAttack([HIT, 3])
+    const held = await attack.advance([poolStrikeAt(2)])
+    const { execution, audit } = await attack.answer(held, [poolStrikeAt(2)], { kind: 'DECLINE' })
+
+    expect(audit).toMatchObject({ selection: 'DECLINE', option: null })
+    expect(damage(completed(execution))).toEqual([
+      { requested: 4 + 3, resolved: 4 + 3, damageTypeId: SLASHING }
+    ])
+  })
+
+  it('refuses a pool option whose cost or pool changed since it was offered', async () => {
+    const attack = strikerAttack([HIT])
+    const held = await attack.advance([poolStrikeAt(2)])
+    if (held.kind !== 'PENDING' || !held.onHitChoice) throw new Error('Expected a held hit.')
+    const optionId = held.onHitChoice.options[0]!.useOptionId
+
+    for (const stale of [poolStrikeAt(3), poolStrikeAt(2, 'CLASS:monk:charge-2'), smiteAt(2)])
+      await expect(attack.answer(held, [stale], { kind: 'OPTION', optionId })).rejects.toThrow(
+        'On-hit evidence is stale.'
+      )
   })
 })

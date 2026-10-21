@@ -1,5 +1,6 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { z, lazySchema } from '../zod.js'
+import { characterResourcePoolIdentitySchema } from './characterResourceIdentity.js'
 import {
   serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema,
@@ -21,29 +22,45 @@ import {
 } from './ruleExecutionReactionChoice.js'
 
 /**
- * One way the attacker may pay for an optional on-hit rider: the rider (its authored effect) and, for a
- * spell-slot cost, the slot level paid. The use option identity is derived from the hit it was offered for.
+ * One way the attacker may pay for an optional on-hit rider: the rider (its authored effect) and its
+ * cost, either the spell-slot level paid or the resource pool charged. The use option identity is
+ * derived from the hit it was offered for.
  */
 export const encounterOnHitOptionDtoSchema = lazySchema(() =>
-  z.strictObject({
-    riderId: uuidSchema,
-    /** The slot level paid. */
-    slotLevel: positiveIntegerSchema,
-    useOptionId: checksumSchema
-  })
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('SPELL_SLOT'),
+      riderId: uuidSchema,
+      /** The slot level paid. */
+      slotLevel: positiveIntegerSchema,
+      useOptionId: checksumSchema
+    }),
+    z.strictObject({
+      kind: z.literal('RESOURCE_POOL'),
+      riderId: uuidSchema,
+      /** The resource pool charged. */
+      poolId: characterResourcePoolIdentitySchema,
+      /** The charges paid. */
+      cost: positiveIntegerSchema,
+      useOptionId: checksumSchema
+    })
+  ])
 )
 export type EncounterOnHitOptionDto = z.infer<typeof encounterOnHitOptionDtoSchema>
 
+/** The way of paying an option names: the option without the identity derived from it. */
+export type EncounterOnHitCost = DistributiveOmit<EncounterOnHitOptionDto, 'useOptionId'>
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
+
 export function encounterOnHitUseOptionId({
   testExecutionChecksum,
-  riderId,
-  slotLevel
+  cost
 }: {
   testExecutionChecksum: string
-  riderId: string
-  slotLevel: number
+  cost: EncounterOnHitCost
 }): string {
-  return checksumRuleDocument({ kind: 'ON_HIT_USE', testExecutionChecksum, riderId, slotLevel })
+  return checksumRuleDocument({ kind: 'ON_HIT_USE', testExecutionChecksum, cost })
 }
 
 /** An option's use option identity is derived from the hit and the way of paying it is offered for, never free-standing. */
@@ -53,7 +70,8 @@ export function validateEncounterOnHitOption(
   context: z.core.$RefinementCtx,
   path: readonly (string | number)[]
 ) {
-  if (encounterOnHitUseOptionId({ testExecutionChecksum, ...option }) !== option.useOptionId)
+  const { useOptionId, ...cost } = option
+  if (encounterOnHitUseOptionId({ testExecutionChecksum, cost }) !== useOptionId)
     context.addIssue({
       code: 'custom',
       path: [...path, 'useOptionId'],

@@ -117,8 +117,9 @@ import { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encou
 import type { EncounterOnHitSelection } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
   onHitCandidates,
+  onHitResourceConsumption,
   onHitSpellConsumption
-} from '@artificer-toolkit/rules-runtime/character/characterOnHitSlots'
+} from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
 import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -1275,18 +1276,22 @@ export async function planNativeLiveEncounterAction(
       adjustedBinding: applied?.adjustedBinding ?? prepared.binding
     }
   }
-  // The optional on-hit riders the attacker could pay for now: a Character's slots pay them, unless
-  // the action already spends one.
+  // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
+  // pay them. An action that already spends a slot offers no slot rider, and one that already spends a
+  // pool offers no pool rider.
   const attackPlan = prepared.plan
   const onHitNow =
-    prepared.source.kind === 'CHARACTER_ACTION' &&
-    attackPlan.kind === 'TEST_OUTCOME' &&
-    !prepared.characterActionState?.spellConsumption
+    prepared.source.kind === 'CHARACTER_ACTION' && attackPlan.kind === 'TEST_OUTCOME'
       ? onHitCandidates({
-          riders: prepared.adapter.optionalOnHitRiders({
-            compilerSource: attackPlan.compilerSource
-          }),
-          spellSlots: prepared.source.effectivePolicyOutput.spellSlots
+          riders: prepared.adapter
+            .optionalOnHitRiders({ compilerSource: attackPlan.compilerSource })
+            .filter(({ cost }) =>
+              cost.kind === 'SPELL_SLOT'
+                ? !prepared.characterActionState?.spellConsumption
+                : !prepared.characterActionState?.resourceConsumption
+            ),
+          spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
+          resources: prepared.source.effectivePolicyOutput.resources
         })
       : []
   const answered = resistanceAnswer
@@ -1404,7 +1409,7 @@ export async function planNativeLiveEncounterAction(
           : null))
   if (execution.kind === 'PENDING')
     return { ...preflight(), kind: 'PENDING' as const, execution, failedCounters }
-  // The slot an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
+  // What an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
   // fence above was taken on the unspent attack.
   const chosenOnHit =
     answeredOnHit?.audit.option ??
@@ -1415,12 +1420,26 @@ export async function planNativeLiveEncounterAction(
           ...prepared,
           characterActionState: {
             ...prepared.characterActionState,
-            spellConsumption: onHitSpellConsumption({
-              spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
-              slotLevel: chosenOnHit.slotLevel,
-              characterId: prepared.source.characterId,
-              expectedStreamVersion: prepared.source.characterStreamVersion
-            })
+            ...(chosenOnHit.kind === 'SPELL_SLOT'
+              ? {
+                  spellConsumption: onHitSpellConsumption({
+                    spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
+                    slotLevel: chosenOnHit.slotLevel,
+                    characterId: prepared.source.characterId,
+                    expectedStreamVersion: prepared.source.characterStreamVersion
+                  })
+                }
+              : {
+                  resourceConsumption: onHitResourceConsumption({
+                    resources: prepared.source.effectivePolicyOutput.resources,
+                    resourceUsage: prepared.sourceFacts.characterFacts.sheetState.resourceUsage,
+                    poolId: chosenOnHit.poolId,
+                    cost: chosenOnHit.cost,
+                    characterId: prepared.source.characterId,
+                    expectedStreamVersion: prepared.source.characterStreamVersion,
+                    automationMode: state.automationMode
+                  })
+                })
           }
         }
       : prepared
