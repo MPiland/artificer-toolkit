@@ -19,6 +19,8 @@ import {
 /** The authored gate fields of a direct entry: a hit-point gate and the damage types that suppress it. */
 export type Dnd5eAuthoredGates = {
   gate?: Parameters<typeof hitPointGateBand>[0]
+  /** A band computed by the compiler (a hit-point tier's), standing in for an authored gate. */
+  hitPointBand?: { above: number; atMost: number }
   suppressedByDamageTypeIds?: readonly string[]
 }
 
@@ -92,8 +94,8 @@ export const DND5E_GATE_KINDS = {
       hitPointsAbove: RULE_VALUE_KIND.NUMBER,
       hitPointsAtMost: RULE_VALUE_KIND.NUMBER
     },
-    nodeInputs: ({ gate }) => {
-      const band = authoredHitPointBand(gate)
+    nodeInputs: ({ gate, hitPointBand }) => {
+      const band = hitPointBand ?? authoredHitPointBand(gate)
       return {
         targetCurrentHitPoints: { kind: 'FACT', factKey: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY },
         hitPointsAbove: { kind: 'LITERAL', value: band.above },

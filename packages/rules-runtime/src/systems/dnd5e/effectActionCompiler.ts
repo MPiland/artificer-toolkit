@@ -6124,16 +6124,7 @@ function fixedOutcomeGraphDefinition(input: {
       kind: 'FACT' as const,
       factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
     },
-    ...(input.hitPointBand
-      ? {
-          targetCurrentHitPoints: {
-            kind: 'FACT' as const,
-            factKey: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY
-          },
-          hitPointsAbove: { kind: 'LITERAL' as const, value: input.hitPointBand.above },
-          hitPointsAtMost: { kind: 'LITERAL' as const, value: input.hitPointBand.atMost }
-        }
-      : {}),
+    ...(input.hitPointBand ? gateNodeInputs({ hitPointBand: input.hitPointBand }) : {}),
     ...(isTargetOnlyOutcome(input.outcome)
       ? targetOnlyOutcomeInputs(input.outcome)
       : input.outcome.kind === 'CONDITION_APPLY'
