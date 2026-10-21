@@ -10,6 +10,8 @@ import {
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { seededSrdCreature } from '../test/seededSrdCreature.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
 import { writeRoomCharacterPlay } from './roomCharacterWrites.js'
@@ -92,20 +94,18 @@ it('settles Character and Creature mechanics from native play with private recei
     stableTieKey: uuid(0xb04)
   })
   const creatureActor = encounterRunActorStateSchema.parse({
-    ...actorBase,
-    id: uuid(0xb05),
-    label: 'Creature',
-    kind: 'CREATURE',
-    sourceId: uuid(0xb06),
-    sourceRevision: 1,
+    ...srdCreatureActor({
+      id: uuid(0xb05),
+      creature: seededSrdCreature('Goblin'),
+      currentHitPoints: 2
+    }),
+    encounterId: runId,
+    sideId,
+    systemId: owner.systemId,
     stableTieKey: uuid(0xb05),
-    currentHitPoints: 2,
     maxHitPoints: 2,
-    tempHitPoints: 0,
-    conditions: [],
-    defeated: false,
-    form: null,
-    absence: null
+    createdAt: now,
+    updatedAt: now
   })
   const optionalCombatSnapshot = { schemaVersion: 1, gameSystemId: owner.systemId, definitions: [] }
   const run = encounterRunStateSchema.parse({
