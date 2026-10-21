@@ -607,12 +607,9 @@ export async function readEncounterActionChoices(
     : await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))) {
     const { holderEnd } = effect.definition.recurrence
     if (!holderEnd || effect.maintainedEffectStateId !== null) continue
-    const grant =
-      effect.definition.schemaVersion === 2
-        ? effect.definition.stateContributions.find(
-            (contribution) => contribution.kind === 'MODIFIER_GRANT'
-          )
-        : undefined
+    const grant = effect.definition.stateContributions.find(
+      (contribution) => contribution.kind === 'MODIFIER_GRANT'
+    )
     const economy = await readEconomy({ code: holderEnd.activation, amount: 1 })
     heldGrantEnds.push({
       activeEffectId: effect.id,

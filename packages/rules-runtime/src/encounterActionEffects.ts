@@ -314,10 +314,9 @@ export function prepareNativeActionEffectsPlan<
     trigger: input.trigger
   })
   const relationship =
-    effects.recurringEffect?.definition.schemaVersion === 2 &&
-    effects.recurringEffect.definition.stateContributions.some(
+    effects.recurringEffect?.definition.stateContributions.some(
       (contribution) => contribution.kind === 'ACTOR_RELATIONSHIP'
-    )
+    ) ?? false
   const appliedCondition = execution.applications.some(
     (application) =>
       application.kind === 'CONDITION_APPLY' &&

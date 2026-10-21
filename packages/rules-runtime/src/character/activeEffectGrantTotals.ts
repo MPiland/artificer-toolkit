@@ -38,22 +38,20 @@ export function listActiveEffectGrants(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ): ActiveEffectGrant[] {
   return effects.flatMap(({ id, definition }) =>
-    definition.schemaVersion === 2
-      ? definition.stateContributions.flatMap((contribution) =>
-          contribution.kind === 'MODIFIER_GRANT'
-            ? [
-                {
-                  effectId: id,
-                  modifiers: contribution.modifiers,
-                  senses: contribution.senses,
-                  sourceLabel: contribution.sourceLabel,
-                  sourceHidden: contribution.sourceHidden,
-                  ...(contribution.boundItem && { boundItem: contribution.boundItem })
-                }
-              ]
-            : []
-        )
-      : []
+    definition.stateContributions.flatMap((contribution) =>
+      contribution.kind === 'MODIFIER_GRANT'
+        ? [
+            {
+              effectId: id,
+              modifiers: contribution.modifiers,
+              senses: contribution.senses,
+              sourceLabel: contribution.sourceLabel,
+              sourceHidden: contribution.sourceHidden,
+              ...(contribution.boundItem && { boundItem: contribution.boundItem })
+            }
+          ]
+        : []
+    )
   )
 }
 
@@ -206,7 +204,6 @@ export function activeDamageDice(input: {
     )
   const placedByDealer = input.targetEffects.filter(
     ({ definition }) =>
-      definition.schemaVersion === 2 &&
       definition.origin.kind === 'ENCOUNTER' &&
       definition.origin.sourceActorId === input.dealerActorId
   )

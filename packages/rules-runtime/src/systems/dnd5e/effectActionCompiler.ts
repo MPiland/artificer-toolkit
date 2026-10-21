@@ -7775,12 +7775,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError('D&D active-effect execution source is invalid.')
     // A timed condition (D62.2) ends after the target's last counted turn.
     if (definition.adapterFacts[DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY] === true) {
-      const timedConditionIds =
-        definition.schemaVersion === 2
-          ? definition.stateContributions.flatMap((contribution) =>
-              contribution.kind === 'CONDITION_OWNERSHIP' ? [contribution.conditionId] : []
-            )
-          : []
+      const timedConditionIds = definition.stateContributions.flatMap((contribution) =>
+        contribution.kind === 'CONDITION_OWNERSHIP' ? [contribution.conditionId] : []
+      )
       if (timedConditionIds.length === 0 || !timedConditionIds.every((id) => UUID.test(id)))
         throw new Dnd5eEffectActionCompilerError('D&D timed condition identity is unavailable.')
       return lifecycle.remainingTicks === 1
@@ -7802,7 +7799,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     // A link, a creature form or a source immunity holds state for its duration: each counted turn
     // applies nothing, and the turn pass expires the effect after the last one.
     if (
-      definition.schemaVersion === 2 &&
       definition.stateContributions.some(
         ({ kind }) =>
           kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM' || kind === 'SOURCE_IMMUNITY'

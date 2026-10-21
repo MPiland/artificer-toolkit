@@ -255,7 +255,7 @@ function relationshipEffect(definition: RelationshipDefinition, baselinePresent:
 
 function relationshipDefinition(result: ReturnType<typeof planWith>) {
   const definition = result.recurringEffect?.definition
-  if (definition?.schemaVersion !== 2) throw new Error('Expected relationship state contributions.')
+  if (!definition) throw new Error('Expected relationship state contributions.')
   return definition
 }
 
@@ -401,7 +401,7 @@ describe('a contest win holds the target (Grapple, D152)', () => {
       resultPath: 'ON_CHECK_SUCCESS',
       sealedReachFeet: 10
     }).recurringEffect?.definition
-    if (definition?.schemaVersion !== 2) throw new Error('Expected state contributions.')
+    if (!definition) throw new Error('Expected state contributions.')
     expect(definition.stateContributions).toContainEqual(
       expect.objectContaining({ kind: 'ACTOR_RELATIONSHIP', sealedReachFeet: 10 })
     )
@@ -509,7 +509,7 @@ describe('encounter actor link plan (SPELLS-28)', () => {
 
   it('freezes every bonded creature, sorted, into the bond each target holds', () => {
     const definition = bondPlan([ids.target, ids.source, ids.occurrence])?.definition
-    if (definition?.schemaVersion !== 2) throw new Error('Expected state contributions.')
+    if (!definition) throw new Error('Expected state contributions.')
     expect(definition.stateContributions).toEqual([
       expect.objectContaining({
         kind: 'ACTOR_LINK',
@@ -618,9 +618,7 @@ describe('plan-owned outcomes on a test result path (RULES-2.T6d)', () => {
     }).recurringEffect
 
   const stateKinds = (effect: ReturnType<typeof madeOn>) =>
-    effect?.definition.schemaVersion === 2
-      ? effect.definition.stateContributions.map(({ kind }) => kind)
-      : null
+    effect?.definition.stateContributions.map(({ kind }) => kind) ?? null
 
   it('bonds a creature that fails the save, and no creature that makes it', () => {
     const compiled = savePlan(asSave(telepathicBond.effects?.[0], PATH_CODE.ON_SAVE_FAIL))

@@ -103,7 +103,7 @@ function heldActionFacts(input: {
   feature: string
 }) {
   const definition = input.hit.effects.recurringEffect?.definition
-  if (definition?.schemaVersion !== 2) throw new Error('Expected the relationship effect.')
+  if (!definition) throw new Error('Expected the relationship effect.')
   const [effect] = creatureFeature(input.creature, input.feature).effects ?? []
   if (!effect) throw new Error('Expected the attack effect.')
   return (targetActorId: string) =>
@@ -276,8 +276,7 @@ describe('SRD hits that apply several conditions (D62, M9)', () => {
     // D105: the conditions belong to one relationship effect, which the settlement applies to the
     // target (proved for a Creature target in the Session Worker room: nativeRoomHitRiders.test.ts).
     const definition = hit.effects.recurringEffect?.definition
-    if (definition?.schemaVersion !== 2)
-      throw new Error('Expected the grapple relationship effect.')
+    if (!definition) throw new Error('Expected the grapple relationship effect.')
     const conditionIds = [srdCondition('Grappled'), srdCondition('Restrained')].sort()
     const contributions = definition.stateContributions
     expect(
@@ -302,8 +301,7 @@ describe('SRD hits that apply several conditions (D62, M9)', () => {
     const hit = await attackOgre({ attacker: 'Giant Frog', feature: 'Bite', rolls: [9, 2] })
     expect(hit.damage).toEqual([[3 + 1, srdDamageTypeId('PIERCING')]])
     const definition = hit.effects.recurringEffect?.definition
-    if (definition?.schemaVersion !== 2)
-      throw new Error('Expected the grapple relationship effect.')
+    if (!definition) throw new Error('Expected the grapple relationship effect.')
     expect(
       definition.stateContributions
         .flatMap((contribution) =>
@@ -603,8 +601,7 @@ describe('SRD Creature hits with saves, drains and holds (ATTACK-5.10 to 5.14)',
       target: 'Veteran'
     })
     const definition = hit.effects.recurringEffect?.definition
-    if (definition?.schemaVersion !== 2)
-      throw new Error('Expected the grapple relationship effect.')
+    if (!definition) throw new Error('Expected the grapple relationship effect.')
     expect(
       definition.stateContributions
         .flatMap((contribution) =>
