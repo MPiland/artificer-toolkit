@@ -129,8 +129,8 @@ export type PathLifecycleAuthored = {
  * effects: while unmet, the block does nothing to that target.
  */
 export type ResultBlockGateAuthored = {
-  kind: 'TARGET_HIT_POINTS_AT_MOST'
-  /** The target's current hit points must be at most this many. */
+  kind: 'TARGET_HIT_POINTS_AT_MOST' | 'TARGET_HIT_POINTS_AT_LEAST'
+  /** The target's current hit points must be at most (AT_MOST) or at least (AT_LEAST) this many. */
   amount: number // int >= 1
 }
 

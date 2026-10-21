@@ -27,3 +27,21 @@ describe('passive effects that fire at 0 hit points (SPELLS-33.T6e1a)', () => {
     expect(discover('Goblin').passiveHpZeroEffects).toEqual([])
   })
 })
+
+describe('passive effects that fire at the start of the holder’s turn (SPELLS-33.T4i1a)', () => {
+  it.each(['Oni', 'Shield Guardian'])(
+    'lists %s Regeneration by its trigger, not as an action',
+    (label) => {
+      const found = discover(label)
+      expect(found.passiveStartOfTurnEffects.map(({ capability }) => capability.label)).toEqual([
+        'Regeneration'
+      ])
+      expect(found.available.map(({ label: name }) => name)).not.toContain('Regeneration')
+      expect(found.unavailable.filter(({ label: name }) => name === 'Regeneration')).toEqual([])
+    }
+  )
+
+  it('lists nothing for a creature without the trigger', () => {
+    expect(discover('Goblin').passiveStartOfTurnEffects).toEqual([])
+  })
+})

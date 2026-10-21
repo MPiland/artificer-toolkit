@@ -100,6 +100,7 @@ import {
 } from '../../encounterAreaAction.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
+  hitPointGateBand as authoredHitPointGateBand,
   hitPointTierCeilings,
   hitPointTierFloor,
   NO_HIT_POINT_FLOOR,
@@ -5124,11 +5125,10 @@ function hitPointGateBand(
  * Version 2 of a target-only proposal also reads the target's current hit points and the gate's
  * band, and is authorized only while the target is above its floor and at or under its ceiling.
  */
-function hitPointGatedTargetOnlyProposalOperation(
-  key: string,
+function hitPointGatedProposalOperation(
+  base: ProposalRuleOperationContract,
   label: string
 ): ProposalRuleOperationContract {
-  const base = targetOnlyProposalOperation(key, label)
   return {
     ...base,
     contractVersion: 2,
@@ -5157,9 +5157,13 @@ function hitPointGatedTargetOnlyProposalOperation(
     }
   }
 }
-export const dnd5eHitPointGatedKillProposalOperation = hitPointGatedTargetOnlyProposalOperation(
-  DND5E_KILL_PROPOSAL_OPERATION_KEY,
+export const dnd5eHitPointGatedKillProposalOperation = hitPointGatedProposalOperation(
+  dnd5eKillProposalOperation,
   'kill'
+)
+export const dnd5eHitPointGatedHealProposalOperation = hitPointGatedProposalOperation(
+  dnd5eHealProposalOperation,
+  'heal'
 )
 export const dnd5eDepartProposalOperation = targetOnlyProposalOperation(
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
@@ -6226,6 +6230,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
         dnd5eSaveTestOperation,
         dnd5eTestMarginConditionProposalOperation,
         dnd5eHitPointGatedKillProposalOperation,
+        dnd5eHitPointGatedHealProposalOperation,
         dnd5eHitPointGatedConditionApplyProposalOperation
       ].map(({ key, contractVersion }) => ({ key, contractVersion }))
     )
@@ -8406,10 +8411,12 @@ function compileDnd5eEffectAction({
   })
 }
 
-/** The hit-point ceiling the action's one direct entry gates its outcome on, when it has one. */
-function directHitPointGateAtMost(action: Dnd5eCompiledEffectActionSource): number | undefined {
+/** The hit-point band the action's one direct entry gates its outcome on, when it has one. */
+function directHitPointGateBand(
+  action: Dnd5eCompiledEffectActionSource
+): { above: number; atMost: number } | undefined {
   const entry = action.compiledEffect.entries[0]
-  return entry && 'gate' in entry ? entry.gate?.amount : undefined
+  return entry && 'gate' in entry && entry.gate ? authoredHitPointGateBand(entry.gate) : undefined
 }
 
 function compileEffectActionGraph(
@@ -8430,9 +8437,9 @@ function compileEffectActionGraph(
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
   // Only a direct outcome honours a hit-point gate; every other plan refuses one rather than skip it.
-  const gateAtMost = directHitPointGateAtMost(action)
+  const gateBand = directHitPointGateBand(action)
   const refuseGate = () => {
-    if (gateAtMost !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
+    if (gateBand !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
   }
   const composition = sequentialComposition(action)
   if (composition) {
@@ -8454,8 +8461,13 @@ function compileEffectActionGraph(
   }
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
-  if (gateAtMost !== undefined && outcome.kind !== 'KILL' && outcome.kind !== 'CONDITION_APPLY')
-    unsupported('D&D hit-point gate belongs to a kill or condition outcome.')
+  if (
+    gateBand !== undefined &&
+    outcome.kind !== 'KILL' &&
+    outcome.kind !== 'CONDITION_APPLY' &&
+    outcome.kind !== 'HEAL'
+  )
+    unsupported('D&D hit-point gate belongs to a kill, condition or heal outcome.')
   if (outcome.kind === 'DICE_HEAL') {
     const entry = action.compiledEffect.entries[0]
     if (
@@ -8545,22 +8557,22 @@ function compileEffectActionGraph(
     nodes: [
       {
         id: nodeId,
-        operation: { key: operation, contractVersion: gateAtMost === undefined ? 1 : 2 },
+        operation: { key: operation, contractVersion: gateBand === undefined ? 1 : 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           targetStateChecksum: {
             kind: 'FACT',
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
-          ...(gateAtMost === undefined
+          ...(gateBand === undefined
             ? {}
             : {
                 targetCurrentHitPoints: {
                   kind: 'FACT',
                   factKey: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY
                 },
-                hitPointsAbove: { kind: 'LITERAL', value: NO_HIT_POINT_FLOOR },
-                hitPointsAtMost: { kind: 'LITERAL', value: gateAtMost }
+                hitPointsAbove: { kind: 'LITERAL', value: gateBand.above },
+                hitPointsAtMost: { kind: 'LITERAL', value: gateBand.atMost }
               }),
           ...(isTargetOnlyOutcome(outcome)
             ? targetOnlyOutcomeInputs(outcome)
@@ -9477,6 +9489,16 @@ function interpretDirectProposal(
       }
     ]
   }
+  const gatedHeal =
+    trace.operation.key === DND5E_HEAL_PROPOSAL_OPERATION_KEY && trace.operation.contractVersion === 2
+  if (gatedHeal) {
+    if (!hitPointGateEvidenceIsValid(input, publishedNode, trace))
+      throw new Dnd5eEffectActionCompilerError(
+        'The committed D&D heal proposal hit-point gate evidence is invalid.'
+      )
+    // A target outside the gate's band is left as it was.
+    if (trace.outputs.authorized === false) return []
+  }
   if (trace.outputs.authorized !== true)
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
   const storedKind =
@@ -9516,7 +9538,7 @@ function interpretDirectProposal(
   if (
     trace.outputs.targetActorId !== input.targetActorId ||
     trace.outputs.amount !== outputs.amount ||
-    trace.operation.contractVersion !== 1
+    trace.operation.contractVersion !== (gatedHeal ? 2 : 1)
   )
     throw new Dnd5eEffectActionCompilerError(
       'The committed D&D rule action proposal trace is invalid.'

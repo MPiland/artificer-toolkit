@@ -40,6 +40,7 @@ import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcen
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
 import { raiseRoomHpZeroEffects } from './roomEncounterHpZeroTriggers.js'
+import { raiseRoomStartOfTurnEffects } from './roomEncounterStartOfTurnTriggers.js'
 import { executeRoomEncounterContest } from './roomEncounterContest.js'
 import {
   executeRoomEncounterBasicActionResponse,
@@ -344,13 +345,26 @@ export async function executeRoomEncounterCommand(input: {
           execute: executeAction
         })
       : false
-  const raisedRun = raisedHpZeroEffects
-    ? await context.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (query) => query.eq('id', state.id))
-        .unique()
-    : null
-  if (raisedHpZeroEffects && !raisedRun) throw new Error('Committed room Encounter is unavailable.')
+  const raisedStartOfTurnEffects =
+    currentRun.status === 'ACTIVE' &&
+    input.turnExecution &&
+    (command.type === 'START' || command.type === 'ADVANCE_TURN')
+      ? await raiseRoomStartOfTurnEffects({
+          ctx: context,
+          encounterId: currentRun.id,
+          parentCommandId: command.commandId.toLowerCase(),
+          execute: executeAction
+        })
+      : false
+  const raisedRun =
+    raisedHpZeroEffects || raisedStartOfTurnEffects
+      ? await context.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (query) => query.eq('id', state.id))
+          .unique()
+      : null
+  if ((raisedHpZeroEffects || raisedStartOfTurnEffects) && !raisedRun)
+    throw new Error('Committed room Encounter is unavailable.')
   const presented = raisedRun
     ? { ...result, projection: await readEncounterGmProjection(context, readRunState(raisedRun)) }
     : result

@@ -275,7 +275,13 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
      * Set only on a root the rules raise themselves, never on one a player submits: the committed
      * command whose result raised it. Admission proves the link against that command's receipt.
      */
-    systemTrigger: z.optional(z.strictObject({ parentCommandId: uuidSchema })),
+    systemTrigger: z.optional(
+      z.strictObject({
+        parentCommandId: uuidSchema,
+        /** Absent for the default, reaching 0 hit points. */
+        trigger: z.optional(z.literal('START_OF_TURN'))
+      })
+    ),
     acceptedWieldConflict: z._default(
       z.optional(z.nullable(encounterAcceptedWieldConflictDtoSchema)),
       null

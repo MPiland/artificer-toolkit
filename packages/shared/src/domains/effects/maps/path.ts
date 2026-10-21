@@ -3604,6 +3604,11 @@ const RESULT_BLOCK_GATE_NODE_MAP = resultBlockGate.define('resultBlockGate', ({ 
               code: 'TARGET_HIT_POINTS_AT_MOST',
               label: 'Target Hit Points At Most',
               description: "The target's current hit points are at most the amount."
+            },
+            {
+              code: 'TARGET_HIT_POINTS_AT_LEAST',
+              label: 'Target Hit Points At Least',
+              description: "The target's current hit points are at least the amount."
             }
           ]
         },

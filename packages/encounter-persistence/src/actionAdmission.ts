@@ -4,6 +4,8 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
+import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { requireSystemTriggerAdmission } from './systemTriggerAdmission.js'
 import { nativeActionPendingResult, readNativePendingRoot } from './actionPendingResult.js'
@@ -213,6 +215,22 @@ export async function readNativeEncounterActionAdmission(
     const actor = await readRunActor(ctx, state, input.actorId)
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
+    if (actor.kind === 'CREATURE') {
+      // A start-of-turn trait runs by itself; naming it as an action would be a free use.
+      const system = await ctx.ports.requireSystem(state.gameSystemId)
+      const { passiveStartOfTurnEffects } = discoverEncounterFeatureActions({
+        actor,
+        conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+        abilityDefinitions: systemAbilityDefinitions(system)
+      })
+      if (
+        passiveStartOfTurnEffects.some(({ capability }) => capability.actionId === input.actionId)
+      )
+        rejectDomain(
+          'SOURCE_REQUIREMENTS_NOT_MET',
+          'A start-of-turn trait runs by itself at the start of the creature’s turn.'
+        )
+    }
     // An area names no creature: the Scene decides whom it catches. A player's own save still
     // shows only the creatures their projection holds.
     const namedActorIds =

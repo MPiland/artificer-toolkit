@@ -67,7 +67,7 @@ export const shieldGuardian: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
+            triggerCode: S.TRIGGER.START_OF_TURN,
             range: { id: S.actionId(252, 203), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
@@ -75,13 +75,14 @@ export const shieldGuardian: CreatureAuthored = {
             {
               id: S.actionId(252, 204),
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              pathCode: S.PATH_CODE.PASSIVE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: S.actionId(252, 205),
-                resultKind: 'SEQUENCE',
+                resultKind: 'SINGLE',
+                gate: { kind: 'TARGET_HIT_POINTS_AT_LEAST', amount: 1 },
                 outcomes: [
                   {
                     id: S.actionId(252, 206),
@@ -89,11 +90,6 @@ export const shieldGuardian: CreatureAuthored = {
                     valueKind: 'FIXED',
                     scalingKind: S.SCALING.NONE,
                     amount: 10
-                  },
-                  {
-                    id: S.actionId(252, 207),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHIELD_GUARDIAN_REGENERATION
                   }
                 ]
               }

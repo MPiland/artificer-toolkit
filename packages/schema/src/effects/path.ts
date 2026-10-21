@@ -217,7 +217,7 @@ const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
     failureMarginRider: z.optional(failureMarginRiderDtoSchema),
     gate: z.optional(
       z.object({
-        kind: z.literal('TARGET_HIT_POINTS_AT_MOST'),
+        kind: z.enum(['TARGET_HIT_POINTS_AT_MOST', 'TARGET_HIT_POINTS_AT_LEAST']),
         amount: z.number().check(z.int()).check(z.gte(1))
       })
     ),

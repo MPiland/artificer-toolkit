@@ -15,7 +15,8 @@ export const TRIGGER = {
   INCOMING_DAMAGE: 'INCOMING_DAMAGE',
   HP_ZERO: 'HP_ZERO',
   INCOMING_WEAPON_HIT: 'INCOMING_WEAPON_HIT',
-  ROLL_INITIATIVE: 'ROLL_INITIATIVE'
+  ROLL_INITIATIVE: 'ROLL_INITIATIVE',
+  START_OF_TURN: 'START_OF_TURN'
 } as const
 
 export type Trigger = keyof typeof TRIGGER
@@ -105,6 +106,12 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
     code: TRIGGER.ROLL_INITIATIVE,
     label: 'Roll initiative',
     description: 'Triggers when the holder rolls initiative.'
+  },
+
+  START_OF_TURN: {
+    code: TRIGGER.START_OF_TURN,
+    label: 'Start of turn',
+    description: "Triggers at the start of the holder's turn."
   }
 }
 

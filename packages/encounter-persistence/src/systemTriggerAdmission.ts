@@ -11,8 +11,9 @@ import type { EncounterReadTransaction } from './ports.js'
  * A rule-raised root (SYSTEM admission) needs no controller and no turn: it is proved by the committed
  * parent command that raised it. The id must be the one derived from that parent and holder, the
  * parent's receipt must belong to this Run, and a fresh root runs on the version the parent produced
- * for a holder that is still at 0 hit points. A resume skips the version and defeat tests, as the
- * answers arrive in later commands.
+ * for a holder that is still at 0 hit points. A start-of-turn root instead targets its holder, is
+ * raised by the command that began the holder's turn, and runs while it is the holder's turn. A
+ * resume skips the version and holder tests, as the answers arrive in later commands.
  */
 export async function requireSystemTriggerAdmission(
   ctx: EncounterReadTransaction,
@@ -39,8 +40,17 @@ export async function requireSystemTriggerAdmission(
         query.eq('campaignId', run.campaignId).eq('commandId', parentCommandId)
       )
       .unique())
+  const startOfTurn = command.systemTrigger.trigger === 'START_OF_TURN'
   if (
-    command.target.kind !== 'CASTER_CENTERED' ||
+    (startOfTurn
+      ? command.target.kind !== 'ACTOR' ||
+        command.target.actorId.toLowerCase() !== command.actorId.toLowerCase() ||
+        !(
+          parent &&
+          'commandType' in parent &&
+          ['START', 'ADVANCE_TURN'].includes(parent.commandType)
+        )
+      : command.target.kind !== 'CASTER_CENTERED') ||
     command.commandId.toLowerCase() !==
       systemTriggerCommandId(parentCommandId, command.actorId.toLowerCase(), command.actionId) ||
     parent?.encounterId !== run.id
@@ -50,6 +60,11 @@ export async function requireSystemTriggerAdmission(
   const parentVersion = 'encounterVersion' in parent! ? parent.encounterVersion : parent!.version
   if (parentVersion !== input.state.version || command.expectedVersion !== parentVersion)
     rejectDomain('VERSION_STALE')
+  if (startOfTurn) {
+    if (input.state.currentActorId !== command.actorId.toLowerCase())
+      rejectDomain('NOT_CURRENT_ACTOR')
+    return
+  }
   const holder = await readRunActor(ctx, input.state, command.actorId.toLowerCase())
   if (!(await readEncounterActorDefeated(ctx, holder))) rejectDomain('ACTOR_DEFEATED')
 }

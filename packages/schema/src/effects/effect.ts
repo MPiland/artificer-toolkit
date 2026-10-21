@@ -96,7 +96,8 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
         triggerCodeSchema._zod.def.entries.INCOMING_SAVING_THROW,
         triggerCodeSchema._zod.def.entries.ENTER_AREA,
         triggerCodeSchema._zod.def.entries.INCOMING_WEAPON_HIT,
-        triggerCodeSchema._zod.def.entries.ROLL_INITIATIVE
+        triggerCodeSchema._zod.def.entries.ROLL_INITIATIVE,
+        triggerCodeSchema._zod.def.entries.START_OF_TURN
       ]),
       range: rangeDtoSchema,
       shape: z.optional(shapeDtoSchema),

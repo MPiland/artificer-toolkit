@@ -136,6 +136,7 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
             | 'HP_ZERO'
             | 'INCOMING_WEAPON_HIT'
             | 'ROLL_INITIATIVE'
+            | 'START_OF_TURN'
           >
           activation: ActivationAuthored
           resourceUse?: ResourceUseAuthored

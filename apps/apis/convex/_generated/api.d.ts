@@ -26900,7 +26900,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -37920,7 +37921,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -48949,7 +48951,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -59969,7 +59972,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -71024,7 +71028,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -82044,7 +82049,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -93021,7 +93027,8 @@ export declare const api: {
                           | "INCOMING_SAVING_THROW"
                           | "ENTER_AREA"
                           | "INCOMING_WEAPON_HIT"
-                          | "ROLL_INITIATIVE";
+                          | "ROLL_INITIATIVE"
+                          | "START_OF_TURN";
                       }
                     | {
                         damageTypeIds: Array<string>;
@@ -103944,7 +103951,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -114964,7 +114972,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
