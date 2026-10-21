@@ -860,6 +860,9 @@ export function featureActionMechanic(
       : null
   return {
     effectId: capability.effectId,
+    ...(capability.spellCastLevel === undefined
+      ? {}
+      : { spellCastLevel: capability.spellCastLevel }),
     trigger: invocation.triggerCode,
     activation: invocation.activation,
     attackBonus: capability.attackMechanic?.attackBonus ?? null,

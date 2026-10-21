@@ -9,7 +9,7 @@ import {
   encounterBasicActionCheckPendingContextDtoSchema,
   encounterCharacterRuleActionPendingContextDtoSchema,
   encounterConcealmentCheckPendingContextDtoSchema,
-  encounterConcentrationDamageCheckPendingContextDtoSchema,
+  encounterDamageSaveCheckPendingContextDtoSchema,
   encounterCreatureRuleActionPendingContextDtoSchema,
   encounterEscapeCheckPendingContextDtoSchema
 } from './ruleExecutionDirectActionPendingContexts.js'
@@ -50,7 +50,7 @@ export type ServerRuleExecutionPendingApplicationContextDto =
   | z.infer<typeof encounterActorRuleActionPendingContextDtoSchema>
   | z.infer<typeof encounterActorSpellCastPendingContextDtoSchema>
   | z.infer<typeof encounterCreatureRuleActionPendingContextDtoSchema>
-  | z.infer<typeof encounterConcentrationDamageCheckPendingContextDtoSchema>
+  | z.infer<typeof encounterDamageSaveCheckPendingContextDtoSchema>
   | z.infer<typeof encounterBasicActionCheckPendingContextDtoSchema>
   | z.infer<typeof encounterEscapeCheckPendingContextDtoSchema>
   | z.infer<typeof encounterConcealmentCheckPendingContextDtoSchema>
@@ -75,7 +75,7 @@ const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<S
         encounterActorRuleActionPendingContextDtoSchema,
         encounterActorSpellCastPendingContextDtoSchema,
         encounterCreatureRuleActionPendingContextDtoSchema,
-        encounterConcentrationDamageCheckPendingContextDtoSchema,
+        encounterDamageSaveCheckPendingContextDtoSchema,
         encounterBasicActionCheckPendingContextDtoSchema,
         encounterEscapeCheckPendingContextDtoSchema,
         encounterConcealmentCheckPendingContextDtoSchema,

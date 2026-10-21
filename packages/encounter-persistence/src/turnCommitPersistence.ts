@@ -103,7 +103,7 @@ export async function persistEncounterTurnCommit(
         LiveSessionEncounterTurnCommitInput,
         'concentration' | 'concentrationEnds' | 'endedGrants' | 'pendingConcentration'
       >
-    ): Promise<{ actors: EncounterRunActorState[]; failed: boolean }>
+    ): Promise<{ actors: EncounterRunActorState[]; mutated: boolean }>
   }
 ): Promise<EncounterCommandResultDto> {
   const admission = await readLiveEncounterTurnAdmission(ctx, input, input.command)

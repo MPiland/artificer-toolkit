@@ -114,6 +114,16 @@ export const encounterRuleRollTriggerDtoSchema = lazySchema(() =>
       sourceLabel: z.nullable(triggerLabelSchema),
       dc: z.number().check(z.int()).check(z.positive())
     }),
+    /** A damaged holder's active effect repeats its save (D167); `dc` is the effect's frozen DC. */
+    z.strictObject({
+      kind: z.literal('EFFECT_REPEAT_SAVE'),
+      damage: z.strictObject({
+        amount: z.number().check(z.int()).check(z.positive()),
+        typeLabel: z.nullable(triggerLabelSchema)
+      }),
+      sourceLabel: z.nullable(triggerLabelSchema),
+      dc: z.number().check(z.int()).check(z.positive())
+    }),
     /** A dying Character's turn-start death save, with the saves it has made so far. */
     z.strictObject({
       kind: z.literal('DEATH_SAVE'),

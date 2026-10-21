@@ -8,6 +8,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
@@ -455,6 +456,15 @@ describe('room Heat Metal (SPELLS-4.T2e)', () => {
     }).find((entry) => entry.id === itemEntryId)?.useState
   }
 
+  const readCharacterPlayState = (room: ActionRoom) =>
+    runInDurableObject(room.room.base.stub, (_instance, context) => {
+      const row = new RoomEncounterStore(context.storage)
+        .documents('characterPlayStates')
+        .find((candidate) => candidate.characterId === CHARACTER_ID)
+      if (!row) throw new Error('Missing room Character play state.')
+      return readCharacterPlay(row)
+    })
+
   const ogreGrants = async (room: ActionRoom) =>
     (await readRoomHistory(room.room.base.stub)).activeEffects.filter(
       ({ targetActorId }) => targetActorId === OGRE_ID
@@ -482,14 +492,58 @@ describe('room Heat Metal (SPELLS-4.T2e)', () => {
     const fixture = await heatMetalRoom(1, true)
     await castHeatMetal(fixture)
     expect(await ogreItemState(fixture.room, fixture.itemEntryId)).toBe('WORN')
-    expect(await ogreGrants(fixture.room)).toHaveLength(1)
+    // The disadvantage and the carrier of the repeat offer (D166).
+    expect(await ogreGrants(fixture.room)).toHaveLength(2)
   }, 120000)
 
   it('gives the Ogre disadvantage when it keeps the Longsword on a successful save', async () => {
     const fixture = await heatMetalRoom(20)
     await castHeatMetal(fixture)
     expect(await ogreItemState(fixture.room, fixture.itemEntryId)).toBe('MAIN_HAND')
-    expect(await ogreGrants(fixture.room)).toHaveLength(1)
+    expect(await ogreGrants(fixture.room)).toHaveLength(2)
+  }, 120000)
+
+  it('lets the Character repeat the damage and save as a bonus action, on the cast’s DC, with no slot or new Concentration (D166)', async () => {
+    const fixture = await heatMetalRoom(20)
+    await castHeatMetal(fixture)
+    const slotsAfterCast = (await readCharacterPlayState(fixture.room)).spellSlots
+    const maintained = (await readRoomHistory(fixture.room.room.base.stub)).maintainedStates
+    const carrier = (await ogreGrants(fixture.room)).find(({ definitionJson }) =>
+      definitionJson.includes('REPEAT_SOURCE_PATH')
+    )
+    if (!carrier) throw new Error('The cast left no repeat carrier on the Ogre.')
+    const frozenDc = Number(/"baseDc":(\d+)/.exec(carrier.definitionJson)?.[1])
+    expect(frozenDc).toBeGreaterThan(0)
+
+    const [offer] = (await fixture.room.actionChoices()).effectOffers
+    expect(offer).toMatchObject({
+      kind: 'REPEAT_SOURCE_PATH',
+      effectId: carrier.id,
+      holderActorId: OGRE_ID,
+      activation: 'BONUS_ACTION'
+    })
+    if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+
+    const repeat = await fixture.room.startAction(OGRE_ID, RANGE, null, null, offer.actionId)
+    expect(repeat.answer.type, JSON.stringify(repeat.answer)).toBe('COMMAND_COMMITTED')
+    // The same pending flow as any action: it asks for the Ogre's save against the frozen DC.
+    const pending = await readPendingActionContext(fixture.room.room.base.stub)
+    if (pending.kind !== 'ENCOUNTER_ACTION') throw new Error('Expected a pending action.')
+    expect(JSON.stringify(pending)).toContain(`"dc":${frozenDc}`)
+    await settlePendingAction(fixture.room)
+
+    // Every die shows its minimum: 2d8 fire is 2 and the failed save drops the Longsword.
+    expect(await appliedDamage(fixture.room, repeat.command.commandId)).toEqual([
+      [2, damageTypeId('FIRE')]
+    ])
+    expect(await ogreItemState(fixture.room, fixture.itemEntryId)).toBe('CARRIED')
+    expect((await readCharacterPlayState(fixture.room)).spellSlots).toEqual(slotsAfterCast)
+    expect((await readRoomHistory(fixture.room.room.base.stub)).maintainedStates).toEqual(
+      maintained
+    )
+    // The release ended the carrier, so the offer is gone.
+    expect((await ogreGrants(fixture.room)).some(({ id }) => id === carrier.id)).toBe(false)
+    expect((await fixture.room.actionChoices()).effectOffers).toEqual([])
   }, 120000)
 })
 

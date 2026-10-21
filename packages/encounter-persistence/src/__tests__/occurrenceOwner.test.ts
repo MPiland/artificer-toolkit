@@ -70,7 +70,7 @@ describe('classifyNativeEncounterOccurrence', () => {
         'MOVEMENT'
       ],
       [facts({ kind: 'ENCOUNTER_CONTEST_CHECK' }), 'OTHER'],
-      [facts({ kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' }), 'OTHER'],
+      [facts({ kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK' }), 'OTHER'],
       [facts(null), 'OTHER']
     ]
     for (const [input, owner] of cases)

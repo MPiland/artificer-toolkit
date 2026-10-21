@@ -1,20 +1,44 @@
 import { v5 as uuidv5 } from 'uuid'
-import type { encounterConcentrationDamageCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
-
-type NativeConcentrationContext = ReturnType<
-  typeof encounterConcentrationDamageCheckPendingContextDtoSchema.parse
->
+import type { ConcentrationDamageApplicationDto } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 
 // Retains the established deterministic child/command identity from the prior backend.
 const concentrationNamespace = 'd4b06f4e-c014-49b6-8e39-3a2c790f8d57'
+/**
+ * One damage-triggered save child per application and holder; an effect's repeat save also names
+ * its effect, so a holder with several offering effects gets one child each.
+ */
 export function concentrationOccurrenceId(
   parentOccurrenceId: string,
-  application: NativeConcentrationContext['application']
+  application: ConcentrationDamageApplicationDto & { activeEffectId?: string }
 ) {
+  const base = `${parentOccurrenceId}:${application.ordinal}:${application.sourceNodeId}:${application.sourceOperationKey}:${application.targetActorId}`
   return uuidv5(
-    `${parentOccurrenceId}:${application.ordinal}:${application.sourceNodeId}:${application.sourceOperationKey}:${application.targetActorId}:concentration-damage-check`,
+    application.activeEffectId === undefined
+      ? `${base}:concentration-damage-check`
+      : `${base}:${application.activeEffectId}:effect-repeat-save`,
     concentrationNamespace
   )
+}
+/**
+ * A damage-triggered save context's damage bound to what it checks (the Concentration state or the
+ * effect), the chain item `remaining` holds.
+ */
+export function damageSaveContextBoundApplication(
+  context:
+    | {
+        source: 'CONCENTRATION'
+        application: ConcentrationDamageApplicationDto
+        maintainedState: { id: string }
+      }
+    | {
+        source: 'EFFECT_REPEAT_SAVE'
+        application: ConcentrationDamageApplicationDto
+        activeEffect: { id: string }
+      }
+) {
+  return context.source === 'CONCENTRATION'
+    ? { ...context.application, maintainedStateId: context.maintainedState.id }
+    : { ...context.application, activeEffectId: context.activeEffect.id }
 }
 /** One CONCENTRATION_END child per ended maintained state of a parent commit. */
 export function concentrationEndOccurrenceId(

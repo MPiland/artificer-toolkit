@@ -100,7 +100,7 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
     const { kind } = snapshot.applicationContext
     // The GM's view: every actor is theirs to answer for and to see.
     const pending =
-      kind === 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'
+      kind === 'ENCOUNTER_DAMAGE_SAVE_CHECK'
         ? projectNativeConcentrationPending(occurrence, snapshot)
         : kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ||
             kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||

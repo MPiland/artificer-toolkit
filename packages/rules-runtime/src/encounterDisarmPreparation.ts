@@ -30,6 +30,7 @@ import {
 import type { prepareEncounterActionEconomy } from './encounterActionEconomy.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import type { ReceiptApplications } from './encounterCharacterMechanicsBatch.js'
+import { freezeD20Context } from './encounterD20Settlement.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import {
   creatureActiveGrantAttackContributors,
@@ -142,7 +143,8 @@ export function readEncounterDisarmSelection(input: {
 }) {
   const { actor, target, prepared } = input
   const { source, sourceFacts, targetFacts } = prepared
-  if (source.kind === 'BASIC_ACTION') throw new Error('Disarm requires a weapon attack action.')
+  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH')
+    throw new Error('Disarm requires a weapon attack action.')
   const targetWarnings = evaluateEncounterActionTargetPolicy({
     actor,
     target,
@@ -333,7 +335,8 @@ export function prepareEncounterDisarmContest(input: {
   if (command.acceptedWieldConflict) throw new Error('Disarm does not stow a shield.')
   const { sourcePolicyFacts, defenderFacts, descriptor } = input.selection
   const { source, sourceFacts, plan } = prepared
-  if (source.kind === 'BASIC_ACTION') throw new Error('Disarm requires a weapon attack action.')
+  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH')
+    throw new Error('Disarm requires a weapon attack action.')
   const selection = resolveDnd5eOptionalCombatActionSelection({
     definition: input.definition,
     descriptor,
@@ -498,10 +501,11 @@ export function prepareEncounterDisarmContest(input: {
     initiator: {
       actorId: actor.id,
       requestNodeId: 'initiator_d20',
-      rollMode: preparation.proposal.contest.initiatorMode,
-      contributors: [...preparation.proposal.contest.initiatorContributors],
-      contributorChecksum: checksumRuleDocument(preparation.proposal.contest.initiatorContributors),
-      modifier
+      ...freezeD20Context({
+        rollMode: preparation.proposal.contest.initiatorMode,
+        contributors: preparation.proposal.contest.initiatorContributors,
+        modifier
+      })
     },
     defender: {
       actorId: target.id,
@@ -510,9 +514,7 @@ export function prepareEncounterDisarmContest(input: {
         {
           checkDefinitionId,
           label: encounterBasicActionCheckLabel(input.system, checkDefinitionId),
-          ...defenderRoll,
-          contributorChecksum: checksumRuleDocument(defenderRoll.contributors),
-          modifier: targetCheckTotal
+          ...freezeD20Context({ ...defenderRoll, modifier: targetCheckTotal })
         }
       ]
     },

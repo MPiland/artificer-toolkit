@@ -1,7 +1,10 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
-import { encounterConcentrationDamageCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
+import {
+  encounterConcentrationDamageCheckPendingContextDtoSchema,
+  encounterDamageSaveCheckPendingContextDtoSchema
+} from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { concentrationCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
@@ -10,13 +13,9 @@ import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/sche
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import {
-  resolveEncounterD20Answer,
-  type EncounterEvidenceAnswer
-} from './encounterEvidenceAnswer.js'
-import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
+import { settleEncounterD20Answer, settleEncounterD20Test } from './encounterD20Settlement.js'
 import { derivedAddedDice } from './systems/dnd5e/d20AddedDiceGraph.js'
-import { d20AddedDiceTotal } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { concentrationDamageSourceLabel } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
@@ -32,6 +31,38 @@ import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
 export type NativeConcentrationContext = ReturnType<
   typeof encounterConcentrationDamageCheckPendingContextDtoSchema.parse
 >
+
+/** A pending damage-triggered save of either source: Concentration or an effect's repeat save. */
+export type NativeDamageSaveContext = ReturnType<
+  typeof encounterDamageSaveCheckPendingContextDtoSchema.parse
+>
+
+/**
+ * The Character stream a damage-triggered save pins: undefined for a Creature or custom actor, null
+ * when a Character's facts are unavailable, else the stream and projection checksums.
+ */
+export function damageSaveTargetCharacterPins(
+  target: Pick<
+    MovementTarget,
+    'actor' | 'characterFacts' | 'characterCurrentness' | 'effectiveRulePolicyOutput'
+  >
+) {
+  const character = target.characterFacts
+  return target.actor.kind === 'CHARACTER'
+    ? character && target.characterCurrentness && target.effectiveRulePolicyOutput
+      ? {
+          streamVersion: character.active.play.streamVersion,
+          baseProjectionChecksum: target.characterCurrentness.projectionChecksum,
+          campaignOverlayChecksum: checksumRuleDocument({
+            base: target.characterCurrentness.projectionChecksum,
+            context: target.characterCurrentness.mechanicalContextChecksum,
+            output: target.effectiveRulePolicyOutput
+          }),
+          mechanicalContextChecksum: target.characterCurrentness.mechanicalContextChecksum
+        }
+      : null
+    : undefined
+}
 
 /** Validates current concentration inputs before dice or cleanup, preserving the native read order. */
 export async function prepareEncounterConcentrationState<TTarget extends MovementTarget>(input: {
@@ -77,23 +108,8 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
     !input.state.actorIds.includes(input.targetActorId)
   )
     throw new Error('The concentration target does not match its Encounter owner.')
-  const character = target.characterFacts
   const vocabulary = await input.readVocabulary()
-  const characterPins =
-    target.actor.kind === 'CHARACTER'
-      ? character && target.characterCurrentness && target.effectiveRulePolicyOutput
-        ? {
-            streamVersion: character.active.play.streamVersion,
-            baseProjectionChecksum: target.characterCurrentness.projectionChecksum,
-            campaignOverlayChecksum: checksumRuleDocument({
-              base: target.characterCurrentness.projectionChecksum,
-              context: target.characterCurrentness.mechanicalContextChecksum,
-              output: target.effectiveRulePolicyOutput
-            }),
-            mechanicalContextChecksum: target.characterCurrentness.mechanicalContextChecksum
-          }
-        : null
-      : undefined
+  const characterPins = damageSaveTargetCharacterPins(target)
   if (!vocabulary || characterPins === null)
     throw new Error('The concentration Character facts are unavailable.')
   const current = await input.readDefinition(maintenancePolicy.damageCheckDefinitionId)
@@ -149,6 +165,8 @@ export function createNativeConcentrationContext(input: {
   remaining: NativeConcentrationContext['remaining']
   finalizedDamageEnvelopeChecksum: string
   sourceLabels: NativeConcentrationContext['sourceLabels']
+  /** Set when the chain can hold effect repeat saves; see the pending context. */
+  repeatSaveDamagerActorId?: string | null
 }) {
   const { current, application } = input
   const addedDice = derivedAddedDice(
@@ -169,13 +187,17 @@ export function createNativeConcentrationContext(input: {
     descriptorChecksum: current.maintained.descriptorChecksum
   }
   const context = encounterConcentrationDamageCheckPendingContextDtoSchema.parse({
-    kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK',
+    kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK',
+    source: 'CONCENTRATION',
     schemaVersion: 1,
     parentOccurrenceId: input.parentOccurrenceId,
     parentCommandFingerprint: input.parentCommandFingerprint,
     finalizedDamageEnvelopeChecksum: input.finalizedDamageEnvelopeChecksum,
     application,
     sourceLabels: input.sourceLabels,
+    ...(input.repeatSaveDamagerActorId === undefined
+      ? {}
+      : { repeatSaveDamagerActorId: input.repeatSaveDamagerActorId }),
     trigger: {
       sourceLabel: concentrationDamageSourceLabel(input.sourceLabels, application),
       damageTypeLabel:
@@ -242,46 +264,36 @@ export async function evaluateNativeConcentrationEvidence(input: {
     continuation.occurrenceId !== input.expectedOccurrenceId
   )
     throw new Error('The concentration evidence request is unavailable.')
-  const {
-    faces: rawFaces,
-    rollMode,
-    natural: selectedNatural
-  } = resolveEncounterD20Answer({
-    derivedRollMode: context.save.rollMode,
+  const roll = settleEncounterD20Answer({
+    d20: context.save,
     answer: resolution,
-    rollD20: () => input.random(20) + 1
-  })
-  const addedDice = resolveEncounterAddedDice({
-    dice: context.save.addedDice ?? [],
-    answer: resolution,
+    rollD20: () => input.random(20) + 1,
     random: input.random
   })
-  const execution = await resumeEncounterD20({
+  const refusal = () => new Error('The concentration result does not match its frozen evidence.')
+  const execution = await settleEncounterD20Test({
     continuation,
-    natural: selectedNatural,
-    addedDice,
-    resume: (step) => input.runtime.resume(step)
+    roll,
+    resume: (step) => input.runtime.resume(step),
+    outputs: { rawDie: 'naturalD20', total: { port: 'total', modifier: context.save.modifier } },
+    refusal
   })
   if (
-    execution.status !== 'COMPLETE' ||
     execution.evidence.source.definitionId !== context.concentrationDefinition.id ||
     execution.evidence.source.checksum !== context.concentrationDefinition.checksum ||
     execution.outputs.targetActorId !== context.application.targetActorId ||
     execution.outputs.appliedDamage !== context.application.appliedAmount ||
     execution.outputs.contributorChecksum !== context.save.contributorChecksum ||
-    execution.outputs.naturalD20 !== selectedNatural ||
-    execution.outputs.total !==
-      selectedNatural + context.save.modifier + d20AddedDiceTotal(addedDice) ||
     (execution.outputs.resultPath !== 'ON_SAVE_SUCCESS' &&
       execution.outputs.resultPath !== 'ON_SAVE_FAIL')
   )
-    throw new Error('The concentration result does not match its frozen evidence.')
+    throw refusal()
   return {
     execution,
-    rawFaces,
-    rollMode,
-    selectedNatural,
-    addedDice,
+    rawFaces: roll.rawFaces,
+    rollMode: roll.rollMode,
+    selectedNatural: roll.natural,
+    addedDice: roll.addedDice,
     failed: execution.outputs.resultPath === 'ON_SAVE_FAIL'
   }
 }
@@ -311,11 +323,14 @@ export function completeNativeConcentrationResult(input: {
     addedDice,
     failed
   } = input
-  const nextApplication = context.remaining.find(
-    (entry) => !failed || entry.maintainedStateId !== context.maintainedState.id
-  )
+  const endsThisState = (
+    entry: NativeConcentrationContext['remaining'][number]
+  ): entry is Extract<typeof entry, { maintainedStateId: string }> =>
+    'maintainedStateId' in entry && entry.maintainedStateId === context.maintainedState.id
+  const nextApplication = context.remaining.find((entry) => !failed || !endsThisState(entry))
   const applicationOutputs = concentrationCheckApplicationOutputDtoSchema.parse({
-    kind: 'CONCENTRATION_CHECK',
+    kind: 'DAMAGE_SAVE_CHECK',
+    source: 'CONCENTRATION',
     schemaVersion: 1,
     occurrenceId: continuation.occurrenceId,
     parentOccurrenceId: context.parentOccurrenceId,
@@ -345,12 +360,10 @@ export function completeNativeConcentrationResult(input: {
       ? concentrationOccurrenceId(context.parentOccurrenceId, nextApplication)
       : null,
     skipped: failed
-      ? context.remaining
-          .filter((entry) => entry.maintainedStateId === context.maintainedState.id)
-          .map((application) => ({
-            ...application,
-            reason: 'MAINTAINED_STATE_ENDED'
-          }))
+      ? context.remaining.filter(endsThisState).map((application) => ({
+          ...application,
+          reason: 'MAINTAINED_STATE_ENDED'
+        }))
       : []
   })
   const result = storedRuleExecutionResultDtoSchema.parse({

@@ -47,7 +47,7 @@ import {
   serverPublishedRuleDefinitionDtoSchema,
   ruleGraphSourceIdentityDtoSchema
 } from '../shared/ruleExecutionCore.js'
-import { effectOffersDtoSchema } from '../effects/effectOffer.js'
+import { compiledEffectOffersSchema } from '../effects/storedEffectOffer.js'
 import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import {
   activeEffectConsumeEventsSchema,
@@ -252,16 +252,17 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             uses: z.optional(activeEffectUsesSchema),
             onEnd: z.optional(activeEffectOnEndSchema),
             grantedActions: z.optional(storedGrantedActionsSchema),
-            effectOffers: z.optional(effectOffersDtoSchema)
+            effectOffers: z.optional(compiledEffectOffersSchema)
           })
           .check(
             z.refine(
               (contribution) =>
                 contribution.modifiers.length +
                   contribution.senses.length +
-                  (contribution.grantedActions?.length ?? 0) >
+                  (contribution.grantedActions?.length ?? 0) +
+                  (contribution.effectOffers?.length ?? 0) >
                 0,
-              'A grant contribution grants a modifier, a sense or an action.'
+              'A grant contribution grants a modifier, a sense, an action or an offer.'
             )
           )
       ),
@@ -399,6 +400,22 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
           ),
           frozenGraph: serverPublishedRuleDefinitionDtoSchema
+        })
+      ),
+      null
+    ),
+    /**
+     * The effect that holds a repeat offer for the cast's whole Concentration (D166), bound to the
+     * chosen item and ended through the chosen-item release; null for none. It rides the rider
+     * slot beside the recurring effect, under its own node of the plan's frozen graph.
+     */
+    repeatCarrier: z._default(
+      z.nullable(
+        z.strictObject({
+          compiledEntryId: serverUuidIdentityDtoSchema,
+          frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
+          applyGrantOutcomeId: serverUuidIdentityDtoSchema,
+          effectOffers: compiledEffectOffersSchema
         })
       ),
       null
@@ -872,174 +889,178 @@ const characterMechanicsProjectionObjectSchema = lazySchema(() =>
   })
 )
 
-export const characterMechanicsProjectionSchema = lazySchema(() =>
-  characterMechanicsProjectionObjectSchema.check(
-    z.superRefine((projection, ctx) => {
-      const senses = projection.rulePolicyOutput.senses
-      if (projection.pinnedSenseDefinitions.length !== senses.length) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Pinned sense definitions must align with final Character senses.',
-          path: ['pinnedSenseDefinitions']
-        })
-      }
-      const expectedSenseIds = senses.map((sense) => sense.senseDefinitionId)
-      const pinnedSenseIds = projection.pinnedSenseDefinitions.map((pin) => pin.senseDefinitionId)
-      const sortedPinnedSenseIds = [...pinnedSenseIds].sort((left, right) =>
-        left.localeCompare(right)
-      )
-      if (pinnedSenseIds.some((id, index) => id !== sortedPinnedSenseIds[index])) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Pinned sense definitions must use canonical identity order.',
-          path: ['pinnedSenseDefinitions']
-        })
-      }
-      const expectedSenseIdSet = new Set(expectedSenseIds)
-      const pinnedSenseIdSet = new Set(pinnedSenseIds)
-      if (
-        expectedSenseIdSet.size !== expectedSenseIds.length ||
-        pinnedSenseIdSet.size !== pinnedSenseIds.length ||
-        expectedSenseIdSet.size !== pinnedSenseIdSet.size ||
-        [...expectedSenseIdSet].some((id) => !pinnedSenseIdSet.has(id))
-      ) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Pinned sense definition identities must exactly match final Character senses.',
-          path: ['pinnedSenseDefinitions']
-        })
-      }
-      for (const [index, pin] of projection.pinnedSenseDefinitions.entries()) {
-        const sense = senses.find(
-          (candidate) => candidate.senseDefinitionId === pin.senseDefinitionId
-        )
-        if (
-          pin.document.id !== pin.senseDefinitionId ||
-          pin.document.gameSystemId !== projection.commandState.systemId ||
-          checksumRuleDocument(pin.document) !== pin.definitionChecksum ||
-          !sense ||
-          checksumRuleDocument(pin.range) !== checksumRuleDocument(sense.range)
-        ) {
-          ctx.addIssue({
-            code: 'custom',
-            message:
-              'Pinned sense definition must match its Character System and final sense range.',
-            path: ['pinnedSenseDefinitions', index]
-          })
-        }
-      }
-      const candidates = projection.rulePolicyInput.actionCandidates
-      const entries = projection.compiledActionEntryPoints
-      const actionEntries = entries.filter((entry) => entry.kind === 'CHARACTER_ACTION')
-      const spellEntries = entries.filter((entry) => entry.kind === 'CHARACTER_SPELL_CAST')
-      if (actionEntries.length !== candidates.length) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Compiled action entries must align with action candidates.',
-          path: ['compiledActionEntryPoints']
-        })
-        return
-      }
-      const seenActionIds = new Set<string>()
-      for (const [index, entry] of actionEntries.entries()) {
-        const candidate = candidates[index]
-        if (
-          !candidate ||
-          entry.actionId !== candidate.actionId ||
-          entry.effectId !== candidate.effectId
-        ) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'Compiled action entry identity must match its ordered action candidate.',
-            path: ['compiledActionEntryPoints', index]
-          })
-        }
-        if (seenActionIds.has(entry.actionId)) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'Compiled action entry identities must be unique.',
-            path: ['compiledActionEntryPoints', index]
-          })
-        }
-        seenActionIds.add(entry.actionId)
-        const graphOf = (plan: z.infer<typeof compiledActionExecutionPlanSchema>) =>
-          plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
-        const published =
-          entry.compilation.kind !== 'COMPILED'
-            ? []
-            : [
-                graphOf(entry.compilation.executionPlan),
-                ...(entry.compilation.choice?.options.map((option) =>
-                  graphOf(option.executionPlan)
-                ) ?? [])
-              ]
-        if (
-          published.some(
-            (graph) =>
-              graph.id !== entry.effectId || graph.gameSystemId !== projection.commandState.systemId
-          )
-        ) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'Compiled action graph identity must match its Effect and Character System.',
-            path: ['compiledActionEntryPoints', index, 'compilation']
-          })
-        }
-        if (
-          entry.compilation.kind === 'COMPILED' &&
-          entry.compilation.choice !== null &&
-          entry.compilation.zonePlacement !== null
-        ) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'A compiled action picks its option or its zone at cast, never both.',
-            path: ['compiledActionEntryPoints', index, 'compilation', 'choice']
-          })
-        }
-      }
-      const spellCandidates = projection.rulePolicyInput.spellCastCandidates
-      const spellMechanics = projection.rulePolicyOutput.spellCastMechanics
-      const spellDecisions = projection.rulePolicyOutput.spellCastDecisions
-      const expectedSpellEntries = new Map(
-        spellCandidates.map((candidate) => [candidate.candidateId, candidate])
-      )
-      for (const [index, entry] of spellEntries.entries()) {
-        const candidate = expectedSpellEntries.get(entry.actionId)
-        const mechanics = spellMechanics.find((value) => value.candidateId === entry.actionId)
-        const decision = spellDecisions.find((value) => value.candidateId === entry.actionId)
-        const published =
-          entry.compilation.executionPlan.kind === 'SINGLE_GRAPH'
-            ? entry.compilation.executionPlan.published
-            : entry.compilation.executionPlan.test.published
-        if (
-          !candidate ||
-          !mechanics ||
-          !decision ||
-          candidate.spellId !== entry.spell.spellId ||
-          candidate.source.sourceKind !== entry.spell.sourceKind ||
-          candidate.source.sourceInstanceId !== entry.spell.sourceInstanceId ||
-          candidate.castLevel !== entry.spell.castLevel ||
-          candidate.castMode !== entry.spell.castMode ||
-          candidate.resourceOwnerKey !== entry.spell.resourceOwnerKey ||
-          decision.slotKey !== entry.spell.slotKey ||
-          mechanics.mechanics.filter((value) => value.effectId === entry.effectId).length !== 1 ||
-          published.id !== entry.effectId ||
-          published.gameSystemId !== projection.commandState.systemId
-        ) {
-          ctx.addIssue({
-            code: 'custom',
-            message:
-              'Compiled spell action entry must match one current spell-cast candidate, decision, and Effect.',
-            path: ['compiledActionEntryPoints', actionEntries.length + index]
-          })
-        }
-        expectedSpellEntries.delete(entry.actionId)
-      }
-    })
-  )
-)
+/** Named so the declaration stays within the compiler's serialization limit (TS7056). */
+export type CharacterMechanicsProjection = z.infer<typeof characterMechanicsProjectionObjectSchema>
 
-export type CharacterMechanicsProjection = z.infer<typeof characterMechanicsProjectionSchema>
+export const characterMechanicsProjectionSchema: z.ZodMiniType<CharacterMechanicsProjection> =
+  lazySchema(() =>
+    characterMechanicsProjectionObjectSchema.check(
+      z.superRefine((projection, ctx) => {
+        const senses = projection.rulePolicyOutput.senses
+        if (projection.pinnedSenseDefinitions.length !== senses.length) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Pinned sense definitions must align with final Character senses.',
+            path: ['pinnedSenseDefinitions']
+          })
+        }
+        const expectedSenseIds = senses.map((sense) => sense.senseDefinitionId)
+        const pinnedSenseIds = projection.pinnedSenseDefinitions.map((pin) => pin.senseDefinitionId)
+        const sortedPinnedSenseIds = [...pinnedSenseIds].sort((left, right) =>
+          left.localeCompare(right)
+        )
+        if (pinnedSenseIds.some((id, index) => id !== sortedPinnedSenseIds[index])) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Pinned sense definitions must use canonical identity order.',
+            path: ['pinnedSenseDefinitions']
+          })
+        }
+        const expectedSenseIdSet = new Set(expectedSenseIds)
+        const pinnedSenseIdSet = new Set(pinnedSenseIds)
+        if (
+          expectedSenseIdSet.size !== expectedSenseIds.length ||
+          pinnedSenseIdSet.size !== pinnedSenseIds.length ||
+          expectedSenseIdSet.size !== pinnedSenseIdSet.size ||
+          [...expectedSenseIdSet].some((id) => !pinnedSenseIdSet.has(id))
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            message:
+              'Pinned sense definition identities must exactly match final Character senses.',
+            path: ['pinnedSenseDefinitions']
+          })
+        }
+        for (const [index, pin] of projection.pinnedSenseDefinitions.entries()) {
+          const sense = senses.find(
+            (candidate) => candidate.senseDefinitionId === pin.senseDefinitionId
+          )
+          if (
+            pin.document.id !== pin.senseDefinitionId ||
+            pin.document.gameSystemId !== projection.commandState.systemId ||
+            checksumRuleDocument(pin.document) !== pin.definitionChecksum ||
+            !sense ||
+            checksumRuleDocument(pin.range) !== checksumRuleDocument(sense.range)
+          ) {
+            ctx.addIssue({
+              code: 'custom',
+              message:
+                'Pinned sense definition must match its Character System and final sense range.',
+              path: ['pinnedSenseDefinitions', index]
+            })
+          }
+        }
+        const candidates = projection.rulePolicyInput.actionCandidates
+        const entries = projection.compiledActionEntryPoints
+        const actionEntries = entries.filter((entry) => entry.kind === 'CHARACTER_ACTION')
+        const spellEntries = entries.filter((entry) => entry.kind === 'CHARACTER_SPELL_CAST')
+        if (actionEntries.length !== candidates.length) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Compiled action entries must align with action candidates.',
+            path: ['compiledActionEntryPoints']
+          })
+          return
+        }
+        const seenActionIds = new Set<string>()
+        for (const [index, entry] of actionEntries.entries()) {
+          const candidate = candidates[index]
+          if (
+            !candidate ||
+            entry.actionId !== candidate.actionId ||
+            entry.effectId !== candidate.effectId
+          ) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'Compiled action entry identity must match its ordered action candidate.',
+              path: ['compiledActionEntryPoints', index]
+            })
+          }
+          if (seenActionIds.has(entry.actionId)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'Compiled action entry identities must be unique.',
+              path: ['compiledActionEntryPoints', index]
+            })
+          }
+          seenActionIds.add(entry.actionId)
+          const graphOf = (plan: z.infer<typeof compiledActionExecutionPlanSchema>) =>
+            plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
+          const published =
+            entry.compilation.kind !== 'COMPILED'
+              ? []
+              : [
+                  graphOf(entry.compilation.executionPlan),
+                  ...(entry.compilation.choice?.options.map((option) =>
+                    graphOf(option.executionPlan)
+                  ) ?? [])
+                ]
+          if (
+            published.some(
+              (graph) =>
+                graph.id !== entry.effectId ||
+                graph.gameSystemId !== projection.commandState.systemId
+            )
+          ) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'Compiled action graph identity must match its Effect and Character System.',
+              path: ['compiledActionEntryPoints', index, 'compilation']
+            })
+          }
+          if (
+            entry.compilation.kind === 'COMPILED' &&
+            entry.compilation.choice !== null &&
+            entry.compilation.zonePlacement !== null
+          ) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'A compiled action picks its option or its zone at cast, never both.',
+              path: ['compiledActionEntryPoints', index, 'compilation', 'choice']
+            })
+          }
+        }
+        const spellCandidates = projection.rulePolicyInput.spellCastCandidates
+        const spellMechanics = projection.rulePolicyOutput.spellCastMechanics
+        const spellDecisions = projection.rulePolicyOutput.spellCastDecisions
+        const expectedSpellEntries = new Map(
+          spellCandidates.map((candidate) => [candidate.candidateId, candidate])
+        )
+        for (const [index, entry] of spellEntries.entries()) {
+          const candidate = expectedSpellEntries.get(entry.actionId)
+          const mechanics = spellMechanics.find((value) => value.candidateId === entry.actionId)
+          const decision = spellDecisions.find((value) => value.candidateId === entry.actionId)
+          const published =
+            entry.compilation.executionPlan.kind === 'SINGLE_GRAPH'
+              ? entry.compilation.executionPlan.published
+              : entry.compilation.executionPlan.test.published
+          if (
+            !candidate ||
+            !mechanics ||
+            !decision ||
+            candidate.spellId !== entry.spell.spellId ||
+            candidate.source.sourceKind !== entry.spell.sourceKind ||
+            candidate.source.sourceInstanceId !== entry.spell.sourceInstanceId ||
+            candidate.castLevel !== entry.spell.castLevel ||
+            candidate.castMode !== entry.spell.castMode ||
+            candidate.resourceOwnerKey !== entry.spell.resourceOwnerKey ||
+            decision.slotKey !== entry.spell.slotKey ||
+            mechanics.mechanics.filter((value) => value.effectId === entry.effectId).length !== 1 ||
+            published.id !== entry.effectId ||
+            published.gameSystemId !== projection.commandState.systemId
+          ) {
+            ctx.addIssue({
+              code: 'custom',
+              message:
+                'Compiled spell action entry must match one current spell-cast candidate, decision, and Effect.',
+              path: ['compiledActionEntryPoints', actionEntries.length + index]
+            })
+          }
+          expectedSpellEntries.delete(entry.actionId)
+        }
+      })
+    )
+  )
 
 /**
  * The bounded durable identity required to reuse a room's already-validated

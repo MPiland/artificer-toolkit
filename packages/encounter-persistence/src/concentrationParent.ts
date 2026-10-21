@@ -1,13 +1,23 @@
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { MAX_CONCENTRATION_DAMAGE_APPLICATIONS } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import {
+  MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
+  compareDamageSaveApplications
+} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import {
+  damageSaveCheckBoundApplication,
+  damageSaveCheckMutatesRun
+} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
   storedRuleExecutionResultDtoSchema,
   type StoredRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
-import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
-import type { NativeConcentrationContext } from '@artificer-toolkit/rules-runtime/encounterConcentration'
+import {
+  concentrationOccurrenceId,
+  damageSaveContextBoundApplication
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import type { NativeDamageSaveContext } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { nativeConcentrationParentDamage } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterReadContext } from './store.js'
@@ -18,7 +28,7 @@ import type { EncounterReadContext } from './store.js'
  */
 export async function readNativeConcentrationParentDamage(
   ctx: EncounterReadContext,
-  input: { state: EncounterRunState; context: NativeConcentrationContext }
+  input: { state: EncounterRunState; context: NativeDamageSaveContext }
 ) {
   const { state, context } = input
   const parent = await ctx.db
@@ -88,10 +98,10 @@ export async function readNativeConcentrationParentDamage(
       )
       if (
         childResult.status !== 'COMPLETE' ||
-        childResult.applicationOutputs.kind !== 'CONCENTRATION_CHECK'
+        childResult.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK'
       )
         throw new Error('The concentration parent version is stale.')
-      const commitFailed = await readConcentrationCommitFailed(ctx, {
+      const commitMutated = await readDamageSaveCommitMutated(ctx, {
         encounterId: state.id,
         output: childResult.applicationOutputs,
         encounterVersion: command.version
@@ -99,7 +109,10 @@ export async function readNativeConcentrationParentDamage(
       if (
         childResult.applicationOutputs.parentOccurrenceId !== parent.id ||
         childResult.occurrenceId !==
-          concentrationOccurrenceId(parent.id, childResult.applicationOutputs.application) ||
+          concentrationOccurrenceId(
+            parent.id,
+            damageSaveCheckBoundApplication(childResult.applicationOutputs)
+          ) ||
         child.encounterId !== state.id ||
         child.commandType !== command.commandType ||
         child.occurrenceId !== childResult.occurrenceId ||
@@ -110,16 +123,24 @@ export async function readNativeConcentrationParentDamage(
         checksumRuleDocument(childResult) !== child.resultChecksum ||
         child.resultChecksum !== command.ruleResultChecksum ||
         metadata.transition !== 'RESUME' ||
-        metadata.expectedAggregateVersion + (commitFailed ? 1 : 0) !== command.version
+        metadata.expectedAggregateVersion + (commitMutated ? 1 : 0) !== command.version
       )
         throw new Error('The concentration parent version is stale.')
-      const { maintainedStateId: _stateId, ...damage } = childResult.applicationOutputs.application
+      // The parent recorded the bare damage; a Concentration sibling's output binds it to a state.
+      const { application } = childResult.applicationOutputs
+      const damage =
+        'maintainedStateId' in application
+          ? (({ maintainedStateId: _stateId, ...bare }) => bare)(application)
+          : application
       if (
         !applicationChecksums.has(checksumRuleDocument(damage)) ||
-        damage.ordinal >= context.application.ordinal
+        compareDamageSaveApplications(
+          damageSaveCheckBoundApplication(childResult.applicationOutputs),
+          damageSaveContextBoundApplication(context)
+        ) >= 0
       )
         throw new Error('The concentration sibling does not match its parent damage.')
-      if (commitFailed) {
+      if (commitMutated) {
         if (advances.has(command.version))
           throw new Error('The concentration version advance is duplicated.')
         advances.add(command.version)
@@ -132,22 +153,22 @@ export async function readNativeConcentrationParentDamage(
 }
 
 /**
- * Whether any check one concentration response commit settled failed: its answered check, or a
- * remaining check it auto-rolled (D23). Auto-rolled checks follow the answered check's successor
+ * Whether any check one damage-save response commit settled changed Run state: its answered check,
+ * or a remaining check it auto-rolled (D23). Auto-rolled checks follow the answered check's successor
  * chain as START receipts correlated in order and pinned to the commit's Encounter version.
  */
-export async function readConcentrationCommitFailed(
+export async function readDamageSaveCommitMutated(
   ctx: EncounterReadContext,
   input: {
     encounterId: string
     output: Extract<
       Extract<StoredRuleExecutionResultDto, { status: 'COMPLETE' }>['applicationOutputs'],
-      { kind: 'CONCENTRATION_CHECK' }
+      { kind: 'DAMAGE_SAVE_CHECK' }
     >
     encounterVersion: number
   }
 ) {
-  let failed = input.output.outcome === 'SAVE_FAILURE'
+  let mutated = damageSaveCheckMutatesRun(input.output)
   let previousId = input.output.occurrenceId
   let nextId = input.output.nextOccurrenceId
   for (let settled = 0; nextId !== null; settled += 1) {
@@ -159,7 +180,7 @@ export async function readConcentrationCommitFailed(
         .query('encounterRuleReceipts')
         .withIndex('by_occurrenceId', (q) => q.eq('occurrenceId', occurrenceId))
         .take(3)
-    ).filter((receipt) => receipt.commandType === 'CONCENTRATION_CHECK')
+    ).filter((receipt) => receipt.commandType === 'DAMAGE_SAVE_CHECK')
     const receipt = started[0]
     if (!receipt) break
     const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
@@ -171,12 +192,12 @@ export async function readConcentrationCommitFailed(
       checksumRuleDocument(result) !== receipt.resultChecksum ||
       result.occurrenceId !== occurrenceId ||
       result.status !== 'COMPLETE' ||
-      result.applicationOutputs.kind !== 'CONCENTRATION_CHECK'
+      result.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK'
     )
       throw new Error('The concentration commit receipt is invalid.')
-    failed ||= result.applicationOutputs.outcome === 'SAVE_FAILURE'
+    mutated ||= damageSaveCheckMutatesRun(result.applicationOutputs)
     previousId = occurrenceId
     nextId = result.applicationOutputs.nextOccurrenceId
   }
-  return failed
+  return mutated
 }

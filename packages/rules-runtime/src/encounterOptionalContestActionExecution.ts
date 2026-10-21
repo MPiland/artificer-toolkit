@@ -17,8 +17,8 @@ import {
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
+import { settleEncounterD20Answer } from './encounterD20Settlement.js'
 import {
-  resolveEncounterD20Answer,
   selectEncounterActionD20Natural,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
@@ -114,10 +114,13 @@ function resolveFaces(input: {
 }): readonly number[] {
   if (input.resolution.requestId !== input.requestId)
     throw new EncounterConflictError('Optional combat contest evidence request is stale.')
-  const { faces, rollMode } = resolveEncounterD20Answer({
-    derivedRollMode: input.policy.rollMode,
+  const { rawFaces: faces, rollMode } = settleEncounterD20Answer({
+    d20: { rollMode: input.policy.rollMode },
     answer: input.resolution,
-    rollD20: input.rollD20
+    rollD20: input.rollD20,
+    random: () => {
+      throw new EncounterValidationError('A contest roll has no added dice.')
+    }
   })
   // Contest evidence records only faces, so a contest d20 keeps its rules-derived mode.
   if (rollMode !== input.policy.rollMode)

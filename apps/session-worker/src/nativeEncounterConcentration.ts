@@ -21,14 +21,41 @@ import {
   createNativeConcentrationContext,
   evaluateNativeConcentrationEvidence,
   prepareEncounterConcentrationState,
-  type NativeConcentrationContext
+  type NativeConcentrationContext,
+  type NativeDamageSaveContext
 } from '@artificer-toolkit/rules-runtime/encounterConcentration'
+import {
+  completeEffectRepeatSaveResult,
+  createEffectRepeatSaveContext,
+  effectRepeatSaveApplications,
+  effectRepeatSaveExecutionInput,
+  effectRepeatSaveMade,
+  effectRepeatTrigger,
+  evaluateEffectRepeatSaveEvidence
+} from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
+import {
+  executeTargetBoundActiveRuleEffectWithPause,
+  verifyTargetBoundActiveRuleEffectContinuation
+} from '@artificer-toolkit/rules-runtime/targetBoundActiveRuleEffectExecutor'
+import {
+  encounterActorsAfterEscape,
+  encounterEscapeEndedConditionIds
+} from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
+import {
+  compareDamageSaveApplications,
+  damageSaveApplicationsAfterRelease,
+  isMaintainedDamageApplication,
+  type DamageSaveApplicationDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import {
   concentrationCommandId,
   concentrationOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import {
+  deadCharacterIdsOfTargets,
+  isEncounterActorDefeated
+} from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { encounterSavingThrowAddedDice } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -39,7 +66,7 @@ import {
   sourceBoundGrants,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import { encounterHeldItemInstanceIds } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
+import { encounterItemInstanceIdsOnActor } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -76,9 +103,14 @@ export async function planNativeLiveConcentration(input: {
   random?: (maximum: number) => number
   /** Each concentrating actor's roller preference (ADR 0034 decision 3). */
   autoRollByActorId: Readonly<Record<string, boolean>>
+  /**
+   * Opts the chain into the effect repeat saves the damage owes (D167); `damagerActorId` is who dealt
+   * it. A resumed chain takes this from its sealed context, so callers pass it only on the first plan.
+   */
+  repeatSaves?: { damagerActorId: string | null }
   resume?: {
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
-    context: NativeConcentrationContext
+    context: NativeDamageSaveContext
     response: ResolveRuleOccurrenceInputDto
     /** The app roll Convex recorded for a `SYSTEM_ROLL` answer; null for any other answer. */
     appRoll: EncounterSettledAppRollDto | null
@@ -100,7 +132,8 @@ export async function planNativeLiveConcentration(input: {
     definitionId: string
     factsChecksum: string
   }> = []
-  let failed = false
+  // A lost Concentration, or an effect a made repeat save released (D23): the commit advances the Run.
+  let mutated = false
   const concentrationEnds: Array<{
     ownerActorId: string
     maintainedStateId: string
@@ -112,7 +145,7 @@ export async function planNativeLiveConcentration(input: {
   let pending: ServerKernelRuleExecutionPendingSnapshotDto | null = null
   let resumed: {
     result: ReturnType<typeof completeNativeConcentrationResult>
-    failed: boolean
+    mutated: boolean
     selectedNatural: number
   } | null = null
   if (input.resume && (!input.applications.length || input.state.automationMode === 'MANUAL'))
@@ -178,16 +211,17 @@ export async function planNativeLiveConcentration(input: {
       maintained: await slotFor(targetActorId),
       loadTarget: () => projection.projectedTargets.get(targetActorId),
       readDefinition,
-      readVocabulary: async () => {
-        if (!vocabulary) {
-          const response = await capture({ kind: 'SYSTEM_VOCABULARY' })
-          if (response.kind !== 'SYSTEM_VOCABULARY')
-            throw new Error('Concentration vocabulary is unavailable.')
-          vocabulary = response.snapshot
-        }
-        return vocabulary
-      }
+      readVocabulary
     })
+  }
+  async function readVocabulary() {
+    if (!vocabulary) {
+      const response = await capture({ kind: 'SYSTEM_VOCABULARY' })
+      if (response.kind !== 'SYSTEM_VOCABULARY')
+        throw new Error('Concentration vocabulary is unavailable.')
+      vocabulary = response.snapshot
+    }
+    return vocabulary
   }
 
   /** Drops one Concentration slot and its dependents from the projection; the receipt cleanup it returns is persisted as a lost check or a CONCENTRATION_END. */
@@ -339,7 +373,7 @@ export async function planNativeLiveConcentration(input: {
         ...grantsEndedByHolderState(stateBound, {
           reason,
           conditionIds: target.state.conditions,
-          heldItemInstanceIds: encounterHeldItemInstanceIds(
+          itemInstanceIdsOnActor: encounterItemInstanceIdsOnActor(
             target.actor,
             target.characterFacts?.character.state.equipment.equipped
           )
@@ -371,10 +405,59 @@ export async function planNativeLiveConcentration(input: {
     const loaded = await current(targetActorId)
     if (loaded) bindings.set(targetActorId, loaded.maintained.id)
   }
-  let remaining = selectedApplications.flatMap((application) => {
-    const maintainedStateId = bindings.get(application.targetActorId)
-    return maintainedStateId ? [{ ...application, maintainedStateId }] : []
-  })
+  // Who dealt the damage when its chain can hold effect repeat saves; a resumed chain keeps its own.
+  const repeatSaveDamager = input.resume
+    ? input.resume.context.repeatSaveDamagerActorId
+    : input.repeatSaves?.damagerActorId
+  const dispositions = new Map(projection.actors.map(({ id, disposition }) => [id, disposition]))
+  const effectItems: DamageSaveApplicationDto[] =
+    repeatSaveDamager === undefined
+      ? []
+      : effectRepeatSaveApplications({
+          applications: selectedApplications,
+          parentOccurrenceId: input.parentOccurrenceId,
+          damagerActorId: repeatSaveDamager,
+          dispositions,
+          holders: new Map(
+            [...new Set(selectedApplications.map(({ targetActorId }) => targetActorId))].map(
+              (actorId) => {
+                const actor = projection.actors.find(({ id }) => id === actorId)
+                const target = projection.projectedTargets.get(actorId)
+                return [
+                  actorId,
+                  {
+                    defeated:
+                      !actor ||
+                      isEncounterActorDefeated(
+                        actor,
+                        deadCharacterIdsOfTargets(target ? [target] : [])
+                      ),
+                    effects: projection.activeEffectsByActorId.get(actorId) ?? []
+                  }
+                ] as const
+              }
+            )
+          )
+        })
+  let remaining: DamageSaveApplicationDto[] = [
+    ...selectedApplications.flatMap((application) => {
+      const maintainedStateId = bindings.get(application.targetActorId)
+      return maintainedStateId ? [{ ...application, maintainedStateId }] : []
+    }),
+    ...effectItems
+  ].sort(compareDamageSaveApplications)
+  if (input.resume) {
+    const sealed = input.resume.context
+    const answered = {
+      ...sealed.application,
+      ...(sealed.source === 'CONCENTRATION'
+        ? { maintainedStateId: sealed.maintainedState.id }
+        : { activeEffectId: sealed.activeEffect.id })
+    }
+    remaining = remaining.filter((entry) => compareDamageSaveApplications(entry, answered) >= 0)
+    if (!remaining[0] || compareDamageSaveApplications(remaining[0], answered) !== 0)
+      throw new Error('The concentration damage does not match its finalized parent receipt.')
+  }
   const envelope = checksumRuleDocument(input.applications)
   if (
     input.resume &&
@@ -383,11 +466,198 @@ export async function planNativeLiveConcentration(input: {
         checksumRuleDocument(input.resume.context.remaining))
   )
     throw new Error('The concentration damage does not match its finalized parent receipt.')
+  const chainHasEffects = remaining.some((entry) => !isMaintainedDamageApplication(entry))
   let correlationId = input.parentOccurrenceId
   const spentDiceIds = new Set<string>()
+
+  /** Pauses for or settles one effect's repeat save, whose success ends the effect (D167). */
+  async function settleEffectRepeatSave(
+    item: Extract<DamageSaveApplicationDto, { activeEffectId: string }>
+  ) {
+    const { activeEffectId, ...application } = item
+    const holder = projection.actors.find(({ id }) => id === application.targetActorId)
+    const target = projection.projectedTargets.get(application.targetActorId)
+    const heldEffects = projection.activeEffectsByActorId.get(application.targetActorId) ?? []
+    const effect = heldEffects.find(({ id }) => id === activeEffectId)
+    const trigger =
+      effect &&
+      effectRepeatTrigger(effect, {
+        damagerActorId: repeatSaveDamager ?? null,
+        dispositions,
+        damageTypeId: application.damageTypeId
+      })
+    if (!holder || !target || !effect || !trigger)
+      throw new Error('The repeat save effect changed before its check.')
+    // A die an earlier check of this batch spent (D156) is gone for this one.
+    const unspent = spentDiceIds.size
+      ? {
+          ...target,
+          targetDerivedFacts: {
+            ...target.targetDerivedFacts,
+            savingThrowAddedDice: encounterSavingThrowAddedDice(
+              target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
+            )
+          }
+        }
+      : target
+    const occurrenceId = concentrationOccurrenceId(input.parentOccurrenceId, item)
+    const resume = resumed === null ? input.resume : undefined
+    const sealed = resume?.context
+    if (sealed && sealed.source !== 'EFFECT_REPEAT_SAVE')
+      throw new Error('The repeat save occurrence is stale.')
+    const effectInput = effectRepeatSaveExecutionInput({
+      effect,
+      target: unspent,
+      occurrenceId,
+      rollInfluence: trigger.rollInfluence,
+      runtime: input.runtime
+    })
+    const started = sealed ? null : await executeTargetBoundActiveRuleEffectWithPause(effectInput)
+    const paused = started && 'continuation' in started ? started : null
+    if (started && !paused) throw new Error('The repeat save did not request bounded d20 evidence.')
+    const d20Policy = paused?.evidencePolicy ?? sealed?.d20Policy
+    const abilityId = d20Policy?.savingThrowAbilityDefinitionId
+    const vocabularySnapshot = await readVocabulary()
+    if (
+      !d20Policy ||
+      !abilityId ||
+      !vocabularySnapshot ||
+      !('damageTypes' in vocabularySnapshot.document)
+    )
+      throw new Error('The repeat save evidence policy is unavailable.')
+    const context = createEffectRepeatSaveContext({
+      effect,
+      target: unspent,
+      systemVocabularySnapshot: {
+        id: vocabularySnapshot.snapshotId,
+        version: vocabularySnapshot.snapshotVersion,
+        checksum: vocabularySnapshot.checksum
+      },
+      damageTypes: vocabularySnapshot.document.damageTypes,
+      d20Policy,
+      rollInfluence: trigger.rollInfluence,
+      parentOccurrenceId: input.parentOccurrenceId,
+      parentCommandFingerprint: input.parentCommandFingerprint,
+      application,
+      remaining,
+      finalizedDamageEnvelopeChecksum: envelope,
+      sourceLabels: input.sourceLabels,
+      damagerActorId: repeatSaveDamager ?? null
+    })
+    if (paused && !input.autoRollByActorId[application.targetActorId]) {
+      pending = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
+        ...paused.continuation,
+        snapshotKind: 'KERNEL_EVIDENCE',
+        applicationContext: context,
+        optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum
+      })
+      return 'PAUSED' as const
+    }
+    const continuation = (() => {
+      if (resume) {
+        const {
+          snapshotKind: _snapshotKind,
+          applicationContext: sealedContext,
+          optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
+          phaseReceipts: _phaseReceipts,
+          deferredCleaving: _deferredCleaving,
+          ...stored
+        } = resume.snapshot
+        if (
+          checksumRuleDocument(sealedContext) !== checksumRuleDocument(resume.context) ||
+          checksumRuleDocument(context) !== checksumRuleDocument(resume.context) ||
+          stored.occurrenceId !== occurrenceId
+        )
+          throw new Error('The repeat save occurrence is stale.')
+        verifyTargetBoundActiveRuleEffectContinuation({
+          ...effectInput,
+          continuation: stored,
+          expectedEvidencePolicy: d20Policy
+        })
+        return stored
+      }
+      if (!paused) throw new Error('The repeat save did not request bounded d20 evidence.')
+      return paused.continuation
+    })()
+    const resolution = resume
+      ? withEncounterAppRoll(resume.response.resolution, resume.appRoll)
+      : { kind: 'AUTO_ROLL' as const, requestId: continuation.request.requestId }
+    if (
+      resolution.kind !== 'ENTER_DICE' &&
+      resolution.kind !== 'SYSTEM_ROLL' &&
+      resolution.kind !== 'AUTO_ROLL'
+    )
+      throw new Error('The repeat save evidence request is unavailable.')
+    const evidence = await evaluateEffectRepeatSaveEvidence({
+      effectInput,
+      context,
+      continuation,
+      resolution,
+      expectedOccurrenceId: occurrenceId,
+      random: input.random ?? nextRollInt
+    })
+    for (const die of savingThrowSpentEffects(unspent.activeEffects, dnd5eAbilityCode(abilityId))) {
+      spentDiceIds.add(die.id)
+      endedGrants.push(die)
+    }
+    const made = effectRepeatSaveMade(evidence)
+    const result = completeEffectRepeatSaveResult({
+      context,
+      continuation,
+      evidence,
+      removedConditionIds: made ? encounterEscapeEndedConditionIds(heldEffects, effect.id) : null,
+      occurrenceVersion: resume ? resume.response.expectedOccurrenceVersion + 1 : 1,
+      initialFactsChecksum: checksumRuleDocument(continuation.facts)
+    })
+    if (made) {
+      mutated = true
+      const remainingEffects = heldEffects.filter(({ id }) => id !== effect.id)
+      projection = {
+        ...projection,
+        actors: encounterActorsAfterEscape({
+          encounterId: state.id,
+          actors: projection.actors,
+          holderId: holder.id,
+          holderEffects: heldEffects,
+          activeEffectId: effect.id
+        }),
+        activeEffectsByActorId: new Map(projection.activeEffectsByActorId).set(
+          holder.id,
+          remainingEffects
+        ),
+        projectedTargets: new Map(projection.projectedTargets).set(holder.id, {
+          ...target,
+          activeEffects: remainingEffects
+        })
+      }
+      remaining = damageSaveApplicationsAfterRelease(remaining, effect.id)
+    }
+    if (resume) resumed = { result, mutated: made, selectedNatural: evidence.d20.selectedNatural }
+    else
+      settled.push({
+        result,
+        commandId: concentrationCommandId(occurrenceId),
+        correlationId,
+        fingerprint: checksumRuleDocument({
+          parentOccurrenceId: input.parentOccurrenceId,
+          application,
+          contextChecksum: context.contextChecksum
+        }),
+        definitionId: effect.definition.frozenGraph.source.definitionId,
+        factsChecksum: checksumRuleDocument(continuation.facts)
+      })
+    correlationId = occurrenceId
+    return 'SETTLED' as const
+  }
+
   while (remaining.length) {
-    const { maintainedStateId, ...application } = remaining[0]!
+    const item = remaining[0]!
     remaining = remaining.slice(1)
+    if (!isMaintainedDamageApplication(item)) {
+      if ((await settleEffectRepeatSave(item)) === 'PAUSED') break
+      continue
+    }
+    const { maintainedStateId, ...application } = item
     const loaded = await current(application.targetActorId)
     if (!loaded || loaded.maintained.id !== maintainedStateId)
       throw new Error('The concentration state changed before its check.')
@@ -413,7 +683,8 @@ export async function planNativeLiveConcentration(input: {
       application,
       remaining,
       finalizedDamageEnvelopeChecksum: envelope,
-      sourceLabels: input.sourceLabels
+      sourceLabels: input.sourceLabels,
+      repeatSaveDamagerActorId: chainHasEffects ? repeatSaveDamager : undefined
     })
     const occurrenceId = concentrationOccurrenceId(input.parentOccurrenceId, application)
     const resume = resumed === null ? input.resume : undefined
@@ -479,7 +750,7 @@ export async function planNativeLiveConcentration(input: {
       runtime: input.runtime,
       random: input.random ?? nextRollInt
     })
-    if (evidence.failed) failed = true
+    if (evidence.failed) mutated = true
     for (const die of savingThrowSpentEffects(
       unspent.target.activeEffects,
       dnd5eAbilityCode(context.save.savingThrowAbilityDefinitionId)
@@ -499,7 +770,7 @@ export async function planNativeLiveConcentration(input: {
     if (isResumed)
       resumed = {
         result,
-        failed: evidence.failed,
+        mutated: evidence.failed,
         selectedNatural: evidence.selectedNatural
       }
     else
@@ -517,12 +788,15 @@ export async function planNativeLiveConcentration(input: {
       })
     correlationId = occurrenceId
     if (evidence.failed)
-      remaining = remaining.filter((entry) => entry.maintainedStateId !== maintainedStateId)
+      remaining = remaining.filter(
+        (entry) =>
+          !isMaintainedDamageApplication(entry) || entry.maintainedStateId !== maintainedStateId
+      )
   }
   // A response commit advances the Encounter once when any check it settled failed (D23); a
   // parent's own commit owns its version.
   const nextState =
-    input.resume && failed
+    input.resume && mutated
       ? encounterRunStateSchema.parse({
           ...state,
           version: state.version + 1,

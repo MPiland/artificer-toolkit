@@ -1,18 +1,21 @@
 import { Button, Group, Select, Stack, Text, Title } from '@mantine/core'
 import { useId } from 'react'
-import type { EncounterEffectOfferChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
   EncounterCommandResultDto,
   MoveHeldEffectInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { ACTIVATION_REGISTRY, formatLengthMeasurement } from '@artificer-toolkit/shared/core'
 import { CampaignTabletopCommandOutcome } from './CampaignTabletopCommandOutcome'
-import { effectOfferKey, EFFECT_OFFER_KIND_LABELS } from './effectOffers.model'
+import {
+  effectOfferKey,
+  EFFECT_OFFER_KIND_LABELS,
+  type MoveEffectOfferChoice
+} from './effectOffers.model'
 import { useWarnedCommand } from './useWarnedCommand'
 import * as styles from './CampaignTabletopActionList.css'
 
 type EffectOffersProps = {
-  offers: EncounterEffectOfferChoiceDto[]
+  offers: MoveEffectOfferChoice[]
   actorId: string
   encounterId: string
   encounterVersion: number
@@ -26,7 +29,7 @@ type EffectOffersProps = {
   targetActorId: string | null
   /** The Scene read that measures the offer's range, or null when the Scene cannot place both tokens. */
   sceneContext: (
-    offer: EncounterEffectOfferChoiceDto,
+    offer: MoveEffectOfferChoice,
     targetActorId: string
   ) => MoveHeldEffectInputDto['sceneContext']
   onChooseOffer: (key: string | null) => void
@@ -68,7 +71,7 @@ function EffectOfferList({
   const busy = disabled || submittingId !== null
 
   function move(
-    offer: EncounterEffectOfferChoiceDto,
+    offer: MoveEffectOfferChoice,
     newHolderId: string,
     acknowledgedWarnings: MoveHeldEffectInputDto['acknowledgedWarnings']
   ) {

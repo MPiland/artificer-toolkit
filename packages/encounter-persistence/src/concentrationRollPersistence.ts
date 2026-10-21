@@ -27,7 +27,7 @@ export async function recordConcentrationCheckRoll(
   input: Parameters<EncounterWritePorts['recordConcentrationCheckRoll']>[0]
 ): Promise<CampaignChatEntryDto | null> {
   const { state, result } = input
-  if (result.status !== 'COMPLETE' || result.applicationOutputs.kind !== 'CONCENTRATION_CHECK')
+  if (result.status !== 'COMPLETE' || result.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK')
     throw new Error('Only a completed Concentration check is logged.')
   const actor = await readRunActor(ctx, state, result.applicationOutputs.application.targetActorId)
   const system = await ctx.ports.requireSystem(state.gameSystemId)

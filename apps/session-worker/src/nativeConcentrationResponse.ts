@@ -60,7 +60,7 @@ export async function planNativeLiveConcentrationResponse(
   const { state, snapshot, parentApplications } = admission
   if (
     !snapshot ||
-    snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' ||
+    snapshot.applicationContext.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK' ||
     state.id !== initial.encounterId ||
     state.version !== initial.expectedVersion ||
     checksumRuleDocument(parentApplications) !==

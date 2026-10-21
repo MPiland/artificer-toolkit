@@ -5,6 +5,8 @@ import {
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { concentrationRollTrigger } from '@artificer-toolkit/rules-runtime/encounterConcentration'
+import { effectRepeatSaveRollTrigger } from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
+import { damageSaveContextBoundApplication } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import {
   concentrationCommandId,
   concentrationOccurrenceId
@@ -20,12 +22,12 @@ export function readNativeConcentrationPending(
     throw new Error('The concentration occurrence is unavailable.')
   if (
     snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
-    snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' ||
+    snapshot.applicationContext.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK' ||
     snapshot.occurrenceId !== occurrence.id ||
     occurrence.id !==
       concentrationOccurrenceId(
         snapshot.applicationContext.parentOccurrenceId,
-        snapshot.applicationContext.application
+        damageSaveContextBoundApplication(snapshot.applicationContext)
       ) ||
     occurrence.rootCommandId !== concentrationCommandId(occurrence.id) ||
     snapshot.request.kind !== 'INTEGER_RANGE' ||
@@ -50,24 +52,36 @@ export function projectNativeConcentrationPending(
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ) {
   const { snapshot, context } = readNativeConcentrationPending(occurrence, pendingSnapshot)
+  // The save the roller makes: Concentration's derived one, or the effect's frozen policy.
+  const save =
+    context.source === 'CONCENTRATION'
+      ? context.save
+      : {
+          rollMode: context.d20Policy.rollMode,
+          contributors: context.d20Policy.contributors,
+          addedDice: context.d20Policy.addedDice
+        }
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
     kind: 'D20_EVIDENCE',
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
     encounterVersion: occurrence.expectedEncounterVersion,
-    // The concentrating actor makes the save; its controllers and the GM answer it.
+    // The damaged holder makes the save; its controllers and the GM answer it.
     rollerActorId: context.application.targetActorId,
-    trigger: concentrationRollTrigger(context),
+    trigger:
+      context.source === 'CONCENTRATION'
+        ? concentrationRollTrigger(context)
+        : effectRepeatSaveRollTrigger(context),
     request: {
       requestId: snapshot.request.requestId,
       min: 1,
       max: 20,
-      rollMode: context.save.rollMode,
+      rollMode: save.rollMode,
       derivedRollModeReasons: reasons({
-        rollMode: context.save.rollMode,
-        contributors: context.save.contributors
+        rollMode: save.rollMode,
+        contributors: save.contributors
       }),
-      ...(context.save.addedDice ? { addedDice: context.save.addedDice } : {})
+      ...(save.addedDice ? { addedDice: save.addedDice } : {})
     },
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
   })
