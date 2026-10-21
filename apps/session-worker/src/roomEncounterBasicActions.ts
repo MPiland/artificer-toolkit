@@ -1,5 +1,7 @@
 import {
   persistEncounterBasicActionResponse,
+  persistEncounterD20WindowAnswer,
+  persistEncounterD20WindowOpen,
   persistEncounterEscapeResponse
 } from '@artificer-toolkit/encounter-persistence/basicActionCheckResponsePersistence'
 import { persistEncounterBasicAction } from '@artificer-toolkit/encounter-persistence/basicActionPersistence'
@@ -256,12 +258,22 @@ export async function executeRoomEncounterBasicActionResponse(
   if (plan.kind === 'REPLAY') return plan.result
   const revisions = await readBasicActionRevisions(input)
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
-  return persistEncounterBasicActionResponse(
+  const validateReadFence = async (
+    state: Parameters<typeof assertRoomEncounterRulesRevisions>[1],
+    characterIds: Parameters<typeof assertRoomEncounterRulesRevisions>[2],
+    fence: Parameters<typeof assertRoomEncounterRulesRevisions>[3]
+  ) => assertRoomEncounterRulesRevisions(observed, state, characterIds, fence)
+  if (plan.kind === 'WINDOW_OPEN')
+    return persistEncounterD20WindowOpen(ctx, { ...plan.input, revisions }, { validateReadFence })
+  const persist =
+    plan.kind === 'WINDOW_ANSWER'
+      ? persistEncounterD20WindowAnswer
+      : persistEncounterBasicActionResponse
+  return persist(
     ctx,
     { ...plan.input, revisions },
     {
-      validateReadFence: async (state, characterIds, fence) =>
-        assertRoomEncounterRulesRevisions(observed, state, characterIds, fence),
+      validateReadFence,
       applyMechanics: (batch) =>
         applyRoomEncounterMechanicsBatch({
           ctx,

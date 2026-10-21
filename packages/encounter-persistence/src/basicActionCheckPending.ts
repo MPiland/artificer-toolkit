@@ -1,6 +1,10 @@
 import { encounterBasicActionCheckTrigger } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { encounterConcealmentCheckTrigger } from '@artificer-toolkit/rules-runtime/encounterConcealmentCheck'
 import {
+  encounterD20WindowRollerActorId,
+  encounterD20WindowTrigger
+} from '@artificer-toolkit/rules-runtime/encounterD20Window'
+import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
@@ -8,16 +12,9 @@ import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolk
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterDocument } from './store.js'
 
-/** The paused d20 graph of a kernel snapshot, split from its application context. */
-function readKernelCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
-  if (
-    snapshot === null ||
-    snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
-    snapshot.request.kind !== 'INTEGER_RANGE' ||
-    snapshot.request.min !== 1 ||
-    snapshot.request.max !== 20
-  )
-    return null
+/** A kernel snapshot split into the paused graph and the application context it waits under. */
+function splitKernelSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
+  if (snapshot === null || snapshot.snapshotKind !== 'KERNEL_EVIDENCE') return null
   const {
     snapshotKind: _kind,
     applicationContext: context,
@@ -27,6 +24,16 @@ function readKernelCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto
     ...continuation
   } = snapshot
   return { snapshot, context, continuation }
+}
+
+/** The paused d20 graph of a kernel snapshot, split from its application context. */
+function readKernelCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
+  const pending = splitKernelSnapshot(snapshot)
+  return pending?.snapshot.request.kind === 'INTEGER_RANGE' &&
+    pending.snapshot.request.min === 1 &&
+    pending.snapshot.request.max === 20
+    ? pending
+    : null
 }
 
 /**
@@ -126,5 +133,51 @@ export function projectNativeBasicActionCheckPending(
       ...(context.d20.addedDice ? { addedDice: context.d20.addedDice } : {})
     },
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+  })
+}
+
+/** The window and the paused choice a rolled check waits on while its roller decides on a held die. */
+export function readNativeD20WindowPending(
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  snapshot: ServerRuleExecutionPendingSnapshotDto | null
+) {
+  const window = readD20WindowSnapshot(snapshot)
+  if (!window) throw new Error('The d20 window occurrence is unavailable.')
+  requirePendingRoot(occurrence, window)
+  return window
+}
+
+/** The paused window graph and its context, or null when the snapshot is not a d20 window. */
+export function readD20WindowSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
+  const pending = splitKernelSnapshot(snapshot)
+  return pending?.context.kind === 'ENCOUNTER_D20_WINDOW'
+    ? { snapshot: pending.snapshot, continuation: pending.continuation, context: pending.context }
+    : null
+}
+
+/** The roller sees the d20 and the dice it may add; its controllers and the GM answer. */
+export function projectNativeD20WindowPending(
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  pendingSnapshot: ServerRuleExecutionPendingSnapshotDto
+) {
+  const { snapshot, context } = readNativeD20WindowPending(occurrence, pendingSnapshot)
+  const { selectedNatural, total } = context.rolled.d20
+  return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
+    kind: 'D20_WINDOW',
+    occurrenceId: occurrence.id,
+    occurrenceVersion: occurrence.version,
+    encounterVersion: occurrence.expectedEncounterVersion,
+    rollerActorId: encounterD20WindowRollerActorId(context),
+    trigger: encounterD20WindowTrigger(context),
+    requestId: snapshot.request.requestId,
+    d20: { selectedNatural, total },
+    options: context.offer.options.map(({ optionId, label, count, faces, sign }) => ({
+      optionId,
+      label,
+      count,
+      faces,
+      sign
+    })),
+    allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
   })
 }

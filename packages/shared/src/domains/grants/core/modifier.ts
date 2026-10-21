@@ -536,13 +536,30 @@ export const ROLLED_DIE_SIGN_OPTIONS: readonly CoreMeta<RolledDieSign>[] = [
 ]
 
 /**
+ * When a d20 test's rolled die joins it: with the d20 (absent), or only after the d20 is seen, by
+ * the roller's choice in the roll's window (D168).
+ */
+export const ROLLED_DIE_TIMING = { AFTER_ROLL: 'AFTER_ROLL' } as const
+export type RolledDieTiming = (typeof ROLLED_DIE_TIMING)[keyof typeof ROLLED_DIE_TIMING]
+
+export const ROLLED_DIE_TIMING_OPTIONS: readonly CoreMeta<RolledDieTiming>[] = [
+  {
+    code: ROLLED_DIE_TIMING.AFTER_ROLL,
+    label: 'After the roll',
+    description: 'Offered once the d20 is seen; rolled and added only if the roller chooses it.'
+  }
+]
+
+/**
  * Dice rolled with a d20 test and added to or subtracted from its total after advantage or
- * disadvantage keeps one d20 (Bless's +1d4, Bane's -1d4).
+ * disadvantage keeps one d20 (Bless's +1d4, Bane's -1d4). An `AFTER_ROLL` die joins the total only
+ * through the roll's window; it is never rolled with the d20.
  */
 export type ModifierRolledDieAuthored = {
   count: number
   faces: (typeof ROLLED_DIE_FACES)[number]
   sign: RolledDieSign
+  timing?: RolledDieTiming
 }
 
 /** Who deals the damage a rolled damage die joins: the holder, or the effect's source to the holder. */
@@ -571,7 +588,7 @@ export const DAMAGE_DIE_RECIPIENT_OPTIONS: readonly CoreMeta<DamageDieRecipient>
  * lowers the attack's damage. A slot-scaled die adds `countPerCastLevelAbove.count` dice per cast
  * level above `level`, fixed at the cast (Branding Smite).
  */
-export type ModifierDamageDieAuthored = Omit<ModifierRolledDieAuthored, 'sign'> & {
+export type ModifierDamageDieAuthored = Omit<ModifierRolledDieAuthored, 'sign' | 'timing'> & {
   recipient: DamageDieRecipient
   countPerCastLevelAbove?: { level: number; count: number }
 } & (

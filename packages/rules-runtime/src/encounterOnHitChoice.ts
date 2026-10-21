@@ -1,6 +1,7 @@
 import {
   encounterOnHitUseOptionId,
   type EncounterOnHitAuditDto,
+  type EncounterOnHitCost,
   type EncounterOnHitOfferDto,
   type EncounterOnHitOptionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
@@ -21,7 +22,7 @@ export const ENCOUNTER_ON_HIT_CHOICE_DEFINITION_ID = '8e5c2f0a-3d71-4b9e-a6c4-1f
 export type EncounterOnHitSelection = { kind: 'DECLINE' } | { kind: 'OPTION'; optionId: string }
 
 /** One way the attacker could pay for an optional on-hit rider as things stand now. */
-export type EncounterOnHitCandidate = { riderId: string; slotLevel: number }
+export type EncounterOnHitCandidate = EncounterOnHitCost
 
 /** The options offered for one hit: each candidate, identified by the hit it was offered for. */
 export function encounterOnHitOptions(
@@ -30,7 +31,7 @@ export function encounterOnHitOptions(
 ): EncounterOnHitOptionDto[] {
   return candidates.map((candidate) => ({
     ...candidate,
-    useOptionId: encounterOnHitUseOptionId({ testExecutionChecksum, ...candidate })
+    useOptionId: encounterOnHitUseOptionId({ testExecutionChecksum, cost: candidate })
   }))
 }
 
@@ -98,7 +99,11 @@ export async function settleEncounterOnHitChoice(input: {
     checksumRuleDocument(boundary.d20Policy) !== checksumRuleDocument(offer.d20) ||
     (option &&
       !input.candidates.some(
-        ({ riderId, slotLevel }) => riderId === option.riderId && slotLevel === option.slotLevel
+        (candidate) =>
+          encounterOnHitUseOptionId({
+            testExecutionChecksum: offer.testExecutionChecksum,
+            cost: candidate
+          }) === option.useOptionId
       ))
   )
     throw new Error('On-hit evidence is stale.')

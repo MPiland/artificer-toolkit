@@ -335,10 +335,9 @@ export function projectNativeActionPending(
       occurrenceVersion: occurrence.version,
       encounterVersion: occurrence.expectedEncounterVersion,
       attackerActorId: context.rollerActorId,
-      options: context.onHitChoice.options.map(({ useOptionId, riderId, slotLevel }) => ({
+      options: context.onHitChoice.options.map(({ useOptionId, ...option }) => ({
         optionId: useOptionId,
-        riderId,
-        slotLevel
+        ...option
       })),
       allowedResponses: ['DECLINE', 'OPTION']
     }

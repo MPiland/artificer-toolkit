@@ -536,6 +536,8 @@ sequenceDiagram
   Host->>Host: derive the next command's exact conflict keys
 ```
 
+A d20 window (`ENCOUNTER_D20_WINDOW`, SPELLS-31.T4c1a) is answered by `RESOLVE_RULE_OCCURRENCE` with `D20_WINDOW_USE` or `D20_WINDOW_DECLINE`; the first response commit pends it (version +1, no receipt) and the answer settles the check, ends the spent effect and writes the receipt atomically. A GM void of it is refused.
+
 `RESOLVE_RULE_OCCURRENCE` fails closed unless exactly one binding matches its Encounter and occurrence. A spatial resolution claims the Encounter, the exact bound Scene, and the Encounter's bound Characters; a non-spatial resolution does not claim a Scene merely because the Encounter has one. A command result adds, replaces, or clears the cached binding immediately. A persisted replay whose pause changed no aggregate version must still reconcile that binding; when a full authoritative refresh ran, the refreshed snapshot wins. Any replay refresh must cover both the replay's changed roots and every root already represented in the coordinator, so recovery cannot drop or regress unrelated state.
 
 Every mechanics-bearing movement result carries a canonical, sorted list of the aggregate transitions committed by that exact command. Each transition includes its before and after version. The Host and Worker apply those transitions atomically and refresh only the roots named by the fresh command. A later occurrence resume may advance the same Character, Encounter, or Scene again, but replaying the original movement command returns the original command's transition list—not transitions reconstructed from the occurrence's final result. Current coordinator snapshots retain only the latest final version for each root.
