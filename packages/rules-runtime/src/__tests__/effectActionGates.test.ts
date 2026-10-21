@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
+import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import {
   damageTypeIdsText,
   gateEvidenceIsValid,
   gateNodeInputs,
   gatesAdmit,
-  isGated
+  isGated,
+  reducedToZeroGateHolds
 } from '../systems/dnd5e/effectActionGates.js'
 
 const FIRE = '00000000-0000-4000-8000-0000000000f1'
@@ -17,8 +19,20 @@ function operationInputs(hitPoints: number, taken: string[], suppressed: string[
     hitPointsAbove: 0,
     hitPointsAtMost: Number.MAX_SAFE_INTEGER,
     targetDamageTypesTaken: damageTypeIdsText(taken),
-    suppressedDamageTypeIds: damageTypeIdsText(suppressed)
+    suppressedDamageTypeIds: damageTypeIdsText(suppressed),
+    reducedToZeroByNodeId: ''
   }
+}
+
+const DAMAGE_NODE = 'outcome1-proposal-on_hit'
+
+function damageApplication(before: number, after: number, sourceNodeId = DAMAGE_NODE) {
+  return {
+    kind: 'DAMAGE',
+    sourceNodeId,
+    beforeCurrentHitPoints: before,
+    afterCurrentHitPoints: after
+  } as CharacterRuleActionApplication
 }
 
 describe('the dnd5e gate table (SPELLS-33.T4i1b2)', () => {
@@ -39,6 +53,38 @@ describe('the dnd5e gate table (SPELLS-33.T4i1b2)', () => {
     expect(gateNodeInputs({ suppressedByDamageTypeIds: [RADIANT] })).toMatchObject({
       hitPointsAbove: { kind: 'LITERAL', value: -1 },
       suppressedDamageTypeIds: { kind: 'LITERAL', value: damageTypeIdsText([RADIANT]) }
+    })
+  })
+
+  describe('the reduced-to-0 gate (SPELLS-33.T4i3a)', () => {
+    const gated = gateNodeInputs({ reducedToZeroByNodeId: DAMAGE_NODE })
+
+    it('is gated, binds its damage node as a literal, and leaves the rest open', () => {
+      expect(isGated({ reducedToZeroByNodeId: DAMAGE_NODE })).toBe(true)
+      expect(gated).toMatchObject({
+        reducedToZeroByNodeId: { kind: 'LITERAL', value: DAMAGE_NODE },
+        hitPointsAbove: { kind: 'LITERAL', value: -1 }
+      })
+      expect(gateNodeInputs({}).reducedToZeroByNodeId).toEqual({ kind: 'LITERAL', value: '' })
+    })
+
+    it('admits in the graph, which cannot see damage defenses', () => {
+      expect(
+        gatesAdmit({ ...operationInputs(10, [], []), reducedToZeroByNodeId: DAMAGE_NODE })
+      ).toBe(true)
+    })
+
+    it('holds only while the named damage took the target from above 0 to 0', () => {
+      expect(reducedToZeroGateHolds(gated, [damageApplication(7, 0)])).toBe(true)
+      expect(reducedToZeroGateHolds(gated, [damageApplication(7, 2)])).toBe(false)
+      expect(reducedToZeroGateHolds(gated, [damageApplication(0, 0)])).toBe(false)
+      expect(reducedToZeroGateHolds(gated, [damageApplication(7, 0, 'other-damage')])).toBe(false)
+      expect(reducedToZeroGateHolds(gated, [])).toBe(false)
+    })
+
+    it('does not constrain a proposal that names no damage', () => {
+      expect(reducedToZeroGateHolds(gateNodeInputs({}), [])).toBe(true)
+      expect(reducedToZeroGateHolds({}, [])).toBe(true)
     })
   })
 
