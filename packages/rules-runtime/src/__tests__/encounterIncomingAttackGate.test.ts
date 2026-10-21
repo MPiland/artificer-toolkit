@@ -174,7 +174,7 @@ describe('incoming gate save DC', () => {
       }
     },
     effectiveScalarValues: { [ability]: 18 }
-  } as unknown as Parameters<typeof incomingGateSaveDc>[1]
+  } as unknown as Parameters<typeof incomingGateSaveDc>[2]
   const base = { id: 'dc', abilityDefinitionId: ability }
 
   it('uses the owner’s spell save DC for SOURCE_SAVE_DC', () => {
