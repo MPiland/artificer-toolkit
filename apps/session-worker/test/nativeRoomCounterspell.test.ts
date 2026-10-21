@@ -180,9 +180,9 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     const room = await counterspellRoom()
     await cast(room)
     const context = await readPendingActionContext(room.room.base.stub)
-    if (context.kind !== 'ENCOUNTER_ACTION' || !context.castReaction)
+    if (context.kind !== 'ENCOUNTER_ACTION' || context.pause?.kind !== 'CAST_REACTION')
       throw new Error('Expected a pending cast reaction.')
-    const { castReaction } = context
+    const castReaction = context.pause.payload
     expect(context.rollerActorId).toBe(REACTOR_ACTOR_ID)
     expect(castReaction.declinedReactorActorIds).toEqual([])
 
@@ -193,16 +193,19 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
     expect(
       parses({
         ...context,
-        castReaction: {
-          ...castReaction,
-          reactions: [{ ...first, reactorActorId: CASTER_ACTOR_ID }]
+        pause: {
+          kind: 'CAST_REACTION',
+          payload: { ...castReaction, reactions: [{ ...first, reactorActorId: CASTER_ACTOR_ID }] }
         }
       })
     ).toBe(false)
     expect(
       parses({
         ...context,
-        castReaction: { ...castReaction, declinedReactorActorIds: [REACTOR_ACTOR_ID] }
+        pause: {
+          kind: 'CAST_REACTION',
+          payload: { ...castReaction, declinedReactorActorIds: [REACTOR_ACTOR_ID] }
+        }
       })
     ).toBe(false)
   })
@@ -473,10 +476,14 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       expect((await counterWithLowestSlot(room)).type).toBe('COMMAND_COMMITTED')
 
       const context = await readPendingActionContext(room.room.base.stub)
-      if (context.kind !== 'ENCOUNTER_ACTION' || !context.castReaction?.check)
+      if (
+        context.kind !== 'ENCOUNTER_ACTION' ||
+        context.pause?.kind !== 'CAST_REACTION' ||
+        !context.pause.payload.check
+      )
         throw new Error('Expected a pending counter check.')
       expect(context.rollerActorId).toBe(REACTOR_ACTOR_ID)
-      expect(context.castReaction.check).toMatchObject({ triggerLevel: 4, dc: 14 })
+      expect(context.pause.payload.check).toMatchObject({ triggerLevel: 4, dc: 14 })
       expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
       expect(await hitPointsOf(room)).toBe(1)
       expect(await slotsOf(room, CASTER_ID)).toEqual([])
@@ -744,12 +751,12 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       const { pending } = await offered(room)
       expect(pending.targetActorId).toBe(SECOND_REACTOR_ACTOR_ID)
       const context = await readPendingActionContext(room.room.base.stub)
-      if (context.kind !== 'ENCOUNTER_ACTION' || !context.castReaction)
+      if (context.kind !== 'ENCOUNTER_ACTION' || context.pause?.kind !== 'CAST_REACTION')
         throw new Error('Expected a pending cast reaction.')
       expect(context.rollerActorId).toBe(SECOND_REACTOR_ACTOR_ID)
       expect(context.failedCounters ?? []).toEqual([])
-      expect(context.castReaction.declinedReactorActorIds).toEqual([])
-      expect(context.castReaction.chain).toMatchObject({
+      expect(context.pause.payload.declinedReactorActorIds).toEqual([])
+      expect(context.pause.payload.chain).toMatchObject({
         castDeclinedReactorActorIds: [],
         castLevel: 3,
         counters: [
@@ -852,11 +859,15 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
       it('pauses for the second holder’s roll against the counter’s level', async () => {
         const room = await highCounter()
         const context = await readPendingActionContext(room.room.base.stub)
-        if (context.kind !== 'ENCOUNTER_ACTION' || !context.castReaction?.check)
+        if (
+          context.kind !== 'ENCOUNTER_ACTION' ||
+          context.pause?.kind !== 'CAST_REACTION' ||
+          !context.pause.payload.check
+        )
           throw new Error('Expected a pending counter check.')
         expect(context.rollerActorId).toBe(SECOND_REACTOR_ACTOR_ID)
-        expect(context.castReaction.check).toMatchObject({ triggerLevel: 5, dc: 15 })
-        expect(context.castReaction.chain?.counters).toHaveLength(1)
+        expect(context.pause.payload.check).toMatchObject({ triggerLevel: 5, dc: 15 })
+        expect(context.pause.payload.chain?.counters).toHaveLength(1)
         expect(await slotsOf(room, SECOND_REACTOR_ID)).toEqual([])
       })
 

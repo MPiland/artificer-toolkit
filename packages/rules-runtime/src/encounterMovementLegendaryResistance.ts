@@ -1,12 +1,12 @@
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import type { EncounterSealedChoiceSelection } from './encounterSealedChoice.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import {
   openEncounterLegendaryResistanceChoice,
   requireFailedLegendaryResistanceSave,
   sameEncounterLegendaryResistanceCandidate,
   settleEncounterLegendaryResistanceChoice,
-  type EncounterLegendaryResistanceFeatureResource,
-  type EncounterLegendaryResistanceSelection
+  type EncounterLegendaryResistanceFeatureResource
 } from './encounterLegendaryResistanceChoice.js'
 import { retainEncounterLegendaryResistanceChoice } from './encounterMovementReactionContinuation.js'
 import type {
@@ -126,7 +126,7 @@ export async function resolveNativeMovementLegendaryResistance(input: {
   prepared: PreparedMovementReaction
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
   candidate: EncounterLegendaryResistanceCandidate
-  selection: EncounterLegendaryResistanceSelection
+  selection: EncounterSealedChoiceSelection
   testD20Policy: ServerRuleExecutionD20PolicyDto
   currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {
@@ -166,7 +166,7 @@ async function resolveResistanceChoice(input: {
   candidate: EncounterLegendaryResistanceCandidate
   phase: LegendaryResistancePhase
   continuation: ServerRuleExecutionContinuationDto
-  selection: EncounterLegendaryResistanceSelection
+  selection: EncounterSealedChoiceSelection
   testD20Policy: ServerRuleExecutionD20PolicyDto
   currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {

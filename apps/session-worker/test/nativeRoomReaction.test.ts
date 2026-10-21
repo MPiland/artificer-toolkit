@@ -826,28 +826,29 @@ describe('room reaction menu for one hit (REACTION-4.2)', () => {
     const decision = await room.pendingDecision()
     if (decision.pending.kind !== 'REACTION_CHOICE') throw new Error('Expected the reaction menu.')
     const context = await readPendingActionContext(room.room.base.stub)
-    if (context.kind !== 'ENCOUNTER_ACTION' || !context.reactionChoice)
+    if (context.kind !== 'ENCOUNTER_ACTION' || context.pause?.kind !== 'REACTION')
       throw new Error('Expected a held reaction offer.')
+    const reactionChoice = context.pause.payload
     const optionFor = (trigger: 'ATTACKED_SELF' | 'DAMAGE_TAKEN') => {
-      const reaction = context.reactionChoice?.reactions.find((pin) => pin.trigger === trigger)
+      const reaction = reactionChoice.reactions.find((pin) => pin.trigger === trigger)
       if (!reaction) throw new Error(`The menu offers no ${trigger} reaction.`)
       return { kind: 'OPTION' as const, optionId: reaction.useOptionId }
     }
-    return { decision, pending: decision.pending, context, optionFor }
+    return { decision, pending: decision.pending, context, reactionChoice, optionFor }
   }
 
   it('offers Shield and Absorb Elements together for one fire hit', async () => {
     const room = await menuRoom()
     await strike(room, 0)
-    const { pending, context } = await offeredMenu(room)
+    const { pending, reactionChoice } = await offeredMenu(room)
 
     // Absorb Elements scales with its slot, so it is offered at each of the five levels the Character
     // owns, lowest first; Shield does not, so it is offered once.
     expect(pending.options).toHaveLength(6)
     expect(pending.options.map(({ optionId }) => optionId)).toEqual(
-      context.reactionChoice?.reactions.map(({ useOptionId }) => useOptionId)
+      reactionChoice.reactions.map(({ useOptionId }) => useOptionId)
     )
-    expect(context.reactionChoice?.reactions.map(({ trigger }) => trigger)).toEqual([
+    expect(reactionChoice.reactions.map(({ trigger }) => trigger)).toEqual([
       'ATTACKED_SELF',
       ...Array(5).fill('DAMAGE_TAKEN')
     ])
@@ -905,18 +906,18 @@ describe('room reaction menu for one hit (REACTION-4.2)', () => {
   it('seals only reactions that belong to the creature the hit lands on', async () => {
     const room = await menuRoom()
     await strike(room, 0)
-    const { context } = await offeredMenu(room)
+    const { context, reactionChoice } = await offeredMenu(room)
 
     const parses = (value: unknown) =>
       encounterActionPendingContextDtoSchema.safeParse(value).success
     expect(parses(context)).toBe(true)
-    const [first, second] = context.reactionChoice!.reactions
+    const [first, second] = reactionChoice.reactions
     expect(
       parses({
         ...context,
-        reactionChoice: {
-          ...context.reactionChoice,
-          reactions: [first, { ...second, reactorActorId: WOLF_ID }]
+        pause: {
+          kind: 'REACTION',
+          payload: { ...reactionChoice, reactions: [first, { ...second, reactorActorId: WOLF_ID }] }
         }
       })
     ).toBe(false)

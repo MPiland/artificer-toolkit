@@ -43,7 +43,9 @@ afterEach(() => {
 type EffectAuthored = NonNullable<SpellAuthored['effects']>[number]
 type ReactionInvocation = Extract<EffectAuthored['invocation'], { reactionTrigger: object }>
 
-const isTargetedSelf = (invocation: EffectAuthored['invocation']): invocation is ReactionInvocation =>
+const isTargetedSelf = (
+  invocation: EffectAuthored['invocation']
+): invocation is ReactionInvocation =>
   'reactionTrigger' in invocation && invocation.reactionTrigger?.kind === 'TARGETED_SELF'
 
 /** Shield with the cast filter taken off its "chosen as a target" reaction: it answers any cast. */
@@ -160,9 +162,9 @@ describe('room Shield against Magic Missile (REACTION-4.1)', () => {
     const room = await targetedRoom()
     await cast(room)
     const context = await readPendingActionContext(room.room.base.stub)
-    if (context.kind !== 'ENCOUNTER_ACTION' || !context.castReaction)
+    if (context.kind !== 'ENCOUNTER_ACTION' || context.pause?.kind !== 'CAST_REACTION')
       throw new Error('Expected a pending cast reaction.')
-    const { castReaction } = context
+    const castReaction = context.pause.payload
     expect(castReaction.kind).toBe('TARGETED_SELF')
     expect(castReaction.reactions.map(({ trigger }) => trigger)).toEqual(['TARGETED_SELF'])
     expect(context.rollerActorId).toBe(REACTOR_ACTOR_ID)
@@ -170,7 +172,12 @@ describe('room Shield against Magic Missile (REACTION-4.1)', () => {
     const parses = (value: unknown) =>
       encounterActionPendingContextDtoSchema.safeParse(value).success
     expect(parses(context)).toBe(true)
-    expect(parses({ ...context, castReaction: { ...castReaction, kind: 'COUNTER' } })).toBe(false)
+    expect(
+      parses({
+        ...context,
+        pause: { kind: 'CAST_REACTION', payload: { ...castReaction, kind: 'COUNTER' } }
+      })
+    ).toBe(false)
   })
 
   it('blocks the force damage when used: the reaction and slot are spent, and one undo restores everything', async () => {

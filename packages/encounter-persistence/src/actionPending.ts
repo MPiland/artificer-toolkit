@@ -98,22 +98,36 @@ type PendingCounter = { reaction: { reactorActorId: string } }
 
 type CastPendingContext = {
   rollerActorId?: string
-  castReaction?: {
-    declinedReactorActorIds: readonly string[]
-    check?: unknown
-    chain?: {
-      counters: readonly PendingCounter[]
-      castDeclinedReactorActorIds: readonly string[]
-    }
-  } | null
+  pause?:
+    | {
+        kind: 'CAST_REACTION'
+        payload: {
+          declinedReactorActorIds: readonly string[]
+          check?: unknown
+          chain?: {
+            counters: readonly PendingCounter[]
+            castDeclinedReactorActorIds: readonly string[]
+          }
+        }
+      }
+    /** The ward whose save the attacker owes; the pause is held on that roll. */
+    | { kind: 'INCOMING_GATE'; payload: { effectId: string } }
+    /** The failed ward save whose attacker is offered another creature to turn the action on. */
+    | { kind: 'ATTACK_RETARGET'; payload: { gate: { effectId: string } } }
+    | { kind: 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'; payload: unknown }
   failedCounters?: readonly PendingCounter[]
-  /** The ward whose save the attacker owes; the pause is held on that roll. */
-  incomingGate?: { effectId: string } | null
-  /** The failed ward save whose attacker is offered another creature to turn the action on. */
-  attackRetarget?: { gate: { effectId: string } } | null
   /** The ward whose save the attacker already passed. */
   passedIncomingGate?: string
 }
+
+const castReactionOf = ({ pause }: CastPendingContext) =>
+  pause?.kind === 'CAST_REACTION' ? pause.payload : null
+
+const incomingGateOf = ({ pause }: CastPendingContext) =>
+  pause?.kind === 'INCOMING_GATE' ? pause.payload : null
+
+const attackRetargetOf = ({ pause }: CastPendingContext) =>
+  pause?.kind === 'ATTACK_RETARGET' ? pause.payload : null
 
 const counterReactorIds = (counters: readonly PendingCounter[] = []) =>
   counters.map(({ reaction }) => reaction.reactorActorId)
@@ -121,8 +135,8 @@ const counterReactorIds = (counters: readonly PendingCounter[] = []) =>
 const failedReactorIds = ({ failedCounters }: CastPendingContext) =>
   counterReactorIds(failedCounters)
 
-const chainReactorIds = ({ castReaction }: CastPendingContext) =>
-  counterReactorIds(castReaction?.chain?.counters)
+const chainReactorIds = (context: CastPendingContext) =>
+  counterReactorIds(castReactionOf(context)?.chain?.counters)
 
 const sameIds = (left: readonly string[], right: readonly string[]) =>
   left.length === right.length && left.every((id, index) => id === right[index])
@@ -148,7 +162,8 @@ function castAnswer(
 ): 'DECLINE' | 'SPEND' | null {
   const kind = response?.resolution.kind
   if (kind === undefined) return null
-  if (previous.castReaction?.check) return kind === 'DECLINE' || kind === 'OPTION' ? null : 'SPEND'
+  if (castReactionOf(previous)?.check)
+    return kind === 'DECLINE' || kind === 'OPTION' ? null : 'SPEND'
   return kind === 'DECLINE' ? 'DECLINE' : kind === 'OPTION' ? 'SPEND' : null
 }
 
@@ -166,32 +181,35 @@ export function castPendingContinues(
   response: { resolution: { kind: string } } | null | undefined,
   next: CastPendingContext
 ): boolean {
-  const { castReaction } = previous
+  const castReaction = castReactionOf(previous)
+  const previousGate = incomingGateOf(previous)
+  const nextCastReaction = castReactionOf(next)
+  const nextRetarget = attackRetargetOf(next)
   const failedPrevious = failedReactorIds(previous)
   const failedNext = failedReactorIds(next)
   // A ward the attacker failed offers a retarget: from the roll that failed it, or from a retargeted
   // action's own ward. Nothing else is carried.
-  if (next.attackRetarget)
+  if (nextRetarget)
     return (
       next.passedIncomingGate === undefined &&
       failedNext.length === 0 &&
-      (previous.incomingGate
-        ? previous.incomingGate.effectId === next.attackRetarget.gate.effectId
-        : previous.attackRetarget != null && response?.resolution.kind === 'OPTION')
+      (previousGate
+        ? previousGate.effectId === nextRetarget.gate.effectId
+        : attackRetargetOf(previous) != null && response?.resolution.kind === 'OPTION')
     )
   // A retargeted action begins afresh against its new creature: only the answer that chose it may follow.
-  if (previous.attackRetarget)
+  if (attackRetargetOf(previous))
     return (
       response?.resolution.kind === 'OPTION' &&
       failedNext.length === 0 &&
       chainReactorIds(next).length === 0 &&
-      (next.castReaction?.declinedReactorActorIds.length ?? 0) === 0 &&
-      !(next.incomingGate && next.passedIncomingGate !== undefined)
+      (nextCastReaction?.declinedReactorActorIds.length ?? 0) === 0 &&
+      !(incomingGateOf(next) && next.passedIncomingGate !== undefined)
     )
   // A passed ward stays passed for the rest of the action, and only the gate's own answer passes it.
   if (
-    next.incomingGate ||
-    next.passedIncomingGate !== (previous.incomingGate?.effectId ?? previous.passedIncomingGate)
+    incomingGateOf(next) ||
+    next.passedIncomingGate !== (previousGate?.effectId ?? previous.passedIncomingGate)
   )
     return false
   if (!castReaction) return sameMembers(failedNext, failedPrevious)
@@ -204,13 +222,13 @@ export function castPendingContinues(
   const chainPrevious = chainReactorIds(previous)
   const chainNext = chainReactorIds(next)
   // The counter owes a check: the cast stays held for the same reactor, now on that roll.
-  if (spends && !castReaction.check && next.castReaction?.check !== undefined)
+  if (spends && !castReaction.check && nextCastReaction?.check !== undefined)
     return (
       next.rollerActorId === roller &&
       sameMembers(failedNext, failedPrevious) &&
-      sameMembers(next.castReaction.declinedReactorActorIds, declinedPrevious) &&
+      sameMembers(nextCastReaction.declinedReactorActorIds, declinedPrevious) &&
       sameIds(chainNext, chainPrevious) &&
-      sameMembers(next.castReaction.chain?.castDeclinedReactorActorIds ?? [], castDeclinedPrevious)
+      sameMembers(nextCastReaction.chain?.castDeclinedReactorActorIds ?? [], castDeclinedPrevious)
     )
   const pushed = spends && sameIds(chainNext, [...chainPrevious, roller])
   const unchanged = sameIds(chainNext, chainPrevious)
@@ -224,7 +242,7 @@ export function castPendingContinues(
     )
   )
     return false
-  const offered = next.castReaction
+  const offered = nextCastReaction
   if (!offered) return true
   if (pushed)
     return (
@@ -252,7 +270,7 @@ export function castCounteredCarriesFailedCounters(
   counterReactorActorId: string,
   next: CastPendingContext
 ): boolean {
-  if (!previous.castReaction) return false
+  if (!castReactionOf(previous)) return false
   const answer = castAnswer(previous, response)
   const roller = previous.rollerActorId
   if (!answer || (answer === 'SPEND' && roller === undefined)) return false
@@ -274,22 +292,34 @@ export function castCounteredCarriesFailedCounters(
 
 /** The use options a paused action offers its decider: a Legendary Resistance, every on-hit rider, or every reaction (innermost first). */
 export function offeredDecisionOptionIds(context: {
-  legendaryResistance?: { resistance: { useOptionId: string } } | null
-  reactionChoice?: { reactions: readonly { useOptionId: string }[] } | null
-  castReaction?: { reactions: readonly { useOptionId: string }[]; check?: unknown } | null
-  onHitChoice?: { options: readonly { useOptionId: string }[] } | null
-  attackRetarget?: { options: readonly { useOptionId: string }[] } | null
+  pause?:
+    | { kind: 'LEGENDARY_RESISTANCE'; payload: { resistance: { useOptionId: string } } }
+    | {
+        kind: 'REACTION' | 'CAST_REACTION'
+        payload: { reactions: readonly { useOptionId: string }[]; check?: unknown }
+      }
+    | {
+        kind: 'ON_HIT' | 'ATTACK_RETARGET'
+        payload: { options: readonly { useOptionId: string }[] }
+      }
+    | { kind: 'INCOMING_GATE' | 'FORCED_MOVEMENT'; payload: unknown }
+    | null
 }): string[] {
-  if (context.legendaryResistance) return [context.legendaryResistance.resistance.useOptionId]
-  if (context.attackRetarget)
-    return context.attackRetarget.options.map((option) => option.useOptionId)
-  if (context.onHitChoice) return context.onHitChoice.options.map((option) => option.useOptionId)
-  if (context.castReaction?.check) return []
-  return (
-    (context.reactionChoice ?? context.castReaction)?.reactions.map(
-      (reaction) => reaction.useOptionId
-    ) ?? []
-  )
+  const { pause } = context
+  switch (pause?.kind) {
+    case 'LEGENDARY_RESISTANCE':
+      return [pause.payload.resistance.useOptionId]
+    case 'ATTACK_RETARGET':
+    case 'ON_HIT':
+      return pause.payload.options.map((option) => option.useOptionId)
+    case 'REACTION':
+    case 'CAST_REACTION':
+      return pause.payload.check
+        ? []
+        : pause.payload.reactions.map((reaction) => reaction.useOptionId)
+    default:
+      return []
+  }
 }
 
 /**
@@ -303,69 +333,73 @@ export function projectNativeActionPending(
   isOwner: boolean,
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ): PendingEncounterRuleOccurrenceSummaryDto {
-  if (context.legendaryResistance)
-    return {
-      kind: 'LEGENDARY_RESISTANCE_CHOICE',
-      occurrenceId: occurrence.id,
-      occurrenceVersion: occurrence.version,
-      encounterVersion: occurrence.expectedEncounterVersion,
-      targetActorId: context.rollerActorId,
-      options: [{ optionId: context.legendaryResistance.resistance.useOptionId }],
-      allowedResponses: ['DECLINE', 'OPTION']
-    }
-  const castCheck = context.castReaction?.check
-  const reactionOffer = context.reactionChoice ?? (castCheck ? undefined : context.castReaction)
-  if (reactionOffer)
-    return {
-      kind: 'REACTION_CHOICE',
-      occurrenceId: occurrence.id,
-      occurrenceVersion: occurrence.version,
-      encounterVersion: occurrence.expectedEncounterVersion,
-      targetActorId: context.rollerActorId,
-      options: reactionOffer.reactions.map(({ useOptionId, actionId }) => ({
-        optionId: useOptionId,
-        actionId
-      })),
-      allowedResponses: ['DECLINE', 'OPTION']
-    }
-  if (context.onHitChoice)
-    return {
-      kind: 'ON_HIT_CHOICE',
-      occurrenceId: occurrence.id,
-      occurrenceVersion: occurrence.version,
-      encounterVersion: occurrence.expectedEncounterVersion,
-      attackerActorId: context.rollerActorId,
-      options: context.onHitChoice.options.map(({ useOptionId, ...option }) => ({
-        optionId: useOptionId,
-        ...option
-      })),
-      allowedResponses: ['DECLINE', 'OPTION']
-    }
-  if (context.attackRetarget)
-    return {
-      kind: 'ATTACK_RETARGET_CHOICE',
-      occurrenceId: occurrence.id,
-      occurrenceVersion: occurrence.version,
-      encounterVersion: occurrence.expectedEncounterVersion,
-      attackerActorId: context.rollerActorId,
-      options: context.attackRetarget.options.map(({ useOptionId, targetActorId }) => ({
-        optionId: useOptionId,
-        targetActorId
-      })),
-      allowedResponses: ['DECLINE', 'OPTION']
-    }
-  if (context.forcedMovementDestination)
-    return {
-      kind: 'FORCED_MOVEMENT_DESTINATION',
-      occurrenceId: occurrence.id,
-      occurrenceVersion: occurrence.version,
-      encounterVersion: occurrence.expectedEncounterVersion,
-      sourceActorId: context.rollerActorId,
-      targetActorId: context.forcedMovementDestination.targetActorId,
-      requestId: snapshot.request.requestId,
-      positions: context.forcedMovementDestination.positions,
-      allowedResponses: ['FORCED_MOVEMENT']
-    }
+  const { pause } = context
+  switch (pause?.kind) {
+    case 'LEGENDARY_RESISTANCE':
+      return {
+        kind: 'LEGENDARY_RESISTANCE_CHOICE',
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        encounterVersion: occurrence.expectedEncounterVersion,
+        targetActorId: context.rollerActorId,
+        options: [{ optionId: pause.payload.resistance.useOptionId }],
+        allowedResponses: ['DECLINE', 'OPTION']
+      }
+    case 'REACTION':
+    case 'CAST_REACTION':
+      // A cast held on its counter's check asks for that roll instead.
+      if (pause.kind === 'CAST_REACTION' && pause.payload.check) break
+      return {
+        kind: 'REACTION_CHOICE',
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        encounterVersion: occurrence.expectedEncounterVersion,
+        targetActorId: context.rollerActorId,
+        options: pause.payload.reactions.map(({ useOptionId, actionId }) => ({
+          optionId: useOptionId,
+          actionId
+        })),
+        allowedResponses: ['DECLINE', 'OPTION']
+      }
+    case 'ON_HIT':
+      return {
+        kind: 'ON_HIT_CHOICE',
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        encounterVersion: occurrence.expectedEncounterVersion,
+        attackerActorId: context.rollerActorId,
+        options: pause.payload.options.map(({ useOptionId, ...option }) => ({
+          optionId: useOptionId,
+          ...option
+        })),
+        allowedResponses: ['DECLINE', 'OPTION']
+      }
+    case 'ATTACK_RETARGET':
+      return {
+        kind: 'ATTACK_RETARGET_CHOICE',
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        encounterVersion: occurrence.expectedEncounterVersion,
+        attackerActorId: context.rollerActorId,
+        options: pause.payload.options.map(({ useOptionId, targetActorId }) => ({
+          optionId: useOptionId,
+          targetActorId
+        })),
+        allowedResponses: ['DECLINE', 'OPTION']
+      }
+    case 'FORCED_MOVEMENT':
+      return {
+        kind: 'FORCED_MOVEMENT_DESTINATION',
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        encounterVersion: occurrence.expectedEncounterVersion,
+        sourceActorId: context.rollerActorId,
+        targetActorId: pause.payload.targetActorId,
+        requestId: snapshot.request.requestId,
+        positions: pause.payload.positions,
+        allowedResponses: ['FORCED_MOVEMENT']
+      }
+  }
   const common = {
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
@@ -400,7 +434,10 @@ export function projectNativeActionPending(
       : snapshot.request.nodeId === 'target_d20'
         ? contestDefenderPolicy(context.contest.defender, null)
         : null
-    : (context.d20Policy ?? castCheck?.d20 ?? context.incomingGate?.d20 ?? null)
+    : (context.d20Policy ??
+      (pause?.kind === 'CAST_REACTION' ? pause.payload.check?.d20 : undefined) ??
+      (pause?.kind === 'INCOMING_GATE' ? pause.payload.d20 : undefined) ??
+      null)
   if (context.contest && (!d20Policy || snapshot.request.min !== 1 || snapshot.request.max !== 20))
     throw new Error('Stored Disarm evidence request is invalid.')
   // The roller rolls the test's added dice with the d20 that settles it (D156); contest checks

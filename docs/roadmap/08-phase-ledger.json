@@ -1630,7 +1630,7 @@
         {
           "id": "PLATFORM-25",
           "title": "CI fixes mechanical failures and merges approved slices itself",
-          "status": "DONE",
+          "status": "TODO",
           "origin": ["User request 2026-10-18 (cycle-time gains)"],
           "journeyTests": ["scripts/mergeSlice.test.mjs"],
           "journeyStatus": "verified",
@@ -1693,6 +1693,20 @@
               },
               "text": "merge-slice.yml workflow_dispatch: verify green runs on the tip, fast path or ci/merge-m<N> batch (next N from the existing ci/merge-m* refs), push to the phase branch on green, fail closed otherwise; the CI validation guide documents it.",
               "note": "Batch ci/merge-m122 f0dbf70aa green (Tests 39148130773, Live 39148130875); phase merge 733b2f5b4."
+            },
+            {
+              "id": "PLATFORM-25.T3",
+              "status": "TODO",
+              "closes": ["PLATFORM-25.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 1,
+                "after": []
+              },
+              "text": "merge-slice ignores a cancelled duplicate run when the same workflow has a later or concurrent non-cancelled run on the tip (runsVerdict in scripts/mergeSlice.mjs), with a unit test that fails first.",
+              "note": "Found 2026-10-21: m-R2T4a refused on f4888465b because duplicate Tests/Live runs that were cancelled sorted ahead of the green ones. Worked around by re-running the cancelled runs."
             }
           ]
         }
@@ -3361,20 +3375,61 @@
                 "size": 3,
                 "after": ["RULES-2.T1"]
               },
-              "text": "Move combatPerception.ts out of the kernel directory into the System perception module."
+              "text": "Move combatPerception.ts out of the kernel directory into the System perception module.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
-              "id": "RULES-2.T11",
+              "id": "RULES-2.T11a",
               "status": "TODO",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 13,
+                "size": 3,
                 "after": ["RULES-2.T1"]
               },
-              "text": "Burn down the direct systems/dnd5e imports from neutral runtime through registered capability adapters."
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
+              "text": "System import burn-down (split 2026-10-21): one generic fail-closed System capability registry, installed in platformPolicyModules, with the existing action-economy and roll-mode registries moved onto it; abilities, creature state and initiative adapters (allowlist -7)."
+            },
+            {
+              "id": "RULES-2.T11b",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T11a"]
+              },
+              "text": "System import burn-down (split 2026-10-21): armor class and d20 test definition adapters (allowlist -5)."
+            },
+            {
+              "id": "RULES-2.T11c",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T11b"]
+              },
+              "text": "System import burn-down (split 2026-10-21): optional combat contest adapters (allowlist -5)."
+            },
+            {
+              "id": "RULES-2.T11d",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["RULES-2.T11c"]
+              },
+              "text": "System import burn-down (split 2026-10-21): attack profile adapters (allowlist -9, to 14). Concentration, the incoming attack gate and cast-reaction discovery stay with T5 and T8."
             },
             {
               "id": "RULES-2.T12",
@@ -3385,7 +3440,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["RULES-2.T6f", "RULES-2.T7", "RULES-2.T8", "RULES-2.T11"]
+                "after": ["RULES-2.T6f", "RULES-2.T7", "RULES-2.T8", "RULES-2.T11d"]
               },
               "text": "Second neutral tracer System (Fate-like fixture) driving the Encounter pipeline through the adapters."
             },

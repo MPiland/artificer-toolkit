@@ -16,10 +16,12 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { v5 as uuidv5 } from 'uuid'
 
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { startReactionChoice } from './reactionChoiceDefinition.js'
-
-/** What the reacting creature's controller answers: declining, or the one option that uses the reaction. */
-export type EncounterReactionSelection = { kind: 'DECLINE' } | { kind: 'OPTION'; optionId: string }
+import {
+  chosenEncounterSealedOption,
+  openEncounterSealedChoice,
+  settleEncounterSealedChoice,
+  type EncounterSealedChoiceSelection
+} from './encounterSealedChoice.js'
 
 /** The reaction a creature could be offered for what is happening to it or near it, as it stands now. */
 export interface EncounterReactionCandidate<Trigger extends string> {
@@ -135,11 +137,12 @@ export async function openEncounterReactionChoice(input: {
   occurrenceId: string
   candidate: EncounterReactionCandidate<string>
 }): Promise<ServerRuleExecutionContinuationDto> {
-  return startReactionChoice({
+  return openEncounterSealedChoice({
     runtime: input.runtime,
     occurrenceId: input.occurrenceId,
-    published: input.candidate.choiceGraph,
-    optionCount: 2
+    graph: input.candidate.choiceGraph,
+    optionCount: 1,
+    declinable: true
   })
 }
 
@@ -149,12 +152,15 @@ export async function openEncounterReactionChoice(input: {
  */
 export function chosenEncounterReaction<Pin extends { useOptionId: string }>(
   offer: { reactions: readonly Pin[] },
-  selection: EncounterReactionSelection
+  selection: EncounterSealedChoiceSelection
 ) {
   const chosen =
-    selection.kind === 'OPTION'
-      ? offer.reactions.find((reaction) => reaction.useOptionId === selection.optionId)
-      : offer.reactions[0]
+    chosenEncounterSealedOption({
+      options: offer.reactions,
+      optionId: (reaction) => reaction.useOptionId,
+      selection,
+      label: 'Reaction'
+    }) ?? offer.reactions[0]
   if (!chosen) throw new Error('Reaction selection was not issued.')
   return chosen
 }
@@ -176,7 +182,7 @@ export async function settleEncounterReactionChoice(input: {
   >
   candidate: EncounterAttackReactionCandidate
   targetStateChecksum: string
-  selection: EncounterReactionSelection
+  selection: EncounterSealedChoiceSelection
 }) {
   const { boundary, offer } = input
   const reaction = chosenEncounterReaction(offer, input.selection)
@@ -206,25 +212,14 @@ async function settleSealedReactionChoice(input: {
   reaction: Pick<EncounterReactionPinDto, 'choiceDefinitionId' | 'choiceDefinitionChecksum'>
   use: boolean
 }) {
-  const { reaction, use } = input
-  const continuation = await openEncounterReactionChoice(input)
-  if (
-    continuation.graph.source.definitionId !== reaction.choiceDefinitionId ||
-    continuation.graph.source.checksum !== reaction.choiceDefinitionChecksum
-  )
-    throw new Error('Reaction choice continuation pin is stale.')
-  const choice = await input.runtime.resume({
-    continuation,
-    response: { requestId: continuation.request.requestId, value: use ? 1 : 0 }
+  const { reaction } = input
+  return settleEncounterSealedChoice({
+    runtime: input.runtime,
+    continuation: await openEncounterReactionChoice(input),
+    selectedIndex: input.use ? 1 : 0,
+    pin: { definitionId: reaction.choiceDefinitionId, checksum: reaction.choiceDefinitionChecksum },
+    label: 'Reaction'
   })
-  if (
-    choice.status !== 'COMPLETE' ||
-    choice.evidence.source.definitionId !== reaction.choiceDefinitionId ||
-    choice.evidence.source.checksum !== reaction.choiceDefinitionChecksum ||
-    choice.outputs.selectedIndex !== (use ? 1 : 0)
-  )
-    throw new Error('Reaction choice did not settle its exact pin.')
-  return choice
 }
 
 /**
