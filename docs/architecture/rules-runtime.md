@@ -924,6 +924,15 @@ saves, restores the consumed grants and keeps the roll on the record; it is refu
 (`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
+**d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20
+before the check settles. Two commands act on one occurrence: the d20 response pends a second `ENCOUNTER_D20_WINDOW`
+`KERNEL_EVIDENCE` snapshot (discriminated `source`, today `BASIC_ACTION_CHECK`; no rule receipt, version +1), then
+`D20_WINDOW_USE { requestId, optionId, faces? }` or `D20_WINDOW_DECLINE` resumes the System-owned bounded choice (index 0 declines),
+appends the die to the d20's `addedDice`, settles the check with the final total and ends the spending effect in the same transaction.
+A GM void of a window is refused. Options and their ids derive from the held grants and the roll's evidence checksum, so a homebrew
+die or trigger runs the same path. Rolled-die faces stay a d4 (`ROLLED_DIE_FACES`).
+(`packages/rules-runtime/src/encounterD20Window.ts`, `packages/encounter-persistence/src/basicActionCheckResponsePersistence.ts`).
+
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
 

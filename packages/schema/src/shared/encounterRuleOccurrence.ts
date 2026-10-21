@@ -5,7 +5,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
-import { d20AddedDiceDtoSchema } from './d20AddedDice.js'
+import { MAX_D20_ADDED_DICE, d20AddedDiceDtoSchema, rolledDieShape } from './d20AddedDice.js'
 import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spatialFacts.js'
 
 const uuidSchema = lazySchema(() =>
@@ -370,6 +370,32 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .check(z.minLength(1))
           .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1)),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
+      }),
+      /** A d20 the roller has seen, with the dice it holds for after the roll: it may add one or let them go. */
+      z.strictObject({
+        kind: z.literal('D20_WINDOW'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        rollerActorId: uuidSchema,
+        trigger: encounterRuleRollTriggerDtoSchema,
+        requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+        /** The kept face and the total the roll stands at before any die is added. */
+        d20: z.strictObject({
+          selectedNatural: z.number().check(z.int()),
+          total: z.number().check(z.int())
+        }),
+        options: z
+          .array(
+            z.strictObject({
+              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+              label: triggerLabelSchema,
+              ...rolledDieShape()
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_D20_ADDED_DICE)),
+        allowedResponses: z.tuple([z.literal('D20_WINDOW_DECLINE'), z.literal('D20_WINDOW_USE')])
       }),
       /** An attack or spell a ward stopped, whose attacker may turn it on another creature or let it be lost. */
       z.strictObject({
