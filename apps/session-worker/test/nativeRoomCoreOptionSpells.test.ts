@@ -521,7 +521,7 @@ describe('room Heat Metal (SPELLS-4.T2e)', () => {
       effectId: carrier.id,
       holderActorId: OGRE_ID,
       activation: 'BONUS_ACTION',
-      label: 'Heat Metal',
+      label: 'Heat Metal (2nd level)',
       dc: frozenDc
     })
     if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
