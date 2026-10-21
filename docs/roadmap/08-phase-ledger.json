@@ -3218,7 +3218,7 @@
             },
             {
               "id": "RULES-2.T4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.4"],
               "wsjf": {
                 "bv": 5,
@@ -3228,7 +3228,7 @@
                 "after": ["RULES-2.T4a"]
               },
               "text": "Split planNativeLiveEncounterAction into one handler per pause kind.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m290 (d9b11eec8). nativeEncounterRules.ts cap 1944 to 1778."
             },
             {
               "id": "RULES-2.T5a",
@@ -3495,17 +3495,96 @@
               "text": "Second neutral tracer System (Fate-like fixture) driving the Encounter pipeline through the adapters."
             },
             {
-              "id": "RULES-2.T13",
+              "id": "RULES-2.T13a",
               "status": "TODO",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 13,
+                "size": 2,
                 "after": ["RULES-2.T4b"]
               },
-              "text": "Split nativeLiveSessionRoom and completeAreaCommit by responsibility below the file-size budget."
+              "text": "Move the room scene commits (fog staging, scene edit, geometry, movement decision) out of nativeLiveSessionRoom.ts into roomScene* commit modules with narrow ports.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+            },
+            {
+              "id": "RULES-2.T13b",
+              "status": "TODO",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T13a"]
+              },
+              "text": "Move room Encounter command execution and Encounter binding out of nativeLiveSessionRoom.ts into roomEncounterCommandExecution.ts and roomEncounterBindingCommand.ts."
+            },
+            {
+              "id": "RULES-2.T13c",
+              "status": "TODO",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["RULES-2.T13b"]
+              },
+              "text": "Move the in-room halves of Character Sheet and Campaign chat command execution into roomCharacterSheetCommands.ts and roomChatCommands.ts."
+            },
+            {
+              "id": "RULES-2.T13d",
+              "status": "TODO",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T13c"]
+              },
+              "text": "Move admission, storage recovery, aggregate load/reload and actor-departure reconciliation out of nativeLiveSessionRoom.ts into roomAdmission.ts, roomStorageRecovery.ts and roomAggregateLoad.ts."
+            },
+            {
+              "id": "RULES-2.T13e",
+              "status": "TODO",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["RULES-2.T13d"]
+              },
+              "text": "Move the scene cache, capture, outbox publication and checkpointing out of nativeLiveSessionRoom.ts; the room keeps the Durable Object lifecycle and command dispatch and leaves the size budget."
+            },
+            {
+              "id": "RULES-2.T13f",
+              "status": "TODO",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["RULES-2.T13e"]
+              },
+              "text": "Split completeAreaCommit by phase into nativeAreaCommitPlan.ts, nativeAreaCommitMaintenance.ts and nativeAreaCommitPersistence.ts."
+            },
+            {
+              "id": "RULES-2.T13g",
+              "status": "TODO",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["RULES-2.T13f"]
+              },
+              "text": "Split nativeEncounterAreaRules.ts preparation, planning and revalidation so the file leaves the size budget."
             },
             {
               "id": "RULES-2.T14",
@@ -16233,6 +16312,43 @@
                 "rr": 8,
                 "size": 1
               }
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-18",
+          "title": "Development GM journey scheduler test is deterministic",
+          "status": "TODO",
+          "journeyTests": ["apps/apis/convex/campaigns/developmentGmJourney.test.ts"],
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 1
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-18.1",
+              "text": "developmentGmJourney.test.ts (snapshot of _scheduled_functions at :127) passes deterministically: the cause of a scheduled job reading inProgress instead of pending is found in the test setup or the product, fixed at the cause (no retry, no weakened assertion), and a forced reproduction fails red before the fix.",
+              "status": "TODO",
+              "origin": [],
+              "note": "Found 2026-10-21: failed on ci/platform-25-t3 Tests (first) and on ci/rules-2-t4b Tests 39625271637 attempt 1 (5bfd79e08); both passed on rerun and neither branch touches campaigns."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-18.T1",
+              "text": "Find why developmentGmJourney.test.ts intermittently snapshots a scheduled job as inProgress (convex-test scheduler timing versus the snapshot read), fix the cause, and prove it with a forced red on a ci/ branch.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-18.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              },
+              "activeWorkbook": "apps/apis/convex/campaigns/developmentGmJourney.test.ts"
             }
           ]
         }
