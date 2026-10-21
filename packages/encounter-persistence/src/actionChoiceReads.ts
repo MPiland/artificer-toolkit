@@ -27,7 +27,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterDefaultAttack'
 import { snapshotCreatureEquipmentItems } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { encounterActorHeldItems } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
-import { dnd5eAttackKind } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
+import { attackProfileCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import {
   characterActionDrawWeapon,
   creatureActionDrawWeapon,
@@ -308,7 +308,11 @@ export async function readEncounterActionChoices(
         )
         const weapon = characterActionDrawWeapon(
           candidate?.equipment ?? null,
-          candidate ? dnd5eAttackKind(candidate.mechanicFacts.invocation.triggerCode) : null
+          candidate
+            ? attackProfileCapabilityRegistry
+                .require(state.gameSystemId)
+                .attackKind(candidate.mechanicFacts.invocation.triggerCode)
+            : null
         )
         const draw = handReleaseFor(weapon)
         if (candidate?.equipment)
@@ -438,7 +442,9 @@ export async function readEncounterActionChoices(
                 creatureActionDrawWeapon(
                   snapshotCreatureEquipmentItems(creature),
                   action.equipmentBinding?.loadoutEntryId,
-                  dnd5eAttackKind(action.mechanicFacts.invocation.triggerCode)
+                  attackProfileCapabilityRegistry
+                    .require(state.gameSystemId)
+                    .attackKind(action.mechanicFacts.invocation.triggerCode)
                 )
               )
             ),

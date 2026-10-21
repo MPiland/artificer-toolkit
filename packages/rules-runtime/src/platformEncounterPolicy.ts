@@ -9,6 +9,7 @@ import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.j
 import type { ContestCheckCapabilityAdapter } from './contestCheckCapability.js'
 import type { D20TestDefinitionCapabilityAdapter } from './d20TestDefinitionCapability.js'
 import type { EncounterFeatureActionCapabilityAdapter } from './encounterFeatureActionCapabilityDiscovery.js'
+import type { ExecutionOutcomeCapabilityAdapter } from './executionOutcomeCapability.js'
 import type { InitiativeFactAdapter } from './initiativeFactAdapter.js'
 import type { LegendaryActionEligibilityAdapter } from './legendaryActionEligibilityService.js'
 import type { ModifierScopeCapabilityAdapter } from './modifierScopeCapability.js'
@@ -25,6 +26,7 @@ import {
   dnd5eD20TestDefinitionCapabilityAdapter,
   dnd5eLegendaryActionEligibilityAdapter
 } from './systems/dnd5e/encounterLifecyclePolicy.js'
+import { dnd5eExecutionOutcomeCapabilityAdapter } from './systems/dnd5e/executionOutcomes.js'
 import { dnd5eInitiativeFactAdapter } from './systems/dnd5e/initiativeFactAdapter.js'
 import { dnd5eModifierScopeCapabilityAdapter } from './systems/dnd5e/modifierApplicability.js'
 import { dnd5eContestCheckCapabilityAdapter } from './systems/dnd5e/optionalCombatContestGraph.js'
@@ -76,6 +78,11 @@ export const encounterFeatureActionCapabilityRegistry =
     'encounter-feature-action',
     [dnd5eEncounterFeatureActionCapabilityAdapter]
   )
+
+export const executionOutcomeCapabilityRegistry =
+  createSystemCapabilityRegistry<ExecutionOutcomeCapabilityAdapter>('execution-outcome', [
+    dnd5eExecutionOutcomeCapabilityAdapter
+  ])
 
 export const legendaryActionEligibilityCapabilityRegistry =
   createSystemCapabilityRegistry<LegendaryActionEligibilityAdapter>('legendary-action', [

@@ -15,6 +15,7 @@ import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDisco
 import {
   createDnd5eSpeedFactorInitiativeDefinition,
   dnd5eDeclaredInitiativeRollFacts,
+  dnd5eInitiativeFactAdapter,
   DND5E_INITIATIVE_FACT_KEYS
 } from '../systems/dnd5e/initiativeFactAdapter.js'
 
@@ -86,5 +87,18 @@ describe('D&D declared initiative graph', () => {
   it('keeps the first die even when it is the lower one on advantage', () => {
     const { result } = settle({ rollMode: 'ADVANTAGE', faces: [18, 2] })
     expect(result.outputs).toMatchObject({ score: 18 + 3 - 2 })
+  })
+
+  it.each(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'] as const)(
+    'reads the %s roll mode back from the facts it rolled by',
+    (rollMode) => {
+      expect(
+        dnd5eInitiativeFactAdapter.declaredRollMode(dnd5eDeclaredInitiativeRollFacts(rollMode))
+      ).toBe(rollMode)
+    }
+  )
+
+  it('reads no roll mode from facts that keep no face', () => {
+    expect(dnd5eInitiativeFactAdapter.declaredRollMode({})).toBeNull()
   })
 })

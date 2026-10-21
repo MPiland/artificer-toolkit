@@ -6,7 +6,7 @@ import {
   resolveHandOccupancy
 } from '@artificer-toolkit/shared/core'
 import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
-import { resolveDnd5eCreatureArmorClass } from '@artificer-toolkit/rules-runtime/systems/dnd5e/armorClass'
+import { armorClassCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import type { QueryCtx } from '../_generated/server'
 import { canReadAuthoredRoot } from './documents'
 import { readStoredEquipment } from './storedEquipment'
@@ -64,19 +64,23 @@ export async function assertCreatureLoadoutHands(
 }
 
 /**
- * A Creature's computed armor class (D107), or null while a loadout item is unreadable. Equipment
- * a Creature cannot evaluate comes back as a failure result; the caller decides what it means.
+ * A Creature's computed armor class (D107) under its System's formula, or null while a loadout item
+ * is unreadable or its ability scores lack one the formula reads. Equipment a Creature cannot
+ * evaluate comes back as a failure result; the caller decides what it means.
  */
 export async function readCreatureArmorClass(
   ctx: QueryCtx,
-  creature: Pick<CreatureAuthoredDto, 'abilityScores' | 'equipmentLoadout' | 'naturalArmorBonus'>,
+  creature: Pick<
+    CreatureAuthoredDto,
+    'systemId' | 'abilityScores' | 'equipmentLoadout' | 'naturalArmorBonus'
+  >,
   userId: string | null
 ) {
   const entries = creature.equipmentLoadout ?? []
   const equipment = await readLoadoutEquipment(ctx, entries, userId)
   if (entries.some((entry) => !equipment.has(entry.equipmentId))) return null
-  return resolveDnd5eCreatureArmorClass({
-    dexterityScore: creature.abilityScores.DEXTERITY,
+  return armorClassCapabilityRegistry.require(creature.systemId).creatureArmorClass({
+    abilityScores: creature.abilityScores,
     naturalArmorBonus: creature.naturalArmorBonus,
     equipment: entries.map((entry) => ({
       id: entry.id,

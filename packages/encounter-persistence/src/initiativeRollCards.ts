@@ -3,8 +3,7 @@ import {
   initiativeRollRecord,
   ruleCheckRollId
 } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
-import { DND5E_INITIATIVE_FACT_KEYS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
-import { DND5E_KEEP_BY_ROLL_MODE } from '@artificer-toolkit/rules-runtime/systems/dnd5e/rollModePolicy'
+import { initiativeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -15,8 +14,6 @@ import { readAppCardedDice, turnSystemRollAnswers } from './appCardedDice.js'
 import { LOGGED_DICE } from './evidenceRolls.js'
 import type { CampaignAuthority, EncounterReadTransaction, EncounterWritePorts } from './ports.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
-
-const ROLL_MODES = Object.keys(DND5E_KEEP_BY_ROLL_MODE) as (keyof typeof DND5E_KEEP_BY_ROLL_MODE)[]
 
 /**
  * Posts one Initiative card per declared actor that settled dice, as a GM-rolled initiative does,
@@ -43,6 +40,7 @@ export async function persistEncounterInitiativeRollCards(
   const { state, root, occurrenceId } = input
   const settlement = root.initiative
   if (settlement?.procedure !== 'DECLARED_ACTION_ROLL') return
+  const initiative = initiativeCapabilityRegistry.require(state.gameSystemId)
   const rolls = settlement.evidence.primaryResults.flatMap(({ entity, result }) => {
     if (entity.kind !== 'ACTOR' || result.kind !== 'GRAPH_COMPLETE' || !result.execution.automatic)
       return []
@@ -61,8 +59,7 @@ export async function persistEncounterInitiativeRollCards(
       dice.some(({ entry }) => entry.inputs.min !== 1 || entry.inputs.max !== sides)
     )
       throw new Error('A declared initiative die must be a logged 1dN to post its roll card.')
-    const keep = dice.length === 2 ? facts[DND5E_INITIATIVE_FACT_KEYS.keep] : 'FIRST'
-    const rollMode = ROLL_MODES.find((mode) => DND5E_KEEP_BY_ROLL_MODE[mode] === keep)
+    const rollMode = dice.length === 2 ? initiative.declaredRollMode(facts) : 'NORMAL'
     if (!rollMode)
       throw new Error('A declared initiative roll mode must keep the first, higher or lower face.')
     if ((dice.length === 2) === (rollMode === 'NORMAL'))

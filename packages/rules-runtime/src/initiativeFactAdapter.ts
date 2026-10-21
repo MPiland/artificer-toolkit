@@ -1,3 +1,4 @@
+import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import type { RuleValue } from '@artificer-toolkit/shared/rules'
 import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
 
@@ -31,4 +32,6 @@ export interface InitiativeFactAdapter {
     declaration: InitiativeDeclarationFactsDto
   ): InitiativeFactBinding
   bindSide(source: LockedEncounterInitiativeSideFactSource): InitiativeFactBinding
+  /** The roll mode a two-die declared initiative settled under, read from its graph facts; null when they record none. */
+  declaredRollMode(facts: Readonly<Record<string, unknown>>): RollMode | null
 }
