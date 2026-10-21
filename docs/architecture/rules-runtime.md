@@ -86,6 +86,22 @@ asks the installed System for the Run's `gameSystemId` through `platformRulesRun
 registered by the System module (`systems/dnd5e/characterActionRuntime`). An unknown System fails
 closed.
 
+### SRD effect compile golden (current, RULES-2.T2)
+
+`packages/rules-runtime/src/__tests__/srdEffectCompileGolden.test.ts` compiles every authored SRD Effect through
+the public `dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan` and compares one line per Effect with
+`__tests__/__golden__/srdEffectCompile.golden.txt`, sorted by Effect id: `<effect id> <owner label> | <outcome>`.
+The outcome is `SINGLE_GRAPH <graph checksum> nodes=N outputs=M`, `TEST_OUTCOME test=<checksum> nodes=N outputs=M
+outcomes=[<path>=<checksum>,...]` or `REFUSED <error name>: <message>`. Spells compile at their own level and every
+Effect at Character level 20, under the descriptor's fixed Effect id, so a checksum changes only when the compiled
+graph does.
+
+Reading a diff: a changed checksum means the compiled graph for that Effect changed; changed `nodes`/`outputs` show
+its size; `SINGLE_GRAPH`/`TEST_OUTCOME` flipping is a plan-shape change; `REFUSED` appearing or disappearing is a
+support change. A refactor slice (RULES-2.T6a-f) must keep the file green. If a line must change, the slice's review
+explains every changed checksum and reseeds development data in the same change, because published graphs and
+frozen occurrences carry these checksums. Regenerate with `vitest run -u` on that test only.
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014. Reusable mechanics remain
