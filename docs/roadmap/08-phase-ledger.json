@@ -3136,7 +3136,7 @@
           "tasks": [
             {
               "id": "RULES-2.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.1"],
               "wsjf": {
                 "bv": 5,
@@ -3145,7 +3145,7 @@
                 "size": 3
               },
               "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m277 (274d4dd99)."
             },
             {
               "id": "RULES-2.T2",
