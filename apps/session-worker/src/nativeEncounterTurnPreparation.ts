@@ -36,6 +36,7 @@ import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import { readNativeLiveSpellPins } from './nativeEncounterTargets.js'
+import { readNativeLiveTurnStarted } from './nativeTurnUses.js'
 import {
   readNativeLivePerceptionScene,
   readNativeLiveSpatialEffects,
@@ -357,6 +358,7 @@ export function createNativeLiveTurnStages(
         createRuntime,
         rollD6: () => random(6) + 1
       }),
+    turnStarted: (turn) => readNativeLiveTurnStarted(capture, turn),
     deathSave: (stage) =>
       prepareEncounterTurnDeathSave<CharacterFacts>({
         ...stage,

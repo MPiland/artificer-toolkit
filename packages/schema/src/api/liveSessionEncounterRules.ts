@@ -139,6 +139,11 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('INPUTS') }),
     z.strictObject({ kind: z.literal('INITIATIVE_ROUND') }),
     z.strictObject({ kind: z.literal('TURN_USES'), actorId: postgresUuidSchema }),
+    z.strictObject({
+      kind: z.literal('TURN_STARTED'),
+      round: z.number().check(z.int()).check(z.positive()),
+      actorId: postgresUuidSchema
+    }),
     z.strictObject({ kind: z.literal('TURN_MOVED_FEET'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TURN_LAST_MOVE'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TELEPORT_ALLOWANCES'), actorId: postgresUuidSchema }),
@@ -349,6 +354,12 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       kind: z.literal('TURN_USES'),
       revisions: liveSessionRulesRevisionsSchema,
       keys: encounterTurnUseKeysSchema
+    }),
+    z.strictObject({
+      kind: z.literal('TURN_STARTED'),
+      revisions: liveSessionRulesRevisionsSchema,
+      /** The command that began the actor's turn in that round and ran its start-of-turn effects. */
+      startedByCommandId: z.nullable(postgresUuidSchema)
     }),
     z.strictObject({
       kind: z.literal('TURN_MOVED_FEET'),

@@ -224,7 +224,9 @@ export type EncounterTurnLastMove = z.infer<typeof encounterTurnLastMoveSchema>
  * that spent it, if any. A player's TELEPORT move is refused without an unspent entry.
  * `lastMove` is where the actor's latest voluntary move this turn began and ended (D164), which
  * the Charge gate reads; each voluntary move replaces it, and forced movement or a teleport this
- * turn clears it. Like the movement, it is never enforced.
+ * turn clears it. Like the movement, it is never enforced. `startedByCommandId` is the START or
+ * ADVANCE_TURN command that began this turn and ran its start-of-turn effects; a turn that returns
+ * (Previous Turn, then Next) finds it set, so those effects never run twice (SPELLS-33.T4i1c).
  */
 export const encounterStoredTurnMovementSchema = lazySchema(() =>
   z.strictObject({
@@ -237,6 +239,7 @@ export const encounterStoredTurnMovementSchema = lazySchema(() =>
     speedBonuses: z.number().check(z.int()).check(z.nonnegative()),
     lastMove: z._default(z.nullable(encounterTurnLastMoveSchema), null),
     usedOncePerTurn: z._default(encounterTurnUseKeysSchema, []),
+    startedByCommandId: z._default(z.nullable(postgresUuidSchema), null),
     teleportAllowances: z._default(
       z.array(encounterTeleportAllowanceSchema).check(z.maxLength(MAX_TURN_TELEPORT_ALLOWANCES)),
       []

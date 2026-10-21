@@ -18,6 +18,7 @@ import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persi
 import {
   readTurnLastMove,
   readTurnMovedFeet,
+  readTurnStartedBy,
   readTurnTeleportAllowances,
   readTurnUses
 } from '@artificer-toolkit/encounter-persistence/turnMovement'
@@ -558,6 +559,18 @@ export async function readRoomEncounterTurnCapture(
     if (!state.actorIds.includes(actorId))
       throw new Error('Turn uses actor is not in the Encounter.')
     response = { kind: 'TURN_USES', keys: await readTurnUses(ctx, { state, actorId }) }
+  } else if (request.kind === 'TURN_STARTED') {
+    const actorId = request.actorId.toLowerCase()
+    if (!state.actorIds.includes(actorId))
+      throw new Error('Turn start actor is not in the Encounter.')
+    response = {
+      kind: 'TURN_STARTED',
+      startedByCommandId: await readTurnStartedBy(ctx, {
+        encounterId: state.id,
+        round: request.round,
+        actorId
+      })
+    }
   } else if (request.kind === 'TURN_MOVED_FEET') {
     const actorId = request.actorId.toLowerCase()
     if (!state.actorIds.includes(actorId))

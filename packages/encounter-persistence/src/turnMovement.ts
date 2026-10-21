@@ -55,6 +55,46 @@ function readTurnRow(ctx: EncounterReadContext, turn: CurrentTurn, actorId: stri
     .unique()
 }
 
+/** The command that began the turn of `actorId` in `round` and ran its start-of-turn effects, if any. */
+export async function readTurnStartedBy(
+  ctx: EncounterReadContext,
+  input: { encounterId: string; round: number; actorId: string }
+): Promise<string | null> {
+  const row = await readTurnRow(
+    ctx,
+    { encounterId: input.encounterId, round: input.round, turnActorId: input.actorId },
+    input.actorId
+  )
+  return row?.startedByCommandId ?? null
+}
+
+/**
+ * Records that `commandId` began the turn the Run now holds. A turn that was already begun keeps
+ * its first command, so returning to it never runs its start-of-turn effects again.
+ */
+export async function markTurnStarted(
+  ctx: EncounterWriteContext,
+  input: { state: RunTurnState; commandId: string }
+) {
+  const turn = currentTurn(input.state)
+  if (!turn) throw new Error('A turn start needs a current turn.')
+  const row = await readTurnRow(ctx, turn, turn.turnActorId)
+  if (!row)
+    await ctx.db.insert(
+      'encounterTurnMovements',
+      encounterStoredTurnMovementSchema.parse({
+        ...turn,
+        actorId: turn.turnActorId,
+        usedFeet: 0,
+        speedId: null,
+        speedBonuses: 0,
+        startedByCommandId: input.commandId
+      })
+    )
+  else if (row.startedByCommandId === null)
+    await ctx.db.patch(row._id, { startedByCommandId: input.commandId })
+}
+
 /** Adds to an actor's record for the current turn, creating it at zero (D38). */
 async function addTurnMovement(
   ctx: EncounterWriteContext,

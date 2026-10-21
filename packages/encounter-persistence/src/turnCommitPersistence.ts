@@ -42,6 +42,7 @@ import {
   persistEncounterInitiativeRestores,
   type EncounterInitiativeRestoreCharacterRules
 } from './initiativeRestorePersistence.js'
+import { markTurnStarted } from './turnMovement.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import { persistEncounterTurnZoneEffects } from './turnZoneEffectsPersistence.js'
 import {
@@ -380,6 +381,7 @@ export async function persistEncounterTurnCommit(
     version: state.version + 1,
     updatedAt: input.occurredAt
   })
+  await markTurnStarted(ctx, { state: nextState, commandId: root.rootCommandId })
   const characterIds = new Set(
     durableActors.flatMap((actor) =>
       actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []

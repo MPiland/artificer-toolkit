@@ -143,6 +143,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         'state' | 'autoRoll' | 'root' | 'occurrenceId' | 'actors' | 'pending' | 'rawDie'
       >
     ) => ReturnType<typeof prepareEncounterTurnRecharge>
+    /** Whether the actor's turn in the round was already begun, and so ran its start-of-turn effects. */
+    turnStarted: (input: { round: number; actorId: string }) => Promise<boolean>
     deathSave: (
       input: Pick<
         Parameters<typeof prepareEncounterTurnDeathSave<TCharacterFacts>>[0],
@@ -343,32 +345,51 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     stage: 'START_OF_TURN',
     actorId: root.proposedTerminalTransition.currentActorId
   } as const
-  const incoming = await stages.effects({
-    state,
-    userId: campaign.ownerUserId,
-    autoRoll: actorAutoRoll(actorId),
-    root,
-    occurrenceId,
-    actors: recharge.actors,
-    movementTargets,
-    priorPlan: outgoing?.phase,
-    boundary: incomingBoundary,
-    ...(root.incomingTurn ? { retainedPhase: root.incomingTurn } : {}),
-    ...(effectContext && !outgoingPending ? { pending, resolution: input.resolution } : {})
-  })
+  // A turn that was already begun (Previous Turn, then Next) never runs its start-of-turn effects again.
+  const incomingBegun =
+    actorId !== null &&
+    (await stages.turnStarted({ round: root.proposedTerminalTransition.round, actorId }))
+  const incoming = incomingBegun
+    ? {
+        kind: 'COMPLETE' as const,
+        actors: recharge.actors,
+        movementTargets,
+        plan: null,
+        phase: { kind: 'NONE' as const }
+      }
+    : await stages.effects({
+        state,
+        userId: campaign.ownerUserId,
+        autoRoll: actorAutoRoll(actorId),
+        root,
+        occurrenceId,
+        actors: recharge.actors,
+        movementTargets,
+        priorPlan: outgoing?.phase,
+        boundary: incomingBoundary,
+        ...(root.incomingTurn ? { retainedPhase: root.incomingTurn } : {}),
+        ...(effectContext && !outgoingPending ? { pending, resolution: input.resolution } : {})
+      })
   if (incoming.kind === 'PENDING') return incoming
-  const incomingZones = await stages.zones({
-    state,
-    userId: campaign.ownerUserId,
-    autoRollByActorId: input.autoRollByActorId,
-    // A zone pause re-runs the incoming effects from the phase it retains.
-    root: { ...root, incomingTurn: incoming.phase },
-    occurrenceId,
-    actors: incoming.actors,
-    movementTargets: incoming.movementTargets,
-    boundary: incomingBoundary,
-    ...(zoneContext && !outgoingZonePending ? { pending, resolution: input.resolution } : {})
-  })
+  const incomingZones = incomingBegun
+    ? {
+        kind: 'COMPLETE' as const,
+        actors: incoming.actors,
+        movementTargets: incoming.movementTargets,
+        plan: null
+      }
+    : await stages.zones({
+        state,
+        userId: campaign.ownerUserId,
+        autoRollByActorId: input.autoRollByActorId,
+        // A zone pause re-runs the incoming effects from the phase it retains.
+        root: { ...root, incomingTurn: incoming.phase },
+        occurrenceId,
+        actors: incoming.actors,
+        movementTargets: incoming.movementTargets,
+        boundary: incomingBoundary,
+        ...(zoneContext && !outgoingZonePending ? { pending, resolution: input.resolution } : {})
+      })
   if (incomingZones.kind === 'PENDING') return incomingZones
   return {
     kind: 'COMPLETE' as const,

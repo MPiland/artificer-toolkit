@@ -1,6 +1,7 @@
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
+import { readTurnStartedBy } from '@artificer-toolkit/encounter-persistence/turnMovement'
 import { systemTriggerStartOfTurnCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
@@ -31,6 +32,13 @@ export async function raiseRoomStartOfTurnEffects(input: {
     (actor) => actor.id === firstState.currentActorId
   )
   if (holder?.kind !== 'CREATURE') return false
+  // Only the command that began this turn raises its effects; a returned-to turn already had them.
+  const startedBy = await readTurnStartedBy(ctx, {
+    encounterId,
+    round: firstState.round,
+    actorId: holder.id
+  })
+  if (startedBy?.toLowerCase() !== input.parentCommandId.toLowerCase()) return false
   const system = await ctx.ports.requireSystem(firstState.gameSystemId)
   const { passiveStartOfTurnEffects } = discoverEncounterFeatureActions({
     actor: holder,
