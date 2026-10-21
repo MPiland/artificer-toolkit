@@ -46,15 +46,13 @@ function onionRoom(
   return actionRoom({
     actors: [
       casterActor,
-      {
-        ...srdCreatureActor({
-          id: ONI_ID,
-          creature: srdByLabel(SRD.creatures, 'Oni'),
-          currentHitPoints,
-          defeated
-        }),
+      srdCreatureActor({
+        id: ONI_ID,
+        creature: srdByLabel(SRD.creatures, 'Oni'),
+        currentHitPoints,
+        defeated,
         damageTypesSinceTurnStart
-      }
+      })
     ],
     characterSpellcasting: { spells: [spiritGuardians], prepared: [spiritGuardians.id] },
     characterAction: (action) => action.label === 'Spirit Guardians (3rd level)',
