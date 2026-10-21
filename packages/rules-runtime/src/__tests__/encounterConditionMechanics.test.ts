@@ -622,6 +622,9 @@ describe('a condition that flees its source (SPELLS-29.T2)', () => {
 })
 
 describe('a single-target action’s target requirements (SPELLS-33.T4i4a)', () => {
+  type Requirements = NonNullable<
+    Parameters<typeof refuseUnmetTargetRequirements>[0]['requirements']
+  >
   const SEEN = { attackerSeesTarget: 'SEES', targetSeesAttacker: 'UNSEEN' } as const
   const refusals = (
     requirements: Parameters<typeof refuseUnmetTargetRequirements>[0]['requirements'],
@@ -632,7 +635,7 @@ describe('a single-target action’s target requirements (SPELLS-33.T4i4a)', () 
   it('a condition from the user is met only by a holding that records the user as its source', async () => {
     const requirements = [
       { kind: 'HAS_CONDITION', conditionIds: [FRIGHTENED], source: 'ACTOR' }
-    ] as const
+    ] satisfies Requirements
     await expect(
       refusals(requirements, holding([FRIGHTENED], [owningEffect(1, FRIGHTENED, SOURCE_ID)]))
     ).resolves.toBeUndefined()
@@ -647,7 +650,7 @@ describe('a single-target action’s target requirements (SPELLS-33.T4i4a)', () 
   it('a condition from anyone is met by any holding of it, applied by hand or innate', async () => {
     const requirements = [
       { kind: 'HAS_CONDITION', conditionIds: [FRIGHTENED, POISONED], source: 'ANY' }
-    ] as const
+    ] satisfies Requirements
     await expect(refusals(requirements, holding([FRIGHTENED], []))).resolves.toBeUndefined()
     await expect(refusals(requirements, holding([PRONE], []))).rejects.toThrow(
       EncounterValidationError

@@ -37,7 +37,7 @@ function homebrewGaze(requirements: unknown[]): CreatureAuthored {
     throw new Error('The Sea Hag must author Death Glare and Claws.')
   if (
     effect.invocation.kind !== 'ACTION' ||
-    effect.invocation.targeting.selectionKind !== 'SINGLE_TARGET'
+    effect.invocation.targeting?.selectionKind !== 'SINGLE_TARGET'
   )
     throw new Error('Death Glare must be a single-target action.')
   effect.invocation.targeting = {
