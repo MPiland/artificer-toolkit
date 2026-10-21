@@ -36,6 +36,7 @@ import {
   targetTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encounterConcealment'
+import { revertDamageTypesTaken } from '@artificer-toolkit/rules-runtime/encounterDamageTypesSinceTurnStart'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
@@ -815,6 +816,20 @@ export async function revertLastEncounterAction(
       updatedAt,
       gameSystemId: state.gameSystemId
     })
+
+  // The damage this command dealt leaves the record; what a start-of-turn trigger cleared returns.
+  for (const actor of actors) {
+    const current = actorsById.get(actor.id)!
+    if (current.kind === 'CHARACTER') continue
+    actorsById.set(
+      actor.id,
+      revertDamageTypesTaken(current, {
+        commandId: root.commandId,
+        cleared:
+          root.clearedDamageTypes?.actorId === actor.id ? root.clearedDamageTypes.entries : []
+      })
+    )
+  }
 
   return commitRevert(ctx, {
     run,

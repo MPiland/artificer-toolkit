@@ -388,6 +388,20 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
       /** The Character this action newly added to the Run's `concentrationCasterCharacterIds`; its undo removes it. */
       addedConcentrationCasterId: z.nullable(postgresUuidSchema),
+      /** The damage record a start-of-turn trigger emptied, with its holder; its undo puts the entries back. */
+      clearedDamageTypes: z._default(
+        z.nullable(
+          z.strictObject({
+            actorId: postgresUuidSchema,
+            entries: z
+              .array(
+                z.strictObject({ damageTypeId: postgresUuidSchema, commandId: postgresUuidSchema })
+              )
+              .check(z.maxLength(256))
+          })
+        ),
+        null
+      ),
       /** The turn movement record a Dash's speed bonus was added to; its undo removes it. */
       speedBonusTurn: z.nullable(
         z.strictObject({

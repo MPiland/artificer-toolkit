@@ -11,6 +11,7 @@ import {
   encounterRunStateSchema,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { clearHolderDamageTypes } from './damageTypesClearing.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
@@ -550,6 +551,11 @@ export async function persistEncounterActionCommit(
     : null
   // A once-per-turn use (Sneak Attack) the attack dealt is spent from the attacker's turn record.
   const turnUses = await spendTurnUses(ctx, { state, actorId: source.id, keys: input.turnUses })
+  // A start-of-turn trigger root reads the holder's damage record, then empties it.
+  const clearedDamageTypes =
+    command.systemTrigger?.trigger === 'START_OF_TURN'
+      ? await clearHolderDamageTypes(ctx, { state, actorId: source.id })
+      : null
   // A push or pull moves its target's token on the Scene in this commit (D139).
   const settledMovements = input.forcedMovements.length
     ? await callbacks.applyForcedMovements({
@@ -584,6 +590,7 @@ export async function persistEncounterActionCommit(
       forcedMovements: settledMovements.moves,
       forcedMovementLandings: settledMovements.landings,
       turnUses,
+      clearedDamageTypes,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)
     },
