@@ -3144,7 +3144,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d."
+              "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T2",
@@ -3156,7 +3157,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Golden compile-checksum harness over the SRD corpus (graph checksum and plan shape per authored effect)."
+              "text": "Golden compile-checksum harness over the SRD corpus (graph checksum and plan shape per authored effect).",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T3a",
@@ -3402,7 +3404,21 @@
                 "rr": 5,
                 "size": 2
               },
-              "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order."
+              "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+            },
+            {
+              "id": "RULES-2.T15",
+              "status": "TODO",
+              "closes": ["RULES-2.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 1,
+                "after": ["RULES-2.T2"]
+              },
+              "text": "Bug: compiling the SRD Antitoxin (vial) equipment Effect (00000060-0000-0210-0079-000000000001) throws a plain Error \"Rule documents must contain JSON values only\" instead of a plan or refusal. Find the non-JSON value (likely undefined in authored data or its compile), fix at the source, add a regression test that fails before the fix, and re-pin the golden line."
             }
           ]
         }
@@ -12229,9 +12245,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4c1a"]
+                "after": ["SPELLS-31.T4c1a", "RULES-2.T3a"]
               },
-              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs."
+              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
             },
             {
               "id": "SPELLS-31.T4c1b",
@@ -12242,9 +12258,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T4a"]
               },
-              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module."
+              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union."
             },
             {
               "id": "SPELLS-31.T4c1c",
@@ -12255,9 +12271,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T3a"]
               },
-              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck."
+              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
             },
             {
               "id": "SPELLS-31.T4c2",
@@ -12810,9 +12826,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T5ra"]
+                "after": ["SPELLS-31.T5ra", "RULES-2.T6b"]
               },
-              "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted."
+              "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted. Also labels the resource pool on the web drawer option (from T5ra review). Held behind RULES-2.T6b: the DERIVED_DC rider-merge path is a dice-contract fact, not a new compiler shape."
             },
             {
               "id": "SPELLS-31.T5s",
@@ -13317,7 +13333,7 @@
             },
             {
               "id": "SPELLS-33.T4i4a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13327,7 +13343,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
               "text": "Single-target targetRequirements (split 2026-10-20): HAS_CONDITION {conditionIds, source ACTOR|ANY}, SIGHT {direction} through one shared sight evaluator used by zones and targeting, AT_ZERO_HIT_POINTS (alive). Proof: a homebrew action authored through the real authoring path with runtime admission tests and node-map parity.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m263 (0b3862ca4)."
             },
             {
               "id": "SPELLS-33.T4i4b",
@@ -13338,9 +13354,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T4i4a"]
+                "after": ["SPELLS-33.T4i4a", "RULES-2.T6c"]
               },
-              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds."
+              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry."
             },
             {
               "id": "SPELLS-33.T4j",

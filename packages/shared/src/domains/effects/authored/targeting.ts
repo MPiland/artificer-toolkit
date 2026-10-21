@@ -5,6 +5,12 @@ import type {
   ScalableValueAuthored
 } from '#core'
 
+/** See `targetRequirementDtoSchema`: what the one target must be to the user, checked when it is named. */
+export type TargetRequirementAuthored =
+  | { kind: 'HAS_CONDITION'; conditionIds: string[]; source: 'ACTOR' | 'ANY' }
+  | { kind: 'SIGHT'; direction: 'ACTOR_SEES_TARGET' | 'TARGET_SEES_ACTOR' }
+  | { kind: 'AT_ZERO_HIT_POINTS' }
+
 export type TargetingAuthored =
   | {
       selectionKind: Extract<TargetSelectionKind, 'SELF'>
@@ -18,6 +24,8 @@ export type TargetingAuthored =
       sizeLimit?: { stepsAboveActor: number }
       /** The target must be a creature the actor holds through a relationship it sources; any other is refused. */
       heldBySource?: true
+      /** Every one must hold of the target, or the commit refuses it. */
+      targetRequirements?: TargetRequirementAuthored[]
       allowedCreatureTypeIds?: string[]
       excludedCreatureTypeIds?: string[]
     }
