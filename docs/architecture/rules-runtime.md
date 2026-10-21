@@ -175,6 +175,15 @@ attempt gate. `conditionDurationTurns` there is the one turn count for a timed d
 through `repeatingFollowUpSavePlan` (the save repeats) and `timedActiveEffectPlan` (the duration counts) in one order,
 shared by `dnd5eActiveEffectPlans` and the Concentration check.
 
+**A hit's nested save (current, RULES-2.T6d2).** `immediateFollowUpSaveGraphDefinition` rolls the nested d20 and
+the save's one shared damage roll, then composes each band (`ON_SAVE_FAIL`, `ON_SAVE_SUCCESS`) from the outcome
+registry as path-gated proposals on `nested-save-test`'s result path, so any outcome the registry admits under a test
+works on either band ("half as much damage on a successful one" is the success band's `multiplier: 0.5`). Each
+band's conditions read their own path's immunity facts in authored order; a failure-margin rider's conditions follow
+the failed band's. Interpretation verifies each nested proposal against its path-gated operation
+(`dnd5ePathGatedProposalOperations`) and settles it as its direct operation with the nested paths kept. A halved roll
+of 1 proposes 0 damage.
+
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
 `ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the
 damage, heal, condition and hit-point-tier `KILL` outcomes. `dnd5eTargetOnlyOutcome` is the one home for that set, so
