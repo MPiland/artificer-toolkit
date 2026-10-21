@@ -127268,6 +127268,39 @@ export declare const api: {
                 }>;
               }
             | {
+                allowedResponses: Array<
+                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                >;
+                d20: { selectedNatural: number; total: number };
+                encounterVersion: number;
+                kind: "D20_WINDOW";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  optionId: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
+                requestId: string;
+                rollerActorId: string;
+                trigger:
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    }
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number }
+                  | {
+                      actionLabel: string;
+                      checkLabel: string;
+                      dc: number | null;
+                      kind: "BASIC_ACTION_CHECK";
+                    };
+              }
+            | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
                 attackerActorId: string;
                 encounterVersion: number;
@@ -127628,6 +127661,43 @@ export declare const api: {
                     riderId: string;
                     slotLevel: number;
                   }>;
+                }
+              | {
+                  allowedResponses: Array<
+                    "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                  >;
+                  d20: { selectedNatural: number; total: number };
+                  encounterVersion: number;
+                  kind: "D20_WINDOW";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    optionId: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
+                  requestId: string;
+                  rollerActorId: string;
+                  trigger:
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "CONCENTRATION";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        failures: number;
+                        kind: "DEATH_SAVE";
+                        successes: number;
+                      }
+                    | {
+                        actionLabel: string;
+                        checkLabel: string;
+                        dc: number | null;
+                        kind: "BASIC_ACTION_CHECK";
+                      };
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -128512,6 +128582,37 @@ export declare const api: {
             }>;
           }
         | {
+            allowedResponses: Array<"D20_WINDOW_DECLINE" | "D20_WINDOW_USE">;
+            d20: { selectedNatural: number; total: number };
+            encounterVersion: number;
+            kind: "D20_WINDOW";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            options: Array<{
+              count: number;
+              faces: 4 | 6 | 8 | 10 | 12;
+              label: string;
+              optionId: string;
+              sign: "ADD" | "SUBTRACT";
+            }>;
+            requestId: string;
+            rollerActorId: string;
+            trigger:
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "CONCENTRATION";
+                  sourceLabel: string | null;
+                }
+              | { failures: number; kind: "DEATH_SAVE"; successes: number }
+              | {
+                  actionLabel: string;
+                  checkLabel: string;
+                  dc: number | null;
+                  kind: "BASIC_ACTION_CHECK";
+                };
+          }
+        | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
             attackerActorId: string;
             encounterVersion: number;
@@ -129388,6 +129489,39 @@ export declare const api: {
                   riderId: string;
                   slotLevel: number;
                 }>;
+              }
+            | {
+                allowedResponses: Array<
+                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                >;
+                d20: { selectedNatural: number; total: number };
+                encounterVersion: number;
+                kind: "D20_WINDOW";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  optionId: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
+                requestId: string;
+                rollerActorId: string;
+                trigger:
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    }
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number }
+                  | {
+                      actionLabel: string;
+                      checkLabel: string;
+                      dc: number | null;
+                      kind: "BASIC_ACTION_CHECK";
+                    };
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
