@@ -1,3 +1,4 @@
+import type { CompiledDuration } from '@artificer-toolkit/shared/compilers'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   FORCED_MOVEMENT_DIRECTION,
@@ -641,6 +642,15 @@ export interface CharacterRuleActionSystemAdapter {
   passiveDamageGrantPlan?(input: {
     action: EffectActionCapabilityDescriptor
   }): CharacterRuleActionActiveEffectPlan | null
+  /**
+   * The immunity a creature that passes a holder's ward leaves on that holder (Nature's Sanctuary),
+   * keyed by the ward's grant, or null when the System cannot count the duration.
+   */
+  incomingGateImmunityPlan?(input: { wardId: string; duration: CompiledDuration }): null | {
+    authoredEffectId: string
+    capabilityContractVersion: number
+    immunity: NonNullable<CharacterRuleActionActiveEffectPlan['sourceImmunity']>
+  }
   requiresConditionDefinitionValidation?(input: {
     published: ServerPublishedRuleDefinitionDto
   }): boolean

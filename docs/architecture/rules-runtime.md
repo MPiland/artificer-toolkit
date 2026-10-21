@@ -300,8 +300,9 @@ Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and 
 `characterActionCapabilityRegistry` (the Sheet's Character action discovery,
 `discoverCharacterActionCapabilities`).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
-`platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`; `armorClassCapabilityRegistry`
-for a Creature's loadout armor class and the shield a two-handed grip stows;
+`platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`, which also reads a declared
+initiative's roll mode back from its graph facts for the roll card; `armorClassCapabilityRegistry`
+for a Creature's loadout armor class (Convex Creature detail reads it too) and the shield a two-handed grip stows;
 `d20TestDefinitionCapabilityRegistry` for the basic action check and death save graphs and their
 added-dice facts, where a System without death saves omits `deathSaveDefinition`;
 `contestCheckCapabilityRegistry` for the two-participant contest graph and its modifier fact keys;
@@ -313,8 +314,10 @@ the damage defenses it meets, the itemless restrictions a feature attack reduces
 effect reads and spends; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
 Character-wide, which movement passage and opportunity-attack immunity read;
 `characterRuleActionSystemAdapterRegistry` for compiling, binding and interpreting rule actions and
-frozen active effects, where entry-point compilation and perception use `find` because a System
-without it plays its entries manually; `encounterFeatureActionCapabilityRegistry` for feature action
+frozen active effects and the success immunity a passed ward leaves on its holder (`encounterWardImmunity`), where entry-point
+compilation and perception use `find` because a System without it plays its entries manually;
+`executionOutcomeCapabilityRegistry` for reading a committed execution's trace back: whether it cancels
+the triggering event, adds speed to a move, or allows a teleport and how far; `encounterFeatureActionCapabilityRegistry` for feature action
 discovery and effect binding (`encounterFeatureActionCapabilityDiscovery.ts`);
 `legendaryActionEligibilityCapabilityRegistry` and `movementReactionEligibilityCapabilityRegistry`
 for eligibility and the capability definitions it requires; `sceneGridPolicyCapabilityRegistry`, an

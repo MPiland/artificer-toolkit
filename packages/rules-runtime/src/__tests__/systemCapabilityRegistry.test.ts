@@ -13,6 +13,7 @@ import {
   contestCheckCapabilityRegistry,
   d20TestDefinitionCapabilityRegistry,
   encounterFeatureActionCapabilityRegistry,
+  executionOutcomeCapabilityRegistry,
   initiativeCapabilityRegistry,
   legendaryActionEligibilityCapabilityRegistry,
   modifierScopeCapabilityRegistry,
@@ -230,6 +231,7 @@ describe('installed D&D capability adapters', () => {
     ['character-action', characterActionCapabilityRegistry],
     ['character-rule-action', characterRuleActionSystemAdapterRegistry],
     ['encounter-feature-action', encounterFeatureActionCapabilityRegistry],
+    ['execution-outcome', executionOutcomeCapabilityRegistry],
     ['legendary-action', legendaryActionEligibilityCapabilityRegistry],
     ['movement-reaction', movementReactionEligibilityCapabilityRegistry],
     ['scene-grid', sceneGridPolicyCapabilityRegistry]
@@ -243,6 +245,7 @@ describe('installed D&D capability adapters', () => {
     ['character-action', characterActionCapabilityRegistry],
     ['character-rule-action', characterRuleActionSystemAdapterRegistry],
     ['encounter-feature-action', encounterFeatureActionCapabilityRegistry],
+    ['execution-outcome', executionOutcomeCapabilityRegistry],
     ['legendary-action', legendaryActionEligibilityCapabilityRegistry],
     ['movement-reaction', movementReactionEligibilityCapabilityRegistry],
     ['scene-grid', sceneGridPolicyCapabilityRegistry]

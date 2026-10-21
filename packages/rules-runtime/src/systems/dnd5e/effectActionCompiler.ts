@@ -6865,6 +6865,7 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
 export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   compile: compileDnd5eEffectAction,
+  incomingGateImmunityPlan,
   compileZonePlacement: ({ action, label }) => {
     const executable = executableAction(action)
     const zone = passiveMeleeRetaliationZone(executable.compiledEffect, label, dnd5eAttackKind)
@@ -6888,9 +6889,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         published: compileDnd5eEffectAction({ action })
       }
     }
-    const testTemplate = compileDnd5eEffectActionTestTemplate({
-      action: source
-    })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: source })
     return {
       kind: 'TEST_OUTCOME',
       compilerSource,
