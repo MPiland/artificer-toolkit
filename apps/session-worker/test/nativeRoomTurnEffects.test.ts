@@ -175,6 +175,53 @@ describe('a room ADVANCE_TURN with turn active effects', () => {
   })
 })
 
+describe('a room Previous Turn then Next back into the same turn (SPELLS-33 T4i1c)', () => {
+  it('applies the incoming START_OF_TURN effect once', async () => {
+    const first = srdCreatureActor({ id: FIRST_ID, creature: plainWolf })
+    const second = srdCreatureActor({ id: SECOND_ID, creature: plainWolf })
+    const effectDefinitions: Awaited<ReturnType<typeof seedTurnSaveEffect>>['definition'][] = []
+    const room = await movementRoom({
+      actors: [first, second],
+      moverActorId: FIRST_ID,
+      positions: { [FIRST_ID]: { x: 150, y: 150 }, [SECOND_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      rolls: [0, 0, 0],
+      definitions: effectDefinitions,
+      seed: async ({ effects, encounterId, occurredAt }) => {
+        const incoming = await seedTurnSaveEffect({
+          effects,
+          encounterId,
+          actor: second,
+          stage: 'START_OF_TURN',
+          ticks: 3,
+          damage: 1,
+          occurredAt
+        })
+        effectDefinitions.push(incoming.definition)
+      }
+    })
+    const send = async (type: 'ADVANCE_TURN' | 'PREVIOUS_TURN') => {
+      const commandId = crypto.randomUUID()
+      const answer = await room.send(commandId, {
+        scope: 'ENCOUNTER',
+        command: {
+          type,
+          encounterId: room.encounterId,
+          commandId,
+          expectedVersion: (await readRoomHistory(room.base.stub)).runs[0]!.version
+        }
+      })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    }
+    await send('ADVANCE_TURN')
+    await send('PREVIOUS_TURN')
+    await send('ADVANCE_TURN')
+    expect(readActorHitPoints(await readRoomHistory(room.base.stub), SECOND_ID)).toBe(
+      plainWolf.hitPoints - 1
+    )
+  })
+})
+
 describe('a room ADVANCE_TURN that ends the round', () => {
   it('ends the incoming actor’s Concentration with no check when its START_OF_TURN damage defeats it (D95)', async () => {
     const first = srdCreatureActor({ id: FIRST_ID, creature: plainWolf })

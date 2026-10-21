@@ -266,7 +266,7 @@ the death area refuses the undo like any pending decision; the GM voids it, then
 `encounterRuns`, `encounterRunActors` (one document per actor with its validated snapshot and `kind`-discriminated
 state), `encounterSceneBindings`, `encounterActorTokenBindings`, `encounterInitiativeRounds`,
 `encounterInitiativeParticipants`, `encounterInitiativeSides`, `encounterRuleOccurrences`,
-`encounterTurnMovements` (also the once-per-turn record, `usedOncePerTurn`, D119 f; a capped granted-action offer counts its uses there as `granted:<effectId>:<offerIndex>:<use>`, spent by the commit and restored by an undo, SPELLS-4.T2lb), `encounterDecisionSkips`, `encounterRunCommands`, `encounterRuleReceipts`
+`encounterTurnMovements` (also the once-per-turn record, `usedOncePerTurn`, D119 f; a capped granted-action offer counts its uses there as `granted:<effectId>:<offerIndex>:<use>`, spent by the commit and restored by an undo, SPELLS-4.T2lb; and the start-of-turn marker, `startedByCommandId`, the first command that began the turn, so a GM Previous Turn then Next does not raise its start-of-turn effects again, SPELLS-33.T4i1c), `encounterDecisionSkips`, `encounterRunCommands`, `encounterRuleReceipts`
 and `encounterReplayIndex` carry Run state and history in Convex. The Convex `encounterEvidenceRolls`
 table is removed (current): evidence rolls are room-only since D88, written and read only in the room's
 store.

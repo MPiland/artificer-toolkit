@@ -70,6 +70,15 @@ async function advance(room: Awaited<ReturnType<typeof onionRoom>>) {
   })
 }
 
+async function previousTurn(room: Awaited<ReturnType<typeof onionRoom>>) {
+  return room.send({
+    type: 'PREVIOUS_TURN',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version()
+  })
+}
+
 describe('a room ADVANCE_TURN that begins a regenerating creature’s turn (SPELLS-33 T4i1a)', () => {
   it('heals a wounded Oni by 10 in a rule-raised root and replays exactly', async () => {
     const room = await onionRoom(WOUNDED)
@@ -131,5 +140,13 @@ describe('a room ADVANCE_TURN that begins a regenerating creature’s turn (SPEL
     expect(readActorDamageTypesTaken(await readRoomHistory(room.room.base.stub), ONI_ID)).toEqual(
       []
     )
+  })
+
+  it('heals once when Previous Turn and Next return to the same turn (SPELLS-33 T4i1c)', async () => {
+    const room = await onionRoom(WOUNDED)
+    expect((await advance(room)).type).toBe('COMMAND_COMMITTED')
+    expect((await previousTurn(room)).type).toBe('COMMAND_COMMITTED')
+    expect((await advance(room)).type).toBe('COMMAND_COMMITTED')
+    expect(await hitPointsOf(room, ONI_ID)).toBe(WOUNDED + REGENERATION)
   })
 })

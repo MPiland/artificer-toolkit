@@ -27,6 +27,18 @@ export async function readNativeLiveTurnLastMove(
   return captured.lastMove
 }
 
+/** Whether the actor's turn in `round` was already begun, and so ran its start-of-turn effects. */
+export async function readNativeLiveTurnStarted(
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => Promise<LiveSessionEncounterRulesResponse>,
+  turn: { round: number; actorId: string }
+): Promise<boolean> {
+  const captured = await capture({ kind: 'TURN_STARTED', ...turn })
+  if (captured.kind !== 'TURN_STARTED') throw new Error('Turn start is unavailable.')
+  return captured.startedByCommandId !== null
+}
+
 /** The once-per-turn uses an actor has spent this turn (D119), read from the room's store. */
 export async function readNativeLiveTurnUses(
   capture: (

@@ -107,6 +107,9 @@ async function endTurn(input: {
     async recharge(stage) {
       return { kind: 'COMPLETE', plan: null, actors: stage.actors }
     },
+    async turnStarted() {
+      return false
+    },
     async deathSave() {
       return { kind: 'COMPLETE', plan: null, target: null }
     }
