@@ -5,12 +5,5 @@
     "packages/rules-runtime/src/platformPolicyModules.ts": "Installs the Sheet-reachable System capability adapters and policy modules.",
     "packages/rules-runtime/src/platformRulesRuntime.ts": "Installs each System's rules runtime registration."
   },
-  "importers": [
-    "apps/web/src/domains/campaigns/components/EncounterEnemyStatBlock.tsx",
-    "apps/web/src/domains/characters/builder/steps/abilities/CharacterHitpointProgression.tsx",
-    "apps/web/src/domains/characters/builder/steps/abilities/characterAbilities.ts",
-    "apps/web/src/domains/classes/pages/ClassDetail.model.ts",
-    "apps/web/src/domains/creatures/pages/CreatureDetail.model.ts",
-    "packages/rules-runtime/src/encounterActiveGrants.ts"
-  ]
+  "importers": []
 }

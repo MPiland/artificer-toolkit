@@ -4,6 +4,7 @@ import {
   abilityScoreCapabilityRegistry,
   actionEconomyCapabilityRegistry,
   characterActionCapabilityRegistry,
+  characterProgressionCapabilityRegistry,
   creatureConditionCapabilityRegistry
 } from '../platformPolicyModules.js'
 import {
@@ -95,6 +96,18 @@ describe('installed D&D capability adapters', () => {
         DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
       ].sort()
     )
+  })
+
+  it('character progression gives the 5e hit die, level hit points and proficiency bonus', () => {
+    const progression = characterProgressionCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(['d10', '1d8', '2d6', ''].map(progression.hitDieSize)).toEqual([10, 8, null, null])
+    expect(progression.hitDieAverage(10)).toBe(6)
+    expect(
+      [1, 2].map((characterLevel) =>
+        progression.hitPointGain({ die: 10, characterLevel, fixed: true, roll: null, modifier: 2 })
+      )
+    ).toEqual([12, 8])
+    expect([1, 4, 5, 17].map(progression.proficiencyBonus)).toEqual([2, 2, 3, 6])
   })
 
   it('ability scores give the 5e modifier and keep the mental abilities in a Creature form', () => {
@@ -229,6 +242,7 @@ describe('installed D&D capability adapters', () => {
     ['attack-profile', attackProfileCapabilityRegistry],
     ['modifier-scope', modifierScopeCapabilityRegistry],
     ['character-action', characterActionCapabilityRegistry],
+    ['character-progression', characterProgressionCapabilityRegistry],
     ['character-rule-action', characterRuleActionSystemAdapterRegistry],
     ['encounter-feature-action', encounterFeatureActionCapabilityRegistry],
     ['execution-outcome', executionOutcomeCapabilityRegistry],
@@ -243,6 +257,7 @@ describe('installed D&D capability adapters', () => {
 
   it.each([
     ['character-action', characterActionCapabilityRegistry],
+    ['character-progression', characterProgressionCapabilityRegistry],
     ['character-rule-action', characterRuleActionSystemAdapterRegistry],
     ['encounter-feature-action', encounterFeatureActionCapabilityRegistry],
     ['execution-outcome', executionOutcomeCapabilityRegistry],

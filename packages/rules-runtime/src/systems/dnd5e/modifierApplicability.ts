@@ -173,7 +173,8 @@ export function dnd5eModifierApplies(
 export const dnd5eModifierScopeCapabilityAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   appliesCharacterWide: (modifier) =>
-    dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), DND5E_CHARACTER_WIDE_TARGET)
+    dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), DND5E_CHARACTER_WIDE_TARGET),
+  saveRequiresSourceSight: dnd5eSaveRequiresSourceSight
 } as const satisfies ModifierScopeCapabilityAdapter
 
 export function dnd5eAcceptedModifierApplicability(

@@ -1,3 +1,4 @@
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type {
   CreatureListResponseDto,
   CreatureResponseDto
@@ -19,7 +20,7 @@ export const ownedMonsterFixture: CreatureAuthoredDto = {
   alignmentId: 'unaligned',
   tags: ['forest', 'ambush'],
   userId: 'user-1',
-  systemId: 'dnd-5e-srd',
+  systemId: SRD_SYSTEM_ID,
   abilityScores: {
     STRENGTH: 20,
     DEXTERITY: 12,

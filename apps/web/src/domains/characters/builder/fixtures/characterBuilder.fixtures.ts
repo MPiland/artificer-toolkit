@@ -1,3 +1,4 @@
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   ADVANCEMENT_METHOD_CODE,
   AUTHORED_RECORD_STATUS,
@@ -100,7 +101,7 @@ export const characterFixture = characterAuthoredDtoSchema.parse({
     }
   },
   primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
-  systemId: '00000000-0000-4000-8000-000000000501',
+  systemId: SRD_SYSTEM_ID,
   userId: 'user-1'
 })
 
