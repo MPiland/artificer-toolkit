@@ -88,19 +88,29 @@ closed.
 
 ### SRD effect compile golden (current, RULES-2.T2)
 
-`packages/rules-runtime/src/__tests__/srdEffectCompileGolden.test.ts` compiles every authored SRD Effect through
-the public `dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan` and compares one line per Effect with
-`__tests__/__golden__/srdEffectCompile.golden.txt`, sorted by Effect id: `<effect id> <owner label> | <outcome>`.
-The outcome is `SINGLE_GRAPH <graph checksum> nodes=N outputs=M`, `TEST_OUTCOME test=<checksum> nodes=N outputs=M
-outcomes=[<path>=<checksum>,...]` or `REFUSED <error name>: <message>`. Spells compile at their own level and every
-Effect at Character level 20, under the descriptor's fixed Effect id, so a checksum changes only when the compiled
-graph does.
+`packages/rules-runtime/src/__tests__/srdEffectCompileGolden.test.ts` compiles every authored SRD Effect, found by
+parsing nodes with the authored Effect schemas, through the entry point its owner uses in play, and compares one line
+per Effect with `__tests__/__golden__/srdEffectCompile.golden.txt`, sorted by Effect id: `<effect id> <owner kind>
+<owner label> | <outcome>`.
+
+- `CREATURE`: Creature action discovery (the Encounter's path), then `compileEncounterFeatureActionPlan`. An Effect
+  discovery does not list as an action reads `NOT_A_DISCOVERED_ACTION`. The checksum includes the Effect's real id.
+- `CHARACTER:<subject>`: a Character action descriptor over the compiled Effect, then
+  `compileExecutionPlan`, at Character level 20 and, for a spell, its own level. The Effect is compiled under the
+  descriptor's fixed id, so the checksum does not depend on the Effect's own id.
+- Outcome: `SINGLE_GRAPH <graph checksum> nodes=N outputs=M`, `TEST_OUTCOME test=<checksum> nodes=N outputs=M
+  outcomes=[<path>=<checksum>,...]` or `REFUSED <error name>: <message>`.
+- Scaling variants of a Character-owned Effect (`<id> @L1`, `@L5`, `@L11` at that Character level, `@U9` for a leveled
+  spell upcast to 9th level) appear only when their outcome differs from the base line. Most scaling is bound at
+  execution from facts, so few variants differ; a new one is a scaling change.
 
 Reading a diff: a changed checksum means the compiled graph for that Effect changed; changed `nodes`/`outputs` show
-its size; `SINGLE_GRAPH`/`TEST_OUTCOME` flipping is a plan-shape change; `REFUSED` appearing or disappearing is a
-support change. A refactor slice (RULES-2.T6a-f) must keep the file green. If a line must change, the slice's review
-explains every changed checksum and reseeds development data in the same change, because published graphs and
-frozen occurrences carry these checksums. Regenerate with `vitest run -u` on that test only.
+its size; `SINGLE_GRAPH`/`TEST_OUTCOME` flipping is a plan-shape change; `REFUSED` or `NOT_A_DISCOVERED_ACTION`
+appearing or disappearing is a support change; a variant line appearing or vanishing is a scaling change. A refactor
+slice (RULES-2.T6a-f) must keep the file green. If a line must change, the slice's review explains every changed
+checksum and reseeds development data in the same change, because published graphs and frozen occurrences carry
+these checksums. Regenerate with `vitest run -u` on that test only. Passive Creature traits compiled by other
+adapter methods (zones, damage grants) are not covered.
 
 ## Ownership and publication
 
