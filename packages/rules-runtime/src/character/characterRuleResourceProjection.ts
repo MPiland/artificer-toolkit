@@ -92,6 +92,16 @@ function matchesSpellAccessSource(source: CharacterProvenance, access: PolicySpe
       return source.kind === 'RACE' && source.raceId === access.sourceId
     case 'SUBRACE':
       return source.kind === 'SUBRACE' && source.subraceId === access.sourceId
+    case 'FEAT':
+      return source.kind === 'FEAT' && source.featId === access.sourceId
+    case 'BACKGROUND':
+      return source.kind === 'BACKGROUND' && source.backgroundId === access.sourceId
+    case 'OPTION':
+      return (
+        source.kind === 'OPTION' &&
+        source.optionId === access.sourceId &&
+        source.acquiredParentId === access.acquiredParentId
+      )
   }
 }
 

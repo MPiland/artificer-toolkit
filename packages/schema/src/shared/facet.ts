@@ -255,6 +255,13 @@ const predicatePayloadSchemas = lazySchemaParts(
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ENEMY_NEAR_TARGET),
         feet: z.number().check(z.positive())
       }),
+      TARGET_HAS_NOT_TAKEN_TURN: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.TARGET_HAS_NOT_TAKEN_TURN)
+      }),
+      MOVED_TOWARD_TARGET: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.MOVED_TOWARD_TARGET),
+        minFeet: z.number().check(z.positive())
+      }),
       EQUIPMENT_PROFICIENCY: z.intersection(
         z.object({
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROFICIENCY)

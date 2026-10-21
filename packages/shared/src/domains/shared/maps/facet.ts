@@ -1869,6 +1869,15 @@ function createFacetPredicateNodeMap(
         })
       )
       .set(
+        'minFeet',
+        number(['minFeet'], 'Minimum Feet Closed', {
+          constraints: { minimum: 1 },
+          order: 3,
+          showIf: local.field(['predicateCode']).eq('MOVED_TOWARD_TARGET'),
+          requiredIf: local.field(['predicateCode']).eq('MOVED_TOWARD_TARGET')
+        })
+      )
+      .set(
         'category',
         selectSingle(
           ['category'],

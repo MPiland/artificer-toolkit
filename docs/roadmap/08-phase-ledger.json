@@ -6394,7 +6394,10 @@
                   "SPELLS-33.T6e2",
                   "SPELLS-33.T6i2",
                   "SPELLS-33.T6m2",
-                  "SPELLS-33.T4i"
+                  "SPELLS-33.T4i1b",
+                  "SPELLS-33.T4i2",
+                  "SPELLS-33.T4i3",
+                  "SPELLS-33.T4i4b"
                 ]
               },
               "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i."
@@ -8804,7 +8807,7 @@
             },
             {
               "id": "SPELLS-4.T2i4b2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -8814,8 +8817,7 @@
                 "after": ["SPELLS-4.T2i4b1"]
               },
               "text": "Divine Word: data, parity proof, room journey, delete DIVINE_WORD, docs; remove the compiledTieredCast test stand-in and compiledTestSpellCast registry argument.",
-              "note": "Split from T2i4b 2026-10-20.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m259 (e375c2d4b)."
             },
             {
               "id": "SPELLS-4.T2i2a",
@@ -9094,7 +9096,22 @@
               "note": "Merged m257 (fd96f7c67)."
             },
             {
-              "id": "SPELLS-4.T2m1b2",
+              "id": "SPELLS-4.T2m1b2a",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T2m1b1b"]
+              },
+              "text": "Damage-triggered save child (D167 amendment): generalize the Concentration damage-check stack into ENCOUNTER_DAMAGE_SAVE_CHECK with source CONCENTRATION | EFFECT_REPEAT_SAVE through schema, rules-runtime, persistence and the room (Concentration behavior unchanged, mechanical renames only); wire the effect repeat save for the direct-action single-target source; Hideous Laughter single-target journey (controller save pending, success ends the effect, failure keeps it), undo, void and replay.",
+              "note": "Split from T2m1b2 2026-10-20 (D167 amendment).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2m1b2b",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
@@ -9102,10 +9119,10 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2m1b1b"]
+                "after": ["SPELLS-4.T2m1b2a"]
               },
-              "text": "Damage repeat-save funnel: hook in roomEncounterCommands.ts (shared seam for T2m3, SPELLS-33.T6e2/T4m) reads receipt DAMAGE applications, raises one SYSTEM repeat-save root per matching holder with the trigger roll influence; success ends the effect; admission, undo bound to parent, parity proof, delete HIDEOUS_LAUGHTER; journeys for single-target and area hits.",
-              "note": "Split from T2m1b 2026-10-20."
+              "text": "Damage repeat save for the remaining damage sources (area one per holder, turn effects, cleaving, movement, legendary); the shared damage-save reader contract for T2m3 and SPELLS-33.T6e2/T4m; parity proof, area journey and HIDEOUS_LAUGHTER remnant check (D167).",
+              "note": "Split from T2m1b2 2026-10-20 (D167 amendment)."
             },
             {
               "id": "SPELLS-4.T2m1d",
@@ -9147,7 +9164,7 @@
                   "SPELLS-4.T2l",
                   "SPELLS-4.T2lb",
                   "SPELLS-4.T2m1",
-                  "SPELLS-4.T2m1b2"
+                  "SPELLS-4.T2m1b2b"
                 ]
               },
               "text": "Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs. Contagion lasts 7 days, over MAX_ACTIVE_EFFECT_TURNS (14,400); it needs a longer-duration path or a Campaign-clock lifecycle before it compiles as an active effect (found in T2m1c)."
@@ -11822,7 +11839,34 @@
               "note": "Merged m141 (b066f0945)."
             },
             {
-              "id": "SPELLS-31.T4c",
+              "id": "SPELLS-31.T4c1a",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
+              },
+              "text": "D168 result window core (re-split 2026-10-20): ADD_BONUS_DIE AFTER_ROLL timing, the ENCOUNTER_D20_WINDOW pending kind with a discriminated source, use/decline resolutions, one shared pure decision module, two-step persist/void/replay, room wiring on the First Aid check, drawer. Options are AFTER_ROLL dice held on the roller's own active effects, spent by ending the effect. Proof: authoring-parity with a homebrew held die and a room journey.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T4c1p",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T5ra"]
+              },
+              "text": "Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind."
+            },
+            {
+              "id": "SPELLS-31.T4c1a2",
               "status": "TODO",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
@@ -11830,9 +11874,66 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
+                "after": ["SPELLS-31.T4c1a"]
               },
-              "text": "Join SPELLS-4.T2c: Bardic Inspiration, Peerless Skill, Cutting Words (with resource uses), Dark One's Own Luck. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs."
+            },
+            {
+              "id": "SPELLS-31.T4c1b",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
+              },
+              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module."
+            },
+            {
+              "id": "SPELLS-31.T4c1c",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
+              },
+              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck."
+            },
+            {
+              "id": "SPELLS-31.T4c2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T4c1a",
+                  "SPELLS-31.T4c1b",
+                  "SPELLS-31.T4c1c",
+                  "SPELLS-31.T4c1a2"
+                ]
+              },
+              "text": "D168 dice scaled by the granting creature (split 2026-10-20): a grant die face references the granting creature's scaling value, resolved at apply time and frozen. Converts Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save), with a parity proof, a homebrew variant and the kind deleted. Includes the result window on attack rolls."
+            },
+            {
+              "id": "SPELLS-31.T4c3",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1b"]
+              },
+              "text": "D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted."
             },
             {
               "id": "SPELLS-31.T4e",
@@ -12332,7 +12433,7 @@
               "text": "New option (ruling at start): ability score caps and check bonuses; ASI maximum 20, Primal Champion, Jack of All Trades, Remarkable Athlete. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
             {
-              "id": "SPELLS-31.T5r",
+              "id": "SPELLS-31.T5ra",
               "status": "TODO",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
@@ -12342,7 +12443,21 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (D156 SPELLS-31.T3a ruling): optionalOnHit gains the RESOURCE_POOL cost D123 names ({ kind: 'RESOURCE_POOL', chargeId, cost }) in the onHitChoice offer, transport and payment path. Converts Stunning Strike, with an authoring-parity proof; the kind deleted."
+              "text": "optionalOnHit RESOURCE_POOL cost (D123) end to end (split 2026-10-20): authored type, DTO, node map, offer union, transport, drawer, pool candidates and payment through one extracted spend helper, session-worker wiring. Proof: a homebrew ki-costed rider authored through the real authoring path, with accept, decline and insufficient-pool cases.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T5rb",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T5ra"]
+              },
+              "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted."
             },
             {
               "id": "SPELLS-31.T5s",
@@ -12360,7 +12475,7 @@
             },
             {
               "id": "SPELLS-31.T5t",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 8,
@@ -12370,7 +12485,7 @@
                 "after": ["SPELLS-31.T5l"]
               },
               "text": "Spell grants on chosen features (Eldritch Invocations, feats, options, background features) become spell access: buildCharacterSpellRuleFacts reads snapshot.features by provenance, with spell-access source kinds for FEAT, OPTION and BACKGROUND. List every chosen-feature grant this moves from MANUAL to automated, and prove the Chains of Carceri journey (cast, lockout, creature-type narrowing) end to end (D156 SPELLS-31.T5l ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m260 (e732d8db6)."
             }
           ]
         },
@@ -12690,11 +12805,12 @@
                 "bv": 8,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-33.T3c2a2a"]
               },
               "text": "Load the pinned spells in Convex and the Session Worker room and pass them to the 5 discover callers; replay-safety proof (a source spell edited or deleted after pinning gives the same discovery, no recompile).",
-              "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port."
+              "note": "Split from T3c2a 2026-10-20; ruling: pin (A), not read-time port. Re-sized 3->5 2026-10-20: spells is a required discovery input across Convex and room callers, one slice.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T3c2b",
@@ -12793,7 +12909,34 @@
               "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
             {
-              "id": "SPELLS-33.T4i",
+              "id": "SPELLS-33.T4i1a",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
+              },
+              "text": "Passive start-of-turn trait stage (split 2026-10-20): a turn-start stage discovered from the actor's features (Recharge precedent) that runs a PASSIVE result block with recurringKind START_OF_TURN and no duration through the existing outcome path, with plan checksum and undo; a TARGET_HIT_POINTS_AT_LEAST gate. Converts Oni and Shield Guardian regeneration, with parity proofs, a homebrew variant and kind deletions.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T4i1b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T4i1a"]
+              },
+              "text": "Damage-type suppression (split 2026-10-20): suppressedByDamageTypes on the recurring trait, with damage types taken since the actor's last turn start written in the one damage-application seam and covered by undo. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
+            },
+            {
+              "id": "SPELLS-33.T4i2",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12803,7 +12946,47 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
-              "text": "regeneration, Undead Fortitude, hit point threshold riders (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Also removes the Giant Centipede Bite and Solar Slaying Longbow SRD_CREATURE_ATTACK_UNSUPPORTED entries, with a room proof for each attack (from ATTACK-5.T4d/T4e, 2026-10-20)."
+              "text": "0 HP interception (split 2026-10-20): Undead Fortitude (x2) and Wereboar Relentless on the T2i2 interception contract; a save DC derived from the triggering damage, with damage-type and critical-hit exclusions, goes to a ruling first. Parity proofs, a homebrew variant and 3 kind deletions."
+            },
+            {
+              "id": "SPELLS-33.T4i3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
+              },
+              "text": "REDUCED_TO_ZERO_BY gate (split 2026-10-20): Giant Centipede venom and Solar Slaying Longbow; removes both SRD_CREATURE_ATTACK_UNSUPPORTED entries with a room proof each. Parity proofs, a homebrew variant and 2 kind deletions."
+            },
+            {
+              "id": "SPELLS-33.T4i4a",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
+              },
+              "text": "Single-target targetRequirements (split 2026-10-20): HAS_CONDITION {conditionIds, source ACTOR|ANY}, SIGHT {direction} through one shared sight evaluator used by zones and targeting, AT_ZERO_HIT_POINTS (alive). Proof: a homebrew action authored through the real authoring path with runtime admission tests and node-map parity.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T4i4b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T4i4a"]
+              },
+              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds."
             },
             {
               "id": "SPELLS-33.T4j",
@@ -12881,7 +13064,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2m1", "SPELLS-4.T2m2", "SPELLS-4.T2m1b2"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2m1", "SPELLS-4.T2m2", "SPELLS-4.T2m1b2b"]
               },
               "text": "Horrifying Visage, Petrifying Gaze, Vrock Spores, Freedom of Movement (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
@@ -13018,7 +13201,7 @@
             },
             {
               "id": "SPELLS-33.T5n1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13028,7 +13211,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-31.T5n"]
               },
               "text": "MOVED_TOWARD_TARGET {minFeet} hit-path gate: the turn lastMove record, its capture in Convex and the Session Worker, and the evaluator (D164). No creature conversion.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m258 (ae9727869)."
             },
             {
               "id": "SPELLS-33.T5n2",
@@ -13177,7 +13360,7 @@
             },
             {
               "id": "SPELLS-33.T6d3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13187,7 +13370,7 @@
                 "after": ["SPELLS-33.T6d3a"]
               },
               "text": "Assassinate and Surprise Attack (2 kinds): new TARGET_HAS_NOT_TAKEN_TURN predicate derived from initiative for Assassinate advantage; surprise parts description-only (D165). Authoring-parity proof; deletes the kinds (D156; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m261 (640159eb2)."
             },
             {
               "id": "SPELLS-33.T6e",
@@ -13295,7 +13478,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 1,
-                "after": ["SPELLS-33.T6e", "SPELLS-4.T2m1", "SPELLS-4.T2m1b2"]
+                "after": ["SPELLS-33.T6e", "SPELLS-4.T2m1", "SPELLS-4.T2m1b2b"]
               },
               "text": "Vampire Charm: repeat save when harmed by the source side through the SPELLS-4.T2m on-damage repeat timing (1 kind). Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
             },

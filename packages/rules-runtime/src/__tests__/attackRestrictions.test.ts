@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   attackRestrictionsMet,
   effectReadsEnemyProximity,
+  effectReadsMoveToward,
   effectReadsTurnUses,
   oncePerTurnUsageKey,
   reduceEffectRestrictions,
@@ -27,6 +28,7 @@ const NOT_DISADVANTAGE = {
   rollMode: 'NOT_DISADVANTAGE'
 } as const
 const ENEMY_WITHIN_5 = { predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 } as const
+const MOVED_20 = { predicateCode: 'MOVED_TOWARD_TARGET', minFeet: 20 } as const
 const FINESSE = { predicateCode: 'EQUIPMENT_PROPERTY', properties: ['FINESSE'] } as const
 
 type FacetContext = FacetAuthored['groups'][number]['contexts'][number]
@@ -34,8 +36,14 @@ type FacetContext = FacetAuthored['groups'][number]['contexts'][number]
 const circumstances = (
   rollMode: Dnd5eAttackCircumstances['rollMode'],
   enemyProximity: Dnd5eAttackCircumstances['enemyProximity'] = null,
-  targetCreatureTypeId: Dnd5eAttackCircumstances['targetCreatureTypeId'] = null
-): Dnd5eAttackCircumstances => ({ rollMode, enemyProximity, targetCreatureTypeId })
+  targetCreatureTypeId: Dnd5eAttackCircumstances['targetCreatureTypeId'] = null,
+  moveToward: Dnd5eAttackCircumstances['moveToward'] = null
+): Dnd5eAttackCircumstances => ({
+  rollMode,
+  enemyProximity,
+  targetCreatureTypeId,
+  moveToward
+})
 
 const rapier: Dnd5eAttackingItem = {
   equipmentIds: [],
@@ -295,6 +303,36 @@ describe('circumstance checks of reduced restrictions', () => {
       expect(effectReadsEnemyProximity(restrictedEffect(riderGate([ENEMY_WITHIN_5])))).toBe(true)
       expect(effectReadsEnemyProximity(restrictedEffect(riderGate([ADVANTAGE])))).toBe(false)
       expect(effectReadsEnemyProximity(restrictedEffect(undefined))).toBe(false)
+    })
+  })
+
+  describe('a move toward the target', () => {
+    const measured = (closedFeet: number) => circumstances('NORMAL', null, null, { closedFeet })
+
+    it.each([
+      [0, false],
+      [15, false],
+      [20, true],
+      [35, true]
+    ])('requires closing 20 ft: closed %s ft -> %s', (closedFeet, expected) => {
+      expect(attackRestrictionsMet(reducedOf([MOVED_20]), measured(closedFeet))).toBe(expected)
+    })
+
+    it('has no answer without a Scene, whatever its constraint', () => {
+      for (const check of [MOVED_20, { ...MOVED_20, constraint: 'EXCLUDE' } as const])
+        expect(attackRestrictionsMet(reducedOf([check]), circumstances('NORMAL'))).toBe(false)
+    })
+
+    it('inverts an excluded check once the move was measured', () => {
+      const restrictions = reducedOf([{ ...MOVED_20, constraint: 'EXCLUDE' }])
+      expect(attackRestrictionsMet(restrictions, measured(20))).toBe(false)
+      expect(attackRestrictionsMet(restrictions, measured(5))).toBe(true)
+    })
+
+    it('reports whether an Effect asks about the move, for the planner to load it', () => {
+      expect(effectReadsMoveToward(restrictedEffect(riderGate([MOVED_20])))).toBe(true)
+      expect(effectReadsMoveToward(restrictedEffect(riderGate([ADVANTAGE])))).toBe(false)
+      expect(effectReadsMoveToward(restrictedEffect(undefined))).toBe(false)
     })
   })
 

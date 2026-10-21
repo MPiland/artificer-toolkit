@@ -131,7 +131,8 @@ import {
   attackRestrictionsMet,
   oncePerTurnUsageKey,
   type Dnd5eAttackRollMode,
-  type Dnd5eEnemyProximity
+  type Dnd5eEnemyProximity,
+  type Dnd5eMoveToward
 } from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
@@ -283,6 +284,8 @@ const DND5E_WEAPON_DAMAGE_DIE_FACT_KEY = 'dnd5e.weapon-damage-die'
 const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
 /** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
 const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
+/** How far the attacker's latest move closed on the target (a JSON object); absent when no Scene measured it. */
+const DND5E_ATTACK_MOVE_TOWARD_FACT_KEY = 'dnd5e.attack-move-toward'
 /** The once-per-turn uses already spent this turn (a JSON array of usage keys); absent when no record was read. */
 const DND5E_ATTACK_TURN_USES_FACT_KEY = 'dnd5e.attack-turn-uses'
 /** The dice active grants add to, or take from, this source's damage to this target (D156). */
@@ -478,6 +481,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   attackRollMode?: Dnd5eAttackRollMode
   targetCreatureTypeId?: string
   attackEnemyProximity?: Dnd5eEnemyProximity
+  attackMoveToward?: Dnd5eMoveToward
   attackTurnUses?: readonly string[]
   damageAddedDice?: readonly DamageAddedDieDto[]
   criticalExtraDice?: number
@@ -535,6 +539,7 @@ function dndScalingFactsFromRuleValues(
         ? facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY]
         : undefined,
     attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
+    attackMoveToward: parseMoveToward(facts[DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]),
     attackTurnUses: parseTurnUses(facts[DND5E_ATTACK_TURN_USES_FACT_KEY]),
     damageAddedDice: parseDamageAddedDice(facts[DND5E_DAMAGE_ADDED_DICE_FACT_KEY]),
     criticalExtraDice: positiveInteger(facts[DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]),
@@ -584,6 +589,24 @@ function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity 
   if (nearestFeet !== null && !(typeof nearestFeet === 'number' && nearestFeet >= 0))
     unsupported('D&D enemy proximity is malformed.')
   return { nearestFeet }
+}
+
+function parseMoveToward(value: RuleValue | undefined): Dnd5eMoveToward | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string') unsupported('D&D move toward target is malformed.')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    unsupported('D&D move toward target is malformed.')
+  }
+  const closedFeet =
+    typeof parsed === 'object' && parsed !== null && 'closedFeet' in parsed
+      ? parsed.closedFeet
+      : undefined
+  if (!(typeof closedFeet === 'number' && closedFeet >= 0))
+    unsupported('D&D move toward target is malformed.')
+  return { closedFeet }
 }
 
 function parseDamageAddedDice(
@@ -6132,6 +6155,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_ATTACK_MOVE_TOWARD_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_TURN_USES_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_DAMAGE_ADDED_DICE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY, valueKind: RULE_VALUE_KIND.BOOLEAN },
@@ -7686,6 +7710,7 @@ function pathOwed(
   return attackRestrictionsMet(entry.restrictions, {
     rollMode: facts.attackRollMode,
     enemyProximity: facts.attackEnemyProximity ?? null,
+    moveToward: facts.attackMoveToward ?? null,
     targetCreatureTypeId: facts.targetCreatureTypeId ?? null
   })
 }
@@ -10920,6 +10945,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       const enemyProximity = sourceDerivedFacts.attackEnemyProximity as
         | Dnd5eEnemyProximity
         | undefined
+      const moveToward = sourceDerivedFacts.attackMoveToward as Dnd5eMoveToward | undefined
       const turnUses = sourceDerivedFacts.attackTurnUses as readonly string[] | undefined
       const criticalRules = attackCriticalRulesDtoSchema.parse(
         sourceDerivedFacts.attackCriticalRules ?? {
@@ -10942,6 +10968,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             : {}),
           ...(enemyProximity
             ? { [DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]: JSON.stringify(enemyProximity) }
+            : {}),
+          ...(moveToward
+            ? { [DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]: JSON.stringify(moveToward) }
             : {}),
           ...(turnUses ? { [DND5E_ATTACK_TURN_USES_FACT_KEY]: JSON.stringify(turnUses) } : {}),
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
