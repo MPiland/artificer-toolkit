@@ -1,3 +1,4 @@
+import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -8,7 +9,8 @@ import { effectHooks } from './effectHooks.js'
 import type {
   EncounterEffectHook,
   EncounterEvent,
-  EncounterEventSubscription
+  EncounterEventSubscription,
+  EncounterReactionHook
 } from './encounterEventTable.js'
 
 type HookedEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>
@@ -196,10 +198,58 @@ function subscriptionMet(
         subscription.actionDefinitionIds.includes(event.basicActionDefinitionId)
       )
     case 'REST':
-      // A rest is the Sheet's event, read there (ctiveEffectEndsOnRest); no Encounter raises it.
+      // A rest is the Sheet's event, read there (activeEffectEndsOnRest); no Encounter raises it.
       return false
     default:
       return event.kind === subscription.event
+  }
+}
+
+/** An action its holder may react with; its authored reaction trigger is its subscription. */
+type ReactionCandidate = Pick<CharacterActionCandidate, 'mechanicFacts'>
+
+/**
+ * The hook an event meets in a held reaction: an authored reaction whose trigger the event meets with
+ * the qualifiers it adds (a melee attack, an attacker the holder sees, a damage type the hit deals, a
+ * cast of a listed spell). A cast reaction answers a cast only by cancelling it. A movement reaction
+ * meets none here: the movement path discovers it from the reach it is moved through.
+ */
+function reactionHookMet(
+  { mechanicFacts: { invocation, outcomes } }: ReactionCandidate,
+  event: EncounterEvent
+): EncounterReactionHook | null {
+  const trigger = invocation.reactionTrigger
+  if (invocation.activation?.code !== 'REACTION' || !trigger) return null
+  switch (trigger.kind) {
+    case 'ATTACKED_SELF':
+      return event.kind === 'HIT_BY_ATTACK' &&
+        (trigger.attackRange !== 'MELEE' || event.melee) &&
+        (!trigger.requiresSight || event.attackerSeen)
+        ? { event: event.kind, trigger: trigger.kind, triggerDamageTypeIds: [] }
+        : null
+    case 'DAMAGE_TAKEN': {
+      if (event.kind !== 'HIT_BY_ATTACK') return null
+      const triggerDamageTypeIds = trigger.damageTypeIds.filter((damageTypeId) =>
+        event.damageTypeIds.has(damageTypeId)
+      )
+      return triggerDamageTypeIds.length > 0
+        ? { event: event.kind, trigger: trigger.kind, triggerDamageTypeIds }
+        : null
+    }
+    case 'SPELL_CAST':
+      return event.kind === 'SPELL_CAST_BY_OTHER' &&
+        outcomes.some(
+          (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'CANCEL_TRIGGERING_EVENT'
+        )
+        ? { event: event.kind, trigger: trigger.kind }
+        : null
+    case 'TARGETED_SELF':
+      return event.kind === 'TARGETED_BY_CAST' &&
+        (!trigger.sourceEffectIds?.length || trigger.sourceEffectIds.includes(event.castOwnerId))
+        ? { event: event.kind, trigger: trigger.kind }
+        : null
+    case 'MOVEMENT':
+      return null
   }
 }
 
@@ -208,22 +258,27 @@ type DamageGrantSubscription = { damageTypeIds: readonly string[] }
 
 /**
  * The one discovery entry point for event hooks (ADR 0039 decision 4): what these events, raised on
- * the holder of `effects`, set off. `ended` are the effects one of whose `END` subscriptions an event
- * meets, in held order, each once however many events it meets (a spell attack is an attack roll and
- * a cast). `repeatSaves` are the effects a `DAMAGED` event makes repeat their save, with the first
- * repeat trigger met. `grants` are the passive damage grants a `DAMAGED` event of their types meets.
+ * the holder of `effects` and `reactions`, set off. `ended` are the effects one of whose `END`
+ * subscriptions an event meets, in held order, each once however many events it meets (a spell attack
+ * is an attack roll and a cast). `repeatSaves` are the effects a `DAMAGED` event makes repeat their
+ * save, with the first repeat trigger met. `grants` are the passive damage grants a `DAMAGED` event of
+ * their types meets. `reactions` are the held reactions an event offers, in held order, each once
+ * with the first hook met; whether one is affordable is decided when it is prepared.
  */
 export function discoverEncounterEventHooks<
-  Effect extends HookedEffect,
-  Grant extends DamageGrantSubscription = never
+  Event extends EncounterEvent,
+  Effect extends HookedEffect = HookedEffect,
+  Grant extends DamageGrantSubscription = never,
+  Reaction extends ReactionCandidate = never
 >(input: {
-  effects: readonly Effect[]
-  events: readonly EncounterEvent[]
+  effects?: readonly Effect[]
+  reactions?: readonly Reaction[]
+  events: readonly Event[]
   grantSubscriptions?: readonly Grant[]
 }) {
   const ended: Effect[] = []
   const repeatSaves: { effect: Effect; trigger: ActiveEffectRepeatTrigger }[] = []
-  for (const effect of input.effects) {
+  for (const effect of input.effects ?? []) {
     const hooks: readonly EncounterEffectHook[] = effectHooks(effect)
     const met = (hook: EncounterEffectHook) =>
       input.events.some((event) => subscriptionMet(effect, hook.subscription, event))
@@ -239,5 +294,14 @@ export function discoverEncounterEventHooks<
       (damageTypeId) => damageTypeId !== null && grant.damageTypeIds.includes(damageTypeId)
     )
   )
-  return { ended, repeatSaves, grants }
+  const reactions = (input.reactions ?? []).flatMap((reaction) => {
+    for (const event of input.events) {
+      const hook = reactionHookMet(reaction, event)
+      // The hook's event is one of `events`, so it is the variant of one of their kinds.
+      if (hook)
+        return [{ ...(hook as Extract<EncounterReactionHook, { event: Event['kind'] }>), reaction }]
+    }
+    return []
+  })
+  return { ended, repeatSaves, grants, reactions }
 }

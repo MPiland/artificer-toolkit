@@ -10,7 +10,7 @@ import {
   prepareNativeIncomingDamageGrantTriggers
 } from './encounterActionEffects.js'
 import { decoyStrikeEffects } from './encounterAttackDecoys.js'
-import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
+import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
 import {
   actionEndedEffects,
   actsAgainstEnemy,

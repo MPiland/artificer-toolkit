@@ -138,7 +138,7 @@ import { selectHitPointPoolTargets } from '@artificer-toolkit/rules-runtime/enco
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
   actionEndedEffects,
   actsAgainstEnemy,

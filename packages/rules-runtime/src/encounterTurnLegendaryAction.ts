@@ -31,7 +31,7 @@ import {
 } from './encounterActionEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
-import { preparedCastsSpell } from './encounterCastReactionDiscovery.js'
+import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
 import {
   actionEndedEffects,
   actsAgainstEnemy,
