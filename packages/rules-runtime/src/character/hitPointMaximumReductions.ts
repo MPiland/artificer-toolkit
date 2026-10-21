@@ -20,21 +20,19 @@ export function listHitPointMaximumReductions(
       (left, right) => left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
     )
     .flatMap((effect) =>
-      effect.definition.schemaVersion === 2
-        ? effect.definition.stateContributions.flatMap((contribution) =>
-            contribution.kind === 'HIT_POINT_MAXIMUM_REDUCTION'
-              ? [
-                  {
-                    activeEffectId: effect.id,
-                    label: contribution.sourceLabel,
-                    sourceHidden: contribution.sourceHidden,
-                    amount: contribution.amount,
-                    recoveryTags: contribution.recoveryTags
-                  }
-                ]
-              : []
-          )
-        : []
+      effect.definition.stateContributions.flatMap((contribution) =>
+        contribution.kind === 'HIT_POINT_MAXIMUM_REDUCTION'
+          ? [
+              {
+                activeEffectId: effect.id,
+                label: contribution.sourceLabel,
+                sourceHidden: contribution.sourceHidden,
+                amount: contribution.amount,
+                recoveryTags: contribution.recoveryTags
+              }
+            ]
+          : []
+      )
     )
 }
 

@@ -185,7 +185,8 @@ export async function buildSpatialDamageEffect(input: {
   })
   if (!prepared) throw new Error('Frozen graph compilation is unavailable.')
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
+    stateContributions: [],
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,

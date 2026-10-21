@@ -35,30 +35,28 @@ export function effectOffersFor(input: {
 }): HeldEffectOffer[] {
   return [...input.effectsByHolder].flatMap(([holderActorId, effects]) =>
     effects.flatMap((effect) =>
-      effect.definition.schemaVersion !== 2
-        ? []
-        : effect.definition.stateContributions.flatMap((contribution) =>
-            contribution.kind !== 'MODIFIER_GRANT'
-              ? []
-              : (contribution.effectOffers ?? []).flatMap((offer, offerIndex) =>
-                  (
-                    offer.offeredTo === 'HOLDER'
-                      ? holderActorId === input.actorId
-                      : effect.definition.origin.kind === 'ENCOUNTER' &&
-                        effect.definition.origin.sourceActorId === input.actorId
-                  )
-                    ? [
-                        {
-                          ...offer,
-                          ...(offer.kind === 'MOVE_HELD_EFFECT' && { range: { ...offer.range } }),
-                          effectId: effect.id,
-                          offerIndex,
-                          holderActorId
-                        }
-                      ]
-                    : []
-                )
-          )
+      effect.definition.stateContributions.flatMap((contribution) =>
+        contribution.kind !== 'MODIFIER_GRANT'
+          ? []
+          : (contribution.effectOffers ?? []).flatMap((offer, offerIndex) =>
+              (
+                offer.offeredTo === 'HOLDER'
+                  ? holderActorId === input.actorId
+                  : effect.definition.origin.kind === 'ENCOUNTER' &&
+                    effect.definition.origin.sourceActorId === input.actorId
+              )
+                ? [
+                    {
+                      ...offer,
+                      ...(offer.kind === 'MOVE_HELD_EFFECT' && { range: { ...offer.range } }),
+                      effectId: effect.id,
+                      offerIndex,
+                      holderActorId
+                    }
+                  ]
+                : []
+            )
+      )
     )
   )
 }

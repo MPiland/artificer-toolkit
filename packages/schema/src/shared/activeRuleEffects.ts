@@ -520,38 +520,29 @@ const activeRuleEffectSourceImmunityContributionDtoSchema = lazySchema(() =>
   })
 )
 
-/**
- * Version one is retained byte-faithfully for existing rows and receipts.
- * Version two adds a bounded, immutable aggregate-state contribution list.
- */
+/** Immutable definition of a stored active rule effect: a bounded (possibly empty) aggregate-state contribution list. */
 export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
   z
-    .discriminatedUnion('schemaVersion', [
-      z.extend(activeRuleEffectDefinitionBaseDtoSchema, {
-        schemaVersion: z.literal(1)
-      }),
-      z.extend(activeRuleEffectDefinitionBaseDtoSchema, {
-        schemaVersion: z.literal(2),
-        stateContributions: z
-          .array(
-            z.discriminatedUnion('kind', [
-              activeRuleEffectStateContributionDtoSchema,
-              activeRuleEffectScalarReductionContributionDtoSchema,
-              activeRuleEffectConditionContributionDtoSchema,
-              activeRuleEffectConditionEscapeContributionDtoSchema,
-              activeRuleEffectActorRelationshipContributionDtoSchema,
-              activeRuleEffectModifierGrantContributionDtoSchema,
-              activeRuleEffectTemporaryHitPointsContributionDtoSchema,
-              activeRuleEffectLocationConcealmentContributionDtoSchema,
-              activeRuleEffectActorLinkContributionDtoSchema,
-              activeRuleEffectCreatureFormContributionDtoSchema,
-              activeRuleEffectSourceImmunityContributionDtoSchema
-            ])
-          )
-          .check(z.minLength(1))
-          .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
-      })
-    ])
+    .extend(activeRuleEffectDefinitionBaseDtoSchema, {
+      schemaVersion: z.literal(2),
+      stateContributions: z
+        .array(
+          z.discriminatedUnion('kind', [
+            activeRuleEffectStateContributionDtoSchema,
+            activeRuleEffectScalarReductionContributionDtoSchema,
+            activeRuleEffectConditionContributionDtoSchema,
+            activeRuleEffectConditionEscapeContributionDtoSchema,
+            activeRuleEffectActorRelationshipContributionDtoSchema,
+            activeRuleEffectModifierGrantContributionDtoSchema,
+            activeRuleEffectTemporaryHitPointsContributionDtoSchema,
+            activeRuleEffectLocationConcealmentContributionDtoSchema,
+            activeRuleEffectActorLinkContributionDtoSchema,
+            activeRuleEffectCreatureFormContributionDtoSchema,
+            activeRuleEffectSourceImmunityContributionDtoSchema
+          ])
+        )
+        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+    })
     .check(
       z.superRefine((definition, context) => {
         const sourceDefinitionId = definition.frozenGraph.source.definitionId
@@ -609,10 +600,7 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             message: 'A source-side end trigger requires an Encounter origin with a source actor.'
           })
         }
-        if (
-          definition.schemaVersion === 2 &&
-          definition.stateContributions.some(({ kind }) => kind === 'CONDITION_OWNERSHIP')
-        ) {
+        if (definition.stateContributions.some(({ kind }) => kind === 'CONDITION_OWNERSHIP')) {
           const unreleasing = [
             ...definition.recurrence.consumeOnFirstEvents,
             ...definition.recurrence.endOnEvents
@@ -625,7 +613,6 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             })
         }
         if (
-          definition.schemaVersion === 2 &&
           definition.stateContributions.some(({ kind }) => kind === 'CONDITION_ESCAPE') &&
           !definition.stateContributions.some(
             (contribution) =>
@@ -706,11 +693,8 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
         const remainingTicks = state.lifecycle.remainingTicks
         if (
           state.lifecycle.concealedFromActorIds !== undefined &&
-          !(
-            state.definition.schemaVersion === 2 &&
-            state.definition.stateContributions.some(
-              (contribution) => contribution.kind === 'LOCATION_CONCEALMENT'
-            )
+          !state.definition.stateContributions.some(
+            (contribution) => contribution.kind === 'LOCATION_CONCEALMENT'
           )
         ) {
           context.addIssue({

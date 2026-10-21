@@ -222,18 +222,14 @@ export async function turnSaveDamageEffect(
   return prepareActiveRuleEffectRecord({
     id,
     owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: input.target.id },
-    definition: activeRuleEffectDefinitionDtoSchema.parse(
-      input.conditionOwnership
-        ? {
-            ...base,
-            schemaVersion: 2,
-            stateContributions: input.conditionOwnership.map((entry) => ({
-              kind: 'CONDITION_OWNERSHIP',
-              ...entry
-            }))
-          }
-        : { ...base, schemaVersion: 1 }
-    ),
+    definition: activeRuleEffectDefinitionDtoSchema.parse({
+      ...base,
+      schemaVersion: 2,
+      stateContributions: (input.conditionOwnership ?? []).map((entry) => ({
+        kind: 'CONDITION_OWNERSHIP',
+        ...entry
+      }))
+    }),
     lifecycle: { schemaVersion: 1, remainingTicks: input.ticks },
     maintainedEffectStateId: input.maintainedEffectStateId ?? null,
     currentEffects: input.currentEffects ?? [],

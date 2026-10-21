@@ -104,11 +104,8 @@ describe('a held effect’s onEnd grant (SPELLS-4.T2l)', () => {
     expect(left?.lifecycle.remainingTicks).toBe(1)
     expect(left?.maintainedEffectStateId).toBeNull()
     // Held for the Run only: a Character's lethargy must not outlast it.
-    expect(left?.definition.schemaVersion === 2 && left.definition.recurrence.lifetimeScope).toBe(
-      'ENCOUNTER'
-    )
-    const [contribution] =
-      left?.definition.schemaVersion === 2 ? left.definition.stateContributions : []
+    expect(left?.definition.recurrence.lifetimeScope).toBe('ENCOUNTER')
+    const [contribution] = left?.definition.stateContributions ?? []
     expect(contribution).toMatchObject({ kind: 'MODIFIER_GRANT' })
     expect(
       contribution?.kind === 'MODIFIER_GRANT'

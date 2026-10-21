@@ -62,7 +62,6 @@ export function foldActiveScalarReductions(input: {
   for (const effect of [...input.effects].sort(
     (left, right) => left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
   )) {
-    if (effect.definition.schemaVersion !== 2) continue
     for (const contribution of effect.definition.stateContributions) {
       if (contribution.kind !== 'SCALAR_REDUCTION') continue
       const current = effective[contribution.valueDefinitionId]

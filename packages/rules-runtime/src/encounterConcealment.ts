@@ -15,7 +15,6 @@ export function encounterConcealmentOf(
   effects: readonly ActiveRuleEffectRecord[]
 ): EncounterConcealment | null {
   for (const effect of effects) {
-    if (effect.definition.schemaVersion !== 2) continue
     const contribution = effect.definition.stateContributions.find(
       ({ kind }) => kind === 'LOCATION_CONCEALMENT'
     )

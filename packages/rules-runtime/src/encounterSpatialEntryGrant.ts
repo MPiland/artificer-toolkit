@@ -10,17 +10,15 @@ import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/
 const SPATIAL_ENTRY_GRANT_NAMESPACE = '5b0d6f3a-2c4e-4f7a-9d1b-3e8a7c6b5a40'
 
 type ModifierGrantContribution = Extract<
-  Extract<ActiveRuleEffectDefinitionDto, { schemaVersion: 2 }>['stateContributions'][number],
+  ActiveRuleEffectDefinitionDto['stateContributions'][number],
   { kind: 'MODIFIER_GRANT' }
 >
 
 function modifierGrantContribution(definition: ActiveRuleEffectDefinitionDto) {
-  return definition.schemaVersion === 2
-    ? definition.stateContributions.find(
-        (contribution): contribution is ModifierGrantContribution =>
-          contribution.kind === 'MODIFIER_GRANT'
-      )
-    : undefined
+  return definition.stateContributions.find(
+    (contribution): contribution is ModifierGrantContribution =>
+      contribution.kind === 'MODIFIER_GRANT'
+  )
 }
 
 /**

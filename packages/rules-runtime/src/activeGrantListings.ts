@@ -167,22 +167,20 @@ export function listActiveGrantListings(
       (left, right) => left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
     )
     .flatMap(({ id, definition, lifecycle }) =>
-      definition.schemaVersion === 2
-        ? definition.stateContributions.flatMap((contribution) =>
-            contribution.kind === 'MODIFIER_GRANT'
-              ? [
-                  {
-                    effectId: id,
-                    label: contribution.sourceLabel,
-                    sourceHidden: contribution.sourceHidden,
-                    remainingTicks: lifecycle.remainingTicks,
-                    expiresAtCampaignMinute: lifecycle.expiresAtCampaignMinute ?? null,
-                    polarity: grantPolarity(contribution)
-                  }
-                ]
-              : []
-          )
-        : []
+      definition.stateContributions.flatMap((contribution) =>
+        contribution.kind === 'MODIFIER_GRANT'
+          ? [
+              {
+                effectId: id,
+                label: contribution.sourceLabel,
+                sourceHidden: contribution.sourceHidden,
+                remainingTicks: lifecycle.remainingTicks,
+                expiresAtCampaignMinute: lifecycle.expiresAtCampaignMinute ?? null,
+                polarity: grantPolarity(contribution)
+              }
+            ]
+          : []
+      )
     )
 }
 

@@ -92,7 +92,6 @@ export function findEncounterHolderEscape(
   effect: Pick<ActiveRuleEffectRecord, 'definition'>,
   actorKind: EscapeActorKind = 'TARGET'
 ): EncounterHolderEscape | null {
-  if (effect.definition.schemaVersion !== 2) return null
   const { stateContributions } = effect.definition
   const heldBySpatialEffectId = stateContributions.flatMap((held) =>
     held.kind === 'CONDITION_OWNERSHIP' && held.heldBySpatialEffectId
@@ -152,7 +151,6 @@ export function findEncounterRescues(input: {
 export function findEncounterHolderContestEscape(
   effect: Pick<ActiveRuleEffectRecord, 'definition'>
 ) {
-  if (effect.definition.schemaVersion !== 2) return null
   const { origin } = effect.definition
   if (origin.kind !== 'ENCOUNTER' || origin.sourceActorId === null) return null
   const holderActorId = origin.sourceActorId

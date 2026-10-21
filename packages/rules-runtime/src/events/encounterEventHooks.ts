@@ -130,7 +130,6 @@ function testSpends(
 
 /** The item a grant is bound to (Shillelagh's club); null for an unbound grant. */
 function boundItemInstanceId({ definition }: HookedEffect) {
-  if (definition.schemaVersion !== 2) return null
   for (const contribution of definition.stateContributions)
     if (contribution.kind === 'MODIFIER_GRANT' && contribution.boundItem)
       return contribution.boundItem.itemInstanceId

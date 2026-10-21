@@ -339,7 +339,7 @@ export function encounterConditionSources(
   const held = new Set(target.state.conditions)
   const holdings = new Map<string, (string | null)[]>()
   for (const { definition } of target.activeEffects)
-    for (const contribution of definition.schemaVersion === 2 ? definition.stateContributions : [])
+    for (const contribution of definition.stateContributions)
       if (contribution.kind === 'CONDITION_OWNERSHIP' && held.has(contribution.conditionId))
         holdings.set(contribution.conditionId, [
           ...(holdings.get(contribution.conditionId) ?? []),
@@ -366,15 +366,14 @@ export function encounterConditionFleeSources(target: {
   return [
     ...new Set(
       target.activeEffects.flatMap(({ definition }) =>
-        (definition.schemaVersion === 2 ? definition.stateContributions : []).flatMap(
-          (contribution) =>
-            contribution.kind === 'CONDITION_OWNERSHIP' &&
-            held.has(contribution.conditionId) &&
-            !contribution.baselinePresent &&
-            contribution.fleesSource &&
-            contribution.sourceActorId
-              ? [contribution.sourceActorId]
-              : []
+        definition.stateContributions.flatMap((contribution) =>
+          contribution.kind === 'CONDITION_OWNERSHIP' &&
+          held.has(contribution.conditionId) &&
+          !contribution.baselinePresent &&
+          contribution.fleesSource &&
+          contribution.sourceActorId
+            ? [contribution.sourceActorId]
+            : []
         )
       )
     )

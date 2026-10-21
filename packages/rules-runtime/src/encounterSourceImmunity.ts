@@ -13,7 +13,6 @@ export function heldSourceImmunityLabel(input: {
   sourceCharacterId: string | null
 }): string | null {
   for (const { definition } of input.holderEffects) {
-    if (definition.schemaVersion !== 2) continue
     const originActorId =
       definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
     for (const contribution of definition.stateContributions)

@@ -305,7 +305,6 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
 
   it('a restriction with a condition other than the holder-state ones fails closed', () => {
     const [activeEffect] = [dodge()]
-    if (activeEffect?.definition.schemaVersion !== 2) throw new Error('A grant is version 2.')
     const closed = activeEffect.definition.stateContributions.map((contribution) =>
       contribution.kind === 'MODIFIER_GRANT'
         ? {

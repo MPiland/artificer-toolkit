@@ -67,10 +67,7 @@ function actionOutputs(input: EffectCommitInput) {
 }
 
 function isSourceImmunityEffect(effect: ActiveRuleEffectRecord) {
-  return (
-    effect.definition.schemaVersion === 2 &&
-    effect.definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY')
-  )
+  return effect.definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY')
 }
 
 function classifyCreatedEffects(input: EffectCommitInput) {

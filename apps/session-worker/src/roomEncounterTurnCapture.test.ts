@@ -92,7 +92,8 @@ it('admits native turn scopes and pages the selected actor effects without a bac
     updatedAt: now
   })
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
+    stateContributions: [],
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: encounterId,

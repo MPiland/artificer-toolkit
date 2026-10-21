@@ -19,7 +19,8 @@ export function definition(
   const authoredEffectId = crypto.randomUUID()
   const compiledEntryId = crypto.randomUUID()
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    stateContributions: [],
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: encounterId,

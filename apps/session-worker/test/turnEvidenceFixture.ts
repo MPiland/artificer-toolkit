@@ -135,7 +135,8 @@ export async function seedTurnSaveEffect(input: {
     occurredAt: input.occurredAt,
     maintainedEffectStateId: input.maintainedBy?.stateId,
     definition: activeRuleEffectDefinitionDtoSchema.parse({
-      schemaVersion: 1,
+      schemaVersion: 2,
+      stateContributions: [],
       origin: {
         kind: 'ENCOUNTER',
         sourceAggregateId: input.encounterId,

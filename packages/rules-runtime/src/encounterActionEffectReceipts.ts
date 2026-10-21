@@ -12,8 +12,7 @@ export function projectNativeActionEffectTransitions(input: {
   const stateEffectTransitions = state
     ? [
         (() => {
-          const contribution =
-            state.definition.schemaVersion === 2 ? state.definition.stateContributions[0] : null
+          const [contribution] = state.definition.stateContributions
           if (
             !contribution ||
             (contribution.kind !== 'HIT_POINT_MAXIMUM_REDUCTION' &&

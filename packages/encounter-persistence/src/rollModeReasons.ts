@@ -80,12 +80,9 @@ async function readActiveEffectSource(
     ...(origin.kind === 'ENCOUNTER' && origin.sourceActorId ? [origin.sourceActorId] : [])
   ]
   // A modifier grant froze its granting item's label; the authored effect id has none.
-  const grant =
-    effect.definition.schemaVersion === 2
-      ? effect.definition.stateContributions.find(
-          (contribution) => contribution.kind === 'MODIFIER_GRANT'
-        )
-      : undefined
+  const grant = effect.definition.stateContributions.find(
+    (contribution) => contribution.kind === 'MODIFIER_GRANT'
+  )
   if (grant) return { label: grant.sourceLabel, hidden: grant.sourceHidden, actorIds }
   return {
     label: await readIdentityLabel(ctx, effect.definition.authoredEffectId, conditionLabels),

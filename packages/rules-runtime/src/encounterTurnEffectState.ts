@@ -86,7 +86,6 @@ export function turnEffectRetainedConditions(
   effects: readonly ActiveRuleEffectRecord[],
   expired: ReadonlySet<string>
 ) {
-  if (effect.definition.schemaVersion !== 2) return []
   const retained = new Set<string>()
   for (const contribution of effect.definition.stateContributions) {
     if (contribution.kind !== 'CONDITION_OWNERSHIP') continue
@@ -96,7 +95,6 @@ export function turnEffectRetainedConditions(
         (other) =>
           other.id !== effect.id &&
           !expired.has(other.id) &&
-          other.definition.schemaVersion === 2 &&
           other.definition.stateContributions.some(
             (candidate) =>
               candidate.kind === 'CONDITION_OWNERSHIP' &&

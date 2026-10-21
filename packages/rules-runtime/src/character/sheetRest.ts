@@ -58,7 +58,6 @@ export function activeEffectEndsOnRest(
     )
   )
     return true
-  if (effect.definition.schemaVersion !== 2) return false
   const triggers = getRestRecoveryTriggers(restKind)
   return effect.definition.stateContributions.some(
     (contribution) =>

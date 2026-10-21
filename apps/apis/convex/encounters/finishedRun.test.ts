@@ -716,7 +716,6 @@ it('carries a Character’s creature form out of the Run with its hit points, an
       creatureId: crypto.randomUUID(),
       excessDamageCarriesOver: true
     }
-    if (definition.schemaVersion !== 2) throw new Error('Expected a version two definition.')
     const created = await createActiveRuleEffectStore({
       db: createConvexEncounterStore(ctx)
     }).create({
