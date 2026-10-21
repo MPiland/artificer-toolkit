@@ -1,5 +1,7 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { EncounterPausePayload } from '@artificer-toolkit/schema/shared/encounterPause'
 
+import type { EncounterSealedChoiceSelection } from './encounterSealedChoice.js'
 import {
   continueNativeActionAfterTest,
   reconstructNativeActionTest,
@@ -9,8 +11,7 @@ import { encounterTargetLegendaryResistance } from './encounterAreaLegendaryResi
 import {
   decideEncounterLegendaryResistance,
   sameEncounterLegendaryResistanceCandidate,
-  type EncounterLegendaryResistanceFeatureResource,
-  type EncounterLegendaryResistanceSelection
+  type EncounterLegendaryResistanceFeatureResource
 } from './encounterLegendaryResistanceChoice.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 
@@ -37,8 +38,8 @@ type CurrentResistance = {
 export async function resolveNativeActionLegendaryResistance(
   input: ActionSource &
     CurrentResistance & {
-      offer: NonNullable<ResumedNativeActionGraphs['legendaryResistance']>
-      selection: EncounterLegendaryResistanceSelection
+      offer: EncounterPausePayload<'LEGENDARY_RESISTANCE'>
+      selection: EncounterSealedChoiceSelection
     }
 ) {
   const boundary = await reconstructNativeActionTest({

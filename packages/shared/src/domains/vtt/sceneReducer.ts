@@ -1,5 +1,5 @@
 import { lengthMeasurementInFeet } from '../core/measurement.js'
-import type { CombatPerceptionRange } from '../rules/combatPerception.js'
+import type { CombatPerceptionRange } from './combatPerception.js'
 import type {
   CampaignSceneState,
   SceneAtomicDelta,

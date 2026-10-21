@@ -2,6 +2,7 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { EncounterSealedChoiceSelection } from '@artificer-toolkit/rules-runtime/encounterSealedChoice'
 import { liveSessionEncounterCounteredCastCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
   LiveSessionEncounterRulesInput,
@@ -67,8 +68,7 @@ import {
   openEncounterReactionChoice,
   sameEncounterReactionCandidate,
   settleEncounterCastReactionUse,
-  type EncounterCastReactionCandidate,
-  type EncounterReactionSelection
+  type EncounterCastReactionCandidate
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -327,7 +327,7 @@ export type NativeCastReactionAnswer =
   | {
       kind: 'SELECTION'
       offer: EncounterCastReactionOfferDto
-      selection: EncounterReactionSelection
+      selection: EncounterSealedChoiceSelection
     }
   | {
       kind: 'CHECK'

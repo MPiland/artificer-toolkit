@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type {
+  CombatPerceptionContribution,
+  CombatPerceptionContributionSource,
+  CombatPerceptionSenseDefinitionDocument
+} from '@artificer-toolkit/shared/vtt'
+
 import {
   MAX_COMBAT_PERCEPTION_CAPABILITY_INSTANCES,
   resolveCombatPerception,
-  resolveCombatPerceptionWithContributions,
-  type CombatPerceptionContribution,
-  type CombatPerceptionContributionSource,
-  type CombatPerceptionSenseDefinitionDocument
-} from '../domains/rules/combatPerception.js'
-import { checksumRuleDocument } from '../domains/rules/checksum.js'
+  resolveCombatPerceptionWithContributions
+} from '../systems/dnd5e/combatPerception.js'
 
 const visualDefinitionId = '11111111-1111-4111-8111-111111111111'
 const otherDefinitionId = '22222222-2222-4222-8222-222222222222'

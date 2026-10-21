@@ -180,10 +180,14 @@ describe('a failed single-target save against a creature with Legendary Resistan
     expect(execution.roller).toBe('TARGET')
     expect(execution.d20Policy).toBeNull()
     expect(execution.twoPhase?.phase).toBe('TEST')
-    expect(execution.legendaryResistance).toMatchObject({
-      resistance: { targetActorId: DRAGON_ID, ownerFeatureId: legendaryResistanceFeature.id }
+    expect(execution.pause).toMatchObject({
+      kind: 'LEGENDARY_RESISTANCE',
+      payload: {
+        resistance: { targetActorId: DRAGON_ID, ownerFeatureId: legendaryResistanceFeature.id }
+      }
     })
-    expect(execution.legendaryResistance?.originalD20).toMatchObject({
+    const offer = execution.pause?.kind === 'LEGENDARY_RESISTANCE' ? execution.pause.payload : null
+    expect(offer?.originalD20).toMatchObject({
       resultPath: 'ON_SAVE_FAIL'
     })
     expect(execution).not.toHaveProperty('phaseReceipts')
@@ -210,13 +214,13 @@ describe('answering the held Legendary Resistance offer', () => {
     const target = dragon()
     const { discover, resource } = discoverOn(target)
     const execution = await advance({ target, discover, face: FAILED })
-    if (execution.kind !== 'PENDING' || !execution.legendaryResistance)
+    if (execution.kind !== 'PENDING' || execution.pause?.kind !== 'LEGENDARY_RESISTANCE')
       throw new Error('Expected the held choice.')
     const candidate = (await discover())!
     return {
       twoPhase: execution.twoPhase,
       action: await prepared(target),
-      offer: execution.legendaryResistance,
+      offer: execution.pause.payload,
       candidate,
       currentFeatureResource: resource(),
       targetStateChecksum: checksumRuleDocument(target)
@@ -276,7 +280,7 @@ describe('answering the held Legendary Resistance offer', () => {
       currentnessChecksum: 'b'.repeat(64),
       d20Policy: null,
       twoPhase: state.twoPhase,
-      legendaryResistance: state.offer
+      pause: { kind: 'LEGENDARY_RESISTANCE' as const, payload: state.offer }
     }
     const parses = (value: unknown) =>
       encounterActionPendingContextDtoSchema.safeParse(value).success

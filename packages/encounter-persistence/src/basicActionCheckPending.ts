@@ -161,7 +161,8 @@ export function projectNativeD20WindowPending(
   pendingSnapshot: ServerRuleExecutionPendingSnapshotDto
 ) {
   const { snapshot, context } = readNativeD20WindowPending(occurrence, pendingSnapshot)
-  const { selectedNatural, total } = context.rolled.d20
+  const { rolled, offer } = context.pause.payload
+  const { selectedNatural, total } = rolled.d20
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
     kind: 'D20_WINDOW',
     occurrenceId: occurrence.id,
@@ -171,7 +172,7 @@ export function projectNativeD20WindowPending(
     trigger: encounterD20WindowTrigger(context),
     requestId: snapshot.request.requestId,
     d20: { selectedNatural, total },
-    options: context.offer.options.map(({ optionId, label, count, faces, sign }) => ({
+    options: offer.options.map(({ optionId, label, count, faces, sign }) => ({
       optionId,
       label,
       count,

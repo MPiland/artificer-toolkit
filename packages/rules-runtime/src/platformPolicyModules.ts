@@ -1,4 +1,6 @@
+import { createCombatPerceptionCapabilityRegistry } from './combatPerceptionCapabilityRegistry.js'
 import { createRollModeCapabilityRegistry } from './rollModeCapabilityRegistry.js'
+import { dnd5eCombatPerceptionCapabilityAdapter } from './systems/dnd5e/combatPerception.js'
 import { dnd5ePolicyModuleRegistration } from './systems/dnd5e/policyModuleRegistration.js'
 import { dnd5eRollModeCapabilityAdapter } from './systems/dnd5e/rollModePolicy.js'
 
@@ -6,6 +8,9 @@ const installedRuntimeModules = [dnd5ePolicyModuleRegistration] as const
 
 export const rollModeCapabilityRegistry = createRollModeCapabilityRegistry([
   dnd5eRollModeCapabilityAdapter
+])
+export const combatPerceptionCapabilityRegistry = createCombatPerceptionCapabilityRegistry([
+  dnd5eCombatPerceptionCapabilityAdapter
 ])
 
 export function requireInstalledGameSystemPolicyModule(input: {

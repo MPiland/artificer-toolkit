@@ -9,7 +9,10 @@ describe('offeredDecisionOptionIds', () => {
   it('offers every reaction the pause carries as a menu', () => {
     expect(
       offeredDecisionOptionIds({
-        reactionChoice: { reactions: [{ useOptionId: 'inner' }, { useOptionId: 'outer' }] }
+        pause: {
+          kind: 'REACTION' as const,
+          payload: { reactions: [{ useOptionId: 'inner' }, { useOptionId: 'outer' }] }
+        }
       })
     ).toEqual(['inner', 'outer'])
   })
@@ -17,27 +20,43 @@ describe('offeredDecisionOptionIds', () => {
   it('offers every reaction a cast waits on as a menu', () => {
     expect(
       offeredDecisionOptionIds({
-        castReaction: { reactions: [{ useOptionId: 'low' }, { useOptionId: 'high' }] }
+        pause: {
+          kind: 'CAST_REACTION' as const,
+          payload: { reactions: [{ useOptionId: 'low' }, { useOptionId: 'high' }] }
+        }
       })
     ).toEqual(['low', 'high'])
   })
 
   it('offers no option while a cast waits on the roll of the check its counter owes', () => {
     expect(
-      offeredDecisionOptionIds({ castReaction: { reactions: [{ useOptionId: 'low' }], check: {} } })
+      offeredDecisionOptionIds({
+        pause: {
+          kind: 'CAST_REACTION' as const,
+          payload: { reactions: [{ useOptionId: 'low' }], check: {} }
+        }
+      })
     ).toEqual([])
   })
 
   it('offers a Legendary Resistance option alone', () => {
     expect(
-      offeredDecisionOptionIds({ legendaryResistance: { resistance: { useOptionId: 'resist' } } })
+      offeredDecisionOptionIds({
+        pause: {
+          kind: 'LEGENDARY_RESISTANCE' as const,
+          payload: { resistance: { useOptionId: 'resist' } }
+        }
+      })
     ).toEqual(['resist'])
   })
 
   it('offers each way of paying for an on-hit rider', () => {
     expect(
       offeredDecisionOptionIds({
-        onHitChoice: { options: [{ useOptionId: 'first' }, { useOptionId: 'second' }] }
+        pause: {
+          kind: 'ON_HIT' as const,
+          payload: { options: [{ useOptionId: 'first' }, { useOptionId: 'second' }] }
+        }
       })
     ).toEqual(['first', 'second'])
   })
@@ -45,7 +64,10 @@ describe('offeredDecisionOptionIds', () => {
   it('offers each creature a lost action can be turned on', () => {
     expect(
       offeredDecisionOptionIds({
-        attackRetarget: { options: [{ useOptionId: 'one' }, { useOptionId: 'two' }] }
+        pause: {
+          kind: 'ATTACK_RETARGET' as const,
+          payload: { options: [{ useOptionId: 'one' }, { useOptionId: 'two' }] }
+        }
       })
     ).toEqual(['one', 'two'])
   })
@@ -56,14 +78,20 @@ describe('offeredDecisionOptionIds', () => {
 })
 
 describe('castPendingContinues', () => {
-  const held = { rollerActorId: 'second', castReaction: { declinedReactorActorIds: ['first'] } }
+  const held = {
+    rollerActorId: 'second',
+    pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: ['first'] } }
+  }
   const decline = { resolution: { kind: 'DECLINE' } }
   const option = { resolution: { kind: 'OPTION' } }
   const dice = { resolution: { kind: 'ENTER_DICE' } }
   const failedBy = (reactorActorId: string) => ({ reaction: { reactorActorId } })
   const checking = {
     rollerActorId: 'second',
-    castReaction: { declinedReactorActorIds: ['first'], check: {} },
+    pause: {
+      kind: 'CAST_REACTION' as const,
+      payload: { declinedReactorActorIds: ['first'], check: {} }
+    },
     failedCounters: [failedBy('first')]
   }
 
@@ -72,15 +100,21 @@ describe('castPendingContinues', () => {
   })
 
   describe('a failed ward save offering a new target', () => {
-    const gateHeld = { rollerActorId: 'attacker', incomingGate: { effectId: 'ward' } }
-    const offered = { rollerActorId: 'attacker', attackRetarget: { gate: { effectId: 'ward' } } }
+    const gateHeld = {
+      rollerActorId: 'attacker',
+      pause: { kind: 'INCOMING_GATE' as const, payload: { effectId: 'ward' } }
+    }
+    const offered = {
+      rollerActorId: 'attacker',
+      pause: { kind: 'ATTACK_RETARGET' as const, payload: { gate: { effectId: 'ward' } } }
+    }
 
     it('follows the roll that failed that ward, and no other ward', () => {
       expect(castPendingContinues(gateHeld, dice, offered)).toBe(true)
       expect(
         castPendingContinues(gateHeld, dice, {
           ...offered,
-          attackRetarget: { gate: { effectId: 'other' } }
+          pause: { kind: 'ATTACK_RETARGET' as const, payload: { gate: { effectId: 'other' } } }
         })
       ).toBe(false)
       expect(castPendingContinues({ rollerActorId: 'attacker' }, dice, offered)).toBe(false)
@@ -102,7 +136,7 @@ describe('castPendingContinues', () => {
       expect(castPendingContinues(offered, null, {})).toBe(false)
       expect(
         castPendingContinues(offered, option, {
-          incomingGate: { effectId: 'second-ward' },
+          pause: { kind: 'INCOMING_GATE' as const, payload: { effectId: 'second-ward' } },
           passedIncomingGate: 'ward'
         })
       ).toBe(false)
@@ -112,7 +146,10 @@ describe('castPendingContinues', () => {
     })
 
     it('may offer again from the chosen creature’s own ward, and only after a choice', () => {
-      const again = { ...offered, attackRetarget: { gate: { effectId: 'second-ward' } } }
+      const again = {
+        ...offered,
+        pause: { kind: 'ATTACK_RETARGET' as const, payload: { gate: { effectId: 'second-ward' } } }
+      }
       expect(castPendingContinues(offered, option, again)).toBe(true)
       expect(castPendingContinues(offered, decline, again)).toBe(false)
     })
@@ -127,7 +164,7 @@ describe('castPendingContinues', () => {
 
   it('offers the next reactor only with every earlier decline and the answerer recorded', () => {
     const next = (declinedReactorActorIds: string[]) => ({
-      castReaction: { declinedReactorActorIds }
+      pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds } }
     })
     expect(castPendingContinues(held, decline, next(['second', 'first']))).toBe(true)
     expect(castPendingContinues(held, decline, next(['first']))).toBe(false)
@@ -144,14 +181,20 @@ describe('castPendingContinues', () => {
     expect(
       castPendingContinues(held, option, {
         ...toCheck({ failedCounters: [] }),
-        castReaction: { declinedReactorActorIds: [], check: {} }
+        pause: {
+          kind: 'CAST_REACTION' as const,
+          payload: { declinedReactorActorIds: [], check: {} }
+        }
       })
     ).toBe(false)
   })
 
   it('lets a choice whose check the app rolled leave the cast as a failed roll does', () => {
     const settled = (overrides: object) => ({
-      castReaction: { declinedReactorActorIds: ['first', 'second'] },
+      pause: {
+        kind: 'CAST_REACTION' as const,
+        payload: { declinedReactorActorIds: ['first', 'second'] }
+      },
       failedCounters: [failedBy('second')],
       ...overrides
     })
@@ -161,7 +204,9 @@ describe('castPendingContinues', () => {
       castPendingContinues(
         held,
         option,
-        settled({ castReaction: { declinedReactorActorIds: ['first'] } })
+        settled({
+          pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: ['first'] } }
+        })
       )
     ).toBe(false)
     expect(castPendingContinues(checking, option, settled({}))).toBe(false)
@@ -172,7 +217,10 @@ describe('castPendingContinues', () => {
     expect(castPendingContinues(checking, dice, { failedCounters: failedBoth })).toBe(true)
     expect(
       castPendingContinues(checking, dice, {
-        castReaction: { declinedReactorActorIds: ['first', 'second'] },
+        pause: {
+          kind: 'CAST_REACTION' as const,
+          payload: { declinedReactorActorIds: ['first', 'second'] }
+        },
         failedCounters: failedBoth
       })
     ).toBe(true)
@@ -197,19 +245,25 @@ describe('castPendingContinues', () => {
     /** `second` is offered the chance to counter `first`'s counter; `early` declined the cast itself. */
     const nested = {
       rollerActorId: 'second',
-      castReaction: { declinedReactorActorIds: ['other'], chain: standing('first') }
+      pause: {
+        kind: 'CAST_REACTION' as const,
+        payload: { declinedReactorActorIds: ['other'], chain: standing('first') }
+      }
     }
     const nestedChecking = {
       ...nested,
-      castReaction: { ...nested.castReaction, check: {} }
+      pause: { kind: 'CAST_REACTION' as const, payload: { ...nested.pause.payload, check: {} } }
     }
 
     it('stands the answerer as the first counter, opening a fresh level that keeps the cast’s declines', () => {
       const pushed = (overrides: object = {}) => ({
         rollerActorId: 'third',
-        castReaction: {
-          declinedReactorActorIds: [],
-          chain: { counters: [failedBy('second')], castDeclinedReactorActorIds: ['first'] }
+        pause: {
+          kind: 'CAST_REACTION' as const,
+          payload: {
+            declinedReactorActorIds: [],
+            chain: { counters: [failedBy('second')], castDeclinedReactorActorIds: ['first'] }
+          }
         },
         ...overrides
       })
@@ -219,9 +273,12 @@ describe('castPendingContinues', () => {
           held,
           option,
           pushed({
-            castReaction: {
-              declinedReactorActorIds: [],
-              chain: { counters: [failedBy('second')], castDeclinedReactorActorIds: [] }
+            pause: {
+              kind: 'CAST_REACTION' as const,
+              payload: {
+                declinedReactorActorIds: [],
+                chain: { counters: [failedBy('second')], castDeclinedReactorActorIds: [] }
+              }
             }
           })
         )
@@ -231,9 +288,12 @@ describe('castPendingContinues', () => {
           held,
           option,
           pushed({
-            castReaction: {
-              declinedReactorActorIds: ['first'],
-              chain: { counters: [failedBy('second')], castDeclinedReactorActorIds: ['first'] }
+            pause: {
+              kind: 'CAST_REACTION' as const,
+              payload: {
+                declinedReactorActorIds: ['first'],
+                chain: { counters: [failedBy('second')], castDeclinedReactorActorIds: ['first'] }
+              }
             }
           })
         )
@@ -246,7 +306,7 @@ describe('castPendingContinues', () => {
 
     it('declines the answerer at the counter’s level only, keeping the counters standing', () => {
       const declinedAt = (declinedReactorActorIds: string[], chain = standing('first')) => ({
-        castReaction: { declinedReactorActorIds, chain }
+        pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds, chain } }
       })
       expect(castPendingContinues(nested, decline, declinedAt(['other', 'second']))).toBe(true)
       expect(castPendingContinues(nested, decline, declinedAt(['other']))).toBe(false)
@@ -260,7 +320,7 @@ describe('castPendingContinues', () => {
     it('stands a second counter on a counter that was itself countered, then offers the cast again', () => {
       const resolved = (overrides: object = {}) => ({
         rollerActorId: 'third',
-        castReaction: { declinedReactorActorIds: ['early'] },
+        pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: ['early'] } },
         failedCounters: [failedBy('first'), failedBy('second')],
         ...overrides
       })
@@ -272,7 +332,12 @@ describe('castPendingContinues', () => {
         castPendingContinues(
           nested,
           option,
-          resolved({ castReaction: { declinedReactorActorIds: ['other'] } })
+          resolved({
+            pause: {
+              kind: 'CAST_REACTION' as const,
+              payload: { declinedReactorActorIds: ['other'] }
+            }
+          })
         )
       ).toBe(false)
       expect(
@@ -282,7 +347,10 @@ describe('castPendingContinues', () => {
 
     it('fails the answerer on a failed roll without ending the counters standing', () => {
       const failedAt = (overrides: object = {}) => ({
-        castReaction: { declinedReactorActorIds: ['other', 'second'], chain: standing('first') },
+        pause: {
+          kind: 'CAST_REACTION' as const,
+          payload: { declinedReactorActorIds: ['other', 'second'], chain: standing('first') }
+        },
         failedCounters: [failedBy('second')],
         ...overrides
       })
@@ -299,7 +367,7 @@ describe('castPendingContinues', () => {
     it('holds the cast for the same reactor on a check owed against the counter', () => {
       const toCheck = (overrides: object = {}) => ({
         rollerActorId: 'second',
-        castReaction: { ...nested.castReaction, check: {} },
+        pause: { kind: 'CAST_REACTION' as const, payload: { ...nested.pause.payload, check: {} } },
         ...overrides
       })
       expect(castPendingContinues(nested, option, toCheck())).toBe(true)
@@ -308,10 +376,13 @@ describe('castPendingContinues', () => {
           nested,
           option,
           toCheck({
-            castReaction: {
-              declinedReactorActorIds: ['other'],
-              chain: standing('second'),
-              check: {}
+            pause: {
+              kind: 'CAST_REACTION' as const,
+              payload: {
+                declinedReactorActorIds: ['other'],
+                chain: standing('second'),
+                check: {}
+              }
             }
           })
         )
@@ -327,7 +398,7 @@ describe('castCounteredCarriesFailedCounters', () => {
   const dice = { resolution: { kind: 'ENTER_DICE' } }
   const offer = (rollerActorId: string, overrides: object = {}) => ({
     rollerActorId,
-    castReaction: { declinedReactorActorIds: [] },
+    pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: [] } },
     ...overrides
   })
 
@@ -364,7 +435,10 @@ describe('castCounteredCarriesFailedCounters', () => {
       castDeclinedReactorActorIds: []
     })
     const nested = (chain: ReturnType<typeof standing>, overrides: object = {}) =>
-      offer('last', { castReaction: { declinedReactorActorIds: [], chain }, ...overrides })
+      offer('last', {
+        pause: { kind: 'CAST_REACTION' as const, payload: { declinedReactorActorIds: [], chain } },
+        ...overrides
+      })
 
     it('lets the first counter stand when nobody counters it, spending the later ones with the cast', () => {
       const lone = nested(standing('first'))
@@ -379,7 +453,10 @@ describe('castCounteredCarriesFailedCounters', () => {
 
     it('spends a failed roll at the counter’s level with the cast that is still countered', () => {
       const lone = nested(standing('first'), {
-        castReaction: { declinedReactorActorIds: [], chain: standing('first'), check: {} }
+        pause: {
+          kind: 'CAST_REACTION' as const,
+          payload: { declinedReactorActorIds: [], chain: standing('first'), check: {} }
+        }
       })
       expect(
         castCounteredCarriesFailedCounters(lone, dice, 'first', {

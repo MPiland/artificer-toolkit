@@ -9,11 +9,12 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-
-/** What the creature's controller answers: declining, or the one option that uses the resistance. */
-export type EncounterLegendaryResistanceSelection =
-  | { kind: 'DECLINE' }
-  | { kind: 'OPTION'; optionId: string }
+import {
+  chosenEncounterSealedOption,
+  openEncounterAuthoredChoice,
+  settleEncounterSealedChoice,
+  type EncounterSealedChoiceSelection
+} from './encounterSealedChoice.js'
 
 export interface EncounterLegendaryResistanceFeatureResource {
   used: number
@@ -148,22 +149,12 @@ export async function openEncounterLegendaryResistanceChoice(input: {
   occurrenceId: string
   candidate: EncounterLegendaryResistanceCandidate
 }) {
-  const choice = await input.runtime.executeResolved({
-    command: {
-      definitionId: input.candidate.choiceGraph.id,
-      occurrenceId: input.occurrenceId,
-      facts: {}
-    },
-    published: input.candidate.choiceGraph
+  return openEncounterAuthoredChoice({
+    runtime: input.runtime,
+    occurrenceId: input.occurrenceId,
+    published: input.candidate.choiceGraph,
+    label: 'Legendary Resistance'
   })
-  if (
-    choice.status !== 'PAUSED' ||
-    choice.continuation.request.nodeId !== 'choice' ||
-    choice.continuation.request.min !== 0 ||
-    choice.continuation.request.max !== 1
-  )
-    throw new Error('Legendary Resistance choice graph did not issue its exact bounded request.')
-  return choice
 }
 
 /**
@@ -175,33 +166,27 @@ export async function settleEncounterLegendaryResistanceChoice(input: {
   candidate: EncounterLegendaryResistanceCandidate
   resistance: EncounterLegendaryResistancePinDto
   continuation: ServerRuleExecutionContinuationDto
-  selection: EncounterLegendaryResistanceSelection
+  selection: EncounterSealedChoiceSelection
   currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {
   const use =
-    input.selection.kind === 'OPTION' && input.selection.optionId === input.resistance.useOptionId
-  if (input.selection.kind !== 'DECLINE' && !use)
-    throw new Error('Legendary Resistance selection was not issued.')
-
-  if (
-    input.continuation.graph.source.definitionId !== input.candidate.choiceGraph.id ||
-    input.continuation.graph.source.checksum !== input.candidate.choiceGraph.checksum
-  )
-    throw new Error('Legendary Resistance choice continuation pin is stale.')
-  const choice = await input.runtime.resume({
+    chosenEncounterSealedOption({
+      options: [input.resistance],
+      optionId: (resistance) => resistance.useOptionId,
+      selection: input.selection,
+      label: 'Legendary Resistance'
+    }) !== null
+  const choice = await settleEncounterSealedChoice({
+    runtime: input.runtime,
     continuation: input.continuation,
-    response: {
-      requestId: input.continuation.request.requestId,
-      value: use ? 1 : 0
-    }
+    selectedIndex: use ? 1 : 0,
+    pin: {
+      definitionId: input.candidate.choiceGraph.id,
+      checksum: input.candidate.choiceGraph.checksum
+    },
+    output: { key: input.candidate.lifecycle.useOutput, value: use },
+    label: 'Legendary Resistance'
   })
-  if (
-    choice.status !== 'COMPLETE' ||
-    choice.evidence.source.definitionId !== input.candidate.choiceGraph.id ||
-    choice.evidence.source.checksum !== input.candidate.choiceGraph.checksum ||
-    choice.outputs[input.candidate.lifecycle.useOutput] !== use
-  )
-    throw new Error('Legendary Resistance choice did not settle its exact pin.')
 
   const chargeProposal = use
     ? legendaryResistanceChargeProposal(input.candidate, input.currentFeatureResource)
@@ -250,7 +235,7 @@ export async function decideEncounterLegendaryResistance(input: {
   offer: EncounterLegendaryResistanceOfferPin
   candidate: EncounterLegendaryResistanceCandidate
   targetStateChecksum: string
-  selection: EncounterLegendaryResistanceSelection
+  selection: EncounterSealedChoiceSelection
   currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {
   const { boundary, offer } = input

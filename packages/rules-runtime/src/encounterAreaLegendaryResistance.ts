@@ -1,4 +1,5 @@
 import type { EncounterAreaLegendaryResistanceDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import type { EncounterSealedChoiceSelection } from './encounterSealedChoice.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type {
@@ -11,8 +12,7 @@ import {
   encounterLegendaryResistancePin,
   legendaryResistanceChargeProposal,
   sameEncounterLegendaryResistanceCandidate,
-  type EncounterLegendaryResistanceFeatureResource,
-  type EncounterLegendaryResistanceSelection
+  type EncounterLegendaryResistanceFeatureResource
 } from './encounterLegendaryResistanceChoice.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
@@ -49,7 +49,7 @@ export async function decideEncounterAreaLegendaryResistance(input: {
   offer: EncounterAreaLegendaryResistanceDto
   candidate: EncounterLegendaryResistanceCandidate
   targetStateChecksum: string
-  selection: EncounterLegendaryResistanceSelection
+  selection: EncounterSealedChoiceSelection
   currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {
   if (input.offer.decision) throw new Error('Legendary Resistance evidence is stale.')

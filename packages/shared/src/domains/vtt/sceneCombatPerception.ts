@@ -3,7 +3,7 @@ import type {
   CombatPerceptionEnvironment,
   CombatPerceptionIllumination,
   CombatPerceptionObscurement
-} from '../rules/combatPerception.js'
+} from './combatPerception.js'
 import {
   canLightPassBetween,
   canMoveBetween,
