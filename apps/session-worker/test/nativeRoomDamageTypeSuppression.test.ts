@@ -28,7 +28,7 @@ afterEach(() => {
  */
 function regeneratingRoom(
   damage: 'RADIANT' | 'FIRE',
-  creatureLabel: 'Vampire' | 'Troll',
+  creatureLabel: 'Vampire Spawn' | 'Troll',
   currentHitPoints: number
 ) {
   const caster = fireballWolf(damage, 'CONSTITUTION')
@@ -55,7 +55,7 @@ async function advance(room: Awaited<ReturnType<typeof regeneratingRoom>>) {
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
-/** The caster's area hits the holder, who fails its save (declining Legendary Resistance) and takes 1 damage. */
+/** The caster's area hits the holder, who fails its save and takes 1 damage. */
 async function hitHolder(room: Awaited<ReturnType<typeof regeneratingRoom>>) {
   await room.startAreaAction({ x: 50, y: 150 })
   for (;;) {
@@ -76,18 +76,18 @@ async function hitHolder(room: Awaited<ReturnType<typeof regeneratingRoom>>) {
 }
 
 describe('damage-type suppression of start-of-turn regeneration in a room (SPELLS-33 T4i1b2)', () => {
-  it('a wounded Vampire does not regenerate on the turn after radiant damage, and does on the next', async () => {
-    const room = await regeneratingRoom('RADIANT', 'Vampire', 100)
+  it('a wounded Vampire Spawn does not regenerate on the turn after radiant damage, and does on the next', async () => {
+    const room = await regeneratingRoom('RADIANT', 'Vampire Spawn', 60)
     await hitHolder(room)
     const afterHit = await hitPointsOf(room, HOLDER_ID)
-    expect(afterHit).toBeLessThan(100)
+    expect(afterHit).toBeLessThan(60)
 
     await advance(room)
     expect(await hitPointsOf(room, HOLDER_ID)).toBe(afterHit)
 
     await advance(room)
     await advance(room)
-    expect(await hitPointsOf(room, HOLDER_ID)).toBe((afterHit ?? 0) + 20)
+    expect(await hitPointsOf(room, HOLDER_ID)).toBe((afterHit ?? 0) + 10)
   })
 
   it('a Troll does not regenerate on the turn after fire damage, and does on the next', async () => {
