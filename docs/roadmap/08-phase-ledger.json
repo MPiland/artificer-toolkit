@@ -1630,7 +1630,7 @@
         {
           "id": "PLATFORM-25",
           "title": "CI fixes mechanical failures and merges approved slices itself",
-          "status": "DONE",
+          "status": "TODO",
           "origin": ["User request 2026-10-18 (cycle-time gains)"],
           "journeyTests": ["scripts/mergeSlice.test.mjs"],
           "journeyStatus": "verified",
@@ -1693,6 +1693,20 @@
               },
               "text": "merge-slice.yml workflow_dispatch: verify green runs on the tip, fast path or ci/merge-m<N> batch (next N from the existing ci/merge-m* refs), push to the phase branch on green, fail closed otherwise; the CI validation guide documents it.",
               "note": "Batch ci/merge-m122 f0dbf70aa green (Tests 39148130773, Live 39148130875); phase merge 733b2f5b4."
+            },
+            {
+              "id": "PLATFORM-25.T3",
+              "status": "TODO",
+              "closes": ["PLATFORM-25.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 1,
+                "after": []
+              },
+              "text": "merge-slice ignores a cancelled duplicate run when the same workflow has a later or concurrent non-cancelled run on the tip (runsVerdict in scripts/mergeSlice.mjs), with a unit test that fails first.",
+              "note": "Found 2026-10-21: m-R2T4a refused on f4888465b because duplicate Tests/Live runs that were cancelled sorted ahead of the green ones. Worked around by re-running the cancelled runs."
             }
           ]
         }
