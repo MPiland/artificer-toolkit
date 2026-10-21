@@ -3171,7 +3171,8 @@
                 "size": 5,
                 "after": ["RULES-2.T2"]
               },
-              "text": "One d20 test settlement: freezeD20Context plus settleEncounterD20Test with output verification, replacing the ~10 copies of answer/added-dice/resume and the frozen-context blocks."
+              "text": "One d20 test settlement: freezeD20Context plus settleEncounterD20Test with output verification, replacing the ~10 copies of answer/added-dice/resume and the frozen-context blocks.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T3b",
@@ -3236,7 +3237,8 @@
                 "size": 5,
                 "after": ["RULES-2.T2"]
               },
-              "text": "Compiler: extract runtime interpretation and the operation registry into their own modules."
+              "text": "Compiler: extract runtime interpretation and the operation registry into their own modules.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T6b",
@@ -3396,7 +3398,7 @@
             },
             {
               "id": "RULES-2.T14",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3405,7 +3407,7 @@
                 "size": 2
               },
               "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m267 (74371bfed)."
             },
             {
               "id": "RULES-2.T15",
@@ -3418,7 +3420,8 @@
                 "size": 1,
                 "after": ["RULES-2.T2"]
               },
-              "text": "Bug: compiling the SRD Antitoxin (vial) equipment Effect (00000060-0000-0210-0079-000000000001) throws a plain Error \"Rule documents must contain JSON values only\" instead of a plan or refusal. Find the non-JSON value (likely undefined in authored data or its compile), fix at the source, add a regression test that fails before the fix, and re-pin the golden line."
+              "text": "Bug: compiling the SRD Antitoxin (vial) equipment Effect (00000060-0000-0210-0079-000000000001) throws a plain Error \"Rule documents must contain JSON values only\" instead of a plan or refusal. Find the non-JSON value (likely undefined in authored data or its compile), fix at the source, add a regression test that fails before the fix, and re-pin the golden line.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             }
           ]
         }
@@ -12805,7 +12808,7 @@
             },
             {
               "id": "SPELLS-31.T5ra",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12815,7 +12818,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "optionalOnHit RESOURCE_POOL cost (D123) end to end (split 2026-10-20): authored type, DTO, node map, offer union, transport, drawer, pool candidates and payment through one extracted spend helper, session-worker wiring. Proof: a homebrew ki-costed rider authored through the real authoring path, with accept, decline and insufficient-pool cases.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m266 (fbc889988)."
             },
             {
               "id": "SPELLS-31.T5rb",

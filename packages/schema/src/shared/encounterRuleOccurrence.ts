@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
+import { characterResourcePoolIdentitySchema } from './characterResourceIdentity.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
@@ -361,11 +362,21 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         attackerActorId: uuidSchema,
         options: z
           .array(
-            z.strictObject({
-              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
-              riderId: uuidSchema,
-              slotLevel: z.number().check(z.int()).check(z.positive())
-            })
+            z.discriminatedUnion('kind', [
+              z.strictObject({
+                kind: z.literal('SPELL_SLOT'),
+                optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+                riderId: uuidSchema,
+                slotLevel: z.number().check(z.int()).check(z.positive())
+              }),
+              z.strictObject({
+                kind: z.literal('RESOURCE_POOL'),
+                optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+                riderId: uuidSchema,
+                poolId: characterResourcePoolIdentitySchema,
+                cost: z.number().check(z.int()).check(z.positive())
+              })
+            ])
           )
           .check(z.minLength(1))
           .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1)),

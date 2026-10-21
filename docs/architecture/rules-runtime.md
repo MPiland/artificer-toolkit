@@ -1679,8 +1679,11 @@ passive weapon-attack invocation is merged into the weapon's compiled effect lik
 any `reactionChoice` has resolved, the attacker's riders it can still pay for hold the occurrence with a sealed
 `onHitChoice` offer (a third sibling of `legendaryResistance` and `reactionChoice`, mutually exclusive with them,
 `ON_HIT_CHOICE` summary, the attacker's controller answers per D19). Option 0 is a decline; each other option pins
-a rider and a slot level. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
-spend rides in the attack's own character-mechanics batch with a spell-less receipt (`spellId` and `candidateId`
+a rider and the way it is paid: a slot level (`SPELL_SLOT`) or a resource pool and its cost (`RESOURCE_POOL`, authored as
+`optionalOnHit: { kind: 'RESOURCE_POOL', chargeId, cost }`, offered only while exactly one resolved pool carries
+`chargeId` and holds `cost`). The use option id hashes the hit and the way of paying, so a changed pool or cost is stale. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
+spend (or, for a pool, the `resourceConsumption` that `spendCharacterResource` also builds for an action's own
+`resourceUse`) rides in the attack's own character-mechanics batch with a spell-less receipt (`spellId` and `candidateId`
 are null together), so GM undo restores it. Nothing names a feature: the SRD Divine Smite and Improved Divine
 Smite (`source-data/srd/classes/paladin`) are authored from core options only. Improved Divine Smite has no
 `optionalOnHit`, so it is a mandatory rider.
