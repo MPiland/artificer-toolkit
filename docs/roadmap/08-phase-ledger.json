@@ -3244,7 +3244,7 @@
             },
             {
               "id": "RULES-2.T6b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3254,7 +3254,7 @@
                 "after": ["RULES-2.T6a"]
               },
               "text": "Compiler: scaling facts and dice contract with validation at the boundary.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m281 (bd56f5b55)."
             },
             {
               "id": "RULES-2.T6c",
@@ -3267,7 +3267,8 @@
                 "size": 8,
                 "after": ["RULES-2.T6b"]
               },
-              "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase."
+              "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase.",
+              "note": "From T6b: boundedSingleDiceCount catches Dnd5eEffectActionCompilerError, but parseBoundedDiceConfiguration throws CharacterRuleActionUnsupportedCompilationError, so malformed dice propagate instead of returning null (pre-existing). Fix with a regression test."
             },
             {
               "id": "RULES-2.T6d",
