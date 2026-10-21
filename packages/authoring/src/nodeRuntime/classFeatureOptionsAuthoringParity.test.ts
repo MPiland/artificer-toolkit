@@ -425,7 +425,7 @@ function withFeature(record: ClassAuthored, added: FeatureAuthored): ClassAuthor
 }
 
 describe('an optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a, D156)', () => {
-  const kiChargeId = feature(monk, 'Ki').charges?.id
+  const kiChargeId = monk.resources?.charges?.id
   if (!kiChargeId) throw new Error('Ki must author its charges.')
   const radiant = SRD_DAMAGE_TYPES.find(({ code }) => code === 'RADIANT')!.id
 

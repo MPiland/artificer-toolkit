@@ -279,7 +279,7 @@ describe('room optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a)
       expectedVersion: await room.version()
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
-    expect(await readPoolUsed(room)).toEqual([])
+    expect(await readPoolUsed(room)).toEqual([0])
     expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
   })
 
