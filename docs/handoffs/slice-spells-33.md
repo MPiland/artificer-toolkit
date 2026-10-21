@@ -640,3 +640,7 @@ Class B, new generic option (D156). A Feature or option effect may carry `grante
 
 - Proofs: `creatureGrantedSpellCastAuthoringParity.test.ts` (node map unchanged, no closed rule, pool spend), `feature-granted-spell-cast-contracts.test.ts` (schema rules).
 - Data and schema only: discovery does not yet emit a capability for it. The runtime path (list the holder's granted spells of the kind, spend the slot) belongs to T3c2a/T3c2b, which should read `effect.grantedSpellCast` in `encounterFeatureActionCapabilityDiscovery.ts`.
+
+## T4i4: Sea Hag Death Glare and Will-o'-Wisp Consume Life (T4i4a done, `ci/spells-33-t4i4a`; T4i4b held)
+
+T4i4a added the generic single-target `targetRequirements` (`HAS_CONDITION`, `SIGHT`, `AT_ZERO_HIT_POINTS`), checked at admission with one shared sight evaluator (`encounterSightHolds`). T4i4b (the two conversions, KILL after a saving throw, `REDUCE_TO_ZERO_HIT_POINTS`, deleting both closed-rule kinds) is held behind RULES-2.T6c, the compiler's outcomes registry (ADR 0039): the new outcomes land in that registry rather than widening `effectActionCompiler.ts`.

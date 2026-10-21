@@ -34,6 +34,7 @@ import {
   StaleCharacterActionError
 } from './encounterErrors.js'
 import { encounterActorHeldItems } from './encounterHolderDefense.js'
+import { refuseUnmetTargetRequirements } from './encounterTargetRequirements.js'
 import {
   characterActionDrawWeapon,
   creatureActionDrawWeapon,
@@ -430,6 +431,22 @@ export async function prepareEncounterActionMechanics<
     ).has(target.id)
   )
     throw new EncounterValidationError('The selected action target is not held by the user.')
+  if (targeting?.selectionKind === 'SINGLE_TARGET')
+    await refuseUnmetTargetRequirements({
+      requirements: targeting.targetRequirements,
+      actorId: actor.id,
+      target: currentTargetFacts,
+      loadSight: input.loadAttackPerception
+        ? async () =>
+            (
+              await input.loadAttackPerception!({
+                sourceFacts: currentSourceFacts,
+                targetFacts: currentTargetFacts,
+                roller: 'ATTACKER'
+              })
+            ).actual
+        : undefined
+    })
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
     source.kind === 'CHARACTER_ACTION'

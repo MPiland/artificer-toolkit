@@ -846,8 +846,8 @@ const isHitPath = (resultPath: string | null | undefined) =>
   resultPath === 'ON_HIT' || resultPath === 'ON_CRIT'
 
 /**
- * The attack's binding as its OUTCOME sees it: a used optional on-hit rider is selected at the slot
- * level paid. The TEST stays bound to the unchosen binding it was sealed against.
+ * The attack's binding as its OUTCOME sees it: a used optional on-hit rider is selected, at the slot
+ * level paid when a slot pays it. The TEST stays bound to the unchosen binding it was sealed against.
  */
 export function onHitOutcomeBinding(
   binding: NativeActionBaseInput['binding'],
@@ -858,7 +858,7 @@ export function onHitOutcomeBinding(
         ...binding,
         actionMechanic: {
           ...binding.actionMechanic,
-          spellCastLevel: onHit.option.slotLevel,
+          ...(onHit.option.kind === 'SPELL_SLOT' && { spellCastLevel: onHit.option.slotLevel }),
           selectedOptionalRiderIds: [onHit.option.riderId]
         }
       }
