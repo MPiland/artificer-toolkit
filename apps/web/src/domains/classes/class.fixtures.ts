@@ -1,3 +1,4 @@
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { ClassListResponseDto, ClassResponseDto } from '@artificer-toolkit/schema/api/content'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
@@ -19,7 +20,7 @@ export const ownedClassResponseFixture = {
     proficiencies: [],
     features: [],
     userId: 'user-1',
-    systemId: 'system-5e',
+    systemId: SRD_SYSTEM_ID,
     category: 'BASE',
     attributes: [],
     subclassSelectionLevel: 3,
@@ -68,7 +69,7 @@ export const masterSubclassResponseFixture = {
     proficiencies: [],
     features: [],
     userId: 'master',
-    systemId: 'system-5e',
+    systemId: SRD_SYSTEM_ID,
     category: 'SUBCLASS',
     attributes: [],
     parentClassId: 'class-owned',

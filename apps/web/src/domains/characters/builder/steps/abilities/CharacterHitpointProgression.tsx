@@ -1,9 +1,5 @@
 import { Group, NumberInput, Stack, Text } from '@mantine/core'
-import {
-  hitDieAverage,
-  hitPointGain,
-  parseHitDie
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/hitPointRules'
+import { characterProgressionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type {
   CharacterBuilderPayloadDto,
   CharacterBuilderReferencesDto
@@ -37,6 +33,7 @@ export function CharacterHitpointProgression({
   rows: HitpointLevel[]
 }) {
   const totalHitpoints = rows.reduce((total, row) => total + row.value, 0)
+  const progression = characterProgressionCapabilityRegistry.require(character.systemId)
 
   return (
     <Stack gap='sm' className={`${sharedStyles.inlinePanel} ${styles.hitpointPanel}`}>
@@ -62,7 +59,7 @@ export function CharacterHitpointProgression({
             const classLabel = classReference?.label ?? classRow.classId
             const classRows = rows.filter((row) => row.classId === classRow.classId)
             const classSubtotal = classRows.reduce((total, row) => total + row.value, 0)
-            const dieSides = parseHitDie(classReference?.hitpoint?.dieConfig)
+            const dieSides = progression.hitDieSize(classReference?.hitpoint?.dieConfig)
             const hitpointAbility = classReference?.hitpoint?.ability
             const abilityModifier = hitpointAbility
               ? getHitpointAbilityModifier({
@@ -86,7 +83,7 @@ export function CharacterHitpointProgression({
                   const hitDieValue = dieSides
                     ? isStartingLevel
                       ? dieSides
-                      : hitDieAverage(dieSides)
+                      : progression.hitDieAverage(dieSides)
                     : null
                   const abilityLabel = abilityOptions.find(
                     (option) => option.value === hitpointAbility
@@ -121,7 +118,7 @@ export function CharacterHitpointProgression({
                                   candidate === row
                                     ? {
                                         ...candidate,
-                                        value: hitPointGain({
+                                        value: progression.hitPointGain({
                                           die: dieSides,
                                           characterLevel: row.level,
                                           fixed: false,

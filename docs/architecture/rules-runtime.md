@@ -280,7 +280,10 @@ neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
+Creature form keeps; the web Creature detail, Encounter enemy stat block and Builder hit points read the
+modifier through it), `characterProgressionCapabilityRegistry` (`characterProgressionCapability.ts`: hit die
+size and average, the hit points a level adds and the proficiency bonus, read by the Builder hit point step
+and Class detail) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
 `characterActionCapabilityRegistry` (the Sheet's Character action discovery,
 `discoverCharacterActionCapabilities`).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
@@ -317,7 +320,8 @@ contest's graph through `contestCheckCapabilityRegistry` from the Run's `gameSys
 the browser (ADR 0036 S6, `apps/web/src/lib/rulesRuntimeBoundary.test.ts`). Ability id↔code stays System vocabulary data (`system.abilities`).
 Neutral modules reach System behaviour only through these registries; the `systems/*` import
 allowlist (`scripts/systemsImportAllowlist.json`) only shrinks and, since RULES-2.T11e, also fences
-Encounter persistence, the Worker, Convex and web; the composition roots above are exempt by name
+Encounter persistence, the Worker, Convex and web (since RULES-2.T11g3 no web module imports a System);
+the composition roots above are exempt by name
 ([CI validation](ci-validation.md)).
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from

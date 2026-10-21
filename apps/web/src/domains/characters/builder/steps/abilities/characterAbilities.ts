@@ -2,11 +2,10 @@ import {
   CHARACTER_ABILITY_GENERATION_METHOD,
   HITPOINT_CALCULATION_METHOD_CODE
 } from '@artificer-toolkit/shared/core'
-import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
 import {
-  hitPointGain,
-  parseHitDie
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/hitPointRules'
+  abilityScoreCapabilityRegistry,
+  characterProgressionCapabilityRegistry
+} from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type { CharacterBuilderReferencesDto } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterFormValues } from '../../core/characterBuilder.types'
 type HitpointLevel = CharacterFormValues['intent']['hitpoints']['levels'][number]
@@ -27,11 +26,12 @@ export function syncHitpointLevels({
     classReferences.map((classReference) => [classReference.id, classReference])
   )
   const orderedRows = getOrderedHitpointRows(character.intent.classes, rows)
+  const progression = characterProgressionCapabilityRegistry.require(character.systemId)
 
   return orderedRows.map((orderedRow, index) => {
     const characterLevel = index + 1
     const classReference = classReferencesById.get(orderedRow.classId)
-    const dieSides = parseHitDie(classReference?.hitpoint?.dieConfig)
+    const dieSides = progression.hitDieSize(classReference?.hitpoint?.dieConfig)
     if (!dieSides) {
       return {
         level: characterLevel,
@@ -50,8 +50,7 @@ export function syncHitpointLevels({
           resolvedAbilityScores
         })
       : 0
-    const fixed =
-      character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED
+    const fixed = character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED
     const rolled = orderedRow.rolls?.[0]?.value
     const roll = typeof rolled === 'number' && Number.isInteger(rolled) ? rolled : null
 
@@ -59,7 +58,7 @@ export function syncHitpointLevels({
       level: characterLevel,
       classId: orderedRow.classId,
       classLevel: orderedRow.classLevel,
-      value: hitPointGain({ die: dieSides, characterLevel, fixed, roll, modifier }),
+      value: progression.hitPointGain({ die: dieSides, characterLevel, fixed, roll, modifier }),
       ...(!fixed && characterLevel > 1 && roll !== null ? { rolls: orderedRow.rolls } : {})
     }
   })
@@ -167,7 +166,9 @@ export function getHitpointAbilityModifier({
 }): number {
   const score = resolvedAbilityScores[ability] ?? getIntentAbilityScore(character, ability)
 
-  return typeof score === 'number' && Number.isFinite(score) ? abilityModifier(score) : 0
+  return typeof score === 'number' && Number.isFinite(score)
+    ? abilityScoreCapabilityRegistry.require(character.systemId).abilityModifier(score)
+    : 0
 }
 
 function getIntentAbilityScore(

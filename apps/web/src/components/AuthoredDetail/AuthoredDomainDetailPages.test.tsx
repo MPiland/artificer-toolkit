@@ -1,3 +1,4 @@
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { screen, within } from '@testing-library/react'
 import { beforeEach, vi } from 'vitest'
 import { getFunctionName } from 'convex/server'
@@ -117,7 +118,7 @@ const spellResponse: NonNullable<SpellResponseDto> = {
     classIds: ['00000000-0000-0000-0010-000c00000000'],
     magicSchoolId: '00000000-0000-0000-0007-000200000000',
     userId: 'user-1',
-    systemId: 'system-5e'
+    systemId: SRD_SYSTEM_ID
   },
   provenance: {
     kind: 'OWNED',
@@ -137,7 +138,7 @@ function draft(payload: Record<string, unknown>): AuthoredDraftDto {
     subjectId: 'class-owned',
     publicId: '2',
     userId: 'user-1',
-    systemId: 'system-5e',
+    systemId: SRD_SYSTEM_ID,
     label: 'Draft Class',
     status: 'DRAFT',
     draftState: 'ACTIVE_WITH_DRAFT',
@@ -147,7 +148,7 @@ function draft(payload: Record<string, unknown>): AuthoredDraftDto {
 }
 
 const spellReferences = {
-  systemId: 'system-5e',
+  systemId: SRD_SYSTEM_ID,
   abilities: [{ value: 'ability-dexterity', label: 'Dexterity' }],
   magicSchools: [{ value: '00000000-0000-0000-0007-000200000000', label: 'Conjuration' }],
   classes: [{ value: '00000000-0000-0000-0010-000c00000000', label: 'Wizard' }],
@@ -166,7 +167,7 @@ const cachedSpellListReferences = {
 } satisfies SpellDetailReferenceData
 
 const detailReferences = {
-  systemId: 'system-5e',
+  systemId: SRD_SYSTEM_ID,
   challengeRatings: [],
   conditionTypes: [],
   creatureTypes: [],
@@ -253,7 +254,7 @@ const dragonbornResponse: NonNullable<RaceResponseDto> = {
       ]
     },
     userId: 'master',
-    systemId: 'system-5e'
+    systemId: SRD_SYSTEM_ID
   },
   provenance: { kind: 'MASTER', ownerUserId: null },
   permissions: {
@@ -393,7 +394,7 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
       }
     ],
     userId: 'master',
-    systemId: 'system-5e'
+    systemId: SRD_SYSTEM_ID
   },
   meta: {
     challengeRatings: [],
@@ -462,7 +463,7 @@ const grapplerResponse: NonNullable<FeatResponseDto> = {
       }
     ],
     userId: 'master',
-    systemId: 'system-5e'
+    systemId: SRD_SYSTEM_ID
   },
   provenance: { kind: 'MASTER', ownerUserId: null },
   permissions: {
@@ -767,7 +768,7 @@ describe('authored domain detail pages', () => {
           }
         ],
         userId: 'master',
-        systemId: 'system-5e'
+        systemId: SRD_SYSTEM_ID
       }
     }
 

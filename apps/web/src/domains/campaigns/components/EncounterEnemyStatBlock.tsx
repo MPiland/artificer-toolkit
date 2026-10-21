@@ -1,5 +1,5 @@
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
+import { abilityScoreCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
 import { useQuery } from 'convex/react'
 import * as encounterStyles from './encounter.css'
@@ -17,6 +17,9 @@ export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto 
     ([left], [right]) => abilitySortIndex(left) - abilitySortIndex(right)
   )
   const defenses = encounterStatBlockDefenses(statBlock, system)
+  const abilityModifier = actor.systemId
+    ? abilityScoreCapabilityRegistry.require(actor.systemId).abilityModifier
+    : null
 
   return (
     <section
@@ -50,7 +53,9 @@ export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto 
               <dt>{ability.slice(0, 3).toUpperCase()}</dt>
               <dd>
                 <strong>{score}</strong>
-                <span>{formatAbilityModifier(score)}</span>
+                {abilityModifier ? (
+                  <span>{formatAbilityModifier(abilityModifier(score))}</span>
+                ) : null}
               </dd>
             </div>
           ))}
@@ -77,8 +82,7 @@ function abilitySortIndex(ability: string): number {
   return index === -1 ? abilityOrder.length : index
 }
 
-function formatAbilityModifier(score: number): string {
-  const modifier = abilityModifier(score)
+function formatAbilityModifier(modifier: number): string {
   return `(${modifier >= 0 ? '+' : ''}${modifier})`
 }
 
