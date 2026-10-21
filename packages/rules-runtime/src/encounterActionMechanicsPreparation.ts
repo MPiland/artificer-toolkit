@@ -83,9 +83,7 @@ import {
   effectReadsEnemyProximity,
   effectReadsMoveToward,
   effectReadsTurnUses,
-  spentTurnUses,
-  type Dnd5eEnemyProximity,
-  type Dnd5eMoveToward
+  spentTurnUses
 } from './systems/dnd5e/attackRestrictions.js'
 import { dndSourceFromCompilerSource } from './systems/dnd5e/effectActionCompiler.js'
 import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
@@ -93,6 +91,8 @@ import { dnd5eAttackCriticalRules } from './systems/dnd5e/characterCriticalRules
 import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
 import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
+import type { EnemyProximity } from './encounterEnemyProximity.js'
+import type { MoveToward } from './encounterMoveToward.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type {
   EncounterActionSourceRequest,
@@ -339,7 +339,7 @@ export async function prepareEncounterActionMechanics<
   loadEnemyProximity?: (input: {
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
-  }) => Promise<Dnd5eEnemyProximity | null>
+  }) => Promise<EnemyProximity | null>
   /**
    * How far the attacker's latest move this turn closed its distance to the target, for an attack
    * with a path that asks (a creature's Charge). Called only for such an attack; null when it has
@@ -348,7 +348,7 @@ export async function prepareEncounterActionMechanics<
   loadMoveToward?: (input: {
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
-  }) => Promise<Dnd5eMoveToward | null>
+  }) => Promise<MoveToward | null>
   /**
    * The once-per-turn uses the attacker has spent this turn (sorted usage keys), for an attack with
    * a path limited that way (Sneak Attack). Called only for such an attack.

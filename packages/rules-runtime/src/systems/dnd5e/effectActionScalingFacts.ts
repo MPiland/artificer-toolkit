@@ -4,11 +4,9 @@ import {
   damageAddedDiceDtoSchema,
   type DamageAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import type {
-  Dnd5eAttackRollMode,
-  Dnd5eEnemyProximity,
-  Dnd5eMoveToward
-} from './attackRestrictions.js'
+import type { EnemyProximity } from '../../encounterEnemyProximity.js'
+import type { MoveToward } from '../../encounterMoveToward.js'
+import type { Dnd5eAttackRollMode } from './attackRestrictions.js'
 import {
   DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY,
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
@@ -40,8 +38,8 @@ export type Dnd5eEffectScalingFacts = Readonly<{
   selectedOptionalRiderIds: readonly string[]
   attackRollMode: Dnd5eAttackRollMode
   targetCreatureTypeId?: string
-  attackEnemyProximity?: Dnd5eEnemyProximity
-  attackMoveToward?: Dnd5eMoveToward
+  attackEnemyProximity?: EnemyProximity
+  attackMoveToward?: MoveToward
   attackTurnUses?: readonly string[]
   damageAddedDice?: readonly DamageAddedDieDto[]
   criticalExtraDice?: number
@@ -143,7 +141,7 @@ function parseSelectedOptionalRiderIds(value: RuleValue | undefined): readonly s
   return parsed
 }
 
-function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity | undefined {
+function parseEnemyProximity(value: RuleValue | undefined): EnemyProximity | undefined {
   if (value === undefined) return undefined
   if (typeof value !== 'string') unsupported('D&D enemy proximity is malformed.')
   let parsed: unknown
@@ -161,7 +159,7 @@ function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity 
   return { nearestFeet }
 }
 
-function parseMoveToward(value: RuleValue | undefined): Dnd5eMoveToward | undefined {
+function parseMoveToward(value: RuleValue | undefined): MoveToward | undefined {
   if (value === undefined) return undefined
   if (typeof value !== 'string') unsupported('D&D move toward target is malformed.')
   let parsed: unknown

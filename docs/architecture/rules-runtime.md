@@ -237,7 +237,7 @@ closed on a System with no roll-mode policy, an influence code the System does n
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
 `resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
-**System capability registries (RULES-2.T11a–c, current).** Every System capability is one
+**System capability registries (RULES-2.T11a–d, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the
 capability; a duplicate or non-UUID adapter identity throws at install. `find(gameSystemId)` is for
@@ -255,10 +255,12 @@ for a Creature's loadout armor class and the shield a two-handed grip stows;
 `d20TestDefinitionCapabilityRegistry` for the basic action check and death save graphs and their
 added-dice facts, where a System without death saves omits `deathSaveDefinition`;
 `contestCheckCapabilityRegistry` for the two-participant contest graph and its modifier fact keys;
-`optionalCombatPolicyCapabilityRegistry` for Overrun, Tumble and Cleaving, where a sealed passage
-choice uses `require` and Cleaving uses `find`, since a System without optional combat offers no
-Cleaving choice). Sealing and currentness of a pending contest is System-neutral
-(`encounterContestPendingContext.ts`). Installing them there keeps Encounter modules out of
+`optionalCombatPolicyCapabilityRegistry` for Disarm, Overrun, Tumble and Cleaving, where a sealed
+action or passage choice uses `require` and Cleaving uses `find`, since a System without optional combat offers no
+Cleaving choice). Sealing and currentness of a pending contest, the optional action selection contract
+(`encounterOptionalCombatActionSelection.ts`) and the Scene's enemy-proximity and move-toward facts
+are System-neutral (`encounterContestPendingContext.ts`). Encounter persistence rebuilds a stored
+contest's graph through `contestCheckCapabilityRegistry` from the Run's `gameSystemId`. Installing them there keeps Encounter modules out of
 the browser (ADR 0036 S6, `apps/web/src/lib/rulesRuntimeBoundary.test.ts`). Ability id↔code stays System vocabulary data (`system.abilities`).
 Neutral modules reach System behaviour only through these registries; the `systems/*` import
 allowlist (`scripts/systemsImportAllowlist.json`) only shrinks.

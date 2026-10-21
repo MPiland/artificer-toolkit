@@ -165,6 +165,25 @@ describe('installed D&D capability adapters', () => {
         passageAlreadyUsedThisTurn: false
       })
     ).toEqual({ kind: 'INERT' })
+    expect(
+      policy.prepareDisarmContest({
+        automationMode: 'MANUAL',
+        gameSystemId: DND5E_SYSTEM_ID,
+        optionalCombatSnapshot: null,
+        optionalCombatSnapshotChecksum: null,
+        attackerActorId: '00000000-0000-4000-8000-000000000703',
+        attackerSize: null,
+        heldItemId: null,
+        targetActorId: '00000000-0000-4000-8000-000000000702',
+        targetCheckDefinitionId: null,
+        targetEquipment: null,
+        targetItemOwnerState: null,
+        targetSize: null,
+        triggerCode: null,
+        sourceEquipment: null,
+        attack: null
+      })
+    ).toEqual({ kind: 'INERT' })
     expect(optionalCombatPolicyCapabilityRegistry.find(UNKNOWN_SYSTEM_ID)).toBeUndefined()
   })
 
