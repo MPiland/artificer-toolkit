@@ -3,7 +3,6 @@ import {
   type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesRequest
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import type { EncounterSealedChoiceSelection } from '@artificer-toolkit/rules-runtime/encounterSealedChoice'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
   actionTargetActorId,
@@ -102,42 +101,24 @@ import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
-import {
-  advanceNativeActionGraphs,
-  restoreHeldNativeActionCompletion
-} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import {
   holdForForcedMovementDestination,
   settleForcedMovementDestination
 } from '@artificer-toolkit/rules-runtime/encounterForcedMovementChoice'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import {
-  replayNativeActionReaction,
-  resolveNativeActionReaction
-} from '@artificer-toolkit/rules-runtime/encounterActionReaction'
-import { chosenEncounterReaction } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
-import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
-import { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encounterActionOnHit'
+import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import {
   onHitCandidates,
   onHitResourceConsumption,
   onHitSpellConsumption
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
-import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
-import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
-import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
-import type { SpatialPointDto } from '@artificer-toolkit/schema/shared/spatialFacts'
-import {
-  applyNativeReactionEffect,
-  discoverNativeAttackReaction
-} from './nativeEncounterAttackReaction.js'
-import type { NativeCastReactionAnswer } from './nativeEncounterCastReaction.js'
+import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
-import {
-  advanceNativeIncomingGate,
-  planNativeGatedAction,
-  type NativeIncomingGateAnswer
-} from './nativeEncounterIncomingGate.js'
+import { readNativePauseAnswer, settleNativePauseAnswer } from './nativePauseHandlers.js'
+import type { NativePauseAnswer } from './nativePauseTypes.js'
+import { createNativeCurrentReaction } from './nativePauseReaction.js'
+import { advanceNativeIncomingGate, planNativeGatedAction } from './nativeEncounterIncomingGate.js'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
   buildEncounterActionPendingSnapshot,
@@ -151,19 +132,11 @@ import {
   settleEncounterAttackRetarget,
   type EncounterAttackRetargetCandidate
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
-import type { EncounterAttackRetargetOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
-import {
-  withEncounterAppRoll,
-  type EncounterEvidenceAnswer
-} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import {
-  replayNativeActionLegendaryResistance,
-  resolveNativeActionLegendaryResistance
-} from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
+import { replayNativeActionLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import type { EncounterLegendaryResistanceOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { settleEncounterAttackActionHit } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
   encounterActorEffectiveSize,
@@ -172,10 +145,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
-import {
-  pendingSnapshotContinuation,
-  restoreEncounterActionPending
-} from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
+import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import {
   liveSessionEncounterActionPendingInputSchema,
@@ -296,7 +266,6 @@ export async function planNativeLiveEncounterAction(
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
   const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
   const areaSnapshot = admission.kind === 'ACTION_COMMAND' ? null : admission.areaSnapshot
-  let evidenceResolution: EncounterEvidenceAnswer | null = null
   let areaDecision: Extract<
     ResolveRuleOccurrenceInputDto['resolution'],
     { kind: 'AREA_LEGENDARY_RESISTANCE' }
@@ -305,30 +274,7 @@ export async function planNativeLiveEncounterAction(
     ResolveRuleOccurrenceInputDto['resolution'],
     { kind: 'FORCED_MOVEMENT' }
   > | null = null
-  let resistanceAnswer: {
-    offer: EncounterLegendaryResistanceOfferDto
-    selection: EncounterSealedChoiceSelection
-  } | null = null
-  let reactionAnswer: {
-    offer: EncounterReactionOfferDto
-    selection: EncounterSealedChoiceSelection
-  } | null = null
-  let castAnswer: NativeCastReactionAnswer | null = null
-  let gateAnswer: NativeIncomingGateAnswer | null = null
-  let retargetAnswer: {
-    offer: EncounterAttackRetargetOfferDto
-    selection: EncounterSealedChoiceSelection
-  } | null = null
-  let onHitAnswer: {
-    offer: EncounterOnHitOfferDto
-    selection: EncounterSealedChoiceSelection
-  } | null = null
-  let forcedMovementAnswer: {
-    offer: EncounterForcedMovementOfferDto
-    continuation: ServerRuleExecutionContinuationDto
-    outcomePhase: ReturnType<typeof restoreEncounterActionPending>['twoPhase']
-    position: SpatialPointDto
-  } | null = null
+  let pauseAnswer: NativePauseAnswer | null = null
   if (responseCommand) {
     if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
       throw new Error('The pending action snapshot is unavailable.')
@@ -341,81 +287,25 @@ export async function planNativeLiveEncounterAction(
     // An area's push pick is the area's own, never its pushed creature's save (D157).
     else if (areaSnapshot && resolution.kind === 'FORCED_MOVEMENT') areaLanding = resolution
     else {
-      const { pause } = snapshot.applicationContext
       const decision =
         resolution.kind === 'DECLINE' || resolution.kind === 'OPTION' ? resolution : null
-      // A d20 pause's answer is its own die, sealed to the request it was offered for.
-      const dice =
-        (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL') &&
-        snapshot.request.requestId === resolution.requestId
-          ? resolution
-          : null
-      switch (pause?.kind) {
-        case undefined:
-          if (
-            resolution.kind !== 'ENTER_DICE' &&
-            resolution.kind !== 'ENTER_INTEGER' &&
-            resolution.kind !== 'SYSTEM_ROLL'
-          )
-            throw new Error('The action requires dice or integer evidence.')
-          evidenceResolution = resolution
-          break
-        case 'LEGENDARY_RESISTANCE':
-          if (!decision) throw new Error('The action requires a Legendary Resistance decision.')
-          resistanceAnswer = { offer: pause.payload, selection: decision }
-          break
-        case 'REACTION':
-          if (!decision) throw new Error('The action requires a reaction decision.')
-          reactionAnswer = { offer: pause.payload, selection: decision }
-          break
-        case 'ATTACK_RETARGET':
-          if (!decision) throw new Error('The action requires a retarget decision.')
-          retargetAnswer = { offer: pause.payload, selection: decision }
-          break
-        case 'INCOMING_GATE':
-          // The attacker's save against a ward is its own d20: the answer settles it and the action replays.
-          if (!dice) throw new Error('The ward requires dice evidence.')
-          gateAnswer = {
-            offer: pause.payload,
-            continuation: pendingSnapshotContinuation(snapshot),
-            evidence: dice
-          }
-          break
-        case 'CAST_REACTION': {
-          const { check } = pause.payload
-          // A counter's check is its own d20: the answer settles it and never resumes the cast's graphs.
-          if (check) {
-            if (!dice) throw new Error('The counter requires dice evidence.')
-            castAnswer = {
-              kind: 'CHECK',
-              offer: { ...pause.payload, check },
-              continuation: pendingSnapshotContinuation(snapshot),
-              evidence: dice
-            }
-          } else {
-            if (!decision) throw new Error('The action requires a reaction decision.')
-            castAnswer = { kind: 'SELECTION', offer: pause.payload, selection: decision }
-          }
-          break
-        }
-        case 'ON_HIT':
-          if (!decision) throw new Error('The action requires an on-hit decision.')
-          onHitAnswer = { offer: pause.payload, selection: decision }
-          break
-        case 'FORCED_MOVEMENT':
-          if (
-            resolution.kind !== 'FORCED_MOVEMENT' ||
-            snapshot.request.requestId !== resolution.requestId
-          )
-            throw new Error('The action requires a forced-movement destination.')
-          forcedMovementAnswer = {
-            offer: pause.payload,
-            continuation: pendingSnapshotContinuation(snapshot),
-            outcomePhase: restoreEncounterActionPending(snapshot).twoPhase,
-            position: resolution.position
-          }
-          break
-      }
+      pauseAnswer = readNativePauseAnswer({
+        pause: snapshot.applicationContext.pause,
+        snapshot,
+        resolution,
+        decision,
+        dice:
+          (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL') &&
+          snapshot.request.requestId === resolution.requestId
+            ? resolution
+            : null,
+        evidence:
+          resolution.kind === 'ENTER_DICE' ||
+          resolution.kind === 'ENTER_INTEGER' ||
+          resolution.kind === 'SYSTEM_ROLL'
+            ? resolution
+            : null
+      })
     }
     const context = snapshot.applicationContext
     const root = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
@@ -424,10 +314,10 @@ export async function planNativeLiveEncounterAction(
       (areaSnapshot ?? snapshot).occurrenceId !== responseCommand.occurrenceId ||
       context.commandFingerprint !== admission.fingerprint ||
       checksumCanonicalJson(root) !== admission.fingerprint ||
-      (evidenceResolution !== null &&
-        (snapshot.request.requestId !== evidenceResolution.requestId ||
-          (context.d20Policy === null && evidenceResolution.kind === 'ENTER_DICE') ||
-          (context.d20Policy !== null && evidenceResolution.kind === 'ENTER_INTEGER')))
+      (pauseAnswer?.kind === 'EVIDENCE' &&
+        (snapshot.request.requestId !== pauseAnswer.answer.requestId ||
+          (context.d20Policy === null && pauseAnswer.answer.kind === 'ENTER_DICE') ||
+          (context.d20Policy !== null && pauseAnswer.answer.kind === 'ENTER_INTEGER')))
     )
       throw new Error('The pending action evidence is invalid.')
     // Contests (Disarm) and deferred Cleaving have their own planners; their evidence never
@@ -435,6 +325,11 @@ export async function planNativeLiveEncounterAction(
     if (context.contest || snapshot.deferredCleaving || root.optionalCombatIntent != null)
       throw new Error('The pending action is not an ordinary action.')
   }
+  const evidenceResolution = pauseAnswer?.kind === 'EVIDENCE' ? pauseAnswer.answer : null
+  const retargetAnswer = pauseAnswer?.kind === 'ATTACK_RETARGET' ? pauseAnswer.answer : null
+  const castAnswer = pauseAnswer?.kind === 'CAST_REACTION' ? pauseAnswer.answer : null
+  const gateAnswer = pauseAnswer?.kind === 'INCOMING_GATE' ? pauseAnswer.answer : null
+  const forcedMovementAnswer = pauseAnswer?.kind === 'FORCED_MOVEMENT' ? pauseAnswer.answer : null
   // A creature chosen at a retarget continues the action as that creature's: every later pause and the
   // terminal commit carry the retargeted command, and the pause that offered it is replaced.
   const retargetOption = retargetAnswer
@@ -1275,35 +1170,20 @@ export async function planNativeLiveEncounterAction(
       }),
     capture
   })
-  /**
-   * The target's reaction as it is now. A used reaction also carries what it does to the attack it
-   * answered: its effect plan and the attack's binding once that effect holds.
-   */
-  const currentReaction = async (used: boolean, answering: string, critical: boolean) => {
-    const [found] = await discoverReaction({ answering, critical })
-    if (!found) throw new Error('Reaction evidence is stale.')
-    const applied = used
-      ? await applyNativeReactionEffect({
-          reaction: found,
-          runtime: executionOptions.runtime,
-          occurrenceId,
-          commandId: command.commandId,
-          occurredAt,
-          activeEffectsByActorId,
-          // The answered attack keeps the decoy it was rolled against.
-          prepareAttack: (reactedTargets: typeof movementTargets) =>
-            prepareAttackAs(reactedTargets, prepared.attackDecoy),
-          loadTarget
-        })
-      : null
-    return {
-      found,
-      applied,
-      candidate: found.candidate,
-      targetStateChecksum,
-      adjustedBinding: applied?.adjustedBinding ?? prepared.binding
-    }
-  }
+  const currentReaction = createNativeCurrentReaction({
+    discoverReaction,
+    runtime: executionOptions.runtime,
+    occurrenceId,
+    commandId: command.commandId,
+    occurredAt,
+    activeEffectsByActorId,
+    // The answered attack keeps the decoy it was rolled against.
+    prepareAttack: (reactedTargets: typeof movementTargets) =>
+      prepareAttackAs(reactedTargets, prepared.attackDecoy),
+    loadTarget,
+    targetStateChecksum,
+    binding: prepared.binding
+  })
   // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
   // pay them. An action that already spends a slot offers no slot rider, and one that already spends a
   // pool offers no pool rider.
@@ -1322,70 +1202,14 @@ export async function planNativeLiveEncounterAction(
           resources: prepared.source.effectivePolicyOutput.resources
         })
       : []
-  const answered = resistanceAnswer
-    ? await resolveNativeActionLegendaryResistance({
-        ...actionSource,
-        ...resistanceAnswer,
-        ...(await currentResistance())
-      })
-    : null
-  const answeredReaction = reactionAnswer
-    ? await currentReaction(
-        reactionAnswer.selection.kind === 'OPTION',
-        chosenEncounterReaction(reactionAnswer.offer, reactionAnswer.selection).actionId,
-        reactionAnswer.offer.originalD20.resultPath === 'ON_CRIT'
-      )
-    : null
-  const reactionAnswered =
-    reactionAnswer && answeredReaction
-      ? {
-          ...answeredReaction,
-          ...(await resolveNativeActionReaction({
-            ...actionSource,
-            ...reactionAnswer,
-            ...answeredReaction,
-            onHitCandidates: onHitNow
-          }))
-        }
-      : null
-  // A held on-hit offer that follows a used reaction answers the hit as that reaction left it.
-  const heldReaction = onHitAnswer?.offer.reaction
-    ? {
-        reaction: onHitAnswer.offer.reaction,
-        testExecution: onHitAnswer.offer.testExecution,
-        testRollEvidence: onHitAnswer.offer.testD20
-      }
-    : null
-  const heldReactionNow = heldReaction
-    ? await currentReaction(
-        heldReaction.reaction.selection === 'USE',
-        heldReaction.reaction.reaction.actionId,
-        heldReaction.testExecution.outputs.resultPath === 'ON_CRIT'
-      )
-    : null
-  const answeredOnHit = onHitAnswer
-    ? await resolveNativeActionOnHit({
-        ...actionSource,
-        ...onHitAnswer,
-        candidates: onHitNow,
-        adjustedBinding: heldReactionNow?.adjustedBinding ?? null
-      })
-    : null
-  // A held destination pick resumes the action its OUTCOME already settled, running no graph again.
-  const heldCompletion = forcedMovementAnswer
-    ? restoreHeldNativeActionCompletion({
-        adapter: prepared.adapter,
-        binding: prepared.binding,
-        occurrenceId,
-        offer: forcedMovementAnswer.offer,
-        outcomePhase: forcedMovementAnswer.outcomePhase
-      })
-    : null
+  const settled = await settleNativePauseAnswer(pauseAnswer, {
+    actionSource,
+    currentResistance,
+    currentReaction,
+    onHitNow
+  })
   const execution =
-    heldCompletion ??
-    answered?.execution ??
-    reactionAnswered?.execution ??
-    answeredOnHit?.execution ??
+    settled?.execution ??
     (await advanceNativeActionGraphs({
       ...actionSource,
       attackSight: prepared.attackSight,
@@ -1400,7 +1224,7 @@ export async function planNativeLiveEncounterAction(
     }))
   const retained = resume?.pending.twoPhase ?? forcedMovementAnswer?.outcomePhase
   const resistance =
-    answered?.resistance ??
+    settled?.resistance ??
     (execution.kind !== 'PENDING' && retained?.phase === 'OUTCOME' && retained.legendaryResistance
       ? await replayNativeActionLegendaryResistance({
           ...actionSource,
@@ -1408,12 +1232,13 @@ export async function planNativeLiveEncounterAction(
           ...(await currentResistance())
         })
       : null)
+  const heldReaction = settled?.heldReaction ?? null
   const retainedReaction =
-    execution.kind !== 'PENDING' && !reactionAnswered
+    execution.kind !== 'PENDING' && !settled?.reaction
       ? (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
       : null
   const replayedReaction =
-    heldReactionNow ??
+    settled?.heldReactionNow ??
     (retainedReaction
       ? await currentReaction(
           retainedReaction.reaction!.selection === 'USE',
@@ -1424,7 +1249,7 @@ export async function planNativeLiveEncounterAction(
   const reaction =
     execution.kind === 'PENDING'
       ? null
-      : (reactionAnswered ??
+      : (settled?.reaction ??
         (retainedReaction && replayedReaction
           ? {
               ...replayedReaction,
@@ -1440,7 +1265,7 @@ export async function planNativeLiveEncounterAction(
   // What an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
   // fence above was taken on the unspent attack.
   const chosenOnHit =
-    answeredOnHit?.audit.option ??
+    settled?.onHit?.audit.option ??
     (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
   const onHitSpend = (() => {
     if (!chosenOnHit || prepared.source.kind !== 'CHARACTER_ACTION') return null
