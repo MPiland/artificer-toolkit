@@ -41,7 +41,7 @@ import {
   dnd5eMovementInterruptionAuthorizationOperation,
   dnd5ePathGatedTargetProposalOperations
 } from './effectActionOperationRegistry.js'
-import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from './attackKind.js'
+import { dnd5eAttackKind, isDnd5eMeleeAttackKind, isDnd5eSpellAttackKind } from './attackKind.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import { dnd5eConcentrationDamageDcOperation } from './concentrationPolicy.js'
 import { dnd5eLegendaryActionEligibilityOperation } from './encounterLifecyclePolicy.js'
@@ -57,6 +57,8 @@ export const dnd5eRulesRuntimeRegistration = {
   concentrationMaintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
   isMeleeAttackTrigger: (triggerCode: string) =>
     isDnd5eMeleeAttackKind(dnd5eAttackKind(triggerCode)),
+  isSpellAttackTrigger: (triggerCode: string) =>
+    isDnd5eSpellAttackKind(dnd5eAttackKind(triggerCode)),
   compileCreatureRuleFacts: compileDnd5eCreatureRuleFacts,
   evaluateCharacterActions: dnd5eCharacterPolicyRegistration.evaluateCharacterActions,
   evaluateCharacterGrantFold: dnd5eCharacterPolicyRegistration.evaluateCharacterGrantFold,

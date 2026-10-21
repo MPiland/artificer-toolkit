@@ -3,10 +3,10 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 
 /**
- * The events an Encounter raises on the creature that holds effects (ADR 0039 decision 4). The kinds
- * are structural facts every System has; a System's event vocabulary binds its authored codes to
- * them, so shared code never names a System's events. A rest is the Sheet's event, so only its
- * subscription is here. See the rules-runtime guide's "Event hooks" section.
+ * The events an Encounter raises on the creature that holds effects or reactions (ADR 0039 decision
+ * 4). The kinds are structural facts every System has; a System's event vocabulary binds its
+ * authored codes to them, so shared code never names a System's events. A rest is the Sheet's event,
+ * so only its subscription is here. See the rules-runtime guide's "Event hooks" section.
  */
 export type EncounterEvent =
   /** The holder takes an action, which may make an attack roll or cast a spell, aimed at an enemy or not. */
@@ -56,6 +56,17 @@ export type EncounterEvent =
   | { kind: 'MOVED' }
   /** The holder leaves the area holding the effect. */
   | { kind: 'AREA_LEFT' }
+  /** An attack hits the holder: melee or not, by an attacker it sees or not, dealing these damage types. */
+  | {
+      kind: 'HIT_BY_ATTACK'
+      melee: boolean
+      attackerSeen: boolean
+      damageTypeIds: ReadonlySet<string>
+    }
+  /** Another creature casts a spell. */
+  | { kind: 'SPELL_CAST_BY_OTHER' }
+  /** The holder is chosen as a target of a cast of `castOwnerId` (the spell cast). */
+  | { kind: 'TARGETED_BY_CAST'; castOwnerId: string }
 
 /** What an authored subscription listens for: an event kind and the filters it adds. */
 export type EncounterEventSubscription =
@@ -91,6 +102,20 @@ export type EncounterEffectHook =
       subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }>
       trigger: ActiveEffectRepeatTrigger
     }
+
+/**
+ * A reaction an event offers its holder, by the event and the authored trigger it met. A damage-type
+ * reaction names the types that triggered it (those it names that the hit deals), which its effect
+ * may bind; any other names none.
+ */
+export type EncounterReactionHook =
+  | {
+      event: 'HIT_BY_ATTACK'
+      trigger: 'ATTACKED_SELF' | 'DAMAGE_TAKEN'
+      triggerDamageTypeIds: readonly string[]
+    }
+  | { event: 'SPELL_CAST_BY_OTHER'; trigger: 'SPELL_CAST' }
+  | { event: 'TARGETED_BY_CAST'; trigger: 'TARGETED_SELF' }
 
 /** The recurrence a stored effect authors its subscriptions in. */
 export type EncounterEffectRecurrence = Extract<
