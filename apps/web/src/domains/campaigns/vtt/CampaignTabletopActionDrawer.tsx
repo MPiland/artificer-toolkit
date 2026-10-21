@@ -1475,7 +1475,7 @@ export function CampaignTabletopActionDrawer({
               onEnd={onEndHeldGrant}
             />
           ) : null}
-          {currentActor && !actionsLoading && !actionChoicesError && moveOffers.length ? (
+          {currentActor && !actionsLoading && !actionChoicesError && effectOffers.length ? (
             <CampaignTabletopEffectOffers
               actorId={currentActor.id}
               chosenOfferKey={chosenOffer ? chosenOfferKey : null}
@@ -1486,7 +1486,7 @@ export function CampaignTabletopActionDrawer({
               holderLabel={(holderActorId) =>
                 encounter.actors.find((actor) => actor.id === holderActorId)?.label ?? 'a creature'
               }
-              offers={moveOffers}
+              offers={effectOffers}
               sceneContext={(offer, newHolderActorId) => {
                 const sourceTokenId = tokenIdOfActor(offer.holderActorId)
                 const targetTokenId = tokenIdOfActor(newHolderActorId)
@@ -1502,6 +1502,7 @@ export function CampaignTabletopActionDrawer({
               targetActorId={offerTargetActorId}
               onChooseOffer={setChosenOfferKey}
               onMove={onMoveHeldEffect}
+              onResolve={onResolve}
               onPickOnMap={() =>
                 onPickTargetOnMap({
                   actionId: null,

@@ -389,7 +389,13 @@ export const encounterEffectOfferChoiceDtoSchema = lazySchema(() => {
       ...base,
       kind: z.literal('REPEAT_SOURCE_PATH'),
       /** The action the client resolves against the holder (D166); it spends the offer's activation. */
-      actionId: z.string().check(z.minLength(1))
+      actionId: z.string().check(z.minLength(1)),
+      /** The cast's name, e.g. the spell, or a generic name when the source is hidden from the reader. */
+      label: labelSchema,
+      /** The level the cast froze, when the repeat scales with it. */
+      castLevel: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(9))),
+      /** The saving throw DC the cast froze, when the repeat forces a save. */
+      dc: z.optional(z.number().check(z.int()))
     })
   ])
 })
