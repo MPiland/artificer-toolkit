@@ -3323,7 +3323,8 @@
                 "after": ["RULES-2.T6b"]
               },
               "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase.",
-              "note": "From T6b: boundedSingleDiceCount catches Dnd5eEffectActionCompilerError, but parseBoundedDiceConfiguration throws CharacterRuleActionUnsupportedCompilationError, so malformed dice propagate instead of returning null (pre-existing). Fix with a regression test."
+              "note": "From T6b: boundedSingleDiceCount catches Dnd5eEffectActionCompilerError, but parseBoundedDiceConfiguration throws CharacterRuleActionUnsupportedCompilationError, so malformed dice propagate instead of returning null (pre-existing). Fix with a regression test.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T6d",
