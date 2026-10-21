@@ -14264,7 +14264,8 @@
                   "SPELLS-4.T2c2"
                 ]
               },
-              "text": "Join SPELLS-4.T2c: Bardic Inspiration, Peerless Skill, Cutting Words (with resource uses), Dark One's Own Luck. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2c: Bardic Inspiration, Peerless Skill, Cutting Words (with resource uses), Dark One's Own Luck. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T4e",
@@ -14959,7 +14960,8 @@
                   "SPELLS-31.T1"
                 ]
               },
-              "text": "New option (D156 SPELLS-31.T3a ruling): optionalOnHit gains the RESOURCE_POOL cost D123 names ({ kind: 'RESOURCE_POOL', chargeId, cost }) in the onHitChoice offer, transport and payment path. Converts Stunning Strike, with an authoring-parity proof; the kind deleted."
+              "text": "New option (D156 SPELLS-31.T3a ruling): optionalOnHit gains the RESOURCE_POOL cost D123 names ({ kind: 'RESOURCE_POOL', chargeId, cost }) in the onHitChoice offer, transport and payment path. Converts Stunning Strike, with an authoring-parity proof; the kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5s",
@@ -15562,7 +15564,8 @@
                   "SPELLS-4.T2i2b"
                 ]
               },
-              "text": "regeneration, Undead Fortitude, hit point threshold riders (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Also removes the Giant Centipede Bite and Solar Slaying Longbow SRD_CREATURE_ATTACK_UNSUPPORTED entries, with a room proof for each attack (from ATTACK-5.T4d/T4e, 2026-10-20)."
+              "text": "regeneration, Undead Fortitude, hit point threshold riders (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Also removes the Giant Centipede Bite and Solar Slaying Longbow SRD_CREATURE_ATTACK_UNSUPPORTED entries, with a room proof for each attack (from ATTACK-5.T4d/T4e, 2026-10-20).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4j",
