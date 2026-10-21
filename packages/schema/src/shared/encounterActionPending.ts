@@ -1,23 +1,16 @@
 import { z, lazySchema } from '../zod.js'
+import { encounterActionPauseDtoSchema } from './encounterPause.js'
 import {
   directActionTwoPhaseDtoSchema,
-  encounterLegendaryResistanceOfferDtoSchema,
   validateEncounterLegendaryResistancePin
 } from './ruleExecutionDirectActionPendingContexts.js'
 import {
   serverRuleExecutionD20BeliefDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
+import { validateEncounterOnHitOption } from './ruleExecutionOnHitChoice.js'
 import {
-  encounterOnHitOfferDtoSchema,
-  validateEncounterOnHitOption
-} from './ruleExecutionOnHitChoice.js'
-import {
-  encounterAttackRetargetOfferDtoSchema,
-  encounterCastReactionOfferDtoSchema,
   encounterFailedCounterDtoSchema,
-  encounterIncomingGateOfferDtoSchema,
-  encounterReactionOfferDtoSchema,
   validateEncounterReactionPin
 } from './ruleExecutionReactionChoice.js'
 import {
@@ -26,7 +19,6 @@ import {
   ruleExecutionUuidSchema
 } from './ruleExecutionPrimitives.js'
 import { serverContestCheckPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
-import { encounterForcedMovementOfferDtoSchema } from './ruleExecutionForcedMovementChoice.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 
 // Explicitly typed so the pending-context declaration stays within the compiler's size limit (TS7056).
@@ -73,33 +65,10 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
       heldD20: z.optional(encounterActionHeldD20DtoSchema),
       /**
-       * Set while the target's failed save waits on its Legendary Resistance choice. The snapshot's
-       * continuation is that choice; the TEST stays unsettled until the answer.
+       * What the snapshot's continuation waits on, when it is a choice or a d20 other than the action's
+       * own (ADR 0039 decision 3). Its requirements of the rest of the context are checked per kind below.
        */
-      legendaryResistance: z.optional(encounterLegendaryResistanceOfferDtoSchema),
-      /**
-       * Set while a hit attack waits on its target's reaction decision. The snapshot's continuation is
-       * that choice; the TEST stays unsettled until the answer.
-       */
-      reactionChoice: z.optional(encounterReactionOfferDtoSchema),
-      /**
-       * Set while a cast waits, before it executes, on a creature's chance to counter it. The roller is
-       * that creature; the snapshot's continuation is its sealed reaction choice. No cast state is held:
-       * the cast replays from the command, and the declined reactors keep the replay deterministic.
-       */
-      castReaction: z.optional(encounterCastReactionOfferDtoSchema),
-      /**
-       * Set while an attack or harmful spell aimed at a warded creature waits, before it does anything, on
-       * its attacker's save against the ward. The roller is the attacker and the snapshot's continuation is
-       * that one d20; no action state is held, the action replays from the command once the save is rolled.
-       */
-      incomingGate: z.optional(encounterIncomingGateOfferDtoSchema),
-      /**
-       * Set while an action a ward stopped waits on its attacker's choice to turn it on another creature
-       * before it is lost. The roller is the attacker and the snapshot's continuation is that choice; the
-       * action replays from the command (retargeted when a creature is chosen) once it is answered.
-       */
-      attackRetarget: z.optional(encounterAttackRetargetOfferDtoSchema),
+      pause: z.nullable(encounterActionPauseDtoSchema),
       /**
        * The ward effect whose save the attacker already passed, carried by every later pause of the action
        * so its replay does not ask for the save again.
@@ -111,128 +80,112 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        */
       failedCounters: z.optional(
         z.array(encounterFailedCounterDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-      ),
-      /**
-       * Set while a hit waits on its attacker's choice to add an optional on-hit rider, after any
-       * reaction to the hit has settled. The snapshot's continuation is that choice; the TEST stays
-       * unsettled until the answer.
-       */
-      onHitChoice: z.optional(encounterOnHitOfferDtoSchema),
-      /**
-       * Set while a settled action waits on its source's choice of where a push leaves a creature
-       * (D157). The roller is the source; the snapshot's continuation is that choice, and the settled
-       * OUTCOME's phase stays in `twoPhase` so the answer commits the action unchanged.
-       */
-      forcedMovementDestination: z.optional(encounterForcedMovementOfferDtoSchema)
+      )
     })
     .check(
       z.superRefine((value, context) => {
-        if (value.legendaryResistance) {
-          validateEncounterLegendaryResistancePin(value.legendaryResistance.resistance, context, [
-            'legendaryResistance',
-            'resistance'
-          ])
-          if (
-            value.twoPhase?.phase !== 'TEST' ||
-            value.rollerActorId !== value.legendaryResistance.resistance.targetActorId ||
-            value.d20Policy !== null ||
-            value.contest ||
-            value.heldD20
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['legendaryResistance'],
-              message:
-                'A Legendary Resistance offer belongs to a TEST held for the resisting creature.'
-            })
+        const { pause } = value
+        if (pause) {
+          const issue = (message: string) =>
+            context.addIssue({ code: 'custom', path: ['pause'], message })
+          // A pause's continuation is the pause itself: it holds no d20 of the action's own.
+          const holdsActionD20 = value.d20Policy !== null || !!value.contest || !!value.heldD20
+          const test = value.twoPhase?.phase === 'TEST'
+          switch (pause.kind) {
+            case 'LEGENDARY_RESISTANCE':
+              validateEncounterLegendaryResistancePin(pause.payload.resistance, context, [
+                'pause',
+                'payload',
+                'resistance'
+              ])
+              if (
+                holdsActionD20 ||
+                !test ||
+                value.rollerActorId !== pause.payload.resistance.targetActorId
+              )
+                issue(
+                  'A Legendary Resistance offer belongs to a TEST held for the resisting creature.'
+                )
+              break
+            case 'REACTION':
+              for (const [index, reaction] of pause.payload.reactions.entries())
+                validateEncounterReactionPin(reaction, context, [
+                  'pause',
+                  'payload',
+                  'reactions',
+                  index
+                ])
+              if (
+                holdsActionD20 ||
+                !test ||
+                pause.payload.reactions.some(
+                  ({ reactorActorId }) => reactorActorId !== value.rollerActorId
+                )
+              )
+                issue('A reaction offer belongs to a TEST held for the reacting creature.')
+              break
+            case 'CAST_REACTION':
+              for (const [index, reaction] of pause.payload.reactions.entries())
+                validateEncounterReactionPin(reaction, context, [
+                  'pause',
+                  'payload',
+                  'reactions',
+                  index
+                ])
+              if (
+                holdsActionD20 ||
+                value.twoPhase !== null ||
+                pause.payload.reactions.some(
+                  ({ reactorActorId }) => reactorActorId !== value.rollerActorId
+                ) ||
+                pause.payload.declinedReactorActorIds.includes(value.rollerActorId) ||
+                (pause.payload.check !== undefined && pause.payload.reactions.length !== 1)
+              )
+                issue('A cast reaction offer belongs to a cast held before it executes.')
+              break
+            case 'INCOMING_GATE':
+              if (
+                holdsActionD20 ||
+                value.twoPhase !== null ||
+                value.passedIncomingGate !== undefined ||
+                pause.payload.holderActorId === value.rollerActorId
+              )
+                issue('An incoming gate save belongs to an action held before it executes.')
+              break
+            case 'ATTACK_RETARGET':
+              if (
+                holdsActionD20 ||
+                value.twoPhase !== null ||
+                value.passedIncomingGate !== undefined ||
+                value.failedCounters !== undefined ||
+                pause.payload.gate.holderActorId === value.rollerActorId ||
+                pause.payload.options.some(
+                  ({ targetActorId }) => targetActorId === value.rollerActorId
+                )
+              )
+                issue('A retarget offer belongs to an action a ward stopped before it executed.')
+              break
+            case 'ON_HIT':
+              for (const [index, option] of pause.payload.options.entries())
+                validateEncounterOnHitOption(option, pause.payload.testExecutionChecksum, context, [
+                  'pause',
+                  'payload',
+                  'options',
+                  index
+                ])
+              if (holdsActionD20 || !test)
+                issue('An on-hit offer belongs to a TEST held for the attacker.')
+              break
+            case 'FORCED_MOVEMENT':
+              if (holdsActionD20 || test)
+                issue(
+                  'A forced-movement destination belongs to a settled action held for its source.'
+                )
+              break
+          }
         }
-        if (value.reactionChoice) {
-          for (const [index, reaction] of value.reactionChoice.reactions.entries())
-            validateEncounterReactionPin(reaction, context, ['reactionChoice', 'reactions', index])
-          if (
-            value.legendaryResistance ||
-            value.twoPhase?.phase !== 'TEST' ||
-            value.reactionChoice.reactions.some(
-              ({ reactorActorId }) => reactorActorId !== value.rollerActorId
-            ) ||
-            value.d20Policy !== null ||
-            value.contest ||
-            value.heldD20
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['reactionChoice'],
-              message: 'A reaction offer belongs to a TEST held for the reacting creature.'
-            })
-        }
-        if (value.castReaction) {
-          for (const [index, reaction] of value.castReaction.reactions.entries())
-            validateEncounterReactionPin(reaction, context, ['castReaction', 'reactions', index])
-          if (
-            value.legendaryResistance ||
-            value.reactionChoice ||
-            value.onHitChoice ||
-            value.twoPhase !== null ||
-            value.d20Policy !== null ||
-            value.contest ||
-            value.heldD20 ||
-            value.castReaction.reactions.some(
-              ({ reactorActorId }) => reactorActorId !== value.rollerActorId
-            ) ||
-            value.castReaction.declinedReactorActorIds.includes(value.rollerActorId) ||
-            (value.castReaction.check !== undefined && value.castReaction.reactions.length !== 1)
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['castReaction'],
-              message: 'A cast reaction offer belongs to a cast held before it executes.'
-            })
-        }
-        if (value.incomingGate) {
-          if (
-            value.legendaryResistance ||
-            value.reactionChoice ||
-            value.castReaction ||
-            value.onHitChoice ||
-            value.forcedMovementDestination ||
-            value.attackRetarget ||
-            value.twoPhase !== null ||
-            value.d20Policy !== null ||
-            value.contest ||
-            value.heldD20 ||
-            value.passedIncomingGate !== undefined ||
-            value.incomingGate.holderActorId === value.rollerActorId
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['incomingGate'],
-              message: 'An incoming gate save belongs to an action held before it executes.'
-            })
-        }
-        if (
-          value.attackRetarget &&
-          (value.legendaryResistance ||
-            value.reactionChoice ||
-            value.castReaction ||
-            value.onHitChoice ||
-            value.forcedMovementDestination ||
-            value.twoPhase !== null ||
-            value.d20Policy !== null ||
-            value.contest ||
-            value.heldD20 ||
-            value.passedIncomingGate !== undefined ||
-            value.failedCounters !== undefined ||
-            value.attackRetarget.gate.holderActorId === value.rollerActorId ||
-            value.attackRetarget.options.some(
-              ({ targetActorId }) => targetActorId === value.rollerActorId
-            ))
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['attackRetarget'],
-            message: 'A retarget offer belongs to an action a ward stopped before it executed.'
-          })
-        const chain = value.castReaction?.chain?.counters ?? []
+        const castReaction = pause?.kind === 'CAST_REACTION' ? pause.payload : undefined
+        const chain = castReaction?.chain?.counters ?? []
         const failedReactors = (value.failedCounters ?? []).map(
           ({ reaction }) => reaction.reactorActorId
         )
@@ -240,7 +193,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
         const usedReactors = [...failedReactors, ...chainReactors]
         if (
           new Set(usedReactors).size !== usedReactors.length ||
-          (value.castReaction && usedReactors.includes(value.rollerActorId)) ||
+          (castReaction && usedReactors.includes(value.rollerActorId)) ||
           chain.some(
             ({ againstActorId }, index) => index > 0 && againstActorId !== chainReactors[index - 1]
           )
@@ -250,45 +203,6 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
             path: ['failedCounters'],
             message:
               'Each reactor uses one counter in a cast, is not offered it again, and each standing counter answers the one before it.'
-          })
-        if (value.onHitChoice) {
-          for (const [index, option] of value.onHitChoice.options.entries())
-            validateEncounterOnHitOption(option, value.onHitChoice.testExecutionChecksum, context, [
-              'onHitChoice',
-              'options',
-              index
-            ])
-          if (
-            value.legendaryResistance ||
-            value.reactionChoice ||
-            value.castReaction ||
-            value.twoPhase?.phase !== 'TEST' ||
-            value.d20Policy !== null ||
-            value.contest ||
-            value.heldD20
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['onHitChoice'],
-              message: 'An on-hit offer belongs to a TEST held for the attacker.'
-            })
-        }
-        if (
-          value.forcedMovementDestination &&
-          (value.legendaryResistance ||
-            value.reactionChoice ||
-            value.castReaction ||
-            value.onHitChoice ||
-            value.twoPhase?.phase === 'TEST' ||
-            value.d20Policy !== null ||
-            value.contest ||
-            value.heldD20)
-        )
-          context.addIssue({
-            code: 'custom',
-            path: ['forcedMovementDestination'],
-            message:
-              'A forced-movement destination belongs to a settled action held for its source.'
           })
         if (value.heldD20 && value.d20Policy === null && !value.contest)
           context.addIssue({

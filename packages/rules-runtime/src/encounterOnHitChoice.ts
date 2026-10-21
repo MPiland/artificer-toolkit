@@ -12,14 +12,17 @@ import type {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { createReactionChoiceDefinition, startReactionChoice } from './reactionChoiceDefinition.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import {
+  chosenEncounterSealedOption,
+  encounterSealedChoiceIndex,
+  openEncounterSealedChoice,
+  settleEncounterSealedChoice,
+  type EncounterSealedChoiceSelection
+} from './encounterSealedChoice.js'
 
 /** The System-owned bounded-choice graph that holds an on-hit offer until its attacker decides. */
 export const ENCOUNTER_ON_HIT_CHOICE_DEFINITION_ID = '8e5c2f0a-3d71-4b9e-a6c4-1f7d92b05e38'
-
-/** What the attacker answers: declining every optional rider, or the one way of paying for one. */
-export type EncounterOnHitSelection = { kind: 'DECLINE' } | { kind: 'OPTION'; optionId: string }
 
 /** One way the attacker could pay for an optional on-hit rider as things stand now. */
 export type EncounterOnHitCandidate = EncounterOnHitCost
@@ -42,26 +45,27 @@ export function openEncounterOnHitChoice(input: {
   gameSystemId: string
   optionCount: number
 }): Promise<ServerRuleExecutionContinuationDto> {
-  return startReactionChoice({
-    runtime: input.runtime,
-    occurrenceId: input.occurrenceId,
-    published: createReactionChoiceDefinition({
+  return openEncounterSealedChoice({
+    ...input,
+    graph: {
       definitionId: ENCOUNTER_ON_HIT_CHOICE_DEFINITION_ID,
       gameSystemId: input.gameSystemId
-    }),
-    optionCount: input.optionCount + 1
+    },
+    declinable: true
   })
 }
 
 /** The option a decision answers, or null for a decline. An option the offer never issued is refused. */
 export function chosenEncounterOnHit(
   offer: Pick<EncounterOnHitOfferDto, 'options'>,
-  selection: EncounterOnHitSelection
+  selection: EncounterSealedChoiceSelection
 ): EncounterOnHitOptionDto | null {
-  if (selection.kind === 'DECLINE') return null
-  const chosen = offer.options.find((option) => option.useOptionId === selection.optionId)
-  if (!chosen) throw new Error('On-hit selection was not issued.')
-  return chosen
+  return chosenEncounterSealedOption({
+    options: offer.options,
+    optionId: (option) => option.useOptionId,
+    selection,
+    label: 'On-hit'
+  })
 }
 
 /** The record of a decided offer that the OUTCOME it selects is sealed against. */
@@ -90,7 +94,7 @@ export async function settleEncounterOnHitChoice(input: {
   }
   offer: EncounterOnHitOfferDto
   candidates: readonly EncounterOnHitCandidate[]
-  selection: EncounterOnHitSelection
+  selection: EncounterSealedChoiceSelection
 }) {
   const { boundary, offer } = input
   const option = chosenEncounterOnHit(offer, input.selection)
@@ -107,16 +111,11 @@ export async function settleEncounterOnHitChoice(input: {
       ))
   )
     throw new Error('On-hit evidence is stale.')
-  const selectedIndex = option ? offer.options.indexOf(option) + 1 : 0
-  const continuation = await openEncounterOnHitChoice({
-    ...input,
-    optionCount: offer.options.length
+  await settleEncounterSealedChoice({
+    runtime: input.runtime,
+    continuation: await openEncounterOnHitChoice({ ...input, optionCount: offer.options.length }),
+    selectedIndex: encounterSealedChoiceIndex(offer.options, option),
+    label: 'On-hit'
   })
-  const choice = await input.runtime.resume({
-    continuation,
-    response: { requestId: continuation.request.requestId, value: selectedIndex }
-  })
-  if (choice.status !== 'COMPLETE' || choice.outputs.selectedIndex !== selectedIndex)
-    throw new Error('On-hit choice did not settle its exact selection.')
   return option
 }

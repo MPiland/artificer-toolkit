@@ -7,16 +7,17 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
-import { createReactionChoiceDefinition, startReactionChoice } from './reactionChoiceDefinition.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import {
+  chosenEncounterSealedOption,
+  encounterSealedChoiceIndex,
+  openEncounterSealedChoice,
+  settleEncounterSealedChoice,
+  type EncounterSealedChoiceSelection
+} from './encounterSealedChoice.js'
 
 /** The System-owned bounded-choice graph that holds a retarget offer until its attacker decides. */
 export const ENCOUNTER_ATTACK_RETARGET_CHOICE_DEFINITION_ID = '4b8d1e6a-7c93-4f25-b0a8-d3e5f9172c64'
-
-/** What the attacker answers: letting the action be lost, or the one creature to turn it on. */
-export type EncounterAttackRetargetSelection =
-  | { kind: 'DECLINE' }
-  | { kind: 'OPTION'; optionId: string }
 
 /** A creature the lost action could be turned on, with its token on the action's Scene when it names one. */
 export type EncounterAttackRetargetCandidate = { actorId: string; tokenId: string | null }
@@ -46,26 +47,27 @@ export function openEncounterAttackRetargetChoice(input: {
   gameSystemId: string
   optionCount: number
 }): Promise<ServerRuleExecutionContinuationDto> {
-  return startReactionChoice({
-    runtime: input.runtime,
-    occurrenceId: input.occurrenceId,
-    published: createReactionChoiceDefinition({
+  return openEncounterSealedChoice({
+    ...input,
+    graph: {
       definitionId: ENCOUNTER_ATTACK_RETARGET_CHOICE_DEFINITION_ID,
       gameSystemId: input.gameSystemId
-    }),
-    optionCount: input.optionCount + 1
+    },
+    declinable: true
   })
 }
 
 /** The creature a decision turns the action on, or null for a decline. An option never offered is refused. */
 export function chosenEncounterAttackRetarget(
   offer: Pick<EncounterAttackRetargetOfferDto, 'options'>,
-  selection: EncounterAttackRetargetSelection
+  selection: EncounterSealedChoiceSelection
 ): EncounterAttackRetargetOptionDto | null {
-  if (selection.kind === 'DECLINE') return null
-  const chosen = offer.options.find((option) => option.useOptionId === selection.optionId)
-  if (!chosen) throw new Error('Retarget selection was not issued.')
-  return chosen
+  return chosenEncounterSealedOption({
+    options: offer.options,
+    optionId: (option) => option.useOptionId,
+    selection,
+    label: 'Retarget'
+  })
 }
 
 /**
@@ -97,19 +99,17 @@ export async function settleEncounterAttackRetarget(input: {
   occurrenceId: string
   gameSystemId: string
   offer: EncounterAttackRetargetOfferDto
-  selection: EncounterAttackRetargetSelection
+  selection: EncounterSealedChoiceSelection
 }) {
   const option = chosenEncounterAttackRetarget(input.offer, input.selection)
-  const selectedIndex = option ? input.offer.options.indexOf(option) + 1 : 0
-  const continuation = await openEncounterAttackRetargetChoice({
-    ...input,
-    optionCount: input.offer.options.length
+  await settleEncounterSealedChoice({
+    runtime: input.runtime,
+    continuation: await openEncounterAttackRetargetChoice({
+      ...input,
+      optionCount: input.offer.options.length
+    }),
+    selectedIndex: encounterSealedChoiceIndex(input.offer.options, option),
+    label: 'Retarget'
   })
-  const choice = await input.runtime.resume({
-    continuation,
-    response: { requestId: continuation.request.requestId, value: selectedIndex }
-  })
-  if (choice.status !== 'COMPLETE' || choice.outputs.selectedIndex !== selectedIndex)
-    throw new Error('Retarget choice did not settle its exact selection.')
   return option
 }

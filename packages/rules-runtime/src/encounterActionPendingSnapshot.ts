@@ -1,10 +1,6 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import type {
-  EncounterAttackRetargetOfferDto,
-  EncounterCastReactionOfferDto,
-  EncounterFailedCounterDto,
-  EncounterIncomingGateOfferDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
+import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
+import type { EncounterFailedCounterDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
   PendingNativeActionGraphs,
@@ -33,6 +29,15 @@ export function restoreEncounterActionPending(
   const { applicationContext: context, phaseReceipts } = snapshot
   if (context.kind !== 'ENCOUNTER_ACTION')
     throw new Error('The pending action snapshot is invalid.')
+  // A held cast, ward or retarget pauses before the graphs run, so the graphs resume none of them.
+  const { pause } = context
+  const graphPause =
+    pause?.kind === 'LEGENDARY_RESISTANCE' ||
+    pause?.kind === 'REACTION' ||
+    pause?.kind === 'ON_HIT' ||
+    pause?.kind === 'FORCED_MOVEMENT'
+      ? pause
+      : null
   return {
     kind: 'PENDING',
     continuation: pendingSnapshotContinuation(snapshot),
@@ -40,12 +45,7 @@ export function restoreEncounterActionPending(
     twoPhase: context.twoPhase,
     ...(context.d20Belief ? { d20Belief: context.d20Belief } : {}),
     ...(context.heldD20 ? { heldD20: context.heldD20 } : {}),
-    ...(context.legendaryResistance ? { legendaryResistance: context.legendaryResistance } : {}),
-    ...(context.reactionChoice ? { reactionChoice: context.reactionChoice } : {}),
-    ...(context.onHitChoice ? { onHitChoice: context.onHitChoice } : {}),
-    ...(context.forcedMovementDestination
-      ? { forcedMovementDestination: context.forcedMovementDestination }
-      : {}),
+    ...(graphPause ? { pause: graphPause } : {}),
     ...(phaseReceipts ? { phaseReceipts } : {})
   }
 }
@@ -83,14 +83,7 @@ export function buildEncounterActionPendingSnapshot(input: {
       twoPhase: execution.twoPhase,
       ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
       ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
-      ...(execution.legendaryResistance
-        ? { legendaryResistance: execution.legendaryResistance }
-        : {}),
-      ...(execution.reactionChoice ? { reactionChoice: execution.reactionChoice } : {}),
-      ...(execution.onHitChoice ? { onHitChoice: execution.onHitChoice } : {}),
-      ...(execution.forcedMovementDestination
-        ? { forcedMovementDestination: execution.forcedMovementDestination }
-        : {}),
+      pause: execution.pause ?? null,
       ...(input.failedCounters?.length ? { failedCounters: [...input.failedCounters] } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {})
     },
@@ -99,20 +92,24 @@ export function buildEncounterActionPendingSnapshot(input: {
 }
 
 /**
- * The sealed pending snapshot of a cast held before it executes, for the creature offered the chance
- * to counter it. The continuation is that creature's reaction choice; the cast itself is not held, it
- * replays from the command once the offer is answered.
+ * The sealed pending snapshot of an action held before it executes: a cast waiting on a creature's
+ * chance to counter it, an attacker owing the save against a warded target's gate, or an action a ward
+ * stopped waiting on its attacker's choice to turn it on another creature. The continuation is the
+ * pause; the action itself is not held, it replays from the command once the pause is answered.
  */
-export function buildEncounterCastReactionPendingSnapshot(input: {
+export function buildEncounterHeldActionPendingSnapshot(input: {
   continuation: ServerRuleExecutionContinuationDto
-  castReaction: EncounterCastReactionOfferDto
+  pause: Extract<
+    EncounterActionPauseDto,
+    { kind: 'CAST_REACTION' | 'INCOMING_GATE' | 'ATTACK_RETARGET' }
+  >
   rollerActorId: string
   optionalCombatSnapshotChecksum: string | null | undefined
   commandJson: string
   commandFingerprint: string
   initiatorUserId: string
   currentnessChecksum: string
-  failedCounters: readonly EncounterFailedCounterDto[]
+  failedCounters?: readonly EncounterFailedCounterDto[]
   passedIncomingGate?: string
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return {
@@ -129,66 +126,9 @@ export function buildEncounterCastReactionPendingSnapshot(input: {
       currentnessChecksum: input.currentnessChecksum,
       d20Policy: null,
       twoPhase: null,
-      castReaction: input.castReaction,
-      ...(input.failedCounters.length ? { failedCounters: [...input.failedCounters] } : {}),
+      pause: input.pause,
+      ...(input.failedCounters?.length ? { failedCounters: [...input.failedCounters] } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {})
-    }
-  }
-}
-
-/**
- * The sealed pending snapshot of an action held before it executes, for the attacker who owes the save
- * against a warded target's gate. The continuation is that one d20; the action itself is not held, it
- * replays from the command once the save is rolled.
- */
-export function buildEncounterIncomingGatePendingSnapshot(
-  input: HeldBeforeExecutionInput & { incomingGate: EncounterIncomingGateOfferDto }
-): ServerKernelRuleExecutionPendingSnapshotDto {
-  return buildHeldBeforeExecutionSnapshot(input, { incomingGate: input.incomingGate })
-}
-
-/**
- * The sealed pending snapshot of an action a ward stopped, for the attacker offered the chance to turn
- * it on another creature. The continuation is that bounded choice; the action itself is not held, it
- * replays from the command (retargeted when a creature is chosen) once the offer is answered.
- */
-export function buildEncounterAttackRetargetPendingSnapshot(
-  input: HeldBeforeExecutionInput & { attackRetarget: EncounterAttackRetargetOfferDto }
-): ServerKernelRuleExecutionPendingSnapshotDto {
-  return buildHeldBeforeExecutionSnapshot(input, { attackRetarget: input.attackRetarget })
-}
-
-type HeldBeforeExecutionInput = {
-  continuation: ServerRuleExecutionContinuationDto
-  rollerActorId: string
-  optionalCombatSnapshotChecksum: string | null | undefined
-  commandJson: string
-  commandFingerprint: string
-  initiatorUserId: string
-  currentnessChecksum: string
-}
-
-function buildHeldBeforeExecutionSnapshot(
-  input: HeldBeforeExecutionInput,
-  pause:
-    | { incomingGate: EncounterIncomingGateOfferDto }
-    | { attackRetarget: EncounterAttackRetargetOfferDto }
-): ServerKernelRuleExecutionPendingSnapshotDto {
-  return {
-    ...input.continuation,
-    snapshotKind: 'KERNEL_EVIDENCE',
-    optionalCombatSnapshotChecksum: input.optionalCombatSnapshotChecksum,
-    applicationContext: {
-      kind: 'ENCOUNTER_ACTION',
-      schemaVersion: 1,
-      commandJson: input.commandJson,
-      commandFingerprint: input.commandFingerprint,
-      initiatorUserId: input.initiatorUserId,
-      rollerActorId: input.rollerActorId,
-      currentnessChecksum: input.currentnessChecksum,
-      d20Policy: null,
-      twoPhase: null,
-      ...pause
     }
   }
 }
