@@ -6,6 +6,7 @@ import {
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import { defeatedEncounterActorIds, type DeadCharacterIds } from './encounterActorDefeat.js'
+import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   buildCompiledActionTargetPolicy,
@@ -32,10 +33,20 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 
 type LegendaryActionChoiceGroupDto = z.infer<typeof legendaryActionChoiceGroupDtoSchema>
 
+/** The plan, or null when the System cannot execute the authored shape inside a turn yet. */
+function compileOrNull<T>(compile: () => T): T | null {
+  try {
+    return compile()
+  } catch (error) {
+    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
+    throw error
+  }
+}
+
 /**
  * The option for one candidate: the action it runs, planned exactly as the action runs, and the
  * actors it may target. Null when the System cannot execute its authored shape inside a turn yet
- * (an area).
+ * (an area, or a shape its compiler does not plan yet).
  */
 function optionForCandidate(
   candidate: EncounterLegendaryActionCandidate,
@@ -44,7 +55,8 @@ function optionForCandidate(
   const resource = candidate.action.featureResourceUse
   const adapter = characterRuleActionSystemAdapterRegistry.get(candidate.gameSystemId)
   if (!resource || !adapter) throw new Error('The Legendary Action source cannot be executed.')
-  const plan = compileEncounterFeatureActionPlan(adapter, candidate.action)
+  const plan = compileOrNull(() => compileEncounterFeatureActionPlan(adapter, candidate.action))
+  if (!plan) return null
   const targetPolicy = buildCompiledActionTargetPolicy(candidate.action)
   const makesAttackRoll = typeof featureActionMechanic(candidate.action).attackKind === 'string'
   const owner = { id: candidate.ownerActorId, disposition: 'NEUTRAL' as const }

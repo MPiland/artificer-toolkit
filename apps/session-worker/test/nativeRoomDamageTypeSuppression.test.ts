@@ -28,7 +28,7 @@ afterEach(() => {
  */
 function regeneratingRoom(
   damage: 'RADIANT' | 'FIRE',
-  creatureLabel: 'Vampire Spawn' | 'Troll',
+  creatureLabel: 'Vampire' | 'Vampire Spawn' | 'Troll',
   currentHitPoints: number
 ) {
   const caster = fireballWolf(damage, 'CONSTITUTION')
@@ -88,6 +88,20 @@ describe('damage-type suppression of start-of-turn regeneration in a room (SPELL
     await advance(room)
     await advance(room)
     expect(await hitPointsOf(room, HOLDER_ID)).toBe((afterHit ?? 0) + 10)
+  })
+
+  it('a wounded Vampire, whose legendary actions the turn offers, regenerates 20 once radiant damage stops', async () => {
+    const room = await regeneratingRoom('RADIANT', 'Vampire', 100)
+    await hitHolder(room)
+    const afterHit = await hitPointsOf(room, HOLDER_ID)
+    expect(afterHit).toBeLessThan(100)
+
+    await advance(room)
+    expect(await hitPointsOf(room, HOLDER_ID)).toBe(afterHit)
+
+    await advance(room)
+    await advance(room)
+    expect(await hitPointsOf(room, HOLDER_ID)).toBe((afterHit ?? 0) + 20)
   })
 
   it('a Troll does not regenerate on the turn after fire damage, and does on the next', async () => {
