@@ -1159,6 +1159,22 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
     expect(activeEffectEndsOnRest(effect, 'SHORT')).toBe(false)
   })
 
+  it('reads a version-one effect through the same subscriptions', () => {
+    const stored = subscribed({ endOnEvents: ['ON_LONG_REST', 'ON_MOVE'] }).definition
+    if (stored.schemaVersion !== 2) throw new Error('The stored grant is version two.')
+    const { stateContributions: _stateContributions, ...definition } = stored
+    const effect: ActiveRuleEffectRecord = {
+      ...plain,
+      definition: activeRuleEffectDefinitionDtoSchema.parse({ ...definition, schemaVersion: 1 })
+    }
+    expect(activeEffectEndsOnRest(effect, 'LONG')).toBe(true)
+    expect(activeEffectEndsOnRest(effect, 'SHORT')).toBe(false)
+    const ended = (events: EncounterEvent[]) =>
+      discoverEncounterEventHooks({ effects: [effect], events }).ended
+    expect(ended([{ kind: 'MOVED' }])).toEqual([effect])
+    expect(ended([{ kind: 'AREA_LEFT' }])).toEqual([])
+  })
+
   it.each(rows)(
     'ends an effect subscribed to %s on its event alone',
     (_, recurrence, meets, misses) => {

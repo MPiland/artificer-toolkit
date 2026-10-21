@@ -897,7 +897,7 @@ An effect subscribes to events through authored data; a feature never adds a cal
   `ATTACKED`, `ON_SAVING_THROW` is `TEST SAVE` over `SAVING_THROW_MODIFIER` grants, and so on), `endOnTriggers`,
   `endOnConditionIds` and `repeatTriggers`. Each effect is read through the System its frozen graph was compiled for
   (`frozenGraph.source.gameSystemId`), fail-closed. The persisted codes are unchanged; T9 makes them System-supplied data
-  and swaps only the adapter's source. Only stored effects with state contributions (schema 2) subscribe.
+  and swaps only the adapter's source. Effects of both definition versions subscribe.
 - **Discovery** (`discoverEncounterEventHooks` in `encounterEventHooks.ts`) is the one entry point: given a holder's
   effects and the events raised on it, it returns the effects ended (held order, each once however many events it
   meets: a spell attack is an attack roll and a cast), the effects whose save repeats with the first trigger met, and
