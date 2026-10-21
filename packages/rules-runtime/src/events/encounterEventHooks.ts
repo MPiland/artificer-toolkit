@@ -3,10 +3,8 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { listActiveEffectGrants } from '../character/activeEffectGrantTotals.js'
 import { encounterActorRelationship } from '../encounterActionTargetPolicy.js'
-import {
-  abilityScoreCapabilityRegistry,
-  eventVocabularyCapabilityRegistry
-} from '../platformPolicyModules.js'
+import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import { effectHooks } from './effectHooks.js'
 import type {
   EncounterEffectHook,
   EncounterEvent,
@@ -86,25 +84,6 @@ function damagerOnSourceSide(input: {
         input.dispositions.get(damagerActorId) ?? 'NEUTRAL',
         input.dispositions.get(sourceActorId) ?? 'NEUTRAL'
       ) === 'ALLIED')
-  )
-}
-
-/**
- * The hooks an effect authors, read through its own System's event vocabulary (the System its frozen
- * graph was compiled for). Only a stored effect with state contributions (schema 2) subscribes.
- */
-function encounterEffectHooks(effect: Pick<HookedEffect, 'definition'>) {
-  const { definition } = effect
-  if (definition.schemaVersion !== 2) return []
-  return eventVocabularyCapabilityRegistry
-    .require(definition.frozenGraph.source.gameSystemId)
-    .effectHooks(definition.recurrence)
-}
-
-/** The subscriptions whose event ends the effect (see `encounterEffectHooks`). */
-export function endSubscriptions(effect: Pick<HookedEffect, 'definition'>) {
-  return encounterEffectHooks(effect).flatMap((hook) =>
-    hook.hook === 'END' ? [hook.subscription] : []
   )
 }
 
@@ -217,7 +196,8 @@ function subscriptionMet(
         subscription.actionDefinitionIds.includes(event.basicActionDefinitionId)
       )
     case 'REST':
-      return event.kind === 'REST' && event.restKind === subscription.restKind
+      // A rest is the Sheet's event, read there (ctiveEffectEndsOnRest); no Encounter raises it.
+      return false
     default:
       return event.kind === subscription.event
   }
@@ -244,7 +224,7 @@ export function discoverEncounterEventHooks<
   const ended: Effect[] = []
   const repeatSaves: { effect: Effect; trigger: ActiveEffectRepeatTrigger }[] = []
   for (const effect of input.effects) {
-    const hooks: readonly EncounterEffectHook[] = encounterEffectHooks(effect)
+    const hooks: readonly EncounterEffectHook[] = effectHooks(effect)
     const met = (hook: EncounterEffectHook) =>
       input.events.some((event) => subscriptionMet(effect, hook.subscription, event))
     if (hooks.some((hook) => hook.hook === 'END' && met(hook))) ended.push(effect)

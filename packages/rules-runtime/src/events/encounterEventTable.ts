@@ -3,10 +3,10 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 
 /**
- * The events an Encounter or Sheet raises on the creature that holds effects (ADR 0039 decision 4).
- * The kinds are structural facts every System has; a System's event vocabulary binds its authored
- * codes to them, so shared code never names a System's events. See the rules-runtime guide's
- * "Event hooks" section.
+ * The events an Encounter raises on the creature that holds effects (ADR 0039 decision 4). The kinds
+ * are structural facts every System has; a System's event vocabulary binds its authored codes to
+ * them, so shared code never names a System's events. A rest is the Sheet's event, so only its
+ * subscription is here. See the rules-runtime guide's "Event hooks" section.
  */
 export type EncounterEvent =
   /** The holder takes an action, which may make an attack roll or cast a spell, aimed at an enemy or not. */
@@ -56,8 +56,6 @@ export type EncounterEvent =
   | { kind: 'MOVED' }
   /** The holder leaves the area holding the effect. */
   | { kind: 'AREA_LEFT' }
-  /** The holder finishes a rest. */
-  | { kind: 'REST'; restKind: 'SHORT' | 'LONG' }
 
 /** What an authored subscription listens for: an event kind and the filters it adds. */
 export type EncounterEventSubscription =

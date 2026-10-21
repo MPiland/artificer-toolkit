@@ -5,7 +5,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 
 import { conditionBaselinePresent } from './encounterActionEffectPlans.js'
-import { endSubscriptions } from './events/encounterEventHooks.js'
+import { endSubscriptions } from './events/effectHooks.js'
 
 const SPATIAL_HELD_CONDITION_NAMESPACE = '8e3c1f52-6a0d-4b7e-a9c4-2d5f7b1e0c93'
 

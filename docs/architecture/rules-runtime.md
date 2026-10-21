@@ -882,7 +882,7 @@ An effect subscribes to events through authored data; a feature never adds a cal
   (whether it makes an attack roll or casts a spell, and whether it is aimed at an enemy), `ATTACKED`, `HIT`, `TEST`
   (`CHECK` or `SAVE`, with its ability by code or definition id, or none), `DAMAGED` (damager, damage types,
   dispositions), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
-  `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED`, `AREA_LEFT` and `REST`. `EncounterEventSubscription`
+  `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED` and `AREA_LEFT`. `EncounterEventSubscription`
   is what a hook listens for, with its filters; `EncounterEffectHook` is what it does when met (`END`, or `REPEAT_SAVE`
   with its trigger). Ending and consuming are the same hook: the effect is gone, restored by the same receipt.
 - **Event vocabulary** (System capability `event-vocabulary`, `EventVocabularyCapabilityAdapter`, registered through
@@ -895,8 +895,10 @@ An effect subscribes to events through authored data; a feature never adds a cal
 - **Discovery** (`discoverEncounterEventHooks` in `encounterEventHooks.ts`) is the one entry point: given a holder's
   effects and the events raised on it, it returns the effects ended (held order, each once however many events it
   meets: a spell attack is an attack roll and a cast), the effects whose save repeats with the first trigger met, and
-  the passive damage grants a `DAMAGED` event of their types meets. `endSubscriptions` reads an effect's end
-  subscriptions where a caller only asks what it listens for (`stateBoundGrants`, a zone's `AREA_LEFT` hold).
+  the passive damage grants a `DAMAGED` event of their types meets. `endSubscriptions` (`effectHooks.ts`, which reads
+  the vocabulary and stays clear of Encounter rules for the browser, ADR 0036 S6) reads an effect's end subscriptions
+  where a caller only asks what it listens for (`stateBoundGrants`, a zone's `AREA_LEFT` hold). A rest is the Sheet's
+  event: `activeEffectEndsOnRest` reads the `REST` subscription there, and no Encounter raises one.
   `effectEventScope` (whose events and turn an effect meets), `damageTriggerMet` and `damagerOnSourceSide` live here too.
 
 **One dispatch per event** means one subscription-reading dispatch per event kind, not one raise site. Callers state

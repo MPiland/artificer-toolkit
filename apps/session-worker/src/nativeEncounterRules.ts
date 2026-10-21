@@ -133,7 +133,7 @@ import {
   type EncounterAttackRetargetCandidate
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
-import { endSubscriptions } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
+import { endSubscriptions } from '@artificer-toolkit/rules-runtime/events/effectHooks'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { replayNativeActionLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'

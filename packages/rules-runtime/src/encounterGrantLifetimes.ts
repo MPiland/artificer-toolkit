@@ -11,7 +11,8 @@ import { campaignMinutesForRounds, ROUNDS_PER_CAMPAIGN_MINUTE } from './campaign
 import { carriedCreatureForm } from './encounterActorForm.js'
 import { encounterActorIdleTurnMark } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
-import { discoverEncounterEventHooks, endSubscriptions } from './events/encounterEventHooks.js'
+import { endSubscriptions } from './events/effectHooks.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { EncounterEvent } from './events/encounterEventTable.js'
 import {
   isEffectLiveInEncounter,

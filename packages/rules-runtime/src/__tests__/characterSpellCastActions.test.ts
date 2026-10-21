@@ -1360,20 +1360,19 @@ describe('a save its caster makes, whose failure holds a condition until a long 
   })
 
   it('ends the effect a failed save stores on a long rest, not a short one', () => {
-    const planned = plannedTimedCondition({
+    const { definition } = plannedTimedCondition({
       encounterId: testUuid(0xd911),
       sourceActorId: testUuid(0xd912),
       holderActorId: testUuid(0xd912),
       spell: CONTACT_OTHER_PLANE,
       lifetimeScope: 'OWNER'
     })
-    expect(planned.definition.recurrence).toMatchObject({
+    expect(definition.recurrence).toMatchObject({
       endOnEvents: ['ON_LONG_REST'],
       expiration: { kind: 'INDEFINITE' }
     })
-    const held = { ...planned, id: testUuid(0xd913) }
-    expect(activeEffectEndsOnRest(held, 'LONG')).toBe(true)
-    expect(activeEffectEndsOnRest(held, 'SHORT')).toBe(false)
+    expect(activeEffectEndsOnRest({ definition }, 'LONG')).toBe(true)
+    expect(activeEffectEndsOnRest({ definition }, 'SHORT')).toBe(false)
   })
 })
 

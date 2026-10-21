@@ -26,7 +26,7 @@ import {
   clearEmptyStateArrays,
   getHitPointAdjustment
 } from './sheetCommandReducer.js'
-import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
+import { endSubscriptions } from '../events/effectHooks.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 
 function parseCharacterClassHitDie(dieConfig: string | undefined): number | undefined {
@@ -49,12 +49,13 @@ export function getRestRecoveryTriggers(restKind: 'SHORT' | 'LONG') {
  * maximum reduction that ends on a long rest (Life Drain, D62).
  */
 export function activeEffectEndsOnRest(
-  effect: Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>,
+  effect: Pick<ActiveRuleEffectRecord, 'definition'>,
   restKind: 'SHORT' | 'LONG'
 ): boolean {
   if (
-    discoverEncounterEventHooks({ effects: [effect], events: [{ kind: 'REST', restKind }] }).ended
-      .length > 0
+    endSubscriptions(effect).some(
+      (subscription) => subscription.event === 'REST' && subscription.restKind === restKind
+    )
   )
     return true
   if (effect.definition.schemaVersion !== 2) return false

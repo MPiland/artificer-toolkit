@@ -51,6 +51,7 @@ import {
 } from '@artificer-toolkit/schema/shared/enums'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
+import { activeEffectEndsOnRest } from '../character/sheetRest.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import { resumeCharacterForm } from '../encounterActorForm.js'
 import { checksumRunActorPlayState } from '../encounterActorStorage.js'
@@ -1096,12 +1097,6 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
       { kind: 'AREA_LEFT' },
       { kind: 'MOVED' }
     ],
-    [
-      'ON_LONG_REST',
-      { endOnEvents: ['ON_LONG_REST'] },
-      { kind: 'REST', restKind: 'LONG' },
-      { kind: 'REST', restKind: 'SHORT' }
-    ],
     ['ON_MOVE', { endOnEvents: ['ON_MOVE'] }, { kind: 'MOVED' }, { kind: 'AREA_LEFT' }],
     [
       'DAMAGE_TAKEN from the source side',
@@ -1153,9 +1148,15 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
       ...pathLifecycleEndEventSchema.options
     ])
     codes.delete('ON_CHOSEN_ITEM_RELEASED')
-    expect(new Set(rows.map(([name]) => name).filter((name) => name.startsWith('ON_')))).toEqual(
-      codes
-    )
+    const names = [...rows.map(([name]) => name), 'ON_LONG_REST']
+    expect(new Set(names.filter((name) => name.startsWith('ON_')))).toEqual(codes)
+  })
+
+  // A rest is the Sheet's event, so the Sheet reads its subscription rather than the discovery.
+  it('ends an effect subscribed to ON_LONG_REST on a long rest alone', () => {
+    const effect = subscribed({ endOnEvents: ['ON_LONG_REST'] })
+    expect(activeEffectEndsOnRest(effect, 'LONG')).toBe(true)
+    expect(activeEffectEndsOnRest(effect, 'SHORT')).toBe(false)
   })
 
   it.each(rows)(
