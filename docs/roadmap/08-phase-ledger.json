@@ -13296,7 +13296,7 @@
             },
             {
               "id": "SPELLS-33.T4i1b1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13305,7 +13305,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T4i1a"]
               },
-              "text": "Damage taken since turn start (split 2026-10-20): optional {damageTypeId, commandId}[] on creature health, written by one shared damage-record helper that all four fold callers use; the START_OF_TURN system-trigger root clears the list in its own transaction and records the cleared entries on the batch, so undo restores them exactly."
+              "text": "Damage taken since turn start (split 2026-10-20): optional {damageTypeId, commandId}[] on creature health, written by one shared damage-record helper that all four fold callers use; the START_OF_TURN system-trigger root clears the list in its own transaction and records the cleared entries on the batch, so undo restores them exactly.",
+              "note": "Merged m275 (415fa9f27)."
             },
             {
               "id": "SPELLS-33.T4i1b2",
