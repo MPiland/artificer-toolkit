@@ -39,9 +39,16 @@ import {
   SRD_CONCENTRATION_DEFINITIONS,
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/concentration.js'
-import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { SRD_DAMAGE_TYPES, SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  activeRuleEffectDefinitionDtoSchema,
+  encounterMaintainedEffectDescriptorDtoSchema
+} from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import {
+  pathLifecycleConsumeEventSchema,
+  pathLifecycleEndEventSchema
+} from '@artificer-toolkit/schema/shared/enums'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
@@ -54,7 +61,6 @@ import {
 } from '../encounterActorState.js'
 import {
   attackedHostileCreature,
-  effectsEndedBy,
   expiredCarriedOverGrants,
   grantsEndedByHolderState,
   grantsEndedBySourceState,
@@ -90,6 +96,8 @@ import {
 import { grantPublishedIdentity } from '../testing/modifierGrantFixture.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { grantOnly, protectionFromEnergyChoice } from './antitoxinEffectFixture.js'
+import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
+import type { EncounterEffectRecurrence, EncounterEvent } from '../events/encounterEventTable.js'
 
 const SOURCE_ID = testUuid(0xc301)
 const TARGET_ID = testUuid(0xc302)
@@ -961,7 +969,7 @@ describe('a grant bound to an item that ends when it is let go (SPELLS-4.T2e)', 
   })
 })
 
-describe('effectsEndedBy', () => {
+describe('discoverEncounterEventHooks', () => {
   const held = (id: number, events: ('ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK')[]) =>
     grantRecord(
       storedGrant({ lifecycle: { consumeOnFirstEvents: events }, currentActorId: null }),
@@ -977,9 +985,12 @@ describe('effectsEndedBy', () => {
 
   it('lists only the grants an attack roll uses up', () => {
     const consumable = held(0xc340, ['ON_ATTACK_ROLL'])
-    expect(effectsEndedBy([plain, consumable], 'ON_ATTACK_ROLL').map(({ id }) => id)).toEqual([
-      consumable.id
-    ])
+    expect(
+      discoverEncounterEventHooks({
+        effects: [plain, consumable],
+        events: [{ kind: 'ACTION', attackRoll: true, spellCast: false, againstEnemy: false }]
+      }).ended.map(({ id }) => id)
+    ).toEqual([consumable.id])
   })
 
   it('lists only the grants an ability check uses up', () => {
@@ -987,12 +998,179 @@ describe('effectsEndedBy', () => {
     const both = held(0xc343, ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL'])
     const attackOnly = held(0xc344, ['ON_ATTACK_ROLL'])
     expect(
-      effectsEndedBy([plain, check, both, attackOnly], 'ON_ABILITY_CHECK').map(({ id }) => id)
+      discoverEncounterEventHooks({
+        effects: [plain, check, both, attackOnly],
+        events: [{ kind: 'TEST', test: 'CHECK', ability: null }]
+      }).ended.map(({ id }) => id)
     ).toEqual([check.id, both.id])
   })
 })
 
-describe('effectsEndedBy for an ability check (D156)', () => {
+describe('discoverEncounterEventHooks over every authored subscription', () => {
+  const HELP = SRD_BASIC_ACTION_IDS.HELP
+  const FIRE = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'FIRE')!.id
+  const dispositions = new Map([
+    [SOURCE_ID, 'FRIENDLY'],
+    [OTHER_ID, 'HOSTILE']
+  ] as const)
+  const damaged = (damagerActorId: string, damageTypeIds: (string | null)[]): EncounterEvent => ({
+    kind: 'DAMAGED',
+    damagerActorId,
+    damageTypeIds,
+    dispositions
+  })
+  const action = (facts: { attackRoll?: boolean; spellCast?: boolean; againstEnemy?: boolean }) =>
+    ({
+      kind: 'ACTION',
+      attackRoll: facts.attackRoll ?? false,
+      spellCast: facts.spellCast ?? false,
+      againstEnemy: facts.againstEnemy ?? false
+    }) satisfies EncounterEvent
+  const attacked = {
+    kind: 'ATTACKED',
+    holderActorId: TARGET_ID,
+    attackerActorId: OTHER_ID,
+    turnActorId: OTHER_ID
+  } satisfies EncounterEvent
+
+  // A stored grant's recurrence carries each subscription (the 5e Effect-action compiler authors
+  // some of them only on conditions and spells, which discovery reads the same way).
+  const plain = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+    id: 0xc350,
+    holderId: TARGET_ID
+  })
+  const subscribed = (recurrence: Partial<EncounterEffectRecurrence>): ActiveRuleEffectRecord => ({
+    ...plain,
+    definition: activeRuleEffectDefinitionDtoSchema.parse({
+      ...plain.definition,
+      recurrence: { ...plain.definition.recurrence, ...recurrence }
+    })
+  })
+
+  // Each row: what the effect authors, an event that meets it and a near event that does not.
+  // `ON_CHOSEN_ITEM_RELEASED` needs a bound item; the item-release block above covers it.
+  const rows: [string, Partial<EncounterEffectRecurrence>, EncounterEvent, EncounterEvent][] = [
+    [
+      'ON_ATTACK_ROLL',
+      { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+      action({ attackRoll: true }),
+      action({ spellCast: true })
+    ],
+    ['ON_HIT', { consumeOnFirstEvents: ['ON_HIT'] }, { kind: 'HIT' }, attacked],
+    ['ON_ATTACKED', { consumeOnFirstEvents: ['ON_ATTACKED'] }, attacked, { kind: 'HIT' }],
+    [
+      'ON_ABILITY_CHECK',
+      { consumeOnFirstEvents: ['ON_ABILITY_CHECK'] },
+      { kind: 'TEST', test: 'CHECK', ability: { code: 'STRENGTH' } },
+      { kind: 'TEST', test: 'SAVE', ability: { code: 'STRENGTH' } }
+    ],
+    [
+      'ON_SAVING_THROW',
+      { consumeOnFirstEvents: ['ON_SAVING_THROW'] },
+      { kind: 'TEST', test: 'SAVE', ability: { code: 'CONSTITUTION' } },
+      { kind: 'TEST', test: 'CHECK', ability: { code: 'CONSTITUTION' } }
+    ],
+    [
+      'ON_CAST_SPELL',
+      { consumeOnFirstEvents: ['ON_CAST_SPELL'] },
+      action({ spellCast: true }),
+      action({ attackRoll: true })
+    ],
+    ['ON_TAKE_ACTION', { endOnEvents: ['ON_TAKE_ACTION'] }, action({}), { kind: 'MOVED' }],
+    [
+      'ON_HIT_POINTS_REGAINED',
+      { endOnEvents: ['ON_HIT_POINTS_REGAINED'] },
+      { kind: 'HIT_POINTS_REGAINED' },
+      { kind: 'IDLE_TURN' }
+    ],
+    [
+      'ON_INCAPACITATED',
+      { endOnEvents: ['ON_INCAPACITATED'] },
+      { kind: 'INCAPACITATED', of: 'HOLDER' },
+      { kind: 'INCAPACITATED', of: 'SOURCE', sourceActorIds: new Set([SOURCE_ID]) }
+    ],
+    ['ON_IDLE_TURN', { endOnEvents: ['ON_IDLE_TURN'] }, { kind: 'IDLE_TURN' }, { kind: 'MOVED' }],
+    [
+      'ON_LEAVING_AREA',
+      { endOnEvents: ['ON_LEAVING_AREA'] },
+      { kind: 'AREA_LEFT' },
+      { kind: 'MOVED' }
+    ],
+    [
+      'ON_LONG_REST',
+      { endOnEvents: ['ON_LONG_REST'] },
+      { kind: 'REST', restKind: 'LONG' },
+      { kind: 'REST', restKind: 'SHORT' }
+    ],
+    ['ON_MOVE', { endOnEvents: ['ON_MOVE'] }, { kind: 'MOVED' }, { kind: 'AREA_LEFT' }],
+    [
+      'DAMAGE_TAKEN from the source side',
+      { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }] },
+      damaged(SOURCE_ID, [FIRE]),
+      damaged(OTHER_ID, [FIRE])
+    ],
+    [
+      'DAMAGE_TAKEN of a type',
+      { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: [FIRE] }] },
+      damaged(OTHER_ID, [FIRE]),
+      damaged(OTHER_ID, [null])
+    ],
+    [
+      'ATTACK_ROLL against an enemy',
+      { endOnTriggers: [{ event: 'ATTACK_ROLL', against: 'ENEMY' }] },
+      action({ attackRoll: true, againstEnemy: true }),
+      action({ attackRoll: true })
+    ],
+    [
+      'SPELL_CAST against an enemy',
+      { endOnTriggers: [{ event: 'SPELL_CAST', against: 'ENEMY' }] },
+      action({ spellCast: true, againstEnemy: true }),
+      action({ attackRoll: true, againstEnemy: true })
+    ],
+    [
+      'ACTION_USED_ON_HOLDER',
+      { endOnTriggers: [{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds: [HELP] }] },
+      { kind: 'ACTION_USED_ON_HOLDER', basicActionDefinitionId: HELP },
+      { kind: 'ACTION_USED_ON_HOLDER', basicActionDefinitionId: SRD_BASIC_ACTION_IDS.DODGE }
+    ],
+    [
+      'INCAPACITATED of the source',
+      { endOnTriggers: [{ event: 'INCAPACITATED', of: 'SOURCE' }] },
+      { kind: 'INCAPACITATED', of: 'SOURCE', sourceActorIds: new Set([SOURCE_ID]) },
+      { kind: 'INCAPACITATED', of: 'SOURCE', sourceActorIds: new Set([OTHER_ID]) }
+    ],
+    [
+      'a held condition',
+      { endOnConditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID] },
+      { kind: 'CONDITION_HELD', conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID] },
+      { kind: 'CONDITION_HELD', conditionIds: [] }
+    ]
+  ]
+
+  it('has a row for every authored lifecycle code', () => {
+    const codes = new Set([
+      ...pathLifecycleConsumeEventSchema.options,
+      ...pathLifecycleEndEventSchema.options
+    ])
+    codes.delete('ON_CHOSEN_ITEM_RELEASED')
+    expect(new Set(rows.map(([name]) => name).filter((name) => name.startsWith('ON_')))).toEqual(
+      codes
+    )
+  })
+
+  it.each(rows)(
+    'ends an effect subscribed to %s on its event alone',
+    (_, recurrence, meets, misses) => {
+      const effect = subscribed(recurrence)
+      const ended = (events: EncounterEvent[]) =>
+        discoverEncounterEventHooks({ effects: [effect], events }).ended
+      expect(ended([meets])).toEqual([effect])
+      expect(ended([misses])).toEqual([])
+    }
+  )
+})
+
+describe('discoverEncounterEventHooks for an ability check (D156)', () => {
   /** The real Guidance effect, its die limited to one ability when `ability` is given. */
   function dieEffect(spell: SpellAuthored, ability?: 'STRENGTH') {
     const effect = structuredClone(onlyEffect(spell.effects))
@@ -1017,24 +1195,46 @@ describe('effectsEndedBy for an ability check (D156)', () => {
   it('spends a die on any ability check when it names no ability', () => {
     const die = heldDie(0xc360, guidance)
     for (const abilityCode of ['STRENGTH', 'DEXTERITY'])
-      expect(idsOf(effectsEndedBy([die], { event: 'ON_ABILITY_CHECK', abilityCode }))).toEqual([
-        die.id
-      ])
+      expect(
+        idsOf(
+          discoverEncounterEventHooks({
+            effects: [die],
+            events: [{ kind: 'TEST', test: 'CHECK', ability: { code: abilityCode } }]
+          }).ended
+        )
+      ).toEqual([die.id])
   })
 
   it('does not spend a Strength die on a Dexterity check, but does on a Strength check', () => {
     const die = heldDie(0xc361, guidance, 'STRENGTH')
     expect(
-      idsOf(effectsEndedBy([die], { event: 'ON_ABILITY_CHECK', abilityCode: 'DEXTERITY' }))
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [die],
+          events: [{ kind: 'TEST', test: 'CHECK', ability: { code: 'DEXTERITY' } }]
+        }).ended
+      )
     ).toEqual([])
     expect(
-      idsOf(effectsEndedBy([die], { event: 'ON_ABILITY_CHECK', abilityCode: 'STRENGTH' }))
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [die],
+          events: [{ kind: 'TEST', test: 'CHECK', ability: { code: 'STRENGTH' } }]
+        }).ended
+      )
     ).toEqual([die.id])
   })
 
   it('does not spend a held die on a bare ability-check event', () => {
     const die = heldDie(0xc362, guidance)
-    expect(idsOf(effectsEndedBy([die], 'ON_ABILITY_CHECK'))).toEqual([])
+    expect(
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [die],
+          events: [{ kind: 'TEST', test: 'CHECK', ability: null }]
+        }).ended
+      )
+    ).toEqual([])
   })
 
   it('spends an effect with no grant in the test’s domain whenever it lists the event', () => {
@@ -1046,12 +1246,17 @@ describe('effectsEndedBy for an ability check (D156)', () => {
       { id: 0xc366, holderId: TARGET_ID }
     )
     expect(
-      idsOf(effectsEndedBy([wholly], { event: 'ON_ABILITY_CHECK', abilityCode: 'DEXTERITY' }))
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [wholly],
+          events: [{ kind: 'TEST', test: 'CHECK', ability: { code: 'DEXTERITY' } }]
+        }).ended
+      )
     ).toEqual([wholly.id])
   })
 })
 
-describe('effectsEndedBy for a saving throw (D156)', () => {
+describe('discoverEncounterEventHooks for a saving throw (D156)', () => {
   /** The real Resistance effect, its die limited to one ability when `ability` is given. */
   function dieEffect(ability?: 'STRENGTH') {
     const effect = structuredClone(onlyEffect(resistance.effects))
@@ -1072,37 +1277,69 @@ describe('effectsEndedBy for a saving throw (D156)', () => {
   it('spends a die on any saving throw when it names no ability', () => {
     const die = heldDie(0xc370)
     for (const abilityCode of ['STRENGTH', 'DEXTERITY'])
-      expect(idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode }))).toEqual([
-        die.id
-      ])
+      expect(
+        idsOf(
+          discoverEncounterEventHooks({
+            effects: [die],
+            events: [{ kind: 'TEST', test: 'SAVE', ability: { code: abilityCode } }]
+          }).ended
+        )
+      ).toEqual([die.id])
   })
 
   it('does not spend a Strength die on a Dexterity save, but does on a Strength save', () => {
     const die = heldDie(0xc371, 'STRENGTH')
     expect(
-      idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode: 'DEXTERITY' }))
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [die],
+          events: [{ kind: 'TEST', test: 'SAVE', ability: { code: 'DEXTERITY' } }]
+        }).ended
+      )
     ).toEqual([])
     expect(
-      idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode: 'STRENGTH' }))
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [die],
+          events: [{ kind: 'TEST', test: 'SAVE', ability: { code: 'STRENGTH' } }]
+        }).ended
+      )
     ).toEqual([die.id])
   })
 
   it('spends an unfiltered die on an ability-less save such as a death save', () => {
     const die = heldDie(0xc372)
-    expect(idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode: null }))).toEqual([
-      die.id
-    ])
+    expect(
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [die],
+          events: [{ kind: 'TEST', test: 'SAVE', ability: { code: null } }]
+        }).ended
+      )
+    ).toEqual([die.id])
   })
 
   it('does not spend an ability-limited die on an ability-less save', () => {
     const die = heldDie(0xc373, 'STRENGTH')
-    expect(idsOf(effectsEndedBy([die], { event: 'ON_SAVING_THROW', abilityCode: null }))).toEqual(
-      []
-    )
+    expect(
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [die],
+          events: [{ kind: 'TEST', test: 'SAVE', ability: { code: null } }]
+        }).ended
+      )
+    ).toEqual([])
   })
 
   it('does not spend a held die on a bare saving-throw event', () => {
-    expect(idsOf(effectsEndedBy([heldDie(0xc374)], 'ON_SAVING_THROW'))).toEqual([])
+    expect(
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [heldDie(0xc374)],
+          events: [{ kind: 'TEST', test: 'SAVE', ability: null }]
+        }).ended
+      )
+    ).toEqual([])
   })
 
   it('keeps a saving-throw die through an ability check, and a check die through a save', () => {
@@ -1112,10 +1349,20 @@ describe('effectsEndedBy for a saving throw (D156)', () => {
       { id: 0xc376, holderId: TARGET_ID }
     )
     expect(
-      idsOf(effectsEndedBy([saveDie], { event: 'ON_ABILITY_CHECK', abilityCode: 'STRENGTH' }))
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [saveDie],
+          events: [{ kind: 'TEST', test: 'CHECK', ability: { code: 'STRENGTH' } }]
+        }).ended
+      )
     ).toEqual([])
     expect(
-      idsOf(effectsEndedBy([checkDie], { event: 'ON_SAVING_THROW', abilityCode: 'STRENGTH' }))
+      idsOf(
+        discoverEncounterEventHooks({
+          effects: [checkDie],
+          events: [{ kind: 'TEST', test: 'SAVE', ability: { code: 'STRENGTH' } }]
+        }).ended
+      )
     ).toEqual([])
   })
 })
@@ -1193,7 +1440,7 @@ describe('what a saving throw ends for its holder (SPELLS-4.T2c2b)', () => {
   })
 })
 
-describe('effectsEndedBy on an end event', () => {
+describe('discoverEncounterEventHooks on an end event', () => {
   const ending = (id: number, endOnEvents: ('ON_HIT_POINTS_REGAINED' | 'ON_INCAPACITATED')[]) =>
     grantRecord(storedGrant({ lifecycle: { endOnEvents }, currentActorId: null }), {
       id,
@@ -1204,12 +1451,23 @@ describe('effectsEndedBy on an end event', () => {
     const regained = ending(0xc350, ['ON_HIT_POINTS_REGAINED'])
     const incapacitated = ending(0xc351, ['ON_INCAPACITATED'])
     expect(
-      effectsEndedBy([regained, incapacitated], 'ON_HIT_POINTS_REGAINED').map(({ id }) => id)
+      discoverEncounterEventHooks({
+        effects: [regained, incapacitated],
+        events: [{ kind: 'HIT_POINTS_REGAINED' }]
+      }).ended.map(({ id }) => id)
     ).toEqual([regained.id])
     expect(
-      effectsEndedBy([regained, incapacitated], 'ON_INCAPACITATED').map(({ id }) => id)
+      discoverEncounterEventHooks({
+        effects: [regained, incapacitated],
+        events: [{ kind: 'INCAPACITATED', of: 'HOLDER' }]
+      }).ended.map(({ id }) => id)
     ).toEqual([incapacitated.id])
-    expect(effectsEndedBy([regained, incapacitated], 'ON_ABILITY_CHECK')).toEqual([])
+    expect(
+      discoverEncounterEventHooks({
+        effects: [regained, incapacitated],
+        events: [{ kind: 'TEST', test: 'CHECK', ability: null }]
+      }).ended
+    ).toEqual([])
   })
 
   it('lists an effect once when it consumes and ends on the same event', () => {
@@ -1227,7 +1485,12 @@ describe('effectsEndedBy on an end event', () => {
         recurrence: { ...consuming.definition.recurrence, endOnEvents: ['ON_ATTACK_ROLL' as const] }
       }
     }
-    expect(effectsEndedBy([both], 'ON_ATTACK_ROLL')).toEqual([both])
+    expect(
+      discoverEncounterEventHooks({
+        effects: [both],
+        events: [{ kind: 'ACTION', attackRoll: true, spellCast: false, againstEnemy: false }]
+      }).ended
+    ).toEqual([both])
   })
 
   it('lists an effect once when it ends on several of the events an action is', () => {
@@ -1242,9 +1505,27 @@ describe('effectsEndedBy on an end event', () => {
         }
       }
     }
-    expect(effectsEndedBy([both], 'ON_ATTACK_ROLL', 'ON_CAST_SPELL')).toEqual([both])
-    expect(effectsEndedBy([both], 'ON_CAST_SPELL')).toEqual([both])
-    expect(effectsEndedBy([both], 'ON_ABILITY_CHECK', 'ON_INCAPACITATED')).toEqual([])
+    expect(
+      discoverEncounterEventHooks({
+        effects: [both],
+        events: [{ kind: 'ACTION', attackRoll: true, spellCast: true, againstEnemy: false }]
+      }).ended
+    ).toEqual([both])
+    expect(
+      discoverEncounterEventHooks({
+        effects: [both],
+        events: [{ kind: 'ACTION', attackRoll: false, spellCast: true, againstEnemy: false }]
+      }).ended
+    ).toEqual([both])
+    expect(
+      discoverEncounterEventHooks({
+        effects: [both],
+        events: [
+          { kind: 'TEST', test: 'CHECK', ability: null },
+          { kind: 'INCAPACITATED', of: 'HOLDER' }
+        ]
+      }).ended
+    ).toEqual([])
   })
 })
 

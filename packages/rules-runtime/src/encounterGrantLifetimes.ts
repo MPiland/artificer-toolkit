@@ -3,19 +3,16 @@ import type {
   EncounterRunCharacterActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type {
-  ActiveEffectConsumeEvent,
-  ActiveEffectEndEvent,
-  EncounterMaintainedEffectDescriptorDto
-} from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type { EncounterMaintainedEffectDescriptorDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
-import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
 import { campaignMinutesForRounds, ROUNDS_PER_CAMPAIGN_MINUTE } from './campaignClock.js'
 import { carriedCreatureForm } from './encounterActorForm.js'
 import { encounterActorIdleTurnMark } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
+import { discoverEncounterEventHooks, endSubscriptions } from './events/encounterEventHooks.js'
+import type { EncounterEvent } from './events/encounterEventTable.js'
 import {
   isEffectLiveInEncounter,
   turnEffectOwner,
@@ -47,88 +44,6 @@ export function ownsCondition(effect: ActiveRuleEffectRecord) {
 }
 
 /**
- * An ability check or saving throw that spends dice, with the ability it was made with (null when
- * it has none: a death save). Only the effects whose die applied to this test are spent (D156).
- */
-export type ScopedD20Test = {
-  event: 'ON_ABILITY_CHECK' | 'ON_SAVING_THROW'
-  abilityCode: string | null
-}
-
-const TEST_VALUE_DOMAIN = {
-  ON_ABILITY_CHECK: 'ABILITY_CHECK',
-  ON_SAVING_THROW: 'SAVING_THROW_MODIFIER'
-} as const
-
-function testGrants(effect: ActiveRuleEffectRecord, event: ScopedD20Test['event']) {
-  return listActiveEffectGrants([effect])
-    .flatMap(({ modifiers }) => modifiers)
-    .filter((modifier) => modifier.valueDomainCode === TEST_VALUE_DOMAIN[event])
-}
-
-/**
- * Whether a bare ability-check or saving-throw event spends the effect: it is a test that adds no
- * dice (a contest's), so it never spends a held die that waits for one that does.
- */
-function bareTestApplies(
-  effect: ActiveRuleEffectRecord,
-  event: ActiveEffectConsumeEvent | ActiveEffectEndEvent
-) {
-  return (
-    (event !== 'ON_ABILITY_CHECK' && event !== 'ON_SAVING_THROW') ||
-    !testGrants(effect, event).some(({ modifierKind }) => modifierKind === 'ADD_BONUS_DIE')
-  )
-}
-
-/**
- * Whether a scoped test spent the effect's grants: it has no grants to the test's value domain (the
- * event alone ends it), or one of them applied to the test's ability. A die held for after the roll
- * is spent through the roll's window, so the test alone never spends an effect that holds only those.
- */
-function scopedTestApplies(effect: ActiveRuleEffectRecord, test: ScopedD20Test) {
-  const grants = testGrants(effect, test.event)
-  const withRoll = grants.filter(
-    ({ payload }) => !(payload && 'timing' in payload && payload.timing === 'AFTER_ROLL')
-  )
-  if (grants.length > 0 && withRoll.length === 0) return false
-  return (
-    withRoll.length === 0 ||
-    withRoll.some(
-      ({ domain }) => domain.ability === undefined || domain.ability === test.abilityCode
-    )
-  )
-}
-
-/**
- * The effects the first occurrence of the event, by their holder, uses up or ends: those that list
- * it in `consumeOnFirstEvents` or `endOnEvents`. Both lists mean the same here (the event applies,
- * then the effect is gone, restored by the same receipt); the caller releases any condition an
- * ended effect alone held (`endedMaintenanceConditions`). An action can be several events at once (a
- * spell attack is an attack roll and a cast); an effect listing more than one ends once. An ability
- * check or saving throw is passed as a `ScopedD20Test` and spends only the effects whose grants
- * applied to its ability.
- */
-export function effectsEndedBy(
-  effects: readonly ActiveRuleEffectRecord[],
-  ...events: readonly (ActiveEffectConsumeEvent | ActiveEffectEndEvent | ScopedD20Test)[]
-) {
-  return effects.filter(
-    (effect) =>
-      effect.definition.schemaVersion === 2 &&
-      [
-        ...effect.definition.recurrence.consumeOnFirstEvents,
-        ...effect.definition.recurrence.endOnEvents
-      ].some((listed) =>
-        events.some((event) =>
-          typeof event === 'string'
-            ? event === listed && bareTestApplies(effect, event)
-            : event.event === listed && scopedTestApplies(effect, event)
-        )
-      )
-  )
-}
-
-/**
  * Grants whose lifetime follows their holder's state: they end on incapacitation, on a named
  * condition, or when the holder lets go of the item they are bound to.
  */
@@ -138,19 +53,13 @@ export function stateBoundGrants<Effect extends ActiveRuleEffectRecord>(
   return effects.filter(
     (effect) =>
       isModifierGrant(effect) &&
-      (effect.definition.recurrence.endOnEvents.includes('ON_INCAPACITATED') ||
-        effect.definition.recurrence.endOnEvents.includes('ON_CHOSEN_ITEM_RELEASED') ||
-        effect.definition.recurrence.endOnConditionIds.length > 0)
+      endSubscriptions(effect).some(
+        (subscription) =>
+          (subscription.event === 'INCAPACITATED' && subscription.of === 'HOLDER') ||
+          subscription.event === 'ITEM_RELEASED' ||
+          subscription.event === 'CONDITION_HELD'
+      )
   )
-}
-
-/** The item a grant is bound to (Shillelagh's club); null for an unbound grant. */
-function boundItemInstanceId(effect: ActiveRuleEffectRecord) {
-  if (effect.definition.schemaVersion !== 2) return null
-  for (const contribution of effect.definition.stateContributions)
-    if (contribution.kind === 'MODIFIER_GRANT' && contribution.boundItem)
-      return contribution.boundItem.itemInstanceId
-  return null
 }
 
 /**
@@ -167,19 +76,15 @@ export function grantsEndedByHolderState<Effect extends ActiveRuleEffectRecord>(
   }
 ) {
   const incapacitated = state.reason === 'INCAPACITATED' || state.reason === 'DEFEATED'
-  // A defeated holder's conditions are not read (readHolderEndState), so none can end a grant.
-  const conditionIds = state.reason === 'DEFEATED' ? [] : state.conditionIds
-  return stateBoundGrants(effects).filter((effect) => {
-    const { endOnEvents, endOnConditionIds } = effect.definition.recurrence
-    const boundItemId = boundItemInstanceId(effect)
-    return (
-      (incapacitated && endOnEvents.includes('ON_INCAPACITATED')) ||
-      endOnConditionIds.some((conditionId) => conditionIds.includes(conditionId)) ||
-      (endOnEvents.includes('ON_CHOSEN_ITEM_RELEASED') &&
-        boundItemId !== null &&
-        !state.itemInstanceIdsOnActor.includes(boundItemId))
-    )
-  })
+  const events: EncounterEvent[] = [
+    ...(incapacitated ? [{ kind: 'INCAPACITATED', of: 'HOLDER' } as const] : []),
+    // A defeated holder's conditions are not read (readHolderEndState), so none can end a grant.
+    ...(state.reason === 'DEFEATED'
+      ? []
+      : [{ kind: 'CONDITION_HELD', conditionIds: state.conditionIds } as const]),
+    { kind: 'ITEM_RELEASED', itemInstanceIdsOnActor: state.itemInstanceIdsOnActor }
+  ]
+  return discoverEncounterEventHooks({ effects: stateBoundGrants(effects), events }).ended
 }
 
 /** Grants that end when the Encounter actor that applied them is incapacitated or defeated. */
@@ -191,8 +96,8 @@ export function sourceBoundGrants<Effect extends ActiveRuleEffectRecord>(
       isModifierGrant(effect) &&
       effect.definition.schemaVersion === 2 &&
       effect.definition.origin.kind === 'ENCOUNTER' &&
-      effect.definition.recurrence.endOnTriggers.some(
-        (trigger) => trigger.event === 'INCAPACITATED' && trigger.of === 'SOURCE'
+      endSubscriptions(effect).some(
+        (subscription) => subscription.event === 'INCAPACITATED' && subscription.of === 'SOURCE'
       )
   )
 }
@@ -207,12 +112,15 @@ export function grantsEndedBySourceState<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[],
   sourceReasons: ReadonlyMap<string, Exclude<ConcentrationEndReason, 'CHOSEN'> | null>
 ) {
-  return sourceBoundGrants(effects).filter(({ definition }) => {
-    const sourceActorId =
-      definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
-    const reason = sourceActorId === null ? null : sourceReasons.get(sourceActorId)
-    return reason === 'INCAPACITATED' || reason === 'DEFEATED'
-  })
+  const sourceActorIds = new Set(
+    [...sourceReasons]
+      .filter(([, reason]) => reason === 'INCAPACITATED' || reason === 'DEFEATED')
+      .map(([actorId]) => actorId)
+  )
+  return discoverEncounterEventHooks({
+    effects: sourceBoundGrants(effects),
+    events: [{ kind: 'INCAPACITATED', of: 'SOURCE', sourceActorIds }]
+  }).ended
 }
 
 /**
@@ -233,41 +141,6 @@ function grantAnchorActorId(
     origin.sourceAggregateId === encounterId
     ? origin.sourceActorId
     : holderActorId
-}
-
-/** The actor an event comes from and the actor whose turn it is; null when there is none. */
-export type EffectEventScope = { actorId: string | null; turnActorId: string | null }
-
-/**
- * Whose events an effect meets, and on whose turn, for its grants about attackers and its attack
- * consume: only its Encounter source's when `fromSourceOnly`, and only during its tick anchor's turn
- * while one tick remains when `activeOnlyOnFinalAnchorTurn`; a null field admits anyone. Null while
- * the effect meets no event: dormant before that final turn, or source-only with no source here.
- */
-export function effectEventScope(
-  effect: Pick<ActiveRuleEffectRecord, 'definition' | 'lifecycle'>,
-  holderActorId: string
-): EffectEventScope | null {
-  const { recurrence, origin } = effect.definition
-  const sourceActorId = origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null
-  if (recurrence.fromSourceOnly && sourceActorId === null) return null
-  const actorId = recurrence.fromSourceOnly ? sourceActorId : null
-  if (!recurrence.activeOnlyOnFinalAnchorTurn) return { actorId, turnActorId: null }
-  const { expiration } = recurrence
-  if (expiration.kind !== 'TICKS' || effect.lifecycle.remainingTicks !== 1) return null
-  return {
-    actorId,
-    turnActorId:
-      expiration.anchor === 'SOURCE' && sourceActorId !== null ? sourceActorId : holderActorId
-  }
-}
-
-/** Whether an event falls within an effect's scope (see `effectEventScope`). */
-export function isInEffectEventScope(scope: EffectEventScope, event: EffectEventScope): boolean {
-  return (
-    (scope.actorId === null || scope.actorId === event.actorId) &&
-    (scope.turnActorId === null || scope.turnActorId === event.turnActorId)
-  )
 }
 
 /**
@@ -365,10 +238,14 @@ export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: 
   const mark = encounterActorIdleTurnMark(input.actor)
   if (mark === null) return { ended: [], nextMark: null }
   if (mark === 'ENGAGED') return { ended: [], nextMark: 'ARMED' as const }
-  const ended = effectsEndedBy(input.effects, 'ON_IDLE_TURN').filter((effect) =>
+  const idleBound = discoverEncounterEventHooks({
+    effects: input.effects,
+    events: [{ kind: 'IDLE_TURN' }]
+  }).ended
+  const ended = idleBound.filter((effect) =>
     isEffectLiveInEncounter(effect, input.actor, input.encounterId)
   )
-  const holdsOthers = effectsEndedBy(input.effects, 'ON_IDLE_TURN').length > ended.length
+  const holdsOthers = idleBound.length > ended.length
   return { ended, nextMark: holdsOthers ? ('ARMED' as const) : null }
 }
 

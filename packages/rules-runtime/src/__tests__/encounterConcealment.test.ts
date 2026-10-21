@@ -13,7 +13,6 @@ import {
   observersHiddenFrom,
   passiveSkillDefinitionId
 } from '../encounterConcealment.js'
-import { effectsEndedBy } from '../encounterGrantLifetimes.js'
 import { ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID } from '../encounterRollModeReasons.js'
 import { concealmentRecord } from '../testing/concealmentFixture.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -24,6 +23,7 @@ import {
   quillVolley,
   settleCreatureAction
 } from './encounterCreatureAction.js'
+import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 
 const HIDER_ID = testUuid(0xa1)
 const SEEING_ID = testUuid(0xa2)
@@ -108,8 +108,18 @@ describe('concealment rules', () => {
 
   it('is used up by the first attack roll and by nothing else', () => {
     const record = hiddenFrom(FOOLED_ID)
-    expect(effectsEndedBy([record], 'ON_ATTACK_ROLL')).toEqual([record])
-    expect(effectsEndedBy([record], 'ON_ABILITY_CHECK')).toEqual([])
+    expect(
+      discoverEncounterEventHooks({
+        effects: [record],
+        events: [{ kind: 'ACTION', attackRoll: true, spellCast: false, againstEnemy: false }]
+      }).ended
+    ).toEqual([record])
+    expect(
+      discoverEncounterEventHooks({
+        effects: [record],
+        events: [{ kind: 'TEST', test: 'CHECK', ability: null }]
+      }).ended
+    ).toEqual([])
   })
 
   it('leaves an effect that lists neither event unconsumed by an attack', () => {
@@ -121,7 +131,12 @@ describe('concealment rules', () => {
         recurrence: { ...record.definition.recurrence, consumeOnFirstEvents: [], endOnEvents: [] }
       }
     }
-    expect(effectsEndedBy([unlisted], 'ON_ATTACK_ROLL')).toEqual([])
+    expect(
+      discoverEncounterEventHooks({
+        effects: [unlisted],
+        events: [{ kind: 'ACTION', attackRoll: true, spellCast: false, againstEnemy: false }]
+      }).ended
+    ).toEqual([])
   })
 })
 

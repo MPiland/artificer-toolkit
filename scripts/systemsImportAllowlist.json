@@ -10,7 +10,6 @@
   "packages/rules-runtime/src/encounterConcentration.ts",
   "packages/rules-runtime/src/encounterCreatureEquipmentSources.ts",
   "packages/rules-runtime/src/encounterDisarmPreparation.ts",
-  "packages/rules-runtime/src/encounterEndedEffectRelease.ts",
   "packages/rules-runtime/src/encounterEnemyProximity.ts",
   "packages/rules-runtime/src/encounterFeatureActionCapabilityDiscovery.ts",
   "packages/rules-runtime/src/encounterFeatureActionCapabilityDiscoveryRegistry.ts",

@@ -156,7 +156,7 @@ import {
   withEncounterAppRoll,
   type EncounterEvidenceAnswer
 } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
-import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { endSubscriptions } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import {
   replayNativeActionLegendaryResistance,
@@ -1750,7 +1750,7 @@ export async function planNativeLiveEncounterAction(
       reactionUse &&
       !(
         prepared.makesAttackRoll &&
-        effectsEndedBy([reactionUse.applied.pendingEffect], 'ON_ATTACKED').length
+        endSubscriptions(reactionUse.applied.pendingEffect).some((s) => s.event === 'ATTACKED')
       )
         ? reactionUse.applied.reactionEffect
         : null,
