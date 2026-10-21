@@ -1,13 +1,11 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
-import {
-  compareCanonicalD20Contributors,
-  type D20Contributor
-} from '@artificer-toolkit/shared/rules'
+import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
 import { EncounterValidationError } from './encounterErrors.js'
 
-export type EncounterRelationshipD20Contributor = Readonly<D20Contributor>
+export type EncounterRelationshipD20Contributor = Readonly<ReceiptD20ContributorDto>
 
 export type EncounterRelationshipActiveEffectsByActorId = ReadonlyMap<
   string,

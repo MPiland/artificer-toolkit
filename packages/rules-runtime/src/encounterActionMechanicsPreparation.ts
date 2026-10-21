@@ -843,6 +843,7 @@ export async function prepareEncounterActionMechanics<
         ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
         : attackSight && attackKind === null && dndSource?.savingThrowAbilityDefinitionId
           ? withSourceSightSave(
+              state.gameSystemId,
               targetFacts.targetDerivedFacts,
               dndSource.savingThrowAbilityDefinitionId,
               attackSight.trueSight

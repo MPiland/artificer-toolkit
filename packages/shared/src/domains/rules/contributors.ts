@@ -48,15 +48,18 @@ export function rollModeContributorSourceOfMechanicSource(
   }
 }
 
-export interface CanonicalD20Contributor {
+export interface CanonicalD20Contributor<TInfluence extends string = string> {
   sourceId: string
   grantId?: string | null
   domainKey?: string | null
-  influence: 'ADVANTAGE' | 'DISADVANTAGE'
+  /** A roll-mode influence code from the Game System's vocabulary; the kernel never reads its meaning. */
+  influence: TInfluence
 }
 
 /** A recorded d20 contributor: its canonical identity plus the typed source its reason label reads. */
-export interface D20Contributor extends CanonicalD20Contributor {
+export interface D20Contributor<
+  TInfluence extends string = string
+> extends CanonicalD20Contributor<TInfluence> {
   grantId: string | null
   domainKey: string | null
   source: RollModeContributorSource

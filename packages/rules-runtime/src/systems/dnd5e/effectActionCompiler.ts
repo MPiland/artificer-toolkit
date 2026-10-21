@@ -4,7 +4,10 @@ import {
   type ActiveEffectSaveThresholds,
   type ActiveRuleEffectLifecycleDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
-import { MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import {
+  MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS,
+  type ReceiptD20ContributorDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
   type ServerPublishedRuleDefinitionDto
@@ -38,19 +41,15 @@ import type {
 } from '@artificer-toolkit/shared/authored'
 import {
   addNumbersRuleOperation,
+  checksumRuleDocument,
+  compareCanonicalD20Contributors,
   compareThresholdRuleOperation,
   type CompiledRuleGraph,
   type RuleGraphDefinition,
   type RuleInputBinding
 } from '@artificer-toolkit/shared/rules'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { v5 as uuidv5 } from 'uuid'
-import {
-  checksumRuleDocument,
-  compareCanonicalD20Contributors,
-  type D20Contributor
-} from '@artificer-toolkit/shared/rules'
 import type { EffectActionCapabilityDescriptor } from '../../characterActionCapabilityDiscovery.js'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
@@ -101,6 +100,7 @@ import {
   type Dnd5eMoveToward
 } from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import { resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
   DND5E_POISONED_CONDITION_DEFINITION_ID
@@ -6966,13 +6966,13 @@ export function selectDnd5eTargetSavingThrow(input: {
 }): {
   modifier: number
   rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-  contributors: D20Contributor[]
+  contributors: ReceiptD20ContributorDto[]
 } {
   type SaveDefinition = {
     conditionTypeId: unknown
     modifier: number
     rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-    contributors: D20Contributor[]
+    contributors: ReceiptD20ContributorDto[]
   }
   if (!Array.isArray(input.savingThrowDefinitions))
     throw new Dnd5eEffectActionCompilerError('D&D target saving throws are unavailable.')
@@ -6994,7 +6994,7 @@ export function selectDnd5eTargetSavingThrow(input: {
       if (rollMode !== 'NORMAL' && rollMode !== 'ADVANTAGE' && rollMode !== 'DISADVANTAGE')
         throw new Dnd5eEffectActionCompilerError('D&D target save roll mode is invalid.')
       const contributors = (Array.isArray(row.contributors) ? row.contributors : []).map(
-        ({ sourceId, grantId, domainKey, influence, source }: D20Contributor) => ({
+        ({ sourceId, grantId, domainKey, influence, source }: ReceiptD20ContributorDto) => ({
           sourceId,
           grantId,
           domainKey,
@@ -7033,7 +7033,7 @@ export function selectDnd5eTargetSavingThrow(input: {
       (sum, definition) => sum + definition.modifier - base.modifier,
       base.modifier
     ),
-    rollMode: resolveD20Contributors(contributors).rollMode,
+    rollMode: resolveDnd5eRollMode(contributors).rollMode,
     contributors
   }
 }
@@ -7043,7 +7043,7 @@ function flankingContributor(input: {
   gameSystemId: string
   positionalFacts: CharacterRuleActionPositionalFacts | null | undefined
   sceneContext: Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0]['sceneContext']
-}): D20Contributor | null {
+}): ReceiptD20ContributorDto | null {
   const facts = input.positionalFacts
   const scene = input.sceneContext
   if (!facts || !scene) return null
@@ -7612,7 +7612,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const statBlock = targetDerivedFacts.statBlock as { armorClass?: unknown } | undefined
     const armorClass = derivedStats?.armorClass?.effective ?? statBlock?.armorClass
     const sourceContributorEvidence = sourceDerivedFacts.rollContributorEvidence as
-      | { attacks?: Record<string, readonly D20Contributor[]> }
+      | { attacks?: Record<string, readonly ReceiptD20ContributorDto[]> }
       | undefined
     const nestedSaveAbilityBindings = Object.entries(published.definition.outputs).filter(
       ([name]) =>
@@ -7653,7 +7653,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           abilityDefinitionId: string
           modifier: number
           rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-          contributors: readonly D20Contributor[]
+          contributors: readonly ReceiptD20ContributorDto[]
         } =>
           typeof candidate === 'object' &&
           candidate !== null &&
@@ -7933,7 +7933,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         abilityDefinitionId: string
         modifier: number
         rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-        contributors: readonly D20Contributor[]
+        contributors: readonly ReceiptD20ContributorDto[]
       } =>
         typeof candidate === 'object' &&
         candidate !== null &&
@@ -8026,8 +8026,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       })
       contributors.sort(compareCanonicalD20Contributors)
     }
-    const resolvedContributors = resolveD20Contributors(contributors)
-    const contributorChecksum = checksumRuleDocument(resolvedContributors.contributors)
+    const contributorChecksum = checksumRuleDocument(contributors)
     const gate = perceptionRequirement?.kind === 'ATTEMPT_GATE' ? perceptionRequirement : null
     const gated = gate !== null || definition.recurrence.saveThresholds !== undefined
     if (
@@ -8068,8 +8067,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       facts,
       evidencePolicy: {
         requestNodeId,
-        rollMode: resolvedContributors.rollMode,
-        contributors: [...resolvedContributors.contributors],
+        rollMode: resolveDnd5eRollMode(contributors).rollMode,
+        contributors: [...contributors],
         contributorChecksum,
         modifier: matches[0]!.modifier,
         dc: saveDc,

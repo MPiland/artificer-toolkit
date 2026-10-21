@@ -1,5 +1,4 @@
 import type { EncounterSettledAppRollDto } from '@artificer-toolkit/schema/api/encounterData'
-import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
@@ -75,6 +74,7 @@ import {
   readNativeLiveMaintenanceOwners,
   readNativeLiveMaintenanceSlot
 } from './nativeEncounterMaintenance.js'
+import { bindEncounterD20Evidence } from './nativeD20Evidence.js'
 import {
   projectNativeLiveMaintenanceOwners,
   type NativeLiveMaintenanceOwner,
@@ -579,15 +579,11 @@ export async function planNativeLiveConcentration(input: {
       if (!paused) throw new Error('The repeat save did not request bounded d20 evidence.')
       return paused.continuation
     })()
-    const resolution = resume
-      ? withEncounterAppRoll(resume.response.resolution, resume.appRoll)
-      : { kind: 'AUTO_ROLL' as const, requestId: continuation.request.requestId }
-    if (
-      resolution.kind !== 'ENTER_DICE' &&
-      resolution.kind !== 'SYSTEM_ROLL' &&
-      resolution.kind !== 'AUTO_ROLL'
-    )
-      throw new Error('The repeat save evidence request is unavailable.')
+    const resolution = bindEncounterD20Evidence({
+      response: resume ? { resolution: resume.response.resolution, appRoll: resume.appRoll } : null,
+      autoRollRequestId: continuation.request.requestId,
+      refusal: 'The repeat save evidence request is unavailable.'
+    })
     const evidence = await evaluateEffectRepeatSaveEvidence({
       effectInput,
       context,
@@ -730,18 +726,11 @@ export async function planNativeLiveConcentration(input: {
       if (!started) throw new Error('Concentration did not request bounded d20 evidence.')
       return started.continuation
     })()
-    const resolution = resume
-      ? withEncounterAppRoll(resume.response.resolution, resume.appRoll)
-      : {
-          kind: 'AUTO_ROLL' as const,
-          requestId: continuation.request.requestId
-        }
-    if (
-      resolution.kind !== 'ENTER_DICE' &&
-      resolution.kind !== 'SYSTEM_ROLL' &&
-      resolution.kind !== 'AUTO_ROLL'
-    )
-      throw new Error('The concentration evidence request is unavailable.')
+    const resolution = bindEncounterD20Evidence({
+      response: resume ? { resolution: resume.response.resolution, appRoll: resume.appRoll } : null,
+      autoRollRequestId: continuation.request.requestId,
+      refusal: 'The concentration evidence request is unavailable.'
+    })
     const evidence = await evaluateNativeConcentrationEvidence({
       context,
       continuation,

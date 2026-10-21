@@ -2,7 +2,6 @@ import type {
   ServerRuleExecutionD20BeliefDto,
   ServerRuleExecutionD20PolicyDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import {
   ROLL_MODE_RULE_SOURCE_IDS,
   checksumRuleDocument,
@@ -19,6 +18,7 @@ import {
   mergeCanonicalD20Contributors,
   type EncounterRelationshipD20Contributor
 } from './encounterRelationshipActionFacts.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 
 type D20Policy = Pick<
   ServerRuleExecutionD20PolicyDto,
@@ -51,6 +51,7 @@ const MAX_CAPTION_LENGTH = 160
  * sight swapped for the believed ones. Null when the roller's facts imply the true policy.
  */
 export function encounterAttackD20Belief(input: {
+  gameSystemId: string
   policy: D20Policy
   /** The true sight contributors (Dodge and unseen attacker/target) merged into `policy`. */
   trueSight: readonly EncounterRelationshipD20Contributor[]
@@ -66,7 +67,10 @@ export function encounterAttackD20Belief(input: {
   const contributorChecksum = checksumRuleDocument(contributors)
   if (contributorChecksum === input.policy.contributorChecksum) return null
   return {
-    rollMode: resolveD20Contributors(contributors).rollMode,
+    rollMode: rollModeCapabilityRegistry.resolveRollMode({
+      gameSystemId: input.gameSystemId,
+      contributors
+    }).rollMode,
     contributors: [...contributors],
     contributorChecksum
   }

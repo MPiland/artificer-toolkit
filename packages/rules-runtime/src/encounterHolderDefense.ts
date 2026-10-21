@@ -135,7 +135,7 @@ export async function withEncounterHolderDefense<T extends MovementTarget>(input
 }): Promise<T> {
   const { target } = input
   if (!hasHolderDefenseGrants(target)) return target
-  return withHolderDefenseGrants(target, await encounterHolderState(input))
+  return withHolderDefenseGrants(input.gameSystemId, target, await encounterHolderState(input))
 }
 
 function sourceSightSaveGrants(target: MovementTarget) {
@@ -157,6 +157,7 @@ function hasHolderDefenseGrants(target: MovementTarget): boolean {
 
 /** Applies the target's defensive grants for `holderState`, which the target then keeps. */
 export function withHolderDefenseGrants<T extends MovementTarget>(
+  gameSystemId: string,
   target: T,
   holderState: EncounterHolderState
 ): T {
@@ -179,6 +180,7 @@ export function withHolderDefenseGrants<T extends MovementTarget>(
       ...(Array.isArray(savingThrowDefinitions)
         ? {
             savingThrowDefinitions: withHolderStateGrantSaves(
+              gameSystemId,
               savingThrowDefinitions,
               target.actor.id,
               target.activeEffects,

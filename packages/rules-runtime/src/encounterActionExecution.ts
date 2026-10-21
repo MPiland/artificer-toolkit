@@ -691,9 +691,9 @@ export async function prepareNativeActionTest(
     if (!input.autoRoll[roller]) {
       const d20Belief = attackSight
         ? encounterAttackD20Belief({
+            gameSystemId: current.published.gameSystemId,
             policy: pendingPolicy,
-            trueSight: attackSight.trueSight,
-            believedSight: attackSight.believedSight
+            ...attackSight
           })
         : null
       return {
@@ -1329,9 +1329,9 @@ export async function advanceNativeActionGraphs(input: {
         const d20Belief =
           policy && isStageD20(policy) && attackSight
             ? encounterAttackD20Belief({
+                gameSystemId: published.gameSystemId,
                 policy,
-                trueSight: attackSight.trueSight,
-                believedSight: attackSight.believedSight
+                ...attackSight
               })
             : null
         return {

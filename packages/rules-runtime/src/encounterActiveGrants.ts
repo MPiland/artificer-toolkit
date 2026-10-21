@@ -17,7 +17,6 @@ import {
   type AttackOccasionCode,
   type ValueDomainCode
 } from '@artificer-toolkit/shared/core'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import {
   compareCanonicalD20Contributors,
   rollModeContributorSourceOfMechanicSource
@@ -35,6 +34,7 @@ import { normalizeCharacterGrantRestrictions } from './character/characterGrantF
 import { effectEventScope, type EffectEventScope } from './encounterGrantLifetimes.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
   DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -142,6 +142,7 @@ export function withCharacterActiveGrants(
  * grants through its own policy instead.
  */
 export function withCreatureActiveGrantSaves(
+  gameSystemId: string,
   savingThrowDefinitions: readonly unknown[],
   holderActorId: string,
   effects: readonly ActiveRuleEffectRecord[],
@@ -221,6 +222,7 @@ export function withCreatureActiveGrantSaves(
           conditionTypeId,
           modifier: row.modifier,
           ...mergedRollContributors(
+            gameSystemId,
             row.contributors as EncounterRelationshipD20Contributor[],
             contributors
           )
@@ -228,7 +230,7 @@ export function withCreatureActiveGrantSaves(
       ]
     })
   ]
-  return plain.size === 0 ? rows : withSaveRowContributors(rows, plain)
+  return plain.size === 0 ? rows : withSaveRowContributors(gameSystemId, rows, plain)
 }
 
 const CREATURE_DEFENSE_KIND_BY_DOMAIN: Readonly<
@@ -535,6 +537,7 @@ export function hasFeatureAttacksAgainstGrants(
  * Creature and a Character read the same rows.
  */
 export function withHolderStateGrantSaves(
+  gameSystemId: string,
   savingThrowDefinitions: readonly unknown[],
   holderActorId: string,
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
@@ -561,11 +564,12 @@ export function withHolderStateGrantSaves(
       ])
     }
   }
-  return withSaveRowContributors(savingThrowDefinitions, byAbility)
+  return withSaveRowContributors(gameSystemId, savingThrowDefinitions, byAbility)
 }
 
 /** The saving-throw rows with each ability's contributors merged into every row of that ability. */
 function withSaveRowContributors(
+  gameSystemId: string,
   savingThrowDefinitions: readonly unknown[],
   byAbility: ReadonlyMap<string, readonly EncounterRelationshipD20Contributor[]>
 ): unknown[] {
@@ -576,6 +580,7 @@ function withSaveRowContributors(
       ? {
           ...row,
           ...mergedRollContributors(
+            gameSystemId,
             row.contributors as EncounterRelationshipD20Contributor[],
             added
           )
@@ -660,6 +665,7 @@ export function encounterSourceSightSaveGrants(input: {
 
 /** The target's facts with the source-sight contributors that hold now merged into its saves of one ability. */
 export function withSourceSightSave(
+  gameSystemId: string,
   targetDerivedFacts: Readonly<Record<string, unknown>>,
   abilityDefinitionId: string,
   contributors: readonly EncounterRelationshipD20Contributor[]
@@ -669,24 +675,37 @@ export function withSourceSightSave(
   return {
     ...targetDerivedFacts,
     savingThrowDefinitions: withSaveRowContributors(
+      gameSystemId,
       savingThrowDefinitions,
       new Map([[abilityDefinitionId, contributors]])
     )
   }
 }
 
-/** The canonical contributors of a d20 with `added` merged in, and the roll mode they resolve to. */
-export function mergedRollContributors(
+/** The canonical contributors of a d20 with `added` merged in. */
+export function mergedCanonicalContributors(
   existing: readonly EncounterRelationshipD20Contributor[],
   added: readonly EncounterRelationshipD20Contributor[]
-) {
-  const contributors = [...existing, ...added]
+): EncounterRelationshipD20Contributor[] {
+  return [...existing, ...added]
     .sort(compareCanonicalD20Contributors)
     .filter(
       (contributor, index, sorted) =>
         index === 0 || compareCanonicalD20Contributors(sorted[index - 1]!, contributor) !== 0
     )
-  return { contributors, rollMode: resolveD20Contributors(contributors).rollMode }
+}
+
+/** The canonical contributors of a d20 with `added` merged in, and the roll mode the System resolves them to. */
+export function mergedRollContributors(
+  gameSystemId: string,
+  existing: readonly EncounterRelationshipD20Contributor[],
+  added: readonly EncounterRelationshipD20Contributor[]
+) {
+  const contributors = mergedCanonicalContributors(existing, added)
+  return {
+    contributors,
+    rollMode: rollModeCapabilityRegistry.resolveRollMode({ gameSystemId, contributors }).rollMode
+  }
 }
 
 const defenseKey = (defense: {

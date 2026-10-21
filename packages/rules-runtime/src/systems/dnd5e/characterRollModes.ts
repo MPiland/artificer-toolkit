@@ -5,7 +5,6 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 import { abilityCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import type { AttackDomainCode } from '@artificer-toolkit/shared/core'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import {
   compareCanonicalD20Contributors,
   rollModeContributorSourceOfMechanicSource
@@ -13,6 +12,7 @@ import {
 
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { canonicalCharacterAbility } from './characterPolicyValues.js'
+import { resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eAcceptedModifierApplicability,
@@ -170,22 +170,22 @@ export function evaluateDnd5eCharacterRollModes(
   return {
     rollContributorEvidence,
     rollModes: {
-      initiative: resolveD20Contributors(rollContributorEvidence.initiative).rollMode,
+      initiative: resolveDnd5eRollMode(rollContributorEvidence.initiative).rollMode,
       abilityChecks: keyedRecord(
         abilityCodeSchema.options,
-        (key) => resolveD20Contributors(rollContributorEvidence.abilityChecks[key]).rollMode
+        (key) => resolveDnd5eRollMode(rollContributorEvidence.abilityChecks[key]).rollMode
       ),
       savingThrows: keyedRecord(
         abilityCodeSchema.options,
-        (key) => resolveD20Contributors(rollContributorEvidence.savingThrows[key]).rollMode
+        (key) => resolveDnd5eRollMode(rollContributorEvidence.savingThrows[key]).rollMode
       ),
       skillChecks: keyedRecord(
         skills,
-        (key) => resolveD20Contributors(rollContributorEvidence.skillChecks[key]).rollMode
+        (key) => resolveDnd5eRollMode(rollContributorEvidence.skillChecks[key]).rollMode
       ),
       attacks: keyedRecord(
         attacks,
-        (key) => resolveD20Contributors(rollContributorEvidence.attacks[key]).rollMode
+        (key) => resolveDnd5eRollMode(rollContributorEvidence.attacks[key]).rollMode
       )
     }
   }

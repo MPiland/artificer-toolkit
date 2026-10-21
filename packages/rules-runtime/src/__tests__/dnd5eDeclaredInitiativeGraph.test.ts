@@ -4,6 +4,7 @@ import {
   executeRuleGraph,
   resumeRuleGraph
 } from '@artificer-toolkit/shared/rules'
+import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -13,6 +14,7 @@ import {
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import {
   createDnd5eSpeedFactorInitiativeDefinition,
+  dnd5eDeclaredInitiativeRollFacts,
   DND5E_INITIATIVE_FACT_KEYS
 } from '../systems/dnd5e/initiativeFactAdapter.js'
 
@@ -29,7 +31,7 @@ if (!compiled.ok) throw new Error('Expected the declared initiative graph to com
 const graph = compiled.value
 
 /** Settles the declared graph with scripted faces, as the settled evidence of one declared actor. */
-function settle(input: { rollMode: string; faces: readonly number[] }) {
+function settle(input: { rollMode: RollMode; faces: readonly number[] }) {
   const remaining = [...input.faces]
   let result = executeRuleGraph({
     graph,
@@ -37,9 +39,8 @@ function settle(input: { rollMode: string; faces: readonly number[] }) {
     facts: {
       [DND5E_INITIATIVE_FACT_KEYS.automatic]: true,
       [DND5E_INITIATIVE_FACT_KEYS.modifier]: 3,
-      [DND5E_INITIATIVE_FACT_KEYS.rollMode]: input.rollMode,
-      [DND5E_INITIATIVE_FACT_KEYS.speedFactorModifier]: -2,
-      [DND5E_INITIATIVE_FACT_KEYS.extraD20]: input.rollMode !== 'NORMAL'
+      ...dnd5eDeclaredInitiativeRollFacts(input.rollMode),
+      [DND5E_INITIATIVE_FACT_KEYS.speedFactorModifier]: -2
     },
     operations
   })
@@ -71,7 +72,7 @@ describe('D&D declared initiative graph', () => {
     expect(asked).toBe(2)
     expect(unused).toEqual([])
     expect(result.outputs).toMatchObject({ score: 15 + 3 - 2 })
-    expect(result.evidence.facts[DND5E_INITIATIVE_FACT_KEYS.rollMode]).toBe('ADVANTAGE')
+    expect(result.evidence.facts[DND5E_INITIATIVE_FACT_KEYS.keep]).toBe('HIGHER')
     expect(
       result.evidence.trace.flatMap((entry) => (entry.evidence ? [entry.evidence.value] : []))
     ).toEqual([6, 15])

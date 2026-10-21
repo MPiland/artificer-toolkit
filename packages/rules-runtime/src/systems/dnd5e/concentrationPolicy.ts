@@ -1,9 +1,11 @@
 import { z } from 'zod'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
-import { rollModeContributorSourceDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import {
+  rollModeContributorSourceDtoSchema,
+  type ReceiptD20ContributorDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   compareCanonicalD20Contributors,
-  type D20Contributor,
   RULE_GRAPH_LIMITS,
   RULE_VALUE_KIND,
   type GameSystemRuleCapabilityContract,
@@ -32,12 +34,12 @@ export const DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY =
 
 /** Rejects noncanonical or altered contributor evidence before it enters a child receipt. */
 function validateDnd5eConcentrationContributors(
-  contributors: readonly D20Contributor[],
+  contributors: readonly ReceiptD20ContributorDto[],
   contributorChecksum: string
 ): void {
   if (contributors.length > RULE_GRAPH_LIMITS.NODES)
     throw new Error('D&D concentration saving-throw contributors exceed the rules-runtime limit.')
-  let prior: D20Contributor | null = null
+  let prior: ReceiptD20ContributorDto | null = null
   for (const contributor of contributors) {
     if (prior !== null && compareCanonicalD20Contributors(prior, contributor) >= 0)
       throw new Error('D&D concentration saving-throw contributors are not canonical.')
@@ -146,7 +148,7 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
       conditionTypeId?: string
       modifier: number
       rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-      contributors: readonly D20Contributor[]
+      contributors: readonly ReceiptD20ContributorDto[]
     }[]
   }
   /** The dice the holder rolls with the save (D156). */
@@ -155,7 +157,7 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
   facts: Record<string, string | number | boolean>
   rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   modifier: number
-  contributors: ReadonlyArray<D20Contributor>
+  contributors: ReadonlyArray<ReceiptD20ContributorDto>
   contributorChecksum: string
 } {
   const appliedDamage = positiveSafeInteger(input.appliedDamage, 'Applied damage')

@@ -337,6 +337,7 @@ describe('basic action mechanics (Q11)', () => {
     ])
     // Preparation merges the contributors it proves into the matching row alone.
     const merged = withSourceSightSave(
+      SYSTEM_ID,
       defended.targetDerivedFacts,
       DEXTERITY_ID,
       defended.sourceSightSaves.map(({ contributor }) => contributor)
@@ -345,7 +346,7 @@ describe('basic action mechanics (Q11)', () => {
       { abilityDefinitionId: DEXTERITY_ID, rollMode: 'ADVANTAGE' },
       { abilityDefinitionId: WISDOM_ID, rollMode: 'NORMAL', contributors: [] }
     ])
-    expect(withSourceSightSave(defended.targetDerivedFacts, DEXTERITY_ID, [])).toBe(
+    expect(withSourceSightSave(SYSTEM_ID, defended.targetDerivedFacts, DEXTERITY_ID, [])).toBe(
       defended.targetDerivedFacts
     )
   })

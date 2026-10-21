@@ -5,7 +5,7 @@ import type {
   ConditionMechanicDto,
   PinnedConditionRuleStateDefinitionDto
 } from '@artificer-toolkit/schema/shared/ruleState'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
+import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { measureSceneTokenFootprintDistance, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
@@ -15,6 +15,7 @@ import {
 } from './encounterActionTargetPolicy.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 import {
   resolveRuleCapabilityState,
   type CurrentReusableDefinitionSource
@@ -186,7 +187,10 @@ export function applyEncounterConditionMechanics<T extends MovementTarget>(input
               return {
                 ...definition,
                 contributors: merged,
-                rollMode: resolveD20Contributors(merged).rollMode
+                rollMode: rollModeCapabilityRegistry.resolveRollMode({
+                  gameSystemId: input.gameSystemId,
+                  contributors: merged
+                }).rollMode
               }
             })
           }
@@ -301,15 +305,16 @@ export function encounterConditionSaveAutoFailAbilityIds(
 
 /** An ability check's roll with the checker's condition contributors added (D94). */
 export function withEncounterConditionCheckContributors(input: {
+  gameSystemId: string
   holderActorId: string
   mechanics: readonly EncounterConditionMechanic[]
   roll: {
     contributors: readonly EncounterRelationshipD20Contributor[]
-    rollMode: ReturnType<typeof resolveD20Contributors>['rollMode']
+    rollMode: RollMode
   }
 }): {
   contributors: EncounterRelationshipD20Contributor[]
-  rollMode: ReturnType<typeof resolveD20Contributors>['rollMode']
+  rollMode: RollMode
 } {
   const conditionContributors = input.mechanics.flatMap(({ conditionDefinitionId, mechanic }) =>
     mechanic.kind === 'D20_ROLL_MODE' && mechanic.roll.kind === 'ABILITY_CHECKS'
@@ -319,7 +324,13 @@ export function withEncounterConditionCheckContributors(input: {
   if (!conditionContributors.length)
     return { contributors: [...input.roll.contributors], rollMode: input.roll.rollMode }
   const contributors = uniqueContributors([...input.roll.contributors, ...conditionContributors])
-  return { contributors, rollMode: resolveD20Contributors(contributors).rollMode }
+  return {
+    contributors,
+    rollMode: rollModeCapabilityRegistry.resolveRollMode({
+      gameSystemId: input.gameSystemId,
+      contributors
+    }).rollMode
+  }
 }
 
 /**

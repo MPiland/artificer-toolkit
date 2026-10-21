@@ -13,7 +13,9 @@ import {
   INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
   RULE_RUNTIME_GRAPH_FAMILY_KEY
 } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
+import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
 
 const DND5E_SPEED_FACTOR_INITIATIVE_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000eb'
 
@@ -22,6 +24,7 @@ export const DND5E_INITIATIVE_FACT_KEYS = {
   modifier: 'initiative.modifier',
   rollMode: 'initiative.roll-mode',
   extraD20: 'initiative.extra-d20',
+  keep: 'initiative.keep',
   speedFactorModifier: 'initiative.speed-factor.modifier',
   orderChoiceMinimumIndex: 'initiative.choice-min-index',
   orderChoiceMaximumIndex: 'initiative.choice-max-index'
@@ -39,6 +42,7 @@ export const dnd5eInitiativeCapabilityContribution = {
     { key: DND5E_INITIATIVE_FACT_KEYS.modifier, valueKind: RULE_VALUE_KIND.NUMBER },
     { key: DND5E_INITIATIVE_FACT_KEYS.rollMode, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_INITIATIVE_FACT_KEYS.extraD20, valueKind: RULE_VALUE_KIND.BOOLEAN },
+    { key: DND5E_INITIATIVE_FACT_KEYS.keep, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: DND5E_INITIATIVE_FACT_KEYS.speedFactorModifier,
       valueKind: RULE_VALUE_KIND.NUMBER
@@ -55,7 +59,7 @@ export const dnd5eInitiativeCapabilityContribution = {
   operationContracts: [
     { key: 'evidence.integer-range', contractVersion: 1 },
     { key: 'evidence.optional-integer-range', contractVersion: 1 },
-    { key: 'number.keep-by-roll-mode', contractVersion: 1 },
+    { key: 'number.keep-one-of-two', contractVersion: 1 },
     { key: 'number.add', contractVersion: 1 }
   ]
 } as const satisfies Pick<
@@ -260,11 +264,11 @@ export function createDnd5eSpeedFactorInitiativeDefinition() {
       },
       {
         id: 'd20-kept',
-        operation: { key: 'number.keep-by-roll-mode', contractVersion: 1 },
+        operation: { key: 'number.keep-one-of-two', contractVersion: 1 },
         inputs: {
           first: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
           second: { kind: 'NODE_OUTPUT', nodeId: 'd20-extra', port: 'value' },
-          rollMode: { kind: 'FACT', factKey: DND5E_INITIATIVE_FACT_KEYS.rollMode }
+          keep: { kind: 'FACT', factKey: DND5E_INITIATIVE_FACT_KEYS.keep }
         }
       },
       {
@@ -291,6 +295,17 @@ export function createDnd5eSpeedFactorInitiativeDefinition() {
   })
 }
 
+/**
+ * The facts the declared initiative graph rolls its d20s by: a second d20 and the face kept. The
+ * settled evidence records only these, so a reader recovers the roll mode from the kept face.
+ */
+export function dnd5eDeclaredInitiativeRollFacts(rollMode: RollMode) {
+  return {
+    [DND5E_INITIATIVE_FACT_KEYS.extraD20]: rollMode !== 'NORMAL',
+    [DND5E_INITIATIVE_FACT_KEYS.keep]: DND5E_KEEP_BY_ROLL_MODE[rollMode]
+  }
+}
+
 export const dnd5eInitiativeFactAdapter: InitiativeFactAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   bindActor(source) {
@@ -315,8 +330,7 @@ export const dnd5eInitiativeFactAdapter: InitiativeFactAdapter = {
       facts: {
         [DND5E_INITIATIVE_FACT_KEYS.automatic]: true,
         [DND5E_INITIATIVE_FACT_KEYS.modifier]: baseModifier,
-        [DND5E_INITIATIVE_FACT_KEYS.rollMode]: rollMode,
-        [DND5E_INITIATIVE_FACT_KEYS.extraD20]: rollMode !== 'NORMAL',
+        ...dnd5eDeclaredInitiativeRollFacts(rollMode),
         [DND5E_INITIATIVE_FACT_KEYS.speedFactorModifier]: modifier
       }
     }

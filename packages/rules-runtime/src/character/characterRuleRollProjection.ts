@@ -5,7 +5,6 @@ import {
   compareCanonicalD20Contributors,
   rollModeContributorSourceOfMechanicSource
 } from '@artificer-toolkit/shared/rules'
-import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 
 import {
   DND5E_CHARACTER_WIDE_TARGET,
@@ -14,6 +13,7 @@ import {
   dnd5eModifierApplies,
   dnd5eSaveRequiresSourceSight
 } from '../systems/dnd5e/modifierApplicability.js'
+import { resolveDnd5eRollMode } from '../systems/dnd5e/rollModePolicy.js'
 
 type CharacterRollMode = CharacterRulePolicyOutput['rollModes']['initiative']
 
@@ -83,7 +83,7 @@ function canonicalizeRollContributors(
 function resolveRollMode(
   contributors: CharacterRulePolicyOutput['rollContributorEvidence']['initiative']
 ): CharacterRollMode {
-  return resolveD20Contributors(contributors).rollMode
+  return resolveDnd5eRollMode(contributors).rollMode
 }
 
 function resolveRollModeRecord<
@@ -92,7 +92,7 @@ function resolveRollModeRecord<
   return Object.fromEntries(
     Object.entries(contributors).map(([key, values]) => [
       key,
-      resolveD20Contributors(values).rollMode
+      resolveDnd5eRollMode(values).rollMode
     ])
   ) as { [Key in keyof T]: CharacterRollMode }
 }

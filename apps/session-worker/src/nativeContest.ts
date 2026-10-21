@@ -74,6 +74,7 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import { requireEncounterD20Evidence } from './nativeD20Evidence.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import {
   readNativeLiveAttackPerception,
@@ -734,9 +735,10 @@ export async function planNativeLiveContestRolls(input: {
                 ? 'The contest defender picks one of its checks.'
                 : 'A contest participant answers with d20 evidence.'
             )
-          const resolution = answer.kind === 'CONTEST_CHECK' ? answer.roll : answer
-          if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
-            throw new Error('A contest requires d20 evidence.')
+          const resolution = requireEncounterD20Evidence(
+            answer.kind === 'CONTEST_CHECK' ? answer.roll : answer,
+            'A contest requires d20 evidence.'
+          )
           const {
             snapshotKind: _snapshotKind,
             applicationContext: _applicationContext,
@@ -823,6 +825,7 @@ export async function planNativeLiveContestRolls(input: {
     const d20Belief =
       execution.participant === 'INITIATOR' && attackSight
         ? encounterAttackD20Belief({
+            gameSystemId: state.gameSystemId,
             policy: contest.initiator,
             trueSight: attackSight.trueSight,
             believedSight: attackSight.believedSight

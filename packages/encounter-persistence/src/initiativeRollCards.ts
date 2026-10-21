@@ -4,20 +4,24 @@ import {
   ruleCheckRollId
 } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { DND5E_INITIATIVE_FACT_KEYS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
+import { DND5E_KEEP_BY_ROLL_MODE } from '@artificer-toolkit/rules-runtime/systems/dnd5e/rollModePolicy'
 import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
+import { keepOneOfTwoRuleOperation } from '@artificer-toolkit/shared/rules'
 import { readAppCardedDice, turnSystemRollAnswers } from './appCardedDice.js'
 import { LOGGED_DICE } from './evidenceRolls.js'
 import type { CampaignAuthority, EncounterReadTransaction, EncounterWritePorts } from './ports.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
 
+const ROLL_MODES = Object.keys(DND5E_KEEP_BY_ROLL_MODE) as (keyof typeof DND5E_KEEP_BY_ROLL_MODE)[]
+
 /**
  * Posts one Initiative card per declared actor that settled dice, as a GM-rolled initiative does,
  * in declaration order. Advantage or disadvantage settled two `1d20` faces and the graph's
- * keep-by-roll-mode node chose the kept one, so the card replays both faces under that mode. A die
+ * keep-one-of-two node chose the kept one, so the card replays both faces under that mode. A die
  * the app rolled for its member already has its "Rolled by the app" attempt card, so an actor whose
  * every die the app carded is skipped. A flat score rolled no die and has no card; a result that
  * settled more than two dice, two dice that are not one mode's pair, or a die that is not a logged
@@ -57,14 +61,10 @@ export async function persistEncounterInitiativeRollCards(
       dice.some(({ entry }) => entry.inputs.min !== 1 || entry.inputs.max !== sides)
     )
       throw new Error('A declared initiative die must be a logged 1dN to post its roll card.')
-    const declaredMode = dice.length === 2 ? facts[DND5E_INITIATIVE_FACT_KEYS.rollMode] : 'NORMAL'
-    if (
-      declaredMode !== 'NORMAL' &&
-      declaredMode !== 'ADVANTAGE' &&
-      declaredMode !== 'DISADVANTAGE'
-    )
-      throw new Error('A declared initiative roll mode must be normal, advantage or disadvantage.')
-    const rollMode: Parameters<typeof initiativeRollRecord>[0]['rollMode'] = declaredMode
+    const keep = dice.length === 2 ? facts[DND5E_INITIATIVE_FACT_KEYS.keep] : 'FIRST'
+    const rollMode = ROLL_MODES.find((mode) => DND5E_KEEP_BY_ROLL_MODE[mode] === keep)
+    if (!rollMode)
+      throw new Error('A declared initiative roll mode must keep the first, higher or lower face.')
     if ((dice.length === 2) === (rollMode === 'NORMAL'))
       throw new Error(
         'A declared initiative that settled two dice needs an advantage or disadvantage roll mode.'
@@ -72,7 +72,8 @@ export async function persistEncounterInitiativeRollCards(
     const keptValue =
       dice.length === 1
         ? dice[0]?.evidence.value
-        : trace.find((entry) => entry.operation.key === 'number.keep-by-roll-mode')?.outputs.value
+        : trace.find((entry) => entry.operation.key === keepOneOfTwoRuleOperation.key)?.outputs
+            .value
     if (typeof keptValue !== 'number')
       throw new Error('A declared initiative with two dice must record the face it kept.')
     return [

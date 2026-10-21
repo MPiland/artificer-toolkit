@@ -1,3 +1,4 @@
+import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   FORCED_MOVEMENT_DIRECTION,
   type ForcedMovementDirection
@@ -34,7 +35,7 @@ import type {
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { CombatPerceptionContributionsDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
-import type { CompiledRuleGraph, D20Contributor, RuleValue } from '@artificer-toolkit/shared/rules'
+import type { CompiledRuleGraph, RuleValue } from '@artificer-toolkit/shared/rules'
 import type { SceneGrid, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { CombatPerceptionCapabilityInstance } from '@artificer-toolkit/shared/rules'
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
@@ -753,7 +754,7 @@ export interface CharacterRuleActionSystemAdapter {
      */
     d20Roller?: 'SOURCE' | 'TARGET'
     d20Audit?: {
-      contributors: readonly D20Contributor[]
+      contributors: readonly ReceiptD20ContributorDto[]
       contributorChecksum: string
       modifier: number
       defenseOrDc: number
