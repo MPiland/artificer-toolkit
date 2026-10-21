@@ -6755,7 +6755,7 @@
                   "SPELLS-33.T6e2",
                   "SPELLS-33.T6i2",
                   "SPELLS-33.T6m2",
-                  "SPELLS-33.T4i1b",
+                  "SPELLS-33.T4i1b2",
                   "SPELLS-33.T4i2",
                   "SPELLS-33.T4i3",
                   "SPELLS-33.T4i4b"
@@ -13296,7 +13296,7 @@
               "note": "Merged m271 (83b640416)."
             },
             {
-              "id": "SPELLS-33.T4i1b",
+              "id": "SPELLS-33.T4i1b1",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -13306,7 +13306,20 @@
                 "size": 3,
                 "after": ["SPELLS-33.T4i1a"]
               },
-              "text": "Damage-type suppression (split 2026-10-20): suppressedByDamageTypes on the recurring trait, with damage types taken since the actor's last turn start written in the one damage-application seam and covered by undo. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
+              "text": "Damage taken since turn start (split 2026-10-20): optional {damageTypeId, commandId}[] on creature health, written by one shared damage-record helper that all four fold callers use; the START_OF_TURN system-trigger root clears the list in its own transaction and records the cleared entries on the batch, so undo restores them exactly."
+            },
+            {
+              "id": "SPELLS-33.T4i1b2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T4i1b1", "RULES-2.T6a"]
+              },
+              "text": "Damage-type suppression gate (split 2026-10-20): suppressedByDamageTypes on the recurring trait, as a gate kind dispatched through the one gate table, with the compiler gate after RULES-2.T6a. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
             },
             {
               "id": "SPELLS-33.T4i2",
