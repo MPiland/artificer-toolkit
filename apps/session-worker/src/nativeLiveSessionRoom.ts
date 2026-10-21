@@ -15,7 +15,6 @@ import {
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { LiveSessionCheckpointReason } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
-import type { LiveSessionCheckpointJournalEntry } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import type { LiveSessionRoomSceneCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import { scenePresentationFenceSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
@@ -25,7 +24,6 @@ import {
   LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT,
   LIVE_SESSION_TRY_AGAIN_MESSAGE
 } from '@artificer-toolkit/schema/api/liveSessionCommands'
-import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { readSceneHoldingDecision } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import {
   sceneCommandResultDtoSchema,
@@ -97,6 +95,9 @@ import {
 } from './roomSocket.js'
 import { readRoomSceneState } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
+import { journalInputReload, loadRoomAggregate, reloadRoomAggregate } from './roomAggregateLoad.js'
+import { endBrokenRelationships, reconcileActorDepartures } from './roomActorSweeps.js'
+import { restoreLocalPlayAuthorization } from './roomLocalPlayAuthorization.js'
 import {
   NoSceneMoveToUndoError,
   SceneMoveFromActionError,
@@ -113,15 +114,12 @@ import { RoomSceneFogUploads } from './roomSceneFogUploads.js'
 import { executeCharacterSheetCommand } from './roomCharacterSheetCommands.js'
 import { executeCampaignChatCommand } from './roomChatCommands.js'
 import { RoomAccountBuckets, RoomRateLimitedError } from './roomRateLimits.js'
-import { endRoomBrokenRelationships, roomHasBrokenRelationships } from './roomRelationshipEnds.js'
-import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
 import { RoomCharacterSheetFeed, type FeedScope } from './roomCharacterSheetFeed.js'
 import type { RoomSceneTokens } from './roomEncounterReadPorts.js'
 import { RoomEncounterReads } from './roomEncounterReads.js'
 import { RoomCampaignSummaryFeed } from './roomCampaignSummaryFeed.js'
 import { RoomEncounterSessionFeed } from './roomEncounterSessionFeed.js'
 import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
-import { readRoomEncounterPlayAuthorization } from './roomEncounterCommands.js'
 import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import {
   adoptSceneVisionRevisions,
@@ -294,7 +292,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#queuePostCommit()
         this.#saveBacklogIfFull()
       },
-      (entry) => this.#journalInputReload(entry)
+      (entry) => journalInputReload(this.#host, entry)
     )
     this.#checkpoints = new RoomCheckpoints(
       this.#roomStore,
@@ -415,7 +413,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       },
       aggregateNeedsReload: () => this.#aggregateNeedsReload,
       flushOutbox: (reason) => this.#flushOutbox(reason),
-      loadRoomAggregate: (sceneId) => this.#loadRoomAggregate(sceneId),
+      loadRoomAggregate: (sceneId) => loadRoomAggregate(this.#host, sceneId),
+      setAggregateNeedsReload: (value) => {
+        this.#aggregateNeedsReload = value
+      },
+      refreshSceneCache: (value) => this.#refreshSceneCache(value),
+      roomCampaignId: () => this.#roomCampaignId(),
+      bumpCacheGeneration: () => this.#bumpCacheGeneration(),
+      challenge: (socket) => this.#challenge(socket),
       authorizationBoundary: (value) => this.#authorizationBoundary(value),
       prepareWithRetry: (authorization, run) => this.#prepareWithRetry(authorization, run),
       liveAdmission: (socket) => this.#liveAdmission(socket),
@@ -1301,7 +1306,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       throw new Error('Live Session authority changed.')
     // The room store runs one operation at a time: a hydrate racing a command would rewind the store
     // behind the journal, so admissions load behind the running commands.
-    const load = this.#commandChain.then(() => this.#loadRoomAggregate(sceneId))
+    const load = this.#commandChain.then(() => loadRoomAggregate(this.#host, sceneId))
     this.#commandChain = load.then(
       () => undefined,
       () => undefined
@@ -1407,17 +1412,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /**
-   * Flushes the outbox, then reloads the held aggregate and rebuilds the Scene cache from what
-   * Convex now holds. A command whose stale path found `#aggregateNeedsReload` and an eager reload
-   * share it.
-   */
-  async #reloadRoomAggregate(value: SocketAttachment): Promise<void> {
-    await this.#flushOutbox('RELOAD')
-    await this.#refreshSceneCache(value)
-    await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-  }
-
-  /**
    * A Campaign notice with no socket connected still reloads membership at once, since it can end
    * sockets and name departures. The reload and its reconcile run on the command chain, so a
    * checkpoint barrier, command or read that follows the notice orders behind them.
@@ -1441,7 +1435,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    */
   async #reconcileCurrentActorDepartures(): Promise<void> {
     const current = this.#journal.readCurrent()
-    if (current?.status === 'ACTIVE') await this.#reconcileActorDepartures(current)
+    if (current?.status === 'ACTIVE') await reconcileActorDepartures(this.#host, current)
   }
 
   /**
@@ -1462,7 +1456,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (!value) return
       try {
         const authorization = await this.#refreshAuthorization()
-        if (this.#aggregateNeedsReload) await this.#reloadRoomAggregate(value)
+        if (this.#aggregateNeedsReload) await reloadRoomAggregate(this.#host, value)
         else if (this.#cache && !roomVisionCurrent(authorization, this.#cache.characterRevisions)) {
           await this.#refreshSceneCache(value)
           this.#broadcastStateSync()
@@ -1473,91 +1467,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
       this.#queuePostCommit()
     })
-  }
-
-  /**
-   * A read that reloads stale Convex inputs writes the store outside any command. It is journaled
-   * like a command with no receipt, so the store and journal heads stay equal and the room's
-   * unpublished commands remain publishable. A store already behind a Convex-first command is left
-   * for its next boundary reload.
-   */
-  #journalInputReload(entry: LiveSessionCheckpointJournalEntry): undefined {
-    const current = this.#journal.readCurrent()
-    if (
-      !current ||
-      current.status !== 'ACTIVE' ||
-      this.#roomStore.epoch !== current.authorityEpoch ||
-      this.#roomStore.sequence !== current.sequence ||
-      this.#roomStore.checksum !== current.stateChecksum
-    )
-      return undefined
-    const commandId = crypto.randomUUID()
-    const committed = this.#journal.commitInTransaction({
-      actorId: current.authorityEpoch,
-      authorityEpoch: current.authorityEpoch,
-      commandId,
-      fingerprint: checksumCanonicalJson({
-        type: 'RELOAD_ROOM_INPUTS',
-        writeSetChecksum: entry.writeSetChecksum
-      }),
-      expectedSequence: current.sequence,
-      expectedStateChecksum: current.stateChecksum,
-      nextStateChecksum: entry.chainChecksum,
-      nextStateJson: current.stateJson,
-      receiptJson: JSON.stringify(
-        liveSessionWebSocketServerMessageDtoSchema.parse({
-          type: 'COMMAND_COMMITTED',
-          commandId,
-          delta: null,
-          sequence: entry.sequence
-        })
-      )
-    })
-    if (committed.kind !== 'COMMITTED')
-      throw new Error('Room input reload unexpectedly replayed inside its transaction.')
-    return undefined
-  }
-
-  /** Transitional Convex-first commands reload only after their acknowledged product commit. */
-  async #loadRoomAggregate(sceneId: string | null): Promise<void> {
-    const current = this.#journal.readCurrent()
-    if (!current) throw new Error('Live Session authority changed.')
-    if (this.#roomStore.corruption) throw this.#roomStore.corruption
-    const sameHead =
-      this.#roomStore.epoch === current.authorityEpoch &&
-      this.#roomStore.sequence === current.sequence &&
-      this.#roomStore.checksum === current.stateChecksum
-    if (
-      sameHead &&
-      !this.#aggregateNeedsReload &&
-      this.#roomStore.record('ROOM_INPUT', 'AUTHORITY') &&
-      (sceneId === null || this.#roomStore.record('SCENE_CHECKPOINT_SOURCE', sceneId))
-    )
-      return
-    if (current.sequence !== current.publishedSequence) {
-      this.#roomStore.assertAuthorityHead({
-        epoch: current.authorityEpoch,
-        sequence: current.sequence,
-        checksum: current.stateChecksum
-      })
-      // Hydration reads Convex, so the room's unpublished commands are checkpointed first.
-      await this.#checkpointThrough(current.authorityEpoch, current.sequence, 'RELOAD')
-      return this.#loadRoomAggregate(sceneId)
-    }
-    const authorization =
-      this.#authorization.currentPlay(current.authorityEpoch) ??
-      (await this.#authorization.refresh(current.authorityEpoch))
-    await this.#roomInputs.hydrate({
-      epoch: current.authorityEpoch,
-      encounterId: authorization.play.encounter?.encounterId ?? null,
-      sceneId,
-      checkpoint: {
-        epoch: current.authorityEpoch,
-        sequence: current.publishedSequence,
-        checksum: current.publishedChecksum
-      }
-    })
-    this.#aggregateNeedsReload = false
   }
 
   /**
@@ -1724,7 +1633,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const command = sceneCommand.data
     if (this.#aggregateNeedsReload) {
       try {
-        await this.#reloadRoomAggregate(value)
+        await reloadRoomAggregate(this.#host, value)
       } catch (error) {
         this.#rejectRoomFailure(socket, commandId, error)
         return
@@ -2163,7 +2072,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   async #refreshAuthorization(): Promise<LiveSessionRoomAuthorization> {
     const current = this.#journal.readCurrent()
     if (!current || current.status !== 'ACTIVE') throw new Error('Live Session authority changed.')
-    const authorization = await this.#restoreLocalPlayAuthorization(
+    const authorization = await restoreLocalPlayAuthorization(
+      this.#host,
       await this.#authorization.refresh(current.authorityEpoch)
     )
     for (const socket of this.ctx.getWebSockets()) {
@@ -2193,14 +2103,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       const current = this.#journal.readCurrent()
       if (!current || current.status !== 'ACTIVE') return
       try {
-        await this.#reconcileActorDepartures(current)
+        await reconcileActorDepartures(this.#host, current)
       } catch (error) {
         console.error('Live Session actor reconcile failed.', error)
       }
       try {
         // The departures may have journaled, so the sweep reads the head afresh.
         const head = this.#journal.readCurrent()
-        if (head?.status === 'ACTIVE') await this.#endBrokenRelationships(head)
+        if (head?.status === 'ACTIVE') await endBrokenRelationships(this.#host, head)
       } catch (error) {
         console.error('Live Session relationship end sweep failed.', error)
       }
@@ -2212,7 +2122,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         return
       try {
         if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-        await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
+        await loadRoomAggregate(this.#host, this.#cache?.scene?.id ?? null)
       } catch (error) {
         // Without the held aggregate a push would misreport what the room holds.
         console.error('Live Session push aggregate load failed.', error)
@@ -2236,211 +2146,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     })
   }
 
-  /**
-   * One journaled transaction, only when an open Run names a departure. Convex reads whether an
-   * unassigned Character still exists only then; a deleted one's actor is removed, which Convex
-   * must ingest before the receipt, so the room checkpoints first (D74).
-   */
-  async #reconcileActorDepartures(
-    current: NonNullable<ReturnType<DurableCommandJournal['readCurrent']>>
-  ): Promise<void> {
-    const authorization = this.#authorization.current(current.authorityEpoch)
-    if (!authorization) return
-    if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-    const departures = await readRoomActorDepartures(
-      this.#roomStore,
-      this.#roomInputs,
-      authorization
-    )
-    if (!departures) return
-    const campaignId = this.#roomCampaignId()
-    if (!campaignId) throw new Error('Live Session Campaign is unavailable.')
-    const deletedCharacterIds = departures.unassignedCharacterIds.length
-      ? await this.#roomInputs.deletedCharacterIds(departures.unassignedCharacterIds)
-      : new Set<string>()
-    const commandId = crypto.randomUUID()
-    const sequence = current.sequence + 1
-    const receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
-      type: 'COMMAND_COMMITTED',
-      commandId,
-      delta: null,
-      sequence
-    })
-    this.#roomStore.assertAuthorityHead({
-      epoch: current.authorityEpoch,
-      sequence: current.sequence,
-      checksum: current.stateChecksum
-    })
-    const checkpointBeforeAcknowledgement = deletedCharacterIds.size > 0
-    await this.#roomStore.transact(
-      (transaction) =>
-        reconcileRoomActorDepartures({
-          store: this.#roomStore,
-          transaction,
-          inputs: this.#roomInputs,
-          authorization,
-          campaignId,
-          epoch: current.authorityEpoch,
-          deletedCharacterIds
-        }),
-      (entry) => {
-        if (this.#authorization.current(current.authorityEpoch) !== authorization)
-          throw new Error('Room actor reconcile authorization changed before commit.')
-        if (entry.sequence !== sequence)
-          throw new Error('Room actor reconcile sequence does not match its authority.')
-        const committed = this.#journal.commitInTransaction({
-          actorId: current.authorityEpoch,
-          authorityEpoch: current.authorityEpoch,
-          commandId,
-          fingerprint: checksumCanonicalJson({
-            type: 'RECONCILE_ACTOR_DEPARTURES',
-            revisions: authorization.revisions,
-            deletedCharacterIds: [...deletedCharacterIds].sort()
-          }),
-          expectedSequence: current.sequence,
-          expectedStateChecksum: current.stateChecksum,
-          nextStateChecksum: entry.chainChecksum,
-          nextStateJson: current.stateJson,
-          receiptJson: JSON.stringify(receipt),
-          checkpointBeforeAcknowledgement
-        })
-        if (committed.kind !== 'COMMITTED')
-          throw new Error('Room actor reconcile unexpectedly replayed inside its transaction.')
-      }
-    )
-    if (checkpointBeforeAcknowledgement) {
-      await this.#checkpointThrough(current.authorityEpoch, sequence, 'ACKNOWLEDGEMENT')
-      // A removed actor drops its token binding and controls, which a `delta: null` receipt does
-      // not carry: cached play and Scene go, and members resume from the committed state.
-      this.#bumpCacheGeneration()
-      for (const socket of this.ctx.getWebSockets()) this.#challenge(socket)
-      return
-    }
-    for (const recipient of this.ctx.getWebSockets()) {
-      const member = this.#liveAdmission(recipient)
-      if (member && admitsRoomMember(authorization, member)) send(recipient, receipt)
-    }
-  }
-
-  /**
-   * One journaled transaction, only when an ACTIVE Run holds a relationship whose hold broke on its
-   * own (D152): its source can't act, or a movement left the held creature beyond the sealed reach.
-   */
-  async #endBrokenRelationships(
-    current: NonNullable<ReturnType<DurableCommandJournal['readCurrent']>>
-  ): Promise<void> {
-    const authorization = this.#authorization.current(current.authorityEpoch)
-    if (!authorization) return
-    if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-    const campaignId = this.#roomCampaignId()
-    if (!campaignId) throw new Error('Live Session Campaign is unavailable.')
-    const scope = {
-      store: this.#roomStore,
-      inputs: this.#roomInputs,
-      authorization,
-      campaignId,
-      epoch: current.authorityEpoch
-    }
-    if (!(await roomHasBrokenRelationships(scope))) return
-    const commandId = crypto.randomUUID()
-    const sequence = current.sequence + 1
-    const receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
-      type: 'COMMAND_COMMITTED',
-      commandId,
-      delta: null,
-      sequence
-    })
-    this.#roomStore.assertAuthorityHead({
-      epoch: current.authorityEpoch,
-      sequence: current.sequence,
-      checksum: current.stateChecksum
-    })
-    await this.#roomStore.transact(
-      (transaction) =>
-        endRoomBrokenRelationships({
-          ...scope,
-          transaction,
-          commandId,
-          occurredAt: new Date().toISOString()
-        }),
-      (entry) => {
-        if (this.#authorization.current(current.authorityEpoch) !== authorization)
-          throw new Error('Room relationship end authorization changed before commit.')
-        if (entry.sequence !== sequence)
-          throw new Error('Room relationship end sequence does not match its authority.')
-        const committed = this.#journal.commitInTransaction({
-          actorId: current.authorityEpoch,
-          authorityEpoch: current.authorityEpoch,
-          commandId,
-          fingerprint: checksumCanonicalJson({ type: 'RELATIONSHIPS_ENDED', sequence }),
-          expectedSequence: current.sequence,
-          expectedStateChecksum: current.stateChecksum,
-          nextStateChecksum: entry.chainChecksum,
-          nextStateJson: current.stateJson,
-          receiptJson: JSON.stringify(receipt),
-          checkpointBeforeAcknowledgement: false
-        })
-        if (committed.kind !== 'COMMITTED')
-          throw new Error('Room relationship end unexpectedly replayed inside its transaction.')
-      }
-    )
-    for (const recipient of this.ctx.getWebSockets()) {
-      const member = this.#liveAdmission(recipient)
-      if (member && admitsRoomMember(authorization, member)) send(recipient, receipt)
-    }
-  }
-
   /** The cache a command or broadcast may use: current, or reloaded first by one read. */
   async #authorizationBoundary(
     value: Pick<SocketAttachment, 'authorityEpoch'>
   ): Promise<LiveSessionRoomAuthorization> {
     return this.#authorization.current(value.authorityEpoch) ?? this.#refreshAuthorization()
-  }
-
-  async #restoreLocalPlayAuthorization(
-    authorization: LiveSessionRoomAuthorization
-  ): Promise<LiveSessionRoomAuthorization> {
-    const head = this.#journal.readCurrent()
-    if (
-      !head ||
-      this.#aggregateNeedsReload ||
-      head.sequence === head.publishedSequence ||
-      this.#roomStore.epoch !== head.authorityEpoch
-    )
-      return authorization
-    this.#roomStore.assertAuthorityHead({
-      epoch: head.authorityEpoch,
-      sequence: head.sequence,
-      checksum: head.stateChecksum
-    })
-    const campaignId = this.#roomCampaignId()
-    if (!campaignId) throw new Error('Live Session Campaign is unavailable.')
-    const sceneId =
-      this.#cache?.scene?.id ??
-      hydrateNativeLiveSessionState(head.stateJson).scene?.id ??
-      authorization.play.encounter?.sceneId
-    const play = await readRoomEncounterPlayAuthorization(
-      { db: this.#roomStore.store },
-      campaignId,
-      authorization.play,
-      sceneId ?? null
-    )
-    const nativeCharacters = new Map(
-      this.#roomStore.documents('characterPlayStates').map((row) => [row.characterId, row])
-    )
-    const characters = authorization.characters.map((character) => {
-      const local = nativeCharacters.get(character.characterId)
-      if (!local) return character
-      if (local.userId !== character.ownerUserId)
-        throw new Error('Room Character visibility owner mismatch.')
-      return {
-        ...character,
-        partyVisibility: readCharacterPlay(local).partyVisibility
-      }
-    })
-    this.#authorization.applyCharacters(head.authorityEpoch, characters)
-    if (play) this.#authorization.applyPlay(head.authorityEpoch, play)
-    return { ...authorization, characters, play: play ?? authorization.play }
   }
 
   #liveRulesRuntime(): RulesRuntimeService {
@@ -2875,7 +2585,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         scene: null,
         uncomposedScene: null
       }
-    await this.#loadRoomAggregate(header.id)
+    await loadRoomAggregate(this.#host, header.id)
     const authorization = await this.#authorizationBoundary(scope)
     return this.#roomStore.transact(async (transaction) => {
       const { scene: uncomposedScene, baseOrdinals } = await readRoomSceneState(

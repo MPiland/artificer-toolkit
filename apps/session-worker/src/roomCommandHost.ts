@@ -5,6 +5,7 @@ import {
   type LiveSessionCorrectionDto,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import type { LiveSessionRoomSceneCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { LiveSessionCheckpointReason } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import {
@@ -35,8 +36,13 @@ export interface RoomCommandHost {
   readonly authorization: RoomAuthorization
   readonly fogUploads: RoomSceneFogUploads
   cache(): TransientCache | null
-  setCache(cache: TransientCache): void
+  setCache(cache: TransientCache | null): void
   aggregateNeedsReload(): boolean
+  setAggregateNeedsReload(value: boolean): void
+  refreshSceneCache(value: SocketAttachment): Promise<LiveSessionRoomSceneCapture | null>
+  roomCampaignId(): string | null
+  bumpCacheGeneration(): void
+  challenge(socket: WebSocket, expectedGeneration?: number): void
   flushOutbox(reason: LiveSessionCheckpointReason): Promise<void>
   loadRoomAggregate(sceneId: string | null): Promise<void>
   authorizationBoundary(value: SocketAttachment): Promise<LiveSessionRoomAuthorization>
