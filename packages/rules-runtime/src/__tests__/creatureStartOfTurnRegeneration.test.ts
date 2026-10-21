@@ -18,37 +18,50 @@ type Feature = NonNullable<CreatureAuthored['features']>[number]
 type Path = NonNullable<NonNullable<Feature['effects']>[number]['paths']>[number]
 type FixedPath = Extract<Path, { selectionKind: 'FIXED' }>
 type Outcome = FixedPath['resultBlock']['outcomes'][number]
+type ResultBlock = FixedPath['resultBlock']
+const damageTypeId = (code: string) => {
+  const id = srdSystemRecord.damageTypes.find((type) => type.code === code)?.id
+  if (!id) throw new Error(`SRD damage type "${code}" is missing.`)
+  return id
+}
 
 /** An SRD Creature whose Regeneration outcomes are rewritten the way a homebrew author would. */
-function discoverRegeneration(label: string, rewrite?: (outcomes: Outcome[]) => Outcome[]) {
+function discoverRegeneration(
+  label: string,
+  rewrite?: (outcomes: Outcome[]) => Outcome[],
+  rewriteBlock?: (block: ResultBlock) => ResultBlock
+) {
   const srd = srdBaselineContent.subjects.creatures.find((entry) => entry.label === label)
   if (!srd) throw new Error(`SRD Creature "${label}" is missing.`)
-  const creature = rewrite
-    ? {
-        ...srd,
-        features: srd.features?.map((feature) =>
-          feature.label !== 'Regeneration'
-            ? feature
-            : {
-                ...feature,
-                effects: feature.effects?.map((effect) => ({
-                  ...effect,
-                  paths: effect.paths.map((path) =>
-                    path.selectionKind === 'FIXED'
-                      ? {
-                          ...path,
-                          resultBlock: {
-                            ...path.resultBlock,
-                            outcomes: rewrite(path.resultBlock.outcomes)
+  const creature =
+    rewrite || rewriteBlock
+      ? {
+          ...srd,
+          features: srd.features?.map((feature) =>
+            feature.label !== 'Regeneration'
+              ? feature
+              : {
+                  ...feature,
+                  effects: feature.effects?.map((effect) => ({
+                    ...effect,
+                    paths: effect.paths.map((path) =>
+                      path.selectionKind === 'FIXED'
+                        ? {
+                            ...path,
+                            resultBlock: (rewriteBlock ?? ((block) => block))({
+                              ...path.resultBlock,
+                              outcomes: (rewrite ?? ((outcomes) => outcomes))(
+                                path.resultBlock.outcomes
+                              )
+                            })
                           }
-                        }
-                      : path
-                  )
-                }))
-              }
-        )
-      }
-    : srd
+                        : path
+                    )
+                  }))
+                }
+          )
+        }
+      : srd
   return discoverEncounterFeatureActions({
     actor: srdCreatureActor({ id: ACTOR_ID, creature }),
     conditionDefinitionIds,
@@ -61,6 +74,7 @@ function discoverRegeneration(label: string, rewrite?: (outcomes: Outcome[]) => 
 async function regenerate(
   found: ReturnType<typeof discoverRegeneration>,
   hitPoints: number,
+  targetDamageTypesTaken: string[] = [],
   maximumHitPoints = 100
 ) {
   const capability = found.passiveStartOfTurnEffects[0]?.capability
@@ -93,6 +107,7 @@ async function regenerate(
       currentHitPoints: hitPoints,
       temporaryHitPoints: 0,
       maximumHitPoints,
+      targetDamageTypesTaken,
       targetScalarValues: {},
       defenses: []
     },
@@ -138,6 +153,53 @@ describe('start-of-turn regeneration authored from core options (SPELLS-33.T4i1a
         label: 'Regeneration',
         reason: 'A start-of-turn trigger heals its holder and does nothing else.'
       }
+    ])
+  })
+})
+
+describe('damage-type suppression authored from core options (SPELLS-33.T4i1b2)', () => {
+  it.each([
+    ['Vampire', 20],
+    ['Vampire Spawn', 10]
+  ])(
+    '%s regains %i hit points while it has at least 1 and took no radiant damage',
+    async (label, amount) => {
+      const found = discoverRegeneration(label)
+      expect((await regenerate(found, 40, [damageTypeId('FIRE')])).applications).toMatchObject([
+        { kind: 'HEAL', targetActorId: ACTOR_ID, appliedAmount: amount }
+      ])
+      expect((await regenerate(found, 0)).applications).toEqual([])
+    }
+  )
+
+  it.each(['Vampire', 'Vampire Spawn'])(
+    '%s regains nothing after radiant damage',
+    async (label) => {
+      const result = await regenerate(discoverRegeneration(label), 40, [damageTypeId('RADIANT')])
+      expect(result.applications).toEqual([])
+    }
+  )
+
+  it('Troll regains 10 hit points even at 0, unless it took acid or fire damage', async () => {
+    const found = discoverRegeneration('Troll')
+    expect((await regenerate(found, 0)).applications).toMatchObject([
+      { kind: 'HEAL', appliedAmount: 10 }
+    ])
+    for (const code of ['ACID', 'FIRE'])
+      expect((await regenerate(found, 0, [damageTypeId(code)])).applications).toEqual([])
+    expect((await regenerate(found, 0, [damageTypeId('COLD')])).applications).toMatchObject([
+      { kind: 'HEAL' }
+    ])
+  })
+
+  it('suppresses a homebrew trait by the damage types its author chose, naming no creature', async () => {
+    const found = discoverRegeneration('Oni', undefined, (block) => ({
+      ...block,
+      suppressedByDamageTypeIds: [damageTypeId('COLD')]
+    }))
+    expect((await regenerate(found, 40, [damageTypeId('COLD')])).applications).toEqual([])
+    expect((await regenerate(found, 40, [damageTypeId('FIRE')])).applications).toMatchObject([
+      { kind: 'HEAL', appliedAmount: 10 }
     ])
   })
 })

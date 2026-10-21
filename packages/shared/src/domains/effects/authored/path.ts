@@ -148,6 +148,11 @@ export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthor
   /** Only a direct saving throw's failed result block (ON_SAVE_FAIL) carries one. */
   failureMarginRider?: FailureMarginRiderAuthored
   gate?: ResultBlockGateAuthored
+  /**
+   * Damage types that switch the block off for a creature that took any of them since its last
+   * turn began (a Troll's acid and fire, a Vampire's radiant).
+   */
+  suppressedByDamageTypeIds?: string[]
   outcomes: TOutcome[]
 }
 

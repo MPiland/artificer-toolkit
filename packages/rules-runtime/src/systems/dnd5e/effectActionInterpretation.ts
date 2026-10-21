@@ -71,9 +71,9 @@ import {
 import {
   hitPointStateIsValid,
   type DirectInterpretationInput,
-  conditionImmunityFacts,
-  hitPointGateEvidenceIsValid
+  conditionImmunityFacts
 } from './effectActionEvidenceChecks.js'
+import { gateEvidenceIsValid } from './effectActionGates.js'
 import {
   parseRecoveryTags,
   isDnd5eTestOutcomeRule,
@@ -636,12 +636,7 @@ export function interpretDirectProposal(
     if (
       trace.operation.contractVersion === 1
         ? trace.outputs.authorized !== !conditionFacts[conditionFactKey]
-        : !hitPointGateEvidenceIsValid(
-            input,
-            publishedNode,
-            trace,
-            !conditionFacts[conditionFactKey]
-          )
+        : !gateEvidenceIsValid(input, publishedNode, trace, !conditionFacts[conditionFactKey])
     ) {
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D condition proposal protection evidence is invalid.'
@@ -663,7 +658,7 @@ export function interpretDirectProposal(
   if (trace.operation.key === DND5E_KILL_PROPOSAL_OPERATION_KEY) {
     if (trace.outputs.targetActorId !== input.targetActorId)
       throw new Dnd5eEffectActionCompilerError('The committed D&D kill proposal trace is invalid.')
-    if (!hitPointGateEvidenceIsValid(input, publishedNode, trace))
+    if (!gateEvidenceIsValid(input, publishedNode, trace))
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D kill proposal hit-point gate evidence is invalid.'
       )
@@ -684,7 +679,7 @@ export function interpretDirectProposal(
     trace.operation.key === DND5E_HEAL_PROPOSAL_OPERATION_KEY &&
     trace.operation.contractVersion === 2
   if (gatedHeal) {
-    if (!hitPointGateEvidenceIsValid(input, publishedNode, trace))
+    if (!gateEvidenceIsValid(input, publishedNode, trace))
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D heal proposal hit-point gate evidence is invalid.'
       )

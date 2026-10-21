@@ -109,7 +109,7 @@ export const vampire: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
+            triggerCode: S.TRIGGER.START_OF_TURN,
             range: { id: S.actionId(277, 207), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
@@ -117,13 +117,15 @@ export const vampire: CreatureAuthored = {
             {
               id: S.actionId(277, 208),
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              pathCode: S.PATH_CODE.PASSIVE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: S.actionId(277, 209),
-                resultKind: 'SEQUENCE',
+                resultKind: 'SINGLE',
+                gate: { kind: 'TARGET_HIT_POINTS_AT_LEAST', amount: 1 },
+                suppressedByDamageTypeIds: [S.damageTypeId('RADIANT')],
                 outcomes: [
                   {
                     id: S.actionId(277, 210),
@@ -131,11 +133,6 @@ export const vampire: CreatureAuthored = {
                     valueKind: 'FIXED',
                     scalingKind: S.SCALING.NONE,
                     amount: 20
-                  },
-                  {
-                    id: S.actionId(277, 211),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_REGENERATION
                   }
                 ]
               }

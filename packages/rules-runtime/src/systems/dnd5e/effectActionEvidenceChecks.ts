@@ -1,10 +1,8 @@
 import { type CompiledRuleGraph } from '@artificer-toolkit/shared/rules'
 import type { CharacterRuleActionSystemAdapter } from '../../characterRuleActionSystemAdapter.js'
-import { withinHitPointBand } from '../../hitPointTiers.js'
 import {
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
-  DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
   isPathConditionImmuneFactKey,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
@@ -12,7 +10,6 @@ import {
   Dnd5eEffectActionCompilerError,
   proposalNodePathCode
 } from './effectActionContracts.js'
-import { hitPointGateBand } from './effectActionOperationRegistry.js'
 
 export function hitPointStateIsValid(input: {
   currentHitPoints: number
@@ -120,35 +117,4 @@ export function conditionImmunityFacts(
       )
   }
   return facts
-}
-/**
- * Whether a proposal's authorization follows from the target's hit points on its evidence: an
- * ungated proposal always authorizes; a gated one binds the target's current hit points fact and
- * authorizes exactly while they are at most the gate's literal ceiling (and, for a proposal with
- * its own protection, while that does not refuse it).
- */
-export function hitPointGateEvidenceIsValid(
-  input: Pick<DirectInterpretationInput, 'execution' | 'currentHitPoints'>,
-  publishedNode: Pick<CompiledRuleGraph['nodes'][number], 'inputs'>,
-  trace: { operation: { contractVersion: number }; outputs: Record<string, unknown> },
-  otherwiseAuthorized = true
-): boolean {
-  const hitPoints = publishedNode.inputs.targetCurrentHitPoints
-  const floor = publishedNode.inputs.hitPointsAbove
-  const ceiling = publishedNode.inputs.hitPointsAtMost
-  if (trace.operation.contractVersion === 1)
-    return !hitPoints && !floor && !ceiling && trace.outputs.authorized === true
-  const band = hitPointGateBand({
-    hitPointsAbove: floor?.kind === 'LITERAL' ? floor.value : undefined,
-    hitPointsAtMost: ceiling?.kind === 'LITERAL' ? ceiling.value : undefined
-  })
-  return (
-    hitPoints?.kind === 'FACT' &&
-    hitPoints.factKey === DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY &&
-    band !== null &&
-    input.execution.evidence.facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] ===
-      input.currentHitPoints &&
-    trace.outputs.authorized ===
-      (otherwiseAuthorized && withinHitPointBand(input.currentHitPoints, band.above, band.atMost))
-  )
 }

@@ -3,6 +3,13 @@ import type { foldCharacterMechanicsApplications } from './encounterCharacterMec
 /** One damage type a creature took, and the command that dealt it. */
 export type DamageTypeTaken = { damageTypeId: string; commandId: string }
 
+/** The damage types an actor took since its last turn began; none for an actor that keeps no record. */
+export function damageTypeIdsTaken(holder: {
+  damageTypesSinceTurnStart?: DamageTypeTaken[]
+}): string[] {
+  return (holder.damageTypesSinceTurnStart ?? []).map(({ damageTypeId }) => damageTypeId)
+}
+
 /**
  * The creature's damage-type record after `applications` landed under `commandId`: one entry per
  * damage type that dealt damage, deduplicated per command. The only place the record grows.

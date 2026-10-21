@@ -84,13 +84,14 @@ import {
   encounterAreaTargetKind,
   encounterZoneChoiceTarget
 } from '../../encounterAreaAction.js'
-import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
-  hitPointGateBand as authoredHitPointGateBand,
-  hitPointTierCeilings,
-  hitPointTierFloor,
-  selectHitPointTier
-} from '../../hitPointTiers.js'
+  damageTypeIdsText,
+  gateNodeInputs,
+  isGated,
+  type Dnd5eAuthoredGates
+} from './effectActionGates.js'
+import { castChoiceOptions } from '../../encounterCastChoice.js'
+import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../../hitPointTiers.js'
 import {
   passiveMeleeRetaliationZone,
   placedSpaceZone,
@@ -172,6 +173,7 @@ import {
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
+  DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY,
   DND5E_CONDITION_IMMUNE_FACT_KEYS,
   MAX_CONDITIONS_PER_PATH,
   conditionImmuneFactKey,
@@ -7048,12 +7050,10 @@ function compileDnd5eEffectAction({
   })
 }
 
-/** The hit-point band the action's one direct entry gates its outcome on, when it has one. */
-function directHitPointGateBand(
-  action: Dnd5eCompiledEffectActionSource
-): { above: number; atMost: number } | undefined {
+/** The gates the action's one direct entry authors on its outcome, when it authors any. */
+function directGates(action: Dnd5eCompiledEffectActionSource): Dnd5eAuthoredGates | undefined {
   const entry = action.compiledEffect.entries[0]
-  return entry && 'gate' in entry && entry.gate ? authoredHitPointGateBand(entry.gate) : undefined
+  return entry && isGated(entry) ? entry : undefined
 }
 
 function compileEffectActionGraph(
@@ -7073,10 +7073,10 @@ function compileEffectActionGraph(
     )
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
-  // Only a direct outcome honours a hit-point gate; every other plan refuses one rather than skip it.
-  const gateBand = directHitPointGateBand(action)
+  // Only a direct outcome honours a gate; every other plan refuses one rather than skip it.
+  const gates = directGates(action)
   const refuseGate = () => {
-    if (gateBand !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
+    if (gates !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
   }
   const composition = sequentialComposition(action)
   if (composition) {
@@ -7099,7 +7099,7 @@ function compileEffectActionGraph(
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
   if (
-    gateBand !== undefined &&
+    gates !== undefined &&
     outcome.kind !== 'KILL' &&
     outcome.kind !== 'CONDITION_APPLY' &&
     outcome.kind !== 'HEAL'
@@ -7194,23 +7194,14 @@ function compileEffectActionGraph(
     nodes: [
       {
         id: nodeId,
-        operation: { key: operation, contractVersion: gateBand === undefined ? 1 : 2 },
+        operation: { key: operation, contractVersion: gates === undefined ? 1 : 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           targetStateChecksum: {
             kind: 'FACT',
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
-          ...(gateBand === undefined
-            ? {}
-            : {
-                targetCurrentHitPoints: {
-                  kind: 'FACT',
-                  factKey: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY
-                },
-                hitPointsAbove: { kind: 'LITERAL', value: gateBand.above },
-                hitPointsAtMost: { kind: 'LITERAL', value: gateBand.atMost }
-              }),
+          ...(gates === undefined ? {} : gateNodeInputs(gates)),
           ...(isTargetOnlyOutcome(outcome)
             ? targetOnlyOutcomeInputs(outcome)
             : outcome.kind === 'CONDITION_APPLY'
@@ -7750,6 +7741,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     targetConditionIds,
     conditionOutcomeRules,
     conditionImmunityIds,
+    targetDamageTypesTaken,
     sceneContext,
     positionalFacts
   }) => {
@@ -7895,6 +7887,15 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
+      ...(published.definition.nodes.some(
+        (node) => node.inputs.targetDamageTypesTaken !== undefined
+      )
+        ? {
+            [DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY]: damageTypeIdsText(
+              targetDamageTypesTaken ?? []
+            )
+          }
+        : {}),
       ...resolvedDamageExpressionFacts,
       ...weaponDamageDieFacts,
       ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0

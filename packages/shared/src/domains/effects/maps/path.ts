@@ -3506,7 +3506,7 @@ const NON_MANIFEST_OUTCOME_NODE_MAP: NodeMap<NonManifestOutcomeNode> = nonManife
 const RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored> = resultBlock.define(
   'resultBlock',
   ({ map, nodes }) => {
-    const { text, selectSingle, groupObject, groupArray } = nodes
+    const { text, selectSingle, selectMulti, groupObject, groupArray } = nodes
 
     map
       .set('id', text(['id'], 'ID'))
@@ -3547,6 +3547,13 @@ const RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored> = resultBlock.define(
         'gate',
         groupObject(['gate'], 'Gate', () => RESULT_BLOCK_GATE_NODE_MAP, {
           presentation: 'inline'
+        })
+      )
+      .set(
+        'suppressedByDamageTypeIds',
+        selectMulti(['suppressedByDamageTypeIds'], 'Suppressed By Damage Types', {
+          kind: 'DATA',
+          relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set(
@@ -3560,7 +3567,7 @@ const RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored> = resultBlock.define(
 
 const NON_MANIFEST_RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored<NonManifestOutcomeAuthored>> =
   nonManifestResultBlock.define('nonManifestResultBlock', ({ map, nodes }) => {
-    const { text, selectSingle, groupObject, groupArray } = nodes
+    const { text, selectSingle, selectMulti, groupObject, groupArray } = nodes
 
     map
       .set('id', text(['id'], 'ID'))
@@ -3601,6 +3608,13 @@ const NON_MANIFEST_RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored<NonManifes
         'gate',
         groupObject(['gate'], 'Gate', () => RESULT_BLOCK_GATE_NODE_MAP, {
           presentation: 'inline'
+        })
+      )
+      .set(
+        'suppressedByDamageTypeIds',
+        selectMulti(['suppressedByDamageTypeIds'], 'Suppressed By Damage Types', {
+          kind: 'DATA',
+          relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set(

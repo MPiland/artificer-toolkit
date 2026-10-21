@@ -57,7 +57,7 @@ import {
 import { facetDtoSchema } from '../shared/facet.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { pathLifecycleEndTriggersDtoSchema } from '../shared/reaction.js'
+import { damageTypeFilterDtoSchema, pathLifecycleEndTriggersDtoSchema } from '../shared/reaction.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -221,6 +221,7 @@ const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
         amount: z.number().check(z.int()).check(z.gte(1))
       })
     ),
+    suppressedByDamageTypeIds: z.optional(damageTypeFilterDtoSchema),
     outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)
   })
 
