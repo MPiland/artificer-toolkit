@@ -285,21 +285,28 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   })
   if (legendary.kind === 'PENDING') throw new Error('Outgoing Legendary Actions are incomplete.')
   root = legendary.root
+  // A turn that was already begun (Previous Turn, then Next) never runs its start-of-turn stages again.
+  const actorId = root.proposedTerminalTransition.currentActorId
+  const incomingBegun =
+    actorId !== null &&
+    (await stages.turnStarted({ round: root.proposedTerminalTransition.round, actorId }))
   // Recharge candidates all belong to the entering actor.
-  const recharge = await stages.recharge({
-    state,
-    autoRoll: actorAutoRoll(root.proposedTerminalTransition.currentActorId),
-    root,
-    occurrenceId,
-    actors: legendary.actors,
-    ...(pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
-    pending.applicationContext.kind === 'ENCOUNTER_TURN_RECHARGE'
-      ? {
-          pending: { ...pending, applicationContext: { ...pending.applicationContext, root } },
-          ...(input.rawDie === undefined ? {} : { rawDie: input.rawDie })
-        }
-      : {})
-  })
+  const recharge = incomingBegun
+    ? { kind: 'COMPLETE' as const, actors: legendary.actors, plan: null }
+    : await stages.recharge({
+        state,
+        autoRoll: actorAutoRoll(root.proposedTerminalTransition.currentActorId),
+        root,
+        occurrenceId,
+        actors: legendary.actors,
+        ...(pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
+        pending.applicationContext.kind === 'ENCOUNTER_TURN_RECHARGE'
+          ? {
+              pending: { ...pending, applicationContext: { ...pending.applicationContext, root } },
+              ...(input.rawDie === undefined ? {} : { rawDie: input.rawDie })
+            }
+          : {})
+      })
   if (recharge.kind === 'PENDING') return recharge
   if (recharge.plan) root = { ...root, completedRechargePlan: recharge.plan }
   const movementTargets = new Map<string, MovementTarget<TCharacterFacts>>()
@@ -320,23 +327,24 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   }
   // A dying Character's save follows Recharge and precedes its start-of-turn effects, which then
   // see the save's outcome (D96).
-  const actorId = root.proposedTerminalTransition.currentActorId
-  const deathSave = await stages.deathSave({
-    state,
-    userId: campaign.ownerUserId,
-    autoRoll: actorAutoRoll(actorId),
-    root,
-    occurrenceId,
-    actors: recharge.actors,
-    movementTargets,
-    ...(pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
-    pending.applicationContext.kind === 'ENCOUNTER_TURN_DEATH_SAVE'
-      ? {
-          pending: { ...pending, applicationContext: { ...pending.applicationContext, root } },
-          ...(input.resolution === undefined ? {} : { resolution: input.resolution })
-        }
-      : {})
-  })
+  const deathSave = incomingBegun
+    ? { kind: 'COMPLETE' as const, plan: null, target: null }
+    : await stages.deathSave({
+        state,
+        userId: campaign.ownerUserId,
+        autoRoll: actorAutoRoll(actorId),
+        root,
+        occurrenceId,
+        actors: recharge.actors,
+        movementTargets,
+        ...(pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
+        pending.applicationContext.kind === 'ENCOUNTER_TURN_DEATH_SAVE'
+          ? {
+              pending: { ...pending, applicationContext: { ...pending.applicationContext, root } },
+              ...(input.resolution === undefined ? {} : { resolution: input.resolution })
+            }
+          : {})
+      })
   if (deathSave.kind === 'PENDING') return deathSave
   if (deathSave.plan) root = { ...root, completedDeathSavePlan: deathSave.plan }
   if (deathSave.target && actorId !== null) movementTargets.set(actorId, deathSave.target)
@@ -345,10 +353,6 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     stage: 'START_OF_TURN',
     actorId: root.proposedTerminalTransition.currentActorId
   } as const
-  // A turn that was already begun (Previous Turn, then Next) never runs its start-of-turn effects again.
-  const incomingBegun =
-    actorId !== null &&
-    (await stages.turnStarted({ round: root.proposedTerminalTransition.round, actorId }))
   const incoming = incomingBegun
     ? {
         kind: 'COMPLETE' as const,
