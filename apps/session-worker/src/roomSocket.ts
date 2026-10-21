@@ -103,3 +103,30 @@ export function accountBucket(
     userId: admission.userId
   } as const
 }
+
+/**
+ * A stored command receipt sent again for an exact retry. Its Scene or binding result reports
+ * `replayed: true`, as Convex's replays do; an Encounter result has no replay flag.
+ */
+export function replayReceipt(receiptJson: string): LiveSessionWebSocketServerMessageDto {
+  return replayMessage(liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(receiptJson)))
+}
+
+export function replayMessage(
+  receipt: LiveSessionWebSocketServerMessageDto
+): LiveSessionWebSocketServerMessageDto {
+  if (receipt.type !== 'COMMAND_COMMITTED')
+    throw new Error('Live Session command receipt is invalid.')
+  const { delta } = receipt
+  if (delta?.scope === 'SCENE')
+    return {
+      ...receipt,
+      delta: { ...delta, result: { ...delta.result, replayed: true } }
+    }
+  if (delta?.scope === 'ENCOUNTER_BINDING')
+    return {
+      ...receipt,
+      delta: { ...delta, result: { ...delta.result, replayed: true } }
+    }
+  return receipt
+}

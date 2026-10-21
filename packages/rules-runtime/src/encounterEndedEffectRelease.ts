@@ -9,13 +9,9 @@ import type {
 } from './characterRuleActionSystemAdapter.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
-import {
-  effectEventScope,
-  effectsEndedBy,
-  isInEffectEventScope
-} from './encounterGrantLifetimes.js'
 import type { prepareRecurringActiveEffect } from './encounterActionEffectPlans.js'
-import { dnd5eAbilityCode } from './systems/dnd5e/identity.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
+import type { EncounterEvent } from './events/encounterEventTable.js'
 
 /**
  * What event-ended effects release from their holder: the conditions they alone held, then the
@@ -106,7 +102,10 @@ export function savingThrowSpentEffects(
   held: readonly ActiveRuleEffectRecord[],
   abilityCode: string | null
 ) {
-  return effectsEndedBy(held, { event: 'ON_SAVING_THROW', abilityCode })
+  return discoverEncounterEventHooks({
+    effects: held,
+    events: [{ kind: 'TEST', test: 'SAVE', ability: { code: abilityCode } }]
+  }).ended
 }
 
 /**
@@ -163,45 +162,6 @@ export function incomingDamageGrantRecords(input: {
 }
 
 /**
- * Whether damage of these types meets a `DAMAGE_TAKEN` trigger, for an end trigger and a repeat
- * trigger alike. A damage of unknown type (`null`: a source that dealt several types) meets only an
- * untyped trigger, since no single type can satisfy a filter.
- */
-export function damageTriggerMet(
-  trigger: { by: 'ANYONE' | 'SOURCE_SIDE'; damageTypeIds: readonly string[] | null },
-  input: { onSourceSide: boolean; damageTypeIds: readonly (string | null)[] }
-) {
-  return (
-    (trigger.by === 'ANYONE' || input.onSourceSide) &&
-    (trigger.damageTypeIds === null ||
-      input.damageTypeIds.some(
-        (damageTypeId) => damageTypeId !== null && trigger.damageTypeIds!.includes(damageTypeId)
-      ))
-  )
-}
-
-/**
- * Whether the damage came from the effect source's side: the source itself or an ally of it. Nobody
- * (a null damager or source) is on no side, so only `ANYONE` triggers meet such damage.
- */
-export function damagerOnSourceSide(input: {
-  damagerActorId: string | null
-  sourceActorId: string | null
-  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
-}) {
-  const { damagerActorId, sourceActorId } = input
-  return (
-    sourceActorId !== null &&
-    damagerActorId !== null &&
-    (damagerActorId === sourceActorId ||
-      encounterActorRelationship(
-        input.dispositions.get(damagerActorId) ?? 'NEUTRAL',
-        input.dispositions.get(sourceActorId) ?? 'NEUTRAL'
-      ) === 'ALLIED')
-  )
-}
-
-/**
  * What an action ends on its target: the effects used up by an attack roll against the holder
  * (`ON_ATTACKED`, after their modifiers applied to that roll), those whose `DAMAGE_TAKEN` end
  * trigger the outcome meets (damage that survives the holder's defenses, of a type the trigger
@@ -228,60 +188,51 @@ export function targetEndedEffects(input: {
   /** The grants the holder's passive features give when it takes damage; none when omitted. */
   grantTriggers?: readonly IncomingDamageGrantTrigger[]
 }) {
-  const dealt = input.applications.filter(
-    (application) =>
-      application.kind === 'DAMAGE' &&
-      application.targetActorId === input.holderActorId &&
-      application.resolvedAmount > 0
+  const dealt = input.applications.flatMap((application) =>
+    application.kind === 'DAMAGE' &&
+    application.targetActorId === input.holderActorId &&
+    application.resolvedAmount > 0
+      ? [application.damageTypeId]
+      : []
   )
-  // An attack consumes only the effects whose event scope admits the attacker on this turn.
-  const attackConsumed = input.attacked
-    ? effectsEndedBy(input.held, 'ON_ATTACKED').filter((effect) => {
-        const scope = effectEventScope(effect, input.holderActorId)
-        return (
-          scope !== null &&
-          isInEffectEventScope(scope, {
-            actorId: input.damagerActorId,
+  const events: EncounterEvent[] = [
+    // An attack consumes only the effects whose event scope admits the attacker on this turn.
+    ...(input.attacked
+      ? [
+          {
+            kind: 'ATTACKED',
+            holderActorId: input.holderActorId,
+            attackerActorId: input.damagerActorId,
             turnActorId: input.turnActorId
-          })
-        )
-      })
-    : []
-  const saveConsumed = input.testEvidence.flatMap((evidence) => {
-    const abilityDefinitionId = evidence?.savingThrowAbilityDefinitionId
-    return abilityDefinitionId === undefined
-      ? []
-      : savingThrowSpentEffects(input.held, dnd5eAbilityCode(abilityDefinitionId))
-  })
-  const grants = (input.grantTriggers ?? []).filter((trigger) =>
-    dealt.some(
-      (application) =>
-        application.kind === 'DAMAGE' && trigger.damageTypeIds.includes(application.damageTypeId)
-    )
-  )
-  const replaced = effectsReplacedByGrants(input.held, grants)
-  const endedEffects = input.held.filter((effect) => {
-    const { definition } = effect
-    if (replaced.includes(effect)) return true
-    if (attackConsumed.includes(effect) || saveConsumed.includes(effect)) return true
-    if (!dealt.length || definition.schemaVersion !== 2) return false
-    const sourceActorId =
-      definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
-    return definition.recurrence.endOnTriggers.some(
-      (trigger) =>
-        trigger.event === 'DAMAGE_TAKEN' &&
-        damageTriggerMet(trigger, {
-          onSourceSide: damagerOnSourceSide({
+          } as const
+        ]
+      : []),
+    ...input.testEvidence.flatMap((evidence) => {
+      const definitionId = evidence?.savingThrowAbilityDefinitionId
+      return definitionId === undefined
+        ? []
+        : [{ kind: 'TEST', test: 'SAVE', ability: { definitionId } } as const]
+    }),
+    ...(dealt.length > 0
+      ? [
+          {
+            kind: 'DAMAGED',
             damagerActorId: input.damagerActorId,
-            sourceActorId,
+            damageTypeIds: dealt,
             dispositions: input.dispositions
-          }),
-          damageTypeIds: dealt.map((application) =>
-            application.kind === 'DAMAGE' ? application.damageTypeId : null
-          )
-        })
-    )
+          } as const
+        ]
+      : [])
+  ]
+  const hooks = discoverEncounterEventHooks({
+    effects: input.held,
+    events,
+    grantSubscriptions: input.grantTriggers ?? []
   })
+  const replaced = effectsReplacedByGrants(input.held, hooks.grants)
+  const endedEffects = input.held.filter(
+    (effect) => replaced.includes(effect) || hooks.ended.includes(effect)
+  )
   return {
     endedEffects,
     releases: endedEffectReleases({
@@ -289,7 +240,7 @@ export function targetEndedEffects(input: {
       held: input.held,
       ended: endedEffects
     }),
-    grants: grants.map(({ id, effect }) => ({ id, effect }))
+    grants: hooks.grants.map(({ id, effect }) => ({ id, effect }))
   }
 }
 
@@ -307,15 +258,15 @@ export function actionUsedOnHolderEndedEffects(input: {
   const endedEffects =
     input.usedByActorId === input.holderActorId
       ? []
-      : input.held.filter(
-          ({ definition }) =>
-            definition.schemaVersion === 2 &&
-            definition.recurrence.endOnTriggers.some(
-              (trigger) =>
-                trigger.event === 'ACTION_USED_ON_HOLDER' &&
-                trigger.actionDefinitionIds.includes(input.basicActionDefinitionId)
-            )
-        )
+      : discoverEncounterEventHooks({
+          effects: input.held,
+          events: [
+            {
+              kind: 'ACTION_USED_ON_HOLDER',
+              basicActionDefinitionId: input.basicActionDefinitionId
+            }
+          ]
+        }).ended
   return {
     endedEffects,
     releases: endedEffectReleases({
@@ -347,7 +298,9 @@ export function moveEndHolds(
   targets: Iterable<{ actor: { id: string }; activeEffects: readonly ActiveRuleEffectRecord[] }>
 ) {
   return [...targets].flatMap(({ actor, activeEffects }) =>
-    effectsEndedBy(activeEffects, 'ON_MOVE').map(({ id }) => ({ actorId: actor.id, effectId: id }))
+    discoverEncounterEventHooks({ effects: activeEffects, events: [{ kind: 'MOVED' }] }).ended.map(
+      ({ id }) => ({ actorId: actor.id, effectId: id })
+    )
   )
 }
 
@@ -364,29 +317,17 @@ export function actionEndedEffects(input: {
   /** Whether the action is aimed at an enemy of the holder (see `actsAgainstEnemy`). */
   againstEnemy: boolean
 }) {
-  const ended = new Set(
-    effectsEndedBy(
-      input.held,
-      'ON_TAKE_ACTION',
-      ...(input.makesAttackRoll ? (['ON_ATTACK_ROLL'] as const) : []),
-      ...(input.castsSpell ? (['ON_CAST_SPELL'] as const) : [])
-    ).map(({ id }) => id)
-  )
-  const endsOn = [
-    ...(input.makesAttackRoll && input.againstEnemy ? (['ATTACK_ROLL'] as const) : []),
-    ...(input.castsSpell && input.againstEnemy ? (['SPELL_CAST'] as const) : [])
-  ]
-  for (const { id, definition } of input.held)
-    if (
-      definition.schemaVersion === 2 &&
-      definition.recurrence.endOnTriggers.some(
-        (trigger) =>
-          (trigger.event === 'ATTACK_ROLL' || trigger.event === 'SPELL_CAST') &&
-          endsOn.includes(trigger.event)
-      )
-    )
-      ended.add(id)
-  const consumedGrants = input.held.filter(({ id }) => ended.has(id))
+  const consumedGrants = discoverEncounterEventHooks({
+    effects: input.held,
+    events: [
+      {
+        kind: 'ACTION',
+        attackRoll: input.makesAttackRoll,
+        spellCast: input.castsSpell ?? false,
+        againstEnemy: input.againstEnemy
+      }
+    ]
+  }).ended
   return {
     consumedGrants,
     sourceReleases: endedEffectReleases({
@@ -409,7 +350,7 @@ export function attackHitEndedEffects(input: {
 }) {
   const consumedGrants =
     input.resultPath === 'ON_HIT' || input.resultPath === 'ON_CRIT'
-      ? effectsEndedBy(input.held, 'ON_HIT')
+      ? discoverEncounterEventHooks({ effects: input.held, events: [{ kind: 'HIT' }] }).ended
       : []
   return {
     consumedGrants,

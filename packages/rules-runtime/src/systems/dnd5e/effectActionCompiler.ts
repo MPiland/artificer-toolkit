@@ -122,22 +122,12 @@ import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY
 } from './dnd5eTestOperationKeys.js'
-import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
-import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllowance.js'
-import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-  DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
-  DND5E_KILL_PROPOSAL_OPERATION_KEY,
-  DND5E_DEPART_PROPOSAL_OPERATION_KEY,
-  DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
-  DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
-  DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
-  DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
@@ -188,11 +178,8 @@ import {
   DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
   DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
-  DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
-  DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
-  DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   UUID,
   Dnd5eEffectActionCompilerError,
   type Outcome,
@@ -212,6 +199,11 @@ import {
 } from './effectActionContracts.js'
 import { repeatSaveConditionIds, conditionImmunityFacts } from './effectActionEvidenceChecks.js'
 import {
+  effectOutcomeProposalNode,
+  effectOutcomeProposalOutputs
+} from '../../effectOutcomeRegistry.js'
+import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'
+import {
   hitPointMaximumReductionProposalNode,
   forcedMovementProposalNode,
   dnd5eSaveOutcomeRule,
@@ -227,6 +219,7 @@ import {
 import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
 import {
   boundedDiceTerm,
+  boundedSingleDiceCount,
   dnd5eEffectScalingFacts,
   parseBoundedDiceConfiguration,
   scalingLevel,
@@ -249,37 +242,11 @@ const DND5E_ORDINARY_SIGHT_CHECKSUM = checksumRuleDocument(DND5E_ORDINARY_SIGHT_
 function activeEffectGraphNodeId(compiledEntryId: string): string {
   return `active_effect_${compiledEntryId}`
 }
-/** The outcomes that carry no amount: their proposal takes only the target and its state checksum. */
-const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
-  STABILIZE: DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
-  KILL: DND5E_KILL_PROPOSAL_OPERATION_KEY,
-  DEPART: DND5E_DEPART_PROPOSAL_OPERATION_KEY,
-  MODIFIER_GRANT: DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
-  ACTOR_LINK: DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
-  CREATURE_FORM: DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
-  MANUAL_ADJUDICATION: DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
-  CONCEAL: DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
-  DETECT_CONCEALED: DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
-  ADD_SPEED_TO_MOVEMENT: DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
-  TELEPORT_ALLOWANCE: DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
-  CANCEL_TRIGGERING_EVENT: DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY
-} as const
-function isTargetOnlyOutcome(
-  outcome: Outcome
-): outcome is Extract<Outcome, { kind: keyof typeof TARGET_ONLY_OUTCOME_OPERATION_KEYS }> {
-  return Object.hasOwn(TARGET_ONLY_OUTCOME_OPERATION_KEYS, outcome.kind)
-}
-/** The literal inputs a target-only outcome's proposal reads beyond the target: a teleport's range and destination rule. */
-function targetOnlyOutcomeInputs(
-  outcome: Extract<Outcome, { kind: keyof typeof TARGET_ONLY_OUTCOME_OPERATION_KEYS }>
-): Readonly<Record<string, RuleInputBinding>> {
-  return outcome.kind === 'TELEPORT_ALLOWANCE'
-    ? {
-        maxFeet: { kind: 'LITERAL' as const, value: outcome.maxFeet },
-        destinationKind: { kind: 'LITERAL' as const, value: outcome.destinationKind }
-      }
-    : {}
-}
+/** The target every outcome proposal reads: the target actor and its state checksum. */
+const DND5E_OUTCOME_TARGET = {
+  targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+  targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
+} as const satisfies Readonly<Record<string, RuleInputBinding>>
 type SpecializedOutcome =
   | Outcome
   | { kind: 'DICE_DAMAGE'; damageTypeId: string }
@@ -3945,16 +3912,6 @@ function immediateFollowUpSaveMaximumReduction(
   return reductions.length === 1 ? reductions[0]! : null
 }
 
-function boundedSingleDiceCount(value: unknown): number | null {
-  try {
-    const { term, modifier } = parseBoundedDiceConfiguration(value)
-    return modifier === 0 ? term.count : null
-  } catch (error) {
-    if (error instanceof Dnd5eEffectActionCompilerError) return null
-    throw error
-  }
-}
-
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
   const failure = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry.outcome
     .onFailure
@@ -4613,105 +4570,34 @@ function supported(
   }
 }
 
-function testProposalOperationKey(outcome: Outcome | EntryDiceDamageOutcome): string {
-  return outcome.kind === 'HEAL'
-    ? DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY
-    : outcome.kind === 'TEMPORARY_HIT_POINTS'
-      ? DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-      : outcome.kind === 'DAMAGE' || outcome.kind === 'ENTRY_DICE_DAMAGE'
-        ? DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
-        : outcome.kind === 'SCALAR_REDUCTION'
-          ? DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY
-          : DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
-}
-
+/** A result path's outcome inside a test graph: proposed only when the test resolves to that path. */
 function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcome, suffix = '') {
-  if (outcome.kind === 'STABILIZE')
-    unsupported('D&D stabilize outcomes cannot follow an attack or saving throw.')
-  if (outcome.kind === 'KILL')
-    unsupported('D&D kill outcomes cannot follow an attack or saving throw.')
-  if (outcome.kind === 'DEPART')
-    unsupported('D&D depart outcomes cannot follow an attack or saving throw.')
-  if (outcome.kind === 'MODIFIER_GRANT')
-    unsupported('D&D modifier grants cannot follow an attack or saving throw.')
-  if (outcome.kind === 'ACTOR_LINK')
-    unsupported('D&D actor links cannot follow an attack or saving throw.')
-  if (outcome.kind === 'CREATURE_FORM')
-    unsupported('D&D creature forms cannot follow an attack or saving throw.')
-  if (outcome.kind === 'MANUAL_ADJUDICATION')
-    unsupported('D&D manual adjudications cannot follow an attack or saving throw.')
-  if (outcome.kind === 'CONCEAL' || outcome.kind === 'DETECT_CONCEALED')
-    unsupported('D&D concealment outcomes cannot follow an attack or saving throw.')
-  if (outcome.kind === 'ADD_SPEED_TO_MOVEMENT')
-    unsupported('D&D speed-to-movement outcomes cannot follow an attack or saving throw.')
-  if (outcome.kind === 'TELEPORT_ALLOWANCE')
-    unsupported('D&D teleport outcomes cannot follow an attack or saving throw.')
-  if (outcome.kind === 'CANCEL_TRIGGERING_EVENT')
-    unsupported('D&D cancel outcomes cannot follow an attack or saving throw.')
   if (outcome.kind === 'FORCED_MOVEMENT')
     unsupported('D&D forced movement resolves only in its selected outcome phase.')
-  const id = `proposal-${pathCode.toLowerCase()}${suffix}`
-  return {
-    id,
-    operation: { key: testProposalOperationKey(outcome), contractVersion: 1 },
-    inputs: {
-      targetActorId: {
-        kind: 'FACT' as const,
-        factKey: DND5E_TARGET_ACTOR_FACT_KEY
-      },
-      resolvedPath: {
-        kind: 'NODE_OUTPUT' as const,
-        nodeId: 'test',
-        port: 'resultPath'
-      },
-      authoredPath: { kind: 'LITERAL' as const, value: pathCode },
-      targetStateChecksum: {
-        kind: 'FACT' as const,
-        factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-      },
-      ...(outcome.kind === 'CONDITION_APPLY'
-        ? {
-            conditionId: {
-              kind: 'LITERAL' as const,
-              value: outcome.conditionId
-            },
-            conditionImmune: {
-              kind: 'FACT' as const,
-              factKey:
-                DND5E_CONDITION_IMMUNE_FACT_KEYS[
-                  pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS
-                ]
-            }
-          }
-        : outcome.kind === 'SCALAR_REDUCTION'
-          ? {
-              amount: { kind: 'LITERAL' as const, value: 1 },
-              valueDefinitionId: { kind: 'LITERAL' as const, value: outcome.valueDefinitionId },
-              recoveryTriggers: {
-                kind: 'LITERAL' as const,
-                value: JSON.stringify(outcome.recoveryTriggers)
-              },
-              terminalConsequence: {
-                kind: 'LITERAL' as const,
-                value: outcome.terminalConsequence
-              }
-            }
-          : {
-              amount:
-                outcome.kind === 'ENTRY_DICE_DAMAGE'
-                  ? entryDiceDamageGraph(pathCode, outcome).amount
-                  : { kind: 'LITERAL' as const, value: outcome.amount },
-              ...(outcome.kind === 'DAMAGE' || outcome.kind === 'ENTRY_DICE_DAMAGE'
-                ? {
-                    damageTypeId: {
-                      kind: 'LITERAL' as const,
-                      value: outcome.damageTypeId
-                    }
-                  }
-                : {})
-            })
-    }
-  }
+  const definition = dnd5eOutcomeDefinition(outcome.kind)
+  if (definition.pathGatedOperationKey === null)
+    unsupported(
+      `D&D ${outcome.kind} under a test needs an active-effect plan gated on the test's result path, which the runtime does not have yet.`
+    )
+  return effectOutcomeProposalNode({
+    id: `proposal-${pathCode.toLowerCase()}${suffix}`,
+    definition,
+    outcome,
+    context: {
+      conditionImmuneFactKey:
+        DND5E_CONDITION_IMMUNE_FACT_KEYS[pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS]
+    },
+    target: DND5E_OUTCOME_TARGET,
+    phase: {
+      kind: 'PATH_GATED',
+      resolvedPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
+      authoredPath: pathCode
+    },
+    extraInputs:
+      outcome.kind === 'ENTRY_DICE_DAMAGE'
+        ? { amount: entryDiceDamageGraph(pathCode, outcome).amount }
+        : {}
+  })
 }
 
 /**
@@ -5801,99 +5687,29 @@ function fixedOutcomeGraphDefinition(input: {
       sourceEntryBindings: [{ sourceEntryId: input.entry.entryId, nodeId: proposalId }]
     }
   }
-  const operation =
-    input.outcome.kind === 'HEAL'
-      ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
-      : input.outcome.kind === 'TEMPORARY_HIT_POINTS'
-        ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-        : input.outcome.kind === 'DAMAGE'
-          ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-          : isTargetOnlyOutcome(input.outcome)
-            ? TARGET_ONLY_OUTCOME_OPERATION_KEYS[input.outcome.kind]
-            : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
-  const inputs = {
-    targetActorId: {
-      kind: 'FACT' as const,
-      factKey: DND5E_TARGET_ACTOR_FACT_KEY
-    },
-    targetStateChecksum: {
-      kind: 'FACT' as const,
-      factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-    },
-    ...(input.hitPointBand ? gateNodeInputs({ hitPointBand: input.hitPointBand }) : {}),
-    ...(isTargetOnlyOutcome(input.outcome)
-      ? targetOnlyOutcomeInputs(input.outcome)
-      : input.outcome.kind === 'CONDITION_APPLY'
-        ? {
-            conditionId: {
-              kind: 'LITERAL' as const,
-              value: input.outcome.conditionId
-            },
-            conditionImmune: {
-              kind: 'FACT' as const,
-              factKey:
-                conditionImmuneFactKey(input.entry.pathCode, input.conditionOrdinal ?? 1) ??
-                unsupported('D&D result path applies too many conditions.')
-            }
-          }
-        : {
-            amount: { kind: 'LITERAL' as const, value: input.outcome.amount },
-            ...(input.outcome.kind === 'DAMAGE'
-              ? {
-                  damageTypeId: {
-                    kind: 'LITERAL' as const,
-                    value: input.outcome.damageTypeId
-                  }
-                }
-              : {})
-          })
-  }
-  const outputs = {
-    targetActorId: {
-      kind: 'NODE_OUTPUT' as const,
-      nodeId: proposalId,
-      port: 'targetActorId'
-    },
-    ...(isTargetOnlyOutcome(input.outcome)
-      ? {}
-      : input.outcome.kind === 'CONDITION_APPLY'
-        ? {
-            conditionId: {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: proposalId,
-              port: 'conditionId'
-            }
-          }
-        : {
-            amount: {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: proposalId,
-              port: 'amount'
-            },
-            ...(input.outcome.kind === 'DAMAGE'
-              ? {
-                  damageTypeId: {
-                    kind: 'NODE_OUTPUT' as const,
-                    nodeId: proposalId,
-                    port: 'damageTypeId'
-                  }
-                }
-              : {})
-          })
-  }
+  const definition = dnd5eOutcomeDefinition(input.outcome.kind)
   return {
     schemaVersion: 1,
     id: input.action.effectId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
-      {
+      effectOutcomeProposalNode({
         id: proposalId,
-        operation: { key: operation, contractVersion: input.hitPointBand ? 2 : 1 },
-        inputs
-      }
+        definition,
+        outcome: input.outcome,
+        context: {
+          conditionImmuneFactKey: conditionImmuneFactKey(
+            input.entry.pathCode,
+            input.conditionOrdinal ?? 1
+          )
+        },
+        target: DND5E_OUTCOME_TARGET,
+        phase: { kind: 'DIRECT', contractVersion: input.hitPointBand ? 2 : 1 },
+        extraInputs: input.hitPointBand ? gateNodeInputs({ hitPointBand: input.hitPointBand }) : {}
+      })
     ],
-    outputs,
+    outputs: effectOutcomeProposalOutputs(definition, proposalId),
     ...(UUID.test(input.entry.entryId)
       ? {
           sourceEntryBindings: [{ sourceEntryId: input.entry.entryId, nodeId: proposalId }]
@@ -6641,6 +6457,7 @@ function dnd5eActiveEffectPlans(
   const outcome = repeatPlan || timedPlan || relationship || test ? null : supported(action)
   const firstEntry = action.compiledEffect.entries[0]
   const recurringOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : null
+  const testOutcomeKind = test && recurringOutcome ? boundedTestOutcome(firstEntry!).kind : null
   const expectedOperation = relationship
     ? relationship.recurrenceStage === 'START_OF_TURN'
       ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
@@ -6649,8 +6466,10 @@ function dnd5eActiveEffectPlans(
       ? DND5E_SAVE_TEST_OPERATION_KEY
       : timedPlan
         ? DND5E_CONDITION_DURATION_OPERATION_KEY
-        : test && recurringOutcome
-          ? testProposalOperationKey(boundedTestOutcome(action.compiledEffect.entries[0]!))
+        : testOutcomeKind
+          ? testOutcomeKind === 'FORCED_MOVEMENT'
+            ? null
+            : dnd5eOutcomeDefinition(testOutcomeKind).pathGatedOperationKey
           : outcome?.kind === 'DICE_HEAL'
             ? outcome.temporary
               ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
@@ -6852,16 +6671,7 @@ function compileEffectActionGraph(
     unsupported('D&D forced movement requires an authored test phase.')
   if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION')
     unsupported('D&D hit point maximum reduction requires an authored test phase.')
-  const operation =
-    outcome.kind === 'HEAL'
-      ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
-      : outcome.kind === 'TEMPORARY_HIT_POINTS'
-        ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-        : outcome.kind === 'DAMAGE'
-          ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-          : isTargetOnlyOutcome(outcome)
-            ? TARGET_ONLY_OUTCOME_OPERATION_KEYS[outcome.kind]
-            : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+  const outcomeDefinition = dnd5eOutcomeDefinition(outcome.kind)
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   // The save the target repeats (Power Word Stun) is pinned to the DC this cast settles.
   const repeatsSave = outcome.kind === 'CONDITION_APPLY' && repeatPlan !== null
@@ -6871,63 +6681,19 @@ function compileEffectActionGraph(
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
-      {
+      effectOutcomeProposalNode({
         id: nodeId,
-        operation: { key: operation, contractVersion: gates === undefined ? 1 : 2 },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          targetStateChecksum: {
-            kind: 'FACT',
-            factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-          },
-          ...(gates === undefined ? {} : gateNodeInputs(gates)),
-          ...(isTargetOnlyOutcome(outcome)
-            ? targetOnlyOutcomeInputs(outcome)
-            : outcome.kind === 'CONDITION_APPLY'
-              ? {
-                  conditionId: { kind: 'LITERAL', value: outcome.conditionId },
-                  conditionImmune: {
-                    kind: 'FACT',
-                    factKey: DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
-                  }
-                }
-              : {
-                  amount: { kind: 'LITERAL', value: outcome.amount },
-                  ...(outcome.kind === 'DAMAGE'
-                    ? {
-                        damageTypeId: {
-                          kind: 'LITERAL',
-                          value: outcome.damageTypeId
-                        }
-                      }
-                    : {})
-                })
-        }
-      }
+        definition: outcomeDefinition,
+        outcome,
+        context: { conditionImmuneFactKey: DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY },
+        target: DND5E_OUTCOME_TARGET,
+        phase: { kind: 'DIRECT', contractVersion: gates === undefined ? 1 : 2 },
+        extraInputs: gates === undefined ? {} : gateNodeInputs(gates)
+      })
     ],
     outputs: {
-      targetActorId: { kind: 'NODE_OUTPUT', nodeId, port: 'targetActorId' },
-      ...(isTargetOnlyOutcome(outcome)
-        ? {}
-        : outcome.kind === 'CONDITION_APPLY'
-          ? {
-              conditionId: { kind: 'NODE_OUTPUT', nodeId, port: 'conditionId' },
-              ...(repeatsSave
-                ? { castSaveDc: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY } }
-                : {})
-            }
-          : {
-              amount: { kind: 'NODE_OUTPUT', nodeId, port: 'amount' },
-              ...(outcome.kind === 'DAMAGE'
-                ? {
-                    damageTypeId: {
-                      kind: 'NODE_OUTPUT',
-                      nodeId,
-                      port: 'damageTypeId'
-                    }
-                  }
-                : {})
-            })
+      ...effectOutcomeProposalOutputs(outcomeDefinition, nodeId),
+      ...(repeatsSave ? { castSaveDc: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY } } : {})
     },
     ...(recurringPlan
       ? {

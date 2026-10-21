@@ -10,6 +10,7 @@ import {
 } from '../systems/dnd5e/effectActionContracts.js'
 import {
   boundedDiceTerm,
+  boundedSingleDiceCount,
   dnd5eEffectScalingFacts,
   parseBoundedDiceConfiguration,
   scalingLevel
@@ -134,5 +135,13 @@ describe('the bounded exact-dice contract', () => {
         'D&D dice configuration exceeds the bounded exact-dice contract.'
       )
     )
+  })
+
+  it('counts the dice of one plain term and reads anything else as no count', () => {
+    expect(boundedSingleDiceCount('3d8')).toBe(3)
+    expect(boundedSingleDiceCount('3d8+2')).toBeNull()
+    expect(boundedSingleDiceCount('2d6+1d4')).toBeNull()
+    expect(boundedSingleDiceCount('not dice')).toBeNull()
+    expect(boundedSingleDiceCount(undefined)).toBeNull()
   })
 })

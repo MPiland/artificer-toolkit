@@ -59,7 +59,7 @@ import {
 } from './encounterConditionMechanics.js'
 import { featureChargeUsed } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
-import { isInEffectEventScope } from './encounterGrantLifetimes.js'
+import { isInEffectEventScope } from './events/encounterEventHooks.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   encounterHeldActorIds,

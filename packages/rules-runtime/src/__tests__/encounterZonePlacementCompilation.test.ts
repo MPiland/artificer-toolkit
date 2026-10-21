@@ -13,7 +13,6 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { encounterActionTargetKind } from '../encounterAreaAction.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
-import { effectsEndedBy } from '../encounterGrantLifetimes.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { chosenZonePlacement } from '../encounterZonePlacement.js'
 import { planSpatialEntryGrant } from '../encounterSpatialEntryGrant.js'
@@ -43,6 +42,7 @@ import {
   zonePlacementOf,
   type ZoneParts
 } from '../testing/authoredZoneFixture.js'
+import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 
 describe('placed-space zone compilation from real SRD Caltrops', () => {
   it('compiles the manifest zone to a point-placed 5-foot square that triggers on entering or passing through', () => {
@@ -182,7 +182,10 @@ describe('the zone an area action leaves at its chosen point', () => {
 
   it('leaves the zone itself standing when hit points are regained: only the grant it hands out ends', () => {
     expect(
-      effectsEndedBy([grantRecordFor(placedCaltropsZone())], 'ON_HIT_POINTS_REGAINED')
+      discoverEncounterEventHooks({
+        effects: [grantRecordFor(placedCaltropsZone())],
+        events: [{ kind: 'HIT_POINTS_REGAINED' }]
+      }).ended
     ).toEqual([])
   })
 })
@@ -224,9 +227,22 @@ describe('a creature that fails the zone’s entry save', () => {
     const grant = plannedEntryGrant({ resultPath: 'ON_SAVE_FAIL' })
     if (!grant) throw new Error('A failed save must grant the penalty.')
     const held = [grantRecordFor(grant)]
-    expect(effectsEndedBy(held, 'ON_HIT_POINTS_REGAINED')).toEqual(held)
-    expect(effectsEndedBy(held, 'ON_ATTACK_ROLL')).toEqual([])
-    expect(effectsEndedBy(held, 'ON_CAST_SPELL')).toEqual([])
+    expect(
+      discoverEncounterEventHooks({ effects: held, events: [{ kind: 'HIT_POINTS_REGAINED' }] })
+        .ended
+    ).toEqual(held)
+    expect(
+      discoverEncounterEventHooks({
+        effects: held,
+        events: [{ kind: 'ACTION', attackRoll: true, spellCast: false, againstEnemy: false }]
+      }).ended
+    ).toEqual([])
+    expect(
+      discoverEncounterEventHooks({
+        effects: held,
+        events: [{ kind: 'ACTION', attackRoll: false, spellCast: true, againstEnemy: false }]
+      }).ended
+    ).toEqual([])
   })
 })
 

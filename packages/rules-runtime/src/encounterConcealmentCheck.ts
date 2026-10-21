@@ -26,7 +26,7 @@ import {
 import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
-import { effectsEndedBy } from './encounterGrantLifetimes.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import { actorContestFacts, checkAbilityCode } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
@@ -132,14 +132,22 @@ export function prepareEncounterConcealmentCheck<
     check: { checkDefinitionId: input.check.checkDefinitionId, label: input.checkLabel },
     d20: freezeD20Context({ ...facts, modifier: facts.modifier }),
     resolution,
-    consumedGrants: effectsEndedBy(roller.activeEffects, {
-      event: 'ON_ABILITY_CHECK',
-      abilityCode: checkAbilityCode(
-        input.system,
-        input.check.checkKind,
-        input.check.checkDefinitionId
-      )
-    })
+    consumedGrants: discoverEncounterEventHooks({
+      effects: roller.activeEffects,
+      events: [
+        {
+          kind: 'TEST',
+          test: 'CHECK',
+          ability: {
+            code: checkAbilityCode(
+              input.system,
+              input.check.checkKind,
+              input.check.checkDefinitionId
+            )
+          }
+        }
+      ]
+    }).ended
   })
 }
 

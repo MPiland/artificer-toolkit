@@ -4,7 +4,7 @@ import type { ExecuteRollInputDto, RollSourceDto } from '@artificer-toolkit/sche
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 import { savingThrowSpentEffects } from '../encounterEndedEffectRelease.js'
-import { effectsEndedBy } from '../encounterGrantLifetimes.js'
+import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 import {
   activeAbilityCheckDice,
   activeAbilityCheckMinimumRoll,
@@ -195,7 +195,10 @@ export function carriedTestDice(
     }
   return {
     addedDice: activeAbilityCheckDice(activeEffects, abilityCode),
-    spent: effectsEndedBy(activeEffects, { event: 'ON_ABILITY_CHECK', abilityCode }),
+    spent: discoverEncounterEventHooks({
+      effects: activeEffects,
+      events: [{ kind: 'TEST', test: 'CHECK', ability: { code: abilityCode } }]
+    }).ended,
     minimumRoll: activeAbilityCheckMinimumRoll(activeEffects, abilityCode)
   }
 }
