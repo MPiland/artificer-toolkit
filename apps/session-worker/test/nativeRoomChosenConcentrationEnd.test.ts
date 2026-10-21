@@ -172,9 +172,7 @@ describe('chosen Concentration end (SPELLS-5.11)', () => {
     expect(await maintained(room)).toEqual({ slots: [], dependents: [] })
     expect(await streamVersionOf(room)).toBe(before + 1)
     expect(room.diceDrawn()).toBe(0)
-    expect((await room.receipts()).filter((r) => r.commandType === 'DAMAGE_SAVE_CHECK')).toEqual(
-      []
-    )
+    expect((await room.receipts()).filter((r) => r.commandType === 'DAMAGE_SAVE_CHECK')).toEqual([])
     expect(await readRoomChatBodies(room.base.stub)).toEqual([
       expect.stringMatching(/ends Concentration\.$/)
     ])

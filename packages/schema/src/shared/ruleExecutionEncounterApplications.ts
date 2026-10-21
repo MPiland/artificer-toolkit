@@ -329,7 +329,9 @@ export const effectRepeatSaveApplicationOutputDtoSchema = lazySchema(() =>
       released: z.nullable(
         z.strictObject({
           activeEffectId: uuidSchema,
-          removedConditionIds: z.array(uuidSchema).check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+          removedConditionIds: z
+            .array(uuidSchema)
+            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
         })
       ),
       nextOccurrenceId: z.nullable(uuidSchema)

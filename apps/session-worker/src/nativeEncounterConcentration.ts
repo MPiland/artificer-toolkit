@@ -428,7 +428,10 @@ export async function planNativeLiveConcentration(input: {
                   {
                     defeated:
                       !actor ||
-                      isEncounterActorDefeated(actor, deadCharacterIdsOfTargets(target ? [target] : [])),
+                      isEncounterActorDefeated(
+                        actor,
+                        deadCharacterIdsOfTargets(target ? [target] : [])
+                      ),
                     effects: projection.activeEffectsByActorId.get(actorId) ?? []
                   }
                 ] as const
@@ -629,8 +632,7 @@ export async function planNativeLiveConcentration(input: {
       }
       remaining = damageSaveApplicationsAfterRelease(remaining, effect.id)
     }
-    if (resume)
-      resumed = { result, mutated: made, selectedNatural: evidence.d20.selectedNatural }
+    if (resume) resumed = { result, mutated: made, selectedNatural: evidence.d20.selectedNatural }
     else
       settled.push({
         result,
@@ -787,7 +789,8 @@ export async function planNativeLiveConcentration(input: {
     correlationId = occurrenceId
     if (evidence.failed)
       remaining = remaining.filter(
-        (entry) => !isMaintainedDamageApplication(entry) || entry.maintainedStateId !== maintainedStateId
+        (entry) =>
+          !isMaintainedDamageApplication(entry) || entry.maintainedStateId !== maintainedStateId
       )
   }
   // A response commit advances the Encounter once when any check it settled failed (D23); a

@@ -218,9 +218,9 @@ describe('a room ADVANCE_TURN that ends the round', () => {
         : []
     })
     expect(ends).toMatchObject([{ ownerActorId: SECOND_ID, reason: 'DEFEATED' }])
-    expect(
-      after.receipts.filter((receipt) => receipt.commandType === 'DAMAGE_SAVE_CHECK')
-    ).toEqual([])
+    expect(after.receipts.filter((receipt) => receipt.commandType === 'DAMAGE_SAVE_CHECK')).toEqual(
+      []
+    )
   })
 
   it.each([

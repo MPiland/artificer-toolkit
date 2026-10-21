@@ -86,10 +86,7 @@ export async function persistEncounterConcentrationResponse(
   const { context, continuation, snapshot } = pending
   const response = input.concentrationResponse
   const execution = input.execution
-  if (
-    execution.status !== 'COMPLETE' ||
-    execution.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK'
-  )
+  if (execution.status !== 'COMPLETE' || execution.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK')
     throw new Error('Live Session concentration did not complete.')
   // The holder's end was settled with the damage that prompted this check (D95).
   if (input.concentrationEnds.length)

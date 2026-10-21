@@ -557,8 +557,7 @@ describe('completeNativeConcentrationResult', () => {
 
   it('moves on to the next damage after a kept Concentration', async () => {
     const { result, requestId } = await complete(15)
-    if (result.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK')
-      throw new Error('Expected a check.')
+    if (result.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK') throw new Error('Expected a check.')
 
     expect(result.applicationOutputs).toMatchObject({
       outcome: 'SAVE_SUCCESS',
@@ -584,8 +583,7 @@ describe('completeNativeConcentrationResult', () => {
 
   it('skips the rest of the ended spell damage after a failure and moves to another spell', async () => {
     const { result } = await complete(2)
-    if (result.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK')
-      throw new Error('Expected a check.')
+    if (result.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK') throw new Error('Expected a check.')
 
     expect(result.applicationOutputs).toMatchObject({
       outcome: 'SAVE_FAILURE',

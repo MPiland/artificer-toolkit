@@ -85,7 +85,10 @@ export async function bindEncounterEffectRepeatSaves(
   }
 ) {
   const store = createActiveRuleEffectStore(ctx)
-  const holders = new Map<string, { defeated: boolean; effects: Awaited<ReturnType<typeof store.list>> }>()
+  const holders = new Map<
+    string,
+    { defeated: boolean; effects: Awaited<ReturnType<typeof store.list>> }
+  >()
   for (const actorId of new Set(input.applications.map(({ targetActorId }) => targetActorId))) {
     const actor = input.actors.find(({ id }) => id === actorId)
     if (!actor) continue

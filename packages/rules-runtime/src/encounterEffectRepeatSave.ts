@@ -30,7 +30,10 @@ export type NativeEffectRepeatSaveContext = ReturnType<
 >
 
 type RepeatTrigger = NonNullable<
-  Extract<ActiveRuleEffectRecord['definition'], { schemaVersion: 2 }>['recurrence']['repeatTriggers']
+  Extract<
+    ActiveRuleEffectRecord['definition'],
+    { schemaVersion: 2 }
+  >['recurrence']['repeatTriggers']
 >[number]
 
 /** The first repeat trigger of this effect that damage to its holder from this side and type meets. */
@@ -44,7 +47,8 @@ export function effectRepeatTrigger(
 ): RepeatTrigger | undefined {
   const { definition } = effect
   if (definition.schemaVersion !== 2) return undefined
-  const sourceActorId = definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
+  const sourceActorId =
+    definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
   const onSourceSide = damagerOnSourceSide({
     damagerActorId: input.damagerActorId,
     sourceActorId,

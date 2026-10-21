@@ -689,10 +689,13 @@ const damageSaveCheckCommonFields = () => ({
     .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS - 1))
 })
 
-function remainingInCanonicalOrder(value: {
-  application: Parameters<typeof compareDamageSaveApplications>[0]
-  remaining: readonly Parameters<typeof compareDamageSaveApplications>[0][]
-}, context: { addIssue(issue: { code: 'custom'; path: (string | number)[]; message: string }): void }) {
+function remainingInCanonicalOrder(
+  value: {
+    application: Parameters<typeof compareDamageSaveApplications>[0]
+    remaining: readonly Parameters<typeof compareDamageSaveApplications>[0][]
+  },
+  context: { addIssue(issue: { code: 'custom'; path: (string | number)[]; message: string }): void }
+) {
   let prior = value.application
   for (const [index, remaining] of value.remaining.entries()) {
     if (compareDamageSaveApplications(remaining, prior) <= 0)

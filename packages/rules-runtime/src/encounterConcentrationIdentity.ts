@@ -25,8 +25,16 @@ export function concentrationOccurrenceId(
  */
 export function damageSaveContextBoundApplication(
   context:
-    | { source: 'CONCENTRATION'; application: ConcentrationDamageApplicationDto; maintainedState: { id: string } }
-    | { source: 'EFFECT_REPEAT_SAVE'; application: ConcentrationDamageApplicationDto; activeEffect: { id: string } }
+    | {
+        source: 'CONCENTRATION'
+        application: ConcentrationDamageApplicationDto
+        maintainedState: { id: string }
+      }
+    | {
+        source: 'EFFECT_REPEAT_SAVE'
+        application: ConcentrationDamageApplicationDto
+        activeEffect: { id: string }
+      }
 ) {
   return context.source === 'CONCENTRATION'
     ? { ...context.application, maintainedStateId: context.maintainedState.id }

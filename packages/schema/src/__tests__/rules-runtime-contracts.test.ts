@@ -864,9 +864,13 @@ describe('rules runtime contracts', () => {
         savingThrowAbilityDefinitionId: '00000000-0000-0000-0011-000300000000'
       }
     }
-    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(effectPending)).toMatchObject(
-      { kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK', source: 'EFFECT_REPEAT_SAVE', rollInfluence: 'ADVANTAGE' }
-    )
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse(effectPending)
+    ).toMatchObject({
+      kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK',
+      source: 'EFFECT_REPEAT_SAVE',
+      rollInfluence: 'ADVANTAGE'
+    })
     expect(() =>
       serverRuleExecutionPendingApplicationContextDtoSchema.parse({
         ...effectPending,

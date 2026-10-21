@@ -35,7 +35,12 @@ type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext'
 type MovementReactionContext = Extract<PendingContext, { kind: 'ENCOUNTER_MOVEMENT_REACTION' }>
 /** Only the facts that decide a void, so the decision stays one pure table. */
 type RuleOccurrenceVoidFacts =
-  | { kind: Exclude<PendingContext['kind'], 'ENCOUNTER_MOVEMENT_REACTION' | 'ENCOUNTER_DAMAGE_SAVE_CHECK'> }
+  | {
+      kind: Exclude<
+        PendingContext['kind'],
+        'ENCOUNTER_MOVEMENT_REACTION' | 'ENCOUNTER_DAMAGE_SAVE_CHECK'
+      >
+    }
   | { kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK'; source?: 'CONCENTRATION' | 'EFFECT_REPEAT_SAVE' }
   | { kind: 'ENCOUNTER_MOVEMENT_REACTION'; phase: Pick<MovementReactionContext['phase'], 'kind'> }
 

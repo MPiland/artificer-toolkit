@@ -126,7 +126,12 @@ export async function readNativeConcentrationParentDamage(
         metadata.expectedAggregateVersion + (commitMutated ? 1 : 0) !== command.version
       )
         throw new Error('The concentration parent version is stale.')
-      const { application: damage } = childResult.applicationOutputs
+      // The parent recorded the bare damage; a Concentration sibling's output binds it to a state.
+      const { application } = childResult.applicationOutputs
+      const damage =
+        'maintainedStateId' in application
+          ? (({ maintainedStateId: _stateId, ...bare }) => bare)(application)
+          : application
       if (
         !applicationChecksums.has(checksumRuleDocument(damage)) ||
         compareDamageSaveApplications(
