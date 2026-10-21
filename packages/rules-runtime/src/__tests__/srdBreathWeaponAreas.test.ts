@@ -68,7 +68,8 @@ const breathRows = srdBaselineContent.subjects.creatures.flatMap((creature, crea
   const input = {
     actor: srdCreatureActor({ id: testUuid(0x1000 + creatureIndex), creature }),
     conditionDefinitionIds,
-    abilityDefinitions
+    abilityDefinitions,
+    spells: new Map()
   }
   const discovery = everyAction.discover(input)
   const offered = discoverEncounterFeatureActions(input)

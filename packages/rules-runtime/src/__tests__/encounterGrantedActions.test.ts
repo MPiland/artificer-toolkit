@@ -177,6 +177,7 @@ describe('the source of a granted basic action', () => {
       abilityDefinitions: SRD_ABILITIES
     }).available
     return resolveEncounterActionSource({
+      spells: new Map(),
       actor,
       actionId: grantedActionId(offered!.actionId, HASTE_EFFECT_ID, 0),
       gameSystemId: SRD_SYSTEM_ID,

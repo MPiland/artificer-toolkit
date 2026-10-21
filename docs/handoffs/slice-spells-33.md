@@ -567,6 +567,12 @@ Branch `ci/spells-33-t3c2a2b`. Size ~3. Do not edit the ledger. T3c2a2a (D163 pi
 - Replay safety proofs: a Spell edited or deleted after the pin gives the same discovery (no recompile, no source read); a missing pin for a named Spell fails closed rather than dropping the cast.
 - Character-kind actors that enter a Creature form are not pinned (they use their own Spells); pins are not released per actor.
 
+## T3c2a2b done: Spell pins feed discovery (`ci/spells-33-t3c2a2b`)
+
+- `spells: ReadonlyMap<string, CompiledSpell>` is required on `discoverEncounterFeatureActions` and each caller that reaches spell grants. Convex loaders (`actionChoiceReads`, `actionPreparationReads`) read `readEncounterSpellPins`; the room reads the new `SPELL_PINS` capture (`readNativeLiveSpellPins`, `roomEncounterTurnCapture.ts`). Passive-only callers pass an explicit `new Map()`.
+- `listCreatureSpellCasts` throws `Spell <id> is not pinned to this Run.` when a non-empty pin map lacks a Spell the Creature names. An empty map offers no casts (passive-only callers, and a Run with no pins).
+- For T3c2b: the room turn preparation callers (`nativeEncounterTurnPreparation`, `nativeContest`, `nativeBasicActionResponse`, movement and area rules) already load the pins; resolve a cast by `capability.spellCast` against that same map. Fixture hook: `pinSpells: true` on `actionRoom` pins the SRD Spells the Run's Creatures name. Proofs: `spellPins.test.ts` (replay safety), `nativeRoomPinnedSpellCasts.test.ts` (room), `nativeLiveCaptureReads.test.ts` (capture).
+
 ## T3c2b resume: creature cast, slot spend and undo in the room (fresh session, after T3c2a)
 
 Branch `ci/spells-33-t3c2b`. Size ~5. Do not edit the ledger.

@@ -19,9 +19,19 @@ import { withEncounterOccupantSaveBonus } from '@artificer-toolkit/rules-runtime
 import { withEncounterHolderDefense } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { hydrateSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { readNativeLiveTurnMovedFeet } from './nativeTurnUses.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
+
+/** The Run's pinned Spells (D163), hydrated from the room's stored pins; nothing compiles. */
+export async function readNativeLiveSpellPins(
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+) {
+  const response = await capture({ kind: 'SPELL_PINS' })
+  if (response.kind !== 'SPELL_PINS') throw new Error('Encounter Spell pins are unavailable.')
+  return hydrateSpellPins(response.pins)
+}
 
 export async function readNativeLiveActorsAndEffects(input: {
   state: EncounterRunState

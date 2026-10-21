@@ -419,6 +419,7 @@ async function setup(
       .unique()
     if (!source) throw new Error('Missing source.')
     const capability = discoverEncounterFeatureActionCapabilities({
+      spells: new Map(),
       actor: await readTestActor(ctx, source),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

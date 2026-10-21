@@ -39,7 +39,8 @@ export async function raiseRoomHpZeroEffects(input: {
     const { passiveHpZeroEffects } = discoverEncounterFeatureActions({
       actor,
       conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-      abilityDefinitions: systemAbilityDefinitions(system)
+      abilityDefinitions: systemAbilityDefinitions(system),
+      spells: new Map()
     })
     for (const { capability } of passiveHpZeroEffects)
       raised.push({ holderActorId: actor.id, actionId: capability.actionId })

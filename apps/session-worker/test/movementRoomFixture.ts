@@ -2,6 +2,7 @@ import { runInDurableObject } from 'cloudflare:test'
 import { vi } from 'vitest'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
+import { ensureEncounterSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import {
@@ -31,10 +32,13 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { initiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
 import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
+import { storedCompilationOf } from '@artificer-toolkit/rules-runtime/testing/storedCompilations'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { SRD_REUSABLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -237,6 +241,8 @@ export interface MovementRoomConfig {
   fallbackRoll?: number
   /** Further reusable definitions the room serves, such as Encounter lifecycle policies. */
   definitions?: readonly ReturnType<typeof currentSrdDefinition>[]
+  /** Pins the SRD Spells the Run's Creatures name, as the Run's start does (D163). */
+  pinSpells?: boolean
   /** Writes rows into the Run's store before the room hydrates, such as turn effects or placed zones. */
   seed?: (input: {
     effects: ReturnType<typeof createActiveRuleEffectStore>
@@ -446,6 +452,28 @@ export async function movementRoom(config: MovementRoomConfig) {
       tokenId: tokenIdByActorId.get(actor.id)!,
       sceneId: scene.id
     })
+  if (config.pinSpells)
+    await ensureEncounterSpellPins(
+      { db: memory.store },
+      async (_userId, _systemId, spellId) => {
+        const document = srdBaselineContent.subjects.spells.find((spell) => spell.id === spellId)
+        if (!document) throw new Error(`Unknown SRD Spell ${spellId}.`)
+        const compilation = storedCompilationOf(parsePublicationDocument('SPELL', document))
+        return {
+          document,
+          checksum: compilation.authoredChecksum,
+          version: 1,
+          versionId: testUuid(0xe003),
+          compilation
+        }
+      },
+      {
+        encounterId,
+        userId: base.userId,
+        systemId: SRD_SYSTEM_ID,
+        snapshots: actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [] : [actor.snapshot]))
+      }
+    )
   const bindingCommandId = crypto.randomUUID()
   await memory.store.insert(
     'encounterSceneBindings',
@@ -545,7 +573,8 @@ export async function movementRoom(config: MovementRoomConfig) {
       'encounterSceneBindings',
       'encounterSpatialRuleEffects',
       'encounterMaintainedEffectStates',
-      'encounterActiveRuleEffects'
+      'encounterActiveRuleEffects',
+      'encounterSpellPins'
     ]).filter((document) => !characterDependentRowIds.has(document.id)),
     continueCursor: null
   }

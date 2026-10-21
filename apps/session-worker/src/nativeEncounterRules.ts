@@ -79,7 +79,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import {
   prepareNativeLiveMovementTarget,
-  readNativeLiveActorsAndEffects
+  readNativeLiveActorsAndEffects,
+  readNativeLiveSpellPins
 } from './nativeEncounterTargets.js'
 import {
   readNativeLiveEnemyProximity,
@@ -649,6 +650,7 @@ export async function planNativeLiveEncounterAction(
             }
           : undefined,
         system,
+        spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
           actorId: input.actor.id,
           actionId: input.actionId,
@@ -1235,6 +1237,7 @@ export async function planNativeLiveEncounterAction(
   const discoverReaction = discoverNativeAttackReaction({
     state,
     system,
+    spells: await readNativeLiveSpellPins(capture),
     attack: prepared,
     reactionSpentActorIds: failedCounters.map(({ reaction }) => reaction.reactorActorId),
     prepareReaction: (actionId) =>
@@ -1443,7 +1446,8 @@ export async function planNativeLiveEncounterAction(
         ? discoverEncounterFeatureActions({
             actor: prepared.target,
             conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-            abilityDefinitions: systemAbilityDefinitions(system)
+            abilityDefinitions: systemAbilityDefinitions(system),
+            spells: new Map()
           }).passiveWeaponHits
         : []
   })

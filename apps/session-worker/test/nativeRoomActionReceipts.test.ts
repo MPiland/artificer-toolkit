@@ -173,6 +173,7 @@ async function actionRoom(creature: CreatureAuthored, rolls?: readonly number[])
   const target = srdCreatureActor({ id: TARGET_ID, creature: plainWolf })
   const biteId = creatureFeature(creature, 'Bite').id
   const capability = discoverEncounterFeatureActionCapabilities({
+    spells: new Map(),
     actor: source,
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

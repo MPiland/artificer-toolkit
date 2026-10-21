@@ -3,6 +3,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { characterFormCreatureView } from './encounterActorForm.js'
 import { StaleCharacterActionError, UnavailableCreatureActionError } from './encounterErrors.js'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
@@ -33,6 +34,8 @@ export type EncounterActionSourceInput = {
     effectivePolicyOutput: CharacterRulePolicyOutput
   }
   system?: SystemAuthoredDto
+  /** The Run's pinned Spells (D163), so a Creature's granted casts are discovered. */
+  spells: ReadonlyMap<string, CompiledSpell>
   /** The System's current authored basic actions, read for a basic action's identity. */
   basicActions?: readonly EncounterBasicActionEntry[]
   /**
@@ -48,7 +51,7 @@ export type EncounterActionSourceInput = {
 /** What a caller names; the loader adds the System and the basic action the id names. */
 export type EncounterActionSourceRequest = Omit<
   EncounterActionSourceInput,
-  'system' | 'basicActions'
+  'system' | 'basicActions' | 'spells'
 >
 
 export type NativeEncounterActionSource =
@@ -159,7 +162,8 @@ export function resolveEncounterActionSource(
   const actions = discoverEncounterFeatureActions({
     actor: creature,
     conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-    abilityDefinitions: systemAbilityDefinitions(system)
+    abilityDefinitions: systemAbilityDefinitions(system),
+    spells: input.spells
   })
   // A passive effect that fires on reaching 0 hit points is a source only for the creature it
   // defeated; admission lets only a rule-raised root name a defeated actor. A start-of-turn trait

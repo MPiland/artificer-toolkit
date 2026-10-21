@@ -192,7 +192,10 @@ import {
   prepareNativeLiveActionMaintenance,
   prepareNativeLiveMaintainedState
 } from './nativeEncounterMaintenance.js'
-import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
+import {
+  readNativeLiveSpellPins,
+  type prepareNativeLiveMovementTarget
+} from './nativeEncounterTargets.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import {
   counterConsumptionsOf,
@@ -317,7 +320,12 @@ export async function prepareCasterSource(
     actionId: command.actionId,
     choiceOptionId: castChoiceOptionId(command.target),
     sourceFacts: casterFacts,
-    loadSource: async (source) => resolveEncounterActionSource({ ...source, system: input.system })
+    loadSource: async (source) =>
+      resolveEncounterActionSource({
+        ...source,
+        system: input.system,
+        spells: await readNativeLiveSpellPins(input.capture)
+      })
   }).catch(refuseStaleCharacterAction)
   // An action that places a zone leaves it where it is aimed instead of putting anyone through it;
   // a cast-time pick places the zone the caster chose (D140).
@@ -660,7 +668,11 @@ export function prepareCasterActionOnTarget(
     loadSource: async (source) =>
       capability
         ? { kind: 'BASIC_ACTION', actor: action.caster, capability }
-        : resolveEncounterActionSource({ ...source, system: input.system }),
+        : resolveEncounterActionSource({
+            ...source,
+            system: input.system,
+            spells: await readNativeLiveSpellPins(input.capture)
+          }),
     loadRelationshipFacts: nativeLiveRelationshipFacts({
       activeEffectsByActorId: input.activeEffectsByActorId
     })
@@ -696,7 +708,11 @@ function reachCastPause(
     movementTargets: cast.reach.movementTargets,
     reactionSources: {
       loadSource: async (source) =>
-        resolveEncounterActionSource({ ...source, system: input.system }),
+        resolveEncounterActionSource({
+          ...source,
+          system: input.system,
+          spells: await readNativeLiveSpellPins(input.capture)
+        }),
       loadRelationshipFacts: nativeLiveRelationshipFacts({
         activeEffectsByActorId: input.activeEffectsByActorId
       })

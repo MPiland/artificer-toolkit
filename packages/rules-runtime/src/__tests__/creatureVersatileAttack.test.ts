@@ -26,6 +26,7 @@ async function versatileAttack(input: {
   const target = srdCreatureActor({ id: TARGET_ID, creature: srdByLabel(SRD.creatures, 'Ogre') })
   const longsword = creatureFeature(creature, 'Longsword')
   const capability = discoverEncounterFeatureActionCapabilities({
+    spells: new Map(),
     actor,
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
@@ -42,7 +43,7 @@ async function versatileAttack(input: {
     overridable: true,
     movementTargets,
     loadSource: async (source) =>
-      resolveEncounterActionSource({ ...source, system: srdSystemRecord }),
+      resolveEncounterActionSource({ spells: new Map(), ...source, system: srdSystemRecord }),
     loadRelationshipFacts: async () => []
   })
   const { execution } = await settleCreatureAction({ prepared, rolls: input.rolls })
