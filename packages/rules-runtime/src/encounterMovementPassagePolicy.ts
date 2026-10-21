@@ -5,11 +5,7 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { sizeRank, type MovementPassageOption } from '@artificer-toolkit/shared/core'
 
 import { encounterActorEffectiveSize } from './encounterActionEffects.js'
-import {
-  DND5E_CHARACTER_WIDE_TARGET,
-  dnd5eAcceptedModifierApplicability,
-  dnd5eModifierApplies
-} from './systems/dnd5e/modifierApplicability.js'
+import { modifierScopeCapabilityRegistry } from './platformEncounterPolicy.js'
 
 type PassageRelation = MovementPassageOption['creatures']
 
@@ -43,8 +39,10 @@ const NO_PASSAGE: EncounterMovementPassage = {
 
 /** The passage an actor's accepted grant-fold modifiers give it. */
 export function movementPassageOfModifiers(
+  gameSystemId: string,
   modifiers: readonly CharacterGrantFoldOutput['modifiers'][number][]
 ): EncounterMovementPassage {
+  const scope = modifierScopeCapabilityRegistry.require(gameSystemId)
   let passage = NO_PASSAGE
   for (const modifier of modifiers) {
     const { payload } = modifier
@@ -53,10 +51,7 @@ export function movementPassageOfModifiers(
       modifier.modifierKind !== 'ADD_OPTION' ||
       payload === undefined ||
       !('creatures' in payload) ||
-      !dnd5eModifierApplies(
-        dnd5eAcceptedModifierApplicability(modifier),
-        DND5E_CHARACTER_WIDE_TARGET
-      )
+      !scope.appliesCharacterWide(modifier)
     )
       continue
     passage = {
@@ -92,25 +87,28 @@ function encounterActorGrantModifiers(
 
 /** The passage an Encounter actor has now. */
 export function encounterActorMovementPassage(
+  gameSystemId: string,
   actor: EncounterRunActorState,
   characterPolicy: CharacterRulePolicyOutput | null
 ): EncounterMovementPassage {
-  return movementPassageOfModifiers(encounterActorGrantModifiers(actor, characterPolicy))
+  return movementPassageOfModifiers(
+    gameSystemId,
+    encounterActorGrantModifiers(actor, characterPolicy)
+  )
 }
 
 /** Whether an actor's own grants (Flyby) make its movement provoke no opportunity attacks. */
 export function encounterActorMovementProvokesNoOpportunityAttacks(
+  gameSystemId: string,
   actor: EncounterRunActorState,
   characterPolicy: CharacterRulePolicyOutput | null
 ): boolean {
+  const scope = modifierScopeCapabilityRegistry.require(gameSystemId)
   return encounterActorGrantModifiers(actor, characterPolicy).some(
     (modifier) =>
       modifier.valueDomainCode === 'OPPORTUNITY_ATTACK_IMMUNITY' &&
       modifier.modifierKind === 'ENABLE' &&
-      dnd5eModifierApplies(
-        dnd5eAcceptedModifierApplicability(modifier),
-        DND5E_CHARACTER_WIDE_TARGET
-      )
+      scope.appliesCharacterWide(modifier)
   )
 }
 
@@ -137,9 +135,7 @@ export function encounterMovementPassageFacts(
 ): { mover: EncounterMovementPassage; sizeOf: (actorId: string) => string | null } {
   const mover = moverActorId === undefined ? undefined : targets.get(moverActorId)
   return {
-    mover: mover
-      ? encounterActorMovementPassage(mover.actor, mover.effectiveRulePolicyOutput)
-      : NO_PASSAGE,
+    mover: mover?.movementPassage ?? NO_PASSAGE,
     sizeOf: (actorId) => {
       const target = targets.get(actorId)
       return target ? encounterActorEffectiveSize(target) : null

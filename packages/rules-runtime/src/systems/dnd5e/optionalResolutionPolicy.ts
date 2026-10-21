@@ -10,6 +10,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CLEAVING_POLICY_MODULE } from './policyModuleRegistration.js'
+import { prepareDnd5eDisarmContest } from './optionalActionPolicy.js'
 import { prepareDnd5eOverrunContest, prepareDnd5eTumbleContest } from './optionalMovementPolicy.js'
 import type {
   CleavingInput,
@@ -217,6 +218,7 @@ export function resolveDnd5eCleaving(
 
 export const dnd5eOptionalCombatPolicyCapabilityAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
+  prepareDisarmContest: prepareDnd5eDisarmContest,
   prepareOverrunContest: prepareDnd5eOverrunContest,
   prepareTumbleContest: prepareDnd5eTumbleContest,
   resolveCleaving: resolveDnd5eCleaving

@@ -4,15 +4,19 @@ import type {
 } from '@artificer-toolkit/schema/api/encounterActorRules'
 
 import type { ArmorClassCapabilityAdapter } from './armorClassCapability.js'
+import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
 import type { ContestCheckCapabilityAdapter } from './contestCheckCapability.js'
 import type { D20TestDefinitionCapabilityAdapter } from './d20TestDefinitionCapability.js'
 import type { InitiativeFactAdapter } from './initiativeFactAdapter.js'
+import type { ModifierScopeCapabilityAdapter } from './modifierScopeCapability.js'
 import type { OptionalCombatPolicyCapabilityAdapter } from './optionalCombatPolicyCapability.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
+import { dnd5eAttackProfileCapabilityAdapter } from './systems/dnd5e/attackDamageDefenses.js'
 import { dnd5eArmorClassCapabilityAdapter } from './systems/dnd5e/characterVitals.js'
 import { dnd5eEncounterActorPolicyRegistration } from './systems/dnd5e/encounterActorPolicy.js'
 import { dnd5eD20TestDefinitionCapabilityAdapter } from './systems/dnd5e/encounterLifecyclePolicy.js'
 import { dnd5eInitiativeFactAdapter } from './systems/dnd5e/initiativeFactAdapter.js'
+import { dnd5eModifierScopeCapabilityAdapter } from './systems/dnd5e/modifierApplicability.js'
 import { dnd5eContestCheckCapabilityAdapter } from './systems/dnd5e/optionalCombatContestGraph.js'
 import { dnd5eOptionalCombatPolicyCapabilityAdapter } from './systems/dnd5e/optionalResolutionPolicy.js'
 
@@ -38,6 +42,16 @@ export const d20TestDefinitionCapabilityRegistry =
 export const contestCheckCapabilityRegistry =
   createSystemCapabilityRegistry<ContestCheckCapabilityAdapter>('contest-check', [
     dnd5eContestCheckCapabilityAdapter
+  ])
+
+export const attackProfileCapabilityRegistry =
+  createSystemCapabilityRegistry<AttackProfileCapabilityAdapter>('attack-profile', [
+    dnd5eAttackProfileCapabilityAdapter
+  ])
+
+export const modifierScopeCapabilityRegistry =
+  createSystemCapabilityRegistry<ModifierScopeCapabilityAdapter>('modifier-scope', [
+    dnd5eModifierScopeCapabilityAdapter
   ])
 
 /**

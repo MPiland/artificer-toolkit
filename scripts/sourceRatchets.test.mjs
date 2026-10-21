@@ -40,6 +40,14 @@ const BIG = 'packages/shared/src/big.ts'
 const LEGACY = 'packages/rules-runtime/src/legacyEncounter.ts'
 const NEUTRAL = 'packages/rules-runtime/src/neutralEncounter.ts'
 const SYSTEM_IMPORT = "import { policy } from './systems/dnd5e/policy'\n"
+const ROOT = 'packages/rules-runtime/src/platformProbePolicy.ts'
+const CONSUMER = 'apps/session-worker/src/nativeProbe.ts'
+const PACKAGE_SYSTEM_IMPORT =
+  "import { policy } from '@artificer-toolkit/rules-runtime/systems/dnd5e/policy'\n"
+const allowlist = (importers, compositionRoots = { [ROOT]: 'Installs the probe adapters.' }) => ({
+  compositionRoots,
+  importers
+})
 
 describe('codeLines', () => {
   it('counts non-blank lines outside comments', () => {
@@ -67,14 +75,17 @@ describe('systemsImports', () => {
       "export * from './systems/dnd5e/d'",
       "const e = await import('./systems/dnd5e/e')",
       "import { f } from './systemsNeutral'",
-      "import { g } from '@artificer-toolkit/shared/core'"
+      "import { g } from '@artificer-toolkit/shared/core'",
+      "import { h } from '@artificer-toolkit/rules-runtime/systems/dnd5e/h'",
+      "import { i } from '@artificer-toolkit/rules-runtime/systemsNeutral'"
     ].join('\n')
     expect(systemsImports('packages/rules-runtime/src/probe.ts', source)).toEqual([
       './systems/dnd5e/a',
       './systems/dnd5e/b',
       './systems',
       './systems/dnd5e/d',
-      './systems/dnd5e/e'
+      './systems/dnd5e/e',
+      '@artificer-toolkit/rules-runtime/systems/dnd5e/h'
     ])
   })
 })
@@ -95,8 +106,10 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     write('packages/rules-runtime/src/systems/dnd5e/policy.ts', module(1))
     write(LEGACY, SYSTEM_IMPORT)
     write(NEUTRAL, module(1))
+    write(ROOT, SYSTEM_IMPORT)
+    write(CONSUMER, module(1))
     writeJson(SIZE_BUDGET, { [BIG]: SIZE_LIMIT + 100 })
-    writeJson(FENCE_ALLOWLIST, [LEGACY])
+    writeJson(FENCE_ALLOWLIST, allowlist([LEGACY]))
     commitAll(root, 'phase')
     git(root, 'switch', '--quiet', '-c', 'slice')
   })
@@ -179,7 +192,7 @@ describe('ratchetProblems (RULES-2.T1)', () => {
 
   it('fails an allowlist entry added since the merge base', () => {
     write(NEUTRAL, SYSTEM_IMPORT)
-    writeJson(FENCE_ALLOWLIST, [LEGACY, NEUTRAL])
+    writeJson(FENCE_ALLOWLIST, allowlist([LEGACY, NEUTRAL]))
     commitAll(root, 'allowlist the new import')
     expect(ratchetProblems(root)).toEqual([])
     expect(ratchetProblems(root, { base: 'phase' })).toEqual([
@@ -214,5 +227,36 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     )
     commitAll(root, 'unfenced modules')
     expect(ratchetProblems(root, { base: 'phase' })).toEqual([])
+  })
+
+  it('fails a systems package import from a rules-runtime consumer, but not from its tests', () => {
+    write(CONSUMER, PACKAGE_SYSTEM_IMPORT)
+    write('apps/session-worker/test/nativeProbe.test.ts', PACKAGE_SYSTEM_IMPORT)
+    write('apps/web/src/domains/probe/probe.test.ts', PACKAGE_SYSTEM_IMPORT)
+    commitAll(root, 'consumer imports systems/')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${CONSUMER}: imports systems/ directly; reach it through a capability registry.`
+    ])
+  })
+
+  it('passes a named composition root and asks to remove it once it installs no System adapter', () => {
+    write(ROOT, module(1))
+    commitAll(root, 'root installs nothing')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${FENCE_ALLOWLIST}: ${ROOT} no longer imports systems/; remove it.`
+    ])
+  })
+
+  it('fails a composition root added since the merge base', () => {
+    write(NEUTRAL, SYSTEM_IMPORT)
+    writeJson(
+      FENCE_ALLOWLIST,
+      allowlist([LEGACY], { [ROOT]: 'Installs the probe adapters.', [NEUTRAL]: 'A new root.' })
+    )
+    commitAll(root, 'name a new root')
+    expect(ratchetProblems(root)).toEqual([])
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${FENCE_ALLOWLIST}: ${NEUTRAL} is new; the allowlist only shrinks.`
+    ])
   })
 })
