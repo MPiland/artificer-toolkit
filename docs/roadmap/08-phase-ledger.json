@@ -3218,7 +3218,7 @@
             },
             {
               "id": "RULES-2.T4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.4"],
               "wsjf": {
                 "bv": 5,
@@ -3228,7 +3228,7 @@
                 "after": ["RULES-2.T4a"]
               },
               "text": "Split planNativeLiveEncounterAction into one handler per pause kind.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m290 (d9b11eec8). nativeEncounterRules.ts cap 1944 to 1778."
             },
             {
               "id": "RULES-2.T5a",
@@ -16227,6 +16227,42 @@
               "text": "Find why the unseen-target journey intermittently lists no targets (Scene token write timing, vision read or fog order), fix the cause, and prove it with a forced red on a ci/ -red branch.",
               "status": "DONE",
               "closes": ["RELIABILITY-17.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-18",
+          "title": "Development GM journey scheduler test is deterministic",
+          "status": "TODO",
+          "journeyTests": ["apps/apis/convex/campaigns/developmentGmJourney.test.ts"],
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 1
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-18.1",
+              "text": "developmentGmJourney.test.ts (snapshot of _scheduled_functions at :127) passes deterministically: the cause of a scheduled job reading inProgress instead of pending is found in the test setup or the product, fixed at the cause (no retry, no weakened assertion), and a forced reproduction fails red before the fix.",
+              "status": "TODO",
+              "origin": [],
+              "note": "Found 2026-10-21: failed on ci/platform-25-t3 Tests (first) and on ci/rules-2-t4b Tests 39625271637 attempt 1 (5bfd79e08); both passed on rerun and neither branch touches campaigns."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-18.T1",
+              "text": "Find why developmentGmJourney.test.ts intermittently snapshots a scheduled job as inProgress (convex-test scheduler timing versus the snapshot read), fix the cause, and prove it with a forced red on a ci/ branch.",
+              "status": "TODO",
+              "closes": ["RELIABILITY-18.1"],
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
