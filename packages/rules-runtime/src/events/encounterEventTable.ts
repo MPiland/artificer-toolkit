@@ -31,15 +31,26 @@ export type EncounterEvent =
       ability: { code: string | null } | { definitionId: string } | null
     }
   /**
-   * The holder takes damage that survived its defenses, of these types (null for a source that dealt
-   * several), from `damagerActorId` (null when nobody dealt it).
+   * The holder takes damage. `AFTER`, it survived the holder's defenses and intercepts: of these types
+   * (null for a source that dealt several), from `damagerActorId` (null when nobody dealt it).
+   * `BEFORE`, it is about to land as the batch settling it plans it, taking the holder's current hit
+   * points from `before` to `after`; an intercept it meets changes where it lands.
    */
   | {
       kind: 'DAMAGED'
+      phase: 'AFTER'
       damagerActorId: string | null
       damageTypeIds: readonly (string | null)[]
       dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
     }
+  | { kind: 'DAMAGED'; phase: 'BEFORE'; hitPoints: { before: number; after: number } }
+  /** An effect is about to kill the holder outright. */
+  | { kind: 'KILLED' }
+  /**
+   * An attack or harmful spell is about to be aimed at the holder by a creature of this Creature type
+   * (null for a Character, whose type is not in its facts).
+   */
+  | { kind: 'HARMFUL_ACTION_AIMED'; attackerCreatureTypeId: string | null }
   | { kind: 'HIT_POINTS_REGAINED' }
   /** The holder is incapacitated or defeated, or the sources named are. */
   | { kind: 'INCAPACITATED'; of: 'HOLDER' }
@@ -116,6 +127,22 @@ export type EncounterReactionHook =
     }
   | { event: 'SPELL_CAST_BY_OTHER'; trigger: 'SPELL_CAST' }
   | { event: 'TARGETED_BY_CAST'; trigger: 'TARGETED_SELF' }
+
+/**
+ * A held damage interception (`DAMAGE_INTERCEPTION`) by its authored payload, which is its
+ * subscription: it intercepts damage about to take its holder from above 0 hit points to 0, and an
+ * outright kill when `negatesKill`.
+ */
+export type DamageInterceptionSubscription = { negatesKill: boolean }
+
+/**
+ * A held incoming gate (`INCOMING_ATTACK_GATE`) by its authored payload, which is its subscription: it
+ * intercepts a harmful action aimed at its holder by an attacker of a listed Creature type (any
+ * attacker when unlisted).
+ */
+export type IncomingGateSubscription = {
+  payload: { attackerCreatureTypeIds?: readonly string[] | undefined }
+}
 
 /** The recurrence a stored effect authors its subscriptions in. */
 export type EncounterEffectRecurrence = Extract<

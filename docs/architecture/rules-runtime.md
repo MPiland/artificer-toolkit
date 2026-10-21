@@ -884,18 +884,20 @@ whatever its pause kind.
 
 **Live room layout (current, RULES-2.T13a).** `NativeLiveSessionRoom` keeps the Durable Object lifecycle, command dispatch and field wiring; it hands each responsibility to a module with a typed port instead of growing in place. `roomSocket.ts` owns the shared room vocabulary (socket attachment schema, `Admission`, `TransientCache`, `send`, `viewer`, `accountBucket`). `roomSceneCommit.ts` owns the Scene commit paths (fog staging, inline edit/undo/fog publication, geometry and movement-decision commits) and declares `RoomSceneCommitHost`, the stores and room steps (aggregate reload, authorization boundary, fanout, alarm) the room builds once in its constructor. **(T13b)** `roomCommandHost.ts` is now the one definition of what the room lends (`RoomCommandHost`); each module declares the `Pick` it uses (`RoomSceneCommitHost`, `RoomEncounterExecutionHost`, `RoomEncounterBindingHost`). `roomEncounterExecution.ts` runs every Encounter command (the ACTIVE-Run path and the local Encounter path, including movement decisions through `roomSceneCommit.ts`); `roomEncounterBindingCommand.ts` commits the GM's Encounter-to-Scene binding. **(T13c)** `roomCharacterSheetCommands.ts` runs held Character Sheet commands (`RoomCharacterSheetHost`) and `roomChatCommands.ts` runs Campaign chat commands (`RoomCampaignChatHost`), each beside the pure per-command helper it already owned. Later T13 slices move admission and recovery, and the scene cache and outbox the same way.
 
-### Event hooks (current, RULES-2.T5a-b; ADR 0039 decision 4)
+### Event hooks (current, RULES-2.T5a-c; ADR 0039 decision 4)
 
 An effect or a reaction subscribes to events through authored data; a feature never adds a call site. The pieces live in
 `packages/rules-runtime/src/events/` and never import `systems/*`:
 
 - **Event table** (`encounterEventTable.ts`). `EncounterEvent` is the structural facts every System has: `ACTION`
   (whether it makes an attack roll or casts a spell, and whether it is aimed at an enemy), `ATTACKED`, `HIT`, `TEST`
-  (`CHECK` or `SAVE`, with its ability by code or definition id, or none), `DAMAGED` (damager, damage types,
-  dispositions), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
+  (`CHECK` or `SAVE`, with its ability by code or definition id, or none), `DAMAGED` (`AFTER` it lands: damager,
+  damage types, dispositions; `BEFORE` it lands: the current hit points it takes the holder from and to), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
   `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED`, `AREA_LEFT`, and the events a reaction answers:
   `HIT_BY_ATTACK` (melee or not, attacker seen or not, the damage types the hit deals), `SPELL_CAST_BY_OTHER` and
-  `TARGETED_BY_CAST` (with the spell cast). `EncounterEventSubscription`
+  `TARGETED_BY_CAST` (with the spell cast), and the events an intercept answers before they resolve: the `BEFORE`-phase
+  `DAMAGED`, `KILLED` (an outright kill) and `HARMFUL_ACTION_AIMED` (an attack or harmful spell, by an attacker of a
+  Creature type or a Character). `EncounterEventSubscription`
   is what a hook listens for, with its filters; `EncounterEffectHook` is what it does when met (`END`, or `REPEAT_SAVE`
   with its trigger). Ending and consuming are the same hook: the effect is gone, restored by the same receipt.
   `EncounterReactionHook` is the reaction an event offers, by the event and the authored trigger it met.
@@ -922,6 +924,15 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `encounterReactors.ts` (a Creature's feature actions, a Character's actions and castable spells), and whether one is
   affordable is decided when the Worker prepares it. A `MOVEMENT` reaction meets no event here: the movement path
   discovers it from the reach a mover passes (`encounterMovementReaction*`); zone interactions join in T5d.
+  Given the holder's `damageInterceptions` and `incomingGates`, it returns the intercepts the events meet before they
+  resolve, in the order given (spend order); an intercept's authored payload is its subscription. A damage interception
+  (`DAMAGE_INTERCEPTION`, Death Ward) meets a `BEFORE` `DAMAGED` taking its holder from above 0 hit points to 0, and a
+  `KILLED` when it negates kills: `hitPointsAfterDamage` and `killInterception` (`encounterDamageInterception.ts`)
+  ask discovery, and both the planner (`applyDamageInterceptions`) and the fold that validates it call them, so a
+  filter added to the subscription (SPELLS-33.T4i2) reaches both. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
+  meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
+  passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
+  `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.
 
 **One dispatch per event** means one subscription-reading dispatch per event kind, not one raise site. Callers state
 facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decides what fires; the release helpers in
@@ -930,7 +941,8 @@ facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decid
 `encounterGrantLifetimes.ts` build events and call it. The raise sites stay where the pipelines commit: `DAMAGED` is
 still raised from its seven damage-commit roots (Worker rules, area rules, Legendary action, turn effect state, spatial
 damage ends, movement reaction effects, turn resources), since funnelling them into one damage-commit root is an
-envelope change outside T5. Interception (T5c) and zone interaction kinds (T5d) join the same table later.
+envelope change outside T5. The `BEFORE`-phase `DAMAGED` and `KILLED` are raised where a batch plans and folds its
+damage, and `HARMFUL_ACTION_AIMED` where the incoming gate is decided. Zone interaction kinds (T5d) join the same table later.
 
 ### Legendary Resistance on single-target saves (current, D104)
 

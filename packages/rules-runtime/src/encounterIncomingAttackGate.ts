@@ -6,6 +6,7 @@ import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
 import { heldSourceImmunityLabel } from './encounterSourceImmunity.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
 import { dnd5eConcentrationHolderSaves } from './systems/dnd5e/concentrationPolicy.js'
@@ -23,19 +24,11 @@ export type HeldIncomingGate = {
   payload: IncomingGatePayload
 }
 
-/** Whether an attacker of this Creature type owes the ward its save. */
-function wardCoversAttacker(payload: IncomingGatePayload, attackerCreatureTypeId: string | null) {
-  const { attackerCreatureTypeIds } = payload
-  return (
-    attackerCreatureTypeIds === undefined ||
-    (attackerCreatureTypeId !== null && attackerCreatureTypeIds.includes(attackerCreatureTypeId))
-  )
-}
-
 /**
- * The holder's ward that covers the attacker, and the payload its first `INCOMING_ATTACK_GATE` grant
- * carries. Wards from the holder's Active Effects come first, in id order, then the holder's own feature
- * grants (Nature's Sanctuary), so every replay picks the same.
+ * The holder's ward that the harmful action its attacker aims at it meets (ADR 0039 decision 4), and
+ * the payload its first `INCOMING_ATTACK_GATE` grant carries. Wards from the holder's Active Effects
+ * come first, in id order, then the holder's own feature grants (Nature's Sanctuary), so every replay
+ * picks the same; a ward the attacker already passed is not held against it.
  */
 export function heldIncomingGate(input: {
   holderActorId: string
@@ -46,7 +39,7 @@ export function heldIncomingGate(input: {
   /** The attacker, whom a ward it already passed (its success immunity) no longer stops. */
   attacker: { actorId: string; characterId: string | null }
 }): HeldIncomingGate | null {
-  const { attackerCreatureTypeId } = input
+  const held: HeldIncomingGate[] = []
   const passed = (wardId: string) =>
     heldSourceImmunityLabel({
       holderEffects: input.effects,
@@ -62,8 +55,8 @@ export function heldIncomingGate(input: {
         if (origin.kind !== 'ENCOUNTER' || origin.sourceActorId === null)
           throw new EncounterValidationError('An incoming attack gate needs its caster.')
         const payload = incomingAttackGatePayloadDtoSchema.parse(modifier.payload)
-        if (wardCoversAttacker(payload, attackerCreatureTypeId) && !passed(effect.id))
-          return { wardId: effect.id, ownerActorId: origin.sourceActorId, payload }
+        if (!passed(effect.id))
+          held.push({ wardId: effect.id, ownerActorId: origin.sourceActorId, payload })
       }
     }
   }
@@ -77,11 +70,15 @@ export function heldIncomingGate(input: {
       )
         continue
       const payload = incomingAttackGatePayloadDtoSchema.parse(modifier.payload)
-      if (wardCoversAttacker(payload, attackerCreatureTypeId) && !passed(grantId))
-        return { wardId: grantId, ownerActorId: input.holderActorId, payload }
+      if (!passed(grantId))
+        held.push({ wardId: grantId, ownerActorId: input.holderActorId, payload })
     }
   }
-  return null
+  const [gate] = discoverEncounterEventHooks({
+    incomingGates: held,
+    events: [{ kind: 'HARMFUL_ACTION_AIMED', attackerCreatureTypeId: input.attackerCreatureTypeId }]
+  }).incomingGates
+  return gate ?? null
 }
 
 /**

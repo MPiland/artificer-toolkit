@@ -7,10 +7,12 @@ import { encounterActorRelationship } from '../encounterActionTargetPolicy.js'
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 import { effectHooks } from './effectHooks.js'
 import type {
+  DamageInterceptionSubscription,
   EncounterEffectHook,
   EncounterEvent,
   EncounterEventSubscription,
-  EncounterReactionHook
+  EncounterReactionHook,
+  IncomingGateSubscription
 } from './encounterEventTable.js'
 
 type HookedEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>
@@ -167,6 +169,7 @@ function subscriptionMet(
     case 'DAMAGED':
       return (
         event.kind === 'DAMAGED' &&
+        event.phase === 'AFTER' &&
         damageTriggerMet(subscription, {
           onSourceSide: damagerOnSourceSide({
             damagerActorId: event.damagerActorId,
@@ -256,6 +259,29 @@ function reactionHookMet(
 /** A passive feature's subscription to its holder's damage: a grant it gives itself (see `targetEndedEffects`). */
 type DamageGrantSubscription = { damageTypeIds: readonly string[] }
 
+/** Whether a damage interception intercepts the event: a blow about to drop its holder to 0, or a kill. */
+function damageInterceptionMet(
+  { negatesKill }: DamageInterceptionSubscription,
+  event: EncounterEvent
+) {
+  return event.kind === 'KILLED'
+    ? negatesKill
+    : event.kind === 'DAMAGED' &&
+        event.phase === 'BEFORE' &&
+        event.hitPoints.before > 0 &&
+        event.hitPoints.after === 0
+}
+
+/** Whether an incoming gate intercepts the event: a harmful action by an attacker of a type it lists. */
+function incomingGateMet({ payload }: IncomingGateSubscription, event: EncounterEvent) {
+  const listed = payload.attackerCreatureTypeIds
+  return (
+    event.kind === 'HARMFUL_ACTION_AIMED' &&
+    (listed === undefined ||
+      (event.attackerCreatureTypeId !== null && listed.includes(event.attackerCreatureTypeId)))
+  )
+}
+
 /**
  * The one discovery entry point for event hooks (ADR 0039 decision 4): what these events, raised on
  * the holder of `effects` and `reactions`, set off. `ended` are the effects one of whose `END`
@@ -264,15 +290,21 @@ type DamageGrantSubscription = { damageTypeIds: readonly string[] }
  * save, with the first repeat trigger met. `grants` are the passive damage grants a `DAMAGED` event of
  * their types meets. `reactions` are the held reactions an event offers, in held order, each once
  * with the first hook met; whether one is affordable is decided when it is prepared.
+ * `damageInterceptions` and `incomingGates` are the held intercepts an event meets before it resolves,
+ * in the order given (their spend order); the caller spends the first.
  */
 export function discoverEncounterEventHooks<
   Event extends EncounterEvent,
   Effect extends HookedEffect = HookedEffect,
   Grant extends DamageGrantSubscription = never,
-  Reaction extends ReactionCandidate = never
+  Reaction extends ReactionCandidate = never,
+  Interception extends DamageInterceptionSubscription = never,
+  Gate extends IncomingGateSubscription = never
 >(input: {
   effects?: readonly Effect[]
   reactions?: readonly Reaction[]
+  damageInterceptions?: readonly Interception[]
+  incomingGates?: readonly Gate[]
   events: readonly Event[]
   grantSubscriptions?: readonly Grant[]
 }) {
@@ -287,7 +319,7 @@ export function discoverEncounterEventHooks<
     if (repeat?.hook === 'REPEAT_SAVE') repeatSaves.push({ effect, trigger: repeat.trigger })
   }
   const damageTypeIds = input.events.flatMap((event) =>
-    event.kind === 'DAMAGED' ? event.damageTypeIds : []
+    event.kind === 'DAMAGED' && event.phase === 'AFTER' ? event.damageTypeIds : []
   )
   const grants = (input.grantSubscriptions ?? []).filter((grant) =>
     damageTypeIds.some(
@@ -303,5 +335,11 @@ export function discoverEncounterEventHooks<
     }
     return []
   })
-  return { ended, repeatSaves, grants, reactions }
+  const damageInterceptions = (input.damageInterceptions ?? []).filter((interception) =>
+    input.events.some((event) => damageInterceptionMet(interception, event))
+  )
+  const incomingGates = (input.incomingGates ?? []).filter((gate) =>
+    input.events.some((event) => incomingGateMet(gate, event))
+  )
+  return { ended, repeatSaves, grants, reactions, damageInterceptions, incomingGates }
 }
