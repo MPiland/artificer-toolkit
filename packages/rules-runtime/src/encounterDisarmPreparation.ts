@@ -58,9 +58,9 @@ import {
 import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
 import { prepareDnd5eDisarmContest } from './systems/dnd5e/optionalActionPolicy.js'
 import {
-  isDnd5eOptionalCombatContestPendingContextCurrent,
-  prepareDnd5eOptionalCombatContestPendingContext
-} from './systems/dnd5e/optionalCombatContestPendingContext.js'
+  isEncounterContestPendingContextCurrent,
+  prepareEncounterContestPendingContext
+} from './encounterContestPendingContext.js'
 
 type PreparedMechanics = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
 type TargetPolicyScene = NonNullable<
@@ -448,7 +448,7 @@ export function prepareEncounterDisarmContest(input: {
       defenderGrantContributors
     )
   })
-  const current: Parameters<typeof prepareDnd5eOptionalCombatContestPendingContext>[0] = {
+  const current: Parameters<typeof prepareEncounterContestPendingContext>[0] = {
     origin: {
       kind: 'OPTIONAL_COMBAT',
       actionKind: 'DISARM',
@@ -532,10 +532,10 @@ export function prepareEncounterDisarmContest(input: {
       : null,
     rollEvidence: input.priorContest?.rollEvidence ?? { initiator: null, defender: null }
   }
-  const contest = prepareDnd5eOptionalCombatContestPendingContext(current)
+  const contest = prepareEncounterContestPendingContext(current)
   if (
     input.priorContest &&
-    !isDnd5eOptionalCombatContestPendingContextCurrent({ pending: input.priorContest, current })
+    !isEncounterContestPendingContextCurrent({ pending: input.priorContest, current })
   )
     throw new Error('Optional combat contest pending facts changed.')
   const currentnessChecksum = checksumRuleDocument({ actor, target, sceneContext, contest })

@@ -23,7 +23,7 @@ import {
   contestSourceWins,
   planEncounterDisarmSuccess
 } from '../encounterDisarmPreparation.js'
-import { prepareDnd5eOptionalCombatContestPendingContext } from '../systems/dnd5e/optionalCombatContestPendingContext.js'
+import { prepareEncounterContestPendingContext } from '../encounterContestPendingContext.js'
 import { characterActor, creatureActor, creatureRuleFacts } from '../testing/dnd5eSrdEncounter.js'
 import { storedEquipmentSource } from '../testing/storedEquipmentSource.js'
 
@@ -141,7 +141,7 @@ function disarmContest(input: {
   target: Contest['target']
 }): Contest {
   const contributors: Contest['initiator']['contributors'] = []
-  return prepareDnd5eOptionalCombatContestPendingContext({
+  return prepareEncounterContestPendingContext({
     origin: {
       kind: 'OPTIONAL_COMBAT',
       actionKind: 'DISARM',
@@ -499,7 +499,7 @@ describe('Disarm settlement plan', () => {
     const { origin } = disarm
     if (origin.kind !== 'OPTIONAL_COMBAT')
       throw new Error('The fixture Disarm is an optional combat contest.')
-    const shove = prepareDnd5eOptionalCombatContestPendingContext({
+    const shove = prepareEncounterContestPendingContext({
       ...disarm,
       origin: {
         ...origin,
@@ -625,7 +625,7 @@ describe('Disarm receipt outputs', () => {
   })
 
   it('pins the sealed contest checksum, so evidence added later changes it', () => {
-    const withEvidence = prepareDnd5eOptionalCombatContestPendingContext({
+    const withEvidence = prepareEncounterContestPendingContext({
       ...contest,
       rollEvidence: {
         initiator: { requestId: 'initiator_d20', rawFaces: [12] },

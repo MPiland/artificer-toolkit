@@ -7,8 +7,10 @@ import {
 } from '../platformPolicyModules.js'
 import {
   armorClassCapabilityRegistry,
+  contestCheckCapabilityRegistry,
   d20TestDefinitionCapabilityRegistry,
-  initiativeCapabilityRegistry
+  initiativeCapabilityRegistry,
+  optionalCombatPolicyCapabilityRegistry
 } from '../platformEncounterPolicy.js'
 import { createSystemCapabilityRegistry } from '../systemCapabilityRegistry.js'
 import {
@@ -25,6 +27,11 @@ import {
   createDnd5eDeathSaveDefinition
 } from '../systems/dnd5e/encounterLifecyclePolicy.js'
 import { dnd5eInitiativeFactAdapter } from '../systems/dnd5e/initiativeFactAdapter.js'
+import {
+  DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY,
+  DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY,
+  createDnd5eContestGraph
+} from '../systems/dnd5e/optionalCombatContestGraph.js'
 
 const UNKNOWN_SYSTEM_ID = '00000000-0000-4000-8000-0000000000ff'
 const adapter = { gameSystemId: DND5E_SYSTEM_ID, value: 1 }
@@ -131,10 +138,42 @@ describe('installed D&D capability adapters', () => {
     expect(d20Tests.deathSaveDefinition?.()).toEqual(createDnd5eDeathSaveDefinition())
   })
 
+  it('contest checks give the D&D two-d20 graph and its modifier facts', () => {
+    const contest = contestCheckCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    const definitionId = '00000000-0000-4000-8000-000000000701'
+    expect(contest.contestGraph(definitionId)).toEqual(createDnd5eContestGraph(definitionId))
+    expect(contest.initiatorModifierFactKey).toBe(
+      DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY
+    )
+    expect(contest.targetModifierFactKey).toBe(
+      DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY
+    )
+  })
+
+  it('optional combat is inert without an enabled policy and offers no Cleaving for another System', () => {
+    const policy = optionalCombatPolicyCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(
+      policy.prepareTumbleContest({
+        automationMode: 'MANUAL',
+        gameSystemId: DND5E_SYSTEM_ID,
+        optionalCombatSnapshot: null,
+        optionalCombatSnapshotChecksum: null,
+        actionEconomy: 'ACTION',
+        actionEconomyAvailable: true,
+        blockerActorId: '00000000-0000-4000-8000-000000000702',
+        initiatorActorId: '00000000-0000-4000-8000-000000000703',
+        passageAlreadyUsedThisTurn: false
+      })
+    ).toEqual({ kind: 'INERT' })
+    expect(optionalCombatPolicyCapabilityRegistry.find(UNKNOWN_SYSTEM_ID)).toBeUndefined()
+  })
+
   it.each([
     ['initiative', initiativeCapabilityRegistry],
     ['armor-class', armorClassCapabilityRegistry],
-    ['d20-test-definition', d20TestDefinitionCapabilityRegistry]
+    ['d20-test-definition', d20TestDefinitionCapabilityRegistry],
+    ['contest-check', contestCheckCapabilityRegistry],
+    ['optional-combat', optionalCombatPolicyCapabilityRegistry]
   ] as const)('%s fails closed on a System that does not install it', (capability, registry) => {
     expect(() => registry.require(UNKNOWN_SYSTEM_ID)).toThrow(
       `The Game System does not provide ${capability} policy.`

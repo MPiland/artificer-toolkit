@@ -399,11 +399,12 @@ describe('Cleaving choice', () => {
     damage?: CleavingContext['damage']
     action?: CleavingContext['action']
     optionalCombatSnapshotChecksum?: string | null
+    gameSystemId?: string
   }) {
     const rules = input.rules ?? cleavingRules
     return createNativeCleavingChoice({
       automationMode: input.automationMode ?? 'ASSISTED',
-      gameSystemId: SRD_SYSTEM_ID,
+      gameSystemId: input.gameSystemId ?? SRD_SYSTEM_ID,
       optionalCombatSnapshot: rules.snapshot,
       optionalCombatSnapshotChecksum:
         input.optionalCombatSnapshotChecksum === undefined
@@ -505,6 +506,12 @@ describe('Cleaving choice', () => {
     expect(choose({ candidates: [goblinNext], automationMode: 'MANUAL' })).toBeNull()
     expect(
       choose({ candidates: [goblinNext], action: { ...greataxe, attackKind: 'RANGED' } })
+    ).toBeNull()
+  })
+
+  it('creates no child for a System that provides no optional combat policy', () => {
+    expect(
+      choose({ candidates: [goblinNext], gameSystemId: '00000000-0000-4000-8000-0000000000ff' })
     ).toBeNull()
   })
 
