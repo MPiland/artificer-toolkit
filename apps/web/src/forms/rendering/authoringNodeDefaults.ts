@@ -744,6 +744,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return {}
     case 'targetCount':
       return { amount: 1 }
+    case 'targetRequirement':
+      return { kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' }
     case 'targeting':
       return createTargeting('SELF') as AuthoringGroupValues
     case 'damageDieCastLevelScaling':

@@ -1,3 +1,4 @@
+import { readSideOrder, readTurnCursor } from './encounterInitiativeCursor.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type {
   EncounterInitiativeParticipantDto,
@@ -163,39 +164,9 @@ export async function settleEncounterInitiativeRound(input: {
   }
 }
 
-function orderedInitiativeParticipants(state: EncounterInitiativeRoundStateDto) {
-  const ordered = [...state.participants].sort(
-    (left, right) => (left.turnOrderOrdinal ?? -1) - (right.turnOrderOrdinal ?? -1)
-  )
-  if (
-    ordered.length < 1 ||
-    ordered.some((participant, ordinal) => participant.turnOrderOrdinal !== ordinal)
-  )
-    throw new Error('Active initiative state must retain one exact contiguous actor order.')
-  const activeIndex = ordered.findIndex((participant) => participant.status === 'ACTIVE')
-  if (
-    activeIndex < 0 ||
-    ordered.some(
-      (participant, index) =>
-        participant.status !==
-        (index < activeIndex ? 'ACTED' : index === activeIndex ? 'ACTIVE' : 'READY')
-    )
-  )
-    throw new Error('Active initiative participant state is not a valid turn cursor.')
-  return { ordered, activeIndex }
-}
-
-function orderedInitiativeSides(state: EncounterInitiativeRoundStateDto): string[] {
-  if (state.round.procedure !== 'SIDE_ROLL') {
-    if (state.sides.length > 0) throw new Error('Only side-roll initiative may retain side state.')
-    return []
-  }
-  const ordered = [...state.sides].sort(
-    (left, right) => (left.sideOrderOrdinal ?? -1) - (right.sideOrderOrdinal ?? -1)
-  )
-  if (ordered.some((side, ordinal) => side.sideOrderOrdinal !== ordinal))
-    throw new Error('Side initiative state must retain one exact contiguous side order.')
-  return ordered.map((side) => side.sideId)
+const ACTIVE_CURSOR_ERRORS = {
+  order: 'Active initiative state must retain one exact contiguous actor order.',
+  cursor: 'Active initiative participant state is not a valid turn cursor.'
 }
 
 /**
@@ -210,7 +181,7 @@ export function planEncounterInitiativeAdvance(input: {
 }): EncounterInitiativeAdvancePlanDto {
   if (input.state.round.status !== 'ACTIVE')
     throw new Error('Only an active initiative round can advance.')
-  const { ordered, activeIndex } = orderedInitiativeParticipants(input.state)
+  const { participants: ordered, activeIndex } = readTurnCursor(input.state, ACTIVE_CURSOR_ERRORS)
   const current = ordered[activeIndex]!
   if (current.actorId !== input.currentActorId)
     throw new Error('Encounter and normalized initiative current actors do not match.')
@@ -239,7 +210,10 @@ export function planEncounterInitiativeAdvance(input: {
         ? firstUndefeatedActorId(orderedActorIds, input.defeatedActorIds)
         : null,
     orderedActorIds,
-    orderedSideIds: orderedInitiativeSides(input.state)
+    orderedSideIds: readSideOrder(
+      input.state,
+      'Side initiative state must retain one exact contiguous side order.'
+    ).map((side) => side.sideId)
   })
 }
 
@@ -251,7 +225,7 @@ export function skippedActorIdsOfAdvance(input: {
   state: EncounterInitiativeRoundStateDto
   plan: EncounterInitiativeAdvancePlanDto
 }): string[] {
-  const { ordered, activeIndex } = orderedInitiativeParticipants(input.state)
+  const { participants: ordered, activeIndex } = readTurnCursor(input.state, ACTIVE_CURSOR_ERRORS)
   const actorIds = ordered.map((participant) => participant.actorId)
   const { plan } = input
   return plan.kind === 'SAME_ROUND'
@@ -304,7 +278,7 @@ export async function skipDefeatedOpeningTurns(input: {
   state: EncounterInitiativeRoundStateDto
   defeatedActorIds: ReadonlySet<string>
 }): Promise<EncounterInitiativeRoundStateDto> {
-  const { ordered, activeIndex } = orderedInitiativeParticipants(input.state)
+  const { participants: ordered, activeIndex } = readTurnCursor(input.state, ACTIVE_CURSOR_ERRORS)
   const opener = ordered[activeIndex]!
   if (
     activeIndex !== 0 ||
@@ -340,7 +314,7 @@ export async function applyEncounterInitiativeAdvance(input: {
   if (checksumCanonicalJson(currentPlan) !== checksumCanonicalJson(input.plan))
     throw new Error('The normalized initiative round changed before turn advancement.')
 
-  const { ordered, activeIndex } = orderedInitiativeParticipants(input.state)
+  const { participants: ordered, activeIndex } = readTurnCursor(input.state, ACTIVE_CURSOR_ERRORS)
   const nextActorId = input.plan.kind === 'SAME_ROUND' ? input.plan.nextActorId : null
   const nextIndex =
     nextActorId === null

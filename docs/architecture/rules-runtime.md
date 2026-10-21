@@ -86,6 +86,32 @@ asks the installed System for the Run's `gameSystemId` through `platformRulesRun
 registered by the System module (`systems/dnd5e/characterActionRuntime`). An unknown System fails
 closed.
 
+### SRD effect compile golden (current, RULES-2.T2)
+
+`packages/rules-runtime/src/__tests__/srdEffectCompileGolden.test.ts` compiles every authored SRD Effect, found by
+parsing nodes with the authored Effect schemas, through the entry point its owner uses in play, and compares one line
+per Effect with `__tests__/__golden__/srdEffectCompile.golden.txt`, sorted by Effect id: `<effect id> <owner kind>
+<owner label> | <outcome>`.
+
+- `CREATURE`: Creature action discovery (the Encounter's path), then `compileEncounterFeatureActionPlan`. An Effect
+  discovery does not list as an action reads `NOT_A_DISCOVERED_ACTION`. The checksum includes the Effect's real id.
+- `CHARACTER:<subject>`: a Character action descriptor over the compiled Effect, then
+  `compileExecutionPlan`, at Character level 20 and, for a spell, its own level. The Effect is compiled under the
+  descriptor's fixed id, so the checksum does not depend on the Effect's own id.
+- Outcome: `SINGLE_GRAPH <graph checksum> nodes=N outputs=M`, `TEST_OUTCOME test=<checksum> nodes=N outputs=M
+  outcomes=[<path>=<checksum>,...]` or `REFUSED <error name>: <message>`.
+- Scaling variants of a Character-owned Effect (`<id> @L1`, `@L5`, `@L11` at that Character level, `@U9` for a leveled
+  spell upcast to 9th level) appear only when their outcome differs from the base line. Most scaling is bound at
+  execution from facts, so few variants differ; a new one is a scaling change.
+
+Reading a diff: a changed checksum means the compiled graph for that Effect changed; changed `nodes`/`outputs` show
+its size; `SINGLE_GRAPH`/`TEST_OUTCOME` flipping is a plan-shape change; `REFUSED` or `NOT_A_DISCOVERED_ACTION`
+appearing or disappearing is a support change; a variant line appearing or vanishing is a scaling change. A refactor
+slice (RULES-2.T6a-f) must keep the file green. If a line must change, the slice's review explains every changed
+checksum and reseeds development data in the same change, because published graphs and frozen occurrences carry
+these checksums. Regenerate with `vitest run -u` on that test only. Passive Creature traits compiled by other
+adapter methods (zones, damage grants) are not covered.
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014. Reusable mechanics remain
@@ -933,6 +959,15 @@ saves, restores the consumed grants and keeps the roll on the record; it is refu
 (`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
+**d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20
+before the check settles. Two commands act on one occurrence: the d20 response pends a second `ENCOUNTER_D20_WINDOW`
+`KERNEL_EVIDENCE` snapshot (discriminated `source`, today `BASIC_ACTION_CHECK`; no rule receipt, version +1), then
+`D20_WINDOW_USE { requestId, optionId, faces? }` or `D20_WINDOW_DECLINE` resumes the System-owned bounded choice (index 0 declines),
+appends the die to the d20's `addedDice`, settles the check with the final total and ends the spending effect in the same transaction.
+A GM void of a window is refused. Options and their ids derive from the held grants and the roll's evidence checksum, so a homebrew
+die or trigger runs the same path. Rolled-die faces stay a d4 (`ROLLED_DIE_FACES`).
+(`packages/rules-runtime/src/encounterD20Window.ts`, `packages/encounter-persistence/src/basicActionCheckResponsePersistence.ts`).
+
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
 
@@ -1645,8 +1680,11 @@ passive weapon-attack invocation is merged into the weapon's compiled effect lik
 any `reactionChoice` has resolved, the attacker's riders it can still pay for hold the occurrence with a sealed
 `onHitChoice` offer (a third sibling of `legendaryResistance` and `reactionChoice`, mutually exclusive with them,
 `ON_HIT_CHOICE` summary, the attacker's controller answers per D19). Option 0 is a decline; each other option pins
-a rider and a slot level. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
-spend rides in the attack's own character-mechanics batch with a spell-less receipt (`spellId` and `candidateId`
+a rider and the way it is paid: a slot level (`SPELL_SLOT`) or a resource pool and its cost (`RESOURCE_POOL`, authored as
+`optionalOnHit: { kind: 'RESOURCE_POOL', chargeId, cost }`, offered only while exactly one resolved pool carries
+`chargeId` and holds `cost`). The use option id hashes the hit and the way of paying, so a changed pool or cost is stale. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
+spend (or, for a pool, the `resourceConsumption` that `spendCharacterResource` also builds for an action's own
+`resourceUse`) rides in the attack's own character-mechanics batch with a spell-less receipt (`spellId` and `candidateId`
 are null together), so GM undo restores it. Nothing names a feature: the SRD Divine Smite and Improved Divine
 Smite (`source-data/srd/classes/paladin`) are authored from core options only. Improved Divine Smite has no
 `optionalOnHit`, so it is a mandatory rider.

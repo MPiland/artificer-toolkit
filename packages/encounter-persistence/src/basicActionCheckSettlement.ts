@@ -36,6 +36,8 @@ export async function settleEncounterBasicActionCheck(
     initiatorUserId: string
     occurredAt: string
     occurrenceVersion: number
+    /** The after-roll die a d20 window added to the frozen check's dice. */
+    windowDice?: Parameters<typeof settledCheckD20MatchesFrozen>[2]
     applyMechanics(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
@@ -67,7 +69,7 @@ export async function settleEncounterBasicActionCheck(
     output.targetCharacterId !== context.targetCharacterId ||
     output.check.checkDefinitionId !== context.check.checkDefinitionId ||
     output.check.dc !== context.check.dc ||
-    !settledCheckD20MatchesFrozen(output.d20, context.d20) ||
+    !settledCheckD20MatchesFrozen(output.d20, context.d20, input.windowDice) ||
     (output.outcome === 'STABILIZED') !==
       (output.d20.total >= context.check.dc && output.outcome !== 'NOT_DYING')
   )

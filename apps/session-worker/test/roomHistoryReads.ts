@@ -7,7 +7,10 @@ import {
   projectNativeAreaActionPending,
   readNativeAreaActionPending
 } from '@artificer-toolkit/encounter-persistence/actionAreaPending'
-import { projectNativeBasicActionCheckPending } from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
+import {
+  projectNativeBasicActionCheckPending,
+  projectNativeD20WindowPending
+} from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
 import { projectNativeCleavingPending } from '@artificer-toolkit/encounter-persistence/cleavingPending'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-persistence/concentrationPending'
@@ -94,27 +97,29 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
             kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||
             kind === 'ENCOUNTER_ESCAPE_CHECK'
           ? projectNativeBasicActionCheckPending(occurrence, snapshot)
-          : kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
-            ? projectNativeCleavingPending(occurrence, snapshot, {
-                isOwner: true,
-                controlledActorIds: actorIds,
-                visibleActorIds: actorIds
-              })
-            : kind === 'ENCOUNTER_AREA_ACTION'
-              ? projectNativeAreaActionPending(
-                  occurrence,
-                  await readNativeAreaActionPending({ db: room.store }, occurrence),
-                  {
-                    isOwner,
-                    controlledActorIds: isOwner ? actorIds : new Set(),
-                    actors: room.documents('encounterRunActors').map(readStoredRunActor)
-                  }
-                )
-              : projectNativeActionPending(
-                  occurrence,
-                  await readNativeActionPending({ db: room.store }, occurrence),
-                  isOwner
-                )
+          : kind === 'ENCOUNTER_D20_WINDOW'
+            ? projectNativeD20WindowPending(occurrence, snapshot)
+            : kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
+              ? projectNativeCleavingPending(occurrence, snapshot, {
+                  isOwner: true,
+                  controlledActorIds: actorIds,
+                  visibleActorIds: actorIds
+                })
+              : kind === 'ENCOUNTER_AREA_ACTION'
+                ? projectNativeAreaActionPending(
+                    occurrence,
+                    await readNativeAreaActionPending({ db: room.store }, occurrence),
+                    {
+                      isOwner,
+                      controlledActorIds: isOwner ? actorIds : new Set(),
+                      actors: room.documents('encounterRunActors').map(readStoredRunActor)
+                    }
+                  )
+                : projectNativeActionPending(
+                    occurrence,
+                    await readNativeActionPending({ db: room.store }, occurrence),
+                    isOwner
+                  )
     if (!pending) throw new Error('The pending decision is not shown to the GM.')
     return {
       occurrence,

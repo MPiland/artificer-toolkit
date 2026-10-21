@@ -3144,11 +3144,12 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d."
+              "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.2"],
               "wsjf": {
                 "bv": 5,
@@ -3156,7 +3157,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Golden compile-checksum harness over the SRD corpus (graph checksum and plan shape per authored effect)."
+              "text": "Golden compile-checksum harness over the SRD corpus (graph checksum and plan shape per authored effect).",
+              "note": "Merged m265 (cad91118f)."
             },
             {
               "id": "RULES-2.T3a",
@@ -3169,7 +3171,8 @@
                 "size": 5,
                 "after": ["RULES-2.T2"]
               },
-              "text": "One d20 test settlement: freezeD20Context plus settleEncounterD20Test with output verification, replacing the ~10 copies of answer/added-dice/resume and the frozen-context blocks."
+              "text": "One d20 test settlement: freezeD20Context plus settleEncounterD20Test with output verification, replacing the ~10 copies of answer/added-dice/resume and the frozen-context blocks.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T3b",
@@ -3234,7 +3237,8 @@
                 "size": 5,
                 "after": ["RULES-2.T2"]
               },
-              "text": "Compiler: extract runtime interpretation and the operation registry into their own modules."
+              "text": "Compiler: extract runtime interpretation and the operation registry into their own modules.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T6b",
@@ -3394,7 +3398,7 @@
             },
             {
               "id": "RULES-2.T14",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3402,7 +3406,22 @@
                 "rr": 5,
                 "size": 2
               },
-              "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order."
+              "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order.",
+              "note": "Merged m267 (74371bfed)."
+            },
+            {
+              "id": "RULES-2.T15",
+              "status": "DONE",
+              "closes": ["RULES-2.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 1,
+                "after": ["RULES-2.T2"]
+              },
+              "text": "Bug: compiling the SRD Antitoxin (vial) equipment Effect (00000060-0000-0210-0079-000000000001) throws a plain Error \"Rule documents must contain JSON values only\" instead of a plan or refusal. Find the non-JSON value (likely undefined in authored data or its compile), fix at the source, add a regression test that fails before the fix, and re-pin the golden line.",
+              "note": "Merged m269 (5bcadf7a5)."
             }
           ]
         }
@@ -9356,6 +9375,19 @@
               "text": "Per-turn retarget (D160, split 2026-10-20): a repeat offer with a fresh target pick and a persisted already-saved exclusion. Converts Eyebite Asleep and its per-turn retarget, with a parity proof; Panicked and Sickened and the EYEBITE kind deletion stay with T2l2."
             },
             {
+              "id": "SPELLS-4.T2lb2c",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2lb2a"]
+              },
+              "text": "Web repeat-offer row (split from T2lb2a at review, 2026-10-20): the Character sees and uses a REPEAT_SOURCE_PATH offer (cast level, frozen DC) from the tabletop effect offers, with a browser journey for the Heat Metal repeat."
+            },
+            {
               "id": "SPELLS-4.T2l2",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
@@ -9461,10 +9493,10 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2m1b2a"]
+                "after": ["SPELLS-4.T2m1b2a", "RULES-2.T3a", "RULES-2.T6d"]
               },
               "text": "Damage repeat save for the remaining damage sources (area one per holder, turn effects, cleaving, movement, legendary); the shared damage-save reader contract for T2m3 and SPELLS-33.T6e2/T4m; parity proof, area journey and HIDEOUS_LAUGHTER remnant check (D167).",
-              "note": "Split from T2m1b2 2026-10-20 (D167 amendment)."
+              "note": "Split from T2m1b2 2026-10-20 (D167 amendment). Held 2026-10-20 behind RULES-2.T3a and T6d (one d20 settlement, one repeat-save model)."
             },
             {
               "id": "SPELLS-4.T2m1d",
@@ -12182,7 +12214,7 @@
             },
             {
               "id": "SPELLS-31.T4c1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12192,7 +12224,7 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
               },
               "text": "D168 result window core (re-split 2026-10-20): ADD_BONUS_DIE AFTER_ROLL timing, the ENCOUNTER_D20_WINDOW pending kind with a discriminated source, use/decline resolutions, one shared pure decision module, two-step persist/void/replay, room wiring on the First Aid check, drawer. Options are AFTER_ROLL dice held on the roller's own active effects, spent by ending the effect. Proof: authoring-parity with a homebrew held die and a room journey.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m268 (52b690710)."
             },
             {
               "id": "SPELLS-31.T4c1p",
@@ -12216,9 +12248,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4c1a"]
+                "after": ["SPELLS-31.T4c1a", "RULES-2.T3a"]
               },
-              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs."
+              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
             },
             {
               "id": "SPELLS-31.T4c1b",
@@ -12229,9 +12261,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T4a"]
               },
-              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module."
+              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union."
             },
             {
               "id": "SPELLS-31.T4c1c",
@@ -12242,9 +12274,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T3a"]
               },
-              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck."
+              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
             },
             {
               "id": "SPELLS-31.T4c2",
@@ -12776,7 +12808,7 @@
             },
             {
               "id": "SPELLS-31.T5ra",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12786,7 +12818,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "optionalOnHit RESOURCE_POOL cost (D123) end to end (split 2026-10-20): authored type, DTO, node map, offer union, transport, drawer, pool candidates and payment through one extracted spend helper, session-worker wiring. Proof: a homebrew ki-costed rider authored through the real authoring path, with accept, decline and insufficient-pool cases.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m266 (fbc889988)."
             },
             {
               "id": "SPELLS-31.T5rb",
@@ -12797,9 +12829,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T5ra"]
+                "after": ["SPELLS-31.T5ra", "RULES-2.T6b"]
               },
-              "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted."
+              "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted. Also labels the resource pool on the web drawer option (from T5ra review). Held behind RULES-2.T6b: the DERIVED_DC rider-merge path is a dice-contract fact, not a new compiler shape."
             },
             {
               "id": "SPELLS-31.T5s",
@@ -13304,7 +13336,7 @@
             },
             {
               "id": "SPELLS-33.T4i4a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13314,7 +13346,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
               "text": "Single-target targetRequirements (split 2026-10-20): HAS_CONDITION {conditionIds, source ACTOR|ANY}, SIGHT {direction} through one shared sight evaluator used by zones and targeting, AT_ZERO_HIT_POINTS (alive). Proof: a homebrew action authored through the real authoring path with runtime admission tests and node-map parity.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m263 (0b3862ca4)."
             },
             {
               "id": "SPELLS-33.T4i4b",
@@ -13325,9 +13357,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T4i4a"]
+                "after": ["SPELLS-33.T4i4a", "RULES-2.T6c"]
               },
-              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds."
+              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry."
             },
             {
               "id": "SPELLS-33.T4j",

@@ -144,7 +144,6 @@ export const halfling: RaceAuthored = {
           modifierKind: MODIFIER_KIND.ADVANTAGE,
           scope: MODIFIER_SCOPE_KIND.GLOBAL,
           selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-          payload: undefined,
           order: index
         }))
       }
