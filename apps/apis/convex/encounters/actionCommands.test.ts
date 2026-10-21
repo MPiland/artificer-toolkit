@@ -570,6 +570,7 @@ async function setup({
       .unique()
     if (!row) throw new Error('Missing native action fixture actor.')
     const capability = discoverEncounterFeatureActionCapabilities({
+      spells: new Map(),
       actor: await readTestActor(ctx, row),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map((ability) => ({

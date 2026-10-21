@@ -447,6 +447,7 @@ export interface ActionRoomConfig extends Pick<
   | 'hiddenActorIds'
   | 'definitions'
   | 'seed'
+  | 'pinSpells'
   | 'status'
   | 'campaignClockMinute'
 > {
@@ -479,6 +480,7 @@ export async function actionRoom(config: ActionRoomConfig) {
     effectId: string | undefined = undefined
   ) => {
     const discovery = discoverEncounterFeatureActions({
+      spells: new Map(),
       actor,
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

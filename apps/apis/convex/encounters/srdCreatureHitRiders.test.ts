@@ -155,6 +155,7 @@ async function setup(input: {
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, actorRow._id, adjusted)
     }
     return discoverEncounterFeatureActionCapabilities({
+      spells: new Map(),
       actor: actorState,
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

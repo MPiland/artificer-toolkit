@@ -35,6 +35,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
+import { readNativeLiveSpellPins } from './nativeEncounterTargets.js'
 import {
   readNativeLivePerceptionScene,
   readNativeLiveSpatialEffects,
@@ -263,9 +264,10 @@ export function createNativeLiveTurnStages(
             random
           })
         },
-        discoverWindows: (discovery) =>
+        discoverWindows: async (discovery) =>
           discoverTurnLegendaryWindows({
             ...discovery,
+            spells: await readNativeLiveSpellPins(capture),
             deadCharacterIds: deadCharacterIdsOfTargets(
               discovery.movementTargets?.values() ?? [],
               turn.deadCharacterIds
@@ -303,7 +305,12 @@ export function createNativeLiveTurnStages(
                 state,
                 overridable: false,
                 movementTargets: targets,
-                loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
+                loadSource: async (source) =>
+                  resolveEncounterActionSource({
+                    ...source,
+                    system,
+                    spells: await readNativeLiveSpellPins(capture)
+                  }),
                 loadRelationshipFacts: async (relation) =>
                   lockedRelationshipActionFacts({
                     ...relation,
@@ -393,9 +400,10 @@ export function createNativeLiveTurnStages(
               }
             }
           }),
-        loadDeclarations: () =>
+        loadDeclarations: async () =>
           prepareEncounterInitiativeDeclarationSources({
             state,
+            spells: await readNativeLiveSpellPins(capture),
             campaignId: state.campaignId,
             actors: stage.actors,
             system,

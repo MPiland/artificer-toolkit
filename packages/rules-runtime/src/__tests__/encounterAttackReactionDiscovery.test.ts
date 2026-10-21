@@ -20,6 +20,7 @@ import { srdCreatureActor } from '../testing/dnd5eSrdEncounter.js'
 
 const reactorCandidates = (creature: Parameters<typeof srdCreatureActor>[0]['creature']) =>
   encounterReactorCandidates({
+    spells: new Map(),
     actor: srdCreatureActor({ id: crypto.randomUUID(), creature }),
     target: {},
     system: srdSystemRecord

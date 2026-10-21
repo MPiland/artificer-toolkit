@@ -35,6 +35,7 @@ import { refuseStaleCharacterAction } from './staleCharacterAction.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import { readRunActors } from './documents.js'
+import { readEncounterSpellPins } from './spellPins.js'
 import { readTurnMovedFeet, readTurnUses } from './turnMovement.js'
 import type { EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
@@ -187,7 +188,9 @@ async function loadActionSource(
           spentKeys: await readTurnUses(tx, { state, actorId: input.actor.id })
         }
       : undefined
-  return resolveEncounterActionSource({ ...input, system, basicActions, granted })
+  // Only a Creature, or a Character in a Creature form, casts from the Run's pinned Spells (D163).
+  const spells = system ? await readEncounterSpellPins(tx, state.id) : new Map()
+  return resolveEncounterActionSource({ ...input, system, basicActions, granted, spells })
 }
 
 /** Every current Run actor's active effects, keyed by actor; `given` effects are used as read. */
