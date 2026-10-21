@@ -954,6 +954,35 @@ describe('hit-point gate and tiers (SPELLS-4.T2i)', () => {
     ])
   })
 
+  it('carries a reduced-to-0 gate onto the entry it follows damage with', () => {
+    const gate = {
+      kind: 'REDUCED_TO_ZERO_BY',
+      damageOutcomeId: '00000000-0000-4000-8000-0000000000d1'
+    } as const
+    const result = compileEffectResult({
+      id: 'slay-effect',
+      order: 1,
+      invocation,
+      paths: [
+        {
+          id: 'slay-path',
+          order: 1,
+          pathCode: PATH_CODE.ON_HIT,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'slay-result',
+            resultKind: 'SINGLE',
+            gate,
+            outcomes: [kill]
+          }
+        }
+      ]
+    })
+    if (!result.ok) throw new Error('Expected compileEffectResult to succeed')
+    expect(result.value.entries).toMatchObject([{ gate, outcome: kill }])
+  })
+
   it('compiles each tier row to its own entry carrying the row ceiling', () => {
     const result = compileEffectResult({
       id: 'tier-effect',
