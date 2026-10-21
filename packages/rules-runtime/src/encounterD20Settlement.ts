@@ -54,7 +54,8 @@ export type EncounterD20Roll = {
 
 /**
  * Settles an answer against a frozen d20 test: its faces and mode (the frozen mode for an
- * auto-roll), then its added dice from the same answer. The d20 rolls before the added dice.
+ * auto-roll), then its added dice from the same answer. The d20 rolls before the added dice. A
+ * test that freezes no added dice refuses an answer that carries added faces.
  */
 export function settleEncounterD20Answer(input: {
   d20: { rollMode: EncounterD20RollMode; addedDice?: readonly D20AddedDieDto[] }

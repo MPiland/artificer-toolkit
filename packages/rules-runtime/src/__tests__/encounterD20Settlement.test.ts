@@ -9,6 +9,8 @@ import {
   settleEncounterD20Test
 } from '../encounterD20Settlement.js'
 import { EncounterValidationError } from '../encounterErrors.js'
+import { executeEncounterOptionalContestAction } from '../encounterOptionalContestActionExecution.js'
+import { createDnd5eContestGraph } from '../systems/dnd5e/optionalCombatContestGraph.js'
 import { SRD_SYSTEM_ID, createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const BLESS: D20AddedDieDto = { label: 'Bless', count: 1, faces: 4, sign: 'ADD' }
@@ -129,6 +131,41 @@ describe('settleEncounterD20Answer', () => {
         random: noRandom
       })
     ).toThrow('The roll needs one face for each added die.')
+  })
+})
+
+describe('a two-d20 contest answer', () => {
+  it('refuses added faces, since a contest rolls no added dice', async () => {
+    const policy = {
+      rollMode: 'NORMAL' as const,
+      contributors: [],
+      contributorChecksum: checksumRuleDocument([]),
+      modifier: 2
+    }
+    const contest = {
+      autoRoll: {},
+      published: createDnd5eContestGraph(testUuid(702)),
+      initiator: { ...policy, actorId: 'initiator', requestNodeId: 'initiator_d20' as const },
+      defender: { ...policy, actorId: 'defender', requestNodeId: 'target_d20' as const },
+      occurrenceId: testUuid(703),
+      rollD20: noRandom,
+      runtime: createSrdRulesRuntime()
+    }
+    const pending = await executeEncounterOptionalContestAction(contest)
+    if (pending.kind !== 'PENDING') throw new Error('The contest should wait for its initiator.')
+    await expect(
+      executeEncounterOptionalContestAction({
+        ...contest,
+        continuation: pending.continuation,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: pending.continuation.request.requestId,
+          rollMode: 'NORMAL',
+          rawFaces: [12],
+          addedFaces: [3]
+        }
+      })
+    ).rejects.toThrow('The roll has no added dice to answer.')
   })
 })
 
