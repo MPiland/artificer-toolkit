@@ -13,13 +13,9 @@ import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/sche
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import {
-  resolveEncounterD20Answer,
-  type EncounterEvidenceAnswer
-} from './encounterEvidenceAnswer.js'
-import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
+import { settleEncounterD20Answer, settleEncounterD20Test } from './encounterD20Settlement.js'
 import { derivedAddedDice } from './systems/dnd5e/d20AddedDiceGraph.js'
-import { d20AddedDiceTotal } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { concentrationDamageSourceLabel } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
@@ -268,46 +264,36 @@ export async function evaluateNativeConcentrationEvidence(input: {
     continuation.occurrenceId !== input.expectedOccurrenceId
   )
     throw new Error('The concentration evidence request is unavailable.')
-  const {
-    faces: rawFaces,
-    rollMode,
-    natural: selectedNatural
-  } = resolveEncounterD20Answer({
-    derivedRollMode: context.save.rollMode,
+  const roll = settleEncounterD20Answer({
+    d20: context.save,
     answer: resolution,
-    rollD20: () => input.random(20) + 1
-  })
-  const addedDice = resolveEncounterAddedDice({
-    dice: context.save.addedDice ?? [],
-    answer: resolution,
+    rollD20: () => input.random(20) + 1,
     random: input.random
   })
-  const execution = await resumeEncounterD20({
+  const refusal = () => new Error('The concentration result does not match its frozen evidence.')
+  const execution = await settleEncounterD20Test({
     continuation,
-    natural: selectedNatural,
-    addedDice,
-    resume: (step) => input.runtime.resume(step)
+    roll,
+    resume: (step) => input.runtime.resume(step),
+    outputs: { rawDie: 'naturalD20', total: { port: 'total', modifier: context.save.modifier } },
+    refusal
   })
   if (
-    execution.status !== 'COMPLETE' ||
     execution.evidence.source.definitionId !== context.concentrationDefinition.id ||
     execution.evidence.source.checksum !== context.concentrationDefinition.checksum ||
     execution.outputs.targetActorId !== context.application.targetActorId ||
     execution.outputs.appliedDamage !== context.application.appliedAmount ||
     execution.outputs.contributorChecksum !== context.save.contributorChecksum ||
-    execution.outputs.naturalD20 !== selectedNatural ||
-    execution.outputs.total !==
-      selectedNatural + context.save.modifier + d20AddedDiceTotal(addedDice) ||
     (execution.outputs.resultPath !== 'ON_SAVE_SUCCESS' &&
       execution.outputs.resultPath !== 'ON_SAVE_FAIL')
   )
-    throw new Error('The concentration result does not match its frozen evidence.')
+    throw refusal()
   return {
     execution,
-    rawFaces,
-    rollMode,
-    selectedNatural,
-    addedDice,
+    rawFaces: roll.rawFaces,
+    rollMode: roll.rollMode,
+    selectedNatural: roll.natural,
+    addedDice: roll.addedDice,
     failed: execution.outputs.resultPath === 'ON_SAVE_FAIL'
   }
 }

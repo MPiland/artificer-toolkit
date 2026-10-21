@@ -3162,7 +3162,7 @@
             },
             {
               "id": "RULES-2.T3a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.3"],
               "wsjf": {
                 "bv": 5,
@@ -3172,7 +3172,7 @@
                 "after": ["RULES-2.T2"]
               },
               "text": "One d20 test settlement: freezeD20Context plus settleEncounterD20Test with output verification, replacing the ~10 copies of answer/added-dice/resume and the frozen-context blocks.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m274 (fa2388b43)."
             },
             {
               "id": "RULES-2.T3b",

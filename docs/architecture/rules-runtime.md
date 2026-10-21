@@ -206,7 +206,14 @@ the roller's `userProfiles.autoRollDice` preference: on records app-roll evidenc
 for entered dice. The roller is the actor whose roll it is; its assigned player's preference applies, else
 its first granted controller's, else the GM's (`readEncounterAutoRollByActorId`). Lifecycle functions take
 an `EncounterEvidenceMode` (`AUTO_ROLL | PROMPT | MANUAL`); answers arrive as `EncounterEvidenceAnswer`
-and only `resolveEncounterD20Answer` and `resolveEncounterIntegerAnswer` turn one into faces. D20
+and only `resolveEncounterD20Answer` and `resolveEncounterIntegerAnswer` turn one into faces.
+**One d20 test settlement (ADR 0039 decision 2, current).** `encounterD20Settlement.ts` owns it: a
+test freezes its roller facts with `freezeD20Context` (mode, contributors and their checksum, modifier,
+added dice and floor when present); `settleEncounterD20Answer` settles an answer against that context
+(faces, kept mode, added dice); `settleEncounterD20Test` resumes the test graph with the kept natural
+and the added dice's total and verifies the System-named `rawDie`, `addedTotal` and `total` output
+ports. Tests whose graph can pause again or is verified through its trace (action phases, target-bound
+effects) resume through `resumeEncounterD20` directly. D20
 evidence records both the chosen and the rules-derived roll mode, and pending summaries name the
 contributors behind the derived mode (`encounterRollModeReasons`, labeled for display by
 `rollModeReasons` in `packages/encounter-persistence`). **Typed contributor source (RELIABILITY-6.9,

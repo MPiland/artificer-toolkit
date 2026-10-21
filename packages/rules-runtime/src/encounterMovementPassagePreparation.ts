@@ -10,6 +10,7 @@ import {
   activeAbilityCheckDice,
   activeAbilityCheckMinimumRoll
 } from './character/activeEffectGrantTotals.js'
+import { freezeD20Context } from './encounterD20Settlement.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
 import type {
   OptionalCombatPassageChoicePendingContextDto,
@@ -481,10 +482,11 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     initiator: {
       actorId: source.actor.id,
       requestNodeId: 'initiator_d20',
-      rollMode: initiatorRollMode,
-      contributors: initiatorContributors,
-      contributorChecksum: checksumRuleDocument(initiatorContributors),
-      modifier: initiator.modifier
+      ...freezeD20Context({
+        rollMode: initiatorRollMode,
+        contributors: initiatorContributors,
+        modifier: initiator.modifier
+      })
     },
     defender: {
       actorId: blocker.actor.id,
@@ -493,10 +495,11 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
         {
           checkDefinitionId: proposal.contest.targetCheckDefinitionId,
           label: encounterBasicActionCheckLabel(system, proposal.contest.targetCheckDefinitionId),
-          rollMode: defender.rollMode,
-          contributors: defender.contributors,
-          contributorChecksum: checksumRuleDocument(defender.contributors),
-          modifier: defender.modifier
+          ...freezeD20Context({
+            rollMode: defender.rollMode,
+            contributors: defender.contributors,
+            modifier: defender.modifier
+          })
         }
       ]
     },
