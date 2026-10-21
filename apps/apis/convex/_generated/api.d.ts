@@ -127152,6 +127152,12 @@ export declare const api: {
                       kind: "CONCENTRATION";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "EFFECT_REPEAT_SAVE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -127504,6 +127510,12 @@ export declare const api: {
                         damage: { amount: number; typeLabel: string | null };
                         dc: number;
                         kind: "CONCENTRATION";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "EFFECT_REPEAT_SAVE";
                         sourceLabel: string | null;
                       }
                     | {
@@ -128399,6 +128411,12 @@ export declare const api: {
                   kind: "CONCENTRATION";
                   sourceLabel: string | null;
                 }
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "EFFECT_REPEAT_SAVE";
+                  sourceLabel: string | null;
+                }
               | { failures: number; kind: "DEATH_SAVE"; successes: number }
               | {
                   actionLabel: string;
@@ -129272,6 +129290,12 @@ export declare const api: {
                       damage: { amount: number; typeLabel: string | null };
                       dc: number;
                       kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "EFFECT_REPEAT_SAVE";
                       sourceLabel: string | null;
                     }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
