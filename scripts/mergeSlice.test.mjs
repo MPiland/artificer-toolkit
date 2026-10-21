@@ -48,8 +48,27 @@ describe('runsVerdict', () => {
   it('is red when the newest run of either failed or was cancelled, even if an older one passed', () => {
     const runs = [
       runAt('Tests', '2026-10-18T10:00:00Z', 'completed', 'success', 1),
-      runAt('Tests', '2026-10-18T11:00:00Z', 'completed', 'cancelled', 2),
+      runAt('Tests', '2026-10-18T11:00:00Z', 'completed', 'failure', 2),
       runAt('Live backend', '2026-10-18T10:00:00Z', 'in_progress', '', 3)
+    ]
+    expect(runsVerdict(runs)).toEqual({ state: 'red', detail: 'Tests 2 failure' })
+  })
+
+  it('ignores a cancelled duplicate created after a green run of the same workflow', () => {
+    const runs = [
+      runAt('Tests', '2026-10-21T10:00:00Z', 'completed', 'success', 1),
+      runAt('Tests', '2026-10-21T10:05:00Z', 'completed', 'cancelled', 2),
+      runAt('Live backend', '2026-10-21T10:00:00Z', 'completed', 'success', 3),
+      runAt('Live backend', '2026-10-21T10:05:00Z', 'completed', 'cancelled', 4)
+    ]
+    expect(runsVerdict(runs)).toEqual({ state: 'green', detail: 'Tests 1, Live backend 3' })
+  })
+
+  it('is red when a workflow has only cancelled runs', () => {
+    const runs = [
+      runAt('Tests', '2026-10-21T10:00:00Z', 'completed', 'cancelled', 1),
+      runAt('Tests', '2026-10-21T10:05:00Z', 'completed', 'cancelled', 2),
+      runAt('Live backend', '2026-10-21T10:00:00Z', 'completed', 'success', 3)
     ]
     expect(runsVerdict(runs)).toEqual({ state: 'red', detail: 'Tests 2 cancelled' })
   })
