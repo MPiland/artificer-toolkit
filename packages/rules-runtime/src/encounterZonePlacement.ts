@@ -11,7 +11,7 @@ import type {
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { castChoiceOptions } from './encounterCastChoice.js'
 import { placedSpaceEntries, type PlacedSpaceManifest } from './placedSpaceEntries.js'
-import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
+import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 
 /**
  * An authored zone an action places, with the behavior its entry runs: left at a chosen point, or
@@ -205,11 +205,16 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
  * for any other effect.
  */
 export function passiveMeleeRetaliationZone(
+  gameSystemId: string,
   compiledEffect: CompiledEffectGroup,
   label: string | undefined
 ): PlacedSpaceZone | null {
   const { invocation, entries } = compiledEffect
-  if (invocation.kind !== 'PASSIVE' || dnd5eAttackKind(invocation.triggerCode) !== 'MELEE')
+  if (
+    invocation.kind !== 'PASSIVE' ||
+    attackProfileCapabilityRegistry.require(gameSystemId).attackKind(invocation.triggerCode) !==
+      'MELEE'
+  )
     return null
   const { range } = invocation
   const [entry] = entries

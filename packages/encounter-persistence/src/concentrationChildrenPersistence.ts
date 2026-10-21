@@ -20,7 +20,7 @@ import {
   sourceBoundGrants,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import { dnd5eAbilityCode } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
+import { abilityScoreCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   concentrationCommandId,
@@ -191,7 +191,9 @@ export async function persistEncounterConcentrationChildren(
     if (!holder) continue
     for (const die of savingThrowSpentEffects(
       await store.list(turnEffectOwner(holder, state.id)),
-      dnd5eAbilityCode(check.savingThrowAbilityDefinitionId)
+      abilityScoreCapabilityRegistry
+        .require(state.gameSystemId)
+        .abilityCode(check.savingThrowAbilityDefinitionId)
     ))
       spentDice.add(die.id)
   }

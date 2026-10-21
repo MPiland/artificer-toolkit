@@ -1,5 +1,6 @@
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 
 /**
@@ -61,6 +62,10 @@ export type EncounterEvent =
    */
   | { kind: 'HARMFUL_ACTION_AIMED'; attackerCreatureTypeId: string | null }
   | { kind: 'HIT_POINTS_REGAINED' }
+  /** The holder is defeated (dead, or at 0 hit points as its kind defeats). */
+  | { kind: 'DEFEATED' }
+  /** A held effect bars the holder from maintaining a link (the System's casting lock). */
+  | { kind: 'MAINTENANCE_BARRED' }
   /** The holder is incapacitated or defeated, or the sources named are. */
   | { kind: 'INCAPACITATED'; of: 'HOLDER' }
   | { kind: 'INCAPACITATED'; of: 'SOURCE'; sourceActorIds: ReadonlySet<string> }
@@ -108,6 +113,8 @@ export type EncounterEventSubscription =
         | 'ATTACKED'
         | 'HIT'
         | 'HIT_POINTS_REGAINED'
+        | 'DEFEATED'
+        | 'MAINTENANCE_BARRED'
         | 'ITEM_RELEASED'
         | 'IDLE_TURN'
         | 'MOVED'
@@ -122,6 +129,18 @@ export type EncounterEffectHook =
       subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }>
       trigger: ActiveEffectRepeatTrigger
     }
+
+/**
+ * What a maintenance link (Concentration) does when an event meets one of its subscriptions: it
+ * breaks for `reason`, or its holder owes a save. The System supplies the hooks in priority order.
+ */
+export type MaintenanceLinkHook =
+  | {
+      hook: 'BREAK'
+      reason: Exclude<ConcentrationEndReason, 'CHOSEN'>
+      subscription: EncounterEventSubscription
+    }
+  | { hook: 'SAVE'; subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }> }
 
 /**
  * A reaction an event offers its holder, by the event and the authored trigger it met. A damage-type

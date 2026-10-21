@@ -3,6 +3,7 @@ import { sanctuary } from '@artificer-toolkit/source-data/srd/spells/sanctuary.j
 import { describe, expect, it } from 'vitest'
 
 import { sourceImmunityEffect } from '../encounterActionEffectPlans.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { heldIncomingGate, incomingGateSaveDc } from '../encounterIncomingAttackGate.js'
 import { incomingGateImmunityPlan } from '../systems/dnd5e/effectActionCompiler.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -173,16 +174,19 @@ describe('incoming gate save DC', () => {
       }
     },
     effectiveScalarValues: { [ability]: 18 }
-  } as unknown as Parameters<typeof incomingGateSaveDc>[1]
+  } as unknown as Parameters<typeof incomingGateSaveDc>[2]
   const base = { id: 'dc', abilityDefinitionId: ability }
 
   it('uses the owner’s spell save DC for SOURCE_SAVE_DC', () => {
-    expect(incomingGateSaveDc({ ...base, dcMethod: 'SOURCE_SAVE_DC' }, owner)).toBe(15)
+    expect(
+      incomingGateSaveDc(DND5E_SYSTEM_ID, { ...base, dcMethod: 'SOURCE_SAVE_DC' }, owner)
+    ).toBe(15)
   })
 
   it('adds the owner’s ability modifier, proficiency bonus and static bonus to a derived DC', () => {
     expect(
       incomingGateSaveDc(
+        DND5E_SYSTEM_ID,
         {
           ...base,
           dcMethod: 'DERIVED_DC',
@@ -201,6 +205,7 @@ describe('incoming gate save DC', () => {
   it('has no DC when the owner lacks the ability the DC reads', () => {
     expect(
       incomingGateSaveDc(
+        DND5E_SYSTEM_ID,
         {
           ...base,
           dcMethod: 'DERIVED_DC',

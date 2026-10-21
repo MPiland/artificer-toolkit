@@ -17,6 +17,7 @@ import {
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import {
   completeNativeConcentrationResult,
+  concentrationSaveApplications,
   createNativeConcentrationContext,
   evaluateNativeConcentrationEvidence,
   prepareEncounterConcentrationState,
@@ -58,7 +59,7 @@ import {
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { encounterSavingThrowAddedDice } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { dnd5eAbilityCode } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
+import { abilityScoreCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import {
   grantsEndedByHolderState,
   grantsEndedBySourceState,
@@ -440,9 +441,12 @@ export async function planNativeLiveConcentration(input: {
           )
         })
   let remaining: DamageSaveApplicationDto[] = [
-    ...selectedApplications.flatMap((application) => {
-      const maintainedStateId = bindings.get(application.targetActorId)
-      return maintainedStateId ? [{ ...application, maintainedStateId }] : []
+    ...concentrationSaveApplications({
+      gameSystemId: state.gameSystemId,
+      applications: selectedApplications,
+      maintainedStateIds: bindings,
+      damagerActorId: repeatSaveDamager ?? null,
+      dispositions
     }),
     ...effectItems
   ].sort(compareDamageSaveApplications)
@@ -495,6 +499,7 @@ export async function planNativeLiveConcentration(input: {
           targetDerivedFacts: {
             ...target.targetDerivedFacts,
             savingThrowAddedDice: encounterSavingThrowAddedDice(
+              state.gameSystemId,
               target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
             )
           }
@@ -592,7 +597,10 @@ export async function planNativeLiveConcentration(input: {
       expectedOccurrenceId: occurrenceId,
       random: input.random ?? nextRollInt
     })
-    for (const die of savingThrowSpentEffects(unspent.activeEffects, dnd5eAbilityCode(abilityId))) {
+    for (const die of savingThrowSpentEffects(
+      unspent.activeEffects,
+      abilityScoreCapabilityRegistry.require(state.gameSystemId).abilityCode(abilityId)
+    )) {
       spentDiceIds.add(die.id)
       endedGrants.push(die)
     }
@@ -666,6 +674,7 @@ export async function planNativeLiveConcentration(input: {
             targetDerivedFacts: {
               ...loaded.target.targetDerivedFacts,
               savingThrowAddedDice: encounterSavingThrowAddedDice(
+                state.gameSystemId,
                 loaded.target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
               )
             }
@@ -673,6 +682,7 @@ export async function planNativeLiveConcentration(input: {
         }
       : loaded
     const { context, facts } = createNativeConcentrationContext({
+      gameSystemId: state.gameSystemId,
       current: unspent,
       parentOccurrenceId: input.parentOccurrenceId,
       parentCommandFingerprint: input.parentCommandFingerprint,
@@ -742,7 +752,9 @@ export async function planNativeLiveConcentration(input: {
     if (evidence.failed) mutated = true
     for (const die of savingThrowSpentEffects(
       unspent.target.activeEffects,
-      dnd5eAbilityCode(context.save.savingThrowAbilityDefinitionId)
+      abilityScoreCapabilityRegistry
+        .require(state.gameSystemId)
+        .abilityCode(context.save.savingThrowAbilityDefinitionId)
     )) {
       spentDiceIds.add(die.id)
       endedGrants.push(die)
