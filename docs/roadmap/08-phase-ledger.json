@@ -3365,18 +3365,57 @@
               "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
-              "id": "RULES-2.T11",
+              "id": "RULES-2.T11a",
               "status": "TODO",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 13,
+                "size": 3,
                 "after": ["RULES-2.T1"]
               },
-              "text": "Burn down the direct systems/dnd5e imports from neutral runtime through registered capability adapters.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
+              "text": "System import burn-down (split 2026-10-21): one generic fail-closed System capability registry, installed in platformPolicyModules, with the existing action-economy and roll-mode registries moved onto it; abilities, creature state and initiative adapters (allowlist -7)."
+            },
+            {
+              "id": "RULES-2.T11b",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T11a"]
+              },
+              "text": "System import burn-down (split 2026-10-21): armor class and d20 test definition adapters (allowlist -5)."
+            },
+            {
+              "id": "RULES-2.T11c",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T11b"]
+              },
+              "text": "System import burn-down (split 2026-10-21): optional combat contest adapters (allowlist -5)."
+            },
+            {
+              "id": "RULES-2.T11d",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["RULES-2.T11c"]
+              },
+              "text": "System import burn-down (split 2026-10-21): attack profile adapters (allowlist -9, to 14). Concentration, the incoming attack gate and cast-reaction discovery stay with T5 and T8."
             },
             {
               "id": "RULES-2.T12",
@@ -3387,7 +3426,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 8,
-                "after": ["RULES-2.T6f", "RULES-2.T7", "RULES-2.T8", "RULES-2.T11"]
+                "after": ["RULES-2.T6f", "RULES-2.T7", "RULES-2.T8", "RULES-2.T11d"]
               },
               "text": "Second neutral tracer System (Fate-like fixture) driving the Encounter pipeline through the adapters."
             },
