@@ -13333,7 +13333,7 @@
             },
             {
               "id": "SPELLS-33.T6d3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13343,7 +13343,7 @@
                 "after": ["SPELLS-33.T6d3a"]
               },
               "text": "Assassinate and Surprise Attack (2 kinds): new TARGET_HAS_NOT_TAKEN_TURN predicate derived from initiative for Assassinate advantage; surprise parts description-only (D165). Authoring-parity proof; deletes the kinds (D156; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m261 (640159eb2)."
             },
             {
               "id": "SPELLS-33.T6e",
