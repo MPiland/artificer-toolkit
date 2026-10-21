@@ -1062,6 +1062,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Generic only:** no feature names in code. Each parity proof includes a homebrew variant with a different die, trigger or resource that runs through the same path with no code change.
   - **Split:** T4c1 covers the result window and the after-roll consume mode, converting Dark One's Own Luck and Peerless Skill. T4c2 covers dice scaled by the granting creature, converting Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save). T4c3 covers subtracting a die (including from damage) and another creature's reaction in the window, with its hearing and charm-immunity target restrictions, converting Cutting Words. T4c2 and T4c3 come after T4c1. The Guidance and Resistance "before or after the roll" deferred edge case may move onto the window later. That is not in scope here.
 
+* **D169** (2026-10-21) Roll-mode choice in entered dice is System-supplied (RULES-2.T9a, ADR 0039). Orchestrator ruling.
+  - **Server derives keep:** `ENTER_DICE` no longer carries `keep`. At ingress the server derives it from the chosen `rollMode` through the System's roll-mode capability. It refuses a mode the request did not offer, and a face count that does not match keep, each with a named message. Evidence stores the derived keep.
+  - **Request offers the modes:** the pending dice request carries `rollModes: [{ code, label }]`, projected from the System vocabulary for that request's System, as a shared `packages/schema` contract. The web picker renders only those and holds no mode table.
+  - **Rejected:** a client-set `keep` (contradicts deriving keep once in the adapter) and a web-local D&D mode table (breaks System neutrality).
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
