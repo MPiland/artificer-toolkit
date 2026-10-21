@@ -13283,7 +13283,7 @@
             },
             {
               "id": "SPELLS-33.T4i1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13293,7 +13293,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
               "text": "Passive start-of-turn trait stage (split 2026-10-20): a turn-start stage discovered from the actor's features (Recharge precedent) that runs a PASSIVE result block with recurringKind START_OF_TURN and no duration through the existing outcome path, with plan checksum and undo; a TARGET_HIT_POINTS_AT_LEAST gate. Converts Oni and Shield Guardian regeneration, with parity proofs, a homebrew variant and kind deletions.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m271 (83b640416)."
             },
             {
               "id": "SPELLS-33.T4i1b",
