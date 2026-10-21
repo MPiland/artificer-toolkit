@@ -16,10 +16,12 @@ import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_MEDICINE_SKILL_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -374,5 +376,139 @@ describe('First Aid, a System basic action with a check, in the room', () => {
       message: 'The selected action does not permit this target.'
     })
     expect(await room.version()).toBe(before)
+  })
+})
+
+/** A held-die effect: the real Guidance grant, authored to be offered after the d20 is seen. */
+function heldDieEffect(change: { count?: number; ability?: 'WISDOM' | 'STRENGTH' } = {}) {
+  const effect = structuredClone(guidance.effects![0]!)
+  for (const path of effect.paths)
+    if (path.selectionKind === 'FIXED')
+      for (const outcome of path.resultBlock.outcomes)
+        if (outcome.effectKind === 'APPLY_GRANT')
+          for (const modifier of outcome.grants.modifiers ?? []) {
+            if (modifier.modifierKind !== 'ADD_BONUS_DIE') continue
+            modifier.payload = {
+              ...modifier.payload,
+              ...(change.count === undefined ? {} : { count: change.count }),
+              timing: 'AFTER_ROLL'
+            }
+            if (change.ability) modifier.domain = { ability: change.ability }
+          }
+  return effect
+}
+
+describe('a die the helper holds for after the d20, in the First Aid room (SPELLS-31.T4c1a)', () => {
+  async function heldDieRoom(effect: ReturnType<typeof heldDieEffect>) {
+    const room = await actionRoom({
+      rolls: [],
+      characterPlay: { currentHitPoints: 0 },
+      actors: [medicWolf(), characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })],
+      ownerFeatureId: creatureFeature(biteWolf('ATTACK', { damage: 1, reachFeet: 5 }), 'Bite').id,
+      seed: seedModifierGrant({
+        sourceActorId: WOLF_ID,
+        holderActorId: WOLF_ID,
+        lifecycle: {},
+        effect,
+        sourceLabel: guidance.label
+      })
+    })
+    const { answer } = await useFirstAid(room as Awaited<ReturnType<typeof firstAidRoom>>)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    return room as Awaited<ReturnType<typeof firstAidRoom>>
+  }
+
+  /** The helper enters a natural 5 (total 8 against DC 10) and meets the window it opens. */
+  async function openWindow(room: Awaited<ReturnType<typeof firstAidRoom>>) {
+    const roll = await room.pendingDecision()
+    if (roll.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the helper’s d20.')
+    const opened = await room.resolve(roll, {
+      kind: 'ENTER_DICE',
+      requestId: roll.pending.request.requestId,
+      rawFaces: [5],
+      rollMode: roll.pending.request.rollMode
+    })
+    expect(opened.type, JSON.stringify(opened)).toBe('COMMAND_COMMITTED')
+    expect((await settledCheck(room)).outputs).toEqual([])
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    return { decision, pending: decision.pending }
+  }
+
+  it('offers the die once the d20 is seen, and spending it turns a miss into a stabilize and ends the effect', async () => {
+    const room = await heldDieRoom(heldDieEffect())
+    const { decision, pending } = await openWindow(room)
+    expect(pending).toMatchObject({
+      rollerActorId: WOLF_ID,
+      d20: { selectedNatural: 5, total: 8 },
+      options: [{ label: 'Guidance', count: 1, faces: 4, sign: 'ADD' }]
+    })
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toHaveLength(1)
+
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [3]
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+
+    const { outputs, occurrences } = await settledCheck(room)
+    expect(outputs).toMatchObject([
+      {
+        d20: {
+          selectedNatural: 5,
+          total: 11,
+          addedDice: [{ label: 'Guidance', rolledFaces: [3] }]
+        },
+        outcome: 'STABILIZED'
+      }
+    ])
+    expect(occurrences.map((occurrence) => occurrence.state)).toEqual(['COMPLETED'])
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toEqual([])
+  })
+
+  it('keeps the roll and the die when the helper declines', async () => {
+    const room = await heldDieRoom(heldDieEffect())
+    const { decision, pending } = await openWindow(room)
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_DECLINE',
+      requestId: pending.requestId
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect((await settledCheck(room)).outputs).toMatchObject([
+      { d20: { total: 8 }, outcome: 'FAILED', targetTransition: null }
+    ])
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toHaveLength(1)
+  })
+
+  it('offers a homebrew die authored differently (two dice, Wisdom only) through the same path', async () => {
+    const room = await heldDieRoom(heldDieEffect({ count: 2, ability: 'WISDOM' }))
+    const { decision, pending } = await openWindow(room)
+    expect(pending.options).toMatchObject([{ count: 2, faces: 4 }])
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [1, 2]
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect((await settledCheck(room)).outputs).toMatchObject([
+      { d20: { total: 11 }, outcome: 'STABILIZED' }
+    ])
+  })
+
+  it('offers no die whose ability the check is not', async () => {
+    const room = await heldDieRoom(heldDieEffect({ ability: 'STRENGTH' }))
+    const roll = await room.pendingDecision()
+    if (roll.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the helper’s d20.')
+    const settled = await room.resolve(roll, {
+      kind: 'ENTER_DICE',
+      requestId: roll.pending.request.requestId,
+      rawFaces: [5],
+      rollMode: roll.pending.request.rollMode
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect((await settledCheck(room)).outputs).toMatchObject([{ outcome: 'FAILED' }])
   })
 })

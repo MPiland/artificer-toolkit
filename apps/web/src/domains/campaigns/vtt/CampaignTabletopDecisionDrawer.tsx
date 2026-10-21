@@ -369,6 +369,42 @@ export function CampaignTabletopDecisionDrawer({
                 Decline
               </Button>
             </Stack>
+          ) : pending.kind === 'D20_WINDOW' ? (
+            <Stack gap='xs'>
+              <Text size='sm'>
+                {rollPromptText(
+                  encounter.actors.find((actor) => actor.id === pending.rollerActorId)?.label ??
+                    'a hidden combatant',
+                  pending.trigger
+                )}
+                : rolled {pending.d20.selectedNatural}, total {pending.d20.total}
+              </Text>
+              {pending.options.map((option) => (
+                <Button
+                  disabled={disabled}
+                  key={option.optionId}
+                  onClick={() =>
+                    void resolve({
+                      kind: 'D20_WINDOW_USE',
+                      requestId: pending.requestId,
+                      optionId: option.optionId
+                    })
+                  }
+                >
+                  Add {option.label} ({option.sign === 'SUBTRACT' ? '-' : '+'}
+                  {option.count}d{option.faces})
+                </Button>
+              ))}
+              <Button
+                disabled={disabled}
+                variant='default'
+                onClick={() =>
+                  void resolve({ kind: 'D20_WINDOW_DECLINE', requestId: pending.requestId })
+                }
+              >
+                Keep the roll
+              </Button>
+            </Stack>
           ) : pending.kind === 'ATTACK_RETARGET_CHOICE' ? (
             <Stack gap='xs'>
               {pending.options.map((option) => (

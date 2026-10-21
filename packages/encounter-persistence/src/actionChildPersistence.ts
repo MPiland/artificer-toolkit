@@ -15,7 +15,7 @@ import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/sche
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
   completeNativeConcentrationResult,
-  NativeConcentrationContext
+  NativeDamageSaveContext
 } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import {
   concentrationCommandId,
@@ -103,7 +103,7 @@ export async function persistNativeConcentrationResult(
   await persistCompletedChild(ctx, {
     ...input,
     rootCommandId: concentrationCommandId(result.occurrenceId),
-    commandType: input.occurrence ? 'RESOLVE_RULE_OCCURRENCE' : 'CONCENTRATION_CHECK'
+    commandType: input.occurrence ? 'RESOLVE_RULE_OCCURRENCE' : 'DAMAGE_SAVE_CHECK'
   })
   // Every settled check, answered or automatic, gets its own roll-log entry.
   await ctx.ports.recordConcentrationCheckRoll({
@@ -177,7 +177,7 @@ export async function persistNativeConcentrationPending(
   ctx: EncounterWriteContext,
   input: {
     state: EncounterRunState
-    context: NativeConcentrationContext
+    context: NativeDamageSaveContext
     continuation: ServerRuleExecutionContinuationDto
     deferredCleaving?: ServerKernelRuleExecutionPendingSnapshotDto['deferredCleaving']
     occurredAt: string
@@ -238,7 +238,7 @@ export async function insertNativeCleavingChoice(
     if (
       pending.length !== 1 ||
       parent?.snapshotKind !== 'KERNEL_EVIDENCE' ||
-      parent.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' ||
+      parent.applicationContext.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK' ||
       snapshot.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' ||
       parent.deferredCleaving ||
       occurrence.expectedEncounterVersion !== state.version

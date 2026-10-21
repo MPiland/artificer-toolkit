@@ -1,5 +1,9 @@
 import { RULE_GRAPH_LIMITS, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  requireMaintainedDamageApplications,
+  type ConcentrationMaintainedDamageApplicationDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
@@ -184,7 +188,7 @@ export async function prepareEncounterMovementConcentration<
       checksumRuleDocument(phase.phase.damageSource) !== checksumRuleDocument(input.source))
   )
     throw new Error('The issued movement Concentration phase is unavailable.')
-  let remaining: NativeConcentrationContext['remaining'] = []
+  let remaining: ConcentrationMaintainedDamageApplicationDto[] = []
   /** The projection after a Concentration slot is lost: later checks and contacts observe it. */
   const adoptEnd = (
     ended: { targets: typeof targets; projection: TProjection },
@@ -242,7 +246,7 @@ export async function prepareEncounterMovementConcentration<
       throw new Error('Movement Concentration damage evidence is stale.')
     remaining = [
       { ...frozen.application, maintainedStateId: frozen.maintainedState.id },
-      ...frozen.remaining
+      ...requireMaintainedDamageApplications(frozen.remaining)
     ]
     for (const { maintainedStateId: _stateId, ...application } of remaining)
       if (

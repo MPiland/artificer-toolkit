@@ -9,10 +9,11 @@ import {
   encounterBasicActionCheckPendingContextDtoSchema,
   encounterCharacterRuleActionPendingContextDtoSchema,
   encounterConcealmentCheckPendingContextDtoSchema,
-  encounterConcentrationDamageCheckPendingContextDtoSchema,
+  encounterDamageSaveCheckPendingContextDtoSchema,
   encounterCreatureRuleActionPendingContextDtoSchema,
   encounterEscapeCheckPendingContextDtoSchema
 } from './ruleExecutionDirectActionPendingContexts.js'
+import { encounterD20WindowPendingContextDtoSchema } from './ruleExecutionD20Window.js'
 import {
   movementReactionPendingContextDtoSchema,
   spatialPendingContextDtoSchema
@@ -49,10 +50,11 @@ export type ServerRuleExecutionPendingApplicationContextDto =
   | z.infer<typeof encounterActorRuleActionPendingContextDtoSchema>
   | z.infer<typeof encounterActorSpellCastPendingContextDtoSchema>
   | z.infer<typeof encounterCreatureRuleActionPendingContextDtoSchema>
-  | z.infer<typeof encounterConcentrationDamageCheckPendingContextDtoSchema>
+  | z.infer<typeof encounterDamageSaveCheckPendingContextDtoSchema>
   | z.infer<typeof encounterBasicActionCheckPendingContextDtoSchema>
   | z.infer<typeof encounterEscapeCheckPendingContextDtoSchema>
   | z.infer<typeof encounterConcealmentCheckPendingContextDtoSchema>
+  | z.infer<typeof encounterD20WindowPendingContextDtoSchema>
 
 const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<ServerRuleExecutionPendingApplicationContextDto> =
   lazySchema(() =>
@@ -73,10 +75,11 @@ const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<S
         encounterActorRuleActionPendingContextDtoSchema,
         encounterActorSpellCastPendingContextDtoSchema,
         encounterCreatureRuleActionPendingContextDtoSchema,
-        encounterConcentrationDamageCheckPendingContextDtoSchema,
+        encounterDamageSaveCheckPendingContextDtoSchema,
         encounterBasicActionCheckPendingContextDtoSchema,
         encounterEscapeCheckPendingContextDtoSchema,
-        encounterConcealmentCheckPendingContextDtoSchema
+        encounterConcealmentCheckPendingContextDtoSchema,
+        encounterD20WindowPendingContextDtoSchema
       ])
       .check(
         z.superRefine((value, context) => {

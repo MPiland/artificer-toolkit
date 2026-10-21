@@ -3411,7 +3411,7 @@
             },
             {
               "id": "RULES-2.T15",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.2"],
               "wsjf": {
                 "bv": 5,
@@ -3421,7 +3421,7 @@
                 "after": ["RULES-2.T2"]
               },
               "text": "Bug: compiling the SRD Antitoxin (vial) equipment Effect (00000060-0000-0210-0079-000000000001) throws a plain Error \"Rule documents must contain JSON values only\" instead of a plan or refusal. Find the non-JSON value (likely undefined in authored data or its compile), fix at the source, add a regression test that fails before the fix, and re-pin the golden line.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m269 (5bcadf7a5)."
             }
           ]
         }
@@ -6755,7 +6755,7 @@
                   "SPELLS-33.T6e2",
                   "SPELLS-33.T6i2",
                   "SPELLS-33.T6m2",
-                  "SPELLS-33.T4i1b",
+                  "SPELLS-33.T4i1b2",
                   "SPELLS-33.T4i2",
                   "SPELLS-33.T4i3",
                   "SPELLS-33.T4i4b"
@@ -9349,7 +9349,7 @@
             },
             {
               "id": "SPELLS-4.T2lb2a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9359,7 +9359,7 @@
                 "after": ["SPELLS-4.T2lb", "SPELLS-4.T2d2"]
               },
               "text": "Repeat-source-path offers (D160, D166; split 2026-10-20): the repeat-offer contract, the cast context (DC, slot level) the compiler freezes into the stored effect, runtime, persistence (CAS and undo) and a room proof. Converts the Heat Metal later-turn bonus-action repeat (from SPELLS-4.T2e), with a parity proof.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m272 (5b3cd94e9)."
             },
             {
               "id": "SPELLS-4.T2lb2b",
@@ -9471,7 +9471,7 @@
             },
             {
               "id": "SPELLS-4.T2m1b2a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -9481,8 +9481,7 @@
                 "after": ["SPELLS-4.T2m1b1b"]
               },
               "text": "Damage-triggered save child (D167 amendment): generalize the Concentration damage-check stack into ENCOUNTER_DAMAGE_SAVE_CHECK with source CONCENTRATION | EFFECT_REPEAT_SAVE through schema, rules-runtime, persistence and the room (Concentration behavior unchanged, mechanical renames only); wire the effect repeat save for the direct-action single-target source; Hideous Laughter single-target journey (controller save pending, success ends the effect, failure keeps it), undo, void and replay.",
-              "note": "Split from T2m1b2 2026-10-20 (D167 amendment).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m273 (494d08f9c)."
             },
             {
               "id": "SPELLS-4.T2m1b2b",
@@ -12214,7 +12213,7 @@
             },
             {
               "id": "SPELLS-31.T4c1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12224,7 +12223,7 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
               },
               "text": "D168 result window core (re-split 2026-10-20): ADD_BONUS_DIE AFTER_ROLL timing, the ENCOUNTER_D20_WINDOW pending kind with a discriminated source, use/decline resolutions, one shared pure decision module, two-step persist/void/replay, room wiring on the First Aid check, drawer. Options are AFTER_ROLL dice held on the roller's own active effects, spent by ending the effect. Proof: authoring-parity with a homebrew held die and a room journey.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m268 (52b690710)."
             },
             {
               "id": "SPELLS-31.T4c1p",
@@ -13283,7 +13282,7 @@
             },
             {
               "id": "SPELLS-33.T4i1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13293,10 +13292,10 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
               },
               "text": "Passive start-of-turn trait stage (split 2026-10-20): a turn-start stage discovered from the actor's features (Recharge precedent) that runs a PASSIVE result block with recurringKind START_OF_TURN and no duration through the existing outcome path, with plan checksum and undo; a TARGET_HIT_POINTS_AT_LEAST gate. Converts Oni and Shield Guardian regeneration, with parity proofs, a homebrew variant and kind deletions.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m271 (83b640416)."
             },
             {
-              "id": "SPELLS-33.T4i1b",
+              "id": "SPELLS-33.T4i1b1",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -13306,7 +13305,20 @@
                 "size": 3,
                 "after": ["SPELLS-33.T4i1a"]
               },
-              "text": "Damage-type suppression (split 2026-10-20): suppressedByDamageTypes on the recurring trait, with damage types taken since the actor's last turn start written in the one damage-application seam and covered by undo. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
+              "text": "Damage taken since turn start (split 2026-10-20): optional {damageTypeId, commandId}[] on creature health, written by one shared damage-record helper that all four fold callers use; the START_OF_TURN system-trigger root clears the list in its own transaction and records the cleared entries on the batch, so undo restores them exactly."
+            },
+            {
+              "id": "SPELLS-33.T4i1b2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T4i1b1", "RULES-2.T6a"]
+              },
+              "text": "Damage-type suppression gate (split 2026-10-20): suppressedByDamageTypes on the recurring trait, as a gate kind dispatched through the one gate table, with the compiler gate after RULES-2.T6a. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
             },
             {
               "id": "SPELLS-33.T4i2",
@@ -15877,7 +15889,7 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "DONE",
+          "status": "TODO",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
@@ -15909,6 +15921,14 @@
                 "Red: ci/reliability-15-t2-red3 Tests 38885956580 on d91b8214d (tying primary and roll-off faces per case)",
                 "Green: CI Tests 38886014934 and Live backend 38886014969 on 32409c357"
               ]
+            },
+            {
+              "id": "RELIABILITY-15.3",
+              "status": "TODO",
+              "origin": [
+                "Same rule as RELIABILITY-15.2, applied to the sibling file after a CI flake on 2026-10-21 (Tests 39540465628, shard 4/4)"
+              ],
+              "text": "Every test in initiativeSpellDeclarations.test.ts that expects a settled (ACTIVE) Run is deterministic: no automatic initiative roll can tie into an unhandled INITIATIVE tie, controlled through the platform random seam (no weakened assertion, no retry)."
             }
           ],
           "tasks": [
@@ -15929,6 +15949,18 @@
               "text": "Seed or tie-handle every remaining settling case in initiativeDeclarations.test.ts (no weakened assertion, no retry); red per case on a ci/ -red branch, then green.",
               "status": "DONE",
               "closes": ["RELIABILITY-15.2"]
+            },
+            {
+              "id": "RELIABILITY-15.T3",
+              "status": "TODO",
+              "closes": ["RELIABILITY-15.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              },
+              "text": "Seed or tie-handle the settling cases in apps/apis/convex/encounters/initiativeSpellDeclarations.test.ts (flaked at :349, \"pins an authorized Spell publication and completes without spending resources\", expected ACTIVE got PREPARED) the way RELIABILITY-15.T1/T2 did; red per case on a ci/ branch."
             }
           ]
         },

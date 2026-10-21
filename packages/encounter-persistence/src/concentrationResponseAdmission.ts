@@ -10,7 +10,7 @@ import { readEncounterControlledActorIds } from './actorController.js'
 import { readNativeConcentrationPending } from './concentrationPending.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import {
-  readConcentrationCommitFailed,
+  readDamageSaveCommitMutated,
   readNativeConcentrationParentDamage
 } from './concentrationParent.js'
 import { presentTimelineEntry } from './timelineEntries.js'
@@ -72,11 +72,11 @@ export async function readNativeConcentrationResponseAdmission(
     presentTimelineEntry(prior)
     if (
       payload.status !== 'COMPLETE' ||
-      payload.applicationOutputs.kind !== 'CONCENTRATION_CHECK' ||
+      payload.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK' ||
       prior.encounterId !== run.id
     )
       throw new Error('The concentration occurrence is unavailable.')
-    const commitFailed = await readConcentrationCommitFailed(ctx, {
+    const commitMutated = await readDamageSaveCommitMutated(ctx, {
       encounterId: run.id,
       output: payload.applicationOutputs,
       encounterVersion: prior.version
@@ -96,7 +96,7 @@ export async function readNativeConcentrationResponseAdmission(
       occurrence.state !== 'COMPLETED' ||
       occurrence.version !== response.expectedOccurrenceVersion + 1 ||
       payload.occurrenceVersion !== occurrence.version ||
-      prior.version !== response.expectedVersion + (commitFailed ? 1 : 0) ||
+      prior.version !== response.expectedVersion + (commitMutated ? 1 : 0) ||
       evidence.encounterVersion !== prior.version ||
       prior.version > state.version ||
       occurrence.expectedEncounterVersion !== prior.version ||

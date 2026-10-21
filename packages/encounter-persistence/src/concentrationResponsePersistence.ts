@@ -11,7 +11,17 @@ import {
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import {
+  compareDamageSaveApplications,
+  damageSaveApplicationsAfterRelease,
+  isMaintainedDamageApplication
+} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import {
+  damageSaveCheckBoundApplication,
+  damageSaveCheckMutatesRun
+} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -25,12 +35,17 @@ import {
   insertNativeCleavingChoice
 } from './actionChildPersistence.js'
 import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
+import { readEffectRepeatSaveRow, releaseEffectRepeatSave } from './effectRepeatSavePersistence.js'
 import { readLiveConcentrationResponseAdmission } from './liveConcentrationResponseAdmission.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
 import type { applyLiveConcentrationCleanup } from './concentrationCleanupPersistence.js'
 import type { persistEncounterConcentrationChildren } from './concentrationChildrenPersistence.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
+
+type MaintainedSlot = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof createActiveRuleEffectStore>['findMaintainedState']>>
+>
 
 /** Commits the admitted check, cleanup, receipt, remaining checks and next decision atomically (D23). */
 export async function persistEncounterConcentrationResponse(
@@ -71,63 +86,71 @@ export async function persistEncounterConcentrationResponse(
   const { context, continuation, snapshot } = pending
   const response = input.concentrationResponse
   const execution = input.execution
-  if (
-    execution.status !== 'COMPLETE' ||
-    execution.applicationOutputs.kind !== 'CONCENTRATION_CHECK'
-  )
+  if (execution.status !== 'COMPLETE' || execution.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK')
     throw new Error('Live Session concentration did not complete.')
   // The holder's end was settled with the damage that prompted this check (D95).
   if (input.concentrationEnds.length)
     throw new Error('Live Session concentration response carries unexpected ends.')
   const output = execution.applicationOutputs
   const failed = output.outcome === 'SAVE_FAILURE'
+  // The save the roller made: Concentration's derived one, or the effect's frozen policy.
+  const save = context.source === 'CONCENTRATION' ? context.save : context.d20Policy
   if (
+    output.source !== context.source ||
     execution.occurrenceId !== occurrence.id ||
     execution.occurrenceVersion !== occurrence.version + 1 ||
     execution.initialFactsChecksum !== checksumRuleDocument(continuation.facts) ||
     execution.evidence.source.gameSystemId !== state.gameSystemId ||
-    execution.evidence.source.definitionId !== context.concentrationDefinition.id ||
-    execution.evidence.source.checksum !== context.concentrationDefinition.checksum ||
     output.occurrenceId !== occurrence.id ||
     output.parentOccurrenceId !== context.parentOccurrenceId ||
     output.contextChecksum !== context.contextChecksum ||
-    checksumCanonicalJson(output.concentrationDefinition) !==
-      checksumCanonicalJson(context.concentrationDefinition) ||
     checksumCanonicalJson(output.systemVocabularySnapshot) !==
       checksumCanonicalJson(context.systemVocabularySnapshot) ||
     checksumCanonicalJson(output.targetCharacter) !==
       checksumCanonicalJson(context.targetCharacter) ||
-    checksumCanonicalJson(output.application) !==
-      checksumCanonicalJson({
-        ...context.application,
-        maintainedStateId: context.maintainedState.id
-      }) ||
     checksumCanonicalJson(output.trigger) !== checksumCanonicalJson(context.trigger) ||
-    output.savingThrowAbilityDefinitionId !== context.save.savingThrowAbilityDefinitionId ||
+    output.savingThrowAbilityDefinitionId !== save.savingThrowAbilityDefinitionId ||
     output.d20.requestId !== resolution.requestId ||
     output.d20.requestId !== continuation.request.requestId ||
-    output.d20.rollMode !== context.save.rollMode ||
-    output.d20.modifier !== context.save.modifier ||
-    output.d20.contributorChecksum !== context.save.contributorChecksum ||
-    checksumCanonicalJson(output.d20.contributors) !==
-      checksumCanonicalJson(context.save.contributors) ||
+    output.d20.rollMode !== save.rollMode ||
+    output.d20.modifier !== save.modifier ||
+    output.d20.contributorChecksum !== save.contributorChecksum ||
+    checksumCanonicalJson(output.d20.contributors) !== checksumCanonicalJson(save.contributors) ||
     (resolution.kind === 'ENTER_DICE' &&
       checksumCanonicalJson(resolution.rawFaces) !== checksumCanonicalJson(output.d20.rawFaces)) ||
-    execution.outputs.targetActorId !== context.application.targetActorId ||
-    execution.outputs.appliedDamage !== context.application.appliedAmount ||
-    execution.outputs.contributorChecksum !== context.save.contributorChecksum ||
-    execution.outputs.naturalD20 !== output.d20.selectedNatural ||
     execution.outputs.total !== output.d20.total ||
-    execution.outputs.dc !== output.d20.dc ||
     execution.outputs.resultPath !== (failed ? 'ON_SAVE_FAIL' : 'ON_SAVE_SUCCESS')
   )
     throw new Error('Live Session concentration result does not match its pending evidence.')
+  if (context.source === 'CONCENTRATION' && output.source === 'CONCENTRATION') {
+    if (
+      execution.evidence.source.definitionId !== context.concentrationDefinition.id ||
+      execution.evidence.source.checksum !== context.concentrationDefinition.checksum ||
+      checksumCanonicalJson(output.concentrationDefinition) !==
+        checksumCanonicalJson(context.concentrationDefinition) ||
+      checksumCanonicalJson(output.application) !==
+        checksumCanonicalJson({
+          ...context.application,
+          maintainedStateId: context.maintainedState.id
+        }) ||
+      execution.outputs.targetActorId !== context.application.targetActorId ||
+      execution.outputs.appliedDamage !== context.application.appliedAmount ||
+      execution.outputs.contributorChecksum !== context.save.contributorChecksum ||
+      execution.outputs.naturalD20 !== output.d20.selectedNatural ||
+      execution.outputs.dc !== output.d20.dc
+    )
+      throw new Error('Live Session concentration result does not match its pending evidence.')
+  } else if (context.source === 'EFFECT_REPEAT_SAVE' && output.source === 'EFFECT_REPEAT_SAVE') {
+    if (
+      checksumCanonicalJson(output.activeEffect) !== checksumCanonicalJson(context.activeEffect) ||
+      checksumCanonicalJson(output.application) !== checksumCanonicalJson(context.application) ||
+      output.d20.dc !== context.d20Policy.dc
+    )
+      throw new Error('Live Session repeat save result does not match its pending evidence.')
+  } else throw new Error('Live Session damage save result does not match its pending evidence.')
 
   const store = createActiveRuleEffectStore(ctx)
-  const slots = new Map<
-    string,
-    NonNullable<Awaited<ReturnType<typeof store.findMaintainedState>>>
-  >()
+  const slots = new Map<string, MaintainedSlot>()
   for (const actorId of new Set(
     admission.parentApplications
       .slice(admission.applicationIndex)
@@ -142,55 +165,105 @@ export async function persistEncounterConcentrationResponse(
     })
     if (slot && admission.actors.some((actor) => actor.id === actorId)) slots.set(actorId, slot)
   }
-  const slot = slots.get(context.application.targetActorId)
   const target = admission.actors.find((actor) => actor.id === context.application.targetActorId)
   if (
-    !slot ||
     !target ||
     (await concentrationTargetPinChanged(target, context.targetCharacter, (characterId) =>
       callbacks.currentCharacterStreamVersion(state, characterId)
-    )) ||
-    checksumCanonicalJson(context.maintainedState) !==
-      checksumCanonicalJson({
-        id: slot.id,
-        version: slot.version,
-        maintenanceDefinitionId: slot.maintenanceDefinitionId,
-        descriptorChecksum: slot.descriptorChecksum
-      })
+    ))
   )
     throw new Error('Live Session concentration target changed.')
-  const remaining = admission.parentApplications
-    .slice(admission.applicationIndex + 1)
-    .flatMap((application) => {
+  // The chain after the answered check, in canonical order: Concentration checks re-derived from the
+  // parent's damage and the committed slots, effect checks proved to be on the parent and still held.
+  const bound = damageSaveCheckBoundApplication(output)
+  const effectItems = context.remaining.filter(
+    (entry): entry is Extract<typeof entry, { activeEffectId: string }> =>
+      !isMaintainedDamageApplication(entry)
+  )
+  for (const item of effectItems) {
+    const { activeEffectId, ...damage } = item
+    const holder = admission.actors.find((actor) => actor.id === damage.targetActorId)
+    if (
+      !holder ||
+      !admission.parentApplications.some(
+        (application) => checksumRuleDocument(application) === checksumRuleDocument(damage)
+      ) ||
+      !(await store.list(turnEffectOwner(holder, state.id))).some(({ id }) => id === activeEffectId)
+    )
+      throw new Error('Live Session repeat save damage order changed.')
+  }
+  const remaining = [
+    ...admission.parentApplications.slice(admission.applicationIndex).flatMap((application) => {
       const maintainedStateId = slots.get(application.targetActorId)?.id
       return maintainedStateId ? [{ ...application, maintainedStateId }] : []
-    })
+    }),
+    ...effectItems
+  ]
+    .sort(compareDamageSaveApplications)
+    .filter((entry) => compareDamageSaveApplications(entry, bound) > 0)
   if (checksumCanonicalJson(remaining) !== checksumCanonicalJson(context.remaining))
     throw new Error('Live Session concentration damage order changed.')
-  const nextRemaining = remaining.filter((entry) => !failed || entry.maintainedStateId !== slot.id)
-  const next = nextRemaining[0]
-  if (
-    output.nextOccurrenceId !==
-      (next ? concentrationOccurrenceId(context.parentOccurrenceId, next) : null) ||
-    checksumCanonicalJson(output.skipped) !==
-      checksumCanonicalJson(
-        failed
-          ? remaining
-              .filter((entry) => entry.maintainedStateId === slot.id)
-              .map((entry) => ({ ...entry, reason: 'MAINTAINED_STATE_ENDED' }))
-          : []
-      )
-  )
-    throw new Error('Live Session concentration successor mismatch.')
+  let nextRemaining = remaining
+  let slot: MaintainedSlot | null = null
+  if (context.source === 'CONCENTRATION' && output.source === 'CONCENTRATION') {
+    slot = slots.get(context.application.targetActorId) ?? null
+    if (
+      !slot ||
+      checksumCanonicalJson(context.maintainedState) !==
+        checksumCanonicalJson({
+          id: slot.id,
+          version: slot.version,
+          maintenanceDefinitionId: slot.maintenanceDefinitionId,
+          descriptorChecksum: slot.descriptorChecksum
+        })
+    )
+      throw new Error('Live Session concentration target changed.')
+    const maintainedStateId = slot.id
+    const ended = (entry: (typeof remaining)[number]) =>
+      isMaintainedDamageApplication(entry) && entry.maintainedStateId === maintainedStateId
+    nextRemaining = remaining.filter((entry) => !failed || !ended(entry))
+    const next = nextRemaining[0]
+    if (
+      output.nextOccurrenceId !==
+        (next ? concentrationOccurrenceId(context.parentOccurrenceId, next) : null) ||
+      checksumCanonicalJson(output.skipped) !==
+        checksumCanonicalJson(
+          failed
+            ? remaining
+                .filter(ended)
+                .map((entry) => ({ ...entry, reason: 'MAINTAINED_STATE_ENDED' }))
+            : []
+        )
+    )
+      throw new Error('Live Session concentration successor mismatch.')
+  } else if (context.source === 'EFFECT_REPEAT_SAVE' && output.source === 'EFFECT_REPEAT_SAVE') {
+    const effect = await readEffectRepeatSaveRow(ctx, {
+      encounterId: state.id,
+      holder: target,
+      pin: context.activeEffect
+    })
+    const frozen = effect.definition.frozenGraph.source
+    nextRemaining = output.released
+      ? damageSaveApplicationsAfterRelease(remaining, output.released.activeEffectId)
+      : remaining
+    const next = nextRemaining[0]
+    if (
+      execution.evidence.source.definitionId !== frozen.definitionId ||
+      execution.evidence.source.checksum !== frozen.checksum ||
+      output.nextOccurrenceId !==
+        (next ? concentrationOccurrenceId(context.parentOccurrenceId, next) : null)
+    )
+      throw new Error('Live Session repeat save successor mismatch.')
+  }
 
-  // Remaining checks the commit auto-rolled; one version advance covers every failure (D23).
-  const commitFailed =
-    failed ||
+  // Remaining checks the commit auto-rolled; one version advance covers every state change (D23).
+  const commitMutated =
+    damageSaveCheckMutatesRun(output) ||
     input.concentration.some(
       ({ result }) =>
         result.status === 'COMPLETE' &&
-        result.applicationOutputs.kind === 'CONCENTRATION_CHECK' &&
-        result.applicationOutputs.outcome === 'SAVE_FAILURE'
+        result.applicationOutputs.kind === 'DAMAGE_SAVE_CHECK' &&
+        damageSaveCheckMutatesRun(result.applicationOutputs)
     )
   const characterIds = new Set(
     admission.actors.flatMap((actor) => {
@@ -203,7 +276,7 @@ export async function persistEncounterConcentrationResponse(
     const key = checksumCanonicalJson(request)
     const requestSlot = slots.get(request.actorId)
     if (
-      !commitFailed ||
+      !commitMutated ||
       !requestSlot ||
       request.stateId !== requestSlot.id ||
       request.definitionId !== requestSlot.maintenanceDefinitionId ||
@@ -243,7 +316,7 @@ export async function persistEncounterConcentrationResponse(
   )
     throw new Error('The next concentration decision does not match its parent.')
   let actors = admission.actors
-  if (output.cleanup)
+  if (output.source === 'CONCENTRATION' && output.cleanup && slot)
     actors = await callbacks.applyCleanup({
       state,
       actors,
@@ -252,7 +325,14 @@ export async function persistEncounterConcentrationResponse(
       authorizedCharacterIds: characterIds,
       occurredAt: input.occurredAt
     })
-  const nextState = commitFailed
+  else if (output.source === 'EFFECT_REPEAT_SAVE')
+    actors = await releaseEffectRepeatSave(ctx, {
+      encounterId: state.id,
+      actors,
+      output,
+      occurredAt: input.occurredAt
+    })
+  const nextState = commitMutated
     ? encounterRunStateSchema.parse({
         ...state,
         version: state.version + 1,
@@ -283,7 +363,7 @@ export async function persistEncounterConcentrationResponse(
   const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
   const rules = input.rules
   if (
-    commitFailed
+    commitMutated
       ? !rules ||
         rules.actors.length !== ruleActors.length ||
         new Set(rules.actors.map((actor) => actor.actorId)).size !== ruleActors.length ||
@@ -292,7 +372,7 @@ export async function persistEncounterConcentrationResponse(
   )
     throw new Error('Live Session concentration projection scope mismatch.')
   const projection =
-    commitFailed && rules
+    commitMutated && rules
       ? await projectNativeGm(ctx, nextState, actors, rules)
       : await readEncounterGmProjection(ctx, nextState)
   const result = encounterCommandResultDtoSchema.parse({
@@ -305,7 +385,7 @@ export async function persistEncounterConcentrationResponse(
       pending: null
     }
   })
-  if (commitFailed)
+  if (commitMutated)
     await ctx.db.patch(run._id, {
       version: nextState.version,
       stateJson: JSON.stringify(nextState),

@@ -209,7 +209,7 @@ function concentrationChecks(history: Awaited<ReturnType<typeof readRoomHistory>
   return history.receipts.flatMap((receipt) => {
     const execution = parseReceiptExecution(receipt)
     return execution.status === 'COMPLETE' &&
-      execution.applicationOutputs.kind === 'CONCENTRATION_CHECK'
+      execution.applicationOutputs.kind === 'DAMAGE_SAVE_CHECK'
       ? [execution.applicationOutputs]
       : []
   })

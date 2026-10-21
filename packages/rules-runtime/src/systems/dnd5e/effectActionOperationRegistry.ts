@@ -220,11 +220,10 @@ export function hitPointGateBand(
  * Version 2 of a target-only proposal also reads the target's current hit points and the gate's
  * band, and is authorized only while the target is above its floor and at or under its ceiling.
  */
-export function hitPointGatedTargetOnlyProposalOperation(
-  key: string,
+export function hitPointGatedProposalOperation(
+  base: ProposalRuleOperationContract,
   label: string
 ): ProposalRuleOperationContract {
-  const base = targetOnlyProposalOperation(key, label)
   return {
     ...base,
     contractVersion: 2,
@@ -253,9 +252,13 @@ export function hitPointGatedTargetOnlyProposalOperation(
     }
   }
 }
-export const dnd5eHitPointGatedKillProposalOperation = hitPointGatedTargetOnlyProposalOperation(
-  DND5E_KILL_PROPOSAL_OPERATION_KEY,
+export const dnd5eHitPointGatedKillProposalOperation = hitPointGatedProposalOperation(
+  dnd5eKillProposalOperation,
   'kill'
+)
+export const dnd5eHitPointGatedHealProposalOperation = hitPointGatedProposalOperation(
+  dnd5eHealProposalOperation,
+  'heal'
 )
 export const dnd5eDepartProposalOperation = targetOnlyProposalOperation(
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
@@ -1322,6 +1325,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
         dnd5eSaveTestOperation,
         dnd5eTestMarginConditionProposalOperation,
         dnd5eHitPointGatedKillProposalOperation,
+        dnd5eHitPointGatedHealProposalOperation,
         dnd5eHitPointGatedConditionApplyProposalOperation
       ].map(({ key, contractVersion }) => ({ key, contractVersion }))
     )

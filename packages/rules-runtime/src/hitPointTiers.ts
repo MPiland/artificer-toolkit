@@ -1,6 +1,19 @@
 /** The floor of a band with no lower neighbour: a target's hit points are never below zero. */
 export const NO_HIT_POINT_FLOOR = -1
 
+/** The ceiling of a band with no upper neighbour. */
+export const NO_HIT_POINT_CEILING = Number.MAX_SAFE_INTEGER
+
+/** The band a result-block gate bounds: at most its amount, or at least it. */
+export function hitPointGateBand(gate: {
+  kind: 'TARGET_HIT_POINTS_AT_MOST' | 'TARGET_HIT_POINTS_AT_LEAST'
+  amount: number
+}): { above: number; atMost: number } {
+  return gate.kind === 'TARGET_HIT_POINTS_AT_LEAST'
+    ? { above: gate.amount - 1, atMost: NO_HIT_POINT_CEILING }
+    : { above: NO_HIT_POINT_FLOOR, atMost: gate.amount }
+}
+
 /**
  * The one hit-point comparison: whether a target's current hit points lie in the band above
  * `above` and at most `atMost`. A gate and every tier of a tiered result are bands.

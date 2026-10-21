@@ -18,6 +18,7 @@ import {
   type EncounterPassiveWeaponHit
 } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
+import { preparedSpellCastLevel } from './encounterCastReactionDiscovery.js'
 import { readEncounterChosenItem } from './encounterChosenItem.js'
 import { planEncounterEquipmentDegradation } from './encounterEquipmentDegradation.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
@@ -305,6 +306,7 @@ export function prepareNativeActionEffectsPlan<
     link: input.link,
     form: input.form,
     ...(chosen ? { chosenItem: { item: chosen.item, released } } : {}),
+    spellCastLevel: preparedSpellCastLevel(prepared) ?? undefined,
     published: execution.published,
     execution: execution.execution,
     d20: execution.d20,
@@ -355,8 +357,10 @@ export function prepareNativeActionEffectsPlan<
     immunity &&
     (immunity.appliesTo === 'EVERY_TARGET' || execution.d20?.resultPath === 'ON_SAVE_SUCCESS')
   )
+  // A repeat carrier rides the recurring effect on either save result (it is none once the item is released).
   const riderEffect =
     immune ||
+    plan?.repeatCarrier ||
     execution.applications.some(
       (application) =>
         application.kind === 'CONDITION_APPLY' &&

@@ -275,7 +275,13 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
      * Set only on a root the rules raise themselves, never on one a player submits: the committed
      * command whose result raised it. Admission proves the link against that command's receipt.
      */
-    systemTrigger: z.optional(z.strictObject({ parentCommandId: uuidSchema })),
+    systemTrigger: z.optional(
+      z.strictObject({
+        parentCommandId: uuidSchema,
+        /** Absent for the default, reaching 0 hit points. */
+        trigger: z.optional(z.literal('START_OF_TURN'))
+      })
+    ),
     acceptedWieldConflict: z._default(
       z.optional(z.nullable(encounterAcceptedWieldConflictDtoSchema)),
       null
@@ -522,6 +528,18 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
         kind: z.literal('FORCED_MOVEMENT'),
         requestId: requestIdSchema,
         position: spatialPointDtoSchema
+      }),
+      /** The roller lets a held die go unused after seeing the d20. */
+      z.strictObject({ kind: z.literal('D20_WINDOW_DECLINE'), requestId: requestIdSchema }),
+      /**
+       * The roller adds a held die the window offered. `faces` are the die's entered faces; absent,
+       * the server rolls it.
+       */
+      z.strictObject({
+        kind: z.literal('D20_WINDOW_USE'),
+        requestId: requestIdSchema,
+        optionId: checksumSchema,
+        faces: z.optional(d20AddedFacesDtoSchema)
       }),
       z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
       z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema }),

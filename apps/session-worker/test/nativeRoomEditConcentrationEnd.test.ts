@@ -160,9 +160,7 @@ describe('Sheet-edit Concentration ends (D95)', () => {
         reason: 'INCAPACITATED'
       }
     })
-    expect((await room.receipts()).filter((r) => r.commandType === 'CONCENTRATION_CHECK')).toEqual(
-      []
-    )
+    expect((await room.receipts()).filter((r) => r.commandType === 'DAMAGE_SAVE_CHECK')).toEqual([])
     expect(await maintained(room)).toEqual({ slots: [], dependents: [] })
     // The Sheet write and the cleanup share one stream-version increment.
     expect(await streamVersionOf(room)).toBe(before + 1)

@@ -86,9 +86,9 @@ import {
 } from '../../encounterAreaAction.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
+  hitPointGateBand as authoredHitPointGateBand,
   hitPointTierCeilings,
   hitPointTierFloor,
-  NO_HIT_POINT_FLOOR,
   selectHitPointTier
 } from '../../hitPointTiers.js'
 import {
@@ -657,8 +657,11 @@ function isSupportedTestActivation(
   if (invocation.activation.code === 'FREE') return false
   if (invocation.activation.amount !== 1) return false
   if (invocation.activation.code === 'ACTION') return true
+  // A save is a bonus action only as a repeat offer's charge (Heat Metal's repeated damage, D166).
   if (invocation.activation.code === 'BONUS_ACTION')
-    return isWeaponOrUnarmedAttack(invocation.triggerCode)
+    return (
+      isWeaponOrUnarmedAttack(invocation.triggerCode) || invocation.triggerCode === 'SAVING_THROW'
+    )
   return (
     invocation.activation.code === 'REACTION' &&
     'reactionTrigger' in invocation &&
@@ -2424,7 +2427,11 @@ function saveGrantPlan(
   )
     return null
   const [entry, other, ...rest] = action.compiledEffect.entries.flatMap((candidate) =>
-    'outcome' in candidate && candidate.outcome.effectKind === 'APPLY_GRANT' ? [candidate] : []
+    'outcome' in candidate &&
+    candidate.outcome.effectKind === 'APPLY_GRANT' &&
+    !isRepeatCarrierEntry(candidate)
+      ? [candidate]
+      : []
   )
   if (
     !entry ||
@@ -2434,6 +2441,64 @@ function saveGrantPlan(
     return null
   // A grant on one save result applies only on it; one authored alike on both applies either way.
   return modifierGrantEntryPlan({ action, entry, resultGated: !other, untilEndEvent: false })
+}
+
+/** A grant that carries a repeat offer (D166): planned beside the effect it rides, not as a modifier grant. */
+function isRepeatCarrierEntry(entry: CompiledEffectGroup['entries'][number]): boolean {
+  return (
+    'outcome' in entry &&
+    entry.outcome.effectKind === 'APPLY_GRANT' &&
+    (entry.lifecycle?.effectOffers ?? []).some((offer) => offer.kind === 'REPEAT_SOURCE_PATH')
+  )
+}
+
+/**
+ * The effect a save action leaves on its target that offers the source a repeat of the action's paths
+ * (Heat Metal's "use a Bonus Action to cause the damage again"), or null when it offers none. The
+ * carrier is one grant authored alike on both save results with no modifiers of its own; it is bound
+ * to the chosen item and ends when that item is released, and it lasts as long as the action's
+ * Concentration. The cast freezes the saving throw DC and the cast level into the offer.
+ */
+function repeatCarrierPlan(
+  action: Dnd5eCompiledEffectActionSource
+): CharacterRuleActionActiveEffectPlan['repeatCarrier'] {
+  const [entry, other, ...rest] = action.compiledEffect.entries.flatMap((candidate) =>
+    'outcome' in candidate && isRepeatCarrierEntry(candidate) ? [candidate] : []
+  )
+  if (!entry) return null
+  if (
+    entry.outcome.effectKind !== 'APPLY_GRANT' ||
+    testPhaseKindOrNull(action) !== 'SAVE' ||
+    rest.length > 0 ||
+    (other &&
+      (other.pathCode === entry.pathCode || authoredAlike(entry) !== authoredAlike(other))) ||
+    !entry.chosenItem ||
+    !entry.outcome.bindsChosenItem ||
+    entry.duration === undefined ||
+    !UUID.test(entry.entryId)
+  )
+    unsupported('D&D repeat offer rides one chosen-item grant authored alike on both save results.')
+  const { grants } = entry.outcome
+  const { endOnEvents = [], effectOffers = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  if (
+    grants.modifiers?.length ||
+    grants.senses?.length ||
+    grants.proficiencies?.length ||
+    endOnEvents.length !== 1 ||
+    endOnEvents[0] !== 'ON_CHOSEN_ITEM_RELEASED' ||
+    Object.values(otherLifecycle).some((value) => value !== undefined)
+  )
+    unsupported(
+      'D&D repeat offer carrier grants nothing and ends when its chosen item is released.'
+    )
+  return {
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'repeat-carrier',
+    applyGrantOutcomeId: entry.outcome.id,
+    effectOffers: effectOffers.map((offer) =>
+      offer.kind === 'MOVE_HELD_EFFECT' ? { ...offer, range: { ...offer.range } } : { ...offer }
+    )
+  }
 }
 
 /**
@@ -2480,8 +2545,9 @@ function chosenItemPlan(
   const items = new Set(
     entries.flatMap(({ chosenItem }) => (chosenItem ? [JSON.stringify(chosenItem)] : []))
   )
+  // A repeat carrier is bound to the item by its own plan, not the modifier grant's.
   const grants = entries.flatMap((entry) =>
-    entry.outcome.effectKind === 'APPLY_GRANT'
+    entry.outcome.effectKind === 'APPLY_GRANT' && !isRepeatCarrierEntry(entry)
       ? [{ pathCode: entry.pathCode, outcome: entry.outcome }]
       : []
   )
@@ -2687,7 +2753,9 @@ function modifierGrantEntryPlan(input: {
       ...(uses !== undefined && { uses }),
       ...(grantedActions && { grantedActions: grantedActions.map((offer) => ({ ...offer })) }),
       ...(effectOffers && {
-        effectOffers: effectOffers.map((offer) => ({ ...offer, range: { ...offer.range } }))
+        effectOffers: effectOffers.map((offer) =>
+          offer.kind === 'MOVE_HELD_EFFECT' ? { ...offer, range: { ...offer.range } } : { ...offer }
+        )
       }),
       ...(onEnd && {
         onEnd: {
@@ -2866,6 +2934,7 @@ function durationPublishedGraph(input: {
     | 'actorLinkContribution'
     | 'creatureFormContribution'
     | 'marginRider'
+    | 'repeatCarrier'
   >
 }): ServerPublishedRuleDefinitionDto {
   const {
@@ -2879,17 +2948,20 @@ function durationPublishedGraph(input: {
     id: input.effectId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [input.plan.frozenGraphNodeId, input.plan.marginRider?.frozenGraphNodeId].flatMap(
-      (id) =>
-        id
-          ? [
-              {
-                id,
-                operation: { key: DND5E_CONDITION_DURATION_OPERATION_KEY, contractVersion: 1 },
-                inputs: {}
-              }
-            ]
-          : []
+    nodes: [
+      input.plan.frozenGraphNodeId,
+      input.plan.marginRider?.frozenGraphNodeId,
+      input.plan.repeatCarrier?.frozenGraphNodeId
+    ].flatMap((id) =>
+      id
+        ? [
+            {
+              id,
+              operation: { key: DND5E_CONDITION_DURATION_OPERATION_KEY, contractVersion: 1 },
+              inputs: {}
+            }
+          ]
+        : []
     ),
     outputs: conditionContributions?.length
       ? Object.fromEntries(
@@ -2918,6 +2990,14 @@ function durationPublishedGraph(input: {
             {
               sourceEntryId: input.plan.marginRider.compiledEntryId,
               nodeId: input.plan.marginRider.frozenGraphNodeId
+            }
+          ]
+        : []),
+      ...(input.plan.repeatCarrier
+        ? [
+            {
+              sourceEntryId: input.plan.repeatCarrier.compiledEntryId,
+              nodeId: input.plan.repeatCarrier.frozenGraphNodeId
             }
           ]
         : [])
@@ -6854,11 +6934,25 @@ function dnd5eActiveEffectPlans(
     (!plan || (sourceImmunity.appliesTo === 'SAVE_SUCCESS' ? plan.maintenance : plan.marginRider))
   )
     unsupported('D&D source immunity needs a lasting effect it can ride.')
+  const repeatCarrier = repeatCarrierPlan(action)
+  // The carrier takes the failure rider's slot and depends on the Concentration the grant rides.
+  if (
+    repeatCarrier &&
+    (!timedPlan?.modifierGrantContribution ||
+      !timedPlan.maintenance ||
+      !timedPlan.chosenItem ||
+      timedPlan.marginRider ||
+      sourceImmunity)
+  )
+    unsupported('D&D repeat offer needs a maintained chosen-item grant it can ride.')
   if (!plan) return []
   const frozenGraph = repeatPlan
     ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
     : timedPlan
-      ? durationPublishedGraph({ effectId: action.effectId, plan: timedPlan })
+      ? durationPublishedGraph({
+          effectId: action.effectId,
+          plan: { ...timedPlan, repeatCarrier }
+        })
       : relationship
         ? relationship.frozenGraph
         : published
@@ -6906,7 +7000,14 @@ function dnd5eActiveEffectPlans(
     throw new Dnd5eEffectActionCompilerError(
       'The D&D active effect plan does not bind one exact authored result block.'
     )
-  return [{ ...plan, frozenGraph, ...(sourceImmunity && { sourceImmunity }) }]
+  return [
+    {
+      ...plan,
+      frozenGraph,
+      ...(sourceImmunity && { sourceImmunity }),
+      ...(repeatCarrier && { repeatCarrier })
+    }
+  ]
 }
 
 function compileDnd5eEffectAction({
@@ -6947,10 +7048,12 @@ function compileDnd5eEffectAction({
   })
 }
 
-/** The hit-point ceiling the action's one direct entry gates its outcome on, when it has one. */
-function directHitPointGateAtMost(action: Dnd5eCompiledEffectActionSource): number | undefined {
+/** The hit-point band the action's one direct entry gates its outcome on, when it has one. */
+function directHitPointGateBand(
+  action: Dnd5eCompiledEffectActionSource
+): { above: number; atMost: number } | undefined {
   const entry = action.compiledEffect.entries[0]
-  return entry && 'gate' in entry ? entry.gate?.amount : undefined
+  return entry && 'gate' in entry && entry.gate ? authoredHitPointGateBand(entry.gate) : undefined
 }
 
 function compileEffectActionGraph(
@@ -6971,9 +7074,9 @@ function compileEffectActionGraph(
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
   // Only a direct outcome honours a hit-point gate; every other plan refuses one rather than skip it.
-  const gateAtMost = directHitPointGateAtMost(action)
+  const gateBand = directHitPointGateBand(action)
   const refuseGate = () => {
-    if (gateAtMost !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
+    if (gateBand !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
   }
   const composition = sequentialComposition(action)
   if (composition) {
@@ -6995,8 +7098,13 @@ function compileEffectActionGraph(
   }
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
-  if (gateAtMost !== undefined && outcome.kind !== 'KILL' && outcome.kind !== 'CONDITION_APPLY')
-    unsupported('D&D hit-point gate belongs to a kill or condition outcome.')
+  if (
+    gateBand !== undefined &&
+    outcome.kind !== 'KILL' &&
+    outcome.kind !== 'CONDITION_APPLY' &&
+    outcome.kind !== 'HEAL'
+  )
+    unsupported('D&D hit-point gate belongs to a kill, condition or heal outcome.')
   if (outcome.kind === 'DICE_HEAL') {
     const entry = action.compiledEffect.entries[0]
     if (
@@ -7086,22 +7194,22 @@ function compileEffectActionGraph(
     nodes: [
       {
         id: nodeId,
-        operation: { key: operation, contractVersion: gateAtMost === undefined ? 1 : 2 },
+        operation: { key: operation, contractVersion: gateBand === undefined ? 1 : 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           targetStateChecksum: {
             kind: 'FACT',
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
-          ...(gateAtMost === undefined
+          ...(gateBand === undefined
             ? {}
             : {
                 targetCurrentHitPoints: {
                   kind: 'FACT',
                   factKey: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY
                 },
-                hitPointsAbove: { kind: 'LITERAL', value: NO_HIT_POINT_FLOOR },
-                hitPointsAtMost: { kind: 'LITERAL', value: gateAtMost }
+                hitPointsAbove: { kind: 'LITERAL', value: gateBand.above },
+                hitPointsAtMost: { kind: 'LITERAL', value: gateBand.atMost }
               }),
           ...(isTargetOnlyOutcome(outcome)
             ? targetOnlyOutcomeInputs(outcome)
@@ -8108,7 +8216,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     targetScalarValues,
     defenses,
     conditionImmunityIds,
-    perception
+    perception,
+    rollInfluence
   }) => {
     if (definition.frozenGraph.source.gameSystemId !== DND5E_SYSTEM_ID)
       throw new Dnd5eEffectActionCompilerError(
@@ -8239,6 +8348,16 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError(
         'D&D active effect received an unbound perception result.'
       )
+    }
+    if (rollInfluence) {
+      contributors.push({
+        sourceId: createCharacterMechanicSourceKey({ kind: 'ACTIVE_EFFECT', activeEffectId }),
+        grantId: null,
+        domainKey: 'damage-repeat-save',
+        influence: rollInfluence,
+        source: { kind: 'ACTIVE_EFFECT', id: activeEffectId, holderActorId: null }
+      })
+      contributors.sort(compareCanonicalD20Contributors)
     }
     const resolvedContributors = resolveD20Contributors(contributors)
     const contributorChecksum = checksumRuleDocument(resolvedContributors.contributors)

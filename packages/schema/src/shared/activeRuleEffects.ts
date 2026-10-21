@@ -20,7 +20,7 @@ import {
   activeEffectSaveThresholdsSchema,
   activeEffectUsesSchema
 } from './activeRuleEffectLifecycle.js'
-import { effectOffersDtoSchema } from '../effects/effectOffer.js'
+import { storedEffectOffersSchema } from '../effects/storedEffectOffer.js'
 import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import {
@@ -439,16 +439,17 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
        * creation; the offer is read from the held effect, never from the spell. A created follow-on
        * carries none.
        */
-      effectOffers: z.optional(effectOffersDtoSchema)
+      effectOffers: z.optional(storedEffectOffersSchema)
     })
     .check(
       z.refine(
         (contribution) =>
           contribution.modifiers.length +
             contribution.senses.length +
-            (contribution.grantedActions?.length ?? 0) >
+            (contribution.grantedActions?.length ?? 0) +
+            (contribution.effectOffers?.length ?? 0) >
           0,
-        'A grant contribution grants a modifier, a sense or an action.'
+        'A grant contribution grants a modifier, a sense, an action or an offer.'
       )
     )
 )

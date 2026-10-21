@@ -680,6 +680,17 @@ export function interpretDirectProposal(
       }
     ]
   }
+  const gatedHeal =
+    trace.operation.key === DND5E_HEAL_PROPOSAL_OPERATION_KEY &&
+    trace.operation.contractVersion === 2
+  if (gatedHeal) {
+    if (!hitPointGateEvidenceIsValid(input, publishedNode, trace))
+      throw new Dnd5eEffectActionCompilerError(
+        'The committed D&D heal proposal hit-point gate evidence is invalid.'
+      )
+    // A target outside the gate's band is left as it was.
+    if (trace.outputs.authorized === false) return []
+  }
   if (trace.outputs.authorized !== true)
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
   const storedKind =
@@ -719,7 +730,7 @@ export function interpretDirectProposal(
   if (
     trace.outputs.targetActorId !== input.targetActorId ||
     trace.outputs.amount !== outputs.amount ||
-    trace.operation.contractVersion !== 1
+    trace.operation.contractVersion !== (gatedHeal ? 2 : 1)
   )
     throw new Dnd5eEffectActionCompilerError(
       'The committed D&D rule action proposal trace is invalid.'

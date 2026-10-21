@@ -14,7 +14,7 @@ import {
   revertEncounterActorItemRelease
 } from '../encounterActorOptionalContestContext.js'
 import {
-  encounterHeldItemInstanceIds,
+  encounterItemInstanceIdsOnActor,
   listEncounterChosenItems,
   readEncounterChosenItem
 } from '../encounterChosenItem.js'
@@ -57,7 +57,7 @@ function equipmentSource(loadoutEntryId: string, document: typeof heldWeapon) {
 }
 
 /** A Medium SRD Creature holding a dagger and carrying a club, as its Blueprint snapshot pins them. */
-function creatureTarget(heldState: 'MAIN_HAND' | 'OFF_HAND' | 'CARRIED' = 'MAIN_HAND') {
+function creatureTarget(heldState: 'MAIN_HAND' | 'OFF_HAND' | 'WORN' | 'CARRIED' = 'MAIN_HAND') {
   return creatureActor({
     id: TARGET_ACTOR_ID,
     snapshot: {
@@ -668,7 +668,7 @@ describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
       expect(listEncounterChosenItems({ plan: metalItem, target })).toEqual([
         { item: daggerItem, releasable: true }
       ])
-      expect(encounterHeldItemInstanceIds(target.actor, undefined)).toEqual([HELD_ENTRY_ID])
+      expect(encounterItemInstanceIdsOnActor(target.actor, undefined)).toEqual([HELD_ENTRY_ID])
     }
   )
 
@@ -678,6 +678,21 @@ describe('an item a chosen-item action is used on (SPELLS-4.T2e)', () => {
     expect(() =>
       readEncounterChosenItem({ plan: metalItem, target, itemInstanceId: HELD_ENTRY_ID })
     ).toThrow('The chosen item is not one this action can be used on.')
+  })
+
+  it("counts a Creature's worn item as on it, and its carried item as not", () => {
+    expect(encounterItemInstanceIdsOnActor(creatureTarget('WORN'), undefined)).toEqual([
+      HELD_ENTRY_ID
+    ])
+    expect(encounterItemInstanceIdsOnActor(creatureTarget('CARRIED'), undefined)).toEqual([])
+  })
+
+  it("counts a Character's worn item as on it, and a stowed item (not equipped) as not", () => {
+    const character = characterActor({ id: TARGET_ACTOR_ID, characterId: TARGET_CHARACTER_ID })
+    expect(
+      encounterItemInstanceIdsOnActor(character, [{ itemId: HELD_ITEM_INSTANCE_ID, slot: 'WORN' }])
+    ).toEqual([HELD_ITEM_INSTANCE_ID])
+    expect(encounterItemInstanceIdsOnActor(character, [])).toEqual([])
   })
 
   it('filters by equipment, category and excluded properties', () => {

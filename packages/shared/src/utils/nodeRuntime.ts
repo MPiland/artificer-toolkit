@@ -29,7 +29,10 @@ export function resolveLocalCollectionOptions(
   source: NodeLocalCollectionSource,
   scope: NodeRuntimeScope
 ): Array<{ value: string; label: string }> {
-  const root = scope.ancestors?.at(-1) ?? scope.values
+  const root =
+    source.up === undefined
+      ? (scope.ancestors?.at(-1) ?? scope.values)
+      : scope.ancestors?.[source.up - 1]
   const collection = getValueAtPath(root, source.rootCollectionPath)
   if (!Array.isArray(collection)) return []
 

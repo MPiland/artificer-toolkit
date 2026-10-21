@@ -139,19 +139,24 @@ function resolveEncounterChosenItem({
 }
 
 /**
- * The item instances a hand of the actor holds now: a Character's from its equipped items
- * (`characterEquipped`, required for a Character), a Creature's from its loadout.
+ * The item instances the actor still has on it now, a hand holding the item or the actor wearing it
+ * (a grant bound to a worn item, Heat Metal's armor, outlasts a drop that cannot happen): a
+ * Character's from its equipped items (`characterEquipped`, required for a Character), a
+ * Creature's from its loadout.
  */
-export function encounterHeldItemInstanceIds(
+export function encounterItemInstanceIdsOnActor(
   actor: EncounterRunActorState,
   characterEquipped: readonly { itemId: string; slot: string }[] | undefined
 ): string[] {
   if (actor.kind === 'CHARACTER') {
     if (!characterEquipped) throw new Error('Held item Character equipment is unavailable.')
-    return characterEquipped.flatMap(({ itemId, slot }) => (isHeldSlot(slot) ? [itemId] : []))
+    return characterEquipped.map(({ itemId }) => itemId)
   }
   if (actor.kind !== 'CREATURE') return []
   return snapshotCreatureEquipmentItems(actor).flatMap(({ entry }) =>
-    entry.useState !== 'CARRIED' && isCreatureEntryHeld(actor, entry.id) ? [entry.id] : []
+    entry.useState === 'WORN' ||
+    (entry.useState !== 'CARRIED' && isCreatureEntryHeld(actor, entry.id))
+      ? [entry.id]
+      : []
   )
 }

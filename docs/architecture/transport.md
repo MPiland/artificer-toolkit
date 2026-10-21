@@ -348,6 +348,8 @@ An effect another actor is offered to move (`effectOffers`, D160) is moved with 
 (`MoveHeldEffectInputDto`: `actorId`, `effectId`, `offerIndex`, `target: { kind: 'ACTOR', actorId }`, `acknowledgedWarnings`, optional `sceneContext`),
 which spends the offer's activation, is a PLAYER command for the actor's controller, and is refused for a stale offer,
 a defeated or unchanged holder, or an unacknowledged range warning.
+A `REPEAT_SOURCE_PATH` effect offer (D166) is not a Run command of its own: the `effectOffers` entry carries an `actionId`
+(`<actorId>:REPEAT_PATH:<effectId>:<offerIndex>`), started as an ordinary action (`RESOLVE_ACTION`) against the holder.
 The Sheet `END_ACTIVE_EFFECT` command ends a `holderEnd` effect for its own player only when the Run is not live: in an
 ACTIVE Encounter that holds the Character, a costed end is refused with "End this effect from the Encounter actions."
 
@@ -535,6 +537,8 @@ sequenceDiagram
   end
   Host->>Host: derive the next command's exact conflict keys
 ```
+
+A d20 window (`ENCOUNTER_D20_WINDOW`, SPELLS-31.T4c1a) is answered by `RESOLVE_RULE_OCCURRENCE` with `D20_WINDOW_USE` or `D20_WINDOW_DECLINE`; the first response commit pends it (version +1, no receipt) and the answer settles the check, ends the spent effect and writes the receipt atomically. A GM void of it is refused.
 
 `RESOLVE_RULE_OCCURRENCE` fails closed unless exactly one binding matches its Encounter and occurrence. A spatial resolution claims the Encounter, the exact bound Scene, and the Encounter's bound Characters; a non-spatial resolution does not claim a Scene merely because the Encounter has one. A command result adds, replaces, or clears the cached binding immediately. A persisted replay whose pause changed no aggregate version must still reconcile that binding; when a full authoritative refresh ran, the refreshed snapshot wins. Any replay refresh must cover both the replay's changed roots and every root already represented in the coordinator, so recovery cannot drop or regress unrelated state.
 

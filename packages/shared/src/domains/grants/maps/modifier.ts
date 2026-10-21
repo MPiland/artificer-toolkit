@@ -19,6 +19,7 @@ import {
   RANGE_OPTIONS,
   ROLLED_DIE_FACES,
   ROLLED_DIE_SIGN_OPTIONS,
+  ROLLED_DIE_TIMING_OPTIONS,
   SHAPE_KIND_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '#core'
@@ -511,6 +512,15 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           'Add or Subtract',
           { kind: 'INLINE_OPTIONS', options: ROLLED_DIE_SIGN_OPTIONS },
           { showIf: isRolledDie }
+        )
+      )
+      .set(
+        'timing',
+        selectSingle(
+          ['timing'],
+          'Joins The Roll',
+          { kind: 'INLINE_OPTIONS', options: ROLLED_DIE_TIMING_OPTIONS },
+          { showIf: and([isRolledDie, not(isDamageDie)]) }
         )
       )
       .set(

@@ -26934,7 +26934,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -38072,7 +38073,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -49219,7 +49221,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -60357,7 +60360,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -71530,7 +71534,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -82668,7 +82673,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -93761,7 +93767,8 @@ export declare const api: {
                           | "INCOMING_SAVING_THROW"
                           | "ENTER_AREA"
                           | "INCOMING_WEAPON_HIT"
-                          | "ROLL_INITIATIVE";
+                          | "ROLL_INITIATIVE"
+                          | "START_OF_TURN";
                       }
                     | {
                         damageTypeIds: Array<string>;
@@ -104796,7 +104803,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -115934,7 +115942,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -127673,35 +127682,63 @@ export declare const api: {
               | null;
           }>;
           defaultActionId: string | null;
-          effectOffers: Array<{
-            activation: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
-            effectId: string;
-            holderActorId: string;
-            kind: "MOVE_HELD_EFFECT";
-            offerIndex: number;
-            range: {
-              amount: number;
-              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-            };
-            warnings: Array<{
-              code:
-                | "ACTION_ECONOMY_UNAVAILABLE"
-                | "CONDITION_SOURCE_APPROACH"
-                | "CONDITION_SOURCE_FLEE"
-                | "RESOURCE_UNAVAILABLE"
-                | "SOURCE_NOT_EQUIPPED"
-                | "TARGET_DEFEATED"
-                | "TARGET_CREATURE_TYPE_EXCLUDED"
-                | "TARGET_DISPOSITION"
-                | "TARGET_INTELLIGENCE_EXCLUDED"
-                | "TARGET_NOT_DYING"
-                | "TARGET_OUT_OF_RANGE"
-                | "TARGET_OUT_OF_SIGHT"
-                | "TARGET_RANGE_UNCHECKED"
-                | "TARGET_TOO_LARGE";
-              message: string;
-            }>;
-          }>;
+          effectOffers: Array<
+            | {
+                activation: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+                effectId: string;
+                holderActorId: string;
+                kind: "MOVE_HELD_EFFECT";
+                offerIndex: number;
+                range: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+                warnings: Array<{
+                  code:
+                    | "ACTION_ECONOMY_UNAVAILABLE"
+                    | "CONDITION_SOURCE_APPROACH"
+                    | "CONDITION_SOURCE_FLEE"
+                    | "RESOURCE_UNAVAILABLE"
+                    | "SOURCE_NOT_EQUIPPED"
+                    | "TARGET_DEFEATED"
+                    | "TARGET_CREATURE_TYPE_EXCLUDED"
+                    | "TARGET_DISPOSITION"
+                    | "TARGET_INTELLIGENCE_EXCLUDED"
+                    | "TARGET_NOT_DYING"
+                    | "TARGET_OUT_OF_RANGE"
+                    | "TARGET_OUT_OF_SIGHT"
+                    | "TARGET_RANGE_UNCHECKED"
+                    | "TARGET_TOO_LARGE";
+                  message: string;
+                }>;
+              }
+            | {
+                actionId: string;
+                activation: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+                effectId: string;
+                holderActorId: string;
+                kind: "REPEAT_SOURCE_PATH";
+                offerIndex: number;
+                warnings: Array<{
+                  code:
+                    | "ACTION_ECONOMY_UNAVAILABLE"
+                    | "CONDITION_SOURCE_APPROACH"
+                    | "CONDITION_SOURCE_FLEE"
+                    | "RESOURCE_UNAVAILABLE"
+                    | "SOURCE_NOT_EQUIPPED"
+                    | "TARGET_DEFEATED"
+                    | "TARGET_CREATURE_TYPE_EXCLUDED"
+                    | "TARGET_DISPOSITION"
+                    | "TARGET_INTELLIGENCE_EXCLUDED"
+                    | "TARGET_NOT_DYING"
+                    | "TARGET_OUT_OF_RANGE"
+                    | "TARGET_OUT_OF_SIGHT"
+                    | "TARGET_RANGE_UNCHECKED"
+                    | "TARGET_TOO_LARGE";
+                  message: string;
+                }>;
+              }
+          >;
           encounterId: string;
           encounterVersion: number;
           escapes: Array<{
@@ -128206,6 +128243,12 @@ export declare const api: {
                       kind: "CONCENTRATION";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "EFFECT_REPEAT_SAVE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -128330,6 +128373,45 @@ export declare const api: {
                       riderId: string;
                     }
                 >;
+              }
+            | {
+                allowedResponses: Array<
+                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                >;
+                d20: { selectedNatural: number; total: number };
+                encounterVersion: number;
+                kind: "D20_WINDOW";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  optionId: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
+                requestId: string;
+                rollerActorId: string;
+                trigger:
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "EFFECT_REPEAT_SAVE";
+                      sourceLabel: string | null;
+                    }
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number }
+                  | {
+                      actionLabel: string;
+                      checkLabel: string;
+                      dc: number | null;
+                      kind: "BASIC_ACTION_CHECK";
+                    };
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -128571,6 +128653,12 @@ export declare const api: {
                         sourceLabel: string | null;
                       }
                     | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "EFFECT_REPEAT_SAVE";
+                        sourceLabel: string | null;
+                      }
+                    | {
                         failures: number;
                         kind: "DEATH_SAVE";
                         successes: number;
@@ -128702,6 +128790,49 @@ export declare const api: {
                         riderId: string;
                       }
                   >;
+                }
+              | {
+                  allowedResponses: Array<
+                    "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                  >;
+                  d20: { selectedNatural: number; total: number };
+                  encounterVersion: number;
+                  kind: "D20_WINDOW";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    optionId: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
+                  requestId: string;
+                  rollerActorId: string;
+                  trigger:
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "CONCENTRATION";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "EFFECT_REPEAT_SAVE";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        failures: number;
+                        kind: "DEATH_SAVE";
+                        successes: number;
+                      }
+                    | {
+                        actionLabel: string;
+                        checkLabel: string;
+                        dc: number | null;
+                        kind: "BASIC_ACTION_CHECK";
+                      };
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -129473,6 +129604,12 @@ export declare const api: {
                   kind: "CONCENTRATION";
                   sourceLabel: string | null;
                 }
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "EFFECT_REPEAT_SAVE";
+                  sourceLabel: string | null;
+                }
               | { failures: number; kind: "DEATH_SAVE"; successes: number }
               | {
                   actionLabel: string;
@@ -129594,6 +129731,43 @@ export declare const api: {
                   riderId: string;
                 }
             >;
+          }
+        | {
+            allowedResponses: Array<"D20_WINDOW_DECLINE" | "D20_WINDOW_USE">;
+            d20: { selectedNatural: number; total: number };
+            encounterVersion: number;
+            kind: "D20_WINDOW";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            options: Array<{
+              count: number;
+              faces: 4 | 6 | 8 | 10 | 12;
+              label: string;
+              optionId: string;
+              sign: "ADD" | "SUBTRACT";
+            }>;
+            requestId: string;
+            rollerActorId: string;
+            trigger:
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "CONCENTRATION";
+                  sourceLabel: string | null;
+                }
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "EFFECT_REPEAT_SAVE";
+                  sourceLabel: string | null;
+                }
+              | { failures: number; kind: "DEATH_SAVE"; successes: number }
+              | {
+                  actionLabel: string;
+                  checkLabel: string;
+                  dc: number | null;
+                  kind: "BASIC_ACTION_CHECK";
+                };
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -130358,6 +130532,12 @@ export declare const api: {
                       kind: "CONCENTRATION";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "EFFECT_REPEAT_SAVE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -130482,6 +130662,45 @@ export declare const api: {
                       riderId: string;
                     }
                 >;
+              }
+            | {
+                allowedResponses: Array<
+                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                >;
+                d20: { selectedNatural: number; total: number };
+                encounterVersion: number;
+                kind: "D20_WINDOW";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  optionId: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
+                requestId: string;
+                rollerActorId: string;
+                trigger:
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "EFFECT_REPEAT_SAVE";
+                      sourceLabel: string | null;
+                    }
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number }
+                  | {
+                      actionLabel: string;
+                      checkLabel: string;
+                      dc: number | null;
+                      kind: "BASIC_ACTION_CHECK";
+                    };
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
