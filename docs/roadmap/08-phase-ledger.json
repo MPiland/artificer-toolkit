@@ -3809,7 +3809,7 @@
             },
             {
               "id": "RULES-2.T16",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.5"],
               "wsjf": {
                 "bv": 5,
@@ -3819,7 +3819,7 @@
                 "after": ["RULES-2.T5c"]
               },
               "text": "Delete definition schemaVersion 1 (ruled at T5a review, 2026-10-21; pre-launch, no compatibility): migrate every v1 definition and seed to the current version in the same change and remove the v1 read paths.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m311 (60b0c993b)."
             }
           ]
         }
