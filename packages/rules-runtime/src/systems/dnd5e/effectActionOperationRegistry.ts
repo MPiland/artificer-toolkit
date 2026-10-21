@@ -15,7 +15,7 @@ import {
 } from '@artificer-toolkit/shared/rules'
 import type { CharacterRuleActionConditionOutcomeRules } from '../../characterRuleActionSystemAdapter.js'
 import { isCharacterRuleActionForcedMovementDirection } from '../../characterRuleActionSystemAdapter.js'
-import { NO_HIT_POINT_FLOOR, withinHitPointBand } from '../../hitPointTiers.js'
+import { DND5E_GATE_INPUT_KINDS, gatesAdmit } from './effectActionGates.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
   CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
@@ -82,6 +82,7 @@ import {
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
+  DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY,
   DND5E_CONDITION_IMMUNE_FACT_KEYS,
   MAX_CONDITIONS_PER_PATH,
   conditionImmuneFactKey,
@@ -202,61 +203,34 @@ export const dnd5eKillProposalOperation = targetOnlyProposalOperation(
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   'kill'
 )
-/** The band a version 2 gate's literals bound, or null when they do not bound a non-empty one. */
-export function hitPointGateBand(
-  inputs: Readonly<Record<string, unknown>>
-): { above: number; atMost: number } | null {
-  const { hitPointsAbove: above, hitPointsAtMost: atMost } = inputs
-  return typeof above === 'number' &&
-    typeof atMost === 'number' &&
-    Number.isSafeInteger(above) &&
-    Number.isSafeInteger(atMost) &&
-    above >= NO_HIT_POINT_FLOOR &&
-    atMost > Math.max(above, 0)
-    ? { above, atMost }
-    : null
-}
 /**
- * Version 2 of a target-only proposal also reads the target's current hit points and the gate's
- * band, and is authorized only while the target is above its floor and at or under its ceiling.
+ * Version 2 of a proposal also reads every gate kind's inputs, and is authorized only while the
+ * base proposal authorizes and the target passes every gate.
  */
-export function hitPointGatedProposalOperation(
+export function gatedProposalOperation(
   base: ProposalRuleOperationContract,
   label: string
 ): ProposalRuleOperationContract {
   return {
     ...base,
     contractVersion: 2,
-    inputs: {
-      ...base.inputs,
-      targetCurrentHitPoints: RULE_VALUE_KIND.NUMBER,
-      hitPointsAbove: RULE_VALUE_KIND.NUMBER,
-      hitPointsAtMost: RULE_VALUE_KIND.NUMBER
-    },
+    inputs: { ...base.inputs, ...DND5E_GATE_INPUT_KINDS },
     execute(inputs) {
-      const { targetCurrentHitPoints } = inputs
-      const band = hitPointGateBand(inputs)
-      if (
-        typeof targetCurrentHitPoints !== 'number' ||
-        !Number.isSafeInteger(targetCurrentHitPoints) ||
-        targetCurrentHitPoints < 0 ||
-        !band
-      )
+      const admitted = gatesAdmit(inputs)
+      if (admitted === null)
         throw new Error(
           `D&D ${label} proposal requires the target's hit points and a hit-point gate.`
         )
-      return {
-        ...base.execute(inputs),
-        authorized: withinHitPointBand(targetCurrentHitPoints, band.above, band.atMost)
-      }
+      const result = base.execute(inputs)
+      return { ...result, authorized: result.authorized === true && admitted }
     }
   }
 }
-export const dnd5eHitPointGatedKillProposalOperation = hitPointGatedProposalOperation(
+export const dnd5eHitPointGatedKillProposalOperation = gatedProposalOperation(
   dnd5eKillProposalOperation,
   'kill'
 )
-export const dnd5eHitPointGatedHealProposalOperation = hitPointGatedProposalOperation(
+export const dnd5eHitPointGatedHealProposalOperation = gatedProposalOperation(
   dnd5eHealProposalOperation,
   'heal'
 )
@@ -856,40 +830,10 @@ export const dnd5eConditionApplyProposalOperation: ProposalRuleOperationContract
   }
 }
 
-/**
- * Version 2 of the condition proposal also reads the target's current hit points and the gate's
- * band: the condition is authorized only for a target that is not immune and lies in it.
- */
-export const dnd5eHitPointGatedConditionApplyProposalOperation: ProposalRuleOperationContract = {
-  ...dnd5eConditionApplyProposalOperation,
-  contractVersion: 2,
-  inputs: {
-    ...dnd5eConditionApplyProposalOperation.inputs,
-    targetCurrentHitPoints: RULE_VALUE_KIND.NUMBER,
-    hitPointsAbove: RULE_VALUE_KIND.NUMBER,
-    hitPointsAtMost: RULE_VALUE_KIND.NUMBER
-  },
-  execute(inputs) {
-    const { targetCurrentHitPoints } = inputs
-    const band = hitPointGateBand(inputs)
-    if (
-      typeof targetCurrentHitPoints !== 'number' ||
-      !Number.isSafeInteger(targetCurrentHitPoints) ||
-      targetCurrentHitPoints < 0 ||
-      !band
-    )
-      throw new Error(
-        "D&D condition proposal requires the target's hit points and a hit-point gate."
-      )
-    const base = dnd5eConditionApplyProposalOperation.execute(inputs)
-    return {
-      ...base,
-      authorized:
-        base.authorized === true &&
-        withinHitPointBand(targetCurrentHitPoints, band.above, band.atMost)
-    }
-  }
-}
+export const dnd5eHitPointGatedConditionApplyProposalOperation = gatedProposalOperation(
+  dnd5eConditionApplyProposalOperation,
+  'condition'
+)
 
 export const DND5E_TEST_OUTCOME_RULES = [
   'NONE',
@@ -1220,6 +1164,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.BOOLEAN
     },
     { key: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
+    { key: DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     ...Object.keys(DND5E_CONDITION_IMMUNE_FACT_KEYS).flatMap((pathCode) =>
       Array.from({ length: MAX_CONDITIONS_PER_PATH }, (_, index) => ({
         key: conditionImmuneFactKey(pathCode, index + 1)!,

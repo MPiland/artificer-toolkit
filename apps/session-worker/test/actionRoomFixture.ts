@@ -62,7 +62,7 @@ export function biteWolf(
     /** The ability the SAVE Bite rolls and, when set, the damage type it deals instead of the SRD's. */
     save?: {
       ability: 'DEXTERITY' | 'CONSTITUTION'
-      damageTypeCode?: 'POISON' | 'FIRE' | 'COLD' | 'PSYCHIC'
+      damageTypeCode?: 'POISON' | 'FIRE' | 'COLD' | 'PSYCHIC' | 'RADIANT' | 'ACID'
     }
     /** The Bite casts a spell: the System spell it references, or the level it is cast at. */
     spellCast?: { castLevel: number }
@@ -161,10 +161,13 @@ export function biteWolf(
  * feet makes a Dexterity save (DC 10) against 1 damage. It is the shape of Fireball, authored as a
  * Creature so a room can run it without a Character's spell slots.
  */
-export function fireballWolf(damageTypeCode?: 'FIRE' | 'COLD'): CreatureAuthored {
+export function fireballWolf(
+  damageTypeCode?: 'FIRE' | 'COLD' | 'RADIANT' | 'ACID',
+  ability: 'DEXTERITY' | 'CONSTITUTION' = 'DEXTERITY'
+): CreatureAuthored {
   const bite = biteWolf('SAVE', {
     reachFeet: 150,
-    save: { ability: 'DEXTERITY', damageTypeCode }
+    save: { ability, damageTypeCode }
   })
   return creatureAuthoredDtoSchema.parse({
     ...bite,

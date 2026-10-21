@@ -52,6 +52,42 @@ export const troll: CreatureAuthored = {
       label: 'Regeneration',
       description:
         "Regeneration. The troll regains 10 hit points at the start of its turn. If the troll takes acid or fire damage, this trait doesn't function at the start of the troll's next turn. The troll dies only if it starts its turn with 0 hit points and doesn't regenerate.",
+      effects: [
+        {
+          id: S.actionId(274, 200),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.START_OF_TURN,
+            range: { id: S.actionId(274, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: S.actionId(274, 202),
+              order: 1,
+              pathCode: S.PATH_CODE.PASSIVE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(274, 203),
+                resultKind: 'SINGLE',
+                suppressedByDamageTypeIds: [S.damageTypeId('ACID'), S.damageTypeId('FIRE')],
+                outcomes: [
+                  {
+                    id: S.actionId(274, 204),
+                    effectKind: S.EFFECT_KIND.HEAL,
+                    valueKind: 'FIXED',
+                    scalingKind: S.SCALING.NONE,
+                    amount: 10
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 2
     },
     {

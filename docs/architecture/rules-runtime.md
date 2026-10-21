@@ -466,9 +466,20 @@ and zone effects) lands through that plan. The record is keyed by the root `sour
 removes exactly what it dealt (`revertDamageTypesTaken`). A START_OF_TURN root reads the record, then
 `clearHolderDamageTypes` empties it in the same commit and stores the cleared entries on the root's
 `clearedDamageTypes`, so damage dealt during the holder's own turn suppresses only the next trigger. The
-suppression gate that reads the record is the next slice (T4i1b2). A rule-raised START_OF_TURN root is not
+suppression gate that reads the record is described below (T4i1b2). A rule-raised START_OF_TURN root is not
 separately undoable today (its parent is the turn command), so the stored `clearedDamageTypes` is restored only once
 turn undo reverses it; turn commit and turn undo are unchanged.
+
+**Gate kinds and damage-type suppression (current, SPELLS-33.T4i1b2).** `systems/dnd5e/effectActionGates.ts` holds the one
+gate-kind table (`DND5E_GATE_KINDS`: `HIT_POINT_BAND`, `DAMAGE_TYPE_SUPPRESSION`). Each kind owns its operation inputs, its
+node inputs, `admits(inputs)` and `evidenceAdmits(evidence)`; a gated proposal (`contractVersion` 2) always carries every
+kind's inputs, an unauthored gate is wide open, and authorization is the conjunction of the table, so a new gate kind is
+one table entry. A result block authors the suppression as `suppressedByDamageTypeIds` beside `gate`. The prepare path
+binds the holder's `damageTypesSinceTurnStart` as the `dnd5e.target-damage-types-taken` fact (bound only for graphs that
+carry the input, so ungated checksums do not move), the evidence check requires the fact to match the node binding and
+`authorized` to equal the conjunction, and a replay re-derives it. Vampire and Vampire Spawn (suppressed by radiant,
+which also covers holy water) and Troll (acid, fire; heals at 0 hit points) author Regeneration this way, and
+`CREATURE_VAMPIRE_REGENERATION` is deleted. Sunlight and running water stay deferred edge cases.
 
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 

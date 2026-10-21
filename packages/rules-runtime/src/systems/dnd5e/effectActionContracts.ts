@@ -54,6 +54,11 @@ export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-im
  * a tiered save selects its tier by it when the outcome is specialized.
  */
 export const DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY = 'dnd5e.target-current-hit-points'
+/**
+ * The ids of the damage types the target took since its last turn began, as sorted JSON text. A
+ * damage-type suppression gate reads it, and only a graph that binds it carries it in its facts.
+ */
+export const DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY = 'dnd5e.target-damage-types-taken'
 export const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
   ON_USE: 'dnd5e.target-condition-immune.on-use',
   ON_HIT: 'dnd5e.target-condition-immune.on-hit',

@@ -97,6 +97,8 @@ export type CompiledEffect = {
   failureMarginRider?: FailureMarginRiderAuthored
   /** The target condition that must hold when the action resolves, else the entry does nothing to that target. */
   gate?: ResultBlockGateAuthored
+  /** The damage types that switch the entry off for a target that took any since its last turn began. */
+  suppressedByDamageTypeIds?: string[]
   /** Set on a hit-point tier's entries: the tier resolves only while the target's hit points are at most this. */
   hitPointTier?: { atMost: number }
   restrictions?: FacetAuthored
@@ -505,6 +507,9 @@ function compileResultBlock(
           ? { failureMarginRider: resultBlock.failureMarginRider }
           : {}),
         ...(resultBlock.gate ? { gate: resultBlock.gate } : {}),
+        ...(resultBlock.suppressedByDamageTypeIds
+          ? { suppressedByDamageTypeIds: resultBlock.suppressedByDamageTypeIds }
+          : {}),
         ...(meta?.hitPointTier ? { hitPointTier: meta.hitPointTier } : {}),
         ...(path.restrictions ? { restrictions: path.restrictions } : {}),
         ...(path.usage ? { usage: path.usage } : {}),

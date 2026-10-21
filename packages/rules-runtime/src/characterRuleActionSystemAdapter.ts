@@ -709,6 +709,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The damage types the target took since its last turn began, which a suppression gate reads. */
+    targetDamageTypesTaken?: readonly string[]
     /**
      * The attack was rolled against one of the target's decoys (`ATTACK_DECOYS`): its OUTCOME never
      * runs, because nothing reaches the target itself.

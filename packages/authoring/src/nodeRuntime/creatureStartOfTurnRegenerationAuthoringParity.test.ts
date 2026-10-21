@@ -4,6 +4,9 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/author
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { oni } from '@artificer-toolkit/source-data/srd/creatures/oni.js'
 import { shieldGuardian } from '@artificer-toolkit/source-data/srd/creatures/shield-guardian.js'
+import { troll } from '@artificer-toolkit/source-data/srd/creatures/troll.js'
+import { vampire } from '@artificer-toolkit/source-data/srd/creatures/vampire.js'
+import { vampireSpawn } from '@artificer-toolkit/source-data/srd/creatures/vampire-spawn.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -65,3 +68,33 @@ describe.each([
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
   })
 })
+
+describe.each([
+  ['Vampire', vampire, 1],
+  ['Vampire Spawn', vampireSpawn, 1],
+  ['Troll', troll, 0]
+])(
+  '%s Regeneration suppression through the creature node map (SPELLS-33 T4i1b2)',
+  (_label, creature, floor) => {
+    it('keeps the suppressing damage types exactly as authored, with no closed rule for it', async () => {
+      expect(JSON.stringify(creature)).not.toMatch(/VAMPIRE_REGENERATION/)
+      const [block] = regenerationBlocks(creature)
+      expect(block?.suppressedByDamageTypeIds?.length).toBeGreaterThan(0)
+      expect(block?.gate?.amount ?? 0).toBe(floor)
+      const result = await normalize(creature)
+      expect(result.clearedPaths).toEqual([])
+      expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
+    })
+
+    it('keeps another set of suppressing damage types the same way', async () => {
+      const authored = structuredClone(creature)
+      for (const block of regenerationBlocks(authored))
+        block.suppressedByDamageTypeIds = srdSystemRecord.damageTypes
+          .filter(({ code }) => code === 'COLD' || code === 'THUNDER')
+          .map(({ id }) => id)
+      const result = await normalize(authored)
+      expect(result.clearedPaths).toEqual([])
+      expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+    })
+  }
+)

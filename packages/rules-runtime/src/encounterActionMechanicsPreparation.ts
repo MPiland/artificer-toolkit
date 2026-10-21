@@ -99,6 +99,7 @@ import type {
   NativeEncounterActionSource
 } from './encounterActionSources.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { damageTypeIdsTaken } from './encounterDamageTypesSinceTurnStart.js'
 import {
   encounterStowedItemInstanceId,
   evaluateEncounterCharacterActionWieldConflict,
@@ -870,7 +871,8 @@ export async function prepareEncounterActionMechanics<
         attackTraits,
         source.kind === 'CHARACTER_ACTION' ? source.candidate.mechanicsOwner.id : null
       ),
-      conditionImmunityIds: targetFacts.conditionImmunityIds
+      conditionImmunityIds: targetFacts.conditionImmunityIds,
+      targetDamageTypesTaken: damageTypeIdsTaken(targetFacts.actor)
     }
   }
 }
