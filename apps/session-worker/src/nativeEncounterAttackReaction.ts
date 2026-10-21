@@ -11,9 +11,9 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import {
   attackHitDamageTypeIds,
-  discoverAttackReactionActions,
   encounterReactorCandidates
-} from '@artificer-toolkit/rules-runtime/encounterAttackReactionDiscovery'
+} from '@artificer-toolkit/rules-runtime/encounterReactors'
+import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
@@ -86,22 +86,30 @@ export function discoverNativeAttackReaction(input: {
         ? source.candidate.mechanicFacts
         : source.capability.mechanicFacts
     const reactions: NativeAttackReaction[] = []
-    for (const { actionId, trigger, triggerDamageTypeIds } of discoverAttackReactionActions(
-      encounterReactorCandidates({
+    const { reactions: hooks } = discoverEncounterEventHooks({
+      reactions: encounterReactorCandidates({
         actor: target,
         target: reactor,
         system: input.system,
         spells: input.spells
       }),
-      {
-        damageTypeIds: attackHitDamageTypeIds(attackFacts, hit.critical),
-        melee: isInstalledMeleeAttackTrigger(
-          input.state.gameSystemId,
-          attackFacts.invocation.triggerCode
-        ),
-        reactorSeesAttacker: attackSight?.actual.targetSeesAttacker !== 'UNSEEN'
-      }
-    )) {
+      events: [
+        {
+          kind: 'HIT_BY_ATTACK',
+          damageTypeIds: attackHitDamageTypeIds(attackFacts, hit.critical),
+          melee: isInstalledMeleeAttackTrigger(
+            input.state.gameSystemId,
+            attackFacts.invocation.triggerCode
+          ),
+          attackerSeen: attackSight?.actual.targetSeesAttacker !== 'UNSEEN'
+        }
+      ]
+    })
+    for (const {
+      reaction: { actionId },
+      trigger,
+      triggerDamageTypeIds
+    } of hooks) {
       if (hit.answering !== undefined && actionId !== hit.answering) continue
       const prepared = await input.prepareReaction(actionId).catch((error: unknown) => {
         // A reaction its holder cannot pay for (no slot, not prepared) is simply not offered.

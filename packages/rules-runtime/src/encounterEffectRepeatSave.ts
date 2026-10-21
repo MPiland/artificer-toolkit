@@ -50,6 +50,7 @@ export function effectRepeatTrigger(
     events: [
       {
         kind: 'DAMAGED',
+        phase: 'AFTER',
         damagerActorId: input.damagerActorId,
         damageTypeIds: [input.damageTypeId],
         dispositions: input.dispositions

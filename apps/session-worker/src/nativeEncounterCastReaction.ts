@@ -55,11 +55,9 @@ import {
   prepareEncounterCastReactionCheck,
   type CastReactionCheckRequirement
 } from '@artificer-toolkit/rules-runtime/encounterCastReactionCheck'
-import {
-  discoverCastReactionActions,
-  discoverTargetedSelfReactionActions,
-  preparedSpellCastLevel
-} from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
+import { characterReactionCandidates } from '@artificer-toolkit/rules-runtime/encounterReactors'
+import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import {
@@ -182,7 +180,13 @@ export function discoverNativeCastReactions(input: {
       const reactorTarget = await input.loadTarget(reactor)
       if (isEncounterActorDefeated(reactor, deadCharacterIdsOfTargets([reactorTarget]))) continue
       const reactions: NativeCastReaction[] = []
-      for (const { actionId } of discoverCastReactionActions(reactorTarget)) {
+      const { reactions: hooks } = discoverEncounterEventHooks({
+        reactions: characterReactionCandidates(reactorTarget),
+        events: [{ kind: 'SPELL_CAST_BY_OTHER' }]
+      })
+      for (const {
+        reaction: { actionId }
+      } of hooks) {
         if (filter.answering !== undefined && actionId !== filter.answering.actionId) continue
         const prepared = await input
           .prepareReaction(reactor, reactorTarget, actionId, against)
@@ -279,10 +283,13 @@ export function discoverNativeTargetedReactions(input: {
       const reactorTarget = await input.loadTarget(reactor)
       if (isEncounterActorDefeated(reactor, deadCharacterIdsOfTargets([reactorTarget]))) continue
       const reactions: NativeCastResponse[] = []
-      for (const { actionId } of discoverTargetedSelfReactionActions(
-        reactorTarget,
-        input.castOwnerId
-      )) {
+      const { reactions: hooks } = discoverEncounterEventHooks({
+        reactions: characterReactionCandidates(reactorTarget),
+        events: [{ kind: 'TARGETED_BY_CAST', castOwnerId: input.castOwnerId }]
+      })
+      for (const {
+        reaction: { actionId }
+      } of hooks) {
         if (filter.answering !== undefined && actionId !== filter.answering.actionId) continue
         const prepared = await input
           .prepareReaction(reactor, reactorTarget, actionId)

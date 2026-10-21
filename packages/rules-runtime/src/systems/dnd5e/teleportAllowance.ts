@@ -2,6 +2,7 @@ import {
   isTeleportAllowanceDestinationKind,
   type TeleportAllowanceDestinationKind
 } from '@artificer-toolkit/shared/vtt/teleportAllowanceDestinationKind'
+import { dnd5eResolvedProposalTrace } from './dnd5eTestOperationKeys.js'
 
 /** The D&D operation a Misty Step or Dimension Door `TELEPORT` outcome compiles to. */
 export const DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY = 'dnd5e.teleport-allowance-proposal'
@@ -19,8 +20,9 @@ export function executionTeleportAllowance(execution: {
     }[]
   }
 }): { maxFeet: number; destinationKind: TeleportAllowanceDestinationKind } | null {
-  const entry = execution.evidence.trace.find(
-    ({ operation }) => operation.key === DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY
+  const entry = dnd5eResolvedProposalTrace(
+    execution.evidence.trace,
+    DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY
   )
   if (!entry) return null
   const { maxFeet, destinationKind } = entry.outputs

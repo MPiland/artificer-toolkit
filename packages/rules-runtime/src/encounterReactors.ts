@@ -1,6 +1,5 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { EncounterReactionPinDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 
@@ -24,18 +23,6 @@ export function attackHitDamageTypeIds(
         : []
     )
   )
-}
-
-type AttackReactionAction = Pick<CharacterActionCandidate, 'actionId' | 'effectId'> & {
-  trigger: EncounterReactionPinDto['trigger']
-  triggerDamageTypeIds: readonly string[]
-}
-
-/** What a hit attack is, as the reactions its target holds read it. */
-export type AttackReactionHit = {
-  damageTypeIds: ReadonlySet<string>
-  melee: boolean
-  reactorSeesAttacker: boolean
 }
 
 /** The actions a Character may react with now, in its own listing order (a spell's casts lowest level first). */
@@ -65,35 +52,4 @@ export function encounterReactorCandidates(input: {
     abilityDefinitions: systemAbilityDefinitions(input.system),
     spells: input.spells
   }).available
-}
-
-/**
- * The reactions among a creature's actions that answer an attack that hit it: authored
- * `ATTACKED_SELF` reactions whose qualifiers the attack meets (a melee attack, an attacker the reactor
- * sees), and `DAMAGE_TAKEN` reactions naming a damage type the hit deals. A `DAMAGE_TAKEN` reaction
- * also names the damage types that triggered it (those it names that the hit deals). Whether one is
- * affordable is decided when it is prepared.
- */
-export function discoverAttackReactionActions(
-  candidates: readonly Pick<CharacterActionCandidate, 'actionId' | 'effectId' | 'mechanicFacts'>[],
-  hit: AttackReactionHit
-): readonly AttackReactionAction[] {
-  return candidates.flatMap<AttackReactionAction>(
-    ({ actionId, effectId, mechanicFacts: { invocation } }) => {
-      const trigger = invocation.reactionTrigger
-      if (invocation.activation?.code !== 'REACTION' || !trigger) return []
-      if (trigger.kind === 'ATTACKED_SELF')
-        return (trigger.attackRange !== 'MELEE' || hit.melee) &&
-          (!trigger.requiresSight || hit.reactorSeesAttacker)
-          ? [{ actionId, effectId, trigger: trigger.kind, triggerDamageTypeIds: [] }]
-          : []
-      if (trigger.kind !== 'DAMAGE_TAKEN') return []
-      const triggerDamageTypeIds = trigger.damageTypeIds.filter((damageTypeId) =>
-        hit.damageTypeIds.has(damageTypeId)
-      )
-      return triggerDamageTypeIds.length > 0
-        ? [{ actionId, effectId, trigger: trigger.kind, triggerDamageTypeIds }]
-        : []
-    }
-  )
 }

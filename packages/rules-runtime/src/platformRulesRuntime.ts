@@ -79,6 +79,11 @@ export function isInstalledMeleeAttackTrigger(gameSystemId: string, triggerCode:
   return requireInstalledRuntimeModule(gameSystemId).isMeleeAttackTrigger(triggerCode)
 }
 
+/** Whether the System counts an action trigger as a spell attack, which casts a spell. */
+export function isInstalledSpellAttackTrigger(gameSystemId: string, triggerCode: string): boolean {
+  return requireInstalledRuntimeModule(gameSystemId).isSpellAttackTrigger(triggerCode)
+}
+
 /** Returns the current installed System contract without selecting behavior by label or edition. */
 export function findInstalledGameSystemRuleCapability(
   gameSystemId: string
