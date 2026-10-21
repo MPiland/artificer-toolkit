@@ -12232,9 +12232,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4c1a"]
+                "after": ["SPELLS-31.T4c1a", "RULES-2.T3a"]
               },
-              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs."
+              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
             },
             {
               "id": "SPELLS-31.T4c1b",
@@ -12245,9 +12245,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T4a"]
               },
-              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module."
+              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union."
             },
             {
               "id": "SPELLS-31.T4c1c",
@@ -12258,9 +12258,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T3a"]
               },
-              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck."
+              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
             },
             {
               "id": "SPELLS-31.T4c2",
@@ -13341,9 +13341,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T4i4a"]
+                "after": ["SPELLS-33.T4i4a", "RULES-2.T6c"]
               },
-              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds."
+              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry."
             },
             {
               "id": "SPELLS-33.T4j",
