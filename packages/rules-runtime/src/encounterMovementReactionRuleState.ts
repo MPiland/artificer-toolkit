@@ -1,5 +1,5 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import { requireMovementReactionCapabilityDefinitionIds } from './movementReactionEligibilityRegistry.js'
+import { requireMovementReactionCapabilityDefinitionIds } from './movementReactionEligibilityService.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import {
   resolveEncounterRuleCapabilityStates,

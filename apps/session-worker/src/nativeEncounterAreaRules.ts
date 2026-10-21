@@ -99,7 +99,7 @@ import {
   removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
-import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { chosenZonePlacement } from '@artificer-toolkit/rules-runtime/encounterZonePlacement'
@@ -393,7 +393,7 @@ export async function prepareAreaScene(
   })
   if (captured.kind !== 'ACTION_AREA_SCENE') throw new Error('Action Scene context is unavailable.')
   const scene = captured.context
-  const grid = encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+  const grid = resolveEncounterSceneGrid({
     encounter: state,
     sceneGrid: scene.sceneGrid
   })
@@ -551,7 +551,7 @@ export async function prepareChosenActorsReach(
     ...reach,
     scene: {
       ...captured.context,
-      grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+      grid: resolveEncounterSceneGrid({
         encounter: state,
         sceneGrid: captured.context.sceneGrid
       })

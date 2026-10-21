@@ -1,10 +1,10 @@
 import type { EncounterActorRelationshipKindDto } from '@artificer-toolkit/schema/shared/reaction'
 import type { ReactionReachCandidate, SpatialMovementKind } from '@artificer-toolkit/shared/vtt'
 
-import { evaluateMovementReactionEligibility } from './movementReactionEligibilityRegistry.js'
-import type {
-  EvaluatedMovementReactionCandidate,
-  MovementReactionEligibilityFacts
+import {
+  evaluateMovementReactionEligibility,
+  type EvaluatedMovementReactionCandidate,
+  type MovementReactionEligibilityFacts
 } from './movementReactionEligibilityService.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import type { EncounterMovementReactionContact } from './encounterMovementReactionContacts.js'

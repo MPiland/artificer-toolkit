@@ -21,7 +21,7 @@ import {
   type EncounterRelationshipD20Contributor
 } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import type { EncounterWieldConflictAcceptance } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
-import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import type { CharacterTurnFacts } from '@artificer-toolkit/rules-runtime/character/turnFacts'
 import type { GetEncounterOptionalActionChoicesInputDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -62,7 +62,7 @@ export async function readActionSceneContext(
   const { sceneGrid, ...context } = inputs
   return {
     ...context,
-    grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({ encounter: state, sceneGrid })
+    grid: resolveEncounterSceneGrid({ encounter: state, sceneGrid })
   }
 }
 

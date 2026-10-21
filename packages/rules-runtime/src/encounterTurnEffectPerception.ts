@@ -19,12 +19,12 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 
 import { createActorSensePinner } from './actorSenses.js'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
+import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 import { resolveEncounterCombatPerception } from './encounterCombatPerception.js'
 import { deriveConditionCombatPerceptionContributions } from './encounterCombatPerceptionContributions.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
 import { resolveRuleCapabilityState } from './ruleCapabilityStateService.js'
-import { encounterSceneGridPolicyRegistry } from './sceneGridPolicyRegistry.js'
+import { resolveEncounterSceneGrid } from './sceneGridPolicy.js'
 
 type PerceptionScene = Pick<
   CampaignSceneState,
@@ -74,7 +74,7 @@ export async function resolveEncounterActorPairPerception(input: {
   loadDefinition: LoadPerceptionDefinition
   loadSystem: () => Promise<SystemAuthoredDto>
 }) {
-  const adapter = characterRuleActionSystemAdapterRegistry.get(input.gameSystemId)
+  const adapter = characterRuleActionSystemAdapterRegistry.find(input.gameSystemId)
   const observerActorId = input.observer.actor.id
   const { placement } = input
   const sceneGrid = placement?.sceneGrid ?? NEUTRAL_PERCEPTION_GRID
@@ -158,7 +158,7 @@ export async function resolveEncounterTurnEffectPerception(input: {
   loadSystem: () => Promise<SystemAuthoredDto>
   loadSpatialEffects: (sceneId: string) => Promise<readonly EncounterSpatialRuleEffectRecord[]>
 }) {
-  const adapter = characterRuleActionSystemAdapterRegistry.get(input.state.gameSystemId)
+  const adapter = characterRuleActionSystemAdapterRegistry.find(input.state.gameSystemId)
   const dependency = adapter?.activeEffectPerceptionRequirement?.({
     definition: input.effect.definition,
     lifecycle: input.effect.lifecycle
@@ -199,7 +199,7 @@ export async function resolveEncounterTurnEffectPerception(input: {
     gameSystemId: input.state.gameSystemId,
     campaignId: input.state.campaignId
   })
-  const grid = encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+  const grid = resolveEncounterSceneGrid({
     encounter: input.state,
     sceneGrid: scene.grid
   })

@@ -7,7 +7,7 @@ import {
 
 import { ammunitionCommandChoice } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { AmmunitionChoiceError } from '../encounterErrors.js'
 import { evaluateSrdCharacter, itemAction } from '../testing/dnd5eSrdCharacter.js'

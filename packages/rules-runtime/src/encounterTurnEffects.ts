@@ -12,7 +12,6 @@ import {
   targetTransitionChecksum
 } from './encounterCharacterMechanicsBatch.js'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   type EncounterRunActorState,
   type EncounterRunState
@@ -417,8 +416,7 @@ async function evaluateEncounterTurnEffects(input: {
         targets: input.targets,
         effect
       }),
-      runtime,
-      adapters: characterRuleActionSystemAdapterRegistry
+      runtime
     }
     const existing =
       input.retainedPlan?.executions[ordinal] ??

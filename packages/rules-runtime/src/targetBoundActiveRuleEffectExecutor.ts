@@ -26,7 +26,7 @@ import type {
   CharacterRuleActionApplication,
   CharacterRuleActionConditionOutcomeRules
 } from './characterRuleActionSystemAdapter.js'
-import type { CharacterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
+import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { EncounterConflictError } from './encounterErrors.js'
 import { withOwnedTemporaryHitPoints } from './encounterEndedEffectRelease.js'
@@ -95,7 +95,6 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
   /** How the damage that triggered this repeat save tilts its d20 (D167); absent on a turn tick. */
   rollInfluence?: 'ADVANTAGE' | 'DISADVANTAGE' | null
   runtime: RulesRuntimeService
-  adapters: CharacterRuleActionSystemAdapterRegistry
 }
 
 export interface TargetBoundActiveRuleEffectExecutionResult {
@@ -345,10 +344,11 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
     )
   }
   requireBinding(definition)
-  const adapter = input.adapters.get(definition.frozenGraph.source.gameSystemId)
-  const bindActiveEffectFacts = adapter?.bindActiveEffectFacts
-  const interpretActiveEffect = adapter?.interpretActiveEffect
-  if (!adapter || !bindActiveEffectFacts || !interpretActiveEffect) {
+  const adapter = characterRuleActionSystemAdapterRegistry.require(
+    definition.frozenGraph.source.gameSystemId
+  )
+  const { bindActiveEffectFacts, interpretActiveEffect } = adapter
+  if (!bindActiveEffectFacts || !interpretActiveEffect) {
     throw new CharacterActiveRuleEffectExecutionError(
       'The frozen active-effect Game System has no recurring-effect adapter.'
     )

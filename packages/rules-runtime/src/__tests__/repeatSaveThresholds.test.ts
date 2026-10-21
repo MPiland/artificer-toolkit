@@ -2,7 +2,6 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { isSaveTallyStep } from '../encounterTurnEffectState.js'
 import {
   executeTargetBoundActiveRuleEffectWithPause,
@@ -46,8 +45,7 @@ async function endOfTurn(
       ]
     },
     defenses: [],
-    runtime: createSrdRulesRuntime(),
-    adapters: characterRuleActionSystemAdapterRegistry
+    runtime: createSrdRulesRuntime()
   } as const
   const paused = await executeTargetBoundActiveRuleEffectWithPause(input)
   if (!('continuation' in paused)) {
