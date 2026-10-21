@@ -3411,7 +3411,7 @@
             },
             {
               "id": "RULES-2.T15",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.2"],
               "wsjf": {
                 "bv": 5,
@@ -3421,7 +3421,7 @@
                 "after": ["RULES-2.T2"]
               },
               "text": "Bug: compiling the SRD Antitoxin (vial) equipment Effect (00000060-0000-0210-0079-000000000001) throws a plain Error \"Rule documents must contain JSON values only\" instead of a plan or refusal. Find the non-JSON value (likely undefined in authored data or its compile), fix at the source, add a regression test that fails before the fix, and re-pin the golden line.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m269 (5bcadf7a5)."
             }
           ]
         }
