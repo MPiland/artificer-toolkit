@@ -262,17 +262,24 @@ function reactionHookMet(
 /** A passive feature's subscription to its holder's damage: a grant it gives itself (see `targetEndedEffects`). */
 type DamageGrantSubscription = { damageTypeIds: readonly string[] }
 
-/** Whether a damage interception intercepts the event: a blow about to drop its holder to 0, or a kill. */
+/**
+ * Whether a damage interception intercepts the event: a kill it negates, or a blow about to drop its
+ * holder to 0 that its exclusions and damage cap admit.
+ */
 function damageInterceptionMet(
-  { negatesKill }: DamageInterceptionSubscription,
+  { negatesKill, excludes, maxDamageTaken }: DamageInterceptionSubscription,
   event: EncounterEvent
 ) {
-  return event.kind === 'KILLED'
-    ? negatesKill
-    : event.kind === 'DAMAGED' &&
-        event.phase === 'BEFORE' &&
-        event.hitPoints.before > 0 &&
-        event.hitPoints.after === 0
+  if (event.kind === 'KILLED') return negatesKill
+  return (
+    event.kind === 'DAMAGED' &&
+    event.phase === 'BEFORE' &&
+    event.hitPoints.before > 0 &&
+    event.hitPoints.after === 0 &&
+    (maxDamageTaken === undefined || event.damageTaken <= maxDamageTaken) &&
+    !(excludes?.critical && event.critical) &&
+    !(event.damageTypeId !== null && excludes?.damageTypeIds.includes(event.damageTypeId))
+  )
 }
 
 /** Whether an incoming gate intercepts the event: a harmful action by an attacker of a type it lists. */

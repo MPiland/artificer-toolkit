@@ -32,10 +32,8 @@ import { persistRoomEncounterContest } from './roomEncounterContest.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
-import {
-  buildNativeLiveEncounterAreaActionPendingInput,
-  buildNativeLiveEncounterAreaCommitInput
-} from './nativeEncounterAreaRules.js'
+import { buildNativeLiveEncounterAreaActionPendingInput } from './nativeEncounterAreaRules.js'
+import { buildNativeLiveEncounterAreaCommitInput } from './nativeAreaCommit.js'
 import {
   readRoomActionAreaSceneInputs,
   readRoomActionSceneInputs

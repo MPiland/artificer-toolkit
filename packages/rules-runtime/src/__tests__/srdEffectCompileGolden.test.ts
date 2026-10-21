@@ -160,8 +160,6 @@ function characterLines({ effect, label, spellLevel }: Found, kind: string): Lin
   ]
 }
 
-/** Every action of a Creature before its System compiles the plan it runs. */
-
 /**
  * A Creature-owned Effect, compiled the way the Encounter does: Creature action discovery, which
  * binds the real Effect identity, then the shared Feature action plan. An Effect that discovery

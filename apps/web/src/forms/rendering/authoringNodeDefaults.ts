@@ -364,6 +364,12 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         level: order,
         amount: 1
       }
+    case 'damageInterceptionExcludes':
+      return { damageTypeIds: [], critical: false }
+    case 'damageInterceptionSave':
+      return { ability: 'CONSTITUTION', dc: { base: 10, plusDamageTaken: false } }
+    case 'damageInterceptionSaveDc':
+      return { base: 10, plusDamageTaken: false }
     case 'incomingGateSuccessImmunity':
       return { duration: { durationKind: 'INSTANTANEOUS' } }
     case 'modifierGrant':

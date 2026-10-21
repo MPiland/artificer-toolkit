@@ -3141,10 +3141,15 @@
             },
             {
               "id": "RULES-2.8",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
               "note": "Registered 2026-10-20 from the rules-engine composability audit.",
-              "text": "The Session room and the area commit are split by responsibility below the file-size budget, and initiative cursor ordering has one home."
+              "text": "The Session room and the area commit are split by responsibility below the file-size budget, and initiative cursor ordering has one home.",
+              "proof": [
+                "Session room split by responsibility: RULES-2.T13a-f merged m292-m304; scripts/fileSizeBudget.json entries removed",
+                "Worker area commit split into nativeAreaPreparation, nativeAreaRevalidation and nativeAreaCommit: RULES-2.T13g merged m307 (88929dff3); budget entry (2301) removed",
+                "Initiative cursor ordering has one home (readTurnCursor): RULES-2.T14 merged m267 (74371bfed)"
+              ]
             }
           ],
           "tasks": [
@@ -3411,7 +3416,7 @@
             },
             {
               "id": "RULES-2.T8",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3421,7 +3426,7 @@
                 "after": ["RULES-2.T5a"]
               },
               "text": "Concentration becomes a neutral maintenance link; DC formula and ability stay D&D policy. Also removes the systems/dnd5e imports from the concentration importers (encounterConcentration, Worker nativeEncounterConcentration, concentrationChildrenPersistence, encounterIncomingAttackGate) and threads gameSystemId into encounterActiveGrants (moved from T11g, 2026-10-21).",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m305 (c2a0a4d3a)."
             },
             {
               "id": "RULES-2.T9a",
@@ -3733,7 +3738,7 @@
             },
             {
               "id": "RULES-2.T13f",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3743,11 +3748,11 @@
                 "after": ["RULES-2.T13e"]
               },
               "text": "Split completeAreaCommit by phase into nativeAreaCommitPlan.ts, nativeAreaCommitMaintenance.ts and nativeAreaCommitPersistence.ts.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m304 (ca21d71d1)."
             },
             {
               "id": "RULES-2.T13g",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3756,7 +3761,8 @@
                 "size": 2,
                 "after": ["RULES-2.T13f"]
               },
-              "text": "Split nativeEncounterAreaRules.ts preparation, planning and revalidation so the file leaves the size budget."
+              "text": "Split nativeEncounterAreaRules.ts preparation, planning and revalidation so the file leaves the size budget.",
+              "note": "Merged m307 (88929dff3)."
             },
             {
               "id": "RULES-2.T14",
@@ -3786,7 +3792,7 @@
               "note": "Merged m269 (5bcadf7a5)."
             },
             {
-              "id": "RULES-2.T14",
+              "id": "RULES-2.T15",
               "status": "TODO",
               "closes": ["RULES-2.5"],
               "wsjf": {
@@ -13743,7 +13749,7 @@
             },
             {
               "id": "SPELLS-33.T4i2a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13752,8 +13758,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b", "RULES-2.T5c"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
-              "text": "0 HP interception engine (split 2026-10-21): DAMAGE_INTERCEPTION save {ability, dc {base, plusDamageTaken}}, excludes {damageTypeIds, critical} and maxDamageTaken; damageTaken, damageTypeId and critical on the BEFORE DAMAGED event; batch interception saves recorded on the DAMAGE application; homebrew stored-effect proof."
+              "text": "0 HP interception engine (split 2026-10-21): DAMAGE_INTERCEPTION save {ability, dc {base, plusDamageTaken}}, excludes {damageTypeIds, critical} and maxDamageTaken; damageTaken, damageTypeId and critical on the BEFORE DAMAGED event; batch interception saves recorded on the DAMAGE application; homebrew stored-effect proof.",
+              "note": "Merged m306 (6e2459a14)."
             },
             {
               "id": "SPELLS-33.T4i2b",

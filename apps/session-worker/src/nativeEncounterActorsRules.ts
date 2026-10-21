@@ -15,17 +15,16 @@ import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/e
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { applyNativeReactionEffect } from './nativeEncounterAttackReaction.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
+import { readChosenFormCreature, sealReachSaves } from './nativeEncounterAreaRules.js'
+import { completeAreaCommit } from './nativeAreaCommit.js'
 import {
-  completeAreaCommit,
   openReachCastWindow,
   prepareAreaTarget,
   prepareCasterSource,
   prepareChosenActorsReach,
-  readChosenFormCreature,
   reachRuleOverrides,
-  sealReachSaves,
   type AreaPlanBase
-} from './nativeEncounterAreaRules.js'
+} from './nativeAreaPreparation.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
 type ActorsTarget = Extract<ResolveEncounterActionTargetDto, { kind: 'ACTORS' }>

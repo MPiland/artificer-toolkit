@@ -48,7 +48,7 @@ import type {
   MovementTargets,
   ReachCastWindow,
   reachRuleOverrides
-} from './nativeEncounterAreaRules.js'
+} from './nativeAreaPreparation.js'
 import type { prepareAreaCommitMaintenance } from './nativeAreaCommitMaintenance.js'
 import type { planAreaOutcomes } from './nativeAreaCommitPlan.js'
 
