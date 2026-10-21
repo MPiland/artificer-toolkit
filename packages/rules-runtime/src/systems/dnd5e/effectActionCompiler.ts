@@ -131,7 +131,8 @@ import {
   attackRestrictionsMet,
   oncePerTurnUsageKey,
   type Dnd5eAttackRollMode,
-  type Dnd5eEnemyProximity
+  type Dnd5eEnemyProximity,
+  type Dnd5eMoveToward
 } from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
@@ -283,6 +284,8 @@ const DND5E_WEAPON_DAMAGE_DIE_FACT_KEY = 'dnd5e.weapon-damage-die'
 const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
 /** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
 const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
+/** How far the attacker's latest move closed on the target (a JSON object); absent when no Scene measured it. */
+const DND5E_ATTACK_MOVE_TOWARD_FACT_KEY = 'dnd5e.attack-move-toward'
 /** The once-per-turn uses already spent this turn (a JSON array of usage keys); absent when no record was read. */
 const DND5E_ATTACK_TURN_USES_FACT_KEY = 'dnd5e.attack-turn-uses'
 /** The dice active grants add to, or take from, this source's damage to this target (D156). */
@@ -291,8 +294,12 @@ export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
   'dnd5e.active-effect-save-request-node-id'
+/**
+ * The conditions a repeat save holds, as one comma-separated list (adapter facts are scalar). The ids
+ * are authored identifiers (UUIDs), which cannot contain a comma.
+ */
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY =
-  'dnd5e.active-effect-repeat-save-condition-id'
+  'dnd5e.active-effect-repeat-save-condition-ids'
 /** The condition a failed repeat save leaves in place of the held one ("restrained, then petrified"). */
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY =
   'dnd5e.active-effect-repeat-save-escalation-condition-id'
@@ -474,6 +481,7 @@ type Dnd5eEffectScalingFacts = Readonly<{
   attackRollMode?: Dnd5eAttackRollMode
   targetCreatureTypeId?: string
   attackEnemyProximity?: Dnd5eEnemyProximity
+  attackMoveToward?: Dnd5eMoveToward
   attackTurnUses?: readonly string[]
   damageAddedDice?: readonly DamageAddedDieDto[]
   criticalExtraDice?: number
@@ -531,6 +539,7 @@ function dndScalingFactsFromRuleValues(
         ? facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY]
         : undefined,
     attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
+    attackMoveToward: parseMoveToward(facts[DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]),
     attackTurnUses: parseTurnUses(facts[DND5E_ATTACK_TURN_USES_FACT_KEY]),
     damageAddedDice: parseDamageAddedDice(facts[DND5E_DAMAGE_ADDED_DICE_FACT_KEY]),
     criticalExtraDice: positiveInteger(facts[DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]),
@@ -580,6 +589,24 @@ function parseEnemyProximity(value: RuleValue | undefined): Dnd5eEnemyProximity 
   if (nearestFeet !== null && !(typeof nearestFeet === 'number' && nearestFeet >= 0))
     unsupported('D&D enemy proximity is malformed.')
   return { nearestFeet }
+}
+
+function parseMoveToward(value: RuleValue | undefined): Dnd5eMoveToward | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string') unsupported('D&D move toward target is malformed.')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    unsupported('D&D move toward target is malformed.')
+  }
+  const closedFeet =
+    typeof parsed === 'object' && parsed !== null && 'closedFeet' in parsed
+      ? parsed.closedFeet
+      : undefined
+  if (!(typeof closedFeet === 'number' && closedFeet >= 0))
+    unsupported('D&D move toward target is malformed.')
+  return { closedFeet }
 }
 
 function parseDamageAddedDice(
@@ -3741,35 +3768,51 @@ function repeatingDirectFollowUpSavePlan(
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { invocation } = action.compiledEffect
   const entries = entriesBesideSourceImmunity(action)
-  const leadEntry = entries[0]
-  const saveEntry = entries[1]
+  const leadEntries = entries.slice(0, -1)
+  const leadEntry = leadEntries[0]
+  const saveEntry = entries.at(-1)
   const pathCode = triggerCode === 'ACTIVATED' ? 'ON_USE' : 'ON_SAVE_FAIL'
   if (
     invocation.kind !== 'ACTION' ||
     invocation.triggerCode !== triggerCode ||
-    entries.length !== 2 ||
     !leadEntry ||
     !saveEntry ||
     !('outcome' in leadEntry) ||
     !('outcome' in saveEntry) ||
-    leadEntry.resolutionKind !== 'DIRECT' ||
     saveEntry.resolutionKind !== 'DIRECT' ||
-    leadEntry.groupKind !== 'SEQUENTIAL' ||
     saveEntry.groupKind !== 'SEQUENTIAL' ||
-    leadEntry.pathCode !== pathCode ||
     saveEntry.pathCode !== pathCode ||
-    leadEntry.resultBlockId !== saveEntry.resultBlockId ||
     saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE' ||
-    (triggerCode === 'ACTIVATED' && leadEntry.outcome.effectKind !== 'CONDITION')
+    // One held grant, or the conditions of one result: the same path, block and duration.
+    leadEntries.some(
+      (entry) =>
+        !('outcome' in entry) ||
+        entry.resolutionKind !== 'DIRECT' ||
+        entry.groupKind !== 'SEQUENTIAL' ||
+        entry.pathCode !== pathCode ||
+        entry.resultBlockId !== saveEntry.resultBlockId ||
+        JSON.stringify(entry.duration) !== JSON.stringify(leadEntry.duration) ||
+        (leadEntries.length > 1 && entry.outcome.effectKind !== 'CONDITION') ||
+        (triggerCode === 'ACTIVATED' && entry.outcome.effectKind !== 'CONDITION')
+    ) ||
+    leadEntries.length > MAX_CONDITIONS_PER_PATH ||
+    (triggerCode === 'ACTIVATED' && leadEntries.length !== 1)
   ) {
     return null
   }
   const lead = leadEntry.outcome
   const save = saveEntry.outcome
+  const leadConditions = leadEntries.flatMap((entry) =>
+    'outcome' in entry && entry.outcome.effectKind === 'CONDITION' ? [entry.outcome] : []
+  )
+  if (new Set(leadConditions.map(({ conditionId }) => conditionId)).size !== leadConditions.length)
+    return null
   // A failed repeat that ends the effect by leaving a second condition in place of the held one
   // ("restrained, then petrified") counts one turn, whatever the held condition's duration.
   const escalation =
-    lead.effectKind === 'CONDITION' && !leadEntry.duration ? escalationCondition(save) : null
+    lead.effectKind === 'CONDITION' && leadEntries.length === 1 && !leadEntry.duration
+      ? escalationCondition(save)
+      : null
   if (escalation && !(action.conditionDefinitionIds ?? []).includes(escalation.conditionId))
     return null
   const initialRemaining = escalation
@@ -3789,17 +3832,19 @@ function repeatingDirectFollowUpSavePlan(
       : null
   const grantContribution = grantPlan?.modifierGrantContribution
   const contribution =
-    lead.effectKind === 'CONDITION' &&
-    UUID.test(lead.conditionId) &&
-    (action.conditionDefinitionIds ?? []).includes(lead.conditionId)
+    leadConditions.length > 0 &&
+    leadConditions.every(
+      ({ conditionId }) =>
+        UUID.test(conditionId) && (action.conditionDefinitionIds ?? []).includes(conditionId)
+    )
       ? {
-          conditionContributions: [
-            {
-              conditionId: lead.conditionId,
-              recordsSource: lead.recordsSource,
-              fleesSource: lead.fleesSource
-            }
-          ]
+          conditionContributions: leadConditions.map(
+            ({ conditionId, recordsSource, fleesSource }) => ({
+              conditionId,
+              recordsSource,
+              fleesSource
+            })
+          )
         }
       : grantPlan && grantContribution
         ? {
@@ -3842,7 +3887,11 @@ function repeatingDirectFollowUpSavePlan(
       ...pinnedDc.adapterFacts,
       [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'repeat-save-d20',
       ...(lead.effectKind === 'CONDITION'
-        ? { [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: lead.conditionId }
+        ? {
+            [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]: leadConditions
+              .map(({ conditionId }) => conditionId)
+              .join(',')
+          }
         : { 'dnd5e.grant-authored-path': leadEntry.pathCode }),
       ...(escalation
         ? {
@@ -3907,10 +3956,13 @@ function countRepeatSave(
     : { successes: thresholds.consecutive ? 0 : successes, failures: failures + 1 }
 }
 
-function repeatingDirectFollowUpSaveLeadEntry(
+/** The entries the repeat-save effect holds (its condition or grant), without the follow-up save. */
+function repeatingDirectFollowUpSaveLeadEntries(
   action: Dnd5eCompiledEffectActionSource
-): CompiledEffectGroup['entries'][number] | null {
-  return repeatingDirectFollowUpSavePlan(action) ? (action.compiledEffect.entries[0] ?? null) : null
+): CompiledEffectGroup['entries'] | null {
+  return repeatingDirectFollowUpSavePlan(action)
+    ? entriesBesideSourceImmunity(action).slice(0, -1)
+    : null
 }
 
 function repeatFollowUpSavePublishedGraph(input: {
@@ -6103,6 +6155,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_ATTACK_MOVE_TOWARD_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_TURN_USES_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_DAMAGE_ADDED_DICE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY, valueKind: RULE_VALUE_KIND.BOOLEAN },
@@ -7657,6 +7710,7 @@ function pathOwed(
   return attackRestrictionsMet(entry.restrictions, {
     rollMode: facts.attackRollMode,
     enemyProximity: facts.attackEnemyProximity ?? null,
+    moveToward: facts.attackMoveToward ?? null,
     targetCreatureTypeId: facts.targetCreatureTypeId ?? null
   })
 }
@@ -7892,20 +7946,27 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     input.selectedPath === 'ON_SAVE_FAIL' &&
     repeatingDirectFollowUpSavePlan(input.action) !== null
   ) {
-    const entry = repeatingDirectFollowUpSaveLeadEntry(input.action)
-    if (!entry) unsupported('D&D direct repeated save outcome is unavailable.')
-    // The grant is held by the repeat-save effect; the occurrence only proposes it.
-    const outcome: SpecializedOutcome =
-      'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT'
-        ? { kind: 'MODIFIER_GRANT' }
-        : specializedTestOutcome(entry)
-    if (outcome.kind !== 'CONDITION_APPLY' && outcome.kind !== 'MODIFIER_GRANT')
-      unsupported('D&D direct repeated save outcome is unavailable.')
-    const definition = fixedOutcomeGraphDefinition({
-      action: input.action,
-      entry,
-      outcome
+    const entries = repeatingDirectFollowUpSaveLeadEntries(input.action)
+    if (!entries?.length) unsupported('D&D direct repeated save outcome is unavailable.')
+    const definitions = entries.map((entry, index) => {
+      // The grant is held by the repeat-save effect; the occurrence only proposes it.
+      const outcome: SpecializedOutcome =
+        'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT'
+          ? { kind: 'MODIFIER_GRANT' }
+          : specializedTestOutcome(entry)
+      if (outcome.kind !== 'CONDITION_APPLY' && outcome.kind !== 'MODIFIER_GRANT')
+        unsupported('D&D direct repeated save outcome is unavailable.')
+      return fixedOutcomeGraphDefinition({
+        action: input.action,
+        entry,
+        outcome,
+        // Each condition binds its own immunity fact, as the conditions of any other result path.
+        ...(entries.length > 1
+          ? { nodePrefix: `outcome${index + 1}-`, conditionOrdinal: index + 1 }
+          : {})
+      })
     })
+    const definition = mergedOutcomeGraphDefinition({ action: input.action, definitions })
     const published = serverPublishedRuleDefinitionDtoSchema.parse({
       id: definition.id,
       gameSystemId: definition.gameSystemId,
@@ -7916,7 +7977,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     return {
       phase: 'OUTCOME',
       published,
-      templateChecksum: checksumRuleDocument([entry])
+      templateChecksum: checksumRuleDocument(entries)
     }
   }
   const authoredGroups = selectedOutcomeGroups(input.action, input.selectedPath)
@@ -9053,6 +9114,19 @@ function testApplications(
   return applications
 }
 
+/** The conditions a repeat save holds, or null for one that holds modifier grants. */
+function repeatSaveConditionIds(
+  adapterFacts: Readonly<Record<string, string | number | boolean>>
+): string[] | null {
+  const fact = adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]
+  if (fact === undefined) return null
+  const ids = typeof fact === 'string' ? fact.split(',') : []
+  if (ids.length === 0 || !ids.every((id) => UUID.test(id))) {
+    throw new Dnd5eEffectActionCompilerError('D&D repeated save condition identity is invalid.')
+  }
+  return ids
+}
+
 function repeatedFollowUpSaveResultPath(input: {
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
   occurrenceId: string
@@ -9064,12 +9138,8 @@ function repeatedFollowUpSaveResultPath(input: {
 }): 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS' | 'ATTEMPT_REFUSED' | null {
   const d20NodeId = input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
   if (d20NodeId !== 'repeat-save-d20') return null
-  // A repeat save that holds a condition names it; one that holds modifier grants names none.
-  const conditionId =
-    input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]
-  if (conditionId !== undefined && (typeof conditionId !== 'string' || !UUID.test(conditionId))) {
-    throw new Dnd5eEffectActionCompilerError('D&D repeated save condition identity is invalid.')
-  }
+  // A repeat save that holds conditions names them; one that holds modifier grants names none.
+  repeatSaveConditionIds(input.definition.adapterFacts)
   const [d20Trace, addedDiceTrace, saveTrace] = input.execution.evidence.trace
   const gated =
     DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts ||
@@ -10279,8 +10349,8 @@ export function dndSourceFromCompilerSource(
 }
 
 function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) {
-  const directRepeatLeadEntry = repeatingDirectFollowUpSaveLeadEntry(action)
-  if (directRepeatLeadEntry) {
+  const directRepeatLeadEntries = repeatingDirectFollowUpSaveLeadEntries(action)
+  if (directRepeatLeadEntries) {
     return [
       {
         pathCode: 'ON_SAVE_FAIL',
@@ -10288,7 +10358,7 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
           definitionId: action.effectId,
           gameSystemId: DND5E_SYSTEM_ID,
           definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-          checksum: checksumRuleDocument([directRepeatLeadEntry])
+          checksum: checksumRuleDocument(directRepeatLeadEntries)
         }
       }
     ]
@@ -10875,6 +10945,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       const enemyProximity = sourceDerivedFacts.attackEnemyProximity as
         | Dnd5eEnemyProximity
         | undefined
+      const moveToward = sourceDerivedFacts.attackMoveToward as Dnd5eMoveToward | undefined
       const turnUses = sourceDerivedFacts.attackTurnUses as readonly string[] | undefined
       const criticalRules = attackCriticalRulesDtoSchema.parse(
         sourceDerivedFacts.attackCriticalRules ?? {
@@ -10897,6 +10968,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             : {}),
           ...(enemyProximity
             ? { [DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]: JSON.stringify(enemyProximity) }
+            : {}),
+          ...(moveToward
+            ? { [DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]: JSON.stringify(moveToward) }
             : {}),
           ...(turnUses ? { [DND5E_ATTACK_TURN_USES_FACT_KEY]: JSON.stringify(turnUses) } : {}),
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
@@ -11307,8 +11381,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       targetActorId: target.targetActorId
     })
     if (repeatedSavePath !== null) {
-      const conditionId =
-        definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]
+      const conditionIds = repeatSaveConditionIds(definition.adapterFacts)
       const thresholds = definition.recurrence.saveThresholds
       const saveTally =
         thresholds && repeatedSavePath !== 'ATTEMPT_REFUSED'
@@ -11320,19 +11393,14 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         (thresholds
           ? saveTally !== undefined && saveTally.successes >= thresholds.successesToEnd
           : repeatedSavePath === 'ON_SAVE_SUCCESS') || lifecycle.remainingTicks === 1
-      // Grants held by the effect leave with it; only a held condition needs removing.
-      if (conditionId === undefined)
+      // Grants held by the effect leave with it; only held conditions need removing.
+      if (conditionIds === null)
         return {
           applications: [],
           terminal,
           emptyApplicationAllowed: true,
           ...(saveTally ? { saveTally } : {})
         }
-      if (typeof conditionId !== 'string' || !UUID.test(conditionId)) {
-        throw new Dnd5eEffectActionCompilerError(
-          'D&D repeat-save condition identity is unavailable.'
-        )
-      }
       const escalationConditionId =
         definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]
       if (
@@ -11355,7 +11423,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       return terminal
         ? {
             applications: [
-              { ...application, kind: 'CONDITION_REMOVE' as const, conditionId },
+              ...conditionIds.map((conditionId) => ({
+                ...application,
+                kind: 'CONDITION_REMOVE' as const,
+                conditionId
+              })),
               // A failed save leaves the escalated condition, unless the target cannot hold it.
               ...(escalationConditionId !== undefined &&
               repeatedSavePath === 'ON_SAVE_FAIL' &&

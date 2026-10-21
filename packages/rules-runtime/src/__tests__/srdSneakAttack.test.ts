@@ -35,7 +35,8 @@ const circumstances = (
 ): Dnd5eAttackCircumstances => ({
   rollMode,
   enemyProximity: nearestFeet === undefined ? null : { nearestFeet },
-  targetCreatureTypeId: null
+  targetCreatureTypeId: null,
+  moveToward: null
 })
 
 /** Whether the reduced Effect still owes its Sneak Attack entry for these circumstances. */
@@ -46,7 +47,10 @@ function owed(
 ): boolean {
   const [entry] = reduceEffectRestrictions(effect, item).entries
   if (!entry) return false
-  return !('restrictions' in entry && entry.restrictions) || attackRestrictionsMet(entry.restrictions, attack)
+  return (
+    !('restrictions' in entry && entry.restrictions) ||
+    attackRestrictionsMet(entry.restrictions, attack)
+  )
 }
 
 describe('the SRD Rogue’s Sneak Attack, authored from core options', () => {

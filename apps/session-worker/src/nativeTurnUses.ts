@@ -15,6 +15,18 @@ export async function readNativeLiveTurnMovedFeet(
   return captured.feet
 }
 
+/** An actor's latest voluntary move this turn (D164), read from the room's store. */
+export async function readNativeLiveTurnLastMove(
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => Promise<LiveSessionEncounterRulesResponse>,
+  actorId: string
+) {
+  const captured = await capture({ kind: 'TURN_LAST_MOVE', actorId })
+  if (captured.kind !== 'TURN_LAST_MOVE') throw new Error('Turn movement is unavailable.')
+  return captured.lastMove
+}
+
 /** The once-per-turn uses an actor has spent this turn (D119), read from the room's store. */
 export async function readNativeLiveTurnUses(
   capture: (

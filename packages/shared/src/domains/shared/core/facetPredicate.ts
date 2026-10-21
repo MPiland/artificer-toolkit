@@ -107,6 +107,13 @@ export type PredicatePayloadByCode = {
   }
   /** The target has not taken a turn in the Encounter yet: its Round-1 initiative turn is still to come. */
   TARGET_HAS_NOT_TAKEN_TURN: EmptyObject
+  /**
+   * The attacker's latest voluntary move this turn closed its distance to the target by at least
+   * `minFeet` (D164). On the grid that is a move of at least that far straight toward the target.
+   */
+  MOVED_TOWARD_TARGET: {
+    minFeet: number
+  }
   EQUIPMENT_PROFICIENCY: Selectable<
     { equipmentIds: string[] },
     {
@@ -373,6 +380,14 @@ export const PREDICATE_REGISTRY = {
     code: 'TARGET_HAS_NOT_TAKEN_TURN',
     label: 'Target Has Not Taken a Turn',
     description: 'Requires the attack target not to have taken a turn in the Encounter yet.',
+    subjects: ['EQUIPMENT']
+  },
+
+  MOVED_TOWARD_TARGET: {
+    code: 'MOVED_TOWARD_TARGET',
+    label: 'Moved Toward Target',
+    description:
+      'Requires the attacker, in its latest move this turn, to have closed its distance to the target by at least the number of feet.',
     subjects: ['EQUIPMENT']
   },
 

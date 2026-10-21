@@ -81,7 +81,10 @@ import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
-import { readNativeLiveEnemyProximity } from './nativeAttackEnemyProximity.js'
+import {
+  readNativeLiveEnemyProximity,
+  readNativeLiveMoveToward
+} from './nativeAttackEnemyProximity.js'
 import {
   readNativeLiveHasNotTakenTurn,
   readNativeLiveTurnMovedFeet,
@@ -707,6 +710,13 @@ export async function planNativeLiveEncounterAction(
           sceneContext,
           loadTarget,
           definitions,
+          capture
+        }),
+      loadMoveToward: ({ sourceFacts, targetFacts }) =>
+        readNativeLiveMoveToward({
+          attacker: sourceFacts,
+          target: targetFacts,
+          sceneContext,
           capture
         }),
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),

@@ -82,6 +82,7 @@ export async function command(room: RoomEncounterStore, ordinal: number) {
       speedBonuses: 0,
       speedId: null,
       usedOncePerTurn: [],
+      lastMove: null,
       teleportAllowances: []
     })
     if (ordinal % 3 === 0) {

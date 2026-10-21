@@ -29,6 +29,7 @@ useLocalRoomWorker()
 
 const droppedTables = [
   'encounterActorSnapshots',
+  'encounterSpellPins',
   'encounterSceneBindings',
   'encounterActorTokenBindings',
   'encounterInitiativeRounds',
@@ -72,7 +73,18 @@ it('keeps only the finished view of a Run with a Character and a Creature (ADR 0
         ).length
       }
     })
+  await t.run((ctx) =>
+    ctx.db.insert('encounterSpellPins', {
+      encounterId: run.id,
+      spellId: crypto.randomUUID(),
+      sourceRevision: 1,
+      sourceVersionId: crypto.randomUUID(),
+      sourceChecksum: 'a'.repeat(64),
+      compilationJson: '{}'
+    })
+  )
   const before = await countRows()
+  expect(before.dropped.encounterSpellPins).toBe(1)
   expect(before.dropped.encounterActorSnapshots).toBeGreaterThan(0)
   expect(before.dropped.encounterInitiativeRounds).toBe(1)
   expect(before.sources).toBeGreaterThan(0)
