@@ -144,7 +144,7 @@ function resolveEncounterChosenItem({
  * Character's from its equipped items (`characterEquipped`, required for a Character), a
  * Creature's from its loadout.
  */
-export function encounterHeldItemInstanceIds(
+export function encounterItemInstanceIdsOnActor(
   actor: EncounterRunActorState,
   characterEquipped: readonly { itemId: string; slot: string }[] | undefined
 ): string[] {

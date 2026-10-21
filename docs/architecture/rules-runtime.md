@@ -1422,7 +1422,7 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 - **Action source:** `REPEAT_PATH` (`encounterRepeatPathAction.ts`), id `<actorId>:REPEAT_PATH:<carrierEffectId>:<offerIndex>`. `resolveEncounterActionSource` resolves it from the holder's live effects and compiles the offer's frozen Effect (`compileEffect` then `bindEncounterEffect`); a missing carrier or offer is stale. `featureActionMechanic` supplies `spellCastLevel`, the activation and `save.dc`, so the repeat runs the normal capability pipeline: no slot, no new Concentration.
 - **No new pending arm:** the repeat is an ordinary `RESOLVE_ACTION`; its `ENCOUNTER_ACTION` pending replays the command and the repeat id re-resolves from live effects at each replay.
 - **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
-- **Held or worn:** `encounterHeldItemInstanceIds` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. `isSupportedTestActivation` allows a `BONUS_ACTION` saving throw (a repeat's charge).
+- **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. `isSupportedTestActivation` allows a `BONUS_ACTION` saving throw (a repeat's charge).
 - **Node maps:** `LOCAL_COLLECTION` sources take `up` (ancestors, nearest first) so the offer's `pathIds` select from the path list several groups up.
 
 Initiative is application policy over typed rules evidence. Campaign settings select an allowed
