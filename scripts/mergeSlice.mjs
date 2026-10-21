@@ -32,13 +32,15 @@ export function nextMergeNumber(refs, prefix) {
 
 // The newest run per required workflow on one commit (a re-dispatch supersedes an older run).
 // 'green' needs every workflow completed with success; any other completed conclusion is 'red'.
+// A cancelled run is a duplicate superseded by a push or dispatch, so it only counts when the
+// workflow has no other run on the commit.
 export function runsVerdict(runs, workflows = Object.keys(WORKFLOWS)) {
-  const latest = workflows.map(
-    (name) =>
-      runs
-        .filter((run) => run.workflowName === name)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
-  )
+  const latest = workflows.map((name) => {
+    const byNewest = runs
+      .filter((run) => run.workflowName === name)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return byNewest.find((run) => run.conclusion !== 'cancelled') ?? byNewest[0]
+  })
   const missing = workflows.filter((_, index) => !latest[index])
   const red = latest.filter((run) => run?.status === 'completed' && run.conclusion !== 'success')
   if (red.length > 0)
