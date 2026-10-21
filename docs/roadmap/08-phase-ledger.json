@@ -13304,9 +13304,10 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T4i1a"]
+                "after": ["SPELLS-33.T4i1a", "RULES-2.T6a"]
               },
-              "text": "Damage-type suppression (split 2026-10-20): suppressedByDamageTypes on the recurring trait, with damage types taken since the actor's last turn start written in the one damage-application seam and covered by undo. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
+              "text": "Damage-type suppression (split 2026-10-20): suppressedByDamageTypes on the recurring trait, with damage types taken since the actor's last turn start written in the one damage-application seam and covered by undo. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases.",
+              "note": "2026-10-21: compiler gate part held behind RULES-2.T6a; gate kinds dispatch through one table (ADR 0039)."
             },
             {
               "id": "SPELLS-33.T4i2",
