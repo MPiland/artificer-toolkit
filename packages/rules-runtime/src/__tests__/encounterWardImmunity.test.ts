@@ -8,7 +8,7 @@ const WARD_ID = testUuid(0xe101)
 const UNKNOWN_SYSTEM_ID = '00000000-0000-4000-8000-0000000000ff'
 const wardWith = (duration: { durationKind: 'HOUR'; amount: number }) => ({
   wardId: WARD_ID,
-  payload: { successImmunity: { duration } }
+  payload: { successImmunity: { duration: { id: testUuid(0xe102), ...duration } } }
 })
 
 describe('passed ward immunity', () => {
