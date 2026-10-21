@@ -263,7 +263,9 @@ are System-neutral (`encounterContestPendingContext.ts`). Encounter persistence 
 contest's graph through `contestCheckCapabilityRegistry` from the Run's `gameSystemId`. Installing them there keeps Encounter modules out of
 the browser (ADR 0036 S6, `apps/web/src/lib/rulesRuntimeBoundary.test.ts`). Ability id↔code stays System vocabulary data (`system.abilities`).
 Neutral modules reach System behaviour only through these registries; the `systems/*` import
-allowlist (`scripts/systemsImportAllowlist.json`) only shrinks.
+allowlist (`scripts/systemsImportAllowlist.json`) only shrinks and, since RULES-2.T11e, also fences
+Encounter persistence, the Worker, Convex and web; the composition roots above are exempt by name
+([CI validation](ci-validation.md)).
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
