@@ -3144,7 +3144,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d."
+              "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "RULES-2.T2",
@@ -3156,7 +3157,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Golden compile-checksum harness over the SRD corpus (graph checksum and plan shape per authored effect)."
+              "text": "Golden compile-checksum harness over the SRD corpus (graph checksum and plan shape per authored effect).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "RULES-2.T3a",
@@ -3402,7 +3404,8 @@
                 "rr": 5,
                 "size": 2
               },
-              "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order."
+              "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             }
           ]
         }
@@ -12810,9 +12813,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T5ra"]
+                "after": ["SPELLS-31.T5ra", "RULES-2.T6b"]
               },
-              "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted."
+              "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted. Also labels the resource pool on the web drawer option (from T5ra review). Held behind RULES-2.T6b: the DERIVED_DC rider-merge path is a dice-contract fact, not a new compiler shape."
             },
             {
               "id": "SPELLS-31.T5s",
