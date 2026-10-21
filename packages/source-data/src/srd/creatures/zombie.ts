@@ -46,7 +46,7 @@ export const zombie: CreatureAuthored = {
         dropToHitPoints: 1,
         negatesKill: false,
         save: { ability: 'CONSTITUTION', dc: { base: 5, plusDamageTaken: true } },
-        excludes: { damageTypeIds: [S.damageTypeId('radiant')], critical: true }
+        excludes: { damageTypeIds: [S.damageTypeId('RADIANT')], critical: true }
       }),
       order: 1
     },
