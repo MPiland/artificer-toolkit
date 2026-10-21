@@ -1,3 +1,4 @@
+export * from './combatPerception.js'
 export * from './exploration.js'
 export * from './geometry.js'
 export * from './optionalCombatGeometry.js'

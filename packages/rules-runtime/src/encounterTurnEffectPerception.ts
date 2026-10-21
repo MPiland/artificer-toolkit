@@ -96,6 +96,7 @@ export async function resolveEncounterActorPairPerception(input: {
       })
     : []
   return resolveEncounterCombatPerception({
+    gameSystemId: input.gameSystemId,
     requirement: input.requirement,
     observerActorId,
     sceneGrid,

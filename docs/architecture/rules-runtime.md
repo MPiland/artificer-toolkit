@@ -2305,6 +2305,13 @@ no Creature check reads roll modes yet.
 illumination and obscurement, line of effect, and typed active-effect contributions. Unknown definitions
 fail closed to Manual/Judgment. Fog and viewer projection are never mechanics inputs.
 
+The perception vocabulary and data shapes (channels, access grades, illumination, obscurement, capability and
+contribution types) live in `packages/shared/src/domains/vtt/combatPerception.ts` because Scene, schema and
+runtime share them. The resolution rules are D&D policy in `systems/dnd5e/combatPerception.ts`, reached through
+`combatPerceptionCapabilityRegistry.resolveCombatPerceptionWithContributions({ gameSystemId, ... })`
+(`combatPerceptionCapabilityRegistry.ts`, installed in `platformPolicyModules.ts`), which fails closed on a System
+that provides no perception policy. The Rules Kernel holds no perception rules (ADR 0039 decision 5, RULES-2.T10).
+
 Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`
 (the same SOURCE light shape equipment torches and lanterns and the Light and Continual Flame spells author)
 sheds that light from its token. `creatureLight` reads it from the actor snapshot; nothing stores it on the

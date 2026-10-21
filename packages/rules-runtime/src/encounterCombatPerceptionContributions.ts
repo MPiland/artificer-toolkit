@@ -6,7 +6,7 @@ import type { PinnedConditionRuleStateDefinitionDto } from '@artificer-toolkit/s
 import type {
   CombatPerceptionContribution,
   CombatPerceptionContributionSource
-} from '@artificer-toolkit/shared/rules'
+} from '@artificer-toolkit/shared/vtt'
 import { senseRangeInSceneUnits, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 const COMBAT_PERCEPTION_CONTRIBUTION_INSTANCE_NAMESPACE = '9bcf57bc-3776-4eaf-a836-6f246bbb6786'

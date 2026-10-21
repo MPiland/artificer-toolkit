@@ -36,8 +36,11 @@ import type {
 import type { CombatPerceptionContributionsDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import type { CompiledRuleGraph, RuleValue } from '@artificer-toolkit/shared/rules'
-import type { SceneGrid, ScenePoint } from '@artificer-toolkit/shared/vtt'
-import type { CombatPerceptionCapabilityInstance } from '@artificer-toolkit/shared/rules'
+import type {
+  CombatPerceptionCapabilityInstance,
+  SceneGrid,
+  ScenePoint
+} from '@artificer-toolkit/shared/vtt'
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'

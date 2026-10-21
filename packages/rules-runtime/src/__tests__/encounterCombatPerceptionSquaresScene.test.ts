@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest'
 import type { PinnedSenseDefinition } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { PinnedConditionRuleStateDefinitionDto } from '@artificer-toolkit/schema/shared/ruleState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { CombatPerceptionEnvironment } from '@artificer-toolkit/shared/rules'
-import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
+import type { CombatPerceptionEnvironment, SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import { resolveEncounterCombatPerception } from '../encounterCombatPerception.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import {
   deriveCombatPerceptionContributionPartitions,
   deriveConditionCombatPerceptionContributions,
@@ -81,6 +81,7 @@ const unlimitedGrant: GrantRange = { rangeKind: 'UNLIMITED' }
 
 function pinnedCapabilitiesOn(grid: SceneGrid, range: PinnedSenseDefinition['range']) {
   return resolveEncounterCombatPerception({
+    gameSystemId: DND5E_SYSTEM_ID,
     requirement: 'DETECT',
     observerActorId: OBSERVER_ID,
     sceneGrid: grid,

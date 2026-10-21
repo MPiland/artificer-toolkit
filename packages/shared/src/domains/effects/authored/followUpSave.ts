@@ -10,7 +10,7 @@ import {
   type FollowUpSaveBranchKind,
   type FollowUpSaveTiming
 } from '#core'
-import type { CombatPerceptionRequirement } from '../../rules/combatPerception.js'
+import type { CombatPerceptionRequirement } from '../../vtt/combatPerception.js'
 
 /**
  * Conditions a save failed by at least `failedBy` also applies, for the save's duration ("if the
