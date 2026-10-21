@@ -47,6 +47,7 @@ import {
   closeRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
+  queueRoomRolls,
   roomErrorLogs,
   seedRoomContentSnapshots,
   useLocalRoomWorker
@@ -264,6 +265,9 @@ describe('native initiative Spell declarations', () => {
     const base = await setup()
     const actor = base.run.actors.find((value) => value.kind === 'CHARACTER')
     if (!actor) throw new Error('Expected Character actor.')
+    // Automatic scores that tie, and a tie-break roll-off that ties again, leave the Run PREPARED for
+    // the GM's order. Faces 10 apart cannot tie whichever order they are drawn in.
+    await queueRoomRolls(base.campaign.id, { rolls: [2, 12] })
     let result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
