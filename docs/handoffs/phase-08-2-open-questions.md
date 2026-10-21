@@ -2,9 +2,20 @@
 
 > Questions waiting for the user's answer only; keep this file short. Answer inline under **Answer** (or in chat). Answered items move to [Resolved](phase-08-2-decisions.md#resolved) with the decision; decisions made on the user's behalf, approved implementation decisions and resolved questions live in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 >
-> Updated: 2026-10-20 (Q28 added).
+> Updated: 2026-10-21 (Q29 added).
 
 ## Open
+
+### Q29 (2026-10-21) Should a Troll at 0 hit points stay up until its regeneration fails?
+
+**Context:** the Troll's Regeneration says it dies only if it starts its turn at 0 hit points and doesn't regenerate. D63 marks every Creature at 0 HP defeated at once and skips its turns, so the Troll never reaches its turn-start regeneration in a room. SPELLS-33.T4i1b2 proves the 0-HP regeneration only in unit tests. Fire and acid are the classic answer to Trolls, so this comes up in most Troll fights.
+
+**Options:**
+
+- A (recommended): an authored, System-neutral "defeat deferred to turn start" option on a start-of-turn trait. A Creature at 0 HP with that trait is downed but not defeated: it takes no actions or reactions, but its turn still starts. If the trait doesn't heal it (for example because fire or acid suppressed it), it becomes defeated then. This narrows D63 for that one authored case, about size 3.
+- B: keep D63. The GM revives the Troll by editing its HP when it would have regenerated.
+
+**Answer:**
 
 ### Q28 (2026-10-20) Should Spells granted by Equipment or Feats appear on the Sheet as castable?
 

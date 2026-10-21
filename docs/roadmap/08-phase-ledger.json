@@ -13335,6 +13335,19 @@
               "text": "Bug (found 2026-10-21): Previous Turn then Next re-raises the START_OF_TURN root, so regeneration heals twice (commands.ts PREVIOUS_TURN is a cursor-only correction; raiseRoomStartOfTurnEffects fires on every START/ADVANCE_TURN). Make the start-of-turn raise idempotent per (round, holder actor) from an existing per-turn record, for every start-of-turn effect (regeneration, turn-effect and zone damage), with a room regression test that fails before the fix."
             },
             {
+              "id": "SPELLS-33.T4i1d",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": ["SPELLS-33.T4i1b2"]
+              },
+              "text": "Bug (found 2026-10-21): every ADVANCE_TURN is rejected while a Vampire is in the Encounter. Legendary-action discovery (encounterTurnLegendaryDiscovery.ts) compiles the legendary Unarmed Strike, whose Grapple option makes the test-action compiler throw \"D&D test action paths must be unique direct outcomes\". Discovery must offer what compiles and never fail the turn; the damage-or-grapple Legendary option keeps today's first-option behaviour (future-enhancements, Legendary cast pick). Room regression test that fails before the fix: advance turns with a Vampire present, then a Vampire room regeneration (+20) with radiant suppression."
+            },
+            {
               "id": "SPELLS-33.T4i2",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
