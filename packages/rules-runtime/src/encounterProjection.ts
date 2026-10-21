@@ -27,10 +27,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import { snapshotFeatureDefinitions, stableActors } from './encounterActorState.js'
-import {
-  requireDnd5eArmorClass,
-  resolveDnd5eCreatureArmorClass
-} from './systems/dnd5e/armorClass.js'
+import { armorClassCapabilityRegistry } from './platformEncounterPolicy.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
 import { creatureInnateConditionRows } from './encounterInnateConditions.js'
 import { healthBand } from './encounterPlayerProjection.js'
@@ -111,28 +108,28 @@ export function snapshotStatBlock(actor: {
         )
       )
     : null
-  const dexterityScore = abilities?.DEXTERITY
   const naturalArmorBonus = payload.naturalArmorBonus
+  // A Creature's armor class is computed from its effective loadout, so replacing or losing
+  // armor or a shield in an Encounter changes it (D107).
+  const armorClass =
+    actor.systemId !== null &&
+    abilities !== null &&
+    typeof naturalArmorBonus === 'number' &&
+    Number.isInteger(naturalArmorBonus) &&
+    naturalArmorBonus >= 0
+      ? armorClassCapabilityRegistry.require(actor.systemId).creatureArmorClass({
+          abilityScores: abilities,
+          naturalArmorBonus,
+          equipment: snapshotCreatureEquipmentItems(actor).map(({ entry, source }) => ({
+            id: entry.id,
+            useState: entry.useState,
+            compiled: source.compiled
+          }))
+        })
+      : null
+  if (armorClass && !armorClass.ok) throw new Error(armorClass.reason)
   return {
-    // A Creature's armor class is computed from its effective loadout, so replacing or losing
-    // armor or a shield in an Encounter changes it (D107).
-    armorClass:
-      dexterityScore !== undefined &&
-      typeof naturalArmorBonus === 'number' &&
-      Number.isInteger(naturalArmorBonus) &&
-      naturalArmorBonus >= 0
-        ? requireDnd5eArmorClass(
-            resolveDnd5eCreatureArmorClass({
-              dexterityScore,
-              naturalArmorBonus,
-              equipment: snapshotCreatureEquipmentItems(actor).map(({ entry, source }) => ({
-                id: entry.id,
-                useState: entry.useState,
-                compiled: source.compiled
-              }))
-            })
-          )
-        : null,
+    armorClass: armorClass?.armorClass ?? null,
     abilityScores: abilities,
     speeds: Array.isArray(payload.speeds) ? payload.speeds : [],
     // A malformed sense fails the read rather than leaving the Creature without it.

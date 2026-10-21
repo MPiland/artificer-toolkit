@@ -22,10 +22,11 @@ import type {
   LegendaryActionEligibilityAdapter,
   LegendaryActionEligibilityFacts
 } from '../../legendaryActionEligibilityService.js'
+import type { D20TestDefinitionCapabilityAdapter } from '../../d20TestDefinitionCapability.js'
 import { requireResolvedRuleCapabilityStateIntegrity } from '../../ruleCapabilityStateService.js'
 import { DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID } from './reactionEligibilityPolicy.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
-import { dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
+import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
 
 const DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000e1'
@@ -314,6 +315,13 @@ export function createDnd5eBasicActionCheckDefinition() {
       addedTotal: { kind: 'NODE_OUTPUT', nodeId: 'd20-added-dice', port: 'value' }
     }
   })
+}
+
+export const dnd5eD20TestDefinitionCapabilityAdapter: D20TestDefinitionCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  basicActionCheckDefinition: createDnd5eBasicActionCheckDefinition,
+  deathSaveDefinition: createDnd5eDeathSaveDefinition,
+  addedDiceFacts: dnd5eAddedDiceFacts
 }
 
 export function createDnd5eRechargeLifecycleDefinition(threshold: 4 | 5 | 6) {
