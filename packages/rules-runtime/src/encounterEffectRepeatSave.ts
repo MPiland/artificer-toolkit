@@ -14,11 +14,11 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { damageSaveTargetCharacterPins } from './encounterConcentration.js'
-import { damagerOnSourceSide, damageTriggerMet } from './encounterEndedEffectRelease.js'
 import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { activeEffectTargetFacts } from './encounterTurnEffects.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   resumeTargetBoundActiveRuleEffectWithAnswer,
@@ -45,18 +45,17 @@ export function effectRepeatTrigger(
     damageTypeId: string | null
   }
 ): RepeatTrigger | undefined {
-  const { definition } = effect
-  if (definition.schemaVersion !== 2) return undefined
-  const sourceActorId =
-    definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
-  const onSourceSide = damagerOnSourceSide({
-    damagerActorId: input.damagerActorId,
-    sourceActorId,
-    dispositions: input.dispositions
-  })
-  return definition.recurrence.repeatTriggers?.find((trigger) =>
-    damageTriggerMet(trigger, { onSourceSide, damageTypeIds: [input.damageTypeId] })
-  )
+  return discoverEncounterEventHooks({
+    effects: [effect],
+    events: [
+      {
+        kind: 'DAMAGED',
+        damagerActorId: input.damagerActorId,
+        damageTypeIds: [input.damageTypeId],
+        dispositions: input.dispositions
+      }
+    ]
+  }).repeatSaves[0]?.trigger
 }
 
 /**

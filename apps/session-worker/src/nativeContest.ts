@@ -50,7 +50,7 @@ import {
   actionEndedEffects,
   actsAgainstEnemy
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import {
   encounterActorsAfterEscape,
   encounterEscapeEndedConditionIds,
@@ -995,7 +995,10 @@ export async function planNativeLiveContestRolls(input: {
       // The defender's check uses up its one-roll grants too (a Help's advantage).
       consumedGrants: [
         ...initiatorGrants,
-        ...effectsEndedBy(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
+        ...discoverEncounterEventHooks({
+          effects: activeEffectsByActorId.get(target.id) ?? [],
+          events: [{ kind: 'TEST', test: 'CHECK', ability: null }]
+        }).ended
       ],
       createdEffect: hold?.record ?? null,
       conditionApplications: outcome?.conditionApplications ?? [],

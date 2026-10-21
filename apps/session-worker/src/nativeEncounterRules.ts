@@ -133,7 +133,7 @@ import {
   type EncounterAttackRetargetCandidate
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
-import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { endSubscriptions } from '@artificer-toolkit/rules-runtime/events/effectHooks'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { replayNativeActionLegendaryResistance } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
@@ -1575,7 +1575,7 @@ export async function planNativeLiveEncounterAction(
       reactionUse &&
       !(
         prepared.makesAttackRoll &&
-        effectsEndedBy([reactionUse.applied.pendingEffect], 'ON_ATTACKED').length
+        endSubscriptions(reactionUse.applied.pendingEffect).some((s) => s.event === 'ATTACKED')
       )
         ? reactionUse.applied.reactionEffect
         : null,

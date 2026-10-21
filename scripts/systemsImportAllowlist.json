@@ -29,7 +29,6 @@
     "packages/rules-runtime/src/encounterActiveGrants.ts",
     "packages/rules-runtime/src/encounterCastReactionDiscovery.ts",
     "packages/rules-runtime/src/encounterConcentration.ts",
-    "packages/rules-runtime/src/encounterEndedEffectRelease.ts",
     "packages/rules-runtime/src/encounterIncomingAttackGate.ts"
   ]
 }
