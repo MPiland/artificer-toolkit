@@ -6394,7 +6394,7 @@
                   "SPELLS-33.T6e2",
                   "SPELLS-33.T6i2",
                   "SPELLS-33.T6m2",
-                  "SPELLS-33.T4i1",
+                  "SPELLS-33.T4i1b",
                   "SPELLS-33.T4i2",
                   "SPELLS-33.T4i3",
                   "SPELLS-33.T4i4"
@@ -12878,7 +12878,21 @@
               "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
             {
-              "id": "SPELLS-33.T4i1",
+              "id": "SPELLS-33.T4i1a",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
+              },
+              "text": "Passive start-of-turn trait stage (split 2026-10-20): a turn-start stage discovered from the actor's features (Recharge precedent) that runs a PASSIVE result block with recurringKind START_OF_TURN and no duration through the existing outcome path, with plan checksum and undo; a TARGET_HIT_POINTS_AT_LEAST gate. Converts Oni and Shield Guardian regeneration, with parity proofs, a homebrew variant and kind deletions.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T4i1b",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -12886,10 +12900,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b"]
+                "after": ["SPELLS-33.T4i1a"]
               },
-              "text": "Permanent start-of-turn regeneration with an HP>=1 gate and damage-type suppression (split 2026-10-20): Oni, Shield Guardian, Vampire, Vampire Spawn, with parity proofs, a homebrew variant and 4 kind deletions.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "text": "Damage-type suppression (split 2026-10-20): suppressedByDamageTypes on the recurring trait, with damage types taken since the actor's last turn start written in the one damage-application seam and covered by undo. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
             },
             {
               "id": "SPELLS-33.T4i2",
