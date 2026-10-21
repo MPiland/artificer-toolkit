@@ -90,7 +90,8 @@ describe('a room ADVANCE_TURN that begins a regenerating creature’s turn (SPEL
     const { passiveStartOfTurnEffects } = discoverEncounterFeatureActions({
       actor: oni,
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
-      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code })),
+      spells: new Map()
     })
     const actionId = passiveStartOfTurnEffects[0]?.capability.actionId
     if (!actionId) throw new Error('The Oni has no start-of-turn trait.')
