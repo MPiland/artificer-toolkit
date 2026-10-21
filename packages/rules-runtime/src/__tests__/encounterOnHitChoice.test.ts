@@ -244,7 +244,12 @@ const poolStrikeAt = (cost: number, poolId = POOL_ID): EncounterOnHitCandidate =
   cost
 })
 const poolResource = (
-  overrides: Partial<Parameters<typeof onHitCandidates>[0]['resources'][number]> = {}
+  overrides: {
+    poolId?: string
+    chargeId?: string
+    state?: 'RESOLVED' | 'UNRESOLVED'
+    remaining?: number | null
+  } = {}
 ): Parameters<typeof onHitCandidates>[0]['resources'][number] => ({
   sequence: 0,
   poolId: POOL_ID,
