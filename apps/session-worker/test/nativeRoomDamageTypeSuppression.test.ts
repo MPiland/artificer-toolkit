@@ -58,9 +58,12 @@ async function advance(room: Awaited<ReturnType<typeof regeneratingRoom>>) {
 /** The caster's area hits the holder, who fails its save (declining Legendary Resistance) and takes 1 damage. */
 async function hitHolder(room: Awaited<ReturnType<typeof regeneratingRoom>>) {
   await room.startAreaAction({ x: 50, y: 150 })
-  await answerAllSaves(room)
-  const decision = await readPendingActionDecision(room.room.base.stub)
-  if (decision?.pending.kind === 'AREA_SAVES' && decision.pending.legendaryResistance.length > 0) {
+  for (;;) {
+    await answerAllSaves(room)
+    const decision = await readPendingActionDecision(room.room.base.stub)
+    if (!decision) return
+    if (decision.pending.kind !== 'AREA_SAVES' || decision.pending.legendaryResistance.length === 0)
+      throw new Error(`The area action is still pending: ${decision.pending.kind}.`)
     const declined = await room.send(
       room.resolveCommand(decision, {
         kind: 'AREA_LEGENDARY_RESISTANCE',
