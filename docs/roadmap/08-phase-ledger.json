@@ -15877,7 +15877,7 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "DONE",
+          "status": "TODO",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
@@ -15909,6 +15909,14 @@
                 "Red: ci/reliability-15-t2-red3 Tests 38885956580 on d91b8214d (tying primary and roll-off faces per case)",
                 "Green: CI Tests 38886014934 and Live backend 38886014969 on 32409c357"
               ]
+            },
+            {
+              "id": "RELIABILITY-15.3",
+              "status": "TODO",
+              "origin": [
+                "Same rule as RELIABILITY-15.2, applied to the sibling file after a CI flake on 2026-10-21 (Tests 39540465628, shard 4/4)"
+              ],
+              "text": "Every test in initiativeSpellDeclarations.test.ts that expects a settled (ACTIVE) Run is deterministic: no automatic initiative roll can tie into an unhandled INITIATIVE tie, controlled through the platform random seam (no weakened assertion, no retry)."
             }
           ],
           "tasks": [
@@ -15929,6 +15937,18 @@
               "text": "Seed or tie-handle every remaining settling case in initiativeDeclarations.test.ts (no weakened assertion, no retry); red per case on a ci/ -red branch, then green.",
               "status": "DONE",
               "closes": ["RELIABILITY-15.2"]
+            },
+            {
+              "id": "RELIABILITY-15.T3",
+              "status": "TODO",
+              "closes": ["RELIABILITY-15.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              },
+              "text": "Seed or tie-handle the settling cases in apps/apis/convex/encounters/initiativeSpellDeclarations.test.ts (flaked at :349, \"pins an authorized Spell publication and completes without spending resources\", expected ACTIVE got PREPARED) the way RELIABILITY-15.T1/T2 did; red per case on a ci/ branch."
             }
           ]
         },
