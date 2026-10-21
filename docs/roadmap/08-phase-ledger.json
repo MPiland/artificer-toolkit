@@ -11849,8 +11849,21 @@
                 "size": 5,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2c2"]
               },
-              "text": "D168 result window core + basic-action check site (re-split 2026-10-20): ADD_BONUS_DIE AFTER_ROLL timing (applied only through the window), feature options offered in the window (resource paid and die rolled when chosen), die face from a holder scaling value, one shared post-roll decision module with a discriminated source, pending schema, projection, undo/void, drawer, on the Encounter basic-action check (First Aid). Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey.",
+              "text": "D168 result window core (re-split 2026-10-20): ADD_BONUS_DIE AFTER_ROLL timing, the ENCOUNTER_D20_WINDOW pending kind with a discriminated source, use/decline resolutions, one shared pure decision module, two-step persist/void/replay, room wiring on the First Aid check, drawer. Options are AFTER_ROLL dice held on the roller's own active effects, spent by ending the effect. Proof: authoring-parity with a homebrew held die and a room journey.",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T4c1p",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T5ra"]
+              },
+              "text": "Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind."
             },
             {
               "id": "SPELLS-31.T4c1a2",
@@ -11874,7 +11887,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T4c1a"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
               },
               "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module."
             },
@@ -11887,7 +11900,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T4c1a"]
+                "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p"]
               },
               "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck."
             },
