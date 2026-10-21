@@ -196,6 +196,19 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     hitPointTier: z.optional(z.strictObject({ atMost: z.number().check(z.int()).check(z.gte(1)) })),
     /** Set on a repeat-save plan that counts saves: frozen into the effect's recurrence. */
     saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
+    /**
+     * Set on a plan whose outcome is authored on a test's result path: the effect is made only when
+     * the action's test resolved to one of these paths, which the System lists (a hit's outcome: a hit
+     * or a critical hit). Absent for an effect every resolution makes.
+     */
+    resultGate: z.optional(
+      z.strictObject({
+        paths: z
+          .array(z.string().check(z.regex(/^[A-Z][A-Z_]{0,39}$/)))
+          .check(z.minLength(1))
+          .check(z.maxLength(8))
+      })
+    ),
     adapterFacts: z.record(
       z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/)),
       ruleValueDtoSchema

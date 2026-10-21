@@ -999,6 +999,22 @@ export const dnd5eMovementInterruptionAuthorizationOperation: PureRuleOperationC
 export function dnd5eResultPathSatisfies(resolvedPath: string, authoredPath: string): boolean {
   return resolvedPath === authoredPath || (resolvedPath === 'ON_CRIT' && authoredPath === 'ON_HIT')
 }
+/** The resolved test paths that select an outcome authored on this path: an active-effect plan's gate. */
+export function dnd5eResultGate(authoredPath: string): { paths: string[] } {
+  const resolvedPaths = [
+    'ON_HIT',
+    'ON_MISS',
+    'ON_CRIT',
+    'ON_SAVE_FAIL',
+    'ON_SAVE_SUCCESS',
+    'ON_CHECK_SUCCESS'
+  ]
+  return {
+    paths: resolvedPaths.filter((resolvedPath) =>
+      dnd5eResultPathSatisfies(resolvedPath, authoredPath)
+    )
+  }
+}
 /** The target-only proposals a test's result path gates; each is its direct contract plus the path. */
 export const dnd5ePathGatedTargetProposalOperations = [
   dnd5eStabilizeProposalOperation,

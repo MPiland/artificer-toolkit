@@ -14,7 +14,7 @@ const GAUNTLET_ID = testUuid(0xf30)
  */
 export function joltingGauntlet(
   input: {
-    grantPaths?: readonly ('ON_HIT' | 'ON_CRIT')[]
+    grantPaths?: readonly ('ON_HIT' | 'ON_CRIT' | 'ON_MISS')[]
     reactionCount?: number
   } = {}
 ): EquipmentAuthored {

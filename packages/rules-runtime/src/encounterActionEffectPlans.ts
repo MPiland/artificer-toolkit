@@ -238,29 +238,6 @@ export function relationshipConditionApplications(input: {
 }
 
 /**
- * A hit outcome applies on any hit, a critical-hit outcome only on a critical hit, a save outcome
- * only on its save result, and a contest-win relationship (Grapple) only on the win.
- */
-function reachesAuthoredPath(
-  authoredPath: unknown,
-  resultPath: string | undefined,
-  outcome: 'grant' | 'relationship'
-): boolean {
-  if (
-    outcome === 'grant' &&
-    (authoredPath === 'ON_SAVE_FAIL' || authoredPath === 'ON_SAVE_SUCCESS')
-  )
-    return resultPath === authoredPath
-  if (outcome === 'relationship' && authoredPath === 'ON_CHECK_SUCCESS')
-    return resultPath === 'ON_CHECK_SUCCESS'
-  // A relationship an action simply creates (Engulf) has no roll to reach.
-  if (outcome === 'relationship' && authoredPath === 'ON_USE') return true
-  if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
-    throw new EncounterActionEffectPlanError(`Encounter ${outcome} authored path is unavailable.`)
-  return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')
-}
-
-/**
  * The concealment a settled Hide freezes on its roller, or null when its total beats no observer.
  * The roller is the effect's holder and source; nothing else about the action reaches it.
  */
@@ -348,6 +325,9 @@ export function prepareRecurringActiveEffect(
     ).length !== 1
   )
     throw new EncounterActionEffectPlanError('Encounter Feature recurring-effect plan is stale.')
+  // An effect authored on a test's result path is made only when the test resolved to one of its paths.
+  if (plan.resultGate && !plan.resultGate.paths.some((path) => path === input.d20?.resultPath))
+    return null
   const conditionContributions = plan.conditionContributions ?? []
   const endLifecycle = plan.lifecycle
   const relationshipContribution = plan.actorRelationshipContribution ?? null
@@ -371,10 +351,6 @@ export function prepareRecurringActiveEffect(
   const linkMemberActorIds = linkContribution ? (input.link?.memberActorIds ?? []) : []
   if (linkContribution && linkMemberActorIds.length < 2) return null
   const formContribution = plan.creatureFormContribution ?? null
-  // A form after a saving throw (Polymorph) is entered only by a creature that failed it.
-  if (formContribution && plan.adapterFacts['dnd5e.form-authored-path'] === 'ON_SAVE_FAIL') {
-    if (input.d20?.resultPath !== 'ON_SAVE_FAIL') return null
-  }
   if (formContribution) {
     if (!input.form)
       throw new EncounterActionEffectPlanError('A form plan requires its chosen form.')
@@ -398,23 +374,7 @@ export function prepareRecurringActiveEffect(
   const grantLabel = input.sourceLabel?.trim() ?? ''
   if (grantContribution && !grantLabel)
     throw new EncounterActionEffectPlanError('A modifier grant requires a source label.')
-  const grantHitPath = grantContribution
-    ? plan.adapterFacts['dnd5e.grant-authored-path']
-    : undefined
-  if (
-    grantHitPath !== undefined &&
-    !reachesAuthoredPath(grantHitPath, input.d20?.resultPath, 'grant')
-  )
-    return null
   if (relationshipContribution) {
-    if (
-      !reachesAuthoredPath(
-        plan.adapterFacts['dnd5e.relationship-authored-path'],
-        input.d20?.resultPath,
-        'relationship'
-      )
-    )
-      return null
     const { appliesWhen } = relationshipContribution
     if (
       appliesWhen &&

@@ -155,9 +155,25 @@ event owns, which settle no target application). A path-gated proposal's interpr
 literal of its payload, then interprets it as its direct proposal.
 
 `MODIFIER_GRANT`, `ACTOR_LINK`, `CREATURE_FORM`, `CONCEAL` and `DETECT_CONCEALED` have no path-gated form: their state
-lives in an active-effect plan, which cannot yet be gated on a test's result path. Under a test the compiler refuses
-them and names that missing primitive (RULES-2.T6d adds it). `KILL` under a test stays limited to hit-point tiers,
-which is a rule, not a missing primitive.
+lives in an active-effect plan, not in the test graph. A plan authored on a test's result path carries a **result
+gate** (current, RULES-2.T6d1): `resultGate.paths` lists the resolved paths that make it, which the System compiler
+fills from its path rule (`dnd5eResultGate`: an authored `ON_HIT` lists `ON_HIT` and `ON_CRIT`). The neutral
+`prepareRecurringActiveEffect` makes the effect only when the test's `d20.resultPath` is one of them, for every
+contribution kind, with no System import. It replaced the per-kind `grant-authored-path` and `form-authored-path`
+facts; a relationship keeps `relationship-authored-path` only as its application trace's `authoredPath`. So a grant
+on a hit or a miss, and a link or a creature form on either save result, compile under a test. `CONCEAL` and
+`DETECT_CONCEALED` stay refused under an attack or a save, for a rule: they are settled from the holder's own check
+total, which neither test produces. `KILL` under a test stays limited to hit-point tiers, which is also a rule.
+
+**Effect lifetime (current, RULES-2.T6d1).** An active-effect plan's lifetime is its neutral fields: the clock
+(`recurrenceStage`, `initialRemaining`, `tickAnchor`), the repeat (`saveThresholds`, `lifecycle.repeatTriggers`), the
+ends (`lifecycle`) and `resultGate`. D&D builds the repeated save of every follow-up flavour (the action's own
+recurring save, a failed save's or a cast's follow-up, a hit's nested save, and a placed zone's save) through one
+builder, `dnd5eRepeatSave` in `systems/dnd5e/effectActionFollowUp`: ability, pinned DC (a fixed DC in the plan, the
+caster's DC as a cast fact), request node, held and escalating conditions, and the perception roll influence or
+attempt gate. `conditionDurationTurns` there is the one turn count for a timed duration. The compiler picks a plan
+through `repeatingFollowUpSavePlan` (the save repeats) and `timedActiveEffectPlan` (the duration counts) in one order,
+shared by `dnd5eActiveEffectPlans` and the Concentration check.
 
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
 `ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the

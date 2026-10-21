@@ -144,7 +144,7 @@ describe('an attack’s hit applies its grant (SPELLS-5.5)', () => {
         recurrenceStage: 'START_OF_TURN',
         initialRemaining: 1,
         tickAnchor: 'HOLDER',
-        adapterFacts: { 'dnd5e.grant-authored-path': 'ON_HIT' }
+        resultGate: { paths: ['ON_HIT', 'ON_CRIT'] }
       }
     ])
   })
@@ -158,6 +158,12 @@ describe('an attack’s hit applies its grant (SPELLS-5.5)', () => {
   it('applies a critical hit’s grant only on a critical hit', () => {
     expect(plannedGrant('ON_HIT', { grantPaths: ['ON_CRIT'] })).toBeNull()
     expect(plannedGrant('ON_CRIT', { grantPaths: ['ON_CRIT'] })).toMatchObject(appliedGrant)
+  })
+
+  it('applies a miss’s grant only on a miss (RULES-2.T6d)', () => {
+    expect(plannedGrant('ON_MISS', { grantPaths: ['ON_MISS'] })).toMatchObject(appliedGrant)
+    expect(plannedGrant('ON_HIT', { grantPaths: ['ON_MISS'] })).toBeNull()
+    expect(plannedGrant('ON_CRIT', { grantPaths: ['ON_MISS'] })).toBeNull()
   })
 
   it('refuses an attack that applies more than one grant on a hit', () => {

@@ -258,7 +258,7 @@ describe('the effect outcome registry (RULES-2.T6c1)', () => {
     'CONCEAL',
     'DETECT_CONCEALED'
   ] as const)(
-    'has no path-gated %s, whose active-effect plan cannot yet be gated on a result path',
+    'has no path-gated %s, which its active-effect plan carries behind a result gate',
     (kind) => {
       expect(dnd5eOutcomeDefinition(kind).pathGatedOperationKey).toBeNull()
       expect(() =>
@@ -416,7 +416,15 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
     ],
     [
       { effectKind: 'TELEPATHIC_LINK' },
-      "D&D ACTOR_LINK under a test needs an active-effect plan gated on the test's result path, which the runtime does not have yet."
+      "D&D ACTOR_LINK under a test must be one bounded effect its active-effect plan carries on the test's result path."
+    ],
+    [
+      { effectKind: EFFECT_KIND.CONCEAL_FROM_OBSERVERS, observers: 'NON_ALLIES' },
+      "D&D CONCEAL is settled from its holder's own check total, which an attack or a saving throw never produces."
+    ],
+    [
+      { effectKind: EFFECT_KIND.DETECT_CONCEALED },
+      "D&D DETECT_CONCEALED is settled from its holder's own check total, which an attack or a saving throw never produces."
     ]
   ])('refuses %o under a test for its genuine reason', (outcome, message) => {
     expect(() => compileAction(saveEffect(outcome))).toThrow(message)
