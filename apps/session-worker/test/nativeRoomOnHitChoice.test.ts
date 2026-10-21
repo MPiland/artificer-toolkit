@@ -140,8 +140,11 @@ describe('room optional on-hit rider paid with a spell slot (ATTACK-9.4)', () =>
     expect(pending.allowedResponses).toEqual(['DECLINE', 'OPTION'])
     // One option for each slot level the room's Character holds.
     expect(
-      pending.options.flatMap((option) => (option.kind === 'SPELL_SLOT' ? [option.slotLevel] : []))
-    ).toEqual([1, SECOND_LEVEL, 3, 4, 5])
+      pending.options.map((option) => [
+        option.kind,
+        option.kind === 'SPELL_SLOT' ? option.slotLevel : null
+      ])
+    ).toEqual([1, SECOND_LEVEL, 3, 4, 5].map((level) => ['SPELL_SLOT', level]))
     const history = await readRoomHistory(room.room.base.stub)
     expect(history.receipts.filter(({ commandType }) => commandType === 'RESOLVE_ACTION')).toEqual(
       []

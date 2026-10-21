@@ -37,21 +37,17 @@ const reactionActivationDtoSchema = lazySchema(() =>
   })
 )
 
-const resourceUseDtoSchema = lazySchema(() =>
-  z.object({
-    chargeId: authoredIdentifierSchema,
-    cost: z.number().check(z.int()).check(z.positive())
-  })
-)
+const resourceUseDtoShape = lazySchemaParts(() => ({
+  chargeId: authoredIdentifierSchema,
+  cost: z.number().check(z.int()).check(z.positive())
+}))
+
+const resourceUseDtoSchema = lazySchema(() => z.object(resourceUseDtoShape()))
 
 const optionalOnHitDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('SPELL_SLOT') }),
-    z.object({
-      kind: z.literal('RESOURCE_POOL'),
-      chargeId: authoredIdentifierSchema,
-      cost: z.number().check(z.int()).check(z.positive())
-    })
+    z.object({ kind: z.literal('RESOURCE_POOL'), ...resourceUseDtoShape() })
   ])
 )
 
