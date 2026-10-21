@@ -9356,6 +9356,19 @@
               "text": "Per-turn retarget (D160, split 2026-10-20): a repeat offer with a fresh target pick and a persisted already-saved exclusion. Converts Eyebite Asleep and its per-turn retarget, with a parity proof; Panicked and Sickened and the EYEBITE kind deletion stay with T2l2."
             },
             {
+              "id": "SPELLS-4.T2lb2c",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2lb2a"]
+              },
+              "text": "Web repeat-offer row (split from T2lb2a at review, 2026-10-20): the Character sees and uses a REPEAT_SOURCE_PATH offer (cast level, frozen DC) from the tabletop effect offers, with a browser journey for the Heat Metal repeat."
+            },
+            {
               "id": "SPELLS-4.T2l2",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
