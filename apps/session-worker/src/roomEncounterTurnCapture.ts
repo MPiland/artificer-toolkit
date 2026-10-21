@@ -50,6 +50,7 @@ import { readLiveEncounterActionScope } from '@artificer-toolkit/encounter-persi
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { readContestAdmission } from '@artificer-toolkit/encounter-persistence/contestAdmission'
 import { readRoomLiveMovementAdmission } from './roomSceneGeometryRead.js'
+import { readEncounterSpellPinRows } from '@artificer-toolkit/encounter-persistence/spellPins'
 import { readMovementResolution } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 
 type SemanticResponse = {
@@ -474,6 +475,27 @@ export async function readRoomEncounterTurnCapture(
         actors: await readRunActors(ctx, state),
         membership
       })
+    }
+  } else if (request.kind === 'SPELL_PINS') {
+    response = {
+      kind: 'SPELL_PINS',
+      pins: (await readEncounterSpellPinRows(ctx, state.id)).map(
+        ({
+          encounterId,
+          spellId,
+          sourceRevision,
+          sourceVersionId,
+          sourceChecksum,
+          compilationJson
+        }) => ({
+          encounterId,
+          spellId,
+          sourceRevision,
+          sourceVersionId,
+          sourceChecksum,
+          compilationJson
+        })
+      )
     }
   } else if (request.kind === 'OCCUPANT_SAVE_AURAS') {
     const actorId = request.actorId.toLowerCase()

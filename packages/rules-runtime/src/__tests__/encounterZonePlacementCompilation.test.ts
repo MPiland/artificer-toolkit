@@ -1011,6 +1011,7 @@ describe('a creature’s passive zone (D144)', () => {
   const aura = creatureAuraFeature('2d6', 10)
   const discover = (feature = aura) =>
     discoverEncounterFeatureActions({
+      spells: new Map(),
       actor: srdCreatureActor({
         id: testUuid(0x1950),
         creature: withFeature(srdByLabel(SRD.creatures, 'Goblin'), feature)
@@ -1057,6 +1058,7 @@ describe('a creature’s passive zone (D144)', () => {
 describe('a source zone that burns a melee attacker standing in it (SPELLS-20 T6d1, D153)', () => {
   const passiveZoneOf = (creature: Parameters<typeof srdCreatureActor>[0]['creature']) => {
     const { passiveZones } = discoverEncounterFeatureActions({
+      spells: new Map(),
       actor: srdCreatureActor({ id: testUuid(0x1951), creature }),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

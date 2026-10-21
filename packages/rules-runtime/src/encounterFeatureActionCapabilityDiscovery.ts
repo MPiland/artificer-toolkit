@@ -610,8 +610,12 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
       actor: EncounterProjectionActorInput
       conditionDefinitionIds?: readonly string[]
       abilityDefinitions?: readonly { id: string; code: string }[]
-      /** The compiled spells the Creature's spell grants name; without them it casts none. */
-      spells?: ReadonlyMap<string, CompiledSpell>
+      /**
+       * The Run's pinned Spells (D163) the Creature's spell grants name. Required so a caller that
+       * misses it is a type error, not a Creature that silently casts nothing; a caller that needs
+       * no casts passes an empty map.
+       */
+      spells: ReadonlyMap<string, CompiledSpell>
     }): EncounterFeatureActionDiscovery {
       if (input.actor.kind === 'CUSTOM' || input.actor.kind === 'CHARACTER')
         return {
@@ -740,7 +744,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
         }
       }
       const spells = input.spells
-      if (spells?.size) {
+      if (spells.size) {
         const casts = listCreatureSpellCasts({
           actor: input.actor,
           features,

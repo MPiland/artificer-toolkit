@@ -63,7 +63,7 @@ function compiledTrait(
   const feature = creatureFeature(creature, featureLabel)
   const actor = srdCreatureActor({ id: testUuid(0x2000), creature })
   const capability = discovery
-    .discover({ actor, conditionDefinitionIds, abilityDefinitions })
+    .discover({ spells: new Map(), actor, conditionDefinitionIds, abilityDefinitions })
     .available.find((candidate) => candidate.ownerFeatureId === feature.id)
   if (!capability) throw new Error(`${creatureLabel} ${featureLabel} is not offered as an action.`)
   const executionPlan = compileEncounterFeatureActionPlan(

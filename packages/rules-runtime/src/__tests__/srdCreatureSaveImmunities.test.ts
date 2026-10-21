@@ -46,7 +46,12 @@ function compiledAction(creatureLabel: string, featureLabel: string) {
   const creature = srdByLabel(SRD.creatures, creatureLabel)
   const feature = creatureFeature(creature, featureLabel)
   const actor = srdCreatureActor({ id: testUuid(0x5300), creature })
-  const discovered = discovery.discover({ actor, conditionDefinitionIds, abilityDefinitions })
+  const discovered = discovery.discover({
+    spells: new Map(),
+    actor,
+    conditionDefinitionIds,
+    abilityDefinitions
+  })
   const capability = discovered.available.find(
     (candidate) => candidate.ownerFeatureId === feature.id
   )

@@ -45,10 +45,24 @@ describe('Creature spell cast discovery (SPELLS-33.T3c2a1)', () => {
   it('offers no spell cast without the loaded spells', () => {
     expect(
       discoverEncounterFeatureActionCapabilities({
+        spells: new Map(),
         actor: srdCreatureActor({ id: testUuid(0xe2), creature: MAGE }),
         conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
         abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
       }).filter((capability) => capability.spellCast !== null)
     ).toEqual([])
+  })
+
+  it('fails closed when a Spell the Creature names has no pin', () => {
+    const fireballId = srdByLabel(SRD.spells, 'Fireball').id
+    const partial = new Map([...SPELLS].filter(([id]) => id !== fireballId))
+    const discover = (spells: typeof SPELLS) =>
+      discoverEncounterFeatureActionCapabilities({
+        actor: srdCreatureActor({ id: testUuid(0xe2), creature: MAGE }),
+        conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
+        abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+        spells
+      })
+    expect(() => discover(partial)).toThrow('not pinned')
   })
 })
