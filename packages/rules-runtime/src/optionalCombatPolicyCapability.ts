@@ -113,6 +113,8 @@ export interface OptionalCombatPolicyCapabilityAdapter {
   prepareOverrunContest(
     input: OverrunPreparationInput
   ): OptionalCombatResolution<OverrunContestProposal>
-  prepareTumbleContest(input: TumblePreparationInput): OptionalCombatResolution<TumbleContestProposal>
+  prepareTumbleContest(
+    input: TumblePreparationInput
+  ): OptionalCombatResolution<TumbleContestProposal>
   resolveCleaving(input: CleavingInput): OptionalCombatResolution<CleavingProposal>
 }

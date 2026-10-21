@@ -57,13 +57,15 @@ export async function executeEncounterMovementPassageContest(input: {
   ) {
     throw new EncounterConflictError('Movement passage contest is unavailable.')
   }
-  const graph = contestCheckCapabilityRegistry.require(input.gameSystemId).optionalCombatContestGraph({
-    definitionId: input.pending.origin.pin.definitionId,
-    definitionVersion: input.pending.origin.pin.definitionVersion,
-    definitionChecksum: input.pending.origin.pin.definitionChecksum,
-    moduleKey: input.pending.origin.pin.moduleKey,
-    moduleContractVersion: input.pending.origin.pin.moduleContractVersion
-  })
+  const graph = contestCheckCapabilityRegistry
+    .require(input.gameSystemId)
+    .optionalCombatContestGraph({
+      definitionId: input.pending.origin.pin.definitionId,
+      definitionVersion: input.pending.origin.pin.definitionVersion,
+      definitionChecksum: input.pending.origin.pin.definitionChecksum,
+      moduleKey: input.pending.origin.pin.moduleKey,
+      moduleContractVersion: input.pending.origin.pin.moduleContractVersion
+    })
   if (
     graph.published.id !== input.pending.contestGraph.definitionId ||
     graph.published.checksum !== input.pending.contestGraph.checksum ||

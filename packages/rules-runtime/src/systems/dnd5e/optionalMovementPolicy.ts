@@ -117,7 +117,9 @@ type ValidPassageFacts<TInput extends TumblePreparationInput> = TInput & {
   readonly passageAlreadyUsedThisTurn: boolean
 }
 
-function validCommonPassageFacts(input: OverrunPreparationInput): input is ValidPassageFacts<
+function validCommonPassageFacts(
+  input: OverrunPreparationInput
+): input is ValidPassageFacts<
   OverrunPreparationInput & { readonly initiatorSizeRank: number; readonly targetSizeRank: number }
 > {
   return (
