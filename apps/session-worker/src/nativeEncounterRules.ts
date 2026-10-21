@@ -156,14 +156,14 @@ import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.j
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import { planNativeLiveEncounterActorsAction } from './nativeEncounterActorsRules.js'
 import {
-  discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
   planNativeLiveEncounterAreaAnswer,
   planNativeLiveEncounterAreaForcedMovement,
   planNativeLiveEncounterAreaLegendaryResistance,
-  planNativeLiveEncounterAreaRemoval,
-  type ForcedMovementPick
+  planNativeLiveEncounterAreaRemoval
 } from './nativeEncounterAreaRules.js'
+import { discoverNativeLegendaryResistance } from './nativeAreaRevalidation.js'
+import { type ForcedMovementPick } from './nativeAreaPreparation.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
