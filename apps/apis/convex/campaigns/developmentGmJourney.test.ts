@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises'
 import { createFunctionHandle } from 'convex/server'
 import { convexToJson, type Value } from 'convex/values'
 import { it } from 'vitest'
@@ -87,6 +88,7 @@ it('proves native GM overlays through public Campaign handlers', async () => {
           tableNames.map(async (name) => [name, await ctx.db.query(name).collect()] as const)
         )
       )
+      await sleep(50)
       const scheduled = await ctx.db.system.query('_scheduled_functions').collect()
       const campaignTables: Record<string, Value[]> = {}
       const personalTables: Record<string, Value[]> = {}
