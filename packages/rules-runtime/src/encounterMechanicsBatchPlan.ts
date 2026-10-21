@@ -1,3 +1,4 @@
+import { withDamageTypesTaken } from './encounterDamageTypesSinceTurnStart.js'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
@@ -233,7 +234,7 @@ export function planEncounterMechanicsBatch(input: {
     const updated = encounterRunActorStateSchema.parse(
       withActorTemporaryHitPoints(
         {
-          ...actor,
+          ...withDamageTypesTaken(actor, folded.applications, batch.sourceCommandId),
           currentHitPoints: folded.after.currentHitPoints,
           maxHitPoints: folded.after.maximumHitPoints,
           conditions: nextConditions,

@@ -13,7 +13,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { hitPointsOf } from './placedZoneRoomReads.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readActorDamageTypesTaken, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-33 T4i1a: the Oni's Regeneration, a start-of-turn passive heal gated on at least 1 hit
@@ -38,7 +38,11 @@ const casterActor = {
 }
 
 /** The caster acts first; the Oni's turn begins when it advances. */
-function onionRoom(currentHitPoints: number, defeated = false) {
+function onionRoom(
+  currentHitPoints: number,
+  defeated = false,
+  damageTypesSinceTurnStart: { damageTypeId: string; commandId: string }[] = []
+) {
   return actionRoom({
     actors: [
       casterActor,
@@ -46,7 +50,8 @@ function onionRoom(currentHitPoints: number, defeated = false) {
         id: ONI_ID,
         creature: srdByLabel(SRD.creatures, 'Oni'),
         currentHitPoints,
-        defeated
+        defeated,
+        damageTypesSinceTurnStart
       })
     ],
     characterSpellcasting: { spells: [spiritGuardians], prepared: [spiritGuardians.id] },
@@ -113,5 +118,18 @@ describe('a room ADVANCE_TURN that begins a regenerating creature’s turn (SPEL
       reason: 'SOURCE_REQUIREMENTS_NOT_MET'
     })
     expect(await hitPointsOf(room, ONI_ID)).toBe(hitPoints)
+  })
+
+  it('empties the damage record in the trait’s commit (T4i1b1)', async () => {
+    const taken = [{ damageTypeId: testUuid(0x2343), commandId: testUuid(0x2344) }]
+    const room = await onionRoom(WOUNDED, false, taken)
+    expect(readActorDamageTypesTaken(await readRoomHistory(room.room.base.stub), ONI_ID)).toEqual(
+      taken
+    )
+
+    await advance(room)
+    expect(readActorDamageTypesTaken(await readRoomHistory(room.room.base.stub), ONI_ID)).toEqual(
+      []
+    )
   })
 })

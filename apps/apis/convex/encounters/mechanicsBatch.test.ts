@@ -119,7 +119,12 @@ describe('applyEncounterMechanicsBatch', () => {
     expect(stored?.stateChecksum).toBe(checksumRunActorPlayState(result.updatedActor))
     expect(readStoredRunActor(stored!)).toEqual({
       ...readStoredRunActor(before),
-      currentHitPoints: 1
+      currentHitPoints: 1,
+      damageTypesSinceTurnStart: base.input.applications.flatMap((application) =>
+        application.kind === 'DAMAGE'
+          ? [{ damageTypeId: application.damageTypeId, commandId: base.input.sourceCommandId }]
+          : []
+      )
     })
   })
 

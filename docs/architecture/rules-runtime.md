@@ -456,8 +456,19 @@ same hit-point band as `TARGET_HIT_POINTS_AT_MOST` (`hitPointGateBand`), so a ga
 (`roomEncounterStartOfTurnTriggers.ts`) raises each effect of the creature whose turn began as a self-targeted
 `ACTOR` root (`systemTrigger.trigger: START_OF_TURN`), admitted by the SYSTEM admission when the parent is the
 turn command and the holder still has the turn. A player-submitted `RESOLVE_ACTION` that names the trait is refused,
-so it is never a free heal. Damage-type suppression (Troll, Vampire) is the next slice (T4i1b); sunlight and
-running water are deferred edge cases.
+so it is never a free heal. Sunlight and running water are deferred edge cases.
+
+**Damage taken since the turn began (current, SPELLS-33.T4i1b1).** A creature or custom actor carries an optional
+`damageTypesSinceTurnStart: {damageTypeId, commandId}[]`. `withDamageTypesTaken`
+(`encounterDamageTypesSinceTurnStart.ts`) is the only place it grows: `planEncounterMechanicsBatch` calls it for
+every DAMAGE application with a resolved amount above 0, and every mechanics write (actions, areas, movement, turn
+and zone effects) lands through that plan. The record is keyed by the root `sourceCommandId`, so an action's undo
+removes exactly what it dealt (`revertDamageTypesTaken`). A START_OF_TURN root reads the record, then
+`clearHolderDamageTypes` empties it in the same commit and stores the cleared entries on the root's
+`clearedDamageTypes`, so damage dealt during the holder's own turn suppresses only the next trigger. The
+suppression gate that reads the record is the next slice (T4i1b2). A rule-raised START_OF_TURN root is not
+separately undoable today (its parent is the turn command), so the stored `clearedDamageTypes` is restored only once
+turn undo reverses it; turn commit and turn undo are unchanged.
 
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 

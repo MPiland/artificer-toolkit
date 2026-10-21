@@ -68,6 +68,15 @@ export function readActorHitPoints(history: RoomHistory, actorId: string) {
   return actor.currentHitPoints
 }
 
+/** The damage-type record a Creature actor holds in the room's stored Run (empty when absent). */
+export function readActorDamageTypesTaken(history: RoomHistory, actorId: string) {
+  const row = history.actors.find(({ id }) => id === actorId)
+  if (!row) throw new Error('Expected the actor in the stored Run.')
+  const actor = readStoredRunActor(row)
+  if (actor.kind === 'CHARACTER') throw new Error('A Character holds no damage-type record.')
+  return actor.damageTypesSinceTurnStart ?? []
+}
+
 /** A stored receipt's rule execution, parsed by the shared contract. */
 export function parseReceiptExecution(receipt: { resultJson: string }) {
   return storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))

@@ -34,6 +34,7 @@ const ACTOR_ID = '00000000-0000-4000-8000-00000000e101'
 const CHARACTER_ID = '00000000-0000-4000-8000-00000000e102'
 const USER_ID = '00000000-0000-4000-8000-00000000e103'
 const ACTIVE_EFFECT_ID = '00000000-0000-4000-8000-00000000e104'
+const SOURCE_COMMAND_ID = '00000000-0000-4000-8000-00000000e107'
 const DAMAGE_OUTCOME_ID = '00000000-0000-4000-8000-00000000e105'
 const STREAM_VERSION = 4
 const SPELL_ID = '00000000-0000-4000-8000-00000000e109'
@@ -44,6 +45,8 @@ const POISONED = conditionId('POISONED')
 const RESTRAINED = conditionId('RESTRAINED')
 const FRIGHTENED = conditionId('FRIGHTENED')
 const NECROTIC = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'NECROTIC')!.id
+/** What every NECROTIC hit in this file leaves in the target's damage record (T4i1b1). */
+const NECROTIC_TAKEN = { damageTypeId: NECROTIC, commandId: SOURCE_COMMAND_ID }
 
 const ward = {
   effectId: '00000000-0000-4000-8000-00000000e106',
@@ -67,7 +70,7 @@ function batch(
     targetActorId: ACTOR_ID,
     expectedEncounterVersion: 3,
     occurrenceId: '00000000-0000-4000-8000-00000000e106',
-    sourceCommandId: '00000000-0000-4000-8000-00000000e107',
+    sourceCommandId: SOURCE_COMMAND_ID,
     commandId: '00000000-0000-4000-8000-00000000e108',
     occurredAt: TIMESTAMP,
     applications,
@@ -212,7 +215,8 @@ describe('Creature mechanics batch plan', () => {
         currentHitPoints: 5,
         tempHitPoints: 0,
         maxHitPoints: 11,
-        conditions: []
+        conditions: [],
+        damageTypesSinceTurnStart: [NECROTIC_TAKEN]
       },
       receiptApplications: [
         { ...hitReceipt, ordinal: 0 },
@@ -476,7 +480,8 @@ describe('Creature mechanics batch plan', () => {
       currentHitPoints: 6,
       tempHitPoints: 0,
       maxHitPoints: 7,
-      conditions: []
+      conditions: [],
+      damageTypesSinceTurnStart: [NECROTIC_TAKEN]
     })
     expect(plan.targetTransition.after).toEqual({
       currentHitPoints: 6,
@@ -669,7 +674,7 @@ describe('Creature forms (D130)', () => {
 
   it('reverts at 0 hit points and loses the excess when the form does not carry it over (Giant Insect)', () => {
     const plan = hitForm(inForm(false), 9, 4, 0)
-    expect(plan.updatedActor).toEqual(plain())
+    expect(plan.updatedActor).toEqual({ ...plain(), damageTypesSinceTurnStart: [NECROTIC_TAKEN] })
   })
 
   it('reverts at 0 hit points and spends the excess on the origin when the form carries it over (Polymorph)', () => {

@@ -12,6 +12,9 @@ import { encounterOptionalCombatSnapshotDtoSchema } from '../shared/optionalComb
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { jsonValueSchema, projectionChecksumSchema } from './identity.js'
 
+/** One entry per damage type per command; a turn cycle never approaches this. */
+const MAX_DAMAGE_TYPES_SINCE_TURN_START = 256
+
 const encounterRunActorStateBaseSchema = lazySchema(() =>
   z.extend(
     z.omit(encounterGmActorDtoSchema, {
@@ -135,7 +138,17 @@ const encounterRunActorHealthShape = lazySchemaParts(() => ({
   ...encounterTemporaryHitPointsShape(),
   conditions: jsonValueSchema,
   /** Set in the commit whose damage reduces the actor to 0 hit points; cleared by regaining any. */
-  defeated: z.boolean()
+  defeated: z.boolean(),
+  /**
+   * The damage this actor took since its last start-of-turn trigger, by type and the command that
+   * dealt it; absent when none. The trigger's commit clears it, and undo removes or restores
+   * entries by command id.
+   */
+  damageTypesSinceTurnStart: z.optional(
+    z
+      .array(z.strictObject({ damageTypeId: postgresUuidSchema, commandId: postgresUuidSchema }))
+      .check(z.maxLength(MAX_DAMAGE_TYPES_SINCE_TURN_START))
+  )
 }))
 
 /**
