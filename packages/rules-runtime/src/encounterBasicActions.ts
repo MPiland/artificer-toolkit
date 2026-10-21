@@ -28,7 +28,10 @@ export async function encounterActorCannotAct(input: {
     gameSystemId: input.gameSystemId,
     activeConditionDefinitionIds: input.conditionIds,
     capabilityDefinitionIds: [capabilityDefinitionId],
-    activeEffectSuppressions: activeEffectCapabilitySuppressions(input.activeEffects)
+    activeEffectSuppressions: activeEffectCapabilitySuppressions(
+      input.gameSystemId,
+      input.activeEffects
+    )
   })
   return state.capabilities[0]?.available === false
 }

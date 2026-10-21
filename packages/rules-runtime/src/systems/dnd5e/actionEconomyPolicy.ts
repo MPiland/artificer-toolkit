@@ -53,6 +53,11 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
         attackKind === 'UNARMED')
     )
   },
+  allowanceDefinitionIdByCountDomain: {
+    ACTION_COUNT: DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
+    BONUS_ACTION_COUNT: DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
+    REACTION_COUNT: DND5E_REACTION_ALLOWANCE_DEFINITION_ID
+  },
   actorActionCapabilityDefinitionId() {
     return DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID
   },

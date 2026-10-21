@@ -27,12 +27,16 @@ import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleR
 import {
   creatureActiveGrantAttackContributors,
   creatureActiveGrantCheckContributors,
+  encounterActiveGrantCapabilitySuppressions,
   encounterAttackAddedDice,
   encounterGrantsEnabledDomain,
   encounterSavingThrowAddedDice,
+  encounterSourceSightSaveGrants,
   withActiveGrantSpeeds,
   withCharacterActiveGrants,
-  withCreatureActiveGrantSkillTotal
+  withCreatureActiveGrantSaves,
+  withCreatureActiveGrantSkillTotal,
+  withHolderStateGrantSaves
 } from '../encounterActiveGrants.js'
 import { planEncounterMaintenanceOwner } from '../encounterActionMaintenance.js'
 import { rollModeSourceKey } from '../encounterRollModeReasons.js'
@@ -791,5 +795,37 @@ describe('a held d20 floor on ability checks', () => {
     const tied = glibnessHeld(EFFECT_ID)
     expect(activeAbilityCheckMinimumRoll([lowest, tied], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
     expect(activeAbilityCheckMinimumRoll([tied, lowest], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
+  })
+})
+
+describe('active grants on a System that does not install their policy', () => {
+  const unknownSystemId = '00000000-0000-4000-8000-0000000000ff'
+
+  it('fails closed instead of reading another System allowances, abilities or save scope', () => {
+    expect(() => encounterActiveGrantCapabilitySuppressions(unknownSystemId, [])).toThrow(
+      'The Game System does not provide action-economy policy.'
+    )
+    expect(() => withCreatureActiveGrantSaves(unknownSystemId, [], 'holder', [], [])).toThrow(
+      'The Game System does not provide ability-score policy.'
+    )
+    expect(() =>
+      withHolderStateGrantSaves(unknownSystemId, [], 'holder', [], {
+        kind: 'CREATURE',
+        creatureTypeIds: [],
+        canAct: true,
+        speedAboveZero: true,
+        freeHand: true,
+        turnMovement: { usedFeet: 0, speedFeet: 0 },
+        stowableHeldItemInstanceId: null
+      })
+    ).toThrow('The Game System does not provide ability-score policy.')
+    expect(() =>
+      encounterSourceSightSaveGrants({
+        gameSystemId: unknownSystemId,
+        holderActorId: 'holder',
+        effects: [],
+        grantFold: null
+      })
+    ).toThrow('The Game System does not provide ability-score policy.')
   })
 })

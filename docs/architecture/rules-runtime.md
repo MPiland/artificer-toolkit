@@ -315,7 +315,8 @@ Cleaving choice; `attackProfileCapabilityRegistry` for an attack's kind and modi
 traits a holder's grants or a Character's action give it, its critical rules and roll contributors,
 the damage defenses it meets, the itemless restrictions a feature attack reduces and what its compiled
 effect reads and spends; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
-Character-wide, which movement passage and opportunity-attack immunity read;
+Character-wide, which movement passage and opportunity-attack immunity read, and whether a saving-throw
+grant holds only while the saver sees the effect's source (`encounterActiveGrants`);
 `characterRuleActionSystemAdapterRegistry` for compiling, binding and interpreting rule actions and
 frozen active effects and the success immunity a passed ward leaves on its holder (`encounterWardImmunity`), where entry-point
 compilation and perception use `find` because a System without it plays its entries manually;
@@ -336,7 +337,9 @@ contest's graph through `contestCheckCapabilityRegistry` from the Run's `gameSys
 the browser (ADR 0036 S6, `apps/web/src/lib/rulesRuntimeBoundary.test.ts`). Ability id↔code stays System vocabulary data (`system.abilities`).
 Neutral modules reach System behaviour only through these registries; the `systems/*` import
 allowlist (`scripts/systemsImportAllowlist.json`) only shrinks and, since RULES-2.T11e, also fences
-Encounter persistence, the Worker, Convex and web (since RULES-2.T11g3 no web module imports a System);
+Encounter persistence, the Worker, Convex and web; since RULES-2.T11g3 it lists no importer, so only
+the composition roots reach `systems/*` (active grants read the action-economy capability's
+`allowanceDefinitionIdByCountDomain`, which an active zero-count grant suppresses);
 the composition roots above are exempt by name
 ([CI validation](ci-validation.md)).
 Attack-perception contributors are `rule:unseen-attacker`

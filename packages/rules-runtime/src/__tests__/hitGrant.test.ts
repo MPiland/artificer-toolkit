@@ -179,7 +179,7 @@ describe('a creature that can’t take reactions (SPELLS-5.5)', () => {
     if (!grant) throw new Error('No grant was planned.')
     const effect = { id: testUuid(0xf55), definition: grant.definition }
 
-    expect(encounterActiveGrantCapabilitySuppressions([effect])).toEqual([
+    expect(encounterActiveGrantCapabilitySuppressions(SRD_SYSTEM_ID, [effect])).toEqual([
       {
         activeEffectId: effect.id,
         contributionId: expect.any(String),
@@ -196,7 +196,7 @@ describe('a creature that can’t take reactions (SPELLS-5.5)', () => {
       definition: grant.definition
     }))
 
-    const suppressions = encounterActiveGrantCapabilitySuppressions(effects)
+    const suppressions = encounterActiveGrantCapabilitySuppressions(SRD_SYSTEM_ID, effects)
     const availability = resolveRuleCapabilityAvailability({
       gameSystemId: SRD_SYSTEM_ID,
       capabilityDefinitionId: DND5E_REACTION_ALLOWANCE_DEFINITION_ID,
@@ -214,7 +214,7 @@ describe('a creature that can’t take reactions (SPELLS-5.5)', () => {
     if (!grant) throw new Error('No grant was planned.')
 
     expect(
-      encounterActiveGrantCapabilitySuppressions([
+      encounterActiveGrantCapabilitySuppressions(SRD_SYSTEM_ID, [
         { id: testUuid(0xf55), definition: grant.definition }
       ])
     ).toEqual([])

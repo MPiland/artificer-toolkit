@@ -5,5 +5,5 @@
     "packages/rules-runtime/src/platformPolicyModules.ts": "Installs the Sheet-reachable System capability adapters and policy modules.",
     "packages/rules-runtime/src/platformRulesRuntime.ts": "Installs each System's rules runtime registration."
   },
-  "importers": ["packages/rules-runtime/src/encounterActiveGrants.ts"]
+  "importers": []
 }
