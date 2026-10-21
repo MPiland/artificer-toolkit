@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -142,7 +144,8 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     sourceSightSaves: [],
     conditionDefinitions: [],
     conditionMechanics: [],
-    attackTraitGrants: [],
+    grantedAttackTraits: [],
+    movementPassage: movementPassageOfModifiers(DND5E_SYSTEM_ID, []),
     featureModifiers: [],
     innateConditionIds: []
   }

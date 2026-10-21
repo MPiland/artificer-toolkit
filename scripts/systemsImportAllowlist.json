@@ -1,23 +1,29 @@
-[
-  "packages/rules-runtime/src/characterActionCapabilityDiscoveryRegistry.ts",
-  "packages/rules-runtime/src/characterRuleActionSystemAdapterRegistry.ts",
-  "packages/rules-runtime/src/encounterActionMechanicsPreparation.ts",
-  "packages/rules-runtime/src/encounterActiveGrants.ts",
-  "packages/rules-runtime/src/encounterConcentration.ts",
-  "packages/rules-runtime/src/encounterDisarmPreparation.ts",
-  "packages/rules-runtime/src/encounterEnemyProximity.ts",
-  "packages/rules-runtime/src/encounterFeatureActionCapabilityDiscovery.ts",
-  "packages/rules-runtime/src/encounterFeatureActionCapabilityDiscoveryRegistry.ts",
-  "packages/rules-runtime/src/encounterIncomingAttackGate.ts",
-  "packages/rules-runtime/src/encounterMoveToward.ts",
-  "packages/rules-runtime/src/encounterMovementPassagePolicy.ts",
-  "packages/rules-runtime/src/encounterMovementTargets.ts",
-  "packages/rules-runtime/src/encounterZonePlacement.ts",
-  "packages/rules-runtime/src/legendaryActionEligibilityRegistry.ts",
-  "packages/rules-runtime/src/movementReactionEligibilityRegistry.ts",
-  "packages/rules-runtime/src/platformCharacterPolicy.ts",
-  "packages/rules-runtime/src/platformEncounterPolicy.ts",
-  "packages/rules-runtime/src/platformPolicyModules.ts",
-  "packages/rules-runtime/src/platformRulesRuntime.ts",
-  "packages/rules-runtime/src/sceneGridPolicyRegistry.ts"
-]
+{
+  "compositionRoots": {
+    "packages/rules-runtime/src/characterActionCapabilityDiscoveryRegistry.ts": "Installs each System's Character action capability discovery adapter.",
+    "packages/rules-runtime/src/characterRuleActionSystemAdapterRegistry.ts": "Installs each System's Character rule action adapter.",
+    "packages/rules-runtime/src/encounterFeatureActionCapabilityDiscoveryRegistry.ts": "Installs each System's Encounter feature action capability discovery adapter.",
+    "packages/rules-runtime/src/legendaryActionEligibilityRegistry.ts": "Installs each System's legendary action eligibility adapter.",
+    "packages/rules-runtime/src/movementReactionEligibilityRegistry.ts": "Installs each System's movement reaction eligibility adapter.",
+    "packages/rules-runtime/src/platformCharacterPolicy.ts": "Installs each System's Character policy registration.",
+    "packages/rules-runtime/src/platformEncounterPolicy.ts": "Installs the Encounter-only System capability adapters (ADR 0036 S6 keeps them out of the Sheet).",
+    "packages/rules-runtime/src/platformPolicyModules.ts": "Installs the Sheet-reachable System capability adapters and policy modules.",
+    "packages/rules-runtime/src/platformRulesRuntime.ts": "Installs each System's rules runtime registration.",
+    "packages/rules-runtime/src/sceneGridPolicyRegistry.ts": "Installs each System's Scene grid policy adapter."
+  },
+  "importers": [
+    "apps/apis/convex/content/creatureLoadoutHands.ts",
+    "apps/apis/convex/encounters/developmentPolicies.ts",
+    "apps/session-worker/src/nativeEncounterCastReaction.ts",
+    "apps/session-worker/src/nativeEncounterRules.ts",
+    "apps/web/src/domains/campaigns/components/EncounterEnemyStatBlock.tsx",
+    "apps/web/src/domains/characters/builder/steps/abilities/CharacterHitpointProgression.tsx",
+    "apps/web/src/domains/characters/builder/steps/abilities/characterAbilities.ts",
+    "apps/web/src/domains/classes/pages/ClassDetail.model.ts",
+    "apps/web/src/domains/creatures/pages/CreatureDetail.model.ts",
+    "packages/encounter-persistence/src/actionChoiceReads.ts",
+    "packages/encounter-persistence/src/actionCommitPersistence.ts",
+    "packages/encounter-persistence/src/initiativeRollCards.ts",
+    "packages/rules-runtime/src/encounterActiveGrants.ts"
+  ]
+}

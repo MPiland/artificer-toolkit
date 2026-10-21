@@ -17,6 +17,7 @@ import {
   type PublishedRuleDefinitionSource,
   type RulesRuntimeService
 } from './rulesRuntimeService.js'
+import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
 import { dnd5eRulesRuntimeRegistration } from './systems/dnd5e/characterActionRuntime.js'
 
 export { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
@@ -71,7 +72,8 @@ function requireInstalledRuntimeModule(gameSystemId: string) {
 
 /** The System's published Concentration maintenance rule, by the Run's Game System. */
 export function requireInstalledConcentrationMaintenanceDefinitionId(gameSystemId: string): string {
-  return requireInstalledRuntimeModule(gameSystemId).concentrationMaintenanceDefinitionId
+  requireInstalledRuntimeModule(gameSystemId)
+  return maintenanceLinkCapabilityRegistry.require(gameSystemId).maintenanceDefinitionId
 }
 
 /** Whether the System counts an action trigger as a melee attack (flanking, Cleaving). */

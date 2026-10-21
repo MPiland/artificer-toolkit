@@ -21,6 +21,25 @@ import {
   ruleExecutionReceiptOrdinalSchema as receiptOrdinalSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+/** A save a damage interception asked of its holder: the dice rolled, the DC they met and the result. */
+export type DamageInterceptionSaveDto = {
+  effectId: string
+  rawDie: number
+  addedTotal: number
+  dc: number
+  passed: boolean
+}
+
+/** Typed explicitly so the receipts embedding it stay within the declaration size limit (TS7056). */
+const damageInterceptionSaveDtoSchema: z.ZodMiniType<DamageInterceptionSaveDto> = lazySchema(() =>
+  z.strictObject({
+    effectId: uuidSchema,
+    rawDie: integerSchema.check(z.gte(1)),
+    addedTotal: integerSchema,
+    dc: integerSchema,
+    passed: z.boolean()
+  })
+)
 const characterMechanicsApplicationTraceDtoSchema = lazySchema(() =>
   z.strictObject({
     sourceNodeId: identifierSchema,
@@ -107,6 +126,8 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       critical: z.boolean(),
       /** The held effect whose damage interception left the target above 0 hit points instead. */
       interceptedBy: z.optional(uuidSchema),
+      /** The saves the blow's interceptions asked of the target, in the order they were rolled. */
+      interceptionSaves: z.optional(z.array(damageInterceptionSaveDtoSchema)),
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),
     z.strictObject({

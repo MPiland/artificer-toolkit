@@ -92,12 +92,9 @@ import {
 } from '../../encounterZonePlacement.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
-import {
-  attackRestrictionsMet,
-  oncePerTurnUsageKey,
-  type Dnd5eEnemyProximity,
-  type Dnd5eMoveToward
-} from './attackRestrictions.js'
+import type { EnemyProximity } from '../../encounterEnemyProximity.js'
+import type { MoveToward } from '../../encounterMoveToward.js'
+import { attackRestrictionsMet, oncePerTurnUsageKey } from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
@@ -6974,9 +6971,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   compile: compileDnd5eEffectAction,
   compileZonePlacement: ({ action, label }) => {
     const executable = executableAction(action)
-    const retaliation = passiveMeleeRetaliationZone(executable.compiledEffect, label)
-    return retaliation
-      ? zoneComponentPlan(executable, retaliation, retaliation.components[0]!)
+    const zone = passiveMeleeRetaliationZone(DND5E_SYSTEM_ID, executable.compiledEffect, label)
+    return zone
+      ? zoneComponentPlan(executable, zone, zone.components[0]!)
       : (zoneChoicePlan(executable) ?? zonePlacementPlan(executable))
   },
   interpretSpatial,
@@ -7478,10 +7475,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ? 'DISADVANTAGE'
           : 'NORMAL'
       const contributorChecksum = checksumRuleDocument(allContributors)
-      const enemyProximity = sourceDerivedFacts.attackEnemyProximity as
-        | Dnd5eEnemyProximity
-        | undefined
-      const moveToward = sourceDerivedFacts.attackMoveToward as Dnd5eMoveToward | undefined
+      const enemyProximity = sourceDerivedFacts.attackEnemyProximity as EnemyProximity | undefined
+      const moveToward = sourceDerivedFacts.attackMoveToward as MoveToward | undefined
       const turnUses = sourceDerivedFacts.attackTurnUses as readonly string[] | undefined
       const criticalRules = attackCriticalRulesDtoSchema.parse(
         sourceDerivedFacts.attackCriticalRules ?? {
