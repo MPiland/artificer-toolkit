@@ -13322,6 +13322,19 @@
               "text": "Damage-type suppression gate (split 2026-10-20): suppressedByDamageTypes on the recurring trait, as a gate kind dispatched through the one gate table, with the compiler gate after RULES-2.T6a. Converts Vampire and Vampire Spawn regeneration (kinds deleted) and Troll regeneration (description-only today), with parity proofs and a homebrew variant. Sunlight and running water are deferred edge cases."
             },
             {
+              "id": "SPELLS-33.T4i1c",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": ["SPELLS-33.T4i1b1"]
+              },
+              "text": "Bug (found 2026-10-21): Previous Turn then Next re-raises the START_OF_TURN root, so regeneration heals twice (commands.ts PREVIOUS_TURN is a cursor-only correction; raiseRoomStartOfTurnEffects fires on every START/ADVANCE_TURN). Make the start-of-turn raise idempotent per (round, holder actor) from an existing per-turn record, for every start-of-turn effect (regeneration, turn-effect and zone damage), with a room regression test that fails before the fix."
+            },
+            {
               "id": "SPELLS-33.T4i2",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
