@@ -271,6 +271,13 @@ jobs:
         env:
           MERGE_BASE: ${{ needs.build.outputs.merge-base }}
         run: node scripts/formatChanged.mjs --base "$MERGE_BASE" --check
+      # `yarn lint` checks the tree against the size budget and the systems import allowlist; this also
+      # rejects a cap raised or an entry added since the merge base (RULES-2.T1).
+      - name: Size and import ratchets only shrink
+        if: success() || failure()
+        env:
+          MERGE_BASE: ${{ needs.build.outputs.merge-base }}
+        run: node scripts/sourceRatchets.mjs --base "$MERGE_BASE"
       # The ledger is the orchestrator's, edited on the phase branch; a slice that rewrote it would revert
       # those edits at merge (PLATFORM-13.T14). A merge batch carries no slice commits of its own.
       - name: Slice leaves the phase ledger alone
