@@ -31,14 +31,14 @@ import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { EncounterConflictError } from './encounterErrors.js'
 import { withOwnedTemporaryHitPoints } from './encounterEndedEffectRelease.js'
 import {
-  resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
   savingThrowAbility,
   selectEncounterActionD20Natural,
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
-import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import { resumeEncounterD20 } from './encounterD20AddedDice.js'
+import { settleEncounterD20Answer } from './encounterD20Settlement.js'
 import {
   d20AddedDiceTotal,
   type D20RolledAddedDieDto
@@ -819,20 +819,13 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
     request.nodeId !== policy.requestNodeId
   )
     throw new EncounterConflictError('The evidence request is stale.')
-  const { faces, rollMode } = resolveEncounterD20Answer({
-    derivedRollMode: policy.rollMode,
+  const { rawFaces, rollMode, addedDice } = settleEncounterD20Answer({
+    d20: policy,
     answer,
-    rollD20: () => input.random(20) + 1
+    rollD20: () => input.random(20) + 1,
+    random: input.random
   })
-  const d20 = {
-    rollMode,
-    rawFaces: faces,
-    addedDice: resolveEncounterAddedDice({
-      dice: policy.addedDice ?? [],
-      answer,
-      random: input.random
-    })
-  }
+  const d20 = { rollMode, rawFaces, addedDice }
   return {
     d20,
     result: await resumeTargetBoundActiveRuleEffectWithPause({

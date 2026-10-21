@@ -28,12 +28,12 @@ import {
   type SightGovernedD20
 } from './encounterSightGovernedD20.js'
 import {
-  resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
 import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import { settleEncounterD20Answer } from './encounterD20Settlement.js'
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
@@ -147,14 +147,15 @@ export async function executeNativeActionGraphs(input: {
           ? deriveEncounterActionD20Policy({ continuation, bound })
           : nestedPolicy!
         const answer = { kind: 'AUTO_ROLL' as const, requestId: request.requestId }
-        const { faces, rollMode, natural } = resolveEncounterD20Answer({
-          derivedRollMode: policy.rollMode,
+        const {
+          rawFaces: faces,
+          rollMode,
+          natural,
+          addedDice
+        } = settleEncounterD20Answer({
+          d20: policy,
           answer,
-          rollD20: () => random(20) + 1
-        })
-        const addedDice = resolveEncounterAddedDice({
-          dice: policy.addedDice ?? [],
-          answer,
+          rollD20: () => random(20) + 1,
           random
         })
         if (!isNestedSave) {
@@ -461,17 +462,18 @@ function actionResponse(
     return settled.kind === 'SETTLED' ? { ...settled, addedDice: addedDice() } : settled
   }
   if (policy !== null) {
-    const d20 = resolveEncounterD20Answer({
-      derivedRollMode: policy.rollMode,
+    const d20 = settleEncounterD20Answer({
+      d20: policy,
       answer: resolution,
-      rollD20
+      rollD20,
+      random: input.random
     })
     return {
       kind: 'SETTLED',
       value: d20.natural,
-      faces: d20.faces,
+      faces: d20.rawFaces,
       rollMode: d20.rollMode,
-      addedDice: addedDice()
+      addedDice: d20.addedDice
     }
   }
   const { request } = input.continuation

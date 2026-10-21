@@ -22,15 +22,11 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { activeSavingThrowDice } from './character/activeEffectGrantTotals.js'
 import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import { deriveEncounterCharacterMechanicsEventCommandId } from './encounterCharacterMechanicsBatch.js'
-import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import { settleEncounterD20Answer, settleEncounterD20Test } from './encounterD20Settlement.js'
 import { savingThrowSpentEffects } from './encounterEndedEffectRelease.js'
 import { encounterEvidenceMode } from './encounterEvidenceMode.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
-import {
-  resolveEncounterD20Answer,
-  type EncounterEvidenceAnswer,
-  type EncounterResponseAnswer
-} from './encounterEvidenceAnswer.js'
+import type { EncounterEvidenceAnswer, EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 import {
   projectEncounterActionTarget,
   type ProjectableCharacterFacts
@@ -234,21 +230,15 @@ export async function prepareEncounterTurnDeathSave<
     return started.continuation
   }
   const roll = (answer: EncounterEvidenceAnswer | EncounterResponseAnswer): DeathSaveRoll => {
-    const d20 = resolveEncounterD20Answer({
-      derivedRollMode: 'NORMAL',
+    const d20 = settleEncounterD20Answer({
+      d20: { rollMode: 'NORMAL', addedDice: candidate.addedDice },
       answer,
-      rollD20: () => input.random(20) + 1
+      rollD20: () => input.random(20) + 1,
+      random: input.random
     })
     if (d20.rollMode !== 'NORMAL')
       throw new EncounterValidationError('A death save is a single d20 roll.')
-    return {
-      rawDie: d20.natural,
-      addedDice: resolveEncounterAddedDice({
-        dice: candidate.addedDice,
-        answer,
-        random: input.random
-      })
-    }
+    return { rawDie: d20.natural, addedDice: d20.addedDice }
   }
   const settle = async (
     continuation: ServerRuleExecutionContinuationDto,
@@ -263,20 +253,15 @@ export async function prepareEncounterTurnDeathSave<
       continuation.graph.source.checksum !== published.checksum
     )
       throw new EncounterConflictError('Death save continuation is stale.')
-    const addedTotal = d20AddedDiceTotal(addedDice)
-    const execution = await resumeEncounterD20({
+    const execution = await settleEncounterD20Test({
       continuation,
-      natural: rawDie,
-      addedDice,
-      resume: (step) => runtime.resume(step)
+      roll: { natural: rawDie, addedDice },
+      resume: (step) => runtime.resume(step),
+      outputs: { rawDie: 'rawDie', addedTotal: 'addedTotal' },
+      refusal: () =>
+        new EncounterValidationError('The death save graph requested more than its dice.')
     })
-    if (
-      execution.status !== 'COMPLETE' ||
-      execution.outputs.rawDie !== rawDie ||
-      execution.outputs.addedTotal !== addedTotal
-    )
-      throw new EncounterValidationError('The death save graph requested more than its dice.')
-    const after = deathSavesAfterRoll(candidate.deathSaves, rawDie, addedTotal)
+    const after = deathSavesAfterRoll(candidate.deathSaves, rawDie, d20AddedDiceTotal(addedDice))
     return {
       candidate,
       execution,

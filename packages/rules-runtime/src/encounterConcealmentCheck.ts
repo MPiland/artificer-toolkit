@@ -8,7 +8,6 @@ import { concealmentCheckApplicationOutputDtoSchema } from '@artificer-toolkit/s
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import { prepareEncounterConcealmentEffect } from './encounterActionEffectPlans.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
@@ -24,6 +23,7 @@ import {
   passiveSkillDefinitionId,
   type EncounterConcealment
 } from './encounterConcealment.js'
+import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
@@ -130,14 +130,7 @@ export function prepareEncounterConcealmentCheck<
     actionId: input.actionId,
     actorId: roller.actor.id,
     check: { checkDefinitionId: input.check.checkDefinitionId, label: input.checkLabel },
-    d20: {
-      rollMode: facts.rollMode,
-      contributors: facts.contributors,
-      contributorChecksum: checksumRuleDocument(facts.contributors),
-      modifier: facts.modifier,
-      ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice }),
-      ...(facts.minimumRoll && { minimumRoll: facts.minimumRoll })
-    },
+    d20: freezeD20Context({ ...facts, modifier: facts.modifier }),
     resolution,
     consumedGrants: effectsEndedBy(roller.activeEffects, {
       event: 'ON_ABILITY_CHECK',

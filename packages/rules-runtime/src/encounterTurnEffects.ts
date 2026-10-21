@@ -55,11 +55,8 @@ import {
   turnEffectSelectionChecksum,
   type TurnEffectBoundary
 } from './encounterTurnEffectState.js'
-import { resolveEncounterAddedDice } from './encounterD20AddedDice.js'
-import {
-  resolveEncounterD20Answer,
-  type EncounterResponseAnswer
-} from './encounterEvidenceAnswer.js'
+import { settleEncounterD20Answer } from './encounterD20Settlement.js'
+import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 
 type TurnExecution = StagedTurnEffectPlanDto['executions'][number]
 type TurnPending = Extract<
@@ -452,24 +449,16 @@ async function evaluateEncounterTurnEffects(input: {
             const policy = pending.currentCandidate.d20Policy
             if (resolution.requestId !== continuation.request.requestId || !policy)
               throw new Error('Turn effect d20 request is stale.')
-            const { faces, rollMode } = resolveEncounterD20Answer({
-              derivedRollMode: policy.rollMode,
+            const { rawFaces, rollMode, addedDice } = settleEncounterD20Answer({
+              d20: policy,
               answer: resolution,
-              rollD20: () => input.random(20) + 1
+              rollD20: () => input.random(20) + 1,
+              random: input.random
             })
             return resumeTargetBoundActiveRuleEffectWithPause({
               ...effectInput,
               continuation,
-              resolution: {
-                requestId: resolution.requestId,
-                rawFaces: faces,
-                rollMode,
-                addedDice: resolveEncounterAddedDice({
-                  dice: policy.addedDice ?? [],
-                  answer: resolution,
-                  random: input.random
-                })
-              },
+              resolution: { requestId: resolution.requestId, rawFaces, rollMode, addedDice },
               expectedEvidencePolicy: policy
             })
           })()
@@ -480,24 +469,16 @@ async function evaluateEncounterTurnEffects(input: {
         kind: 'AUTO_ROLL' as const,
         requestId: result.continuation.request.requestId
       }
-      const { faces, rollMode } = resolveEncounterD20Answer({
-        derivedRollMode: result.evidencePolicy.rollMode,
+      const { rawFaces, rollMode, addedDice } = settleEncounterD20Answer({
+        d20: result.evidencePolicy,
         answer,
-        rollD20: () => input.random(20) + 1
+        rollD20: () => input.random(20) + 1,
+        random: input.random
       })
       result = await resumeTargetBoundActiveRuleEffectWithPause({
         ...effectInput,
         continuation: result.continuation,
-        resolution: {
-          requestId: answer.requestId,
-          rawFaces: faces,
-          rollMode,
-          addedDice: resolveEncounterAddedDice({
-            dice: result.evidencePolicy.addedDice ?? [],
-            answer,
-            random: input.random
-          })
-        },
+        resolution: { requestId: answer.requestId, rawFaces, rollMode, addedDice },
         expectedEvidencePolicy: result.evidencePolicy
       })
       if ('continuation' in result) throw new Error('Automatic turn effect did not complete.')
