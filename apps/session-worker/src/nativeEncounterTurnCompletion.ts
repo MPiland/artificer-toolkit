@@ -20,7 +20,7 @@ import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runt
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { applyEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
-import { withInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/systems/dnd5e/interceptionSaveRolls'
+import { withInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { readNativeLiveMaintenanceSlot } from './nativeEncounterMaintenance.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
@@ -80,6 +80,7 @@ export async function prepareNativeLiveTurnCompletion(input: {
     projectedTargets.set(
       actorId,
       withInterceptionSaveRolls({
+        gameSystemId: state.gameSystemId,
         target: applyEncounterConditionMechanics({
           target: {
             ...buildMovementTarget({

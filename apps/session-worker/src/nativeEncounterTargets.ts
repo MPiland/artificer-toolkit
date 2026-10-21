@@ -17,7 +17,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { withEncounterOccupantSaveBonus } from '@artificer-toolkit/rules-runtime/encounterOccupantSaveAuras'
 import { withEncounterHolderDefense } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
-import { withInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/systems/dnd5e/interceptionSaveRolls'
+import { withInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
 import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { hydrateSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'
@@ -185,5 +185,12 @@ export async function prepareNativeLiveMovementTarget(input: {
       return characterConditionIds(source)
     }
   })
-  return { target: withInterceptionSaveRolls({ target: saved, random: input.random }), revisions }
+  return {
+    target: withInterceptionSaveRolls({
+      gameSystemId: state.gameSystemId,
+      target: saved,
+      random: input.random
+    }),
+    revisions
+  }
 }

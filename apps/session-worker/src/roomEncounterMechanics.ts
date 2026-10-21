@@ -16,7 +16,7 @@ import {
   heldDamageInterceptions
 } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import { withRecordedInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/systems/dnd5e/interceptionSaveRolls'
+import { withRecordedInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'

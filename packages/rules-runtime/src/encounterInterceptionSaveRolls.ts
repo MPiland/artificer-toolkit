@@ -1,8 +1,8 @@
-import { dnd5eConcentrationHolderSaves } from './concentrationPolicy.js'
-import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from './identity.js'
-import type { CharacterRuleActionApplication } from '../../characterRuleActionSystemAdapter.js'
-import type { HeldDamageInterception } from '../../encounterDamageInterception.js'
-import { EncounterValidationError } from '../../encounterErrors.js'
+import type { MovementTarget } from './encounterMovementTargets.js'
+import { savingThrowCapabilityRegistry } from './platformPolicyModules.js'
+import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import type { HeldDamageInterception } from './encounterDamageInterception.js'
+import { EncounterValidationError } from './encounterErrors.js'
 
 /**
  * The target with each save its damage interceptions ask rolled once, before any blow lands: the
@@ -11,19 +11,20 @@ import { EncounterValidationError } from '../../encounterErrors.js'
  * that fails the save outright is not read here.
  */
 export function withInterceptionSaveRolls<
-  TTarget extends Parameters<typeof dnd5eConcentrationHolderSaves>[0] & {
+  TTarget extends Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'targetDerivedFacts'> & {
     damageInterceptions: readonly HeldDamageInterception[]
   }
->(input: { target: TTarget; random(maximum: number): number }): TTarget {
-  const { target, random } = input
+>(input: { gameSystemId: string; target: TTarget; random(maximum: number): number }): TTarget {
+  const { gameSystemId, target, random } = input
   if (!target.damageInterceptions.some(({ save, saveRoll }) => save && !saveRoll)) return target
-  const rows = dnd5eConcentrationHolderSaves(target).savingThrowDefinitions ?? []
+  const savingThrows = savingThrowCapabilityRegistry.require(gameSystemId)
+  const rows = savingThrows.holderSaves(target)
   const rollD20 = () => random(20) + 1
   return {
     ...target,
     damageInterceptions: target.damageInterceptions.map((interception) => {
       if (!interception.save || interception.saveRoll) return interception
-      const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[interception.save.ability]
+      const abilityDefinitionId = savingThrows.abilityDefinitionId(interception.save.ability)
       const row = rows.find((entry) => entry.abilityDefinitionId === abilityDefinitionId)
       if (!row) throw new EncounterValidationError('A damage interception save has no ability.')
       const first = rollD20()

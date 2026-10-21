@@ -11,8 +11,9 @@ import { planCreatureRest } from '../encounterCreatureRest.js'
 import {
   withInterceptionSaveRolls,
   withRecordedInterceptionSaveRolls
-} from '../systems/dnd5e/interceptionSaveRolls.js'
+} from '../encounterInterceptionSaveRolls.js'
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { srdCreatureActor, srdCreatureTarget, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 function srdCreature(label: string): CreatureAuthored {
@@ -29,6 +30,26 @@ const feature = (creature: CreatureAuthored, label: string) => {
   const found = creature.features.find((entry) => entry.label.startsWith(label))
   if (!found) throw new Error(`${creature.label} has no ${label}.`)
   return found
+}
+
+const damageApplication: Extract<CharacterRuleActionApplication, { kind: 'DAMAGE' }> = {
+  sourceNodeId: 'node',
+  sourceOperationKey: 'operation',
+  authoredPath: null,
+  resolvedPath: null,
+  targetActorId: testUuid(0x5001),
+  kind: 'DAMAGE',
+  requestedAmount: 14,
+  resolvedAmount: 14,
+  appliedAmount: 10,
+  beforeCurrentHitPoints: 10,
+  afterCurrentHitPoints: 0,
+  beforeTemporaryHitPoints: 0,
+  afterTemporaryHitPoints: 0,
+  maximumHitPoints: 30,
+  damageTypeId: testUuid(0x5010),
+  damageDisposition: 'NORMAL',
+  critical: false
 }
 
 const fortitude = {
@@ -69,27 +90,7 @@ describe('feature-held damage interceptions on SRD Creatures (SPELLS-33.T4i2b)',
     const actor = srdCreatureActor({ id: testUuid(0x5001), creature: wereboar })
     const held = srdCreatureTarget(actor).damageInterceptions
     const [planned] = applyDamageInterceptions({
-      applications: [
-        {
-          sourceNodeId: 'node',
-          sourceOperationKey: 'operation',
-          authoredPath: null,
-          resolvedPath: null,
-          targetActorId: actor.id,
-          kind: 'DAMAGE',
-          requestedAmount: 14,
-          resolvedAmount: 14,
-          appliedAmount: 10,
-          beforeCurrentHitPoints: 10,
-          afterCurrentHitPoints: 0,
-          beforeTemporaryHitPoints: 0,
-          afterTemporaryHitPoints: 0,
-          maximumHitPoints: 30,
-          damageTypeId: testUuid(0x5010),
-          damageDisposition: 'NORMAL',
-          critical: false
-        }
-      ],
+      applications: [{ ...damageApplication, targetActorId: actor.id }],
       currentHitPoints: 10,
       temporaryHitPoints: 0,
       interceptions: held
@@ -124,6 +125,7 @@ describe('feature-held damage interceptions on SRD Creatures (SPELLS-33.T4i2b)',
     const zombie = srdCreature('Zombie')
     const draws = [8]
     const target = withInterceptionSaveRolls({
+      gameSystemId: DND5E_SYSTEM_ID,
       target: srdCreatureTarget(srdCreatureActor({ id: testUuid(0x5003), creature: zombie })),
       random: () => draws.shift() ?? 0
     })
@@ -132,12 +134,22 @@ describe('feature-held damage interceptions on SRD Creatures (SPELLS-33.T4i2b)',
     expect(draws).toEqual([])
   })
 
+  it('fails closed for a Game System with no saving-throw capability', () => {
+    const target = srdCreatureTarget(
+      srdCreatureActor({ id: testUuid(0x5005), creature: srdCreature('Zombie') })
+    )
+    expect(() =>
+      withInterceptionSaveRolls({ gameSystemId: testUuid(0x5006), target, random: () => 0 })
+    ).toThrow()
+  })
+
   it('draws nothing for a target none of whose interceptions ask a save', () => {
     const target = srdCreatureTarget(
       srdCreatureActor({ id: testUuid(0x5004), creature: srdCreature('Wereboar') })
     )
     expect(
       withInterceptionSaveRolls({
+        gameSystemId: DND5E_SYSTEM_ID,
         target,
         random: () => {
           throw new Error('No die should be drawn.')
@@ -154,11 +166,11 @@ describe('feature-held damage interceptions on SRD Creatures (SPELLS-33.T4i2b)',
       [held],
       [
         {
-          kind: 'DAMAGE',
+          ...damageApplication,
           interceptionSaves: [
             { effectId: held.effectId, rawDie: 14, addedTotal: 3, dc: 15, passed: true }
           ]
-        } as unknown as CharacterRuleActionApplication
+        }
       ]
     )
     expect(replayed?.saveRoll).toEqual({ rawDie: 14, addedTotal: 3 })
