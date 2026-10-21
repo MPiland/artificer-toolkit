@@ -3435,7 +3435,7 @@
             },
             {
               "id": "RULES-2.T11b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3445,7 +3445,7 @@
                 "after": ["RULES-2.T11a"]
               },
               "text": "System import burn-down (split 2026-10-21): armor class and d20 test definition adapters (allowlist -5).",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m291 (a648a40d3). Allowlist 33 to 28; death save and basic check fail closed on an uninstalled System."
             },
             {
               "id": "RULES-2.T11c",
@@ -3458,7 +3458,8 @@
                 "size": 3,
                 "after": ["RULES-2.T11b"]
               },
-              "text": "System import burn-down (split 2026-10-21): optional combat contest adapters (allowlist -5)."
+              "text": "System import burn-down (split 2026-10-21): optional combat contest adapters (allowlist -5).",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T11d",
