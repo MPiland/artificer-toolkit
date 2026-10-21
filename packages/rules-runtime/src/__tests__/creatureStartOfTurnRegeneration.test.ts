@@ -52,7 +52,8 @@ function discoverRegeneration(label: string, rewrite?: (outcomes: Outcome[]) => 
   return discoverEncounterFeatureActions({
     actor: srdCreatureActor({ id: ACTOR_ID, creature }),
     conditionDefinitionIds,
-    abilityDefinitions
+    abilityDefinitions,
+    spells: new Map()
   })
 }
 

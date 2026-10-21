@@ -10,6 +10,7 @@ import { readEncounterActorDefeated } from './characterStates.js'
 import { requireSystemTriggerAdmission } from './systemTriggerAdmission.js'
 import { nativeActionPendingResult, readNativePendingRoot } from './actionPendingResult.js'
 import { readRunActor, readRunState } from './documents.js'
+import { readEncounterSpellPins } from './spellPins.js'
 import { readEncounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { requireEncounterActorControl } from './actorController.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
@@ -221,7 +222,8 @@ export async function readNativeEncounterActionAdmission(
       const { passiveStartOfTurnEffects } = discoverEncounterFeatureActions({
         actor,
         conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-        abilityDefinitions: systemAbilityDefinitions(system)
+        abilityDefinitions: systemAbilityDefinitions(system),
+        spells: await readEncounterSpellPins(ctx, state.id)
       })
       if (
         passiveStartOfTurnEffects.some(({ capability }) => capability.actionId === input.actionId)

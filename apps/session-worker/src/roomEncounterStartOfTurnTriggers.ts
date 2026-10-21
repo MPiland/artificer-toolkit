@@ -1,4 +1,5 @@
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readEncounterSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import { systemTriggerStartOfTurnCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -34,7 +35,8 @@ export async function raiseRoomStartOfTurnEffects(input: {
   const { passiveStartOfTurnEffects } = discoverEncounterFeatureActions({
     actor: holder,
     conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-    abilityDefinitions: systemAbilityDefinitions(system)
+    abilityDefinitions: systemAbilityDefinitions(system),
+    spells: await readEncounterSpellPins(ctx, firstState.id)
   })
   let committed = false
   for (const { capability } of passiveStartOfTurnEffects) {
