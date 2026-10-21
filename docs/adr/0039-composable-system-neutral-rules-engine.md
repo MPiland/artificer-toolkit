@@ -1,6 +1,6 @@
 # ADR 0039: Composable, System-neutral rules engine
 
-- **Status:** proposed (user direction 2026-10-20; awaiting review of the refactor PBIs)
+- **Status:** decision (user approved 2026-10-20; implemented by RULES-2)
 - **Date:** 2026-10-20
 - **Scope:** `packages/rules-runtime`, the Kernel in `packages/shared/src/domains/rules`, the Session Worker's encounter rules, and the schema vocabulary they share
 - **Amends:** [ADR 0023](0023-shared-rules-kernel-and-system-capabilities.md). That ADR's neutral Kernel and System module layering also applies to the Encounter, Character and Sheet pipelines, not only the Kernel.

@@ -1,6 +1,6 @@
 # Rules-engine composability audit (2026-10-20)
 
-Status: current. The audit found why adding an SRD feature still costs an engine change. It feeds [ADR 0039](../adr/0039-composable-system-neutral-rules-engine.md) and the refactor PBIs in the ledger under `RULES-COMPOSE`.
+Status: current. The audit found why adding an SRD feature still costs an engine change. It feeds [ADR 0039](../adr/0039-composable-system-neutral-rules-engine.md) and the refactor PBIs in the ledger under `RULES-2`.
 
 Four read-only audits ran against the phase branch at `cdcdaa5a5`:
 

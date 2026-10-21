@@ -3063,6 +3063,348 @@
               "id": "RULES-1.6"
             }
           ]
+        },
+        {
+          "id": "RULES-2",
+          "title": "Composable, System-neutral rules engine (ADR 0039)",
+          "status": "TODO",
+          "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+          "wsjf": {
+            "bv": 5,
+            "tc": 8,
+            "rr": 8,
+            "size": 13
+          },
+          "acs": [
+            {
+              "id": "RULES-2.1",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "CI fails a non-test file over 1,500 lines unless it is in the file-size budget, fails any growth of a budgeted file, and fails any new direct import of systems/* from neutral runtime; both lists may only shrink."
+            },
+            {
+              "id": "RULES-2.2",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "A golden harness compiles every SRD authored effect and pins its graph checksum and plan shape; every refactor step keeps it green or explains each changed checksum and reseeds development data in the same change."
+            },
+            {
+              "id": "RULES-2.3",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "Every d20 check, save and contest settles through one frozen d20 context and one settlement function that verifies its outputs, in rules-runtime and the Session Worker."
+            },
+            {
+              "id": "RULES-2.4",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "Every pending choice (reaction, cast reaction, on-hit, retarget, forced movement, Legendary Resistance, the D168 post-roll window) uses one sealed-choice lifecycle and one pause union in the action snapshot, with one Worker handler per pause kind."
+            },
+            {
+              "id": "RULES-2.5",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "Triggers, end and consume events and interception run through one typed event table with one discovery entry and one dispatch site per event; a feature subscribes through authored data without a new call site."
+            },
+            {
+              "id": "RULES-2.6",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "The effect-action compiler is decomposed into single-responsibility modules composing test phase, outcomes, lifetime, targeting, activation and zones; it refuses only invalid input or a genuine rule, and System-neutral pieces live outside systems/dnd5e."
+            },
+            {
+              "id": "RULES-2.7",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "Neutral runtime reaches System behaviour only through a capability registry keyed by gameSystemId; roll-mode influence, Concentration (as a maintenance link) and vocabulary are System-supplied; a second neutral tracer System runs the Encounter pipeline through the adapters."
+            },
+            {
+              "id": "RULES-2.8",
+              "status": "TODO",
+              "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
+              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
+              "text": "The Session room and the area commit are split by responsibility below the file-size budget, and initiative cursor ordering has one home."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RULES-2.T1",
+              "status": "TODO",
+              "closes": ["RULES-2.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Guards: oxlint max-lines 1,500 for non-test files, scripts/fileSizeBudget.json ratchet (current size is the cap; shrink-only), and an import-fence ratchet listing the existing neutral-to-systems/* imports (shrink-only). Un-defers QUALITY-3.T1d."
+            },
+            {
+              "id": "RULES-2.T2",
+              "status": "TODO",
+              "closes": ["RULES-2.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Golden compile-checksum harness over the SRD corpus (graph checksum and plan shape per authored effect)."
+            },
+            {
+              "id": "RULES-2.T3a",
+              "status": "TODO",
+              "closes": ["RULES-2.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["RULES-2.T2"]
+              },
+              "text": "One d20 test settlement: freezeD20Context plus settleEncounterD20Test with output verification, replacing the ~10 copies of answer/added-dice/resume and the frozen-context blocks."
+            },
+            {
+              "id": "RULES-2.T3b",
+              "status": "TODO",
+              "closes": ["RULES-2.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T3a"]
+              },
+              "text": "Session Worker: one app-roll binding and d20-evidence requirement replacing the 8 copies."
+            },
+            {
+              "id": "RULES-2.T4a",
+              "status": "TODO",
+              "closes": ["RULES-2.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T3a", "SPELLS-31.T4c1a"]
+              },
+              "text": "One pending-choice pause: shared sealed-choice lifecycle (open, choose, settle, checksum, undo) and a single pause union in the action snapshot; converts reaction, cast reaction, on-hit, retarget, forced movement and Legendary Resistance; extends the T4c1a decision module."
+            },
+            {
+              "id": "RULES-2.T4b",
+              "status": "TODO",
+              "closes": ["RULES-2.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["RULES-2.T4a"]
+              },
+              "text": "Split planNativeLiveEncounterAction into one handler per pause kind."
+            },
+            {
+              "id": "RULES-2.T5",
+              "status": "TODO",
+              "closes": ["RULES-2.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T4a"]
+              },
+              "text": "Generic event hooks: typed event table, one reaction discovery entry and one dispatch site per event for trigger, end/consume and interception; retires the per-trigger discovery functions and per-feature end-event call sites."
+            },
+            {
+              "id": "RULES-2.T6a",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 5,
+                "after": ["RULES-2.T2"]
+              },
+              "text": "Compiler: extract runtime interpretation and the operation registry into their own modules."
+            },
+            {
+              "id": "RULES-2.T6b",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T6a"]
+              },
+              "text": "Compiler: scaling facts and dice contract with validation at the boundary."
+            },
+            {
+              "id": "RULES-2.T6c",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T6b"]
+              },
+              "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase."
+            },
+            {
+              "id": "RULES-2.T6d",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T6c", "RULES-2.T5"]
+              },
+              "text": "Compiler: unify the four follow-up-save flavours into one lifetime and recurrence model."
+            },
+            {
+              "id": "RULES-2.T6e",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T6d"]
+              },
+              "text": "Compiler: table-driven dispatch; remove combination refusals that are not genuine rules."
+            },
+            {
+              "id": "RULES-2.T6f",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 8,
+                "after": ["RULES-2.T6e"]
+              },
+              "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e."
+            },
+            {
+              "id": "RULES-2.T7",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["RULES-2.T3a"]
+              },
+              "text": "Neutral roll-modifier pipeline: contributor influence becomes System vocabulary, not an advantage field; keep-by-roll-mode wording neutral."
+            },
+            {
+              "id": "RULES-2.T8",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["RULES-2.T5"]
+              },
+              "text": "Concentration becomes a neutral maintenance link; DC formula and ability stay D&D policy."
+            },
+            {
+              "id": "RULES-2.T9",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["RULES-2.T5", "RULES-2.T7"]
+              },
+              "text": "System-supplied vocabulary: trigger names, damage and condition lists, creature type, alignment and similar lists move to a System vocabulary registry."
+            },
+            {
+              "id": "RULES-2.T10",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T1"]
+              },
+              "text": "Move combatPerception.ts out of the kernel directory into the System perception module."
+            },
+            {
+              "id": "RULES-2.T11",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["RULES-2.T1"]
+              },
+              "text": "Burn down the direct systems/dnd5e imports from neutral runtime through registered capability adapters."
+            },
+            {
+              "id": "RULES-2.T12",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["RULES-2.T6f", "RULES-2.T7", "RULES-2.T8", "RULES-2.T11"]
+              },
+              "text": "Second neutral tracer System (Fate-like fixture) driving the Encounter pipeline through the adapters."
+            },
+            {
+              "id": "RULES-2.T13",
+              "status": "TODO",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["RULES-2.T4b"]
+              },
+              "text": "Split nativeLiveSessionRoom and completeAreaCommit by responsibility below the file-size budget."
+            },
+            {
+              "id": "RULES-2.T14",
+              "status": "TODO",
+              "closes": ["RULES-2.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order."
+            }
+          ]
         }
       ]
     },
