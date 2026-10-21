@@ -3176,7 +3176,7 @@
             },
             {
               "id": "RULES-2.T3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.3"],
               "wsjf": {
                 "bv": 5,
@@ -3186,7 +3186,7 @@
                 "after": ["RULES-2.T3a"]
               },
               "text": "Session Worker: one app-roll binding and d20-evidence requirement replacing the 8 copies.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m283 (06b515317)."
             },
             {
               "id": "RULES-2.T4a",
@@ -3312,7 +3312,7 @@
             },
             {
               "id": "RULES-2.T7",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3322,7 +3322,7 @@
                 "after": ["RULES-2.T3a"]
               },
               "text": "Neutral roll-modifier pipeline: contributor influence becomes System vocabulary, not an advantage field; keep-by-roll-mode wording neutral.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m285 (1ebd172c9)."
             },
             {
               "id": "RULES-2.T8",
@@ -16031,7 +16031,7 @@
             },
             {
               "id": "RELIABILITY-15.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-15.3"],
               "wsjf": {
                 "bv": 3,
@@ -16040,7 +16040,7 @@
                 "size": 1
               },
               "text": "Seed or tie-handle the settling cases in apps/apis/convex/encounters/initiativeSpellDeclarations.test.ts (flaked at :349, \"pins an authorized Spell publication and completes without spending resources\", expected ACTIVE got PREPARED) the way RELIABILITY-15.T1/T2 did; red per case on a ci/ branch.",
-              "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
+              "note": "Merged m284 (99e98816f)."
             }
           ]
         },
