@@ -83,7 +83,7 @@ export function buildEncounterActionPendingSnapshot(input: {
       twoPhase: execution.twoPhase,
       ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
       ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
-      pause: execution.pause ?? null,
+      ...(execution.pause ? { pause: execution.pause } : {}),
       ...(input.failedCounters?.length ? { failedCounters: [...input.failedCounters] } : {}),
       ...(input.passedIncomingGate ? { passedIncomingGate: input.passedIncomingGate } : {})
     },

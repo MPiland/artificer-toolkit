@@ -68,7 +68,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
        * What the snapshot's continuation waits on, when it is a choice or a d20 other than the action's
        * own (ADR 0039 decision 3). Its requirements of the rest of the context are checked per kind below.
        */
-      pause: z.nullable(encounterActionPauseDtoSchema),
+      pause: z.optional(encounterActionPauseDtoSchema),
       /**
        * The ward effect whose save the attacker already passed, carried by every later pause of the action
        * so its replay does not ask for the save again.

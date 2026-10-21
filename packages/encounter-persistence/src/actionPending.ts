@@ -115,7 +115,6 @@ type CastPendingContext = {
     /** The failed ward save whose attacker is offered another creature to turn the action on. */
     | { kind: 'ATTACK_RETARGET'; payload: { gate: { effectId: string } } }
     | { kind: 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'; payload: unknown }
-    | null
   failedCounters?: readonly PendingCounter[]
   /** The ward whose save the attacker already passed. */
   passedIncomingGate?: string
