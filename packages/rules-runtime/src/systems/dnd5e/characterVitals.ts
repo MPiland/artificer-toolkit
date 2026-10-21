@@ -7,16 +7,19 @@ import type {
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import { isHandSlot } from '@artificer-toolkit/shared/core'
 
+import type { ArmorClassCapabilityAdapter } from '../../armorClassCapability.js'
 import { abilityModifier } from './abilityModifier.js'
 import {
   combineDnd5eArmorClass,
   requireDnd5eArmorClass,
+  resolveDnd5eCreatureArmorClass,
   resolveDnd5eEquipmentArmorClass,
   selectDnd5eHeldShield
 } from './armorClass.js'
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import { hitPointGain } from './hitPointRules.js'
+import { DND5E_SYSTEM_ID } from './identity.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -78,6 +81,21 @@ export function resolveDnd5eShieldArmorClass(
         contribution.source.itemInstanceId === shield.itemInstanceId
     )
     .reduce((sum, contribution) => sum + contribution.value, shield.armorClass)
+}
+
+export const dnd5eArmorClassCapabilityAdapter: ArmorClassCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  creatureArmorClass: ({ abilityScores, naturalArmorBonus, equipment }) => {
+    const dexterityScore = abilityScores.DEXTERITY
+    return dexterityScore === undefined
+      ? null
+      : resolveDnd5eCreatureArmorClass({ dexterityScore, naturalArmorBonus, equipment })
+  },
+  countedShield: ({ equipment, activeEquipmentInstanceIds, armorClass }) => {
+    const addsOf = (shield: ActiveShield) => resolveDnd5eShieldArmorClass(shield, armorClass)
+    const shield = resolveDnd5eActiveShield(equipment, activeEquipmentInstanceIds, addsOf)
+    return shield && { itemInstanceId: shield.itemInstanceId, armorClass: addsOf(shield) }
+  }
 }
 
 export function evaluateDnd5eCharacterVitals(

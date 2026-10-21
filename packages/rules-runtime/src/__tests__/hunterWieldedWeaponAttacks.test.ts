@@ -23,6 +23,7 @@ import {
   evaluateSrdCharacter,
   srdFeature
 } from '../testing/dnd5eSrdCharacter.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 /**
  * SPELLS-31.T5s (D156): Volley and Whirlwind Attack attack with each wielded weapon that fits,
@@ -138,6 +139,7 @@ describe('Hunter Volley (SPELLS-31.T5s)', () => {
     const bow = character.output.actionDecisions[bowIndex]
     const wieldConflict = (candidate: (typeof character.facts.actionCandidates)[number]) =>
       evaluateEncounterCharacterActionWieldConflict({
+        gameSystemId: DND5E_SYSTEM_ID,
         candidate,
         ruleFacts: character.facts,
         policyOutput: character.output
