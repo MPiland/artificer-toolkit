@@ -3232,7 +3232,7 @@
             },
             {
               "id": "RULES-2.T5a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.5"],
               "wsjf": {
                 "bv": 5,
@@ -3241,12 +3241,12 @@
                 "size": 5,
                 "after": ["RULES-2.T4a", "RULES-2.T11a"]
               },
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
-              "text": "Generic event hooks (split 2026-10-21): neutral event table (structural kinds with BEFORE/AFTER phases) in rules-runtime/events, one discovery entry point and one subscription-reading dispatch per event; a System eventVocabulary adapter maps the persisted codes (unchanged until T9); end, consume and repeat-save hooks replace the per-feature end-event call sites."
+              "text": "Generic event hooks (split 2026-10-21): neutral event table (structural kinds with BEFORE/AFTER phases) in rules-runtime/events, one discovery entry point and one subscription-reading dispatch per event; a System eventVocabulary adapter maps the persisted codes (unchanged until T9); end, consume and repeat-save hooks replace the per-feature end-event call sites.",
+              "note": "Merged m296 (0518744a7)."
             },
             {
               "id": "RULES-2.T5b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.5"],
               "wsjf": {
                 "bv": 5,
@@ -3255,11 +3255,12 @@
                 "size": 5,
                 "after": ["RULES-2.T5a", "RULES-2.T4b"]
               },
-              "text": "Generic event hooks (split 2026-10-21): reaction hooks through the event table; retires the per-trigger reaction discovery files."
+              "text": "Generic event hooks (split 2026-10-21): reaction hooks through the event table; retires the per-trigger reaction discovery files.",
+              "note": "Merged m299 (36a57e101)."
             },
             {
               "id": "RULES-2.T5c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.5"],
               "wsjf": {
                 "bv": 5,
@@ -3268,7 +3269,8 @@
                 "size": 3,
                 "after": ["RULES-2.T5a"]
               },
-              "text": "Generic event hooks (split 2026-10-21): interception as BEFORE-phase intercepts at one pre-resolution site (incoming gate, counter, targeted-self); retarget stays the gate failure pause. Coordinate with T8."
+              "text": "Generic event hooks (split 2026-10-21): interception as BEFORE-phase intercepts at one pre-resolution site (incoming gate, counter, targeted-self); retarget stays the gate failure pause. Coordinate with T8.",
+              "note": "Merged m301 (ba63fc8e6)."
             },
             {
               "id": "RULES-2.T5d",
@@ -3313,7 +3315,7 @@
             },
             {
               "id": "RULES-2.T6c1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3323,12 +3325,11 @@
                 "after": ["RULES-2.T6b"]
               },
               "text": "Compiler: neutral outcomes registry (effectOutcomes/outcomeRegistry.ts, D&D entries in systems/dnd5e/effectActionOutcomes.ts); the three proposal-building sites and the interpretation key lists collapse onto it. Golden byte-identical.",
-              "note": "From T6b: boundedSingleDiceCount catches Dnd5eEffectActionCompilerError, but parseBoundedDiceConfiguration throws CharacterRuleActionUnsupportedCompilationError, so malformed dice propagate instead of returning null (pre-existing). Fix with a regression test.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m297 (70343deba)."
             },
             {
               "id": "RULES-2.T6c2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3337,7 +3338,8 @@
                 "size": 3,
                 "after": ["RULES-2.T6c1"]
               },
-              "text": "Compiler: outcome parsers become registry fromAuthored; any test phase admits any registered outcome. Every REFUSED to TEST_OUTCOME golden flip enumerated in review; reseed in the same change. Outcomes whose state lives in an active-effect plan (MODIFIER_GRANT, ACTOR_LINK, CREATURE_FORM, CONCEAL, DETECT_CONCEALED) stay refused as a missing primitive until T6d."
+              "text": "Compiler: outcome parsers become registry fromAuthored; any test phase admits any registered outcome. Every REFUSED to TEST_OUTCOME golden flip enumerated in review; reseed in the same change. Outcomes whose state lives in an active-effect plan (MODIFIER_GRANT, ACTOR_LINK, CREATURE_FORM, CONCEAL, DETECT_CONCEALED) stay refused as a missing primitive until T6d.",
+              "note": "Merged m300 (8944b9d26)."
             },
             {
               "id": "RULES-2.T6d",
@@ -3350,7 +3352,8 @@
                 "size": 8,
                 "after": ["RULES-2.T6c2", "RULES-2.T5a"]
               },
-              "text": "Compiler: unify the four follow-up-save flavours into one lifetime and recurrence model. Includes path-gating active-effect plan outcomes (MODIFIER_GRANT, ACTOR_LINK, CREATURE_FORM, CONCEAL, DETECT_CONCEALED) on the resolved test path, ruled from T6c 2026-10-21."
+              "text": "Compiler: unify the four follow-up-save flavours into one lifetime and recurrence model. Includes path-gating active-effect plan outcomes (MODIFIER_GRANT, ACTOR_LINK, CREATURE_FORM, CONCEAL, DETECT_CONCEALED) on the resolved test path, ruled from T6c 2026-10-21.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T6e",
@@ -3404,7 +3407,8 @@
                 "size": 8,
                 "after": ["RULES-2.T5a"]
               },
-              "text": "Concentration becomes a neutral maintenance link; DC formula and ability stay D&D policy."
+              "text": "Concentration becomes a neutral maintenance link; DC formula and ability stay D&D policy.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T9",
@@ -3417,7 +3421,8 @@
                 "size": 13,
                 "after": ["RULES-2.T5a", "RULES-2.T7"]
               },
-              "text": "System-supplied vocabulary: trigger names, damage and condition lists, creature type, alignment and similar lists move to a System vocabulary registry. Includes the schema wire enums for roll-mode influence (ADVANTAGE/DISADVANTAGE in DTOs, authored grant and condition influence, rollMode refinements), deferred from RULES-2.T7 (2026-10-21). Also the illumination levels (BRIGHT/DIM) in shared/vtt/combatPerception.ts, left fixed by RULES-2.T10 (2026-10-21)."
+              "text": "System-supplied vocabulary: trigger names, damage and condition lists, creature type, alignment and similar lists move to a System vocabulary registry. Includes the schema wire enums for roll-mode influence (ADVANTAGE/DISADVANTAGE in DTOs, authored grant and condition influence, rollMode refinements), deferred from RULES-2.T7 (2026-10-21). Also the illumination levels (BRIGHT/DIM) in shared/vtt/combatPerception.ts, left fixed by RULES-2.T10 (2026-10-21).",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T10",
@@ -3463,7 +3468,7 @@
             },
             {
               "id": "RULES-2.T11c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3473,11 +3478,11 @@
                 "after": ["RULES-2.T11b"]
               },
               "text": "System import burn-down (split 2026-10-21): optional combat contest adapters (allowlist -5).",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m294 (40b496a6e)."
             },
             {
               "id": "RULES-2.T11d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3486,7 +3491,50 @@
                 "size": 5,
                 "after": ["RULES-2.T11c"]
               },
-              "text": "System import burn-down (split 2026-10-21): attack profile adapters (allowlist -9, to 14). Concentration, the incoming attack gate and cast-reaction discovery stay with T5 and T8."
+              "text": "System import burn-down (split 2026-10-21): attack profile adapters (allowlist -9, to 14). Concentration, the incoming attack gate and cast-reaction discovery stay with T5 and T8.",
+              "note": "Merged m303 (50049ba38)."
+            },
+            {
+              "id": "RULES-2.T11e",
+              "status": "DONE",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 2,
+                "after": ["RULES-2.T11d"]
+              },
+              "text": "System import burn-down (split at T11d review, 2026-10-21): widen the fence to every package importer and list composition roots separately with their purpose.",
+              "note": "Merged m303 (50049ba38)."
+            },
+            {
+              "id": "RULES-2.T11f",
+              "status": "DONE",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["RULES-2.T11e"]
+              },
+              "text": "System import burn-down (split at T11d review, 2026-10-21): attack-profile and modifier-scope Encounter capabilities; gameSystemId threaded through movement passage and retaliation (allowlist -6).",
+              "note": "Merged m303 (50049ba38)."
+            },
+            {
+              "id": "RULES-2.T11g",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["RULES-2.T11f"]
+              },
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
+              "text": "System import burn-down (split at T11d review, 2026-10-21): burn down the remaining package and app importers (encounterActiveGrants, Worker cancelTriggeringEvent and concentration, persistence, web) and move the six *Registry.ts composition roots onto createSystemCapabilityRegistry installed from the platform files."
             },
             {
               "id": "RULES-2.T12",
@@ -3501,7 +3549,7 @@
                   "RULES-2.T6f",
                   "RULES-2.T7",
                   "RULES-2.T8",
-                  "RULES-2.T11d",
+                  "RULES-2.T11g",
                   "RULES-2.T5b",
                   "RULES-2.T5c",
                   "RULES-2.T5d"
@@ -3511,7 +3559,7 @@
             },
             {
               "id": "RULES-2.T13a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3521,11 +3569,11 @@
                 "after": ["RULES-2.T4b"]
               },
               "text": "Move the room scene commits (fog staging, scene edit, geometry, movement decision) out of nativeLiveSessionRoom.ts into roomScene* commit modules with narrow ports.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m292 (e2e1d223b)."
             },
             {
               "id": "RULES-2.T13b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3534,11 +3582,12 @@
                 "size": 3,
                 "after": ["RULES-2.T13a"]
               },
-              "text": "Move room Encounter command execution and Encounter binding out of nativeLiveSessionRoom.ts into roomEncounterCommandExecution.ts and roomEncounterBindingCommand.ts."
+              "text": "Move room Encounter command execution and Encounter binding out of nativeLiveSessionRoom.ts into roomEncounterCommandExecution.ts and roomEncounterBindingCommand.ts.",
+              "note": "Merged m295 (a67d9d5b3)."
             },
             {
               "id": "RULES-2.T13c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3547,11 +3596,12 @@
                 "size": 2,
                 "after": ["RULES-2.T13b"]
               },
-              "text": "Move the in-room halves of Character Sheet and Campaign chat command execution into roomCharacterSheetCommands.ts and roomChatCommands.ts."
+              "text": "Move the in-room halves of Character Sheet and Campaign chat command execution into roomCharacterSheetCommands.ts and roomChatCommands.ts.",
+              "note": "Merged m295 (a67d9d5b3)."
             },
             {
               "id": "RULES-2.T13d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3560,11 +3610,12 @@
                 "size": 3,
                 "after": ["RULES-2.T13c"]
               },
-              "text": "Move admission, storage recovery, aggregate load/reload and actor-departure reconciliation out of nativeLiveSessionRoom.ts into roomAdmission.ts, roomStorageRecovery.ts and roomAggregateLoad.ts."
+              "text": "Move admission, storage recovery, aggregate load/reload and actor-departure reconciliation out of nativeLiveSessionRoom.ts into roomAdmission.ts, roomStorageRecovery.ts and roomAggregateLoad.ts.",
+              "note": "Merged m298 (760db0bc6)."
             },
             {
               "id": "RULES-2.T13e",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3573,7 +3624,8 @@
                 "size": 2,
                 "after": ["RULES-2.T13d"]
               },
-              "text": "Move the scene cache, capture, outbox publication and checkpointing out of nativeLiveSessionRoom.ts; the room keeps the Durable Object lifecycle and command dispatch and leaves the size budget."
+              "text": "Move the scene cache, capture, outbox publication and checkpointing out of nativeLiveSessionRoom.ts; the room keeps the Durable Object lifecycle and command dispatch and leaves the size budget.",
+              "note": "Merged m302 (1664d59d7)."
             },
             {
               "id": "RULES-2.T13f",
@@ -3586,7 +3638,8 @@
                 "size": 2,
                 "after": ["RULES-2.T13e"]
               },
-              "text": "Split completeAreaCommit by phase into nativeAreaCommitPlan.ts, nativeAreaCommitMaintenance.ts and nativeAreaCommitPersistence.ts."
+              "text": "Split completeAreaCommit by phase into nativeAreaCommitPlan.ts, nativeAreaCommitMaintenance.ts and nativeAreaCommitPersistence.ts.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T13g",
@@ -3627,6 +3680,19 @@
               },
               "text": "Bug: compiling the SRD Antitoxin (vial) equipment Effect (00000060-0000-0210-0079-000000000001) throws a plain Error \"Rule documents must contain JSON values only\" instead of a plan or refusal. Find the non-JSON value (likely undefined in authored data or its compile), fix at the source, add a regression test that fails before the fix, and re-pin the golden line.",
               "note": "Merged m269 (5bcadf7a5)."
+            },
+            {
+              "id": "RULES-2.T14",
+              "status": "TODO",
+              "closes": ["RULES-2.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "after": ["RULES-2.T5c"]
+              },
+              "text": "Delete definition schemaVersion 1 (ruled at T5a review, 2026-10-21; pre-launch, no compatibility): migrate every v1 definition and seed to the current version in the same change and remove the v1 read paths."
             }
           ]
         }
@@ -6961,7 +7027,7 @@
                   "SPELLS-33.T6i2",
                   "SPELLS-33.T6m2",
                   "SPELLS-33.T4i1b2",
-                  "SPELLS-33.T4i2",
+                  "SPELLS-33.T4i2b",
                   "SPELLS-33.T4i3b",
                   "SPELLS-33.T4i3c",
                   "SPELLS-33.T4i4b"
@@ -9591,7 +9657,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2lb2a"]
               },
-              "text": "Web repeat-offer row (split from T2lb2a at review, 2026-10-20): the Character sees and uses a REPEAT_SOURCE_PATH offer (cast level, frozen DC) from the tabletop effect offers, with a browser journey for the Heat Metal repeat."
+              "text": "Web repeat-offer row (split from T2lb2a at review, 2026-10-20): the Character sees and uses a REPEAT_SOURCE_PATH offer (cast level, frozen DC) from the tabletop effect offers, with a browser journey for the Heat Metal repeat.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -13571,7 +13638,7 @@
               "note": "Merged m282 (4436eb191)."
             },
             {
-              "id": "SPELLS-33.T4i2",
+              "id": "SPELLS-33.T4i2a",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
@@ -13581,8 +13648,21 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b", "RULES-2.T5c"]
               },
-              "text": "0 HP interception (split 2026-10-20): Undead Fortitude (x2) and Wereboar Relentless on the T2i2 interception contract; a save DC derived from the triggering damage, with damage-type and critical-hit exclusions, goes to a ruling first. Parity proofs, a homebrew variant and 3 kind deletions.",
-              "note": "2026-10-21: held behind RULES-2.T5c so interception lands on the event table, not the per-feature contract (ADR 0039)."
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
+              "text": "0 HP interception engine (split 2026-10-21): DAMAGE_INTERCEPTION save {ability, dc {base, plusDamageTaken}}, excludes {damageTypeIds, critical} and maxDamageTaken; damageTaken, damageTypeId and critical on the BEFORE DAMAGED event; batch interception saves recorded on the DAMAGE application; homebrew stored-effect proof."
+            },
+            {
+              "id": "SPELLS-33.T4i2b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T4i2a"]
+              },
+              "text": "0 HP interception creatures (split 2026-10-21): passive feature DAMAGE_INTERCEPTION derives a held interception generically; mechanics-batch feature resource spend with undo and rest recharge; converts Undead Fortitude (x2) and Wereboar Relentless with parity and room proofs and deletes the 3 kinds."
             },
             {
               "id": "SPELLS-33.T4i3a",
@@ -13596,7 +13676,8 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b", "RULES-2.T6c2"]
               },
               "text": "REDUCED_TO_ZERO_BY gate (split 2026-10-21): the gate kind in the one gate table (schema, node map, web default, evidence), honoured on any outcome entry through the outcomes registry rather than the hit-path hitPointBand ladder; homebrew proof.",
-              "note": "Held behind RULES-2.T6c: the hit path honours only hitPointBand tiers today, and ADR 0039 rejects widening the ladder."
+              "note": "Held behind RULES-2.T6c: the hit path honours only hitPointBand tiers today, and ADR 0039 rejects widening the ladder.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4i3b",
@@ -16167,7 +16248,7 @@
         {
           "id": "RELIABILITY-15",
           "title": "Initiative declaration settlement test is deterministic",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/encounters/initiativeDeclarations.test.ts"],
           "journeyStatus": "verified",
           "origin": [],
@@ -16202,11 +16283,15 @@
             },
             {
               "id": "RELIABILITY-15.3",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [
                 "Same rule as RELIABILITY-15.2, applied to the sibling file after a CI flake on 2026-10-21 (Tests 39540465628, shard 4/4)"
               ],
-              "text": "Every test in initiativeSpellDeclarations.test.ts that expects a settled (ACTIVE) Run is deterministic: no automatic initiative roll can tie into an unhandled INITIATIVE tie, controlled through the platform random seam (no weakened assertion, no retry)."
+              "text": "Every test in initiativeSpellDeclarations.test.ts that expects a settled (ACTIVE) Run is deterministic: no automatic initiative roll can tie into an unhandled INITIATIVE tie, controlled through the platform random seam (no weakened assertion, no retry).",
+              "proof": [
+                "apps/apis/convex/encounters/initiativeSpellDeclarations.test.ts (queued distinct dice in the settling case)",
+                "RELIABILITY-15.T3 merged m284 (99e98816f)"
+              ]
             }
           ],
           "tasks": [
@@ -16333,7 +16418,7 @@
         {
           "id": "RELIABILITY-18",
           "title": "Development GM journey scheduler test is deterministic",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/campaigns/developmentGmJourney.test.ts"],
           "origin": [],
           "wsjf": {
@@ -16346,16 +16431,20 @@
             {
               "id": "RELIABILITY-18.1",
               "text": "developmentGmJourney.test.ts (snapshot of _scheduled_functions at :127) passes deterministically: the cause of a scheduled job reading inProgress instead of pending is found in the test setup or the product, fixed at the cause (no retry, no weakened assertion), and a forced reproduction fails red before the fix.",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Found 2026-10-21: failed on ci/platform-25-t3 Tests (first) and on ci/rules-2-t4b Tests 39625271637 attempt 1 (5bfd79e08); both passed on rerun and neither branch touches campaigns."
+              "note": "Found 2026-10-21: failed on ci/platform-25-t3 Tests (first) and on ci/rules-2-t4b Tests 39625271637 attempt 1 (5bfd79e08); both passed on rerun and neither branch touches campaigns.",
+              "proof": [
+                "apps/apis/convex/campaigns/developmentGmJourney.test.ts (fake timers control the convex-test scheduler before the _scheduled_functions snapshot)",
+                "Merged m293 (4f9963a64) with green Tests and Live backend on the slice tip"
+              ]
             }
           ],
           "tasks": [
             {
               "id": "RELIABILITY-18.T1",
               "text": "Find why developmentGmJourney.test.ts intermittently snapshots a scheduled job as inProgress (convex-test scheduler timing versus the snapshot read), fix the cause, and prove it with a forced red on a ci/ branch.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-18.1"],
               "wsjf": {
                 "bv": 3,
@@ -16363,9 +16452,10 @@
                 "rr": 8,
                 "size": 1
               },
-              "activeWorkbook": "apps/apis/convex/campaigns/developmentGmJourney.test.ts"
+              "note": "Merged m293 (4f9963a64)."
             }
-          ]
+          ],
+          "journeyStatus": "verified"
         }
       ]
     },
