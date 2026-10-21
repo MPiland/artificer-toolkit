@@ -1,15 +1,27 @@
 import { describe, expect, it } from 'vitest'
 
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
+import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import {
+  ACTIVATION_CODE,
+  EFFECT_KIND,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  RANGE_KIND,
+  TRIGGER
+} from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import { SRD_ABILITIES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
+import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import {
   effectOutcomeProposalNode,
   effectOutcomeProposalOutputs
 } from '../effectOutcomeRegistry.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
+import { executionAddsSpeedToMovement } from '../systems/dnd5e/addSpeedToMovement.js'
+import { executionCancelsTriggeringEvent } from '../systems/dnd5e/cancelTriggeringEvent.js'
 import { dnd5eAddedDiceNode } from '../systems/dnd5e/d20AddedDiceGraph.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from '../systems/dnd5e/dnd5eTestOperationKeys.js'
 import {
@@ -31,6 +43,11 @@ import {
   type Dnd5eRegisteredOutcome
 } from '../systems/dnd5e/effectActionOutcomes.js'
 import { dnd5ePathGatedTargetProposalOperations } from '../systems/dnd5e/effectActionOperationRegistry.js'
+import { executionTeleportAllowance } from '../systems/dnd5e/teleportAllowance.js'
+import {
+  ACTION_EFFECT_ID,
+  characterActionDescriptor
+} from '../testing/characterActionDescriptor.js'
 import { SRD_SYSTEM_ID as DND5E_SYSTEM_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { FIRE_DAMAGE_TYPE_ID, PRONE_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 
@@ -291,4 +308,142 @@ describe('the effect outcome registry (RULES-2.T6c1)', () => {
       expect(applications).toEqual([])
     })
   })
+})
+
+type AuthoredEffect = Parameters<typeof compileEffect>[0]
+
+/** An authored Constitution save of one target whose failure has one outcome. */
+function saveEffect(outcome: Record<string, unknown>): AuthoredEffect {
+  return {
+    id: ACTION_EFFECT_ID,
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.SAVING_THROW,
+      savingThrow: {
+        id: testUuid(0x6c20),
+        dcMethod: 'FIXED_DC',
+        abilityDefinitionId: CONSTITUTION,
+        baseDc: 13
+      },
+      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+      range: { id: testUuid(0x6c21), rangeKind: RANGE_KIND.UNLIMITED },
+      targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
+    },
+    paths: [
+      {
+        id: testUuid(0x6c22),
+        order: 1,
+        pathCode: PATH_CODE.ON_SAVE_FAIL,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: testUuid(0x6c23),
+          resultKind: 'SINGLE',
+          outcomes: [{ id: testUuid(0x6c24), ...outcome }]
+        }
+      }
+    ]
+  } as AuthoredEffect
+}
+
+/** Compiles an authored Effect the way a Character action is compiled. */
+function compileAction(effect: AuthoredEffect) {
+  const action = { ...characterActionDescriptor(compileEffect(effect)), conditionDefinitionIds: [] }
+  return dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan!({
+    action,
+    compilerSource: buildCompiledActionCompilerSource(action)
+  })
+}
+
+describe('outcomes under a test (RULES-2.T6c2)', () => {
+  it.each([
+    ['STABILIZE', { effectKind: EFFECT_KIND.STABILIZE, requiresZeroHitPoints: true }],
+    [
+      'MANUAL_ADJUDICATION',
+      {
+        effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+        label: 'Ruling',
+        reasonCode: 'GM_CHOICE',
+        instructions: 'The GM rules the result.'
+      }
+    ],
+    [
+      'ADD_SPEED_TO_MOVEMENT',
+      { effectKind: EFFECT_KIND.MOVEMENT_RULE, ruleKind: 'ADD_SPEED_TO_MOVEMENT' }
+    ],
+    ['DEPART', { effectKind: 'TELEPORT', targetKind: 'TARGET', destinationKind: 'LINKED_LOCATION' }]
+  ])('compiles a failed save that proposes %s', (_kind, outcome) => {
+    const plan = compileAction(saveEffect(outcome))
+    expect(plan.kind).toBe('TEST_OUTCOME')
+    if (plan.kind !== 'TEST_OUTCOME') return
+    expect(plan.outcomes.map(({ pathCode }) => pathCode)).toEqual(['ON_SAVE_FAIL'])
+  })
+
+  it('compiles a single target sent away with no test as a departure', () => {
+    const effect = saveEffect({
+      effectKind: 'TELEPORT',
+      targetKind: 'TARGET',
+      destinationKind: 'SPECIAL'
+    })
+    const plan = compileAction({
+      ...effect,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+        range: { id: testUuid(0x6c21), rangeKind: RANGE_KIND.UNLIMITED },
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
+      },
+      paths: effect.paths.map((path) => ({ ...path, pathCode: PATH_CODE.ON_USE }))
+    } as AuthoredEffect)
+    expect(plan.kind).toBe('SINGLE_GRAPH')
+    if (plan.kind !== 'SINGLE_GRAPH') return
+    expect(plan.published.definition.nodes.map(({ operation }) => operation.key)).toContain(
+      dnd5eOutcomeDefinition('DEPART').operationKey
+    )
+  })
+
+  it.each([
+    [
+      { effectKind: 'TELEPORT', targetKind: 'SELF', destinationKind: 'VISIBLE' },
+      "D&D self teleport takes its reach from a self-targeted action's range, which a test action does not have."
+    ],
+    [
+      { effectKind: EFFECT_KIND.CANCEL_TRIGGERING_EVENT },
+      'D&D cancel-triggering-event outcome belongs to a spell-cast reaction.'
+    ],
+    [
+      { effectKind: 'TELEPATHIC_LINK' },
+      "D&D ACTOR_LINK under a test needs an active-effect plan gated on the test's result path, which the runtime does not have yet."
+    ]
+  ])('refuses %o under a test for its genuine reason', (outcome, message) => {
+    expect(() => compileAction(saveEffect(outcome))).toThrow(message)
+  })
+
+  type Execution = Awaited<ReturnType<typeof run>>['execution']
+  it.each<[string, Dnd5eRegisteredOutcome, (execution: Execution) => boolean]>([
+    ['ADD_SPEED_TO_MOVEMENT', { kind: 'ADD_SPEED_TO_MOVEMENT' }, executionAddsSpeedToMovement],
+    [
+      'CANCEL_TRIGGERING_EVENT',
+      { kind: 'CANCEL_TRIGGERING_EVENT' },
+      executionCancelsTriggeringEvent
+    ],
+    [
+      'TELEPORT_ALLOWANCE',
+      { kind: 'TELEPORT_ALLOWANCE', maxFeet: 30, destinationKind: 'VISIBLE' },
+      (execution) => executionTeleportAllowance(execution) !== null
+    ]
+  ])(
+    'commits %s only when the save resolves to its authored path',
+    async (_kind, outcome, commits) => {
+      const direct = await run(directGraph(outcome))
+      const authored = await run(saveGraph(outcome, 'ON_SAVE_FAIL'))
+      const other = await run(saveGraph(outcome, 'ON_SAVE_SUCCESS'))
+      expect(commits(direct.execution)).toBe(true)
+      expect(commits(authored.execution)).toBe(true)
+      expect(commits(other.execution)).toBe(false)
+    }
+  )
 })

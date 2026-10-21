@@ -138,7 +138,7 @@ All seven are D&D 2014 policy (their keys, messages and facts name D&D), so they
 first neutral piece is the outcomes registry below; the interpretation dispatcher is a later RULES-2 step once the
 compiler stops naming D&D facts. Each file stays under the 1,500-line budget, and the golden above gates every move.
 
-### Effect outcomes registry (current, RULES-2.T6c1; ADR 0039 decision 1)
+### Effect outcomes registry (current, RULES-2.T6c1–T6c2; ADR 0039 decision 1)
 
 The neutral `effectOutcomeRegistry` replaces the per-kind proposal-node ladders. An `EffectOutcomeDefinition` names
 one outcome kind's direct proposal, its path-gated proposal (or null), its payload bindings and output ports, and
@@ -157,8 +157,17 @@ literal of its payload, then interprets it as its direct proposal.
 `MODIFIER_GRANT`, `ACTOR_LINK`, `CREATURE_FORM`, `CONCEAL` and `DETECT_CONCEALED` have no path-gated form: their state
 lives in an active-effect plan, which cannot yet be gated on a test's result path. Under a test the compiler refuses
 them and names that missing primitive (RULES-2.T6d adds it). `KILL` under a test stays limited to hit-point tiers,
-which is a rule, not a missing primitive. Which outcomes a test admits is still decided by `boundedTestOutcome`;
-RULES-2.T6c2 widens it to the registry.
+which is a rule, not a missing primitive.
+
+A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
+`ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the
+damage, heal, condition and hit-point-tier `KILL` outcomes. `dnd5eTargetOnlyOutcome` is the one home for that set, so
+the compiler's direct and test admissions cannot drift. The commit-side readers (`executionAddsSpeedToMovement`,
+`executionTeleportAllowance`, `executionCancelsTriggeringEvent`) find their proposal through
+`dnd5eResolvedProposalTrace`: the direct key, or the path-gated key only when its trace output is authorized, so a
+test that resolved to another path commits nothing. Under a test, two outcomes stay refused for their own rule: a self
+teleport, which takes its reach from a self-targeted action's range, and `CANCEL_TRIGGERING_EVENT`, which belongs to a
+spell-cast reaction and a spell-cast reaction is never a test activation.
 
 ## Ownership and publication
 
