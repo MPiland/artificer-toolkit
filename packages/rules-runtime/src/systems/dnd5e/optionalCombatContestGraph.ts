@@ -8,6 +8,11 @@ import {
 
 import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import type {
+  ContestCheckCapabilityAdapter,
+  OptionalCombatContestGraph
+} from '../../contestCheckCapability.js'
+import type { OptionalCombatPolicyPin } from '../../optionalCombatPolicyCapability.js'
 
 export const DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY =
   'dnd5e.optional-combat.contest.initiator-modifier'
@@ -17,25 +22,6 @@ export const DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY =
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const CHECKSUM_PATTERN = /^[a-f0-9]{64}$/
 const CAPABILITY_KEY_PATTERN = /^[a-z][a-z0-9.-]{0,79}$/
-
-/**
- * Exact policy identity retained beside the compiled contest graph.
- * The graph itself has no policy-specific behavior; the System policy decides
- * which modifier and participant facts may enter it.
- */
-export interface Dnd5eOptionalCombatContestPolicyPin {
-  readonly definitionChecksum: string
-  readonly definitionId: string
-  readonly definitionVersion: number
-  readonly moduleContractVersion: number
-  readonly moduleKey: string
-}
-
-export interface Dnd5eOptionalCombatContestGraph {
-  readonly identityChecksum: string
-  readonly pin: Dnd5eOptionalCombatContestPolicyPin
-  readonly published: ReturnType<typeof serverPublishedRuleDefinitionDtoSchema.parse>
-}
 
 export const dnd5eOptionalCombatContestCapabilityContribution = {
   definitionFamilyKeys: [RULE_RUNTIME_GRAPH_FAMILY_KEY],
@@ -58,7 +44,7 @@ export const dnd5eOptionalCombatContestCapabilityContribution = {
   'definitionFamilyKeys' | 'factContracts' | 'operationContracts'
 >
 
-function requirePin(pin: Dnd5eOptionalCombatContestPolicyPin): void {
+function requirePin(pin: OptionalCombatPolicyPin): void {
   if (!UUID_PATTERN.test(pin.definitionId)) {
     throw new Error('Optional combat contest definition identity must be a lowercase UUID.')
   }
@@ -148,8 +134,8 @@ export function createDnd5eContestGraph(
 
 /** The contest graph an optional-combat policy starts, retained beside its exact policy pin. */
 export function createDnd5eOptionalCombatContestGraph(
-  pin: Dnd5eOptionalCombatContestPolicyPin
-): Dnd5eOptionalCombatContestGraph {
+  pin: OptionalCombatPolicyPin
+): OptionalCombatContestGraph {
   requirePin(pin)
   const published = createDnd5eContestGraph(pin.definitionId)
   return {
@@ -158,3 +144,11 @@ export function createDnd5eOptionalCombatContestGraph(
     identityChecksum: checksumRuleDocument({ pin, graphChecksum: published.checksum })
   }
 }
+
+export const dnd5eContestCheckCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  initiatorModifierFactKey: DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY,
+  targetModifierFactKey: DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY,
+  contestGraph: createDnd5eContestGraph,
+  optionalCombatContestGraph: createDnd5eOptionalCombatContestGraph
+} as const satisfies ContestCheckCapabilityAdapter

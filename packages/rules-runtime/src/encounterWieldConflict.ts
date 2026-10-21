@@ -5,10 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { EncounterAcceptedWieldConflictDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 
-import {
-  resolveDnd5eActiveShield,
-  resolveDnd5eShieldArmorClass
-} from './systems/dnd5e/characterVitals.js'
+import { armorClassCapabilityRegistry } from './platformEncounterPolicy.js'
 
 type EncounterWieldConflict =
   | { kind: 'NONE' }
@@ -37,10 +34,11 @@ export function encounterStowedItemInstanceId(stow: EncounterAcceptedWieldConfli
  * shared by the action choices query and action preparation. A carried weapon is treated as
  * drawn and any other held weapon can be swapped without an armor class cost, so only an
  * action wielded in both hands (its authored grip) conflicts with a shield. A STOW_SHIELD result
- * lowers armor class by everything the shield adds in the D&D armor class computation, magic
+ * lowers armor class by everything the shield adds in the System's armor class computation, magic
  * bonuses included; the caller must obtain the submitter's explicit acceptance before applying it.
  */
 export function evaluateEncounterCharacterActionWieldConflict(input: {
+  gameSystemId: string
   candidate: Pick<CharacterActionCandidate, 'equipment'>
   ruleFacts: Pick<CharacterRulePolicyInput, 'armorClassFacts'>
   policyOutput: {
@@ -50,21 +48,17 @@ export function evaluateEncounterCharacterActionWieldConflict(input: {
 }): EncounterWieldConflict {
   const shield =
     input.candidate.equipment?.grip === 'TWO_HANDED'
-      ? resolveDnd5eActiveShield(
-          input.ruleFacts.armorClassFacts?.equipment ?? [],
-          input.policyOutput.grantFold.activeEquipmentInstanceIds,
-          (candidate) =>
-            resolveDnd5eShieldArmorClass(candidate, input.policyOutput.derivedStats.armorClass)
-        )
+      ? armorClassCapabilityRegistry.require(input.gameSystemId).countedShield({
+          equipment: input.ruleFacts.armorClassFacts?.equipment ?? [],
+          activeEquipmentInstanceIds: input.policyOutput.grantFold.activeEquipmentInstanceIds,
+          armorClass: input.policyOutput.derivedStats.armorClass
+        })
       : null
   return shield === null
     ? { kind: 'NONE' }
     : {
         kind: 'STOW_SHIELD',
         shieldItemInstanceId: shield.itemInstanceId,
-        armorClassDelta: -resolveDnd5eShieldArmorClass(
-          shield,
-          input.policyOutput.derivedStats.armorClass
-        )
+        armorClassDelta: -shield.armorClass
       }
 }

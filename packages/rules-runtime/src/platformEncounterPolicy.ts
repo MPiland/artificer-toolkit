@@ -3,18 +3,51 @@ import type {
   EncounterActorRuleOutput
 } from '@artificer-toolkit/schema/api/encounterActorRules'
 
+import type { ArmorClassCapabilityAdapter } from './armorClassCapability.js'
+import type { ContestCheckCapabilityAdapter } from './contestCheckCapability.js'
+import type { D20TestDefinitionCapabilityAdapter } from './d20TestDefinitionCapability.js'
 import type { InitiativeFactAdapter } from './initiativeFactAdapter.js'
+import type { OptionalCombatPolicyCapabilityAdapter } from './optionalCombatPolicyCapability.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
+import { dnd5eArmorClassCapabilityAdapter } from './systems/dnd5e/characterVitals.js'
 import { dnd5eEncounterActorPolicyRegistration } from './systems/dnd5e/encounterActorPolicy.js'
+import { dnd5eD20TestDefinitionCapabilityAdapter } from './systems/dnd5e/encounterLifecyclePolicy.js'
 import { dnd5eInitiativeFactAdapter } from './systems/dnd5e/initiativeFactAdapter.js'
+import { dnd5eContestCheckCapabilityAdapter } from './systems/dnd5e/optionalCombatContestGraph.js'
+import { dnd5eOptionalCombatPolicyCapabilityAdapter } from './systems/dnd5e/optionalResolutionPolicy.js'
 
 const installedRuntimeModules = [dnd5eEncounterActorPolicyRegistration] as const
 
-/** Encounter-only, so it is installed here rather than in the Sheet-reachable `platformPolicyModules`. */
+// Encounter-only capabilities, so they are installed here rather than in the Sheet-reachable
+// `platformPolicyModules`.
 export const initiativeCapabilityRegistry = createSystemCapabilityRegistry<InitiativeFactAdapter>(
   'initiative',
   [dnd5eInitiativeFactAdapter]
 )
+
+export const armorClassCapabilityRegistry =
+  createSystemCapabilityRegistry<ArmorClassCapabilityAdapter>('armor-class', [
+    dnd5eArmorClassCapabilityAdapter
+  ])
+
+export const d20TestDefinitionCapabilityRegistry =
+  createSystemCapabilityRegistry<D20TestDefinitionCapabilityAdapter>('d20-test-definition', [
+    dnd5eD20TestDefinitionCapabilityAdapter
+  ])
+
+export const contestCheckCapabilityRegistry =
+  createSystemCapabilityRegistry<ContestCheckCapabilityAdapter>('contest-check', [
+    dnd5eContestCheckCapabilityAdapter
+  ])
+
+/**
+ * Optional combat rules are opt-in per Encounter: a System without them offers no Cleaving choice
+ * (`find`), while a sealed passage choice requires the policy that proposed it (`require`).
+ */
+export const optionalCombatPolicyCapabilityRegistry =
+  createSystemCapabilityRegistry<OptionalCombatPolicyCapabilityAdapter>('optional-combat', [
+    dnd5eOptionalCombatPolicyCapabilityAdapter
+  ])
 
 /** System-owned semantic preparation; generic Encounter application owns reconciliation. */
 export function evaluateInstalledEncounterActors(input: {

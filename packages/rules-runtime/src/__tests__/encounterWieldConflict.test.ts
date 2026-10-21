@@ -4,6 +4,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 import { evaluateEncounterCharacterActionWieldConflict } from '../encounterWieldConflict.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 const shieldId = 'shield-instance'
 const armorClassFacts = {
@@ -45,6 +46,7 @@ function evaluate(input: {
   armorClassContributions?: ArmorClassContribution[]
 }) {
   return evaluateEncounterCharacterActionWieldConflict({
+    gameSystemId: DND5E_SYSTEM_ID,
     candidate: {
       equipment: {
         itemInstanceId: 'weapon-instance',

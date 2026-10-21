@@ -34,18 +34,8 @@ import {
 import { planEncounterMechanicsBatch } from './encounterMechanicsBatchPlan.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
 import { requireDeathSavePending } from './encounterTurnPending.js'
+import { d20TestDefinitionCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { DND5E_SYSTEM_ID } from './systems/dnd5e/identity.js'
-import { dnd5eAddedDiceFacts } from './systems/dnd5e/d20AddedDiceGraph.js'
-import { createDnd5eDeathSaveDefinition } from './systems/dnd5e/encounterLifecyclePolicy.js'
-
-/** Each System's death save graph, its d20 then its added dice, and the facts the dice bind. */
-const deathSaveSystemById: ReadonlyMap<
-  string,
-  { definition: typeof createDnd5eDeathSaveDefinition; facts: typeof dnd5eAddedDiceFacts }
-> = new Map([
-  [DND5E_SYSTEM_ID, { definition: createDnd5eDeathSaveDefinition, facts: dnd5eAddedDiceFacts }]
-])
 
 /** A death save's kept d20 and its added dice with their faces. */
 type DeathSaveRoll = { rawDie: number; addedDice: D20RolledAddedDieDto[] }
@@ -206,21 +196,23 @@ export async function prepareEncounterTurnDeathSave<
   }
   const actorId = root.proposedTerminalTransition.currentActorId
   const actor = input.actors.find((candidate) => candidate.id === actorId)
-  const system = deathSaveSystemById.get(state.gameSystemId)
-  if (state.automationMode === 'MANUAL' || actor?.kind !== 'CHARACTER' || !system) return none()
+  if (state.automationMode === 'MANUAL' || actor?.kind !== 'CHARACTER') return none()
+  const system = d20TestDefinitionCapabilityRegistry.require(state.gameSystemId)
+  const deathSaveDefinition = system.deathSaveDefinition
+  if (!deathSaveDefinition) return none()
   const target = input.movementTargets.get(actor.id) ?? (await input.loadTarget(actor.id))
   if (!target) throw new Error('Death save target facts are unavailable.')
   const candidate = deathSaveCandidate(target)
   if (!candidate) return none()
 
-  const published = system.definition()
+  const published = deathSaveDefinition()
   const runtime = await input.createRuntime()
   const start = async () => {
     const started = await runtime.executeResolved({
       command: {
         definitionId: published.id,
         occurrenceId,
-        facts: system.facts(candidate.addedDice)
+        facts: system.addedDiceFacts(candidate.addedDice)
       },
       published
     })

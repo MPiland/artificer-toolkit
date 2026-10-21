@@ -5,7 +5,13 @@ import {
   actionEconomyCapabilityRegistry,
   creatureConditionCapabilityRegistry
 } from '../platformPolicyModules.js'
-import { initiativeCapabilityRegistry } from '../platformEncounterPolicy.js'
+import {
+  armorClassCapabilityRegistry,
+  contestCheckCapabilityRegistry,
+  d20TestDefinitionCapabilityRegistry,
+  initiativeCapabilityRegistry,
+  optionalCombatPolicyCapabilityRegistry
+} from '../platformEncounterPolicy.js'
 import { createSystemCapabilityRegistry } from '../systemCapabilityRegistry.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
@@ -16,7 +22,16 @@ import {
   DND5E_SYSTEM_ID,
   DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID
 } from '../systems/dnd5e/identity.js'
+import {
+  createDnd5eBasicActionCheckDefinition,
+  createDnd5eDeathSaveDefinition
+} from '../systems/dnd5e/encounterLifecyclePolicy.js'
 import { dnd5eInitiativeFactAdapter } from '../systems/dnd5e/initiativeFactAdapter.js'
+import {
+  DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY,
+  DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY,
+  createDnd5eContestGraph
+} from '../systems/dnd5e/optionalCombatContestGraph.js'
 
 const UNKNOWN_SYSTEM_ID = '00000000-0000-4000-8000-0000000000ff'
 const adapter = { gameSystemId: DND5E_SYSTEM_ID, value: 1 }
@@ -94,5 +109,74 @@ describe('installed D&D capability adapters', () => {
 
   it('initiative resolves the D&D initiative fact adapter', () => {
     expect(initiativeCapabilityRegistry.require(DND5E_SYSTEM_ID)).toBe(dnd5eInitiativeFactAdapter)
+  })
+
+  it('armor class reads Dexterity for a Creature and has no shield to count without one', () => {
+    const armorClass = armorClassCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(
+      armorClass.creatureArmorClass({
+        abilityScores: { DEXTERITY: 14 },
+        naturalArmorBonus: 1,
+        equipment: []
+      })
+    ).toEqual({ ok: true, armorClass: 13 })
+    expect(
+      armorClass.creatureArmorClass({ abilityScores: {}, naturalArmorBonus: 0, equipment: [] })
+    ).toBeNull()
+    expect(
+      armorClass.countedShield({
+        equipment: [],
+        activeEquipmentInstanceIds: [],
+        armorClass: { contributions: [] }
+      })
+    ).toBeNull()
+  })
+
+  it('d20 test definitions give the D&D basic action check and death save graphs', () => {
+    const d20Tests = d20TestDefinitionCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(d20Tests.basicActionCheckDefinition()).toEqual(createDnd5eBasicActionCheckDefinition())
+    expect(d20Tests.deathSaveDefinition?.()).toEqual(createDnd5eDeathSaveDefinition())
+  })
+
+  it('contest checks give the D&D two-d20 graph and its modifier facts', () => {
+    const contest = contestCheckCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    const definitionId = '00000000-0000-4000-8000-000000000701'
+    expect(contest.contestGraph(definitionId)).toEqual(createDnd5eContestGraph(definitionId))
+    expect(contest.initiatorModifierFactKey).toBe(
+      DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY
+    )
+    expect(contest.targetModifierFactKey).toBe(
+      DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY
+    )
+  })
+
+  it('optional combat is inert without an enabled policy and offers no Cleaving for another System', () => {
+    const policy = optionalCombatPolicyCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(
+      policy.prepareTumbleContest({
+        automationMode: 'MANUAL',
+        gameSystemId: DND5E_SYSTEM_ID,
+        optionalCombatSnapshot: null,
+        optionalCombatSnapshotChecksum: null,
+        actionEconomy: 'ACTION',
+        actionEconomyAvailable: true,
+        blockerActorId: '00000000-0000-4000-8000-000000000702',
+        initiatorActorId: '00000000-0000-4000-8000-000000000703',
+        passageAlreadyUsedThisTurn: false
+      })
+    ).toEqual({ kind: 'INERT' })
+    expect(optionalCombatPolicyCapabilityRegistry.find(UNKNOWN_SYSTEM_ID)).toBeUndefined()
+  })
+
+  it.each([
+    ['initiative', initiativeCapabilityRegistry],
+    ['armor-class', armorClassCapabilityRegistry],
+    ['d20-test-definition', d20TestDefinitionCapabilityRegistry],
+    ['contest-check', contestCheckCapabilityRegistry],
+    ['optional-combat', optionalCombatPolicyCapabilityRegistry]
+  ] as const)('%s fails closed on a System that does not install it', (capability, registry) => {
+    expect(() => registry.require(UNKNOWN_SYSTEM_ID)).toThrow(
+      `The Game System does not provide ${capability} policy.`
+    )
   })
 })

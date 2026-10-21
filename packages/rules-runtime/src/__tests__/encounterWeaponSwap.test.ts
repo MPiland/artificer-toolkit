@@ -10,6 +10,7 @@ import { discoverCharacterActionCapabilities } from '../characterActionCapabilit
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { evaluateEncounterCharacterActionWieldConflict } from '../encounterWieldConflict.js'
 import { evaluateSrdCharacter, itemAction } from '../testing/dnd5eSrdCharacter.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 type PrepareInput = Parameters<typeof prepareNativeCharacterActionState>[0]
 type CompiledEntry = Extract<PrepareInput['entry'], { schemaVersion: 4 }>
@@ -75,6 +76,7 @@ const prepare = ({ candidate, entry }: ReturnType<typeof weaponAttack>) =>
 
 const wieldConflict = ({ candidate }: ReturnType<typeof weaponAttack>) =>
   evaluateEncounterCharacterActionWieldConflict({
+    gameSystemId: DND5E_SYSTEM_ID,
     candidate,
     ruleFacts: fighter.facts,
     policyOutput: fighter.output

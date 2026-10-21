@@ -1,4 +1,3 @@
-import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import {
   activeOptionalCombatDefinitions,
@@ -11,34 +10,23 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CLEAVING_POLICY_MODULE } from './policyModuleRegistration.js'
+import { prepareDnd5eOverrunContest, prepareDnd5eTumbleContest } from './optionalMovementPolicy.js'
+import type {
+  CleavingInput,
+  CleavingProposal,
+  OptionalCombatPolicyCapabilityAdapter,
+  OptionalCombatPolicyInput,
+  OptionalCombatPolicyPin,
+  OptionalCombatResolution
+} from '../../optionalCombatPolicyCapability.js'
 
 /** Attacker and initial target consume two Encounter actor identities. */
 const MAX_DND5E_CLEAVING_TARGETS = MAX_ENCOUNTER_ACTORS - 2
 
 type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
-type Resolution<T> =
-  | { readonly kind: 'INERT' }
-  | { readonly kind: 'JUDGMENT_REQUIRED'; readonly reason: string }
-  | { readonly kind: 'NOT_APPLICABLE' }
-  | { readonly kind: 'PROPOSED'; readonly proposal: T }
-
-interface PolicyInput {
-  readonly automationMode: AutomationModeDto
-  readonly gameSystemId: string
-  readonly optionalCombatSnapshot: unknown
-  readonly optionalCombatSnapshotChecksum: string | null | undefined
-}
-
-export interface Dnd5eOptionalResolutionPin {
-  readonly definitionChecksum: string
-  readonly definitionId: string
-  readonly definitionVersion: number
-  readonly moduleContractVersion: number
-  readonly moduleKey: string
-}
 
 function exactDefinition(
-  input: PolicyInput & {
+  input: OptionalCombatPolicyInput & {
     readonly kind: Dnd5eOptionalCombatRuleKindDto
     readonly module: { readonly key: string; readonly contractVersion: number }
   }
@@ -72,7 +60,7 @@ function exactDefinition(
   return matches.length === 1 ? matches[0]! : null
 }
 
-function pin(definition: PolicyDefinition): Dnd5eOptionalResolutionPin {
+function pin(definition: PolicyDefinition): OptionalCombatPolicyPin {
   return {
     definitionId: definition.definitionId,
     definitionVersion: definition.definitionVersion,
@@ -89,16 +77,6 @@ function canonicalUuid(value: string): boolean {
 
 function isSafeInteger(value: number | null): value is number {
   return value !== null && Number.isSafeInteger(value)
-}
-
-interface Dnd5eCleavingProposal {
-  readonly attackTotal: number
-  readonly chainStep: number
-  readonly eligibleTargetActorIds: readonly string[]
-  readonly nextTargetActorId: string
-  readonly pin: Dnd5eOptionalResolutionPin
-  readonly remainingFinalDamage: number
-  readonly visitedTargetActorIds: readonly string[]
 }
 
 function validCleavingChain(input: {
@@ -148,29 +126,8 @@ function canonicalizeCleavingCandidates(candidateActorIds: readonly string[]): r
 
 /** Proposes one exact next target; later outcome settlement owns damage application and further chaining. */
 export function resolveDnd5eCleaving(
-  input: PolicyInput & {
-    readonly attackKind: 'MELEE' | 'OTHER' | null
-    readonly attackTotal: number | null
-    readonly attackerActorId: string
-    readonly chainStep: number | null
-    readonly eligibleTargetActorIds: readonly string[] | null
-    readonly initialTargetActorId: string
-    readonly initialTargetReducedToZero: boolean | null
-    readonly initialTargetWasUndamaged: boolean | null
-    readonly mixedDamageOrRiderAmbiguity: boolean | null
-    readonly nextTarget: {
-      readonly actorId: string
-      readonly armorClass: number | null
-      readonly withinAttackerReach: boolean | null
-      readonly originalAttackResolution: {
-        readonly naturalRoll: number | null
-        readonly originalAttackCanHitNextTarget: boolean | null
-      } | null
-    } | null
-    readonly remainingFinalDamage: number | null
-    readonly visitedTargetActorIds: readonly string[] | null
-  }
-): Resolution<Dnd5eCleavingProposal> {
+  input: CleavingInput
+): OptionalCombatResolution<CleavingProposal> {
   const definition = exactDefinition({
     ...input,
     kind: 'CLEAVING',
@@ -257,3 +214,10 @@ export function resolveDnd5eCleaving(
     }
   }
 }
+
+export const dnd5eOptionalCombatPolicyCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  prepareOverrunContest: prepareDnd5eOverrunContest,
+  prepareTumbleContest: prepareDnd5eTumbleContest,
+  resolveCleaving: resolveDnd5eCleaving
+} as const satisfies OptionalCombatPolicyCapabilityAdapter

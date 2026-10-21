@@ -1,10 +1,7 @@
-import {
-  EQUIPMENT_PROPERTY_CODE,
-  resolveHandOccupancy,
-  type EquipmentSlotCode
-} from '@artificer-toolkit/shared/core'
+import { EQUIPMENT_PROPERTY_CODE, resolveHandOccupancy } from '@artificer-toolkit/shared/core'
 import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
 
+import type { ArmorClassResult, CreatureArmorClassEquipment } from '../../armorClassCapability.js'
 import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
 import { characterPolicyRecord } from './characterPolicyValues.js'
 
@@ -45,19 +42,9 @@ export function selectDnd5eHeldShield<Shield>(
   return best?.shield ?? null
 }
 
-export type CreatureArmorClassEquipment = {
-  id: string
-  useState: EquipmentSlotCode
-  compiled: CompiledEquipment
-}
-
-export type Dnd5eArmorClassResult =
-  | { ok: true; armorClass: number }
-  | { ok: false; equipmentId: string; reason: string }
-
 type ItemModifiers =
   | { ok: true; abilityBonuses: number[]; flatBonuses: number[] }
-  | Extract<Dnd5eArmorClassResult, { ok: false }>
+  | Extract<ArmorClassResult, { ok: false }>
 
 /**
  * An armor or shield's authored armor class, for Characters and Creatures alike (D143): one
@@ -66,7 +53,7 @@ type ItemModifiers =
 export function resolveDnd5eEquipmentArmorClass(
   equipmentId: string,
   armorClass: number | null | undefined
-): Dnd5eArmorClassResult {
+): ArmorClassResult {
   return armorClass == null
     ? {
         ok: false,
@@ -149,7 +136,7 @@ export function resolveDnd5eCreatureArmorClass(input: {
   dexterityScore: number
   naturalArmorBonus: number
   equipment: readonly CreatureArmorClassEquipment[]
-}): Dnd5eArmorClassResult {
+}): ArmorClassResult {
   const dexterityModifier = abilityModifier(input.dexterityScore)
   const wornArmor = input.equipment.find(
     (entry) => entry.useState === 'WORN' && entry.compiled.category === 'ARMOR'
@@ -208,7 +195,7 @@ export function resolveDnd5eCreatureArmorClass(input: {
 }
 
 /** For consumers that must not continue with Equipment the armor class cannot evaluate. */
-export function requireDnd5eArmorClass(result: Dnd5eArmorClassResult): number {
+export function requireDnd5eArmorClass(result: ArmorClassResult): number {
   if (!result.ok) throw new Error(result.reason)
   return result.armorClass
 }

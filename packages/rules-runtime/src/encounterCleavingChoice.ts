@@ -4,10 +4,8 @@ import {
   type ServerAggregateChoicePendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import {
-  resolveDnd5eCleaving,
-  type Dnd5eOptionalResolutionPin
-} from './systems/dnd5e/optionalResolutionPolicy.js'
+import type { OptionalCombatPolicyPin } from './optionalCombatPolicyCapability.js'
+import { optionalCombatPolicyCapabilityRegistry } from './platformEncounterPolicy.js'
 import { cleavingChildOccurrenceIdentity } from './encounterCleavingIdentity.js'
 
 export type NativeCleavingCandidate = {
@@ -57,9 +55,11 @@ export function createNativeCleavingChoice(input: {
   const optionalCombatSnapshotChecksum = input.optionalCombatSnapshotChecksum
   if (optionalCombatSnapshotChecksum === null)
     throw new Error("A Cleaving choice requires the Run's pinned optional-combat policy.")
+  const policy = optionalCombatPolicyCapabilityRegistry.find(input.gameSystemId)
+  if (!policy) return null
   const eligibleTargetActorIds = input.candidates.map((candidate) => candidate.actorId)
   const proposed = input.candidates.flatMap((candidate) => {
-    const resolution = resolveDnd5eCleaving({
+    const resolution = policy.resolveCleaving({
       automationMode: input.automationMode,
       gameSystemId: input.gameSystemId,
       optionalCombatSnapshot: input.optionalCombatSnapshot,
@@ -136,7 +136,7 @@ export function createNativeCleavingChoice(input: {
   })
 }
 
-function optionId(candidate: NativeCleavingCandidate, pin: Dnd5eOptionalResolutionPin) {
+function optionId(candidate: NativeCleavingCandidate, pin: OptionalCombatPolicyPin) {
   return checksumRuleDocument({
     targetActorId: candidate.actorId,
     targetTokenId: candidate.targetTokenId,

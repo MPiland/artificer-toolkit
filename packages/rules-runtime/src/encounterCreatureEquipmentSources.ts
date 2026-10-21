@@ -14,7 +14,7 @@ import {
 import { z } from 'zod'
 
 import { hydrateStoredCompilation } from './authoredPublicationHydrate.js'
-import { resolveDnd5eCreatureArmorClass } from './systems/dnd5e/armorClass.js'
+import { armorClassCapabilityRegistry } from './platformEncounterPolicy.js'
 
 const checksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
 const positiveRevisionSchema = z.number().int().positive()
@@ -178,7 +178,7 @@ export function assertCreatureLoadoutHands(
 }
 
 const creatureArmorClassInputsSchema = z.object({
-  abilityScores: z.object({ DEXTERITY: z.number() }),
+  abilityScores: z.record(z.string(), z.number()),
   naturalArmorBonus: z.number().int().nonnegative()
 })
 
@@ -194,13 +194,14 @@ export function parseCreatureArmorClassInputs(payload: unknown) {
  * Encounter projection (which computes it strictly) can never throw.
  */
 export function assertCreatureLoadoutArmorClass(
+  gameSystemId: string,
   inputs: z.infer<typeof creatureArmorClassInputsSchema>,
   loadout: readonly { id: string; useState: EquipmentSlotCode }[],
   sources: readonly SerializedEncounterCreatureEquipmentSource[]
 ): void {
   const sourceByEntryId = new Map(sources.map((source) => [source.loadoutEntryId, source]))
-  const result = resolveDnd5eCreatureArmorClass({
-    dexterityScore: inputs.abilityScores.DEXTERITY,
+  const result = armorClassCapabilityRegistry.require(gameSystemId).creatureArmorClass({
+    abilityScores: inputs.abilityScores,
     naturalArmorBonus: inputs.naturalArmorBonus,
     equipment: loadout.map((entry) => {
       const source = sourceByEntryId.get(entry.id)
@@ -212,6 +213,7 @@ export function assertCreatureLoadoutArmorClass(
       }
     })
   })
+  if (!result) throw new Error('Creature armor class inputs are invalid.')
   if (!result.ok) throw new Error(result.reason)
 }
 
@@ -229,7 +231,7 @@ export function pinCreatureEquipmentSources(input: {
       actionFeatureIds: readonly string[]
     }[]
     systemId: string
-    abilityScores: { DEXTERITY: number }
+    abilityScores: Readonly<Record<string, number>>
     naturalArmorBonus: number
   }
   equipment: ReadonlyMap<
@@ -265,6 +267,6 @@ export function pinCreatureEquipmentSources(input: {
     sources.push(source)
   }
   assertCreatureLoadoutHands(loadout, sources)
-  assertCreatureLoadoutArmorClass(input.creature, loadout, sources)
+  assertCreatureLoadoutArmorClass(input.creature.systemId, input.creature, loadout, sources)
   return sources
 }
