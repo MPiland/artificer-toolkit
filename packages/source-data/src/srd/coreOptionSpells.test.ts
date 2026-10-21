@@ -1,6 +1,7 @@
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
 import { describe, expect, it } from 'vitest'
 import { srdSpells } from './spells/index.js'
+import { conditionTypeId } from './spells/shared.js'
 
 const plainText = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ')
 
@@ -102,6 +103,46 @@ describe('SRD Power Word Stun (SPELLS-4.T2i3)', () => {
 
   it('states the limit its gate carries in its description', () => {
     expect(plainText(spell?.description ?? '')).toContain('150 hit points or fewer')
+  })
+})
+
+/**
+ * SPELLS-4.T2i4b2: Divine Word runs from data. Its four hit point bands are the tier rows of one
+ * failed-save path: generic conditions with their own durations, and the generic KILL.
+ */
+describe('SRD Divine Word (SPELLS-4.T2i4b2)', () => {
+  const spell = srdSpells.find((entry) => entry.label === 'Divine Word')
+  const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
+
+  it('authors the 50, 40, 30 and 20 hit point tiers, with no closed rule left', () => {
+    if (path?.selectionKind !== 'HIT_POINT_TIERS') throw new Error('Expected hit point tiers.')
+    expect(
+      path.rows.map(({ atMost, resultBlock }) => [
+        atMost,
+        resultBlock.duration && 'amount' in resultBlock.duration
+          ? resultBlock.duration.amount
+          : null,
+        resultBlock.outcomes.map((outcome) =>
+          outcome.effectKind === 'CONDITION' ? outcome.conditionId : outcome.effectKind
+        )
+      ])
+    ).toEqual([
+      [50, 1, [conditionTypeId('DEAFENED')]],
+      [40, 10, [conditionTypeId('DEAFENED'), conditionTypeId('BLINDED')]],
+      [
+        30,
+        60,
+        [conditionTypeId('BLINDED'), conditionTypeId('DEAFENED'), conditionTypeId('STUNNED')]
+      ],
+      [20, null, ['KILL']]
+    ])
+    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('DIVINE_WORD')
+  })
+
+  it('states each tier its rows carry in its description', () => {
+    const description = plainText(spell?.description ?? '')
+    for (const limit of [50, 40, 30, 20])
+      expect(description).toContain(`${limit} hit points or fewer`)
   })
 })
 

@@ -1055,6 +1055,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Why not a SYSTEM root:** D161 admits rule-raised actions. A repeat save belongs to an active effect, not an action, so a SYSTEM root would need a new effect-sourced action-source kind, action-economy exemptions and an alive-holder admission, which is new surface for no behavior gain.
   - **Shared seam:** T2m3 and SPELLS-33.T6e2/T4m reuse this in-command damage-trigger reader.
   - **Fallback:** if the parent command cannot hold a pending controller save without new machinery of similar size, the session reports back before building it.
+  - **Amendment (2026-10-20, fallback hit):** a parent command can't pause for a controller save today, except through the Concentration damage-check stack (its pending-context kind, child persistence, response route, replay and cleanup). The Concentration check and a damage-triggered repeat save are the same rule: a save by the damaged holder's controllers whose result can end an effect. So the Concentration stack is generalized into one damage-triggered save child whose save source is a discriminated union (Concentration, or an effect's repeat save). The two share one pending kind, one persistence path and one response route, and Concentration behavior and its tests stay unchanged. Rejected: a server auto-roll, which breaks D19, and a second parallel stack, which duplicates the rule. Sizing and any split follow the session's investigation.
 
 ## Approved implementation decisions
 

@@ -1,15 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
-import {
-  DURATION_KIND,
-  EFFECT_KIND,
-  PATH_CODE,
-  PATH_GROUP_TYPE
-} from '@artificer-toolkit/shared/core'
 import { divineWord } from '@artificer-toolkit/source-data/srd/spells/divine-word.js'
-import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-
 import { SRD_ABILITIES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
@@ -19,73 +10,12 @@ import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectAc
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { compiledTestSpellCast } from '../testing/plannedTimedCondition.js'
 
-function conditionId(code: string): string {
-  const entry = SRD_CONDITION_TYPES.find((conditionType) => conditionType.code === code)
-  if (!entry) throw new Error(`Condition ${code} required.`)
-  return entry.id
-}
-
-function conditionTier(order: number, atMost: number, codes: string[], minutes: number) {
-  return {
-    id: testUuid(0xd200 + order),
-    order,
-    atMost,
-    resultBlock: {
-      id: testUuid(0xd210 + order),
-      resultKind: 'SEQUENCE' as const,
-      duration: {
-        id: testUuid(0xd220 + order),
-        durationKind: DURATION_KIND.MINUTE,
-        amount: minutes
-      },
-      outcomes: codes.map((code, index) => ({
-        id: testUuid(0xd230 + order * 8 + index),
-        order: index + 1,
-        effectKind: EFFECT_KIND.CONDITION,
-        conditionId: conditionId(code)
-      }))
-    }
-  }
-}
-
-const [saveEffect] = divineWord.effects ?? []
-if (!saveEffect) throw new Error('Expected a saving throw Effect.')
-
-const tieredSave: EffectAuthored = {
-  ...saveEffect,
-  paths: [
-    {
-      id: testUuid(0xd240),
-      order: 1,
-      pathCode: PATH_CODE.ON_SAVE_FAIL,
-      groupType: PATH_GROUP_TYPE.SINGLE,
-      originKind: 'SOURCE',
-      selectionKind: 'HIT_POINT_TIERS',
-      rows: [
-        conditionTier(1, 50, ['DEAFENED'], 1),
-        conditionTier(2, 40, ['DEAFENED', 'BLINDED'], 10),
-        conditionTier(3, 30, ['BLINDED', 'DEAFENED', 'STUNNED'], 60),
-        {
-          id: testUuid(0xd250),
-          order: 4,
-          atMost: 20,
-          resultBlock: {
-            id: testUuid(0xd251),
-            resultKind: 'SINGLE' as const,
-            outcomes: [{ id: testUuid(0xd252), effectKind: EFFECT_KIND.KILL }]
-          }
-        }
-      ]
-    }
-  ]
-}
-
 const CHARISMA = SRD_ABILITIES.find(({ code }) => code === 'CHARISMA')!.id
 const TARGET_ID = testUuid(0xd260)
 /** Out of reach of any d20 total, so every target fails the save. */
 const UNSAVEABLE_DC = 99
 
-const spell = { ...divineWord, effects: [tieredSave] }
+const spell = divineWord
 const { entry } = compiledTestSpellCast({
   spell,
   cast: {
@@ -144,7 +74,7 @@ function cast(hitPoints: number) {
   })
 }
 
-describe('hit point tiered saving throw (SPELLS-4.T2i4b1)', () => {
+describe('hit point tiered saving throw (SPELLS-4.T2i4b1, Divine Word SPELLS-4.T2i4b2)', () => {
   it('is a saving throw followed by its tier outcome, with a plan for each timed tier and none for the kill', () => {
     expect(executionPlan.kind).toBe('TEST_OUTCOME')
     expect(hitPointTiers).toEqual([20, 30, 40, 50])

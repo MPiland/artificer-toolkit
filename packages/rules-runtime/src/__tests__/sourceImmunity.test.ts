@@ -264,13 +264,19 @@ describe('SRD Chains of Carceri: a grant that locks each target out (SPELLS-31.T
   const HOLDER_ID = testUuid(0x5131)
   const CHARACTER_ID = testUuid(0x5132)
 
-  // A chosen invocation's spell grant reaches spell access only with SPELLS-31.T5t, so this test's
-  // registry offers the compiled invocation as a Warlock feature; everything after it is real.
-  const warlock15 = evaluateSrdCharacter({ classes: [{ label: 'Warlock', level: 15 }] })
-  const { spellAccessCandidates } = buildCharacterSpellRuleFacts(warlock15.snapshot, {
-    ...srdRegistry,
-    classes: { ...srdRegistry.classes, [warlock.id]: { ...compiledWarlock, features: [chains] } }
+  const warlock15 = evaluateSrdCharacter({
+    classes: [{ label: 'Warlock', level: 15 }],
+    features: [
+      srdFeature({
+        owner: 'CLASS',
+        classLabel: 'Warlock',
+        featureLabel: 'Eldritch Invocations',
+        level: 2,
+        optionLabels: ['Chains of Carceri']
+      })
+    ]
   })
+  const { spellAccessCandidates } = buildCharacterSpellRuleFacts(warlock15.snapshot, srdRegistry)
   const access = spellAccessCandidates.find(({ spellId }) => spellId === holdMonster.id)
   const casts = buildCharacterSpellCastRuleFacts({
     snapshot: warlock15.snapshot,
@@ -300,6 +306,9 @@ describe('SRD Chains of Carceri: a grant that locks each target out (SPELLS-31.T
 
   it('carries the grant’s creature types and lockout into spell access', () => {
     expect(access).toMatchObject({
+      sourceKind: 'OPTION',
+      sourceId: chains.id,
+      acquiredParentId: `acquired:${compiledWarlock.features?.find((feature) => feature.label === 'Eldritch Invocations')?.id}`,
       perTargetLockout: true,
       allowedCreatureTypeIds: [typeId('CELESTIAL'), typeId('FIEND'), typeId('ELEMENTAL')]
     })
