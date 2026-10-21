@@ -11,9 +11,12 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { heldBatchInputs } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
+import {
+  heldBatchInputs,
+  heldDamageInterceptions
+} from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import { withRecordedInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
+import { withRecordedInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/systems/dnd5e/interceptionSaveRolls'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -94,16 +97,19 @@ export async function applyRoomEncounterMechanicsBatch(input: {
           sheetMaximumHitPoints: await readCharacterMaximumHitPoints(ctx, character.play)
         }
       : {
-          damageInterceptions: withRecordedInterceptionSaveRolls(
-            buildMovementTarget({
-              actor: read.actor,
-              activeEffects: heldEffects,
-              gameSystemId: read.campaign.gameSystemId,
-              campaignId,
-              characterFacts: null
-            }).damageInterceptions,
-            batch.applications
-          )
+          damageInterceptions:
+            read.actor.kind === 'CREATURE'
+              ? withRecordedInterceptionSaveRolls(
+                  buildMovementTarget({
+                    actor: read.actor,
+                    activeEffects: heldEffects,
+                    gameSystemId: read.campaign.gameSystemId,
+                    campaignId,
+                    characterFacts: null
+                  }).damageInterceptions,
+                  batch.applications
+                )
+              : heldDamageInterceptions(heldEffects)
         }
   const target = {
     ...read,

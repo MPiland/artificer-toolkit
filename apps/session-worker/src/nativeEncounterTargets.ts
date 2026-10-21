@@ -17,7 +17,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { withEncounterOccupantSaveBonus } from '@artificer-toolkit/rules-runtime/encounterOccupantSaveAuras'
 import { withEncounterHolderDefense } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
-import { withInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
+import { withInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/systems/dnd5e/interceptionSaveRolls'
 import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { hydrateSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'

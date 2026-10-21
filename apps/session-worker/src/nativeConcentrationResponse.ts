@@ -94,8 +94,7 @@ export async function planNativeLiveConcentrationResponse(
       state,
       actor,
       activeEffectsByActorId,
-      captures: executionOptions.captures,
-      random: executionOptions.random
+      ...executionOptions
     })
     revisions = mergeNativeRulesRevisions(revisions, prepared.revisions)
     projectedTargets.set(actor.id, prepared.target)

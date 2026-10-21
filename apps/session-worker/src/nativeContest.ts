@@ -392,8 +392,7 @@ export async function planNativeLiveContest(
       state,
       actor: entry,
       activeEffectsByActorId,
-      captures: executionOptions.captures,
-      random: executionOptions.random
+      ...executionOptions
     })
     reads.observe(prepared.revisions)
     return prepared.target

@@ -1,8 +1,8 @@
-import { dnd5eConcentrationHolderSaves } from './systems/dnd5e/concentrationPolicy.js'
-import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from './systems/dnd5e/identity.js'
-import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
-import type { HeldDamageInterception } from './encounterDamageInterception.js'
-import { EncounterValidationError } from './encounterErrors.js'
+import { dnd5eConcentrationHolderSaves } from './concentrationPolicy.js'
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from './identity.js'
+import type { CharacterRuleActionApplication } from '../../characterRuleActionSystemAdapter.js'
+import type { HeldDamageInterception } from '../../encounterDamageInterception.js'
+import { EncounterValidationError } from '../../encounterErrors.js'
 
 /**
  * The target with each save its damage interceptions ask rolled once, before any blow lands: the

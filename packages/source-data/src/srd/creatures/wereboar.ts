@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { damageInterceptionGrants } from './damageInterceptionGrants.js'
 import * as S from './shared.js'
 export const wereboar: CreatureAuthored = {
   id: S.CREATURE_IDS.WEREBOAR,
@@ -95,7 +96,7 @@ export const wereboar: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.SHORT_REST,
         amount: 1
       },
-      grants: S.damageInterceptionGrants(S.actionId(288, 204), {
+      grants: damageInterceptionGrants(S.actionId(288, 204), {
         dropToHitPoints: 1,
         negatesKill: false,
         maxDamageTaken: 14

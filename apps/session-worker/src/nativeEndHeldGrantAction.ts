@@ -48,8 +48,7 @@ export async function planNativeLiveEndHeldGrant(
     state,
     actor,
     activeEffectsByActorId,
-    captures: executionOptions.captures,
-    random: executionOptions.random
+    ...executionOptions
   })
   reads.observe(prepared.revisions)
   const { actionEconomy, warnings, spent } = await spendNativeHolderActivation({

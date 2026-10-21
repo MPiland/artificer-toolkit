@@ -381,8 +381,7 @@ export async function planNativeLiveEncounterAction(
       state,
       actor,
       activeEffectsByActorId: effectsByActorId,
-      captures: executionOptions.captures,
-      random: executionOptions.random
+      ...executionOptions
     })
     revisions = mergeNativeRulesRevisions(revisions, preparedTarget.revisions)
     return preparedTarget.target

@@ -57,8 +57,7 @@ export async function planNativeLiveMoveHeldEffect(
       state,
       actor: target,
       activeEffectsByActorId,
-      captures: executionOptions.captures,
-      random: executionOptions.random
+      ...executionOptions
     })
   const prepared = await prepare(actor)
   reads.observe(prepared.revisions)

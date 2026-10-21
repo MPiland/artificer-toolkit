@@ -95,8 +95,7 @@ export async function planNativeLiveCleavingResponse(
       state,
       actor,
       activeEffectsByActorId,
-      captures: executionOptions.captures,
-      random: executionOptions.random
+      ...executionOptions
     })
     reads.observe(prepared.revisions)
     loaded.set(actor.id, prepared.target)

@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { damageInterceptionGrants } from './damageInterceptionGrants.js'
 import * as S from './shared.js'
 export const ogreZombie: CreatureAuthored = {
   id: S.CREATURE_IDS.OGRE_ZOMBIE,
@@ -42,7 +43,7 @@ export const ogreZombie: CreatureAuthored = {
       label: 'Undead Fortitude',
       description:
         'Undead Fortitude. If damage reduces the zombie to 0 hit points, it must make a Constitution saving throw with a DC of 5 + the damage taken, unless the damage is radiant or from a critical hit. On a success, the zombie drops to 1 hit point instead.',
-      grants: S.damageInterceptionGrants(S.actionId(210, 500), {
+      grants: damageInterceptionGrants(S.actionId(210, 500), {
         dropToHitPoints: 1,
         negatesKill: false,
         save: { ability: 'CONSTITUTION', dc: { base: 5, plusDamageTaken: true } },

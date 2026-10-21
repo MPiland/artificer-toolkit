@@ -11,7 +11,7 @@ import { planCreatureRest } from '../encounterCreatureRest.js'
 import {
   withInterceptionSaveRolls,
   withRecordedInterceptionSaveRolls
-} from '../encounterInterceptionSaveRolls.js'
+} from '../systems/dnd5e/interceptionSaveRolls.js'
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import { srdCreatureActor, srdCreatureTarget, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
