@@ -3312,18 +3312,32 @@
               "note": "Merged m281 (bd56f5b55)."
             },
             {
-              "id": "RULES-2.T6c",
+              "id": "RULES-2.T6c1",
               "status": "TODO",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
                 "tc": 8,
                 "rr": 8,
-                "size": 8,
+                "size": 5,
                 "after": ["RULES-2.T6b"]
               },
-              "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase.",
-              "note": "From T6b: boundedSingleDiceCount catches Dnd5eEffectActionCompilerError, but parseBoundedDiceConfiguration throws CharacterRuleActionUnsupportedCompilationError, so malformed dice propagate instead of returning null (pre-existing). Fix with a regression test."
+              "text": "Compiler: neutral outcomes registry (effectOutcomes/outcomeRegistry.ts, D&D entries in systems/dnd5e/effectActionOutcomes.ts); the three proposal-building sites and the interpretation key lists collapse onto it. Golden byte-identical.",
+              "note": "From T6b: boundedSingleDiceCount catches Dnd5eEffectActionCompilerError, but parseBoundedDiceConfiguration throws CharacterRuleActionUnsupportedCompilationError, so malformed dice propagate instead of returning null (pre-existing). Fix with a regression test.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+            },
+            {
+              "id": "RULES-2.T6c2",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T6c1"]
+              },
+              "text": "Compiler: outcome parsers become registry fromAuthored; any test phase admits any registered outcome. Every REFUSED to TEST_OUTCOME golden flip enumerated in review; reseed in the same change. Outcomes whose state lives in an active-effect plan (MODIFIER_GRANT, ACTOR_LINK, CREATURE_FORM, CONCEAL, DETECT_CONCEALED) stay refused as a missing primitive until T6d."
             },
             {
               "id": "RULES-2.T6d",
@@ -3334,9 +3348,9 @@
                 "tc": 8,
                 "rr": 8,
                 "size": 8,
-                "after": ["RULES-2.T6c", "RULES-2.T5a"]
+                "after": ["RULES-2.T6c2", "RULES-2.T5a"]
               },
-              "text": "Compiler: unify the four follow-up-save flavours into one lifetime and recurrence model."
+              "text": "Compiler: unify the four follow-up-save flavours into one lifetime and recurrence model. Includes path-gating active-effect plan outcomes (MODIFIER_GRANT, ACTOR_LINK, CREATURE_FORM, CONCEAL, DETECT_CONCEALED) on the resolved test path, ruled from T6c 2026-10-21."
             },
             {
               "id": "RULES-2.T6e",
@@ -13579,7 +13593,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b", "RULES-2.T6c"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b", "RULES-2.T6c2"]
               },
               "text": "REDUCED_TO_ZERO_BY gate (split 2026-10-21): the gate kind in the one gate table (schema, node map, web default, evidence), honoured on any outcome entry through the outcomes registry rather than the hit-path hitPointBand ladder; homebrew proof.",
               "note": "Held behind RULES-2.T6c: the hit path honours only hitPointBand tiers today, and ADR 0039 rejects widening the ladder."
@@ -13633,7 +13647,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T4i4a", "RULES-2.T6c"]
+                "after": ["SPELLS-33.T4i4a", "RULES-2.T6c2"]
               },
               "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry."
             },
