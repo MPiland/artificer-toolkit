@@ -29,13 +29,12 @@ import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/e
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { prepareNativeLiveMaintainedState } from './nativeEncounterMaintenance.js'
 import { counterConsumptionsOf } from './nativeEncounterCastReaction.js'
+import type { AreaPlanBase, AreaPrepared } from './nativeAreaPreparation.js'
 import type {
-  AreaPlanBase,
-  AreaPrepared,
   StruckSaves,
   discoverNativeLegendaryResistance,
   replayAreaTargetSave
-} from './nativeEncounterAreaRules.js'
+} from './nativeAreaRevalidation.js'
 import type { prepareAreaCommitMaintenance } from './nativeAreaCommitMaintenance.js'
 
 /**

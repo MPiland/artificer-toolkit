@@ -14,7 +14,7 @@ import type {
   AreaPrepared,
   AreaReach,
   MovementTargets
-} from './nativeEncounterAreaRules.js'
+} from './nativeAreaPreparation.js'
 
 /**
  * Opens the maintenance an area commit shares across every creature it catches: what the cast

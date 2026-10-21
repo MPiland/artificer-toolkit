@@ -282,12 +282,41 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
 )
 
 /** Damage that would drop the holder to 0 hit points leaves it at `dropToHitPoints` instead. */
-export const damageInterceptionPayloadDtoSchema = lazySchema(() =>
-  z.strictObject({
-    dropToHitPoints: z.number().check(z.int()).check(z.gte(1)).check(z.lte(1000)),
-    negatesKill: z.boolean()
-  })
-)
+export type DamageInterceptionPayloadDto = {
+  dropToHitPoints: number
+  negatesKill: boolean
+  save?: {
+    ability: z.infer<typeof abilityCodeSchema>
+    dc: { base: number; plusDamageTaken: boolean }
+  }
+  excludes?: { damageTypeIds: string[]; critical: boolean }
+  maxDamageTaken?: number
+}
+
+/** Typed explicitly so the projections embedding the payload stay within the declaration size limit (TS7056). */
+export const damageInterceptionPayloadDtoSchema: z.ZodMiniType<DamageInterceptionPayloadDto> =
+  lazySchema(() =>
+    z.strictObject({
+      dropToHitPoints: z.number().check(z.int()).check(z.gte(1)).check(z.lte(1000)),
+      negatesKill: z.boolean(),
+      save: z.optional(
+        z.strictObject({
+          ability: abilityCodeSchema,
+          dc: z.strictObject({
+            base: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100)),
+            plusDamageTaken: z.boolean()
+          })
+        })
+      ),
+      excludes: z.optional(
+        z.strictObject({
+          damageTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema),
+          critical: z.boolean()
+        })
+      ),
+      maxDamageTaken: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(1000)))
+    })
+  )
 
 /**
  * The save an attacker makes against the holder's source before a single-target attack or harmful spell lands.
