@@ -3398,7 +3398,7 @@
             },
             {
               "id": "RULES-2.T14",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.8"],
               "wsjf": {
                 "bv": 5,
@@ -3407,7 +3407,7 @@
                 "size": 2
               },
               "text": "Initiative cursor: one readTurnCursor home for ordering, active index and side order.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m267 (74371bfed)."
             },
             {
               "id": "RULES-2.T15",
