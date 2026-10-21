@@ -4,6 +4,7 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { compareDamageSaveApplications } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
   nativeActionDamage,
@@ -13,6 +14,7 @@ import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtim
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { insertNativeCleavingChoice } from './actionChildPersistence.js'
+import { bindEncounterEffectRepeatSaves } from './effectRepeatSavePersistence.js'
 import type {
   bindEncounterConcentrationApplications,
   persistEncounterConcentrationChildren
@@ -56,7 +58,16 @@ export async function persistEncounterActionChildren(
     parentOccurrenceId: execution.occurrenceId,
     parentCommandFingerprint: args.fingerprint,
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
-    remaining: await callbacks.bindConcentrationApplications(state, applications),
+    remaining: [
+      ...(await callbacks.bindConcentrationApplications(state, applications)),
+      ...(await bindEncounterEffectRepeatSaves(ctx, {
+        state,
+        actors: args.actors,
+        applications,
+        parentOccurrenceId: execution.occurrenceId,
+        damagerActorId: input.command.actorId
+      }))
+    ].sort(compareDamageSaveApplications),
     correlationId: execution.occurrenceId,
     userId: args.userId,
     authorizedCharacterIds: args.authorizedCharacterIds,

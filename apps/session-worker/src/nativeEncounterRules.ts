@@ -1784,7 +1784,8 @@ export async function planNativeLiveEncounterAction(
     settlement: retaliatedSettlement,
     capture,
     runtime: executionOptions.runtime,
-    random: executionOptions.random
+    random: executionOptions.random,
+    repeatSaves: { damagerActorId: command.actorId }
   })
   const nextFacts = buildEncounterActorRuleFacts({
     actors: concentration.actors

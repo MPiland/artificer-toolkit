@@ -35,7 +35,8 @@ type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext'
 type MovementReactionContext = Extract<PendingContext, { kind: 'ENCOUNTER_MOVEMENT_REACTION' }>
 /** Only the facts that decide a void, so the decision stays one pure table. */
 type RuleOccurrenceVoidFacts =
-  | { kind: Exclude<PendingContext['kind'], 'ENCOUNTER_MOVEMENT_REACTION'> }
+  | { kind: Exclude<PendingContext['kind'], 'ENCOUNTER_MOVEMENT_REACTION' | 'ENCOUNTER_DAMAGE_SAVE_CHECK'> }
+  | { kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK'; source?: 'CONCENTRATION' | 'EFFECT_REPEAT_SAVE' }
   | { kind: 'ENCOUNTER_MOVEMENT_REACTION'; phase: Pick<MovementReactionContext['phase'], 'kind'> }
 
 /** What a GM void does to one pending decision (ADR 0034 decision 2). */
@@ -71,8 +72,10 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
       return context.phase.kind === 'CHOICE' || context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
         ? { kind: 'DECLINE', resolution: { kind: 'DECLINE' } }
         : answerRequired('Dice during a move')
-    case 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK':
-      return answerRequired('A Concentration save')
+    case 'ENCOUNTER_DAMAGE_SAVE_CHECK':
+      return answerRequired(
+        context.source === 'EFFECT_REPEAT_SAVE' ? 'A repeat save' : 'A Concentration save'
+      )
     case 'ENCOUNTER_BASIC_ACTION_CHECK':
       return answerRequired('A basic action check')
     case 'ENCOUNTER_CONCEALMENT_CHECK':

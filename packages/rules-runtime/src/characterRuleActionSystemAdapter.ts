@@ -782,6 +782,8 @@ export interface CharacterRuleActionSystemAdapter {
       satisfied: boolean
       checksum: string
     } | null
+    /** How the damage that triggered this repeat save tilts its d20 (D167); absent on a turn tick. */
+    rollInfluence?: 'ADVANTAGE' | 'DISADVANTAGE' | null
   }): {
     facts: Readonly<Record<string, RuleValue>>
     evidencePolicy: ServerRuleExecutionD20PolicyDto | null

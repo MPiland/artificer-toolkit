@@ -251,7 +251,8 @@ describe('native actor maintained-effect cleanup', () => {
       ...paused.result.continuation,
       snapshotKind: 'KERNEL_EVIDENCE',
       applicationContext: {
-        kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK',
+        kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK',
+        source: 'CONCENTRATION',
         schemaVersion: 1,
         parentOccurrenceId: crypto.randomUUID(),
         parentCommandFingerprint: checksum,
@@ -334,7 +335,10 @@ describe('native actor maintained-effect cleanup', () => {
     ).resolves.toMatchObject({ reason: 'PENDING_DECISION' })
     await checkpointLiveRoom(fixture.campaign.id)
     expect(await records(fixture)).toEqual(before)
-    if (snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK')
+    if (
+      snapshot.applicationContext.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK' ||
+      snapshot.applicationContext.source !== 'CONCENTRATION'
+    )
       throw new Error('Expected concentration')
     const mismatched = {
       ...snapshot,

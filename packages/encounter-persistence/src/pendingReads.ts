@@ -112,7 +112,7 @@ export async function readPendingRunDecision(
     membership,
     actors
   })
-  if (context.kind === 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK') {
+  if (context.kind === 'ENCOUNTER_DAMAGE_SAVE_CHECK') {
     const actor = actors.find((entry) => entry.id === context.application.targetActorId)
     return actor && controlledActorIds.has(actor.id)
       ? withEncounterRollModeReasons(ctx, row, membership, (reasons) =>

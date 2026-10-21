@@ -4,6 +4,14 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  damageSaveApplicationsAfterRelease,
+  isMaintainedDamageApplication,
+  unboundDamageSaveApplication,
+  type ConcentrationMaintainedDamageApplicationDto,
+  type DamageSaveApplicationDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import { damageSaveCheckBoundApplication } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import {
@@ -32,19 +40,26 @@ import {
   readHolderEndState
 } from './concentrationEnd.js'
 import { deleteGrants } from './consumedGrantPersistence.js'
+import { readEffectRepeatSaveRow, releaseEffectRepeatSave } from './effectRepeatSavePersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
-import type { concentrationCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import type {
+  concentrationCheckApplicationOutputDtoSchema,
+  damageSaveCheckApplicationOutputDtoSchema
+} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 
 type ConcentrationDamageApplication = ReturnType<
   typeof nativeConcentrationDamageApplications
 >[number]
-type BoundConcentrationApplication = ConcentrationDamageApplication & { maintainedStateId: string }
-type ConcentrationCheckOutput = ReturnType<
-  typeof concentrationCheckApplicationOutputDtoSchema.parse
+type MaintainedSlot = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof createActiveRuleEffectStore>['findMaintainedStateById']>>
 >
+type CleanupOutput = ReturnType<
+  typeof concentrationCheckApplicationOutputDtoSchema.parse
+>['cleanup']
+type DamageSaveCheckOutput = ReturnType<typeof damageSaveCheckApplicationOutputDtoSchema.parse>
 
 /**
  * Binds a parent's damage to the concentration each target currently maintains. The effect store
@@ -54,7 +69,7 @@ export async function bindEncounterConcentrationApplications(
   ctx: EncounterWriteContext,
   state: EncounterRunState,
   applications: readonly ConcentrationDamageApplication[]
-): Promise<BoundConcentrationApplication[]> {
+): Promise<ConcentrationMaintainedDamageApplicationDto[]> {
   const store = createActiveRuleEffectStore(ctx)
   const bindings = new Map<string, string>()
   for (const targetActorId of new Set(applications.map((entry) => entry.targetActorId))) {
@@ -90,7 +105,7 @@ export async function persistEncounterConcentrationChildren(
     parentCommandFingerprint: string
     finalizedDamageEnvelopeChecksum: string
     /** The bound checks still to settle, in damage order. */
-    remaining: readonly BoundConcentrationApplication[]
+    remaining: readonly DamageSaveApplicationDto[]
     /** The occurrence the first settled check correlates to. */
     correlationId: string
     userId: string
@@ -102,7 +117,7 @@ export async function persistEncounterConcentrationChildren(
      */
     damagedActorIds: ReadonlySet<string>
     /** The check a response commit answered, whose spent saving-throw dice (D156) it also ends. */
-    answeredCheck?: ConcentrationCheckOutput
+    answeredCheck?: DamageSaveCheckOutput
   } & Pick<
     LiveSessionEncounterActionCommitInput,
     'concentration' | 'concentrationEnds' | 'endedGrants' | 'pendingConcentration'
@@ -130,7 +145,7 @@ export async function persistEncounterConcentrationChildren(
   let remaining = [...args.remaining]
   let actors = args.actors
   let correlationId = args.correlationId
-  let failed = false
+  let mutated = false
   // D95: a holder that can't act or is defeated loses Concentration with no check. Every reason is
   // derived from the committed state before any cleanup runs, as the planner derived them.
   const ends: {
@@ -165,7 +180,7 @@ export async function persistEncounterConcentrationChildren(
   const spentDice = new Set<string>()
   const checks = [
     ...args.concentration.flatMap(({ result }) =>
-      result.status === 'COMPLETE' && result.applicationOutputs.kind === 'CONCENTRATION_CHECK'
+      result.status === 'COMPLETE' && result.applicationOutputs.kind === 'DAMAGE_SAVE_CHECK'
         ? [result.applicationOutputs]
         : []
     ),
@@ -283,7 +298,10 @@ export async function persistEncounterConcentrationChildren(
       occurrenceId,
       userId: args.userId
     })
-    remaining = remaining.filter((entry) => entry.maintainedStateId !== end.maintainedStateId)
+    remaining = remaining.filter(
+      (entry) =>
+        !isMaintainedDamageApplication(entry) || entry.maintainedStateId !== end.maintainedStateId
+    )
   }
   await deleteGrants(ctx, args.endedGrants)
   for (const holder of actors) {
@@ -302,47 +320,14 @@ export async function persistEncounterConcentrationChildren(
     if (
       !application ||
       result.status !== 'COMPLETE' ||
-      result.applicationOutputs.kind !== 'CONCENTRATION_CHECK'
+      result.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK'
     )
       throw new Error('Live Session concentration child is unexpected.')
     const output = result.applicationOutputs
-    const { maintainedStateId, ...damage } = application
-    const expectedId = concentrationOccurrenceId(parentOccurrenceId, damage)
-    if (
-      state.automationMode === 'MANUAL' ||
-      result.occurrenceId !== expectedId ||
-      result.occurrenceVersion !== 1 ||
-      result.evidence.source.gameSystemId !== state.gameSystemId ||
-      result.evidence.source.definitionId !== output.concentrationDefinition.id ||
-      result.evidence.source.checksum !== output.concentrationDefinition.checksum ||
-      output.occurrenceId !== expectedId ||
-      output.parentOccurrenceId !== parentOccurrenceId ||
-      checksumCanonicalJson(output.application) !== checksumCanonicalJson(application) ||
-      child.commandId !== concentrationCommandId(expectedId) ||
-      child.correlationId !== correlationId ||
-      child.fingerprint !==
-        checksumRuleDocument({
-          parentOccurrenceId,
-          application: damage,
-          contextChecksum: output.contextChecksum
-        }) ||
-      child.metadata.transition !== 'START' ||
-      child.metadata.definitionId !== output.concentrationDefinition.id ||
-      child.metadata.expectedAggregateVersion !== state.version ||
-      child.metadata.factsChecksum !== result.initialFactsChecksum ||
-      child.metadata.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum
-    )
-      throw new Error('Live Session concentration receipt scope mismatch.')
-    const slot = await store.findMaintainedStateById({
-      encounterId: state.id,
-      stateId: maintainedStateId
-    })
+    const damage = unboundDamageSaveApplication(application)
+    const expectedId = concentrationOccurrenceId(parentOccurrenceId, application)
     const target = actors.find((actor) => actor.id === application.targetActorId)
     if (
-      !slot ||
-      slot.ownerActorId !== application.targetActorId ||
-      slot.maintenanceDefinitionId !==
-        requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId) ||
       !target ||
       (await concentrationTargetPinChanged(target, output.targetCharacter, (characterId) =>
         callbacks.currentCharacterStreamVersion(characterId)
@@ -354,28 +339,99 @@ export async function persistEncounterConcentrationChildren(
       .withIndex('by_publicId', (q) => q.eq('id', expectedId))
       .unique()
     if (existing) throw new Error('The concentration child occurrence already exists.')
-    const skipped =
-      output.outcome === 'SAVE_FAILURE'
-        ? remaining.filter((entry) => entry.maintainedStateId === maintainedStateId)
-        : []
-    if (
-      checksumCanonicalJson(output.skipped) !==
-      checksumCanonicalJson(
-        skipped.map((entry) => ({ ...entry, reason: 'MAINTAINED_STATE_ENDED' }))
+    // The rule definition that proves the check: Concentration's, or the effect's frozen save.
+    let source: { id: string; checksum: string }
+    let cleanup: { slot: MaintainedSlot; cleanup: NonNullable<CleanupOutput> } | null = null
+    if (output.source === 'CONCENTRATION' && isMaintainedDamageApplication(application)) {
+      source = output.concentrationDefinition
+      const slot = await store.findMaintainedStateById({
+        encounterId: state.id,
+        stateId: application.maintainedStateId
+      })
+      if (
+        !slot ||
+        slot.ownerActorId !== application.targetActorId ||
+        slot.maintenanceDefinitionId !==
+          requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId)
       )
+        throw new Error('Live Session concentration target changed.')
+      const skipped =
+        output.outcome === 'SAVE_FAILURE'
+          ? remaining.filter(
+              (entry) =>
+                isMaintainedDamageApplication(entry) &&
+                entry.maintainedStateId === application.maintainedStateId
+            )
+          : []
+      if (
+        checksumCanonicalJson(output.skipped) !==
+        checksumCanonicalJson(
+          skipped.map((entry) => ({ ...entry, reason: 'MAINTAINED_STATE_ENDED' }))
+        )
+      )
+        throw new Error('Live Session concentration skipped applications mismatch.')
+      if (output.cleanup) cleanup = { slot, cleanup: output.cleanup }
+    } else if (
+      output.source === 'EFFECT_REPEAT_SAVE' &&
+      !isMaintainedDamageApplication(application)
+    ) {
+      const effect = await readEffectRepeatSaveRow(ctx, {
+        encounterId: state.id,
+        holder: target,
+        pin: output.activeEffect
+      })
+      const frozen = effect.definition.frozenGraph.source
+      source = { id: frozen.definitionId, checksum: frozen.checksum }
+    } else throw new Error('Live Session concentration child is unexpected.')
+    if (
+      state.automationMode === 'MANUAL' ||
+      result.occurrenceId !== expectedId ||
+      result.occurrenceVersion !== 1 ||
+      result.evidence.source.gameSystemId !== state.gameSystemId ||
+      result.evidence.source.definitionId !== source.id ||
+      result.evidence.source.checksum !== source.checksum ||
+      output.occurrenceId !== expectedId ||
+      output.parentOccurrenceId !== parentOccurrenceId ||
+      checksumCanonicalJson(damageSaveCheckBoundApplication(output)) !==
+        checksumCanonicalJson(application) ||
+      child.commandId !== concentrationCommandId(expectedId) ||
+      child.correlationId !== correlationId ||
+      child.fingerprint !==
+        checksumRuleDocument({
+          parentOccurrenceId,
+          application: damage,
+          contextChecksum: output.contextChecksum
+        }) ||
+      child.metadata.transition !== 'START' ||
+      child.metadata.definitionId !== source.id ||
+      child.metadata.expectedAggregateVersion !== state.version ||
+      child.metadata.factsChecksum !== result.initialFactsChecksum ||
+      child.metadata.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum
     )
-      throw new Error('Live Session concentration skipped applications mismatch.')
-    if (output.cleanup) {
-      failed = true
+      throw new Error('Live Session concentration receipt scope mismatch.')
+    if (cleanup) {
+      mutated = true
+      const lostSlotId = cleanup.slot.id
       actors = await callbacks.applyCleanup({
         state,
         actors,
-        slot,
-        cleanup: output.cleanup,
+        slot: cleanup.slot,
+        cleanup: cleanup.cleanup,
         authorizedCharacterIds: args.authorizedCharacterIds,
         occurredAt: args.occurredAt
       })
-      remaining = remaining.filter((entry) => entry.maintainedStateId !== maintainedStateId)
+      remaining = remaining.filter(
+        (entry) => !isMaintainedDamageApplication(entry) || entry.maintainedStateId !== lostSlotId
+      )
+    } else if (output.source === 'EFFECT_REPEAT_SAVE' && output.released) {
+      mutated = true
+      actors = await releaseEffectRepeatSave(ctx, {
+        encounterId: state.id,
+        actors,
+        output,
+        occurredAt: args.occurredAt
+      })
+      remaining = damageSaveApplicationsAfterRelease(remaining, output.released.activeEffectId)
     }
     const nextId = remaining[0] ? concentrationOccurrenceId(parentOccurrenceId, remaining[0]) : null
     if (output.nextOccurrenceId !== nextId)
@@ -399,40 +455,66 @@ export async function persistEncounterConcentrationChildren(
       state.automationMode === 'MANUAL' ||
       !application ||
       pending.snapshotKind !== 'KERNEL_EVIDENCE' ||
-      pending.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'
+      pending.applicationContext.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK'
     )
       throw new Error('Live Session pending concentration is unexpected.')
     const context = pending.applicationContext
-    const { maintainedStateId, ...damage } = application
-    const slot = await store.findMaintainedStateById({
-      encounterId: state.id,
-      stateId: maintainedStateId
-    })
+    const damage = unboundDamageSaveApplication(application)
     const target = actors.find((actor) => actor.id === application.targetActorId)
+    // The rule definition that proves the check, and the state or effect it was started from.
+    let source: { id: string; checksum: string }
+    let pinned: unknown
+    let expectedPin: unknown
+    if (context.source === 'CONCENTRATION' && isMaintainedDamageApplication(application)) {
+      source = context.concentrationDefinition
+      const slot = await store.findMaintainedStateById({
+        encounterId: state.id,
+        stateId: application.maintainedStateId
+      })
+      if (!slot || slot.ownerActorId !== application.targetActorId)
+        throw new Error('Live Session pending concentration scope mismatch.')
+      pinned = context.maintainedState
+      expectedPin = {
+        id: slot.id,
+        version: slot.version,
+        maintenanceDefinitionId: slot.maintenanceDefinitionId,
+        descriptorChecksum: slot.descriptorChecksum
+      }
+    } else if (
+      context.source === 'EFFECT_REPEAT_SAVE' &&
+      !isMaintainedDamageApplication(application) &&
+      target
+    ) {
+      const effect = await readEffectRepeatSaveRow(ctx, {
+        encounterId: state.id,
+        holder: target,
+        pin: context.activeEffect
+      })
+      const frozen = effect.definition.frozenGraph.source
+      source = { id: frozen.definitionId, checksum: frozen.checksum }
+      pinned = context.activeEffect
+      expectedPin = {
+        id: effect.id,
+        version: effect.version,
+        lifecycleChecksum: effect.lifecycleChecksum
+      }
+    } else throw new Error('Live Session pending concentration scope mismatch.')
     if (
-      !slot ||
-      slot.ownerActorId !== application.targetActorId ||
       !target ||
       (await concentrationTargetPinChanged(target, context.targetCharacter, (characterId) =>
         callbacks.currentCharacterStreamVersion(characterId)
       )) ||
-      pending.occurrenceId !== concentrationOccurrenceId(parentOccurrenceId, damage) ||
+      pending.occurrenceId !== concentrationOccurrenceId(parentOccurrenceId, application) ||
       pending.graph.source.gameSystemId !== state.gameSystemId ||
-      pending.graph.source.definitionId !== context.concentrationDefinition.id ||
-      pending.graph.source.checksum !== context.concentrationDefinition.checksum ||
+      pending.graph.source.definitionId !== source.id ||
+      pending.graph.source.checksum !== source.checksum ||
       pending.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
       context.parentOccurrenceId !== parentOccurrenceId ||
       context.parentCommandFingerprint !== args.parentCommandFingerprint ||
       context.finalizedDamageEnvelopeChecksum !== args.finalizedDamageEnvelopeChecksum ||
       checksumCanonicalJson(context.application) !== checksumCanonicalJson(damage) ||
       checksumCanonicalJson(context.remaining) !== checksumCanonicalJson(remaining) ||
-      checksumCanonicalJson(context.maintainedState) !==
-        checksumCanonicalJson({
-          id: slot.id,
-          version: slot.version,
-          maintenanceDefinitionId: slot.maintenanceDefinitionId,
-          descriptorChecksum: slot.descriptorChecksum
-        })
+      checksumCanonicalJson(pinned) !== checksumCanonicalJson(expectedPin)
     )
       throw new Error('Live Session pending concentration scope mismatch.')
     await persistNativeConcentrationPending(ctx, {
@@ -444,5 +526,5 @@ export async function persistEncounterConcentrationChildren(
     })
   } else if (remaining.length)
     throw new Error('Live Session concentration children are incomplete.')
-  return { actors, failed }
+  return { actors, mutated }
 }

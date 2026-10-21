@@ -11068,7 +11068,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     targetScalarValues,
     defenses,
     conditionImmunityIds,
-    perception
+    perception,
+    rollInfluence
   }) => {
     if (definition.frozenGraph.source.gameSystemId !== DND5E_SYSTEM_ID)
       throw new Dnd5eEffectActionCompilerError(
@@ -11199,6 +11200,16 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError(
         'D&D active effect received an unbound perception result.'
       )
+    }
+    if (rollInfluence) {
+      contributors.push({
+        sourceId: createCharacterMechanicSourceKey({ kind: 'ACTIVE_EFFECT', activeEffectId }),
+        grantId: null,
+        domainKey: 'damage-repeat-save',
+        influence: rollInfluence,
+        source: { kind: 'ACTIVE_EFFECT', id: activeEffectId, holderActorId: null }
+      })
+      contributors.sort(compareCanonicalD20Contributors)
     }
     const resolvedContributors = resolveD20Contributors(contributors)
     const contributorChecksum = checksumRuleDocument(resolvedContributors.contributors)

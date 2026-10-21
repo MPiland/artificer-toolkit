@@ -219,7 +219,7 @@ describe('a room ADVANCE_TURN that ends the round', () => {
     })
     expect(ends).toMatchObject([{ ownerActorId: SECOND_ID, reason: 'DEFEATED' }])
     expect(
-      after.receipts.filter((receipt) => receipt.commandType === 'CONCENTRATION_CHECK')
+      after.receipts.filter((receipt) => receipt.commandType === 'DAMAGE_SAVE_CHECK')
     ).toEqual([])
   })
 
@@ -265,7 +265,7 @@ describe('a room ADVANCE_TURN that ends the round', () => {
       const checks = after.receipts.flatMap((receipt) => {
         const result = parseReceiptExecution(receipt)
         return result.status === 'COMPLETE' &&
-          result.applicationOutputs.kind === 'CONCENTRATION_CHECK'
+          result.applicationOutputs.kind === 'DAMAGE_SAVE_CHECK'
           ? [result.applicationOutputs]
           : []
       })

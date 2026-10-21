@@ -6,7 +6,11 @@ import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolk
 import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import { concentrationPromptText, deathSavePromptText } from '../ruleCheckCopy'
+import {
+  concentrationPromptText,
+  concentrationTriggerText,
+  deathSavePromptText
+} from '../ruleCheckCopy'
 
 export type InitiativeDeclarationAdjudicationValues = Partial<
   Record<InitiativeDeclarationAdjudicationFieldDto['key'], string | string[] | number | null>
@@ -84,6 +88,8 @@ export function rollPromptText(
   trigger: EncounterRuleRollTriggerDto | undefined
 ) {
   if (trigger?.kind === 'CONCENTRATION') return concentrationPromptText(actorLabel, trigger)
+  if (trigger?.kind === 'EFFECT_REPEAT_SAVE')
+    return `Repeat save for ${actorLabel}: ${concentrationTriggerText(trigger)}`
   if (trigger?.kind === 'DEATH_SAVE') return deathSavePromptText(actorLabel, trigger)
   if (trigger?.kind === 'BASIC_ACTION_CHECK')
     return `${trigger.actionLabel}: ${trigger.checkLabel}${trigger.dc === null ? '' : ` DC ${trigger.dc}`}`
