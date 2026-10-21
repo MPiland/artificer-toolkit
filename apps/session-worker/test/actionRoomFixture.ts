@@ -162,11 +162,12 @@ export function biteWolf(
  * Creature so a room can run it without a Character's spell slots.
  */
 export function fireballWolf(
-  damageTypeCode?: 'FIRE' | 'COLD' | 'RADIANT' | 'ACID'
+  damageTypeCode?: 'FIRE' | 'COLD' | 'RADIANT' | 'ACID',
+  ability: 'DEXTERITY' | 'CONSTITUTION' = 'DEXTERITY'
 ): CreatureAuthored {
   const bite = biteWolf('SAVE', {
     reachFeet: 150,
-    save: { ability: 'DEXTERITY', damageTypeCode }
+    save: { ability, damageTypeCode }
   })
   return creatureAuthoredDtoSchema.parse({
     ...bite,

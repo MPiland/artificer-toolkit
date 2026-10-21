@@ -20,21 +20,24 @@ afterEach(() => {
   closeTrackedSockets()
 })
 
-/** The caster acts first and its area hits the holder at the point; the holder's turn is next. */
+/**
+ * The caster acts first and its area (a Constitution save, which neither holder passes on a 1)
+ * hits the holder at the point; the holder's turn is next. A defeated creature loses its turn
+ * (D63), so a holder at 0 hit points never reaches its start-of-turn trait in a room.
+ */
 function regeneratingRoom(
   damage: 'RADIANT' | 'FIRE',
   creatureLabel: 'Vampire' | 'Troll',
   currentHitPoints: number
 ) {
-  const caster = fireballWolf(damage)
+  const caster = fireballWolf(damage, 'CONSTITUTION')
   return actionRoom({
     actors: [
       srdCreatureActor({ id: CASTER_ID, creature: caster }),
       srdCreatureActor({
         id: HOLDER_ID,
         creature: srdByLabel(SRD.creatures, creatureLabel),
-        currentHitPoints,
-        defeated: currentHitPoints === 0
+        currentHitPoints
       })
     ],
     ownerFeatureId: caster.features?.find((feature) => feature.label === 'Bite')?.id
@@ -72,7 +75,7 @@ describe('damage-type suppression of start-of-turn regeneration in a room (SPELL
     expect(await hitPointsOf(room, HOLDER_ID)).toBe((afterHit ?? 0) + 20)
   })
 
-  it('a Troll takes no regeneration after fire damage, and regenerates at 0 hit points on a turn without it', async () => {
+  it('a Troll does not regenerate on the turn after fire damage, and does on the next', async () => {
     const room = await regeneratingRoom('FIRE', 'Troll', 60)
     await hitHolder(room)
     const afterHit = await hitPointsOf(room, HOLDER_ID)
@@ -83,11 +86,5 @@ describe('damage-type suppression of start-of-turn regeneration in a room (SPELL
     await advance(room)
     await advance(room)
     expect(await hitPointsOf(room, HOLDER_ID)).toBe((afterHit ?? 0) + 10)
-  })
-
-  it('a Troll at 0 hit points regenerates on a turn without acid or fire damage', async () => {
-    const room = await regeneratingRoom('FIRE', 'Troll', 0)
-    await advance(room)
-    expect(await hitPointsOf(room, HOLDER_ID)).toBe(10)
   })
 })
