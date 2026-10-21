@@ -8,7 +8,6 @@ import {
 import { evaluateEncounterBasicActionCheck } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import {
   completeEncounterEscapeCheckResult,
   encounterActorsAfterEscape,
@@ -17,6 +16,7 @@ import {
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { bindEncounterD20Evidence } from './nativeD20Evidence.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -80,10 +80,10 @@ export async function planNativeLiveEscapeResponse(
   reads.observe(prepared.revisions)
   // The roll was spent either way; the relationship may have ended while it waited.
   const effectStillHeld = heldEffects.some((effect) => effect.id === context.activeEffectId)
-  // An app roll settles with the faces Convex recorded for it, never client-supplied values.
-  const answer = withEncounterAppRoll(ready.command.resolution, ready.appRoll)
-  if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL')
-    throw new Error('An escape check requires d20 evidence.')
+  const answer = bindEncounterD20Evidence({
+    response: { resolution: ready.command.resolution, appRoll: ready.appRoll },
+    refusal: 'An escape check requires d20 evidence.'
+  })
   const evaluated = await evaluateEncounterBasicActionCheck({
     runtime: executionOptions.runtime,
     context,
