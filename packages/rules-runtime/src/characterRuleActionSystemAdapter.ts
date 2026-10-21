@@ -82,6 +82,11 @@ export interface CharacterRuleActionActiveEffectPlan {
   recurrenceStage: 'NONE' | 'START_OF_TURN' | 'END_OF_TURN'
   /** Set on a repeat save counted to thresholds; the room stores it in the effect's recurrence. */
   saveThresholds?: ActiveEffectSaveThresholds
+  /**
+   * The test result paths the effect is made on, which the System lists for the path its outcome is
+   * authored on; absent for an effect every resolution makes.
+   */
+  resultGate?: { paths: readonly string[] }
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
   /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
