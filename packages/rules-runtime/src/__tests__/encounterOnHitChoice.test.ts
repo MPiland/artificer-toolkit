@@ -248,9 +248,9 @@ const poolResource = (
 ): Parameters<typeof onHitCandidates>[0]['resources'][number] => ({
   sequence: 0,
   poolId: POOL_ID,
-  ownerKind: 'SOURCE',
-  itemInstanceId: null,
-  sourceId: 'monk',
+  ownerKind: 'ITEM_INSTANCE',
+  itemInstanceId: 'item-1',
+  sourceId: null,
   chargeId: OPTIONAL_POOL_STRIKE_CHARGE_ID,
   resourceDefinitionId: 'ki',
   chargeCalculationId: POOL_ID,

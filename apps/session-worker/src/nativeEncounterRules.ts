@@ -36,6 +36,7 @@ import {
   isEncounterActorDefeated,
   isEncounterTargetDying
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { resolveCheckActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -1414,33 +1415,38 @@ export async function planNativeLiveEncounterAction(
   const chosenOnHit =
     answeredOnHit?.audit.option ??
     (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
+  const onHitSpend = (() => {
+    if (!chosenOnHit || prepared.source.kind !== 'CHARACTER_ACTION') return null
+    const { source } = prepared
+    if (chosenOnHit.kind === 'SPELL_SLOT')
+      return {
+        spellConsumption: onHitSpellConsumption({
+          spellSlots: source.effectivePolicyOutput.spellSlots,
+          slotLevel: chosenOnHit.slotLevel,
+          characterId: source.characterId,
+          expectedStreamVersion: source.characterStreamVersion
+        })
+      }
+    const { characterFacts } = prepared.sourceFacts
+    if (!characterFacts)
+      throw new StaleCharacterActionError('The selected Character action source is stale.')
+    return {
+      resourceConsumption: onHitResourceConsumption({
+        resources: source.effectivePolicyOutput.resources,
+        resourceUsage: characterFacts.sheetState.resourceUsage,
+        poolId: chosenOnHit.poolId,
+        cost: chosenOnHit.cost,
+        characterId: source.characterId,
+        expectedStreamVersion: source.characterStreamVersion,
+        automationMode: state.automationMode
+      })
+    }
+  })()
   const settledPrepared =
-    chosenOnHit && prepared.source.kind === 'CHARACTER_ACTION' && prepared.characterActionState
+    onHitSpend && prepared.characterActionState
       ? {
           ...prepared,
-          characterActionState: {
-            ...prepared.characterActionState,
-            ...(chosenOnHit.kind === 'SPELL_SLOT'
-              ? {
-                  spellConsumption: onHitSpellConsumption({
-                    spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
-                    slotLevel: chosenOnHit.slotLevel,
-                    characterId: prepared.source.characterId,
-                    expectedStreamVersion: prepared.source.characterStreamVersion
-                  })
-                }
-              : {
-                  resourceConsumption: onHitResourceConsumption({
-                    resources: prepared.source.effectivePolicyOutput.resources,
-                    resourceUsage: prepared.sourceFacts.characterFacts.sheetState.resourceUsage,
-                    poolId: chosenOnHit.poolId,
-                    cost: chosenOnHit.cost,
-                    characterId: prepared.source.characterId,
-                    expectedStreamVersion: prepared.source.characterStreamVersion,
-                    automationMode: state.automationMode
-                  })
-                })
-          }
+          characterActionState: { ...prepared.characterActionState, ...onHitSpend }
         }
       : prepared
   const preparedEffects = prepareNativeActionEffectsPlan({

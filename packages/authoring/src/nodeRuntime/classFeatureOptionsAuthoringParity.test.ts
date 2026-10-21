@@ -453,7 +453,10 @@ describe('an optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a, D
     })
     const result = await normalize(authored)
     const features = getValueAtPath(result.values, ['features']) as FeatureAuthored[]
-    expect(features.at(-1)!.effects![0]!.invocation.optionalOnHit).toEqual({ kind: 'SPELL_SLOT' })
+    expect(features.at(-1)!.effects![0]!.invocation).toMatchObject({
+      optionalOnHit: { kind: 'SPELL_SLOT' }
+    })
+    expect(features.at(-1)!.effects![0]!.invocation).not.toHaveProperty('optionalOnHit.chargeId')
     expect(result.clearedPaths.length).toBeGreaterThan(0)
   })
 })
