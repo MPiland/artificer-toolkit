@@ -1225,6 +1225,8 @@ export type NodeDataSource = {
 
 export type NodeLocalCollectionSource = {
   kind: 'LOCAL_COLLECTION'
+  /** The ancestor (1 = parent) the collection path starts at; the authored document's root when unset. */
+  up?: number
   rootCollectionPath: ShallowPath
   valuePath: ShallowPath
   labelPath: ShallowPath

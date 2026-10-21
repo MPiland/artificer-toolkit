@@ -385,6 +385,19 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Proofs: `encounterGrantedActions.test.ts` (offers, id form, resolve-time refusal, source), the Haste and Expeditious Retreat entries in `grantAuthoringParity.test.ts`, `nativeRoomGrantedActions.test.ts` (Haste Dash once a turn, second use refused, undo restores the use, stale offer refused; Expeditious Retreat bonus-action Dash).
 - Deferred edge: a `FREE` offer skips the allowance, so it also skips the incapacitation warning an Action would raise (rare; post-launch list).
 
+### T2lb2a (Heat Metal's repeat, D166 option B)
+
+- Status: implemented; CI on `ci/spells-4-t2lb2` pending.
+- Built: effect-offer kind `REPEAT_SOURCE_PATH` and action source `REPEAT_PATH`; a frozen `FIXED_DC` Effect on the item-bound carrier (Heat Metal paths 0x218/0x219, `repeatCarrierPath`); the pick through `effectOffers` (`actionId`); no slot and no new Concentration. See rules-runtime.md "Repeat offers".
+- Deviations from D166: (1) the pending-context arm is skipped, the `ENCOUNTER_ACTION` command replay already re-resolves the repeat id from live effects; (2) cast-level scaling is a sibling `castLevel` on the offer, not converted rows; (3) `encounterHeldItemInstanceIds` now means held or worn; (4) a `BONUS_ACTION` saving throw is a supported activation; (5) `LOCAL_COLLECTION` node-map sources gained `up`.
+- Not built: the web repeat row (`CampaignTabletopEffectOffers.tsx` lists the offer; starting its `actionId` from the offer row is a follow-up).
+- Proofs: `encounterRepeatPathAction.test.ts` (id form, offer to the source alone, frozen DC and cast level independent of the caster, stale carrier), `nativeRoomCoreOptionSpells.test.ts` Heat Metal (bonus-action repeat on the frozen DC, no slot or Concentration change, carrier gone with the item), the parity and source-data tests.
+
+#### T2lb2b resume notes (Eyebite's retarget)
+
+- Build on the same seam: another `effectOffers` kind (retarget the held effect to a new target) in `effectOffer.ts`/`storedEffectOffer.ts`, discovered by `encounterEffectOffers.ts`; the carrier stays a plan-level `repeatCarrier`-style rider. Reuse `frozenRepeatOffer` for any frozen cast value; the cast level comes from `preparedSpellCastLevel(prepared)` passed as `spellCastLevel`, not from the TEST-phase execution evidence (which holds only target facts).
+- Do not delete the EYEBITE kind here; T2l2 does, with Panicked and Sickened.
+
 ### T2i (hit point threshold gates and KILL, D156 class B; design ruled 2026-10-20)
 
 Converts POWER_WORD_KILL, POWER_WORD_STUN and DIVINE_WORD; each kind is deleted. Death Ward and its damage-interception seam move to SPELLS-4.T2i2 (generic "would drop to 0 hit points -> instead N, uses X"; Undead Fortitude in SPELLS-33.T4i and Relentless Endurance need it too). FINGER_OF_DEATH_ZOMBIE moves to SPELLS-33.T6a2 (zombie rise needs a humanoid-type gate and a caster-commanded creature). Divine Word's planar banishment is description-only (no plane model; future-enhancements).

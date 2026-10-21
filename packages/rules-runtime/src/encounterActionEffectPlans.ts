@@ -6,6 +6,7 @@ import {
   type ServerCompletedRuleExecutionDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/effects/storedEffectOffer'
 import { sizeRank } from '@artificer-toolkit/shared/core'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
@@ -125,6 +126,8 @@ export function prepareEncounterActionEffectPlans(input: {
    * action that chooses none.
    */
   chosenItem?: { item: EquipmentInstanceMechanicSource; released: boolean }
+  /** The level the spell was cast at, which a repeat offer freezes; omitted for a cast that has none. */
+  spellCastLevel?: number
   published: ServerPublishedRuleDefinitionDto
   execution: ServerCompletedRuleExecutionDto
   d20: ServerRuleExecutionD20EvidenceDto | null
@@ -156,23 +159,25 @@ export function prepareEncounterActionEffectPlans(input: {
     immunity &&
     (immunity.appliesTo === 'EVERY_TARGET' || input.d20?.resultPath === 'ON_SAVE_SUCCESS')
       ? prepareSourceImmunityEffect(input)
-      : plan && rider
-        ? prepareRecurringActiveEffect({
-            ...input,
-            activeEffectPlan: {
-              ...plan,
-              compiledEntryId: rider.compiledEntryId,
-              frozenGraphNodeId: rider.frozenGraphNodeId,
-              conditionContributions: rider.conditionContributions,
-              lifecycle: {
-                consumeOnFirstEvents: [],
-                endOnEvents: [],
-                endOnTriggers: rider.lifecycle.endOnTriggers
-              },
-              marginRider: null
-            }
-          })
-        : null
+      : plan?.repeatCarrier
+        ? prepareRepeatCarrierEffect(input)
+        : plan && rider
+          ? prepareRecurringActiveEffect({
+              ...input,
+              activeEffectPlan: {
+                ...plan,
+                compiledEntryId: rider.compiledEntryId,
+                frozenGraphNodeId: rider.frozenGraphNodeId,
+                conditionContributions: rider.conditionContributions,
+                lifecycle: {
+                  consumeOnFirstEvents: [],
+                  endOnEvents: [],
+                  endOnTriggers: rider.lifecycle.endOnTriggers
+                },
+                marginRider: null
+              }
+            })
+          : null
   const relationshipApplications =
     recurringEffect && input.activeEffectPlan?.actorRelationshipContribution
       ? relationshipConditionApplications({
@@ -621,7 +626,11 @@ export function prepareRecurringActiveEffect(
                       grantedActions: grantContribution.grantedActions
                     }),
                     ...(grantContribution.effectOffers && {
-                      effectOffers: grantContribution.effectOffers
+                      effectOffers: grantContribution.effectOffers.map((offer) =>
+                        offer.kind === 'REPEAT_SOURCE_PATH'
+                          ? frozenRepeatOffer(offer, input)
+                          : offer
+                      )
                     })
                   }
                 ]
@@ -681,6 +690,78 @@ export function prepareRecurringActiveEffect(
         : {})
     })
   }
+}
+
+/**
+ * A repeat offer as the cast that made it settles it (D166): its saving throw is the DC the cast
+ * rolled against and its scaling is the level the cast used, so a later repeat never reads the
+ * caster's current stats or slots.
+ */
+function frozenRepeatOffer(
+  offer: CompiledRepeatSourcePathOffer,
+  input: Pick<Parameters<typeof prepareRecurringActiveEffect>[0], 'd20' | 'spellCastLevel'>
+): CompiledRepeatSourcePathOffer {
+  if (!input.d20)
+    throw new EncounterActionEffectPlanError('A repeat offer freezes the DC its cast settled.')
+  const { invocation } = offer.effect
+  return {
+    ...offer,
+    ...(input.spellCastLevel !== undefined && { castLevel: input.spellCastLevel }),
+    effect: {
+      ...offer.effect,
+      invocation:
+        'savingThrow' in invocation
+          ? {
+              ...invocation,
+              savingThrow: {
+                id: invocation.savingThrow.id,
+                abilityDefinitionId: invocation.savingThrow.abilityDefinitionId,
+                dcMethod: 'FIXED_DC',
+                baseDc: input.d20.defenseOrDc
+              }
+            }
+          : invocation
+    }
+  }
+}
+
+/**
+ * The effect a repeat-offering action leaves on its target beside the recurring effect (D166): the
+ * carrier holds the frozen offer, is bound to the chosen item, and is not made once the item is
+ * released. Null when the action offers no repeat.
+ */
+function prepareRepeatCarrierEffect(
+  input: Parameters<typeof prepareEncounterActionEffectPlans>[0]
+): EffectPlan | null {
+  const plan = input.activeEffectPlan
+  const carrier = plan?.repeatCarrier
+  if (!plan?.chosenItem || !carrier) return null
+  return prepareRecurringActiveEffect({
+    ...input,
+    activeEffectPlan: {
+      ...plan,
+      compiledEntryId: carrier.compiledEntryId,
+      frozenGraphNodeId: carrier.frozenGraphNodeId,
+      chosenItem: { ...plan.chosenItem, bindsGrant: true, grantUnlessReleased: true },
+      modifierGrantContribution: {
+        applyGrantOutcomeId: carrier.applyGrantOutcomeId,
+        modifiers: [],
+        senses: [],
+        includesCurrentTurn: false,
+        consumeOnFirstEvents: [],
+        endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'],
+        endOnConditionIds: [],
+        holderEnd: null,
+        effectOffers: carrier.effectOffers
+      },
+      adapterFacts: {},
+      initialRemaining: null,
+      recurrenceStage: 'NONE',
+      lifecycle: undefined,
+      marginRider: null,
+      repeatCarrier: null
+    }
+  })
 }
 
 /**

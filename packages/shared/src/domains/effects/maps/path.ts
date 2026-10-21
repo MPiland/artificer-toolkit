@@ -233,7 +233,7 @@ const pathLifecycleGrantedAction =
 const pathLifecycleEffectOffer =
   buildNodeMap<NonNullable<PathLifecycleAuthored['effectOffers']>[number]>()
 const pathLifecycleEffectOfferRange =
-  buildNodeMap<NonNullable<PathLifecycleAuthored['effectOffers']>[number]['range']>()
+  buildNodeMap<NonNullable<NonNullable<PathLifecycleAuthored['effectOffers']>[number]['range']>>()
 const pathLifecycleEndTrigger =
   buildNodeMap<NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
@@ -508,7 +508,7 @@ const PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP: NodeMap<
 )
 
 const PATH_LIFECYCLE_EFFECT_OFFER_RANGE_NODE_MAP: NodeMap<
-  NonNullable<PathLifecycleAuthored['effectOffers']>[number]['range']
+  NonNullable<NonNullable<PathLifecycleAuthored['effectOffers']>[number]['range']>
 > = pathLifecycleEffectOfferRange.define('pathLifecycleEffectOfferRange', ({ map, nodes }) => {
   const { number, selectSingle } = nodes
 
@@ -527,8 +527,10 @@ const PATH_LIFECYCLE_EFFECT_OFFER_RANGE_NODE_MAP: NodeMap<
 
 const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['effectOffers']>[number]
-> = pathLifecycleEffectOffer.define('pathLifecycleEffectOffer', ({ map, nodes }) => {
-  const { selectSingle, groupObject } = nodes
+> = pathLifecycleEffectOffer.define('pathLifecycleEffectOffer', ({ map, nodes, cond }) => {
+  const { selectSingle, selectMulti, groupObject } = nodes
+  const isMove = cond.local().field(['kind']).eq('MOVE_HELD_EFFECT')
+  const isRepeat = cond.local().field(['kind']).eq('REPEAT_SOURCE_PATH')
 
   map
     .set(
@@ -538,7 +540,10 @@ const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
         'Offer',
         {
           kind: 'INLINE_OPTIONS',
-          options: [{ code: 'MOVE_HELD_EFFECT', label: 'Move the effect to another creature' }]
+          options: [
+            { code: 'MOVE_HELD_EFFECT', label: 'Move the effect to another creature' },
+            { code: 'REPEAT_SOURCE_PATH', label: 'Repeat paths of this effect against the holder' }
+          ]
         },
         { requiredIf: true }
       )
@@ -567,7 +572,23 @@ const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
           kind: 'INLINE_OPTIONS',
           options: [{ code: 'HOLDER_AT_ZERO_HP', label: 'The holder is at 0 hit points' }]
         },
-        { requiredIf: true }
+        { requiredIf: isMove, showIf: isMove, hiddenBehavior: 'CLEAR' }
+      )
+    )
+    .set(
+      'pathIds',
+      selectMulti(
+        ['pathIds'],
+        'Paths Repeated',
+        {
+          kind: 'LOCAL_COLLECTION',
+          // The offer sits in the path's result block lifecycle: lifecycle, result block, path, effect.
+          up: 4,
+          rootCollectionPath: ['paths'],
+          valuePath: ['id'],
+          labelPath: ['pathCode']
+        },
+        { requiredIf: isRepeat, showIf: isRepeat, hiddenBehavior: 'CLEAR' }
       )
     )
     .set(
@@ -586,7 +607,9 @@ const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
       'range',
       groupObject(['range'], 'Range', () => PATH_LIFECYCLE_EFFECT_OFFER_RANGE_NODE_MAP, {
         presentation: 'inline',
-        requiredIf: true
+        requiredIf: isMove,
+        showIf: isMove,
+        hiddenBehavior: 'CLEAR'
       })
     )
 })

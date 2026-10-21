@@ -10,6 +10,11 @@ import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
 import { parseGrantedActionId, resolveGrantedAction } from './encounterGrantedActions.js'
 import {
+  discoverEncounterRepeatPath,
+  parseRepeatPathActionId,
+  type EncounterRepeatPathCapabilityDescriptor
+} from './encounterRepeatPathAction.js'
+import {
   discoverEncounterBasicActions,
   isEncounterBasicActionId,
   type EncounterBasicActionCapabilityDescriptor,
@@ -43,12 +48,14 @@ export type EncounterActionSourceInput = {
     heldEffects: Parameters<typeof resolveGrantedAction>[0]['heldEffects']
     spentKeys: readonly string[]
   }
+  /** Every Run actor's held effects, read for a repeat offer (D166); required when `actionId` names one. */
+  repeat?: { effectsByHolder: Parameters<typeof discoverEncounterRepeatPath>[0]['effectsByHolder'] }
 }
 
 /** What a caller names; the loader adds the System and the basic action the id names. */
 export type EncounterActionSourceRequest = Omit<
   EncounterActionSourceInput,
-  'system' | 'basicActions'
+  'system' | 'basicActions' | 'repeat'
 >
 
 export type NativeEncounterActionSource =
@@ -63,6 +70,13 @@ export type NativeEncounterActionSource =
       capability: EncounterBasicActionCapabilityDescriptor
       /** Set when a held effect's offer grants the action: the key its use spends, null for none. */
       grantedUseKey?: string | null
+    }
+  | {
+      kind: 'REPEAT_PATH'
+      actor: EncounterRunActorState
+      capability: EncounterRepeatPathCapabilityDescriptor
+      /** The item the cast chose, which the repeat's paths act on. */
+      boundItemInstanceId?: string
     }
   | {
       kind: 'CHARACTER_ACTION'
@@ -88,6 +102,20 @@ export function resolveEncounterActionSource(
   const { actor } = input
   if (actor.systemId !== input.gameSystemId)
     throw new Error('Encounter action source does not match the Encounter Game System.')
+  if (parseRepeatPathActionId(actor.id, input.actionId)) {
+    const { system } = input
+    if (!system || system.id !== input.gameSystemId || !input.repeat)
+      throw new Error('The selected repeat action source is stale.')
+    const { capability, boundItemInstanceId } = discoverEncounterRepeatPath({
+      actorId: actor.id,
+      actionId: input.actionId,
+      gameSystemId: input.gameSystemId,
+      effectsByHolder: input.repeat.effectsByHolder,
+      conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+      abilityDefinitions: systemAbilityDefinitions(system)
+    })
+    return { kind: 'REPEAT_PATH', actor, capability, boundItemInstanceId }
+  }
   if (isEncounterBasicActionId(actor.id, input.actionId)) {
     const { system } = input
     if (!system || system.id !== input.gameSystemId)

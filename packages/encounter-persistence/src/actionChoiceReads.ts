@@ -49,6 +49,7 @@ import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encount
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
 import { liveEffectOffers } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
+import { repeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { listEncounterChosenItems } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
@@ -629,7 +630,22 @@ export async function readEncounterActionChoices(
     zeroHitPointActorIds: await readZeroHitPointActorIds(tx, runActors)
   })) {
     const economy = await readEconomy({ code: offer.activation, amount: 1 })
-    effectOffers.push({ ...offer, warnings: economy.warnings })
+    const shared = {
+      effectId: offer.effectId,
+      offerIndex: offer.offerIndex,
+      holderActorId: offer.holderActorId,
+      activation: offer.activation,
+      warnings: economy.warnings
+    }
+    effectOffers.push(
+      offer.kind === 'MOVE_HELD_EFFECT'
+        ? { ...shared, kind: offer.kind, range: offer.range }
+        : {
+            ...shared,
+            kind: offer.kind,
+            actionId: repeatPathActionId(actor.id, offer.effectId, offer.offerIndex)
+          }
+    )
   }
   const attackActionThisTurn =
     openAttackAction && openAttackAction.turnSequence === state.turnSequence

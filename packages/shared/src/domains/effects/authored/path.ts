@@ -113,14 +113,18 @@ export type PathLifecycleAuthored = {
    * Choices the effect offers a creature beside the holder's own turns (D160). `MOVE_HELD_EFFECT`
    * lets `offeredTo` (the effect's source, or its holder) move the effect, with its remaining
    * duration and Concentration, to another creature within `range`, charged to `activation`, once
-   * `when` holds for the holder. Only an `APPLY_GRANT` effect carries one.
+   * `when` holds for the holder. `REPEAT_SOURCE_PATH` (D166) lets the effect's source re-run the
+   * named paths of the Effect that made it against the holder, charged to `activation`. Only an
+   * `APPLY_GRANT` effect carries one. `when` and `range` belong to a move offer, `pathIds` to a
+   * repeat offer.
    */
   effectOffers?: {
-    kind: 'MOVE_HELD_EFFECT'
+    kind: 'MOVE_HELD_EFFECT' | 'REPEAT_SOURCE_PATH'
     offeredTo: 'SOURCE' | 'HOLDER'
-    when: 'HOLDER_AT_ZERO_HP'
+    when?: 'HOLDER_AT_ZERO_HP'
     activation: ActivationCode
-    range: { amount: number; unit: LengthUnitCode }
+    range?: { amount: number; unit: LengthUnitCode }
+    pathIds?: string[]
   }[]
 }
 

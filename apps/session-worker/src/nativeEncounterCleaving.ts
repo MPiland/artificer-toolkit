@@ -277,7 +277,8 @@ export async function readNativeLiveCleavingStep(
         }
       : {})
   })
-  if (source.kind === 'BASIC_ACTION') throw new Error('Cleaving requires a weapon attack action.')
+  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH')
+    throw new Error('Cleaving requires a weapon attack action.')
   const range =
     source.kind === 'CREATURE'
       ? buildCompiledActionTargetPolicy(source.capability).range
