@@ -14249,7 +14249,26 @@
               "note": "Merged m141 (b066f0945)."
             },
             {
-              "id": "SPELLS-31.T4c",
+              "id": "SPELLS-31.T4c1",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T1",
+                  "SPELLS-4.T2c2"
+                ]
+              },
+              "text": "D168 d20-test result window (split 2026-10-20): after the roll, before the outcome, the window offers eligible options to their controllers (D19) via the pending-context pipeline, with undo; ADD_BONUS_DIE gains an opt-in after-roll consume mode. Converts Dark One's Own Luck and Peerless Skill, with parity proofs, a homebrew variant and kind deletions.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+            },
+            {
+              "id": "SPELLS-31.T4c2",
               "status": "TODO",
               "closes": [
                 "SPELLS-31.1"
@@ -14260,12 +14279,27 @@
                 "rr": 3,
                 "size": 3,
                 "after": [
-                  "SPELLS-31.T1",
-                  "SPELLS-4.T2c2"
+                  "SPELLS-31.T4c1"
                 ]
               },
-              "text": "Join SPELLS-4.T2c: Bardic Inspiration, Peerless Skill, Cutting Words (with resource uses), Dark One's Own Luck. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "text": "D168 dice scaled by the granting creature (split 2026-10-20): a grant die face references the granting creature's scaling value, resolved at apply time and frozen. Converts Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save), with a parity proof, a homebrew variant and the kind deleted."
+            },
+            {
+              "id": "SPELLS-31.T4c3",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T4c1"
+                ]
+              },
+              "text": "D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted."
             },
             {
               "id": "SPELLS-31.T4e",
