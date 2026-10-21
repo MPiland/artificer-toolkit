@@ -3342,18 +3342,31 @@
               "note": "Merged m300 (8944b9d26)."
             },
             {
-              "id": "RULES-2.T6d",
+              "id": "RULES-2.T6d1",
               "status": "TODO",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
                 "tc": 8,
                 "rr": 8,
-                "size": 8,
+                "size": 5,
                 "after": ["RULES-2.T6c2", "RULES-2.T5a"]
               },
-              "text": "Compiler: unify the four follow-up-save flavours into one lifetime and recurrence model. Includes path-gating active-effect plan outcomes (MODIFIER_GRANT, ACTOR_LINK, CREATURE_FORM, CONCEAL, DETECT_CONCEALED) on the resolved test path, ruled from T6c 2026-10-21.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
+              "text": "Compiler (split 2026-10-21): one neutral path gate (resultGate) on the active-effect plan for MODIFIER_GRANT, ACTOR_LINK, CREATURE_FORM, CONCEAL and DETECT_CONCEALED, and one EffectLifetime model (clock, repeat, ends, gate) replacing the four follow-up-save planners. CONCEAL and DETECT_CONCEALED stay refused under ATTACK/SAVE as a genuine rule (settled from the holder check total). Golden unchanged."
+            },
+            {
+              "id": "RULES-2.T6d2",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T6d1"]
+              },
+              "text": "Compiler (split 2026-10-21): on-hit nested save bands composed from the outcome registry; ImmediateFollowUpSaveShape deleted. Golden flips enumerated; reseed in the same change."
             },
             {
               "id": "RULES-2.T6e",
@@ -3364,7 +3377,7 @@
                 "tc": 8,
                 "rr": 8,
                 "size": 3,
-                "after": ["RULES-2.T6d"]
+                "after": ["RULES-2.T6d2"]
               },
               "text": "Compiler: table-driven dispatch; remove combination refusals that are not genuine rules.",
               "note": "2026-10-21: legendary discovery leaves out options its compiler does not plan (SPELLS-33.T4i1d); the Vampire legendary Unarmed Strike (damage-or-grapple) must be offered again once this lands, with a room proof."
@@ -3407,7 +3420,7 @@
                 "size": 8,
                 "after": ["RULES-2.T5a"]
               },
-              "text": "Concentration becomes a neutral maintenance link; DC formula and ability stay D&D policy.",
+              "text": "Concentration becomes a neutral maintenance link; DC formula and ability stay D&D policy. Also removes the systems/dnd5e imports from the concentration importers (encounterConcentration, Worker nativeEncounterConcentration, concentrationChildrenPersistence, encounterIncomingAttackGate) and threads gameSystemId into encounterActiveGrants (moved from T11g, 2026-10-21).",
               "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
@@ -3523,18 +3536,31 @@
               "note": "Merged m303 (50049ba38)."
             },
             {
-              "id": "RULES-2.T11g",
+              "id": "RULES-2.T11g1",
               "status": "TODO",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 2,
                 "after": ["RULES-2.T11f"]
               },
               "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
-              "text": "System import burn-down (split at T11d review, 2026-10-21): burn down the remaining package and app importers (encounterActiveGrants, Worker cancelTriggeringEvent and concentration, persistence, web) and move the six *Registry.ts composition roots onto createSystemCapabilityRegistry installed from the platform files."
+              "text": "System import burn-down (split 2026-10-21): move the six *Registry.ts composition roots onto createSystemCapabilityRegistry installed from the platform files."
+            },
+            {
+              "id": "RULES-2.T11g2",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T11g1"]
+              },
+              "text": "System import burn-down (split 2026-10-21): remaining Convex, web, encounter-persistence (except concentration), Worker cast-reaction and nativeEncounterRules importers. Concentration importers go to RULES-2.T8."
             },
             {
               "id": "RULES-2.T12",
@@ -3549,7 +3575,7 @@
                   "RULES-2.T6f",
                   "RULES-2.T7",
                   "RULES-2.T8",
-                  "RULES-2.T11g",
+                  "RULES-2.T11g2",
                   "RULES-2.T5b",
                   "RULES-2.T5c",
                   "RULES-2.T5d"
@@ -9765,7 +9791,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2m1b2a", "RULES-2.T3a", "RULES-2.T6d"]
+                "after": ["SPELLS-4.T2m1b2a", "RULES-2.T3a", "RULES-2.T6d1"]
               },
               "text": "Damage repeat save for the remaining damage sources (area one per holder, turn effects, cleaving, movement, legendary); the shared damage-save reader contract for T2m3 and SPELLS-33.T6e2/T4m; parity proof, area journey and HIDEOUS_LAUGHTER remnant check (D167).",
               "note": "Split from T2m1b2 2026-10-20 (D167 amendment). Held 2026-10-20 behind RULES-2.T3a and T6d (one d20 settlement, one repeat-save model)."
@@ -13688,7 +13714,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T4i3a", "RULES-2.T6d"]
+                "after": ["SPELLS-33.T4i3a", "RULES-2.T6d2"]
               },
               "text": "Solar Slaying Longbow (split 2026-10-21): a gated nested save whose failure is KILL, composed from the unified follow-up model; deletes CREATURE_SOLAR_SLAYING_LONGBOW and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity."
             },
@@ -13701,7 +13727,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T4i3a", "RULES-2.T6d"]
+                "after": ["SPELLS-33.T4i3a", "RULES-2.T6d2"]
               },
               "text": "Giant Centipede venom (split 2026-10-21): nested save with poison damage, then outcomes gated on that damage reducing the target to 0 (stable, poisoned 1 hour, paralyzed), composed from the unified follow-up model; deletes GIANT_CENTIPEDE_VENOM and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity."
             },
