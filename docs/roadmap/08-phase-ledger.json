@@ -3361,7 +3361,8 @@
                 "size": 3,
                 "after": ["RULES-2.T1"]
               },
-              "text": "Move combatPerception.ts out of the kernel directory into the System perception module."
+              "text": "Move combatPerception.ts out of the kernel directory into the System perception module.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T11",
@@ -3374,7 +3375,8 @@
                 "size": 13,
                 "after": ["RULES-2.T1"]
               },
-              "text": "Burn down the direct systems/dnd5e imports from neutral runtime through registered capability adapters."
+              "text": "Burn down the direct systems/dnd5e imports from neutral runtime through registered capability adapters.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T12",
