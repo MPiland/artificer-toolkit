@@ -409,6 +409,28 @@ describe('a room ADVANCE_TURN into a depleted Recharge Feature', () => {
     return { room, featureId, held, receipt: receipt!, advance, answer }
   }
 
+  it('rolls the Recharge once when Previous Turn then Next returns to the begun turn (SPELLS-33 T4i1e)', async () => {
+    // Zero-based d6: 3 is a 4, so the charge stays spent and a second roll would be visible.
+    const { room } = await rechargeRoom([3, 3, 3])
+    expect(room.diceDrawn()).toBe(1)
+    const send = async (type: 'ADVANCE_TURN' | 'PREVIOUS_TURN') => {
+      const commandId = crypto.randomUUID()
+      const answer = await room.send(commandId, {
+        scope: 'ENCOUNTER',
+        command: {
+          type,
+          encounterId: room.encounterId,
+          commandId,
+          expectedVersion: (await readRoomHistory(room.base.stub)).runs[0]!.version
+        }
+      })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    }
+    await send('PREVIOUS_TURN')
+    await send('ADVANCE_TURN')
+    expect(room.diceDrawn()).toBe(1)
+  })
+
   it('keeps the charge spent on a die of 4 and journals the failed Recharge', async () => {
     // Zero-based d6: 3 is a 4, below the recharge threshold of 5.
     const { room, featureId, held, receipt, advance } = await rechargeRoom([3])

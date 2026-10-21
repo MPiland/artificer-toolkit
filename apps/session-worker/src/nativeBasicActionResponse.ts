@@ -29,12 +29,12 @@ import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/e
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { isEncounterTargetDying } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
-import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { settleNativeConcealmentCheck } from './nativeConcealmentCheck.js'
+import { bindEncounterD20Evidence } from './nativeD20Evidence.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -124,9 +124,10 @@ export async function planNativeLiveBasicActionResponse(
       })
     })
     if (source.kind !== 'BASIC_ACTION') throw new Error('The concealment check action is stale.')
-    const answer = withEncounterAppRoll(ready.command.resolution, ready.appRoll)
-    if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL')
-      throw new Error('A concealment check requires d20 evidence.')
+    const answer = bindEncounterD20Evidence({
+      response: { resolution: ready.command.resolution, appRoll: ready.appRoll },
+      refusal: 'A concealment check requires d20 evidence.'
+    })
     const occurredAt = new Date().toISOString()
     const settlement = settleNativeConcealmentCheck({
       context,
@@ -194,10 +195,10 @@ export async function planNativeLiveBasicActionResponse(
   if (settledWindow)
     rolled = { execution: settledWindow.context.rolled.execution, d20: settledWindow.d20 }
   else {
-    // An app roll settles with the faces Convex recorded for it, never client-supplied values.
-    const answer = withEncounterAppRoll(ready.command.resolution, ready.appRoll)
-    if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL')
-      throw new Error('A basic action check requires d20 evidence.')
+    const answer = bindEncounterD20Evidence({
+      response: { resolution: ready.command.resolution, appRoll: ready.appRoll },
+      refusal: 'A basic action check requires d20 evidence.'
+    })
     rolled = await rollEncounterCheck({
       runtime: executionOptions.runtime,
       context,

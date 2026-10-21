@@ -3244,7 +3244,7 @@
             },
             {
               "id": "RULES-2.T6b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3254,7 +3254,7 @@
                 "after": ["RULES-2.T6a"]
               },
               "text": "Compiler: scaling facts and dice contract with validation at the boundary.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m281 (bd56f5b55)."
             },
             {
               "id": "RULES-2.T6c",
@@ -3267,7 +3267,8 @@
                 "size": 8,
                 "after": ["RULES-2.T6b"]
               },
-              "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase."
+              "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase.",
+              "note": "From T6b: boundedSingleDiceCount catches Dnd5eEffectActionCompilerError, but parseBoundedDiceConfiguration throws CharacterRuleActionUnsupportedCompilationError, so malformed dice propagate instead of returning null (pre-existing). Fix with a regression test."
             },
             {
               "id": "RULES-2.T6d",
@@ -13358,7 +13359,7 @@
             },
             {
               "id": "SPELLS-33.T4i1e",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13368,7 +13369,7 @@
                 "after": ["SPELLS-33.T4i1c"]
               },
               "text": "Bug (found 2026-10-21): Previous Turn then Next re-rolls Recharge and the turn-start death save, because neither stage checks the begun-turn marker T4i1c added (encounterTurnPreparation.ts:289/:324; turnCommitPersistence.ts:308, :459, :473). Every turn-start stage skips a begun (round, actor) turn through the one startedByCommandId check, not a per-stage guard, with room regression tests for Recharge and for the death save that fail before the fix.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m282 (4436eb191)."
             },
             {
               "id": "SPELLS-33.T4i2",
