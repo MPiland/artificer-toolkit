@@ -33,7 +33,12 @@ import {
 import { geometryTarget, normalizeSceneGeometryEntity } from './sceneGeometryValues.js'
 import { advanceLiveState } from './sceneLiveState.js'
 import { requireBoundTokenMoveControl, requireUnboundTokenMoveControl } from './actorController.js'
-import { consumeTurnTeleportAllowance, recordTurnMovement } from './turnMovement.js'
+import {
+  clearTurnLastMove,
+  consumeTurnTeleportAllowance,
+  recordTurnLastMove,
+  recordTurnMovement
+} from './turnMovement.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
@@ -415,13 +420,26 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
       )
         throw new Error('Movement names an unknown speed type.')
       const actorId = geometry.actorIdByTokenId.get(save.input.tokenId)
-      if (actorId)
+      if (actorId) {
         await recordTurnMovement(ctx, {
           state: geometry.encounter,
           actorId,
           feet: sceneLengthInFeet(input.movementCost, header.grid),
           speedId
         })
+        // The Charge gate reads where this move began and ended (D164).
+        const moverDelta = delta?.kind === 'BATCH' ? delta.deltas[0] : delta
+        if (current?.collection === 'tokens' && moverDelta?.kind === 'TOKEN_MOVED')
+          await recordTurnLastMove(ctx, {
+            state: geometry.encounter,
+            actorId,
+            lastMove: { start: current.entity.position, end: moverDelta.position }
+          })
+      }
+    } else if (save.input.type === 'MOVE_SCENE_TOKEN') {
+      // Forced movement and teleports end the voluntary move the Charge gate reads (D164).
+      const actorId = geometry.actorIdByTokenId.get(save.input.tokenId)
+      if (actorId) await clearTurnLastMove(ctx, { state: geometry.encounter, actorId })
     }
     // A player's teleport spends the allowance the room admitted it with (SPELLS-28.2).
     if (

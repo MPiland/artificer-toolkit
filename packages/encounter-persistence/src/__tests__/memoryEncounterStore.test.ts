@@ -14,6 +14,7 @@ const movement = (round: number, actorIndex: number, usedFeet = 0, id = encounte
   speedId: null,
   speedBonuses: 0,
   usedOncePerTurn: [],
+  lastMove: null,
   teleportAllowances: []
 })
 
@@ -80,6 +81,7 @@ describe('memory Encounter store', () => {
       speedBonuses: 0,
       speedId: null,
       usedOncePerTurn: [],
+      lastMove: null,
       teleportAllowances: [],
       usedFeet: 0,
       actorId: actor(1),
@@ -92,6 +94,7 @@ describe('memory Encounter store', () => {
       '_id',
       'actorId',
       'encounterId',
+      'lastMove',
       'round',
       'speedBonuses',
       'speedId',

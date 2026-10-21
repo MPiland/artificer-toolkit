@@ -105,6 +105,13 @@ export type PredicatePayloadByCode = {
   ENEMY_NEAR_TARGET: {
     feet: number
   }
+  /**
+   * The attacker's latest voluntary move this turn closed its distance to the target by at least
+   * `minFeet` (D164). On the grid that is a move of at least that far straight toward the target.
+   */
+  MOVED_TOWARD_TARGET: {
+    minFeet: number
+  }
   EQUIPMENT_PROFICIENCY: Selectable<
     { equipmentIds: string[] },
     {
@@ -364,6 +371,14 @@ export const PREDICATE_REGISTRY = {
     label: 'Enemy Near Target',
     description:
       'Requires another creature hostile to the target, and not incapacitated, within the distance of the target.',
+    subjects: ['EQUIPMENT']
+  },
+
+  MOVED_TOWARD_TARGET: {
+    code: 'MOVED_TOWARD_TARGET',
+    label: 'Moved Toward Target',
+    description:
+      'Requires the attacker, in its latest move this turn, to have closed its distance to the target by at least the number of feet.',
     subjects: ['EQUIPMENT']
   },
 

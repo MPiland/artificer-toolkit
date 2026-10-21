@@ -574,6 +574,19 @@ async function campaignRows(
       44,
       'encounterSourceProjectionFacts'
     ),
+    encounterSpellPins: await children(
+      descendants.encounterIds,
+      (id) =>
+        rows(
+          ctx.db
+            .query('encounterSpellPins')
+            .withIndex('by_encounterId_spellId', (q) => q.eq('encounterId', id)),
+          44,
+          'encounterSpellPins'
+        ),
+      44,
+      'encounterSpellPins'
+    ),
     encounterPendingSnapshotParts: await children(
       descendants.encounterIds,
       (id) =>

@@ -19,6 +19,10 @@ export async function removeFinishedRunRowsPage(
       .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', encounterId))
       .take(limit),
     db
+      .query('encounterSpellPins')
+      .withIndex('by_encounterId_spellId', (q) => q.eq('encounterId', encounterId))
+      .take(limit),
+    db
       .query('encounterSceneBindings')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
       .take(limit),

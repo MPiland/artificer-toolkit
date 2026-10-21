@@ -22,6 +22,7 @@ import {
 import { projectionChecksumSchema } from '../projections/identity.js'
 import {
   encounterTeleportAllowanceSchema,
+  encounterTurnLastMoveSchema,
   encounterTurnUseKeysSchema
 } from '../projections/encounterRunPersistence.js'
 import { systemAuthoredDtoSchema } from '../vocabulary/system.js'
@@ -138,6 +139,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('INITIATIVE_ROUND') }),
     z.strictObject({ kind: z.literal('TURN_USES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TURN_MOVED_FEET'), actorId: postgresUuidSchema }),
+    z.strictObject({ kind: z.literal('TURN_LAST_MOVE'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TELEPORT_ALLOWANCES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('ACTOR_TOKEN_BINDINGS') }),
     z.strictObject({ kind: z.literal('SEEN_ACTORS') }),
@@ -343,6 +345,12 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       revisions: liveSessionRulesRevisionsSchema,
       /** The feet the actor has moved this turn; 0 off its turn. */
       feet: z.number().check(z.nonnegative())
+    }),
+    z.strictObject({
+      kind: z.literal('TURN_LAST_MOVE'),
+      revisions: liveSessionRulesRevisionsSchema,
+      /** The actor's latest voluntary move this turn; null off its turn or once displaced since. */
+      lastMove: z.nullable(encounterTurnLastMoveSchema)
     }),
     z.strictObject({
       kind: z.literal('TELEPORT_ALLOWANCES'),
