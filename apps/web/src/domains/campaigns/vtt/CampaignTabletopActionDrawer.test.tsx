@@ -680,7 +680,8 @@ const repeatOfferChoices = validated(encounterActionChoicesDtoSchema.shape.effec
     kind: 'REPEAT_SOURCE_PATH',
     holderActorId: '99999999-9999-4999-8999-999999999902',
     activation: 'BONUS_ACTION',
-    actionId: '99999999-9999-4999-8999-999999999901:REPEAT_PATH:00000000-0000-4000-8000-000000000f22:0',
+    actionId:
+      '99999999-9999-4999-8999-999999999901:REPEAT_PATH:00000000-0000-4000-8000-000000000f22:0',
     label: 'Heat Metal',
     castLevel: 3,
     dc: 15,
