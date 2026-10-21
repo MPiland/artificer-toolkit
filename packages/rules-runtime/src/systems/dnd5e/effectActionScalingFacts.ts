@@ -1,4 +1,5 @@
 import type { RuleValue } from '@artificer-toolkit/shared/rules'
+import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import { parseRollExpression, type ParsedRollExpression } from '@artificer-toolkit/shared/rolls'
 import {
   damageAddedDiceDtoSchema,
@@ -291,6 +292,17 @@ export function parseBoundedDiceConfiguration(value: unknown): BoundedDice {
   )
     unsupported('D&D dice configuration exceeds the bounded exact-dice contract.')
   return { term, modifier: parsed.modifier }
+}
+
+/** The die count of a dice configuration that is one bounded term with no modifier, or null for any other. */
+export function boundedSingleDiceCount(value: unknown): number | null {
+  try {
+    const { term, modifier } = parseBoundedDiceConfiguration(value)
+    return modifier === 0 ? term.count : null
+  } catch (error) {
+    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
+    throw error
+  }
 }
 
 /**

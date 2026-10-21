@@ -26,6 +26,7 @@ import {
   clearEmptyStateArrays,
   getHitPointAdjustment
 } from './sheetCommandReducer.js'
+import { endSubscriptions } from '../events/effectHooks.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 
 function parseCharacterClassHitDie(dieConfig: string | undefined): number | undefined {
@@ -51,7 +52,11 @@ export function activeEffectEndsOnRest(
   effect: Pick<ActiveRuleEffectRecord, 'definition'>,
   restKind: 'SHORT' | 'LONG'
 ): boolean {
-  if (restKind === 'LONG' && effect.definition.recurrence.endOnEvents.includes('ON_LONG_REST'))
+  if (
+    endSubscriptions(effect).some(
+      (subscription) => subscription.event === 'REST' && subscription.restKind === restKind
+    )
+  )
     return true
   if (effect.definition.schemaVersion !== 2) return false
   const triggers = getRestRecoveryTriggers(restKind)
