@@ -82,13 +82,20 @@ function bareTestApplies(
 
 /**
  * Whether a scoped test spent the effect's grants: it has no grants to the test's value domain (the
- * event alone ends it), or one of them applied to the test's ability.
+ * event alone ends it), or one of them applied to the test's ability. A die held for after the roll
+ * is spent through the roll's window, so the test alone never spends an effect that holds only those.
  */
 function scopedTestApplies(effect: ActiveRuleEffectRecord, test: ScopedD20Test) {
   const grants = testGrants(effect, test.event)
+  const withRoll = grants.filter(
+    ({ payload }) => !(payload && 'timing' in payload && payload.timing === 'AFTER_ROLL')
+  )
+  if (grants.length > 0 && withRoll.length === 0) return false
   return (
-    grants.length === 0 ||
-    grants.some(({ domain }) => domain.ability === undefined || domain.ability === test.abilityCode)
+    withRoll.length === 0 ||
+    withRoll.some(
+      ({ domain }) => domain.ability === undefined || domain.ability === test.abilityCode
+    )
   )
 }
 

@@ -1,6 +1,7 @@
 import type { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
 import { prepareEncounterTurnEffects } from '@artificer-toolkit/rules-runtime/encounterTurnEffects'
 import { prepareEncounterTurnZoneEffects } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
+import { encounterSightHolds } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import {
   planEncounterPassiveZones,
   type EncounterPassiveZoneCharacterRules
@@ -141,8 +142,8 @@ export function createNativeLiveTurnStages(
             capture
           })
           return {
-            occupantSeesSource: actual.targetSeesAttacker === 'SEES',
-            sourceSeesOccupant: actual.attackerSeesTarget === 'SEES'
+            occupantSeesSource: encounterSightHolds(actual, 'TARGET_SEES_ACTOR'),
+            sourceSeesOccupant: encounterSightHolds(actual, 'ACTOR_SEES_TARGET')
           }
         },
         loadScene: async () => {

@@ -154,6 +154,78 @@ function stale(): never {
   throw new StaleCharacterActionError()
 }
 
+/**
+ * The one place a pool charge is spent: checks the pool row against the Character's usage rows and
+ * returns the usage change, or null when Manual play, or an overridable shortfall, spends nothing.
+ * "Do it anyway" spends only what remains and records the shortfall in `ruleWarnings`.
+ */
+export function spendCharacterResource(input: {
+  resource: CharacterRulePolicyOutput['resources'][number] | undefined
+  binding: { poolId: string; chargeId: string; cost: number }
+  resourceUsage: readonly CharacterResourceUsage[]
+  characterId: string
+  expectedStreamVersion: number
+  automationMode: AutomationModeDto
+  overridable: boolean
+  ruleWarnings: EncounterRuleWarningDto[]
+}): NativeCharacterActionResourceConsumption | null {
+  const { resource, binding } = input
+  if (
+    !resource ||
+    resource.state !== 'RESOLVED' ||
+    resource.chargeId !== binding.chargeId ||
+    !Number.isSafeInteger(resource.rawUsed) ||
+    resource.rawUsed < 0 ||
+    resource.remaining === null ||
+    !Number.isSafeInteger(resource.remaining) ||
+    resource.remaining < 0 ||
+    (!input.overridable && resource.remaining < binding.cost)
+  )
+    stale()
+
+  const owner = resourceOwner(resource)
+  if (createCharacterResourceOwnerKey(owner) !== binding.poolId) stale()
+  const matchingUsage = input.resourceUsage.filter(
+    (usage) => createCharacterResourceOwnerKey(usage.owner) === binding.poolId
+  )
+  if (
+    matchingUsage.length > 1 ||
+    input.resourceUsage.some(
+      (usage) =>
+        usage.characterId !== input.characterId ||
+        !Number.isSafeInteger(usage.used) ||
+        usage.used < 0
+    )
+  )
+    stale()
+  const existing = matchingUsage[0]
+  const beforeUsed = existing?.used ?? 0
+  if (beforeUsed !== resource.rawUsed) stale()
+  if (input.automationMode === 'MANUAL') return null
+  const spent = Math.min(binding.cost, resource.remaining)
+  if (spent < binding.cost)
+    input.ruleWarnings.push({
+      code: 'RESOURCE_UNAVAILABLE',
+      message: `Not enough uses left: needs ${binding.cost}, has ${resource.remaining}.`
+    })
+  if (spent === 0) return null
+  const afterUsed = beforeUsed + spent
+  if (!Number.isSafeInteger(afterUsed)) stale()
+  return {
+    poolId: binding.poolId,
+    chargeId: binding.chargeId,
+    cost: spent,
+    owner,
+    usageId: existing?.id ?? crypto.randomUUID(),
+    beforeUsed,
+    afterUsed,
+    beforeRemaining: resource.remaining,
+    afterRemaining: resource.remaining - spent,
+    characterId: input.characterId,
+    expectedStreamVersion: input.expectedStreamVersion
+  }
+}
+
 export function prepareNativeCharacterActionState(input: {
   entry: CompiledCharacterAction
   candidate: CharacterActionCandidate
@@ -345,83 +417,25 @@ export function prepareNativeCharacterActionState(input: {
     input.candidate.resourceUse.cost !== binding.cost ||
     // An unequipped source reports no bound resource; its binding still comes from the entry.
     (!notEquipped &&
-      (decision.resourcePoolId !== binding.poolId || decision.resourceCost !== binding.cost)) ||
-    !resource ||
-    resource.state !== 'RESOLVED' ||
-    resource.chargeId !== binding.chargeId ||
-    !Number.isSafeInteger(resource.rawUsed) ||
-    resource.rawUsed < 0 ||
-    resource.remaining === null ||
-    !Number.isSafeInteger(resource.remaining) ||
-    resource.remaining < 0 ||
-    (!overridable && resource.remaining < binding.cost)
+      (decision.resourcePoolId !== binding.poolId || decision.resourceCost !== binding.cost))
   )
     stale()
 
-  const owner = resourceOwner(resource)
-  if (createCharacterResourceOwnerKey(owner) !== binding.poolId) stale()
-  const matchingUsage = input.resourceUsage.filter(
-    (usage) => createCharacterResourceOwnerKey(usage.owner) === binding.poolId
-  )
-  if (
-    matchingUsage.length > 1 ||
-    input.resourceUsage.some(
-      (usage) =>
-        usage.characterId !== input.characterId ||
-        !Number.isSafeInteger(usage.used) ||
-        usage.used < 0
-    )
-  )
-    stale()
-  const existing = matchingUsage[0]
-  const beforeUsed = existing?.used ?? 0
-  if (beforeUsed !== resource.rawUsed) stale()
-  if (input.automationMode === 'MANUAL')
-    return {
-      actionMechanic,
-      resourceConsumption: null,
-      itemConsumption,
-      spellConsumption,
-      ammunition,
-      ruleWarnings
-    }
-  // "Do it anyway" spends only what remains; the warning records the shortfall.
-  const spent = Math.min(binding.cost, resource.remaining)
-  if (spent < binding.cost)
-    ruleWarnings.push({
-      code: 'RESOURCE_UNAVAILABLE',
-      message: `Not enough uses left: needs ${binding.cost}, has ${resource.remaining}.`
-    })
-  if (spent === 0)
-    return {
-      actionMechanic,
-      resourceConsumption: null,
-      itemConsumption,
-      spellConsumption,
-      ammunition,
-      ruleWarnings
-    }
-  const afterUsed = beforeUsed + spent
-  const afterRemaining = resource.remaining - spent
-  if (!Number.isSafeInteger(afterUsed)) stale()
   return {
     actionMechanic,
     ruleWarnings,
     itemConsumption,
     spellConsumption,
     ammunition,
-    resourceConsumption: {
-      poolId: binding.poolId,
-      chargeId: binding.chargeId,
-      cost: spent,
-      owner,
-      usageId: existing?.id ?? crypto.randomUUID(),
-      beforeUsed,
-      afterUsed,
-      beforeRemaining: resource.remaining,
-      afterRemaining,
+    resourceConsumption: spendCharacterResource({
+      resource,
+      binding,
+      resourceUsage: input.resourceUsage,
       characterId: input.characterId,
-      expectedStreamVersion: input.expectedStreamVersion
-    }
+      expectedStreamVersion: input.expectedStreamVersion,
+      automationMode: input.automationMode,
+      overridable,
+      ruleWarnings
+    })
   }
 }

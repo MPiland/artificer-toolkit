@@ -104,6 +104,8 @@ export function activeFixedGrantTotal(
 }
 
 type RolledDieGrant = {
+  effectId: string
+  grantId: string
   label: string
   payload: Extract<NonNullable<CharacterGrantFoldModifier['payload']>, { count: number }>
 }
@@ -113,14 +115,19 @@ type RolledDieGrant = {
  * domain `applies` accepts. Dice from different sources stack; one authored grant gives one die
  * however many of its effects the holder carries (two casters' Bless). A hidden source reads as
  * "Unseen source". Sorted by label, then grant, so every roll site and replay sees one order.
+ * `timing` picks the dice that roll with the d20 or the after-roll dice a roller may add once the
+ * d20 is seen.
  */
 function activeRolledDieGrants(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
   valueDomainCode: 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER' | 'ABILITY_CHECK' | 'DAMAGE',
-  applies: DomainFilter
+  applies: DomainFilter,
+  timing: 'WITH_ROLL' | 'AFTER_ROLL' = 'WITH_ROLL'
 ): RolledDieGrant[] {
   const dice = new Map<string, RolledDieGrant>()
-  for (const { modifiers, sourceLabel, sourceHidden } of listActiveEffectGrants(effects)) {
+  for (const { effectId, modifiers, sourceLabel, sourceHidden } of listActiveEffectGrants(
+    effects
+  )) {
     for (const modifier of modifiers) {
       const { payload } = modifier
       if (
@@ -133,7 +140,14 @@ function activeRolledDieGrants(
         continue
       if (payload === undefined || !('count' in payload))
         throw new Error('An active rolled-die grant must carry its dice.')
-      dice.set(modifier.grantId, { label: sourceHidden ? 'Unseen source' : sourceLabel, payload })
+      if (('timing' in payload && payload.timing === 'AFTER_ROLL') !== (timing === 'AFTER_ROLL'))
+        continue
+      dice.set(modifier.grantId, {
+        effectId,
+        grantId: modifier.grantId,
+        label: sourceHidden ? 'Unseen source' : sourceLabel,
+        payload
+      })
     }
   }
   return [...dice]
@@ -249,6 +263,30 @@ export function activeAbilityCheckDice(
     'ABILITY_CHECK',
     (domain) => domain.ability === undefined || domain.ability === abilityCode
   )
+}
+
+/**
+ * The after-roll dice a holder's active effects hold for an ability check with one ability (or an
+ * ability-less check when `abilityCode` is null): each is offered once the d20 is seen, and the
+ * holder spends it by ending its effect.
+ */
+export function activeAfterRollAbilityCheckDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityCode: string | null
+) {
+  return activeRolledDieGrants(
+    effects,
+    'ABILITY_CHECK',
+    (domain) => domain.ability === undefined || domain.ability === abilityCode,
+    'AFTER_ROLL'
+  ).map(({ effectId, grantId, label, payload: { count, faces, sign } }) => ({
+    effectId,
+    grantId,
+    label,
+    count,
+    faces,
+    sign
+  }))
 }
 
 /**
