@@ -39,6 +39,61 @@ function schoolId(code: string): string {
     throw new Error(`SRD magic school vocabulary entry for ${code} required for spell source data.`)
   return entry.id
 }
+const REPEATED_PATH_IDS = [0x213, 0x214, 0x215, 0x216].map((id) =>
+  spellChildId(SPELL_IDS.HEAT_METAL, id, 1)
+)
+
+/**
+ * The effect the cast leaves on the target (D166): it grants nothing, is bound to the heated item,
+ * ends when the item is released, and offers the caster a Bonus Action repeat of the damage paths
+ * until the Concentration ends. One per save result, authored alike.
+ */
+function repeatCarrierPath(
+  pathCode: typeof PATH_CODE.ON_SAVE_FAIL | typeof PATH_CODE.ON_SAVE_SUCCESS,
+  idKey: number,
+  order: number
+) {
+  return {
+    id: spellChildId(SPELL_IDS.HEAT_METAL, idKey, 1),
+    order,
+    pathCode,
+    groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+    originKind: 'SOURCE' as const,
+    selectionKind: 'FIXED' as const,
+    chosenItem: { requiredProperties: [EQUIPMENT_PROPERTY_CODE.METAL] },
+    resultBlock: {
+      id: spellChildId(SPELL_IDS.HEAT_METAL, idKey, 1) + '__result',
+      resultKind: 'SEQUENCE' as const,
+      duration: {
+        id: spellChildId(SPELL_IDS.HEAT_METAL, idKey, 2),
+        durationKind: DURATION_KIND.MINUTE,
+        amount: 1
+      },
+      lifecycle: {
+        endOnEvents: ['ON_CHOSEN_ITEM_RELEASED' as const],
+        effectOffers: [
+          {
+            kind: 'REPEAT_SOURCE_PATH' as const,
+            offeredTo: 'SOURCE' as const,
+            activation: ACTIVATION_CODE.BONUS_ACTION,
+            pathIds: REPEATED_PATH_IDS
+          }
+        ]
+      },
+      outcomes: [
+        {
+          id: spellChildId(SPELL_IDS.HEAT_METAL, idKey, 1),
+          effectKind: EFFECT_KIND.APPLY_GRANT,
+          bindsChosenItem: true,
+          // The fail path's carrier is withheld when the same cast already made the target drop the item.
+          ...(pathCode === PATH_CODE.ON_SAVE_FAIL && { unlessChosenItemReleased: true }),
+          grants: {}
+        }
+      ]
+    }
+  }
+}
+
 export const heatMetal: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.HEAT_METAL,
@@ -388,7 +443,9 @@ export const heatMetal: SpellAuthored = {
               }
             ]
           }
-        }
+        },
+        repeatCarrierPath(PATH_CODE.ON_SAVE_FAIL, 0x218, 5),
+        repeatCarrierPath(PATH_CODE.ON_SAVE_SUCCESS, 0x219, 6)
       ]
     }
   ],

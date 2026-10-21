@@ -115,6 +115,7 @@ export async function recordActionRoot(
           | 'gmLines'
           | 'failedCounters'
           | 'idleTurnMarkChanges'
+          | 'clearedDamageTypes'
           | 'forcedMovements'
           | 'forcedMovementLandings'
         >

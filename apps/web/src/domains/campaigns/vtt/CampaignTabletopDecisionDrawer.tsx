@@ -356,7 +356,9 @@ export function CampaignTabletopDecisionDrawer({
                   key={option.optionId}
                   onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
                 >
-                  Spend a level {option.slotLevel} slot
+                  {option.kind === 'SPELL_SLOT'
+                    ? `Spend a level ${option.slotLevel} slot`
+                    : `Spend ${option.cost} from a resource pool`}
                 </Button>
               ))}
               <Button
@@ -365,6 +367,42 @@ export function CampaignTabletopDecisionDrawer({
                 onClick={() => void resolve({ kind: 'DECLINE' })}
               >
                 Decline
+              </Button>
+            </Stack>
+          ) : pending.kind === 'D20_WINDOW' ? (
+            <Stack gap='xs'>
+              <Text size='sm'>
+                {rollPromptText(
+                  encounter.actors.find((actor) => actor.id === pending.rollerActorId)?.label ??
+                    'a hidden combatant',
+                  pending.trigger
+                )}
+                : rolled {pending.d20.selectedNatural}, total {pending.d20.total}
+              </Text>
+              {pending.options.map((option) => (
+                <Button
+                  disabled={disabled}
+                  key={option.optionId}
+                  onClick={() =>
+                    void resolve({
+                      kind: 'D20_WINDOW_USE',
+                      requestId: pending.requestId,
+                      optionId: option.optionId
+                    })
+                  }
+                >
+                  Add {option.label} ({option.sign === 'SUBTRACT' ? '-' : '+'}
+                  {option.count}d{option.faces})
+                </Button>
+              ))}
+              <Button
+                disabled={disabled}
+                variant='default'
+                onClick={() =>
+                  void resolve({ kind: 'D20_WINDOW_DECLINE', requestId: pending.requestId })
+                }
+              >
+                Keep the roll
               </Button>
             </Stack>
           ) : pending.kind === 'ATTACK_RETARGET_CHOICE' ? (

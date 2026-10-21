@@ -8,9 +8,9 @@ import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicAc
 import { prepareEncounterConcealmentEffect } from '../encounterActionEffectPlans.js'
 import {
   DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
-  DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
-  dnd5eCharacterRuleActionSystemAdapter
-} from '../systems/dnd5e/effectActionCompiler.js'
+  DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY
+} from '../systems/dnd5e/effectActionContracts.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { characterActionDescriptor } from '../testing/characterActionDescriptor.js'
 import { catalogueBasicActionEffect } from '../testing/concealmentFixture.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'

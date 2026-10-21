@@ -9,6 +9,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
+import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { ESCAPE_ACTION_LABEL, findEncounterHolderContestEscape } from './encounterEscapeCheck.js'
 import {
@@ -89,10 +90,11 @@ function sealEncounterContest(input: {
           {
             checkDefinitionId: listed.id,
             label: encounterBasicActionCheckLabel(system, listed.id),
-            rollMode: check.rollMode,
-            contributors: check.contributors,
-            contributorChecksum: checksumRuleDocument(check.contributors),
-            modifier: check.modifier
+            ...freezeD20Context({
+              rollMode: check.rollMode,
+              contributors: check.contributors,
+              modifier: check.modifier
+            })
           }
         ]
   })
@@ -138,10 +140,11 @@ function sealEncounterContest(input: {
     initiator: {
       actorId: actor.id,
       requestNodeId: 'initiator_d20',
-      rollMode: initiator.rollMode,
-      contributors: initiator.contributors,
-      contributorChecksum: checksumRuleDocument(initiator.contributors),
-      modifier: initiator.modifier
+      ...freezeD20Context({
+        rollMode: initiator.rollMode,
+        contributors: initiator.contributors,
+        modifier: initiator.modifier
+      })
     },
     defender: { actorId: target.id, requestNodeId: 'target_d20', checks: defenderChecks },
     actionEconomy: actionEconomy

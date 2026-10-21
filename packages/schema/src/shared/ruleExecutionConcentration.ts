@@ -38,6 +38,66 @@ export const concentrationMaintainedDamageApplicationDtoSchema = lazySchema(() =
   z.extend(concentrationDamageApplicationDtoSchema, { maintainedStateId: ruleExecutionUuidSchema })
 )
 
+export type ConcentrationMaintainedDamageApplicationDto = z.infer<
+  typeof concentrationMaintainedDamageApplicationDtoSchema
+>
+
+/** One damaged holder's turn-effect repeat save (D167), bound to the effect that offers it. */
+export const effectRepeatSaveDamageApplicationDtoSchema = lazySchema(() =>
+  z.extend(concentrationDamageApplicationDtoSchema, { activeEffectId: ruleExecutionUuidSchema })
+)
+
+/** A check the damage chain still owes: a Concentration save or an effect's repeat save. */
+export const damageSaveApplicationDtoSchema = lazySchema(() =>
+  z.union([
+    concentrationMaintainedDamageApplicationDtoSchema,
+    effectRepeatSaveDamageApplicationDtoSchema
+  ])
+)
+
+export type DamageSaveApplicationDto = z.infer<typeof damageSaveApplicationDtoSchema>
+
+/** Whether a chain item is a Concentration check rather than an effect repeat save. */
+export function isMaintainedDamageApplication(
+  entry: DamageSaveApplicationDto
+): entry is ConcentrationMaintainedDamageApplicationDto {
+  return 'maintainedStateId' in entry
+}
+
+/** The chain once an effect's made repeat save released it: its later saves have nothing left to check. */
+export function damageSaveApplicationsAfterRelease(
+  entries: readonly DamageSaveApplicationDto[],
+  activeEffectId: string
+): DamageSaveApplicationDto[] {
+  return entries.filter(
+    (entry) => isMaintainedDamageApplication(entry) || entry.activeEffectId !== activeEffectId
+  )
+}
+
+/** A chain item's damage without the state or effect it was bound to. */
+export function unboundDamageSaveApplication(
+  entry: DamageSaveApplicationDto
+): ConcentrationDamageApplicationDto {
+  const { maintainedStateId, activeEffectId, ...damage } = entry as DamageSaveApplicationDto & {
+    maintainedStateId?: string
+    activeEffectId?: string
+  }
+  void maintainedStateId
+  void activeEffectId
+  return damage
+}
+
+/** The Concentration checks of a chain that can only hold them (movement); an effect check there is stale. */
+export function requireMaintainedDamageApplications(
+  entries: readonly DamageSaveApplicationDto[]
+): ConcentrationMaintainedDamageApplicationDto[] {
+  return entries.map((entry) => {
+    if (!isMaintainedDamageApplication(entry))
+      throw new Error('A movement damage chain holds only Concentration checks.')
+    return entry
+  })
+}
+
 export function compareConcentrationDamageApplications(
   left: ConcentrationDamageApplicationDto,
   right: ConcentrationDamageApplicationDto
@@ -46,6 +106,27 @@ export function compareConcentrationDamageApplications(
   const leftSource = `${left.sourceNodeId}:${left.sourceOperationKey}`
   const rightSource = `${right.sourceNodeId}:${right.sourceOperationKey}`
   return leftSource < rightSource ? -1 : leftSource > rightSource ? 1 : 0
+}
+
+/**
+ * Chain order: damage order, then Concentration before an effect's repeat save, then the bound id.
+ * A bare application (the check being settled) sorts before its own bound twins.
+ */
+export function compareDamageSaveApplications(
+  left: ConcentrationDamageApplicationDto & { maintainedStateId?: string; activeEffectId?: string },
+  right: ConcentrationDamageApplicationDto & { maintainedStateId?: string; activeEffectId?: string }
+): number {
+  const byDamage = compareConcentrationDamageApplications(left, right)
+  if (byDamage !== 0) return byDamage
+  const key = (value: typeof left) =>
+    value.maintainedStateId !== undefined
+      ? `0:${value.maintainedStateId}`
+      : value.activeEffectId !== undefined
+        ? `1:${value.activeEffectId}`
+        : ''
+  const leftKey = key(left)
+  const rightKey = key(right)
+  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0
 }
 
 const concentrationLabelSchema = lazySchema(() =>

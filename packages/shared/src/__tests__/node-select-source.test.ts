@@ -64,4 +64,21 @@ describe('node select source discriminators', () => {
       })
     ).toEqual([])
   })
+
+  it('starts a local collection at the named ancestor, not the document root', () => {
+    const source = {
+      kind: 'LOCAL_COLLECTION' as const,
+      up: 2,
+      rootCollectionPath: ['paths'],
+      valuePath: ['id'],
+      labelPath: ['code']
+    } as const satisfies NodeSelectSource
+
+    expect(
+      resolveLocalCollectionOptions(source, {
+        values: {},
+        ancestors: [{}, { paths: [{ id: 'path-1', code: 'ON_USE' }] }, { paths: [] }]
+      })
+    ).toEqual([{ value: 'path-1', label: 'ON_USE' }])
+  })
 })

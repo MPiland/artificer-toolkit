@@ -152,6 +152,7 @@ export function srdCreatureActor(input: {
   currentHitPoints?: number
   tempHitPoints?: number
   defeated?: boolean
+  damageTypesSinceTurnStart?: { damageTypeId: string; commandId: string }[]
   initiative?: number | null
   manualOrder?: number | null
   sideId?: string
@@ -186,6 +187,9 @@ export function srdCreatureActor(input: {
     tempHitPoints: input.tempHitPoints ?? 0,
     conditions: [...(input.conditionIds ?? [])],
     defeated: input.defeated ?? false,
+    ...(input.damageTypesSinceTurnStart && {
+      damageTypesSinceTurnStart: input.damageTypesSinceTurnStart
+    }),
     resources: input.featureCharges ? { featureCharges: { ...input.featureCharges } } : {},
     snapshot: {
       kind: 'CREATURE',

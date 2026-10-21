@@ -163,6 +163,45 @@ export function incomingDamageGrantRecords(input: {
 }
 
 /**
+ * Whether damage of these types meets a `DAMAGE_TAKEN` trigger, for an end trigger and a repeat
+ * trigger alike. A damage of unknown type (`null`: a source that dealt several types) meets only an
+ * untyped trigger, since no single type can satisfy a filter.
+ */
+export function damageTriggerMet(
+  trigger: { by: 'ANYONE' | 'SOURCE_SIDE'; damageTypeIds: readonly string[] | null },
+  input: { onSourceSide: boolean; damageTypeIds: readonly (string | null)[] }
+) {
+  return (
+    (trigger.by === 'ANYONE' || input.onSourceSide) &&
+    (trigger.damageTypeIds === null ||
+      input.damageTypeIds.some(
+        (damageTypeId) => damageTypeId !== null && trigger.damageTypeIds!.includes(damageTypeId)
+      ))
+  )
+}
+
+/**
+ * Whether the damage came from the effect source's side: the source itself or an ally of it. Nobody
+ * (a null damager or source) is on no side, so only `ANYONE` triggers meet such damage.
+ */
+export function damagerOnSourceSide(input: {
+  damagerActorId: string | null
+  sourceActorId: string | null
+  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+}) {
+  const { damagerActorId, sourceActorId } = input
+  return (
+    sourceActorId !== null &&
+    damagerActorId !== null &&
+    (damagerActorId === sourceActorId ||
+      encounterActorRelationship(
+        input.dispositions.get(damagerActorId) ?? 'NEUTRAL',
+        input.dispositions.get(sourceActorId) ?? 'NEUTRAL'
+      ) === 'ALLIED')
+  )
+}
+
+/**
  * What an action ends on its target: the effects used up by an attack roll against the holder
  * (`ON_ATTACKED`, after their modifiers applied to that roll), those whose `DAMAGE_TAKEN` end
  * trigger the outcome meets (damage that survives the holder's defenses, of a type the trigger
@@ -195,14 +234,6 @@ export function targetEndedEffects(input: {
       application.targetActorId === input.holderActorId &&
       application.resolvedAmount > 0
   )
-  const onSourceSide = (sourceActorId: string | null) =>
-    sourceActorId !== null &&
-    input.damagerActorId !== null &&
-    (input.damagerActorId === sourceActorId ||
-      encounterActorRelationship(
-        input.dispositions.get(input.damagerActorId) ?? 'NEUTRAL',
-        input.dispositions.get(sourceActorId) ?? 'NEUTRAL'
-      ) === 'ALLIED')
   // An attack consumes only the effects whose event scope admits the attacker on this turn.
   const attackConsumed = input.attacked
     ? effectsEndedBy(input.held, 'ON_ATTACKED').filter((effect) => {
@@ -239,13 +270,16 @@ export function targetEndedEffects(input: {
     return definition.recurrence.endOnTriggers.some(
       (trigger) =>
         trigger.event === 'DAMAGE_TAKEN' &&
-        (trigger.by === 'ANYONE' || onSourceSide(sourceActorId)) &&
-        dealt.some(
-          (application) =>
-            trigger.damageTypeIds === null ||
-            (application.kind === 'DAMAGE' &&
-              trigger.damageTypeIds.includes(application.damageTypeId))
-        )
+        damageTriggerMet(trigger, {
+          onSourceSide: damagerOnSourceSide({
+            damagerActorId: input.damagerActorId,
+            sourceActorId,
+            dispositions: input.dispositions
+          }),
+          damageTypeIds: dealt.map((application) =>
+            application.kind === 'DAMAGE' ? application.damageTypeId : null
+          )
+        })
     )
   })
   return {

@@ -5,10 +5,8 @@ import {
 } from '../encounterActionExecution.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
-import {
-  DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
-  dnd5eCharacterRuleActionSystemAdapter
-} from '../systems/dnd5e/effectActionCompiler.js'
+import { DND5E_TARGET_STATE_CHECKSUM_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import type { CharacterActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
 import {
   ACTION_EFFECT_ID,

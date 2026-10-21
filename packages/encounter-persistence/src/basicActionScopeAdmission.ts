@@ -9,6 +9,7 @@ import {
 } from './basicActionAdmission.js'
 import {
   readBasicActionCheckResponseAdmission,
+  readD20WindowResponseAdmission,
   readEscapeCheckResponseAdmission
 } from './basicActionCheckAdmission.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
@@ -43,6 +44,8 @@ export async function readBasicActionScopeAdmission(
   const admit =
     context?.kind === 'ENCOUNTER_ESCAPE_CHECK'
       ? readEscapeCheckResponseAdmission
-      : readBasicActionCheckResponseAdmission
+      : context?.kind === 'ENCOUNTER_D20_WINDOW'
+        ? readD20WindowResponseAdmission
+        : readBasicActionCheckResponseAdmission
   return admit(ctx, { ...input, response: command })
 }

@@ -34,9 +34,12 @@ export type ResourceUseAuthored = {
 /**
  * Makes a passive on-hit rider the attacker's choice: after a hit the player may pay this cost to
  * add the rider's damage to it. A spell slot lets the player pick the slot level, which keys the
- * rider's `SPELL_CAST_LEVEL` rows (D118, D123).
+ * rider's `SPELL_CAST_LEVEL` rows (D118, D123). A resource pool charge spends `cost` of the charge
+ * `chargeId` names, as an action's `resourceUse` does.
  */
-export type OptionalOnHitAuthored = { kind: 'SPELL_SLOT' }
+export type OptionalOnHitAuthored =
+  | { kind: 'SPELL_SLOT' }
+  | ({ kind: 'RESOURCE_POOL' } & ResourceUseAuthored)
 
 export type ReactionMovementTriggerBindingAuthored = {
   kind: 'MOVEMENT'
@@ -136,6 +139,7 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
             | 'HP_ZERO'
             | 'INCOMING_WEAPON_HIT'
             | 'ROLL_INITIATIVE'
+            | 'START_OF_TURN'
           >
           activation: ActivationAuthored
           resourceUse?: ResourceUseAuthored

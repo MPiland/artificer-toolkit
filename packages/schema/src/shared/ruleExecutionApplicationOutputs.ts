@@ -39,7 +39,7 @@ import {
   characterSpellSlotConsumptionReceiptDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
   concealmentCheckApplicationOutputDtoSchema,
-  concentrationCheckApplicationOutputDtoSchema,
+  damageSaveCheckApplicationOutputDtoSchema,
   concentrationEndApplicationOutputDtoSchema,
   contestedActionApplicationOutputDtoSchema,
   encounterActionEconomyTransitionDtoSchema,
@@ -674,7 +674,7 @@ export type ServerRuleExecutionApplicationOutputsDto =
   | z.infer<typeof noApplicationOutputDtoSchema>
   | z.infer<typeof cleavingDamageApplicationOutputDtoSchema>
   | z.infer<typeof contestedActionApplicationOutputDtoSchema>
-  | z.infer<typeof concentrationCheckApplicationOutputDtoSchema>
+  | z.infer<typeof damageSaveCheckApplicationOutputDtoSchema>
   | z.infer<typeof concentrationEndApplicationOutputDtoSchema>
   | z.infer<typeof encounterAreaActionApplicationOutputDtoSchema>
   | z.infer<typeof encounterCounteredCastApplicationOutputDtoSchema>
@@ -691,7 +691,7 @@ export const serverRuleExecutionApplicationOutputsDtoSchema: z.ZodMiniType<Serve
       noApplicationOutputDtoSchema,
       cleavingDamageApplicationOutputDtoSchema,
       contestedActionApplicationOutputDtoSchema,
-      concentrationCheckApplicationOutputDtoSchema,
+      damageSaveCheckApplicationOutputDtoSchema,
       concentrationEndApplicationOutputDtoSchema,
       encounterAreaActionApplicationOutputDtoSchema,
       encounterCounteredCastApplicationOutputDtoSchema,

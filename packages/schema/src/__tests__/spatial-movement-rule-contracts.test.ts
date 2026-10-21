@@ -740,8 +740,9 @@ function concentrationContext(input: {
   finalizedDamageEnvelopeChecksum: string
 }) {
   return {
-    kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' as const,
+    kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK' as const,
     schemaVersion: 1 as const,
+    source: 'CONCENTRATION' as const,
     parentOccurrenceId: ids.occurrence,
     parentCommandFingerprint: checksum('3'),
     finalizedDamageEnvelopeChecksum: input.finalizedDamageEnvelopeChecksum,

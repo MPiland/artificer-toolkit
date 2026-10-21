@@ -18,9 +18,9 @@ import { castChoiceOptions } from '../encounterCastChoice.js'
 import {
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
   DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
-  DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
-  dnd5eCharacterRuleActionSystemAdapter
-} from '../systems/dnd5e/effectActionCompiler.js'
+  DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
+} from '../systems/dnd5e/effectActionContracts.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor

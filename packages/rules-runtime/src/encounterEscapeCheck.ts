@@ -3,7 +3,6 @@ import { escapeCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema
 import { encounterEscapeCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   evaluateEncounterBasicActionCheck,
   storedCheckResult
@@ -15,6 +14,7 @@ import {
 } from './encounterActionMaintenance.js'
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
+import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import {
   encounterRelationships,
@@ -274,14 +274,7 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
       dc: escape.dc,
       label: encounterBasicActionCheckLabel(input.system, input.checkDefinitionId)
     },
-    d20: {
-      rollMode: facts.rollMode,
-      contributors: facts.contributors,
-      contributorChecksum: checksumRuleDocument(facts.contributors),
-      modifier: facts.modifier,
-      ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice }),
-      ...(facts.minimumRoll && { minimumRoll: facts.minimumRoll })
-    },
+    d20: freezeD20Context({ ...facts, modifier: facts.modifier }),
     consumedGrants: effectsEndedBy(holder.activeEffects, {
       event: 'ON_ABILITY_CHECK',
       abilityCode: checkAbilityCode(input.system, checkKind, input.checkDefinitionId)

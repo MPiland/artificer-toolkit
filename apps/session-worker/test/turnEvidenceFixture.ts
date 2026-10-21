@@ -14,11 +14,11 @@ import {
   DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
   DND5E_SAVE_MODIFIER_FACT_KEY,
-  DND5E_SAVE_TEST_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionContracts'
+import { DND5E_SAVE_TEST_OPERATION_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/dnd5eTestOperationKeys'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import {
   SRD_ABILITY_DEFINITION_IDS,

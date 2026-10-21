@@ -6,8 +6,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { requireEncounterActorControl } from './actorController.js'
 import {
   readNativeBasicActionCheckPending,
+  readNativeD20WindowPending,
   readNativeEscapeCheckPending
 } from './basicActionCheckPending.js'
+import { encounterD20WindowRollerActorId } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
@@ -25,11 +27,14 @@ export function storedCheckOccurrenceId(root: StoredCommand | undefined): string
   return null
 }
 
+const takesD20Evidence = ({ kind }: ResolveRuleOccurrenceInputDto['resolution']) =>
+  kind === 'ENTER_DICE' || kind === 'SYSTEM_ROLL'
+
 type CheckResponseInput = Omit<LiveSessionEncounterRulesInput, 'request'> & {
   response: ResolveRuleOccurrenceInputDto
 }
 
-/** What differs between the d20 checks a root command can pend: First Aid and Escape. */
+/** What differs between the answers a root command's check can wait on: a d20, or a d20 window's decision. */
 type CheckAdmissionSpec<TPending extends { context: { commandFingerprint: string } }> = {
   readPending(
     occurrence: EncounterDocument<'encounterRuleOccurrences'>,
@@ -37,6 +42,8 @@ type CheckAdmissionSpec<TPending extends { context: { commandFingerprint: string
   ): TPending
   /** The actor whose controllers roll the d20. */
   rollerActorId(context: TPending['context']): string
+  /** Whether a resolution is the kind of answer this pending decision takes. */
+  takesResolution(resolution: ResolveRuleOccurrenceInputDto['resolution']): boolean
 }
 
 /**
@@ -106,12 +113,15 @@ async function admitCheckResponse<
       .unique()
   ])
   if (stored || evidence) {
-    if (!stored || !evidence || stored.commandType !== 'RESOLVE_RULE_OCCURRENCE')
+    if (!stored || stored.commandType !== 'RESOLVE_RULE_OCCURRENCE')
       rejectDomain('COMMAND_ID_REUSED')
     presentTimelineEntry(stored)
-    const metadata = serverRuleExecutionReceiptCommandMetadataDtoSchema.parse(
-      JSON.parse(evidence.commandMetadataJson)
-    )
+    // Opening a d20 window records no rule result, so it leaves no receipt to check.
+    const metadata = evidence
+      ? serverRuleExecutionReceiptCommandMetadataDtoSchema.parse(
+          JSON.parse(evidence.commandMetadataJson)
+        )
+      : null
     if (
       stored.encounterId !== run.id ||
       stored.actorUserId !== userId ||
@@ -119,11 +129,11 @@ async function admitCheckResponse<
       stored.ruleOccurrenceId !== occurrence.id ||
       stored.version !== response.expectedVersion + 1 ||
       stored.version > state.version ||
-      occurrence.state !== 'COMPLETED' ||
-      metadata.transition !== 'RESUME' ||
-      metadata.expectedAggregateVersion !== response.expectedVersion ||
-      metadata.expectedOccurrenceVersion !== response.expectedOccurrenceVersion ||
-      occurrence.version !== response.expectedOccurrenceVersion + 1
+      (metadata !== null &&
+        (metadata.transition !== 'RESUME' ||
+          metadata.expectedAggregateVersion !== response.expectedVersion ||
+          metadata.expectedOccurrenceVersion !== response.expectedOccurrenceVersion)) ||
+      occurrence.version < response.expectedOccurrenceVersion + 1
     )
       rejectDomain('COMMAND_ID_REUSED')
     return {
@@ -166,8 +176,8 @@ async function admitCheckResponse<
     response.resolution.requestId !== snapshot.request.requestId
   )
     rejectDomain('VERSION_STALE', 'The check changed; review it and answer again.')
-  if (response.resolution.kind !== 'ENTER_DICE' && response.resolution.kind !== 'SYSTEM_ROLL')
-    throw new Error('A check requires d20 evidence.')
+  if (!spec.takesResolution(response.resolution))
+    throw new Error('The check does not take this answer.')
   if (state.status !== 'ACTIVE') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   if (state.automationMode === 'MANUAL') rejectDomain('ASSISTED_ONLY')
   const pendingOccurrences = await ctx.db
@@ -196,7 +206,20 @@ export function readBasicActionCheckResponseAdmission(
   return admitCheckResponse(ctx, input, {
     readPending: readNativeBasicActionCheckPending,
     rollerActorId: (context) =>
-      context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ? context.helperActorId : context.actorId
+      context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ? context.helperActorId : context.actorId,
+    takesResolution: takesD20Evidence
+  })
+}
+
+/** Admits the roller's decision on a held die for a rolled basic action check's d20 window. */
+export function readD20WindowResponseAdmission(
+  ctx: EncounterReadTransaction,
+  input: CheckResponseInput
+) {
+  return admitCheckResponse(ctx, input, {
+    readPending: readNativeD20WindowPending,
+    rollerActorId: encounterD20WindowRollerActorId,
+    takesResolution: ({ kind }) => kind === 'D20_WINDOW_DECLINE' || kind === 'D20_WINDOW_USE'
   })
 }
 
@@ -207,6 +230,7 @@ export function readEscapeCheckResponseAdmission(
 ) {
   return admitCheckResponse(ctx, input, {
     readPending: readNativeEscapeCheckPending,
-    rollerActorId: (context) => context.actorId
+    rollerActorId: (context) => context.actorId,
+    takesResolution: takesD20Evidence
   })
 }

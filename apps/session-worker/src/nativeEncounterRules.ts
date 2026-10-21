@@ -36,6 +36,7 @@ import {
   isEncounterActorDefeated,
   isEncounterTargetDying
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { resolveCheckActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -122,8 +123,9 @@ import { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encou
 import type { EncounterOnHitSelection } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
   onHitCandidates,
+  onHitResourceConsumption,
   onHitSpellConsumption
-} from '@artificer-toolkit/rules-runtime/character/characterOnHitSlots'
+} from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
 import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
@@ -176,6 +178,7 @@ import {
   prepareNativeIncomingDamageGrantTriggers
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
+import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import {
   pendingSnapshotContinuation,
   restoreEncounterActionPending
@@ -649,6 +652,10 @@ export async function planNativeLiveEncounterAction(
               spentKeys: await readNativeLiveTurnUses(capture, input.actor.id)
             }
           : undefined,
+        // A repeat offer resolves against the effects every holder keeps now (D166).
+        repeat: parseRepeatPathActionId(input.actor.id, input.actionId)
+          ? { effectsByHolder: activeEffectsByActorId }
+          : undefined,
         system,
         spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
@@ -780,9 +787,23 @@ export async function planNativeLiveEncounterAction(
     }
   )
   refuseUnmetItemActionRequirements(prepared, state)
+  // A repeat runs against the creature that holds the offering effect, on the item that cast chose.
+  if (
+    prepared.source.kind === 'REPEAT_PATH' &&
+    prepared.target.id !== prepared.source.capability.holderActorId
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: TARGET_NOT_PERMITTED_MESSAGE
+    })
   // A Character action's item choice is known before it rolls; a Creature's plan follows its roll.
   const chosenItemInstanceId =
-    command.target.kind === 'ACTOR' ? command.target.boundItemInstanceId : undefined
+    prepared.source.kind === 'REPEAT_PATH'
+      ? prepared.source.boundItemInstanceId
+      : command.target.kind === 'ACTOR'
+        ? command.target.boundItemInstanceId
+        : undefined
   const chosenItemTarget = movementTargets.get(prepared.target.id)
   const chosenItemRefusal =
     prepared.source.kind === 'CHARACTER_ACTION' && chosenItemTarget
@@ -1284,18 +1305,22 @@ export async function planNativeLiveEncounterAction(
       adjustedBinding: applied?.adjustedBinding ?? prepared.binding
     }
   }
-  // The optional on-hit riders the attacker could pay for now: a Character's slots pay them, unless
-  // the action already spends one.
+  // The optional on-hit riders the attacker could pay for now: a Character's slots and resource pools
+  // pay them. An action that already spends a slot offers no slot rider, and one that already spends a
+  // pool offers no pool rider.
   const attackPlan = prepared.plan
   const onHitNow =
-    prepared.source.kind === 'CHARACTER_ACTION' &&
-    attackPlan.kind === 'TEST_OUTCOME' &&
-    !prepared.characterActionState?.spellConsumption
+    prepared.source.kind === 'CHARACTER_ACTION' && attackPlan.kind === 'TEST_OUTCOME'
       ? onHitCandidates({
-          riders: prepared.adapter.optionalOnHitRiders({
-            compilerSource: attackPlan.compilerSource
-          }),
-          spellSlots: prepared.source.effectivePolicyOutput.spellSlots
+          riders: prepared.adapter
+            .optionalOnHitRiders({ compilerSource: attackPlan.compilerSource })
+            .filter(({ cost }) =>
+              cost.kind === 'SPELL_SLOT'
+                ? !prepared.characterActionState?.spellConsumption
+                : !prepared.characterActionState?.resourceConsumption
+            ),
+          spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
+          resources: prepared.source.effectivePolicyOutput.resources
         })
       : []
   const answered = resistanceAnswer
@@ -1413,24 +1438,43 @@ export async function planNativeLiveEncounterAction(
           : null))
   if (execution.kind === 'PENDING')
     return { ...preflight(), kind: 'PENDING' as const, execution, failedCounters }
-  // The slot an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
+  // What an on-hit rider the attacker chose is paid with is spent with the outcome; the currentness
   // fence above was taken on the unspent attack.
   const chosenOnHit =
     answeredOnHit?.audit.option ??
     (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
+  const onHitSpend = (() => {
+    if (!chosenOnHit || prepared.source.kind !== 'CHARACTER_ACTION') return null
+    const { source } = prepared
+    if (chosenOnHit.kind === 'SPELL_SLOT')
+      return {
+        spellConsumption: onHitSpellConsumption({
+          spellSlots: source.effectivePolicyOutput.spellSlots,
+          slotLevel: chosenOnHit.slotLevel,
+          characterId: source.characterId,
+          expectedStreamVersion: source.characterStreamVersion
+        })
+      }
+    const { characterFacts } = prepared.sourceFacts
+    if (!characterFacts)
+      throw new StaleCharacterActionError('The selected Character action source is stale.')
+    return {
+      resourceConsumption: onHitResourceConsumption({
+        resources: source.effectivePolicyOutput.resources,
+        resourceUsage: characterFacts.sheetState.resourceUsage,
+        poolId: chosenOnHit.poolId,
+        cost: chosenOnHit.cost,
+        characterId: source.characterId,
+        expectedStreamVersion: source.characterStreamVersion,
+        automationMode: state.automationMode
+      })
+    }
+  })()
   const settledPrepared =
-    chosenOnHit && prepared.source.kind === 'CHARACTER_ACTION' && prepared.characterActionState
+    onHitSpend && prepared.characterActionState
       ? {
           ...prepared,
-          characterActionState: {
-            ...prepared.characterActionState,
-            spellConsumption: onHitSpellConsumption({
-              spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
-              slotLevel: chosenOnHit.slotLevel,
-              characterId: prepared.source.characterId,
-              expectedStreamVersion: prepared.source.characterStreamVersion
-            })
-          }
+          characterActionState: { ...prepared.characterActionState, ...onHitSpend }
         }
       : prepared
   const preparedEffects = prepareNativeActionEffectsPlan({
@@ -1794,7 +1838,8 @@ export async function planNativeLiveEncounterAction(
     settlement: retaliatedSettlement,
     capture,
     runtime: executionOptions.runtime,
-    random: executionOptions.random
+    random: executionOptions.random,
+    repeatSaves: { damagerActorId: command.actorId }
   })
   const nextFacts = buildEncounterActorRuleFacts({
     actors: concentration.actors

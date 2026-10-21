@@ -69,7 +69,8 @@ export async function persistEncounterMoveHeldEffect(
     effectsByHolder: await readActiveEffectsByActorId(ctx, state.id, actors),
     zeroHitPointActorIds: await readZeroHitPointActorIds(ctx, actors),
     effectId: command.effectId,
-    offerIndex: command.offerIndex
+    offerIndex: command.offerIndex,
+    kind: 'MOVE_HELD_EFFECT'
   })
   if (
     offer.holderActorId === target.id ||

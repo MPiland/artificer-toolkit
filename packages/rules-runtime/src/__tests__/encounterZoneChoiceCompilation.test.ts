@@ -6,7 +6,7 @@ import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.
 import { encounterActionChoiceTarget } from '../encounterAreaAction.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { chosenZonePlacement } from '../encounterZonePlacement.js'
-import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
+import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import {
   compileItemEntry,
   extraId,

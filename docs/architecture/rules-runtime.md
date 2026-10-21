@@ -86,6 +86,52 @@ asks the installed System for the Run's `gameSystemId` through `platformRulesRun
 registered by the System module (`systems/dnd5e/characterActionRuntime`). An unknown System fails
 closed.
 
+### SRD effect compile golden (current, RULES-2.T2)
+
+`packages/rules-runtime/src/__tests__/srdEffectCompileGolden.test.ts` compiles every authored SRD Effect, found by
+parsing nodes with the authored Effect schemas, through the entry point its owner uses in play, and compares one line
+per Effect with `__tests__/__golden__/srdEffectCompile.golden.txt`, sorted by Effect id: `<effect id> <owner kind>
+<owner label> | <outcome>`.
+
+- `CREATURE`: Creature action discovery (the Encounter's path), then `compileEncounterFeatureActionPlan`. An Effect
+  discovery does not list as an action reads `NOT_A_DISCOVERED_ACTION`. The checksum includes the Effect's real id.
+- `CHARACTER:<subject>`: a Character action descriptor over the compiled Effect, then
+  `compileExecutionPlan`, at Character level 20 and, for a spell, its own level. The Effect is compiled under the
+  descriptor's fixed id, so the checksum does not depend on the Effect's own id.
+- Outcome: `SINGLE_GRAPH <graph checksum> nodes=N outputs=M`, `TEST_OUTCOME test=<checksum> nodes=N outputs=M
+  outcomes=[<path>=<checksum>,...]` or `REFUSED <error name>: <message>`.
+- Scaling variants of a Character-owned Effect (`<id> @L1`, `@L5`, `@L11` at that Character level, `@U9` for a leveled
+  spell upcast to 9th level) appear only when their outcome differs from the base line. Most scaling is bound at
+  execution from facts, so few variants differ; a new one is a scaling change.
+
+Reading a diff: a changed checksum means the compiled graph for that Effect changed; changed `nodes`/`outputs` show
+its size; `SINGLE_GRAPH`/`TEST_OUTCOME` flipping is a plan-shape change; `REFUSED` or `NOT_A_DISCOVERED_ACTION`
+appearing or disappearing is a support change; a variant line appearing or vanishing is a scaling change. A refactor
+slice (RULES-2.T6a-f) must keep the file green. If a line must change, the slice's review explains every changed
+checksum and reseeds development data in the same change, because published graphs and frozen occurrences carry
+these checksums. Regenerate with `vitest run -u` on that test only. Passive Creature traits compiled by other
+adapter methods (zones, damage grants) are not covered.
+
+### Effect-action compiler module map (current, RULES-2.T6a)
+
+`systems/dnd5e/effectActionCompiler.ts` compiles an authored Effect and holds the adapter. Its operation registry and
+its runtime interpretation (the code that re-checks a committed graph's evidence and returns the applications) live in
+sibling modules. Imports run one way, down this list; no module imports the compiler, and none re-exports another's
+names.
+
+| Module                           | Owns                                                                                                                                               |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, forced-movement collision encoding, node-id helpers       |
+| `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                               |
+| `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                 |
+| `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module |
+| `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                    |
+
+All five are D&D 2014 policy (their keys, messages and facts name D&D), so they stay under `systems/dnd5e`. Nothing
+moved here is System-neutral yet; the neutral pieces (the generic proposal-operation factories, the interpretation
+dispatcher) are a later RULES-2 step once the compiler stops naming D&D facts. Each file stays under the 1,500-line
+budget, and the golden above gates every move.
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014. Reusable mechanics remain
@@ -160,7 +206,14 @@ the roller's `userProfiles.autoRollDice` preference: on records app-roll evidenc
 for entered dice. The roller is the actor whose roll it is; its assigned player's preference applies, else
 its first granted controller's, else the GM's (`readEncounterAutoRollByActorId`). Lifecycle functions take
 an `EncounterEvidenceMode` (`AUTO_ROLL | PROMPT | MANUAL`); answers arrive as `EncounterEvidenceAnswer`
-and only `resolveEncounterD20Answer` and `resolveEncounterIntegerAnswer` turn one into faces. D20
+and only `resolveEncounterD20Answer` and `resolveEncounterIntegerAnswer` turn one into faces.
+**One d20 test settlement (ADR 0039 decision 2, current).** `encounterD20Settlement.ts` owns it: a
+test freezes its roller facts with `freezeD20Context` (mode, contributors and their checksum, modifier,
+added dice and floor when present); `settleEncounterD20Answer` settles an answer against that context
+(faces, kept mode, added dice); `settleEncounterD20Test` resumes the test graph with the kept natural
+and the added dice's total and verifies the System-named `rawDie`, `addedTotal` and `total` output
+ports. Tests whose graph can pause again or is verified through its trace (action phases, target-bound
+effects) resume through `resumeEncounterD20` directly. D20
 evidence records both the chosen and the rules-derived roll mode, and pending summaries name the
 contributors behind the derived mode (`encounterRollModeReasons`, labeled for display by
 `rollModeReasons` in `packages/encounter-persistence`). **Typed contributor source (RELIABILITY-6.9,
@@ -391,6 +444,31 @@ raises each holder's effect as a `CASTER_CENTERED` area through the SYSTEM admis
 `AREA_PENDING` in that commit. The burst is centred on the defeated token's footprint and catches every
 actor in range, allies included, except the holder. It never recurses: the burst's own defeats raise nothing
 (deferred edge case in the SPELLS-33 workbook).
+
+### Passive effect at the start of the holder's turn (current, SPELLS-33.T4i1a)
+
+An authored Effect with invocation `{ kind: PASSIVE, triggerCode: START_OF_TURN }` is a creature trait that
+heals its holder as its turn begins (Oni and Shield Guardian Regeneration: a `HEAL` outcome behind a
+`TARGET_HIT_POINTS_AT_LEAST` result-block gate). Discovery lists it in `passiveStartOfTurnEffects`, never in
+`available`, and refuses any outcome but `HEAL` as unavailable with a clear reason. The gate compiles to the
+same hit-point band as `TARGET_HIT_POINTS_AT_MOST` (`hitPointGateBand`), so a gated heal is a version 2
+`dnd5e.heal-proposal` operation. After a START or ADVANCE_TURN commits, `raiseRoomStartOfTurnEffects`
+(`roomEncounterStartOfTurnTriggers.ts`) raises each effect of the creature whose turn began as a self-targeted
+`ACTOR` root (`systemTrigger.trigger: START_OF_TURN`), admitted by the SYSTEM admission when the parent is the
+turn command and the holder still has the turn. A player-submitted `RESOLVE_ACTION` that names the trait is refused,
+so it is never a free heal. Sunlight and running water are deferred edge cases.
+
+**Damage taken since the turn began (current, SPELLS-33.T4i1b1).** A creature or custom actor carries an optional
+`damageTypesSinceTurnStart: {damageTypeId, commandId}[]`. `withDamageTypesTaken`
+(`encounterDamageTypesSinceTurnStart.ts`) is the only place it grows: `planEncounterMechanicsBatch` calls it for
+every DAMAGE application with a resolved amount above 0, and every mechanics write (actions, areas, movement, turn
+and zone effects) lands through that plan. The record is keyed by the root `sourceCommandId`, so an action's undo
+removes exactly what it dealt (`revertDamageTypesTaken`). A START_OF_TURN root reads the record, then
+`clearHolderDamageTypes` empties it in the same commit and stores the cleared entries on the root's
+`clearedDamageTypes`, so damage dealt during the holder's own turn suppresses only the next trigger. The
+suppression gate that reads the record is the next slice (T4i1b2). A rule-raised START_OF_TURN root is not
+separately undoable today (its parent is the turn command), so the stored `clearedDamageTypes` is restored only once
+turn undo reverses it; turn commit and turn undo are unchanged.
 
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 
@@ -933,6 +1011,15 @@ saves, restores the consumed grants and keeps the roll on the record; it is refu
 (`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
+**d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20
+before the check settles. Two commands act on one occurrence: the d20 response pends a second `ENCOUNTER_D20_WINDOW`
+`KERNEL_EVIDENCE` snapshot (discriminated `source`, today `BASIC_ACTION_CHECK`; no rule receipt, version +1), then
+`D20_WINDOW_USE { requestId, optionId, faces? }` or `D20_WINDOW_DECLINE` resumes the System-owned bounded choice (index 0 declines),
+appends the die to the d20's `addedDice`, settles the check with the final total and ends the spending effect in the same transaction.
+A GM void of a window is refused. Options and their ids derive from the held grants and the roll's evidence checksum, so a homebrew
+die or trigger runs the same path. Rolled-die faces stay a d4 (`ROLLED_DIE_FACES`).
+(`packages/rules-runtime/src/encounterD20Window.ts`, `packages/encounter-persistence/src/basicActionCheckResponsePersistence.ts`).
+
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
 
@@ -1413,6 +1500,18 @@ A held effect's result block may carry `lifecycle.grantedActions` (generic autho
 - **Pick:** `MOVE_HELD_EFFECT` (`planNativeLiveMoveHeldEffect`): current actor, controlled, no pending occurrence; a stale offer is refused `SOURCE_REQUIREMENTS_NOT_MET`, a defeated or old-holder target `TARGET_UNAVAILABLE`. The new holder is held to the offer's range by `evaluateEncounterActionTargetPolicy` over `effectOfferTargetPolicy(range)` (any single creature within the distance; warnings, including `TARGET_RANGE_UNCHECKED` without a Scene, are acknowledged like the activation's through `spendNativeHolderActivation`'s `extraWarnings`).
 - **Commit:** `persistEncounterMoveHeldEffect` re-derives the offer from the stored effect and the Run's hit points (the room's plan is trusted only for economy and warnings), `deleteCas` with `removal: 'REMOVED'` (no `onEnd` follow-on, maintained state untouched), then `create` with the same id, definition, lifecycle (remaining ticks) and `maintainedEffectStateId` under the new owner. `requireDefinitionOwner` checks only ENCOUNTER-scope provenance, so a different owner in the same Encounter is accepted; the per-owner effect cap and the Concentration dependent cap are re-checked by `create`.
 
+#### Repeat offers: `REPEAT_SOURCE_PATH` (current, SPELLS-4.T2lb2a, D166)
+
+The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one of the spell's paths on the effect's holder (Heat Metal's repeated damage) without recasting.
+
+- **Authoring:** `{ kind: 'REPEAT_SOURCE_PATH', activation, pathIds, effect }`. The compiler keeps only the offer's `pathIds` in a copy of the authored Effect and sets its invocation activation to the offer's; the stored copy reuses `effectDtoSchema` (no parallel shape). Heat Metal authors it on a **carrier** path (`repeatCarrierPath`): an item-bound `APPLY_GRANT` with no modifiers that ends on `ON_CHOSEN_ITEM_RELEASED`, lasts the Concentration and is a maintained dependent of it. The 1-round disadvantage grant is unchanged.
+- **Frozen at cast:** `frozenRepeatOffer` (`encounterActionEffectPlans.ts`) rewrites the stored offer's save to `FIXED_DC` with the DC the cast settled (`d20.defenseOrDc`) and records the cast level as a sibling `castLevel` (D166 words it as converted rows; a sibling lets the compiler's own scaling rows select, with no second scaling path). The repeat therefore never reads the caster's stats or slots as they stand later.
+- **Action source:** `REPEAT_PATH` (`encounterRepeatPathAction.ts`), id `<actorId>:REPEAT_PATH:<carrierEffectId>:<offerIndex>`. `resolveEncounterActionSource` resolves it from the holder's live effects and compiles the offer's frozen Effect (`compileEffect` then `bindEncounterEffect`); a missing carrier or offer is stale. `featureActionMechanic` supplies `spellCastLevel`, the activation and `save.dc`, so the repeat runs the normal capability pipeline: no slot, no new Concentration.
+- **No new pending arm:** the repeat is an ordinary `RESOLVE_ACTION`; its `ENCOUNTER_ACTION` pending replays the command and the repeat id re-resolves from live effects at each replay.
+- **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
+- **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. `isSupportedTestActivation` allows a `BONUS_ACTION` saving throw (a repeat's charge).
+- **Node maps:** `LOCAL_COLLECTION` sources take `up` (ancestors, nearest first) so the offer's `pathIds` select from the path list several groups up.
+
 Initiative is application policy over typed rules evidence. Campaign settings select an allowed
 UUID-backed policy and tie resolver for future Encounters; admission freezes the exact policy and graph
 documents (System v3/v4 defaults, or a Campaign override whose sources the Campaign's Rules Catalogues
@@ -1633,8 +1732,11 @@ passive weapon-attack invocation is merged into the weapon's compiled effect lik
 any `reactionChoice` has resolved, the attacker's riders it can still pay for hold the occurrence with a sealed
 `onHitChoice` offer (a third sibling of `legendaryResistance` and `reactionChoice`, mutually exclusive with them,
 `ON_HIT_CHOICE` summary, the attacker's controller answers per D19). Option 0 is a decline; each other option pins
-a rider and a slot level. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
-spend rides in the attack's own character-mechanics batch with a spell-less receipt (`spellId` and `candidateId`
+a rider and the way it is paid: a slot level (`SPELL_SLOT`) or a resource pool and its cost (`RESOURCE_POOL`, authored as
+`optionalOnHit: { kind: 'RESOURCE_POOL', chargeId, cost }`, offered only while exactly one resolved pool carries
+`chargeId` and holds `cost`). The use option id hashes the hit and the way of paying, so a changed pool or cost is stale. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
+spend (or, for a pool, the `resourceConsumption` that `spendCharacterResource` also builds for an action's own
+`resourceUse`) rides in the attack's own character-mechanics batch with a spell-less receipt (`spellId` and `candidateId`
 are null together), so GM undo restores it. Nothing names a feature: the SRD Divine Smite and Improved Divine
 Smite (`source-data/srd/classes/paladin`) are authored from core options only. Improved Divine Smite has no
 `optionalOnHit`, so it is a mandatory rider.

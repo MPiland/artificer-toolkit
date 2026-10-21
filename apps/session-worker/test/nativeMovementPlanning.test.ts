@@ -500,7 +500,7 @@ describe('movement-triggered Concentration', () => {
 
     await room.move(walk)
 
-    expect(await resolvedReceipt(room, 'CONCENTRATION_CHECK')).toMatchObject({
+    expect(await resolvedReceipt(room, 'DAMAGE_SAVE_CHECK')).toMatchObject({
       result: {
         applicationOutputs: { outcome: 'SAVE_SUCCESS', d20: { selectedNatural: 20, dc: 10 } }
       }
@@ -512,7 +512,7 @@ describe('movement-triggered Concentration', () => {
 
     await room.move(walk)
 
-    expect(await resolvedReceipt(room, 'CONCENTRATION_CHECK')).toMatchObject({
+    expect(await resolvedReceipt(room, 'DAMAGE_SAVE_CHECK')).toMatchObject({
       result: {
         applicationOutputs: {
           outcome: 'SAVE_FAILURE',
@@ -541,8 +541,8 @@ describe('movement-triggered Concentration', () => {
     await room.move(walk)
 
     const receipts = await room.receipts()
-    expect(receipts.filter((entry) => entry.commandType === 'CONCENTRATION_CHECK')).toHaveLength(1)
-    expect(await resolvedReceipt(room, 'CONCENTRATION_CHECK')).toMatchObject({
+    expect(receipts.filter((entry) => entry.commandType === 'DAMAGE_SAVE_CHECK')).toHaveLength(1)
+    expect(await resolvedReceipt(room, 'DAMAGE_SAVE_CHECK')).toMatchObject({
       result: {
         applicationOutputs: {
           outcome: 'SAVE_FAILURE',
@@ -590,7 +590,7 @@ describe('movement-triggered Concentration held by a Creature', () => {
 
     await room.move(walk)
 
-    expect(await resolvedReceipt(room, 'CONCENTRATION_CHECK')).toMatchObject({
+    expect(await resolvedReceipt(room, 'DAMAGE_SAVE_CHECK')).toMatchObject({
       result: {
         applicationOutputs: {
           outcome: 'SAVE_SUCCESS',
@@ -606,7 +606,7 @@ describe('movement-triggered Concentration held by a Creature', () => {
 
     await room.move(walk)
 
-    expect(await resolvedReceipt(room, 'CONCENTRATION_CHECK')).toMatchObject({
+    expect(await resolvedReceipt(room, 'DAMAGE_SAVE_CHECK')).toMatchObject({
       result: {
         applicationOutputs: {
           outcome: 'SAVE_FAILURE',

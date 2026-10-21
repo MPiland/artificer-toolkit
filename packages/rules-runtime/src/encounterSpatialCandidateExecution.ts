@@ -8,10 +8,9 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
-import { resolveEncounterAddedDice } from './encounterD20AddedDice.js'
+import { settleEncounterD20Answer } from './encounterD20Settlement.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import {
-  resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
   type EncounterD20RollMode
 } from './encounterEvidenceAnswer.js'
@@ -303,21 +302,17 @@ export async function settleAutomaticSpatialEvidence(input: {
     input.autoRoll[input.candidate.targetActorId] === true
   ) {
     const answer = { kind: 'AUTO_ROLL' as const, requestId: result.continuation.request.requestId }
-    const { faces, rollMode } = resolveEncounterD20Answer({
-      derivedRollMode: result.evidencePolicy.rollMode,
+    const { rawFaces, rollMode, addedDice } = settleEncounterD20Answer({
+      d20: result.evidencePolicy,
       answer,
-      rollD20: () => random(20) + 1
-    })
-    const addedDice = resolveEncounterAddedDice({
-      dice: result.evidencePolicy.addedDice ?? [],
-      answer,
+      rollD20: () => random(20) + 1,
       random
     })
-    d20 = { rollMode, rawFaces: faces, addedDice }
+    d20 = { rollMode, rawFaces, addedDice }
     result = await resumeTargetBoundActiveRuleEffectWithPause({
       ...effectInput,
       continuation: result.continuation,
-      resolution: { requestId: answer.requestId, rawFaces: faces, rollMode, addedDice },
+      resolution: { requestId: answer.requestId, ...d20 },
       expectedEvidencePolicy: result.evidencePolicy
     })
   }

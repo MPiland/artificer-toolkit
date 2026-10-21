@@ -1,5 +1,4 @@
 import {
-  d20AddedDiceTotal,
   type D20AddedDieDto,
   type D20RolledAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
@@ -26,13 +25,14 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterStabilizeOutcomeApplication } from './characterRuleActionSystemAdapter.js'
 import { isEncounterTargetDying } from './encounterActorDefeat.js'
-import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import {
+  freezeD20Context,
+  settleEncounterD20Answer,
+  settleEncounterD20Test
+} from './encounterD20Settlement.js'
 import { effectsEndedBy } from './encounterGrantLifetimes.js'
 import { EncounterValidationError } from './encounterErrors.js'
-import {
-  resolveEncounterD20Answer,
-  type EncounterEvidenceAnswer
-} from './encounterEvidenceAnswer.js'
+import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import { actorContestFacts, checkAbilityCode } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
@@ -144,14 +144,7 @@ export function prepareEncounterBasicActionCheck<
         label: input.checkLabel,
         dc: input.check.dc
       },
-      d20: {
-        rollMode: facts.rollMode,
-        contributors: facts.contributors,
-        contributorChecksum: checksumRuleDocument(facts.contributors),
-        modifier: facts.modifier,
-        ...(facts.addedDice.length > 0 && { addedDice: facts.addedDice }),
-        ...(facts.minimumRoll && { minimumRoll: facts.minimumRoll })
-      },
+      d20: freezeD20Context({ ...facts, modifier: facts.modifier }),
       consumedGrants: effectsEndedBy(helper.activeEffects, {
         event: 'ON_ABILITY_CHECK',
         abilityCode: checkAbilityCode(
@@ -218,6 +211,7 @@ export function encounterBasicActionCheckPendingSnapshot(input: {
 /**
  * Whether a settled check's d20 is the frozen check's: its modifier, mode, contributors, added dice
  * and floor are the ones frozen, and its total counts them (the kept face raised to the floor).
+ * `windowDice` are the after-roll dice the roller spent in a d20 window: they follow the frozen dice.
  */
 export function settledCheckD20MatchesFrozen(
   settled: {
@@ -229,7 +223,8 @@ export function settledCheckD20MatchesFrozen(
     addedDice?: readonly D20RolledAddedDieDto[]
     minimumRoll?: D20MinimumRollDto
   },
-  frozen: EncounterD20CheckContext['d20']
+  frozen: EncounterD20CheckContext['d20'],
+  windowDice: readonly Pick<D20AddedDieDto, 'label' | 'count' | 'faces' | 'sign'>[] = []
 ): boolean {
   const dice = (list: readonly Pick<D20AddedDieDto, 'label' | 'count' | 'faces' | 'sign'>[] = []) =>
     list.map(({ label, count, faces, sign }) => ({ label, count, faces, sign }))
@@ -238,7 +233,7 @@ export function settledCheckD20MatchesFrozen(
     settled.derivedRollMode === frozen.rollMode &&
     settled.contributorChecksum === frozen.contributorChecksum &&
     checksumRuleDocument(dice(settled.addedDice)) ===
-      checksumRuleDocument(dice(frozen.addedDice)) &&
+      checksumRuleDocument(dice([...(frozen.addedDice ?? []), ...windowDice])) &&
     checksumRuleDocument(settled.minimumRoll ?? null) ===
       checksumRuleDocument(frozen.minimumRoll ?? null) &&
     settled.total === d20CheckTotal(settled)
@@ -263,44 +258,36 @@ export async function rollEncounterCheck(input: {
     continuation.occurrenceId !== input.expectedOccurrenceId
   )
     throw new EncounterValidationError('The basic action check evidence is stale.')
-  const resolved = resolveEncounterD20Answer({
-    derivedRollMode: context.d20.rollMode,
+  const roll = settleEncounterD20Answer({
+    d20: context.d20,
     answer,
-    rollD20: input.rollD20
-  })
-  const addedDice = resolveEncounterAddedDice({
-    dice: context.d20.addedDice ?? [],
-    answer,
+    rollD20: input.rollD20,
     random:
       input.random ??
       (() => {
         throw new EncounterValidationError('This check cannot roll added dice.')
       })
   })
-  const execution = await resumeEncounterD20({
+  const { addedDice } = roll
+  const execution = await settleEncounterD20Test({
     continuation,
-    natural: resolved.natural,
-    addedDice,
-    resume: (step) => input.runtime.resume(step)
+    roll,
+    resume: (step) => input.runtime.resume(step),
+    outputs: { rawDie: 'rawDie', addedTotal: 'addedTotal' },
+    refusal: () =>
+      new EncounterValidationError('The basic action check requested more than its dice.')
   })
-  const addedTotal = d20AddedDiceTotal(addedDice)
-  if (
-    execution.status !== 'COMPLETE' ||
-    execution.outputs.rawDie !== resolved.natural ||
-    execution.outputs.addedTotal !== addedTotal
-  )
-    throw new EncounterValidationError('The basic action check requested more than its dice.')
   return {
     execution,
     d20: {
       requestId: continuation.request.requestId,
-      rollMode: resolved.rollMode,
+      rollMode: roll.rollMode,
       derivedRollMode: context.d20.rollMode,
-      rawFaces: resolved.faces,
-      selectedNatural: resolved.natural,
+      rawFaces: roll.rawFaces,
+      selectedNatural: roll.natural,
       modifier: context.d20.modifier,
       total: d20CheckTotal({
-        selectedNatural: resolved.natural,
+        selectedNatural: roll.natural,
         modifier: context.d20.modifier,
         addedDice,
         minimumRoll: context.d20.minimumRoll
@@ -313,16 +300,26 @@ export async function rollEncounterCheck(input: {
   }
 }
 
+/** Sets a rolled d20 against the check's DC. */
+export function evaluateRolledEncounterBasicActionCheck(
+  rolled: Awaited<ReturnType<typeof rollEncounterCheck>>,
+  dc: number
+) {
+  return {
+    execution: rolled.execution,
+    d20: { ...rolled.d20, dc },
+    reachesDc: rolled.d20.total >= dc
+  }
+}
+
 /** Rolls the frozen check against its DC: the natural d20 plus the helper's modifier. */
 export async function evaluateEncounterBasicActionCheck(
   input: Parameters<typeof rollEncounterCheck>[0] & { context: EncounterD20CheckContext }
 ) {
-  const { execution, d20 } = await rollEncounterCheck(input)
-  return {
-    execution,
-    d20: { ...d20, dc: input.context.check.dc },
-    reachesDc: d20.total >= input.context.check.dc
-  }
+  return evaluateRolledEncounterBasicActionCheck(
+    await rollEncounterCheck(input),
+    input.context.check.dc
+  )
 }
 
 /**

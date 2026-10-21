@@ -795,7 +795,8 @@ describe('rules runtime contracts', () => {
       damageTypeId: turnBatchIds.condition
     }
     const pending = {
-      kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' as const,
+      kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK' as const,
+      source: 'CONCENTRATION' as const,
       schemaVersion: 1 as const,
       parentOccurrenceId: turnBatchIds.occurrence,
       parentCommandFingerprint: 'a'.repeat(64),
@@ -835,8 +836,47 @@ describe('rules runtime contracts', () => {
       remaining: []
     }
     expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject({
-      kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'
+      kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK'
     })
+    const {
+      maintainedState: _maintainedState,
+      concentrationDefinition: _concentrationDefinition,
+      save: _save,
+      ...common
+    } = pending
+    const effectPending = {
+      ...common,
+      source: 'EFFECT_REPEAT_SAVE' as const,
+      repeatSaveDamagerActorId: turnBatchIds.actor,
+      activeEffect: {
+        id: '00000000-0000-4000-8000-000000000308',
+        version: 1,
+        lifecycleChecksum: '5'.repeat(64)
+      },
+      rollInfluence: 'ADVANTAGE' as const,
+      d20Policy: {
+        requestNodeId: 'save',
+        rollMode: 'NORMAL' as const,
+        contributors: [],
+        contributorChecksum: 'e'.repeat(64),
+        modifier: 0,
+        dc: 13,
+        savingThrowAbilityDefinitionId: '00000000-0000-0000-0011-000300000000'
+      }
+    }
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse(effectPending)
+    ).toMatchObject({
+      kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK',
+      source: 'EFFECT_REPEAT_SAVE',
+      rollInfluence: 'ADVANTAGE'
+    })
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...effectPending,
+        maintainedState: pending.maintainedState
+      })
+    ).toThrow()
     const turnRemaining = [9999, 10000].map((ordinal) => ({
       ...application,
       ordinal,
@@ -868,7 +908,8 @@ describe('rules runtime contracts', () => {
     ).toThrow()
     expect(
       serverRuleExecutionApplicationOutputsDtoSchema.parse({
-        kind: 'CONCENTRATION_CHECK',
+        kind: 'DAMAGE_SAVE_CHECK',
+        source: 'CONCENTRATION',
         schemaVersion: 1,
         occurrenceId: '00000000-0000-4000-8000-000000000306',
         parentOccurrenceId: turnBatchIds.occurrence,
@@ -896,7 +937,7 @@ describe('rules runtime contracts', () => {
         nextOccurrenceId: null,
         skipped: []
       })
-    ).toMatchObject({ kind: 'CONCENTRATION_CHECK', outcome: 'SAVE_SUCCESS' })
+    ).toMatchObject({ kind: 'DAMAGE_SAVE_CHECK', outcome: 'SAVE_SUCCESS' })
     const canonicalContributors = [
       {
         sourceId: 'Z!',
@@ -932,7 +973,7 @@ describe('rules runtime contracts', () => {
         ...pending,
         save: { ...pending.save, contributors: canonicalContributors }
       })
-    ).toMatchObject({ kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' })
+    ).toMatchObject({ kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK' })
     expect(() =>
       serverRuleExecutionPendingApplicationContextDtoSchema.parse({
         ...pending,
@@ -950,7 +991,8 @@ describe('rules runtime contracts', () => {
     ).toThrow('canonical order')
     expect(() =>
       serverRuleExecutionApplicationOutputsDtoSchema.parse({
-        kind: 'CONCENTRATION_CHECK',
+        kind: 'DAMAGE_SAVE_CHECK',
+        source: 'CONCENTRATION',
         schemaVersion: 1,
         occurrenceId: '00000000-0000-4000-8000-000000000306',
         parentOccurrenceId: turnBatchIds.occurrence,
@@ -981,7 +1023,8 @@ describe('rules runtime contracts', () => {
     ).toThrow()
     expect(() =>
       serverRuleExecutionApplicationOutputsDtoSchema.parse({
-        kind: 'CONCENTRATION_CHECK',
+        kind: 'DAMAGE_SAVE_CHECK',
+        source: 'CONCENTRATION',
         schemaVersion: 1,
         occurrenceId: '00000000-0000-4000-8000-000000000306',
         parentOccurrenceId: turnBatchIds.occurrence,

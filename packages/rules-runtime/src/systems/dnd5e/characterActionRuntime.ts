@@ -27,6 +27,7 @@ import {
   dnd5eStabilizeProposalOperation,
   dnd5eKillProposalOperation,
   dnd5eHitPointGatedConditionApplyProposalOperation,
+  dnd5eHitPointGatedHealProposalOperation,
   dnd5eHitPointGatedKillProposalOperation,
   dnd5eDepartProposalOperation,
   dnd5eTeleportAllowanceProposalOperation,
@@ -38,7 +39,7 @@ import {
   dnd5eTestHealProposalOperation,
   dnd5eTestTemporaryHitPointsProposalOperation,
   dnd5eMovementInterruptionAuthorizationOperation
-} from './effectActionCompiler.js'
+} from './effectActionOperationRegistry.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import { dnd5eConcentrationDamageDcOperation } from './concentrationPolicy.js'
@@ -70,6 +71,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eStabilizeProposalOperation,
     dnd5eKillProposalOperation,
     dnd5eHitPointGatedConditionApplyProposalOperation,
+    dnd5eHitPointGatedHealProposalOperation,
     dnd5eHitPointGatedKillProposalOperation,
     dnd5eDepartProposalOperation,
     dnd5eModifierGrantProposalOperation,

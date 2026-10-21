@@ -707,21 +707,21 @@ describe('a Rage made on the Barbarian’s own turn', () => {
       grantsEndedByHolderState([record], {
         reason: null,
         conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
-        heldItemInstanceIds: []
+        itemInstanceIdsOnActor: []
       }).map(({ id }) => id)
     ).toEqual([record.id])
     expect(
       grantsEndedByHolderState([record], {
         reason: 'INCAPACITATED',
         conditionIds: [stunned],
-        heldItemInstanceIds: []
+        itemInstanceIdsOnActor: []
       })
     ).toEqual([])
     expect(
       grantsEndedByHolderState([record], {
         reason: 'DEFEATED',
         conditionIds: [],
-        heldItemInstanceIds: []
+        itemInstanceIdsOnActor: []
       })
     ).toEqual([])
   })
@@ -731,7 +731,7 @@ describe('a Rage made on the Barbarian’s own turn', () => {
       grantsEndedByHolderState([record], {
         reason: 'DEFEATED',
         conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
-        heldItemInstanceIds: []
+        itemInstanceIdsOnActor: []
       })
     ).toEqual([])
   })
@@ -851,7 +851,7 @@ describe('a grant that ends on incapacitation', () => {
         grantsEndedByHolderState([incapacitation], {
           reason,
           conditionIds: [],
-          heldItemInstanceIds: []
+          itemInstanceIdsOnActor: []
         }).map(({ id }) => id)
       ).toEqual([incapacitation.id])
     }
@@ -862,7 +862,7 @@ describe('a grant that ends on incapacitation', () => {
       grantsEndedByHolderState([incapacitation], {
         reason,
         conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
-        heldItemInstanceIds: []
+        itemInstanceIdsOnActor: []
       })
     ).toEqual([])
   })
@@ -887,7 +887,7 @@ describe('a grant that ends when its source is incapacitated (Knight Leadership)
       grantsEndedByHolderState(dice, {
         reason: 'DEFEATED',
         conditionIds: [],
-        heldItemInstanceIds: []
+        itemInstanceIdsOnActor: []
       })
     ).toEqual([])
   })
@@ -939,10 +939,12 @@ describe('a grant bound to an item that ends when it is let go (SPELLS-4.T2e)', 
       }
     }
   }
-  const ended = (record: ActiveRuleEffectRecord, heldItemInstanceIds: string[]) =>
-    grantsEndedByHolderState([record], { reason: null, conditionIds: [], heldItemInstanceIds }).map(
-      ({ id }) => id
-    )
+  const ended = (record: ActiveRuleEffectRecord, itemInstanceIdsOnActor: string[]) =>
+    grantsEndedByHolderState([record], {
+      reason: null,
+      conditionIds: [],
+      itemInstanceIdsOnActor
+    }).map(({ id }) => id)
 
   it('ends when no hand of its holder holds the bound item', () => {
     const record = bound(['ON_CHOSEN_ITEM_RELEASED'])

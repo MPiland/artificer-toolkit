@@ -9,18 +9,13 @@ import {
   serverPublishedRuleDefinitionDtoSchema,
   type ServerPublishedRuleDefinitionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
-import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
-import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
   attackKindSchema,
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
 } from '@artificer-toolkit/schema/shared/enums'
 import { zoneMovementCostMultiplierSchema } from '@artificer-toolkit/schema/shared/spatial'
-import {
-  hitPointMaximumReductionRecoveryTagsSchema,
-  type HitPointMaximumReductionRecoveryTag
-} from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
+import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
   compileConditionEffect,
@@ -42,13 +37,8 @@ import type {
   FollowUpSaveRepeatTriggerAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
-  RULE_VALUE_KIND,
   addNumbersRuleOperation,
-  addedDiceTotalEvidenceRuleOperation,
   compareThresholdRuleOperation,
-  type GameSystemRuleCapabilityContract,
-  type ProposalRuleOperationContract,
-  type PureRuleOperationContract,
   type CompiledRuleGraph,
   type RuleGraphDefinition,
   type RuleInputBinding,
@@ -66,15 +56,11 @@ import {
 import type { EffectActionCapabilityDescriptor } from '../../characterActionCapabilityDiscovery.js'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
-  CharacterRuleActionApplication,
   CharacterRuleActionSystemAdapter,
   CharacterRuleActionActiveEffectPlan,
-  CharacterRuleActionConditionOutcomeRules,
   CharacterRuleActionPositionalFacts,
   CharacterRuleActionZoneChoicePlan,
-  CharacterRuleActionZonePlacementPlan,
-  CharacterRuleActionSpatialDirective,
-  CharacterRuleActionForcedMovementDirection as ForcedMovementDirection
+  CharacterRuleActionZonePlacementPlan
 } from '../../characterRuleActionSystemAdapter.js'
 import type {
   ActiveEffectEndTrigger,
@@ -100,11 +86,10 @@ import {
 } from '../../encounterAreaAction.js'
 import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
+  hitPointGateBand as authoredHitPointGateBand,
   hitPointTierCeilings,
   hitPointTierFloor,
-  NO_HIT_POINT_FLOOR,
-  selectHitPointTier,
-  withinHitPointBand
+  selectHitPointTier
 } from '../../hitPointTiers.js'
 import {
   passiveMeleeRetaliationZone,
@@ -114,18 +99,6 @@ import {
   type PlacedSpaceZone
 } from '../../encounterZonePlacement.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
-import {
-  BASIC_ACTION_DEFINITION_FAMILY_KEY,
-  CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
-  RULE_MAINTENANCE_DEFINITION_FAMILY_KEY,
-  RULE_CAPABILITY_DEFINITION_FAMILY_KEY,
-  SENSE_DEFINITION_FAMILY_KEY
-} from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
-import {
-  REACTION_CHOICE_MAX_FACT_KEY,
-  REACTION_CHOICE_MIN_FACT_KEY,
-  REACTION_CHOICE_OPERATION_KEY
-} from '../../reactionChoiceDefinition.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
 import {
   attackRestrictionsMet,
@@ -140,13 +113,7 @@ import {
   DND5E_POISONED_CONDITION_DEFINITION_ID
 } from './identity.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
-import {
-  dnd5eAddedDiceFactContracts,
-  dnd5eAddedDiceFacts,
-  dnd5eAddedDiceNode,
-  derivedAddedDice,
-  requireDnd5eAddedDiceTotal
-} from './d20AddedDiceGraph.js'
+import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode, derivedAddedDice } from './d20AddedDiceGraph.js'
 import {
   damageAddedDiceDtoSchema,
   damageAddedDieNodePrefix,
@@ -156,14 +123,7 @@ import {
   attackCriticalRulesDtoSchema,
   DEFAULT_CRITICAL_HIT_THRESHOLD
 } from '@artificer-toolkit/schema/shared/attackCriticalRules'
-import { dnd5eConcentrationCapabilityContribution } from './concentrationPolicy.js'
-import { dnd5eEncounterLifecycleCapabilityContribution } from './encounterLifecyclePolicy.js'
-import { dnd5eInitiativeCapabilityContribution } from './initiativeFactAdapter.js'
-import {
-  createDnd5eContestGraph,
-  dnd5eOptionalCombatContestCapabilityContribution
-} from './optionalCombatContestGraph.js'
-import { dnd5eReactionEligibilityCapabilityContribution } from './reactionEligibilityPolicy.js'
+import { createDnd5eContestGraph } from './optionalCombatContestGraph.js'
 import {
   resolveDnd5eFlankingContributor,
   resolveDnd5eFlankingParticipantCapabilityDefinitionIds
@@ -174,156 +134,108 @@ import {
 } from './dnd5eTestOperationKeys.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
 import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllowance.js'
-import {
-  isTeleportAllowanceDestinationKind,
-  type TeleportAllowanceDestinationKind
-} from '@artificer-toolkit/shared/vtt/teleportAllowanceDestinationKind'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
+import {
+  DND5E_EFFECT_ACTION_FAMILY_KEY,
+  DND5E_HEAL_PROPOSAL_OPERATION_KEY,
+  DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
+  DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+  DND5E_KILL_PROPOSAL_OPERATION_KEY,
+  DND5E_DEPART_PROPOSAL_OPERATION_KEY,
+  DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
+  DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
+  DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
+  DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
+  DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
+  DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
+  DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
+  DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
+  DND5E_DAMAGE_TOTAL_OPERATION_KEY,
+  DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
+  DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
+  DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
+  DND5E_HEAL_TOTAL_OPERATION_KEY,
+  DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
+  DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
+  DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
+  DND5E_CONDITION_DURATION_OPERATION_KEY,
+  DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+  DND5E_TARGET_ACTOR_FACT_KEY,
+  DND5E_ATTACK_MODIFIER_FACT_KEY,
+  DND5E_TARGET_DEFENSE_FACT_KEY,
+  DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_DC_FACT_KEY,
+  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY,
+  DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
+  DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
+  DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
+  DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
+  DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
+  DND5E_CONDITION_IMMUNE_FACT_KEYS,
+  MAX_CONDITIONS_PER_PATH,
+  conditionImmuneFactKey,
+  DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS,
+  DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
+  DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
+  DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
+  DND5E_SPELL_CAST_LEVEL_FACT_KEY,
+  DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY,
+  DND5E_CLASS_LEVELS_FACT_KEY,
+  DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
+  DND5E_TARGET_CREATURE_TYPE_FACT_KEY,
+  DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY,
+  DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
+  DND5E_ATTACK_TURN_USES_FACT_KEY,
+  DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
+  DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
+  DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
+  DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
+  DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
+  DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
+  DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
+  UUID,
+  Dnd5eEffectActionCompilerError,
+  type Outcome,
+  type EntryDiceDamageOutcome,
+  CONDITION_PROPOSAL_SUFFIX,
+  entryDamagePrefix,
+  type TestKind,
+  type SpecializedPath,
+  isSpecializedPath,
+  isUuid,
+  uuid,
+  unsupported,
+  multipliedDamageAmount,
+  COLLISION_DICE_CONFIG,
+  NESTED_SAVE_MARGIN_NODE_ID,
+  nestedSaveRiderConditionNodeId
+} from './effectActionContracts.js'
+import { repeatSaveConditionIds, conditionImmunityFacts } from './effectActionEvidenceChecks.js'
+import {
+  hitPointMaximumReductionProposalNode,
+  forcedMovementProposalNode,
+  dnd5eSaveOutcomeRule,
+  testContractVersion,
+  dnd5eTestMarginConditionProposalOperation
+} from './effectActionOperationRegistry.js'
+import {
+  testApplications,
+  interpretDirect,
+  interpret,
+  interpretSpatial
+} from './effectActionInterpretation.js'
+import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
 
-export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
-const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
-const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-points-proposal'
-export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
-export const DND5E_KILL_PROPOSAL_OPERATION_KEY = 'dnd5e.kill-proposal'
-export const DND5E_DEPART_PROPOSAL_OPERATION_KEY = 'dnd5e.depart-proposal'
-const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
-const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
-const DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY = 'dnd5e.creature-form-proposal'
-const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
-export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
-export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
-export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
-const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
-  'dnd5e.hit-point-maximum-reduction-proposal'
-const DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.scalar-reduction-proposal'
-export const DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY = 'dnd5e.forced-movement-proposal'
-const DND5E_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.damage-total'
-const DND5E_DAMAGE_REDUCTION_OPERATION_KEY = 'dnd5e.damage-reduction'
-const DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.save-damage-total'
-const DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY = 'dnd5e.damage-multiplier'
-const DND5E_HEAL_TOTAL_OPERATION_KEY = 'dnd5e.heal-total'
-export const DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY = 'dnd5e.condition-apply-proposal'
-const DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY =
-  'dnd5e.movement-interruption-authorization'
-const DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY = 'dnd5e.actor-relationship-state'
-const DND5E_CONDITION_DURATION_OPERATION_KEY = 'dnd5e.condition-duration'
-const DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION = 1
-export const DND5E_TARGET_ACTOR_FACT_KEY = 'encounter.target-actor-id'
-const DND5E_ATTACK_MODIFIER_FACT_KEY = 'dnd5e.attack-modifier'
-const DND5E_TARGET_DEFENSE_FACT_KEY = 'dnd5e.target-defense'
-export const DND5E_SAVE_MODIFIER_FACT_KEY = 'dnd5e.save-modifier'
-export const DND5E_SAVE_DC_FACT_KEY = 'dnd5e.save-dc'
-export const DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY = 'dnd5e.roll-contributor-checksum'
-/** The target's condition test-outcome rule (D94): `NONE`, `SAVE_AUTO_FAIL` or `HIT_IS_CRITICAL`. */
-export const DND5E_TEST_OUTCOME_RULE_FACT_KEY = 'dnd5e.test-outcome-rule'
-/** The lowest natural d20 that scores a critical hit with this attack: 20 unless a grant lowers it. */
-export const DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY = 'dnd5e.attack-critical-threshold'
-/** The extra rolls of the attack's own damage die a critical hit adds (Brutal Critical); absent for none. */
-const DND5E_CRITICAL_EXTRA_DICE_FACT_KEY = 'dnd5e.critical-extra-dice'
-export const DND5E_TARGET_STATE_CHECKSUM_FACT_KEY = 'dnd5e.target-state-checksum'
-export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-immune'
-/**
- * The target's current hit points when the action resolves. A hit-point gate reads it; the gated
- * proposal checks it against the gate's band (`hitPointsAbove` and `hitPointsAtMost` literals), and
- * a tiered save selects its tier by it when the outcome is specialized.
- */
-export const DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY = 'dnd5e.target-current-hit-points'
-const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
-  ON_USE: 'dnd5e.target-condition-immune.on-use',
-  ON_HIT: 'dnd5e.target-condition-immune.on-hit',
-  ON_MISS: 'dnd5e.target-condition-immune.on-miss',
-  ON_CRIT: 'dnd5e.target-condition-immune.on-crit',
-  ON_SAVE_FAIL: 'dnd5e.target-condition-immune.on-save-fail',
-  ON_SAVE_SUCCESS: 'dnd5e.target-condition-immune.on-save-success',
-  ON_CHECK_SUCCESS: 'dnd5e.target-condition-immune.on-check-success'
-} as const
-/**
- * A result path may apply several conditions ("grappled, and restrained until the grapple ends"),
- * each with its own immunity fact: the path's key for the first, `<key>.<n>` for the n-th.
- */
-const MAX_CONDITIONS_PER_PATH = 4
-function conditionImmuneFactKey(pathCode: string, ordinal: number): string | undefined {
-  const key =
-    DND5E_CONDITION_IMMUNE_FACT_KEYS[pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS]
-  if (!key || !Number.isSafeInteger(ordinal) || ordinal < 1 || ordinal > MAX_CONDITIONS_PER_PATH)
-    return undefined
-  return ordinal === 1 ? key : `${key}.${ordinal}`
-}
-/** Whether a condition node's immunity fact is one of its result path's keys. */
-function isPathConditionImmuneFactKey(factKey: string, pathCode: string): boolean {
-  return Array.from({ length: MAX_CONDITIONS_PER_PATH }, (_, index) =>
-    conditionImmuneFactKey(pathCode, index + 1)
-  ).includes(factKey)
-}
-export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
-  ON_USE: 'dnd5e.resolved-damage-expression.on-use',
-  ON_HIT: 'dnd5e.resolved-damage-expression.on-hit',
-  ON_MISS: 'dnd5e.resolved-damage-expression.on-miss',
-  ON_CRIT: 'dnd5e.resolved-damage-expression.on-crit',
-  ON_SAVE_FAIL: 'dnd5e.resolved-damage-expression.on-save-fail',
-  ON_SAVE_SUCCESS: 'dnd5e.resolved-damage-expression.on-save-success',
-  ON_CHECK_SUCCESS: 'dnd5e.resolved-damage-expression.on-check-success'
-} as const satisfies Record<SpecializedPath, string>
-const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
-  'dnd5e.resolved-damage-outcome-expressions'
-const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
-/** The amount a recurring heal with an ability bonus gives each turn, settled at cast (D156). */
-const DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY = 'dnd5e.recurring-heal-amount'
-/** The level a spell is cast at, which selects its authored per-level scaling. */
-export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
-/**
- * The optional on-hit riders the player chose for this attack (a JSON array of sorted rider effect
- * ids): an optional rider's merged entries resolve only when their rider is listed (D123).
- */
-export const DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY = 'dnd5e.selected-optional-riders'
-/** The actor's level in each class (a JSON object by class id), which selects CLASS_LEVEL rows. */
-const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
-/** The die faces a grant set for the weapon's damage; its authored dice roll that die instead. */
-const DND5E_WEAPON_DAMAGE_DIE_FACT_KEY = 'dnd5e.weapon-damage-die'
-/** The attacked creature's type, which a path restriction reads when its outcome specializes. */
-const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
-/** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
-const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
-/** How far the attacker's latest move closed on the target (a JSON object); absent when no Scene measured it. */
-const DND5E_ATTACK_MOVE_TOWARD_FACT_KEY = 'dnd5e.attack-move-toward'
-/** The once-per-turn uses already spent this turn (a JSON array of usage keys); absent when no record was read. */
-const DND5E_ATTACK_TURN_USES_FACT_KEY = 'dnd5e.attack-turn-uses'
-/** The dice active grants add to, or take from, this source's damage to this target (D156). */
-const DND5E_DAMAGE_ADDED_DICE_FACT_KEY = 'dnd5e.damage-added-dice'
-export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
-  'dnd5e.active-effect-save-ability-definition-id'
-export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
-  'dnd5e.active-effect-save-request-node-id'
-/**
- * The conditions a repeat save holds, as one comma-separated list (adapter facts are scalar). The ids
- * are authored identifiers (UUIDs), which cannot contain a comma.
- */
-const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY =
-  'dnd5e.active-effect-repeat-save-condition-ids'
-/** The condition a failed repeat save leaves in place of the held one ("restrained, then petrified"). */
-const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY =
-  'dnd5e.active-effect-repeat-save-escalation-condition-id'
-const DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY = 'dnd5e.active-effect-timed-condition'
-const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY =
-  'dnd5e.active-effect-repeat-save-roll-influence'
-const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY =
-  'dnd5e.active-effect-repeat-save-perception-requirement'
-/** The damage type whose immunity makes the target succeed on this effect's save unrolled. */
-const DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY =
-  'dnd5e.active-effect-save-success-immunity-damage-type-id'
-/** Whether a repeat save is attempted when its perception requirement is met or unmet. */
-const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY =
-  'dnd5e.active-effect-repeat-save-attempt-gate'
-/** Whether this turn's repeat save is attempted; false settles the gated d20 without a request. */
-const DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY = 'dnd5e.repeat-save-attempt-allowed'
-export { DND5E_SAVE_TEST_OPERATION_KEY }
-const DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.test-heal-proposal'
-const DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
-  'dnd5e.test-temporary-hit-points-proposal'
-export const DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.test-damage-proposal'
-const DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY = 'dnd5e.test-condition-proposal'
-const DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.test-scalar-reduction-proposal'
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
 const DND5E_ORDINARY_SIGHT_NAMESPACE = '6871f0d5-9ac4-45d4-84c0-30cbd4e7df0c'
 const DND5E_ORDINARY_SIGHT_CAPABILITY = {
@@ -338,70 +250,6 @@ const DND5E_ORDINARY_SIGHT_CAPABILITY = {
 const DND5E_ORDINARY_SIGHT_CHECKSUM = checksumRuleDocument(DND5E_ORDINARY_SIGHT_CAPABILITY)
 function activeEffectGraphNodeId(compiledEntryId: string): string {
   return `active_effect_${compiledEntryId}`
-}
-class Dnd5eEffectActionCompilerError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'Dnd5eEffectActionCompilerError'
-  }
-}
-type Outcome =
-  | { kind: 'HEAL' | 'TEMPORARY_HIT_POINTS'; amount: number }
-  | { kind: 'DAMAGE'; amount: number; damageTypeId: string }
-  | { kind: 'CONDITION_APPLY'; conditionId: string }
-  | { kind: 'STABILIZE' }
-  | { kind: 'KILL' }
-  | { kind: 'DEPART' }
-  | { kind: 'MODIFIER_GRANT' }
-  | { kind: 'ACTOR_LINK' }
-  | { kind: 'CREATURE_FORM' }
-  | { kind: 'MANUAL_ADJUDICATION' }
-  | { kind: 'CONCEAL' }
-  | { kind: 'DETECT_CONCEALED' }
-  | { kind: 'ADD_SPEED_TO_MOVEMENT' }
-  | {
-      kind: 'TELEPORT_ALLOWANCE'
-      maxFeet: number
-      destinationKind: TeleportAllowanceDestinationKind
-    }
-  | { kind: 'CANCEL_TRIGGERING_EVENT' }
-  | {
-      kind: 'FORCED_MOVEMENT'
-      direction: ForcedMovementDirection
-      feet: number
-      upTo: boolean
-      collision: CharacterRuleActionForcedMovementCollision | null
-    }
-  | {
-      kind: 'SCALAR_REDUCTION'
-      amount: number
-      valueDefinitionId: string
-      recoveryTriggers: readonly ('SHORT_REST' | 'LONG_REST')[]
-      terminalConsequence: 'TARGET_DIED'
-    }
-/**
- * Damage whose dice the test graph itself rolls, only when the test resolves to the authored path
- * (a placed zone's failed entry save). The dice are evidence requests of the one frozen graph.
- */
-type EntryDiceDamageOutcome = {
-  kind: 'ENTRY_DICE_DAMAGE'
-  diceConfig: string
-  damageTypeId: string
-  /** The compiled entry this result's proposal node is bound to. */
-  entryId: string
-  /** The share of the roll this result deals: 1 for the failed save, one half for the made save. */
-  multiplier: number
-}
-/** The ids of the entry dice damage nodes: the executor reads the dice as these graph nodes. */
-const ENTRY_DAMAGE_NODE_PREFIX = 'damage-'
-/** The node id suffix of a condition a zone's result path applies beside its damage (D142). */
-const CONDITION_PROPOSAL_SUFFIX = '-condition'
-
-/** The failed save keeps the plain prefix; the made save rolls dice of its own, asked for only when it is the result. */
-function entryDamagePrefix(pathCode: string): string {
-  return pathCode === 'ON_SAVE_SUCCESS'
-    ? `${ENTRY_DAMAGE_NODE_PREFIX}success-`
-    : ENTRY_DAMAGE_NODE_PREFIX
 }
 /** The outcomes that carry no amount: their proposal takes only the target and its state checksum. */
 const TARGET_ONLY_OUTCOME_OPERATION_KEYS = {
@@ -449,27 +297,6 @@ type SpecializedOutcome =
       HitPointMaximumReductionAuthored,
       'amountSource' | 'recoveryTags'
     >)
-type TestKind = 'ATTACK' | 'SAVE'
-type SpecializedPath =
-  | 'ON_USE'
-  | 'ON_HIT'
-  | 'ON_MISS'
-  | 'ON_CRIT'
-  | 'ON_SAVE_FAIL'
-  | 'ON_SAVE_SUCCESS'
-  | 'ON_CHECK_SUCCESS'
-
-function isSpecializedPath(value: string): value is SpecializedPath {
-  return [
-    'ON_USE',
-    'ON_HIT',
-    'ON_MISS',
-    'ON_CRIT',
-    'ON_SAVE_FAIL',
-    'ON_SAVE_SUCCESS',
-    'ON_CHECK_SUCCESS'
-  ].includes(value)
-}
 
 /** Server-derived facts only. They select an authored scaling row; they never alter graph topology. */
 type Dnd5eEffectScalingFacts = Readonly<{
@@ -830,8 +657,11 @@ function isSupportedTestActivation(
   if (invocation.activation.code === 'FREE') return false
   if (invocation.activation.amount !== 1) return false
   if (invocation.activation.code === 'ACTION') return true
+  // A save is a bonus action only as a repeat offer's charge (Heat Metal's repeated damage, D166).
   if (invocation.activation.code === 'BONUS_ACTION')
-    return isWeaponOrUnarmedAttack(invocation.triggerCode)
+    return (
+      isWeaponOrUnarmedAttack(invocation.triggerCode) || invocation.triggerCode === 'SAVING_THROW'
+    )
   return (
     invocation.activation.code === 'REACTION' &&
     'reactionTrigger' in invocation &&
@@ -982,22 +812,10 @@ function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSource): b
     invocation.range.amount > 0
   )
 }
-/** A damage type left unresolved (the triggering weapon's, never merged) is not a UUID. */
-function isUuid(value: string | undefined): value is string {
-  return value !== undefined && UUID.test(value)
-}
-
-function uuid(value: string | undefined, label: string): asserts value is string {
-  if (!isUuid(value)) throw new Dnd5eEffectActionCompilerError(`${label} must be a canonical UUID.`)
-}
 
 function damageTypeIdentity(damageTypeId: string | undefined): string {
   uuid(damageTypeId, 'D&D damage type identity')
   return damageTypeId
-}
-
-function unsupported(message: string): never {
-  throw new CharacterRuleActionUnsupportedCompilationError(message)
 }
 
 /**
@@ -1689,16 +1507,6 @@ function damageMultiplier(outcome: {
   return (outcome.multiplier ?? 1) * kind
 }
 
-/** An authored damage multiplier (for example half on a successful save), rounded down. */
-function multipliedDamageAmount(amount: number, multiplier: number): number {
-  const value = Math.floor(amount * multiplier)
-  if (!Number.isFinite(multiplier) || multiplier < 0 || !Number.isSafeInteger(value))
-    throw new Dnd5eEffectActionCompilerError(
-      'D&D damage multiplier must be a finite nonnegative number.'
-    )
-  return value
-}
-
 function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const outcome = entry.outcome
@@ -1781,9 +1589,6 @@ function settledForcedMovement(outcome: {
   }
 }
 
-/** One die size per damage roll, as a single dice term such as `1d6`. */
-const COLLISION_DICE_CONFIG = /^[1-9]\d?d[1-9]\d{0,2}$/
-
 /**
  * The collision of an authored forced movement (D159), flat for the proposal. Null for one the System
  * cannot settle: a save that is not a fixed DC, or a damage or condition identity that is not a UUID.
@@ -1809,46 +1614,6 @@ function settledForcedMovementCollision(
     dc: savingThrow.baseDc,
     conditionId: collision.conditionId
   }
-}
-
-/** The collision as the proposal carries it: canonical JSON, or empty when the move has none. */
-function encodeForcedMovementCollision(
-  collision: CharacterRuleActionForcedMovementCollision | null
-) {
-  return collision ? JSON.stringify(collision) : ''
-}
-
-/** The collision a proposal carries; null when it carries none, and a rejection for text that is not one. */
-function decodeForcedMovementCollision(
-  encoded: unknown
-): CharacterRuleActionForcedMovementCollision | null {
-  if (encoded === '') return null
-  const invalid = () =>
-    new Dnd5eEffectActionCompilerError('D&D forced movement collision is invalid.')
-  if (typeof encoded !== 'string') throw invalid()
-  let parsed: Partial<CharacterRuleActionForcedMovementCollision>
-  try {
-    parsed = JSON.parse(encoded)
-  } catch {
-    throw invalid()
-  }
-  const { diceConfig, damageTypeId, abilityDefinitionId, dc, conditionId } = parsed
-  if (
-    typeof diceConfig !== 'string' ||
-    !COLLISION_DICE_CONFIG.test(diceConfig) ||
-    typeof damageTypeId !== 'string' ||
-    !UUID.test(damageTypeId) ||
-    typeof abilityDefinitionId !== 'string' ||
-    !UUID.test(abilityDefinitionId) ||
-    typeof dc !== 'number' ||
-    !Number.isSafeInteger(dc) ||
-    typeof conditionId !== 'string' ||
-    !UUID.test(conditionId)
-  )
-    throw invalid()
-  const collision = { diceConfig, damageTypeId, abilityDefinitionId, dc, conditionId }
-  if (encodeForcedMovementCollision(collision) !== encoded) throw invalid()
-  return collision
 }
 
 /**
@@ -2662,7 +2427,11 @@ function saveGrantPlan(
   )
     return null
   const [entry, other, ...rest] = action.compiledEffect.entries.flatMap((candidate) =>
-    'outcome' in candidate && candidate.outcome.effectKind === 'APPLY_GRANT' ? [candidate] : []
+    'outcome' in candidate &&
+    candidate.outcome.effectKind === 'APPLY_GRANT' &&
+    !isRepeatCarrierEntry(candidate)
+      ? [candidate]
+      : []
   )
   if (
     !entry ||
@@ -2672,6 +2441,64 @@ function saveGrantPlan(
     return null
   // A grant on one save result applies only on it; one authored alike on both applies either way.
   return modifierGrantEntryPlan({ action, entry, resultGated: !other, untilEndEvent: false })
+}
+
+/** A grant that carries a repeat offer (D166): planned beside the effect it rides, not as a modifier grant. */
+function isRepeatCarrierEntry(entry: CompiledEffectGroup['entries'][number]): boolean {
+  return (
+    'outcome' in entry &&
+    entry.outcome.effectKind === 'APPLY_GRANT' &&
+    (entry.lifecycle?.effectOffers ?? []).some((offer) => offer.kind === 'REPEAT_SOURCE_PATH')
+  )
+}
+
+/**
+ * The effect a save action leaves on its target that offers the source a repeat of the action's paths
+ * (Heat Metal's "use a Bonus Action to cause the damage again"), or null when it offers none. The
+ * carrier is one grant authored alike on both save results with no modifiers of its own; it is bound
+ * to the chosen item and ends when that item is released, and it lasts as long as the action's
+ * Concentration. The cast freezes the saving throw DC and the cast level into the offer.
+ */
+function repeatCarrierPlan(
+  action: Dnd5eCompiledEffectActionSource
+): CharacterRuleActionActiveEffectPlan['repeatCarrier'] {
+  const [entry, other, ...rest] = action.compiledEffect.entries.flatMap((candidate) =>
+    'outcome' in candidate && isRepeatCarrierEntry(candidate) ? [candidate] : []
+  )
+  if (!entry) return null
+  if (
+    entry.outcome.effectKind !== 'APPLY_GRANT' ||
+    testPhaseKindOrNull(action) !== 'SAVE' ||
+    rest.length > 0 ||
+    (other &&
+      (other.pathCode === entry.pathCode || authoredAlike(entry) !== authoredAlike(other))) ||
+    !entry.chosenItem ||
+    !entry.outcome.bindsChosenItem ||
+    entry.duration === undefined ||
+    !UUID.test(entry.entryId)
+  )
+    unsupported('D&D repeat offer rides one chosen-item grant authored alike on both save results.')
+  const { grants } = entry.outcome
+  const { endOnEvents = [], effectOffers = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  if (
+    grants.modifiers?.length ||
+    grants.senses?.length ||
+    grants.proficiencies?.length ||
+    endOnEvents.length !== 1 ||
+    endOnEvents[0] !== 'ON_CHOSEN_ITEM_RELEASED' ||
+    Object.values(otherLifecycle).some((value) => value !== undefined)
+  )
+    unsupported(
+      'D&D repeat offer carrier grants nothing and ends when its chosen item is released.'
+    )
+  return {
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'repeat-carrier',
+    applyGrantOutcomeId: entry.outcome.id,
+    effectOffers: effectOffers.map((offer) =>
+      offer.kind === 'MOVE_HELD_EFFECT' ? { ...offer, range: { ...offer.range } } : { ...offer }
+    )
+  }
 }
 
 /**
@@ -2718,8 +2545,9 @@ function chosenItemPlan(
   const items = new Set(
     entries.flatMap(({ chosenItem }) => (chosenItem ? [JSON.stringify(chosenItem)] : []))
   )
+  // A repeat carrier is bound to the item by its own plan, not the modifier grant's.
   const grants = entries.flatMap((entry) =>
-    entry.outcome.effectKind === 'APPLY_GRANT'
+    entry.outcome.effectKind === 'APPLY_GRANT' && !isRepeatCarrierEntry(entry)
       ? [{ pathCode: entry.pathCode, outcome: entry.outcome }]
       : []
   )
@@ -2925,7 +2753,9 @@ function modifierGrantEntryPlan(input: {
       ...(uses !== undefined && { uses }),
       ...(grantedActions && { grantedActions: grantedActions.map((offer) => ({ ...offer })) }),
       ...(effectOffers && {
-        effectOffers: effectOffers.map((offer) => ({ ...offer, range: { ...offer.range } }))
+        effectOffers: effectOffers.map((offer) =>
+          offer.kind === 'MOVE_HELD_EFFECT' ? { ...offer, range: { ...offer.range } } : { ...offer }
+        )
       }),
       ...(onEnd && {
         onEnd: {
@@ -3104,6 +2934,7 @@ function durationPublishedGraph(input: {
     | 'actorLinkContribution'
     | 'creatureFormContribution'
     | 'marginRider'
+    | 'repeatCarrier'
   >
 }): ServerPublishedRuleDefinitionDto {
   const {
@@ -3117,17 +2948,20 @@ function durationPublishedGraph(input: {
     id: input.effectId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [input.plan.frozenGraphNodeId, input.plan.marginRider?.frozenGraphNodeId].flatMap(
-      (id) =>
-        id
-          ? [
-              {
-                id,
-                operation: { key: DND5E_CONDITION_DURATION_OPERATION_KEY, contractVersion: 1 },
-                inputs: {}
-              }
-            ]
-          : []
+    nodes: [
+      input.plan.frozenGraphNodeId,
+      input.plan.marginRider?.frozenGraphNodeId,
+      input.plan.repeatCarrier?.frozenGraphNodeId
+    ].flatMap((id) =>
+      id
+        ? [
+            {
+              id,
+              operation: { key: DND5E_CONDITION_DURATION_OPERATION_KEY, contractVersion: 1 },
+              inputs: {}
+            }
+          ]
+        : []
     ),
     outputs: conditionContributions?.length
       ? Object.fromEntries(
@@ -3156,6 +2990,14 @@ function durationPublishedGraph(input: {
             {
               sourceEntryId: input.plan.marginRider.compiledEntryId,
               nodeId: input.plan.marginRider.frozenGraphNodeId
+            }
+          ]
+        : []),
+      ...(input.plan.repeatCarrier
+        ? [
+            {
+              sourceEntryId: input.plan.repeatCarrier.compiledEntryId,
+              nodeId: input.plan.repeatCarrier.frozenGraphNodeId
             }
           ]
         : [])
@@ -4262,10 +4104,6 @@ function exactImmediateFollowUpSaveShape(
   return null
 }
 
-const NESTED_SAVE_MARGIN_NODE_ID = 'nested-save-margin'
-const nestedSaveRiderConditionNodeId = (index: number) =>
-  index === 0 ? 'nested-save-rider-condition' : `nested-save-rider-condition-${index + 1}`
-
 /**
  * A margin rider the nested save can gate: a bounded margin and identified conditions, which share
  * the failed-save path's immunity facts after the failure's own condition.
@@ -5017,1218 +4855,6 @@ function supported(
     amount: multipliedDamageAmount(outcome.amount, damageMultiplier(outcome)),
     damageTypeId: outcome.damageTypeId
   }
-}
-function simpleOperation(key: string): ProposalRuleOperationContract {
-  return {
-    key,
-    contractVersion: 1,
-    executionKind: 'PROPOSAL',
-    inputs: {
-      targetActorId: RULE_VALUE_KIND.TEXT,
-      amount: RULE_VALUE_KIND.NUMBER,
-      targetStateChecksum: RULE_VALUE_KIND.TEXT
-    },
-    outputs: {
-      targetActorId: RULE_VALUE_KIND.TEXT,
-      amount: RULE_VALUE_KIND.NUMBER,
-      applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-      authorized: RULE_VALUE_KIND.BOOLEAN,
-      targetStateChecksum: RULE_VALUE_KIND.TEXT
-    },
-    execute(inputs) {
-      const targetActorId = inputs.targetActorId
-      const amount = inputs.amount
-      if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
-        throw new Error('D&D proposal requires a canonical target actor UUID.')
-      if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount <= 0)
-        throw new Error('D&D proposal requires a positive integer amount.')
-      const targetStateChecksum = inputs.targetStateChecksum
-      if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
-        throw new Error('D&D proposal requires target state checksum.')
-      return {
-        targetActorId,
-        amount,
-        applicationCandidate: true,
-        authorized: true,
-        targetStateChecksum
-      }
-    }
-  }
-}
-export const dnd5eHealProposalOperation = simpleOperation(DND5E_HEAL_PROPOSAL_OPERATION_KEY)
-/**
- * A proposal that applies one fixed outcome to the target and carries no amount. With
- * `changesTargetState` false the outcome stores nothing on the target (an Active Effect owns it), so
- * a stored-state batch needs no application for it.
- */
-function targetOnlyProposalOperation(
-  key: string,
-  label: string,
-  changesTargetState = true
-): ProposalRuleOperationContract {
-  return {
-    key,
-    contractVersion: 1,
-    executionKind: 'PROPOSAL',
-    inputs: {
-      targetActorId: RULE_VALUE_KIND.TEXT,
-      targetStateChecksum: RULE_VALUE_KIND.TEXT
-    },
-    outputs: {
-      targetActorId: RULE_VALUE_KIND.TEXT,
-      applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-      authorized: RULE_VALUE_KIND.BOOLEAN,
-      targetStateChecksum: RULE_VALUE_KIND.TEXT,
-      ...(changesTargetState ? {} : { changesTargetState: RULE_VALUE_KIND.BOOLEAN })
-    },
-    execute(inputs) {
-      const targetActorId = inputs.targetActorId
-      const targetStateChecksum = inputs.targetStateChecksum
-      if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
-        throw new Error(`D&D ${label} proposal requires a canonical target actor UUID.`)
-      if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
-        throw new Error(`D&D ${label} proposal requires target state checksum.`)
-      return {
-        targetActorId,
-        applicationCandidate: true,
-        authorized: true,
-        targetStateChecksum,
-        ...(changesTargetState ? {} : { changesTargetState: false })
-      }
-    }
-  }
-}
-export const dnd5eStabilizeProposalOperation = targetOnlyProposalOperation(
-  DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
-  'stabilize'
-)
-export const dnd5eKillProposalOperation = targetOnlyProposalOperation(
-  DND5E_KILL_PROPOSAL_OPERATION_KEY,
-  'kill'
-)
-/** The band a version 2 gate's literals bound, or null when they do not bound a non-empty one. */
-function hitPointGateBand(
-  inputs: Readonly<Record<string, unknown>>
-): { above: number; atMost: number } | null {
-  const { hitPointsAbove: above, hitPointsAtMost: atMost } = inputs
-  return typeof above === 'number' &&
-    typeof atMost === 'number' &&
-    Number.isSafeInteger(above) &&
-    Number.isSafeInteger(atMost) &&
-    above >= NO_HIT_POINT_FLOOR &&
-    atMost > Math.max(above, 0)
-    ? { above, atMost }
-    : null
-}
-/**
- * Version 2 of a target-only proposal also reads the target's current hit points and the gate's
- * band, and is authorized only while the target is above its floor and at or under its ceiling.
- */
-function hitPointGatedTargetOnlyProposalOperation(
-  key: string,
-  label: string
-): ProposalRuleOperationContract {
-  const base = targetOnlyProposalOperation(key, label)
-  return {
-    ...base,
-    contractVersion: 2,
-    inputs: {
-      ...base.inputs,
-      targetCurrentHitPoints: RULE_VALUE_KIND.NUMBER,
-      hitPointsAbove: RULE_VALUE_KIND.NUMBER,
-      hitPointsAtMost: RULE_VALUE_KIND.NUMBER
-    },
-    execute(inputs) {
-      const { targetCurrentHitPoints } = inputs
-      const band = hitPointGateBand(inputs)
-      if (
-        typeof targetCurrentHitPoints !== 'number' ||
-        !Number.isSafeInteger(targetCurrentHitPoints) ||
-        targetCurrentHitPoints < 0 ||
-        !band
-      )
-        throw new Error(
-          `D&D ${label} proposal requires the target's hit points and a hit-point gate.`
-        )
-      return {
-        ...base.execute(inputs),
-        authorized: withinHitPointBand(targetCurrentHitPoints, band.above, band.atMost)
-      }
-    }
-  }
-}
-export const dnd5eHitPointGatedKillProposalOperation = hitPointGatedTargetOnlyProposalOperation(
-  DND5E_KILL_PROPOSAL_OPERATION_KEY,
-  'kill'
-)
-export const dnd5eDepartProposalOperation = targetOnlyProposalOperation(
-  DND5E_DEPART_PROPOSAL_OPERATION_KEY,
-  'depart'
-)
-export const dnd5eModifierGrantProposalOperation = targetOnlyProposalOperation(
-  DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
-  'modifier grant',
-  false
-)
-export const dnd5eActorLinkProposalOperation = targetOnlyProposalOperation(
-  DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
-  'actor link',
-  false
-)
-export const dnd5eCreatureFormProposalOperation = targetOnlyProposalOperation(
-  DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
-  'creature form',
-  false
-)
-export const dnd5eManualAdjudicationProposalOperation = targetOnlyProposalOperation(
-  DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
-  'manual adjudication',
-  false
-)
-export const dnd5eConcealProposalOperation = targetOnlyProposalOperation(
-  DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
-  'conceal',
-  false
-)
-export const dnd5eDetectConcealedProposalOperation = targetOnlyProposalOperation(
-  DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
-  'detect concealed',
-  false
-)
-export const dnd5eAddSpeedToMovementProposalOperation = targetOnlyProposalOperation(
-  DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
-  'add speed to movement',
-  false
-)
-/** A teleport spell's proposal: it stores nothing on the caster and records its range for the commit to grant. */
-export const dnd5eTeleportAllowanceProposalOperation: ProposalRuleOperationContract = {
-  key: DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PROPOSAL',
-  inputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT,
-    maxFeet: RULE_VALUE_KIND.NUMBER,
-    destinationKind: RULE_VALUE_KIND.TEXT
-  },
-  outputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-    authorized: RULE_VALUE_KIND.BOOLEAN,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT,
-    changesTargetState: RULE_VALUE_KIND.BOOLEAN,
-    maxFeet: RULE_VALUE_KIND.NUMBER,
-    destinationKind: RULE_VALUE_KIND.TEXT
-  },
-  execute(inputs) {
-    const { targetActorId, targetStateChecksum, maxFeet, destinationKind } = inputs
-    if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
-      throw new Error('D&D teleport allowance proposal requires a canonical target actor UUID.')
-    if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
-      throw new Error('D&D teleport allowance proposal requires target state checksum.')
-    if (typeof maxFeet !== 'number' || !Number.isSafeInteger(maxFeet) || maxFeet <= 0)
-      throw new Error('D&D teleport allowance proposal requires a positive integer range.')
-    if (!isTeleportAllowanceDestinationKind(destinationKind))
-      throw new Error('D&D teleport allowance proposal requires a destination kind.')
-    return {
-      targetActorId,
-      applicationCandidate: true,
-      authorized: true,
-      targetStateChecksum,
-      changesTargetState: false,
-      maxFeet,
-      destinationKind
-    }
-  }
-}
-export const dnd5eCancelTriggeringEventProposalOperation = targetOnlyProposalOperation(
-  DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
-  'cancel triggering event',
-  false
-)
-export const dnd5eTemporaryHitPointsProposalOperation = simpleOperation(
-  DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-)
-export const dnd5eDamageProposalOperation: ProposalRuleOperationContract = {
-  key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PROPOSAL',
-  inputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    amount: RULE_VALUE_KIND.NUMBER,
-    damageTypeId: RULE_VALUE_KIND.TEXT,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  outputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    amount: RULE_VALUE_KIND.NUMBER,
-    damageTypeId: RULE_VALUE_KIND.TEXT,
-    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-    authorized: RULE_VALUE_KIND.BOOLEAN,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  execute(inputs) {
-    const targetActorId = inputs.targetActorId
-    const amount = inputs.amount
-    const damageTypeId = inputs.damageTypeId
-    if (
-      typeof targetActorId !== 'string' ||
-      !UUID.test(targetActorId) ||
-      typeof amount !== 'number' ||
-      !Number.isSafeInteger(amount) ||
-      amount < 0 ||
-      typeof damageTypeId !== 'string' ||
-      !UUID.test(damageTypeId)
-    )
-      throw new Error(
-        'D&D damage proposal requires canonical identities and a nonnegative integer amount.'
-      )
-    const targetStateChecksum = inputs.targetStateChecksum
-    if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
-      throw new Error('D&D damage proposal requires target state checksum.')
-    return {
-      targetActorId,
-      amount,
-      damageTypeId,
-      applicationCandidate: true,
-      authorized: true,
-      targetStateChecksum
-    }
-  }
-}
-/** A reduction's recovery tags travel through its graph as canonical JSON text. */
-function parseRecoveryTags(value: unknown): HitPointMaximumReductionRecoveryTag[] | null {
-  if (typeof value !== 'string') return null
-  try {
-    const parsed = hitPointMaximumReductionRecoveryTagsSchema.safeParse(JSON.parse(value))
-    return parsed.success && JSON.stringify(parsed.data) === value ? parsed.data : null
-  } catch {
-    return null
-  }
-}
-
-export const dnd5eHitPointMaximumReductionProposalOperation: ProposalRuleOperationContract = {
-  key: DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PROPOSAL',
-  inputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    resultPath: RULE_VALUE_KIND.TEXT,
-    authorizedPath: RULE_VALUE_KIND.TEXT,
-    sourceDamageNodeId: RULE_VALUE_KIND.TEXT,
-    sourceDamageOperationKey: RULE_VALUE_KIND.TEXT,
-    sourceDamageOutcomeId: RULE_VALUE_KIND.TEXT,
-    recoveryTags: RULE_VALUE_KIND.TEXT,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  outputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    resultPath: RULE_VALUE_KIND.TEXT,
-    sourceDamageNodeId: RULE_VALUE_KIND.TEXT,
-    sourceDamageOperationKey: RULE_VALUE_KIND.TEXT,
-    sourceDamageOutcomeId: RULE_VALUE_KIND.TEXT,
-    recoveryTags: RULE_VALUE_KIND.TEXT,
-    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-    authorized: RULE_VALUE_KIND.BOOLEAN,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  execute(inputs) {
-    const targetActorId = inputs.targetActorId
-    const resultPath = inputs.resultPath
-    const authorizedPath = inputs.authorizedPath
-    const sourceDamageNodeId = inputs.sourceDamageNodeId
-    const sourceDamageOperationKey = inputs.sourceDamageOperationKey
-    const sourceDamageOutcomeId = inputs.sourceDamageOutcomeId
-    const recoveryTags = inputs.recoveryTags
-    const targetStateChecksum = inputs.targetStateChecksum
-    if (
-      typeof targetActorId !== 'string' ||
-      !UUID.test(targetActorId) ||
-      typeof resultPath !== 'string' ||
-      typeof authorizedPath !== 'string' ||
-      !isSpecializedPath(authorizedPath) ||
-      typeof sourceDamageNodeId !== 'string' ||
-      sourceDamageNodeId.length === 0 ||
-      typeof sourceDamageOperationKey !== 'string' ||
-      sourceDamageOperationKey.length === 0 ||
-      typeof sourceDamageOutcomeId !== 'string' ||
-      !UUID.test(sourceDamageOutcomeId) ||
-      typeof recoveryTags !== 'string' ||
-      !parseRecoveryTags(recoveryTags) ||
-      typeof targetStateChecksum !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(targetStateChecksum)
-    ) {
-      throw new Error('D&D hit point maximum reduction proposal is invalid.')
-    }
-    return {
-      targetActorId,
-      resultPath,
-      sourceDamageNodeId,
-      sourceDamageOperationKey,
-      sourceDamageOutcomeId,
-      recoveryTags,
-      applicationCandidate: true,
-      authorized: resultPath === authorizedPath,
-      targetStateChecksum
-    }
-  }
-}
-
-/**
- * Reduces the target's hit point maximum by the damage it took from one proposal of the same graph,
- * when the result path is the authorized one: a nested save's failure, or the selected direct path.
- */
-function hitPointMaximumReductionProposalNode(input: {
-  id: string
-  resultPath: RuleGraphDefinition['nodes'][number]['inputs'][string]
-  authorizedPath: SpecializedPath
-  sourceDamageNodeId: string
-  reduction: Pick<HitPointMaximumReductionAuthored, 'amountSource' | 'recoveryTags'>
-}): RuleGraphDefinition['nodes'][number] {
-  return {
-    id: input.id,
-    operation: {
-      key: DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
-      contractVersion: 1
-    },
-    inputs: {
-      targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-      resultPath: input.resultPath,
-      authorizedPath: { kind: 'LITERAL', value: input.authorizedPath },
-      sourceDamageNodeId: { kind: 'LITERAL', value: input.sourceDamageNodeId },
-      sourceDamageOperationKey: { kind: 'LITERAL', value: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY },
-      sourceDamageOutcomeId: {
-        kind: 'LITERAL',
-        value: input.reduction.amountSource.damageOutcomeId
-      },
-      recoveryTags: { kind: 'LITERAL', value: JSON.stringify(input.reduction.recoveryTags) },
-      targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
-    }
-  }
-}
-export const dnd5eScalarReductionProposalOperation: ProposalRuleOperationContract = {
-  key: DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PROPOSAL',
-  inputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    amount: RULE_VALUE_KIND.NUMBER,
-    valueDefinitionId: RULE_VALUE_KIND.TEXT,
-    recoveryTriggers: RULE_VALUE_KIND.TEXT,
-    terminalConsequence: RULE_VALUE_KIND.TEXT,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  outputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    amount: RULE_VALUE_KIND.NUMBER,
-    valueDefinitionId: RULE_VALUE_KIND.TEXT,
-    recoveryTriggers: RULE_VALUE_KIND.TEXT,
-    terminalConsequence: RULE_VALUE_KIND.TEXT,
-    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-    authorized: RULE_VALUE_KIND.BOOLEAN,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  execute(inputs) {
-    const {
-      targetActorId,
-      amount,
-      valueDefinitionId,
-      recoveryTriggers,
-      terminalConsequence,
-      targetStateChecksum
-    } = inputs
-    let triggers: unknown
-    if (typeof recoveryTriggers === 'string') {
-      try {
-        triggers = JSON.parse(recoveryTriggers)
-      } catch {
-        triggers = null
-      }
-    }
-    if (
-      typeof targetActorId !== 'string' ||
-      !UUID.test(targetActorId) ||
-      typeof amount !== 'number' ||
-      !Number.isSafeInteger(amount) ||
-      amount < 1 ||
-      typeof valueDefinitionId !== 'string' ||
-      !UUID.test(valueDefinitionId) ||
-      typeof recoveryTriggers !== 'string' ||
-      !Array.isArray(triggers) ||
-      typeof terminalConsequence !== 'string' ||
-      terminalConsequence !== 'TARGET_DIED' ||
-      typeof targetStateChecksum !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(targetStateChecksum)
-    )
-      throw new Error('D&D scalar reduction proposal is invalid.')
-    if (
-      triggers.length < 1 ||
-      triggers.length > 2 ||
-      new Set(triggers).size !== triggers.length ||
-      triggers.some((trigger) => trigger !== 'SHORT_REST' && trigger !== 'LONG_REST')
-    )
-      throw new Error('D&D scalar reduction recovery is invalid.')
-    return {
-      targetActorId,
-      amount,
-      valueDefinitionId,
-      recoveryTriggers,
-      terminalConsequence,
-      applicationCandidate: true,
-      authorized: true,
-      targetStateChecksum
-    }
-  }
-}
-/**
- * Proposes an authored push or pull on its result path: the room settles it along the straight line
- * from the action's source (D105), so the proposal changes no target state of its own.
- */
-export const dnd5eForcedMovementProposalOperation: ProposalRuleOperationContract = {
-  key: DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PROPOSAL',
-  inputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    sourceEntryId: RULE_VALUE_KIND.TEXT,
-    resultPath: RULE_VALUE_KIND.TEXT,
-    authoredPath: RULE_VALUE_KIND.TEXT,
-    direction: RULE_VALUE_KIND.TEXT,
-    feet: RULE_VALUE_KIND.NUMBER,
-    upTo: RULE_VALUE_KIND.BOOLEAN,
-    collision: RULE_VALUE_KIND.TEXT,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  outputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    sourceEntryId: RULE_VALUE_KIND.TEXT,
-    resultPath: RULE_VALUE_KIND.TEXT,
-    authoredPath: RULE_VALUE_KIND.TEXT,
-    direction: RULE_VALUE_KIND.TEXT,
-    feet: RULE_VALUE_KIND.NUMBER,
-    upTo: RULE_VALUE_KIND.BOOLEAN,
-    collision: RULE_VALUE_KIND.TEXT,
-    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-    authorized: RULE_VALUE_KIND.BOOLEAN,
-    changesTargetState: RULE_VALUE_KIND.BOOLEAN,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  execute(inputs) {
-    const {
-      targetActorId,
-      sourceEntryId,
-      resultPath,
-      authoredPath,
-      direction,
-      feet,
-      upTo,
-      collision,
-      targetStateChecksum
-    } = inputs
-    decodeForcedMovementCollision(collision)
-    if (
-      typeof targetActorId !== 'string' ||
-      !UUID.test(targetActorId) ||
-      typeof sourceEntryId !== 'string' ||
-      !UUID.test(sourceEntryId) ||
-      typeof resultPath !== 'string' ||
-      typeof authoredPath !== 'string' ||
-      !isCharacterRuleActionForcedMovementDirection(direction) ||
-      typeof feet !== 'number' ||
-      !Number.isSafeInteger(feet) ||
-      feet <= 0 ||
-      typeof upTo !== 'boolean' ||
-      typeof targetStateChecksum !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(targetStateChecksum)
-    ) {
-      throw new Error('D&D forced movement proposal is invalid.')
-    }
-    return {
-      targetActorId,
-      sourceEntryId,
-      resultPath,
-      authoredPath,
-      direction,
-      feet,
-      upTo,
-      collision,
-      applicationCandidate: true,
-      authorized: resultPath === authoredPath,
-      changesTargetState: false,
-      targetStateChecksum
-    }
-  }
-}
-
-/** The proposal node of an authored push or pull, authorized when the test resolves to its path. */
-function forcedMovementProposalNode(input: {
-  id: string
-  sourceEntryId: string
-  resultPath: RuleInputBinding
-  authoredPath: string
-  outcome: Extract<Outcome, { kind: 'FORCED_MOVEMENT' }>
-}) {
-  return {
-    id: input.id,
-    operation: { key: DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
-    inputs: {
-      targetActorId: { kind: 'FACT' as const, factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-      sourceEntryId: { kind: 'LITERAL' as const, value: input.sourceEntryId },
-      resultPath: input.resultPath,
-      authoredPath: { kind: 'LITERAL' as const, value: input.authoredPath },
-      direction: { kind: 'LITERAL' as const, value: input.outcome.direction },
-      feet: { kind: 'LITERAL' as const, value: input.outcome.feet },
-      upTo: { kind: 'LITERAL' as const, value: input.outcome.upTo },
-      collision: {
-        kind: 'LITERAL' as const,
-        value: encodeForcedMovementCollision(input.outcome.collision)
-      },
-      targetStateChecksum: { kind: 'FACT' as const, factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
-    }
-  }
-}
-export const dnd5eDamageTotalOperation: PureRuleOperationContract = {
-  key: DND5E_DAMAGE_TOTAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PURE',
-  inputs: {
-    subtotal: RULE_VALUE_KIND.NUMBER,
-    modifier: RULE_VALUE_KIND.NUMBER
-  },
-  outputs: { value: RULE_VALUE_KIND.NUMBER },
-  execute(inputs) {
-    const subtotal = inputs.subtotal
-    const modifier = inputs.modifier
-    if (
-      typeof subtotal !== 'number' ||
-      !Number.isSafeInteger(subtotal) ||
-      typeof modifier !== 'number' ||
-      !Number.isSafeInteger(modifier) ||
-      !Number.isSafeInteger(subtotal + modifier)
-    ) {
-      throw new Error('D&D damage total requires safe integer operands.')
-    }
-    return { value: flooredDamage(subtotal + modifier) }
-  }
-}
-/** Damage is never negative: a total or a reduction below zero deals none. */
-function flooredDamage(amount: number) {
-  return Math.max(0, amount)
-}
-/** Takes rolled dice off an amount of damage (Reduce's 1d4 less), floored like every damage total. */
-export const dnd5eDamageReductionOperation: PureRuleOperationContract = {
-  key: DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PURE',
-  inputs: {
-    amount: RULE_VALUE_KIND.NUMBER,
-    reduction: RULE_VALUE_KIND.NUMBER
-  },
-  outputs: { value: RULE_VALUE_KIND.NUMBER },
-  execute(inputs) {
-    const amount = inputs.amount
-    const reduction = inputs.reduction
-    if (
-      typeof amount !== 'number' ||
-      !Number.isSafeInteger(amount) ||
-      amount < 0 ||
-      typeof reduction !== 'number' ||
-      !Number.isSafeInteger(reduction) ||
-      reduction < 0
-    )
-      throw new Error('D&D damage reduction requires nonnegative safe integer operands.')
-    return { value: flooredDamage(amount - reduction) }
-  }
-}
-/** Selects the one authored full-or-floor-half damage value after a nested save. */
-export const dnd5eSaveDamageTotalOperation: PureRuleOperationContract = {
-  key: DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PURE',
-  inputs: {
-    subtotal: RULE_VALUE_KIND.NUMBER,
-    resultPath: RULE_VALUE_KIND.TEXT
-  },
-  outputs: { value: RULE_VALUE_KIND.NUMBER },
-  execute(inputs) {
-    const subtotal = inputs.subtotal
-    const resultPath = inputs.resultPath
-    if (
-      typeof subtotal !== 'number' ||
-      !Number.isSafeInteger(subtotal) ||
-      subtotal < 0 ||
-      (resultPath !== 'ON_SAVE_FAIL' && resultPath !== 'ON_SAVE_SUCCESS')
-    ) {
-      throw new Error('D&D nested save damage requires a bounded save result and subtotal.')
-    }
-    return {
-      value: resultPath === 'ON_SAVE_SUCCESS' ? Math.floor(subtotal / 2) : subtotal
-    }
-  }
-}
-/** Applies an authored damage multiplier to rolled damage, rounding down (SRD). */
-export const dnd5eDamageMultiplierOperation: PureRuleOperationContract = {
-  key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PURE',
-  inputs: {
-    amount: RULE_VALUE_KIND.NUMBER,
-    multiplier: RULE_VALUE_KIND.NUMBER
-  },
-  outputs: { value: RULE_VALUE_KIND.NUMBER },
-  execute(inputs) {
-    const amount = inputs.amount
-    const multiplier = inputs.multiplier
-    if (
-      typeof amount !== 'number' ||
-      !Number.isSafeInteger(amount) ||
-      amount < 0 ||
-      typeof multiplier !== 'number'
-    ) {
-      throw new Error('D&D damage multiplier requires a safe damage amount.')
-    }
-    return { value: multipliedDamageAmount(amount, multiplier) }
-  }
-}
-export const dnd5eHealTotalOperation: PureRuleOperationContract = {
-  key: DND5E_HEAL_TOTAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PURE',
-  inputs: {
-    subtotal: RULE_VALUE_KIND.NUMBER,
-    modifier: RULE_VALUE_KIND.NUMBER
-  },
-  outputs: { value: RULE_VALUE_KIND.NUMBER },
-  execute(inputs) {
-    const subtotal = inputs.subtotal
-    const modifier = inputs.modifier
-    if (
-      typeof subtotal !== 'number' ||
-      !Number.isSafeInteger(subtotal) ||
-      typeof modifier !== 'number' ||
-      !Number.isSafeInteger(modifier) ||
-      !Number.isSafeInteger(subtotal + modifier)
-    ) {
-      throw new Error('D&D healing total requires safe integer operands.')
-    }
-    return { value: Math.max(0, subtotal + modifier) }
-  }
-}
-export const dnd5eConditionApplyProposalOperation: ProposalRuleOperationContract = {
-  key: DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PROPOSAL',
-  inputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    conditionId: RULE_VALUE_KIND.TEXT,
-    conditionImmune: RULE_VALUE_KIND.BOOLEAN,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  outputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    conditionId: RULE_VALUE_KIND.TEXT,
-    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-    authorized: RULE_VALUE_KIND.BOOLEAN,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  execute(inputs) {
-    const targetActorId = inputs.targetActorId
-    const conditionId = inputs.conditionId
-    if (
-      typeof targetActorId !== 'string' ||
-      !UUID.test(targetActorId) ||
-      typeof conditionId !== 'string' ||
-      !UUID.test(conditionId)
-    )
-      throw new Error('D&D condition proposal requires canonical target and condition identities.')
-    const targetStateChecksum = inputs.targetStateChecksum
-    if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
-      throw new Error('D&D condition proposal requires target state checksum.')
-    const conditionImmune = inputs.conditionImmune
-    if (typeof conditionImmune !== 'boolean')
-      throw new Error('D&D condition proposal requires normalized target protections.')
-    return {
-      targetActorId,
-      conditionId,
-      applicationCandidate: true,
-      authorized: !conditionImmune,
-      targetStateChecksum
-    }
-  }
-}
-
-/**
- * Version 2 of the condition proposal also reads the target's current hit points and the gate's
- * band: the condition is authorized only for a target that is not immune and lies in it.
- */
-export const dnd5eHitPointGatedConditionApplyProposalOperation: ProposalRuleOperationContract = {
-  ...dnd5eConditionApplyProposalOperation,
-  contractVersion: 2,
-  inputs: {
-    ...dnd5eConditionApplyProposalOperation.inputs,
-    targetCurrentHitPoints: RULE_VALUE_KIND.NUMBER,
-    hitPointsAbove: RULE_VALUE_KIND.NUMBER,
-    hitPointsAtMost: RULE_VALUE_KIND.NUMBER
-  },
-  execute(inputs) {
-    const { targetCurrentHitPoints } = inputs
-    const band = hitPointGateBand(inputs)
-    if (
-      typeof targetCurrentHitPoints !== 'number' ||
-      !Number.isSafeInteger(targetCurrentHitPoints) ||
-      targetCurrentHitPoints < 0 ||
-      !band
-    )
-      throw new Error(
-        "D&D condition proposal requires the target's hit points and a hit-point gate."
-      )
-    const base = dnd5eConditionApplyProposalOperation.execute(inputs)
-    return {
-      ...base,
-      authorized:
-        base.authorized === true &&
-        withinHitPointBand(targetCurrentHitPoints, band.above, band.atMost)
-    }
-  }
-}
-
-const DND5E_TEST_OUTCOME_RULES = [
-  'NONE',
-  'SAVE_AUTO_FAIL',
-  'SAVE_AUTO_SUCCESS',
-  'HIT_IS_CRITICAL'
-] as const
-type Dnd5eTestOutcomeRule = (typeof DND5E_TEST_OUTCOME_RULES)[number]
-
-function isDnd5eTestOutcomeRule(value: unknown): value is Dnd5eTestOutcomeRule {
-  return DND5E_TEST_OUTCOME_RULES.some((rule) => rule === value)
-}
-
-/**
- * The D&D test result path. An attack's roll at or above its critical threshold (a natural 20 unless
- * a grant lowers it, D158) hits critically whatever the target's defense, and a natural 1 always
- * misses; a target's condition can make a hit critical or a save fail without counting the roll
- * (D94), and an authored automatic success (a poison-immune creature) makes a save succeed without
- * counting it.
- */
-function dnd5eTestResultPath(
-  input: {
-    naturalD20: number
-    total: number
-    threshold: number
-    outcomeRule: Dnd5eTestOutcomeRule
-  } & ({ kind: 'SAVE' } | { kind: 'ATTACK'; criticalThreshold: number })
-) {
-  if (input.kind === 'SAVE')
-    return input.outcomeRule === 'SAVE_AUTO_SUCCESS' ||
-      (input.outcomeRule !== 'SAVE_AUTO_FAIL' && input.total >= input.threshold)
-      ? 'ON_SAVE_SUCCESS'
-      : 'ON_SAVE_FAIL'
-  if (input.naturalD20 === 1) return 'ON_MISS'
-  if (input.naturalD20 >= input.criticalThreshold) return 'ON_CRIT'
-  if (input.total < input.threshold) return 'ON_MISS'
-  return input.outcomeRule === 'HIT_IS_CRITICAL' ? 'ON_CRIT' : 'ON_HIT'
-}
-
-/** A target's save outcome rule: its conditions fail saves of these abilities unrolled (D94). */
-function dnd5eSaveOutcomeRule(
-  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
-  abilityDefinitionId: string
-): Dnd5eTestOutcomeRule {
-  return rules?.saveAutoFailAbilityIds.includes(abilityDefinitionId) ? 'SAVE_AUTO_FAIL' : 'NONE'
-}
-
-/**
- * Version 3 adds the test's added dice (D156) after the kept d20; the attack's version 4 adds its
- * required critical threshold (D158).
- */
-function testContractVersion(kind: TestKind) {
-  return kind === 'ATTACK' ? 4 : 3
-}
-
-function testOperation(key: string, kind: TestKind): PureRuleOperationContract {
-  return {
-    key,
-    contractVersion: testContractVersion(kind),
-    executionKind: 'PURE',
-    inputs: {
-      targetActorId: RULE_VALUE_KIND.TEXT,
-      naturalD20: RULE_VALUE_KIND.NUMBER,
-      modifier: RULE_VALUE_KIND.NUMBER,
-      addedTotal: RULE_VALUE_KIND.NUMBER,
-      threshold: RULE_VALUE_KIND.NUMBER,
-      ...(kind === 'ATTACK' ? { criticalThreshold: RULE_VALUE_KIND.NUMBER } : {}),
-      contributorChecksum: RULE_VALUE_KIND.TEXT,
-      outcomeRule: RULE_VALUE_KIND.TEXT
-    },
-    outputs: {
-      targetActorId: RULE_VALUE_KIND.TEXT,
-      naturalD20: RULE_VALUE_KIND.NUMBER,
-      total: RULE_VALUE_KIND.NUMBER,
-      resultPath: RULE_VALUE_KIND.TEXT,
-      contributorChecksum: RULE_VALUE_KIND.TEXT
-    },
-    execute(inputs) {
-      const targetActorId = inputs.targetActorId
-      const naturalD20 = inputs.naturalD20
-      const modifier = inputs.modifier
-      const addedTotal = inputs.addedTotal
-      const threshold = inputs.threshold
-      const outcomeRule = inputs.outcomeRule
-      if (
-        !isDnd5eTestOutcomeRule(outcomeRule) ||
-        typeof targetActorId !== 'string' ||
-        !UUID.test(targetActorId) ||
-        typeof naturalD20 !== 'number' ||
-        !Number.isSafeInteger(naturalD20) ||
-        naturalD20 < 1 ||
-        naturalD20 > 20 ||
-        typeof modifier !== 'number' ||
-        !Number.isSafeInteger(modifier) ||
-        typeof addedTotal !== 'number' ||
-        !Number.isSafeInteger(addedTotal) ||
-        typeof threshold !== 'number' ||
-        !Number.isSafeInteger(threshold)
-      )
-        throw new Error('D&D test resolution requires canonical target and safe integer facts.')
-      const total = naturalD20 + modifier + addedTotal
-      if (!Number.isSafeInteger(total))
-        throw new Error('D&D test total exceeds safe integer range.')
-      const criticalThreshold = inputs.criticalThreshold
-      if (
-        kind === 'ATTACK' &&
-        (typeof criticalThreshold !== 'number' ||
-          !Number.isInteger(criticalThreshold) ||
-          criticalThreshold < 2 ||
-          criticalThreshold > DEFAULT_CRITICAL_HIT_THRESHOLD)
-      )
-        throw new Error('D&D attack resolution requires a critical threshold from 2 to 20.')
-      const resultPath = dnd5eTestResultPath(
-        kind === 'ATTACK'
-          ? {
-              kind,
-              naturalD20,
-              total,
-              threshold,
-              outcomeRule,
-              criticalThreshold: criticalThreshold as number
-            }
-          : { kind, naturalD20, total, threshold, outcomeRule }
-      )
-      const contributorChecksum = inputs.contributorChecksum
-      if (typeof contributorChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(contributorChecksum))
-        throw new Error('D&D test resolution requires contributor evidence checksum.')
-      return {
-        targetActorId,
-        naturalD20,
-        total,
-        resultPath,
-        contributorChecksum
-      }
-    }
-  }
-}
-
-export const dnd5eAttackTestOperation = testOperation(DND5E_ATTACK_TEST_OPERATION_KEY, 'ATTACK')
-export const dnd5eSaveTestOperation = testOperation(DND5E_SAVE_TEST_OPERATION_KEY, 'SAVE')
-export const dnd5eMovementInterruptionAuthorizationOperation: PureRuleOperationContract = {
-  key: DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PURE',
-  inputs: { resultPath: RULE_VALUE_KIND.TEXT, authoredPath: RULE_VALUE_KIND.TEXT },
-  outputs: { authorized: RULE_VALUE_KIND.BOOLEAN },
-  execute(inputs) {
-    const { resultPath, authoredPath } = inputs
-    if (
-      typeof resultPath !== 'string' ||
-      typeof authoredPath !== 'string' ||
-      !isSpecializedPath(resultPath) ||
-      !isSpecializedPath(authoredPath)
-    )
-      throw new Error('D&D movement interruption requires canonical result paths.')
-    return {
-      authorized:
-        resultPath === authoredPath || (resultPath === 'ON_CRIT' && authoredPath === 'ON_HIT')
-    }
-  }
-}
-
-function testProposalOperation(
-  key: string,
-  payload: Readonly<Record<string, typeof RULE_VALUE_KIND.NUMBER | typeof RULE_VALUE_KIND.TEXT>>,
-  conditionProtection = false,
-  /** Version 2 also reads whether the save cleared a failure margin, and is refused when it did. */
-  marginGated = false
-): ProposalRuleOperationContract {
-  return {
-    key,
-    contractVersion: marginGated ? 2 : 1,
-    executionKind: 'PROPOSAL',
-    inputs: {
-      targetActorId: RULE_VALUE_KIND.TEXT,
-      resolvedPath: RULE_VALUE_KIND.TEXT,
-      authoredPath: RULE_VALUE_KIND.TEXT,
-      targetStateChecksum: RULE_VALUE_KIND.TEXT,
-      ...(conditionProtection ? { conditionImmune: RULE_VALUE_KIND.BOOLEAN } : {}),
-      ...(marginGated ? { marginCleared: RULE_VALUE_KIND.BOOLEAN } : {}),
-      ...payload
-    },
-    outputs: {
-      targetActorId: RULE_VALUE_KIND.TEXT,
-      resolvedPath: RULE_VALUE_KIND.TEXT,
-      authoredPath: RULE_VALUE_KIND.TEXT,
-      authorized: RULE_VALUE_KIND.BOOLEAN,
-      applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-      targetStateChecksum: RULE_VALUE_KIND.TEXT,
-      ...payload
-    },
-    execute(inputs) {
-      const targetActorId = inputs.targetActorId
-      const resolvedPath = inputs.resolvedPath
-      const authoredPath = inputs.authoredPath
-      const targetStateChecksum = inputs.targetStateChecksum
-      if (
-        typeof targetActorId !== 'string' ||
-        !UUID.test(targetActorId) ||
-        typeof resolvedPath !== 'string' ||
-        typeof authoredPath !== 'string' ||
-        typeof targetStateChecksum !== 'string' ||
-        !/^[a-f0-9]{64}$/.test(targetStateChecksum)
-      )
-        throw new Error('D&D test proposal requires exact target and path identities.')
-      for (const [port, kind] of Object.entries(payload)) {
-        const value = inputs[port]
-        if (
-          (kind === RULE_VALUE_KIND.NUMBER &&
-            (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0)) ||
-          (kind === RULE_VALUE_KIND.TEXT && typeof value !== 'string')
-        )
-          throw new Error('D&D test proposal payload is invalid.')
-      }
-      const conditionImmune = inputs.conditionImmune
-      if (conditionProtection && typeof conditionImmune !== 'boolean')
-        throw new Error('D&D test condition proposal requires normalized target protections.')
-      const marginCleared = inputs.marginCleared
-      if (marginGated && typeof marginCleared !== 'boolean')
-        throw new Error('D&D margin condition proposal requires the evaluated failure margin.')
-      return {
-        targetActorId,
-        resolvedPath,
-        authoredPath,
-        authorized:
-          (resolvedPath === authoredPath ||
-            (resolvedPath === 'ON_CRIT' && authoredPath === 'ON_HIT')) &&
-          (!conditionProtection || !conditionImmune) &&
-          (!marginGated || !marginCleared),
-        applicationCandidate: true,
-        targetStateChecksum,
-        ...Object.fromEntries(Object.keys(payload).map((port) => [port, inputs[port]!]))
-      }
-    }
-  }
-}
-
-export const dnd5eTestHealProposalOperation = testProposalOperation(
-  DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
-  { amount: RULE_VALUE_KIND.NUMBER }
-)
-export const dnd5eTestTemporaryHitPointsProposalOperation = testProposalOperation(
-  DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-  { amount: RULE_VALUE_KIND.NUMBER }
-)
-export const dnd5eTestDamageProposalOperation = testProposalOperation(
-  DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
-  { amount: RULE_VALUE_KIND.NUMBER, damageTypeId: RULE_VALUE_KIND.TEXT }
-)
-export const dnd5eTestConditionProposalOperation = testProposalOperation(
-  DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
-  { conditionId: RULE_VALUE_KIND.TEXT },
-  true
-)
-/** A failure-margin rider's condition: applied only when the save fails by the rider's margin. */
-export const dnd5eTestMarginConditionProposalOperation = testProposalOperation(
-  DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
-  { conditionId: RULE_VALUE_KIND.TEXT },
-  true,
-  true
-)
-export const dnd5eTestScalarReductionProposalOperation = testProposalOperation(
-  DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
-  {
-    amount: RULE_VALUE_KIND.NUMBER,
-    valueDefinitionId: RULE_VALUE_KIND.TEXT,
-    recoveryTriggers: RULE_VALUE_KIND.TEXT,
-    terminalConsequence: RULE_VALUE_KIND.TEXT
-  }
-)
-/** Binds a persistent relationship's authored entry; application is owned by the effect planner. */
-export const dnd5eActorRelationshipStateOperation: PureRuleOperationContract = {
-  key: DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PURE',
-  inputs: {},
-  outputs: {},
-  execute: () => ({})
-}
-/** Marks one counted turn of a timed condition; the effect planner owns its removal. */
-export const dnd5eConditionDurationOperation: PureRuleOperationContract = {
-  key: DND5E_CONDITION_DURATION_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PURE',
-  inputs: {},
-  outputs: {},
-  execute: () => ({})
-}
-export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
-  gameSystemId: DND5E_SYSTEM_ID,
-  contractVersion: 1,
-  authoredRootKinds: ['effect'],
-  definitionFamilyKeys: [
-    DND5E_EFFECT_ACTION_FAMILY_KEY,
-    SENSE_DEFINITION_FAMILY_KEY,
-    'dnd5e-optional-combat',
-    RULE_CAPABILITY_DEFINITION_FAMILY_KEY,
-    CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
-    RULE_MAINTENANCE_DEFINITION_FAMILY_KEY,
-    BASIC_ACTION_DEFINITION_FAMILY_KEY,
-    ...new Set([
-      ...dnd5eConcentrationCapabilityContribution.definitionFamilyKeys,
-      ...dnd5eEncounterLifecycleCapabilityContribution.definitionFamilyKeys,
-      ...dnd5eInitiativeCapabilityContribution.definitionFamilyKeys,
-      ...dnd5eOptionalCombatContestCapabilityContribution.definitionFamilyKeys,
-      ...dnd5eReactionEligibilityCapabilityContribution.definitionFamilyKeys
-    ])
-  ],
-  factContracts: [
-    { key: DND5E_TARGET_ACTOR_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_ATTACK_MODIFIER_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
-    { key: DND5E_TARGET_DEFENSE_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
-    { key: DND5E_SAVE_MODIFIER_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
-    { key: DND5E_SAVE_DC_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
-    {
-      key: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.TEXT
-    },
-    { key: DND5E_TEST_OUTCOME_RULE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
-    { key: DND5E_CRITICAL_EXTRA_DICE_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
-    {
-      key: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.TEXT
-    },
-    {
-      key: DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.BOOLEAN
-    },
-    { key: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
-    ...Object.keys(DND5E_CONDITION_IMMUNE_FACT_KEYS).flatMap((pathCode) =>
-      Array.from({ length: MAX_CONDITIONS_PER_PATH }, (_, index) => ({
-        key: conditionImmuneFactKey(pathCode, index + 1)!,
-        valueKind: RULE_VALUE_KIND.BOOLEAN
-      }))
-    ),
-    ...Object.values(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).map((key) => ({
-      key,
-      valueKind: RULE_VALUE_KIND.TEXT
-    })),
-    {
-      key: DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.TEXT
-    },
-    {
-      key: DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.NUMBER
-    },
-    {
-      key: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.NUMBER
-    },
-    {
-      key: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.NUMBER
-    },
-    {
-      key: DND5E_SPELL_CAST_LEVEL_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.NUMBER
-    },
-    { key: DND5E_CLASS_LEVELS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_TARGET_CREATURE_TYPE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_ATTACK_MOVE_TOWARD_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_ATTACK_TURN_USES_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_DAMAGE_ADDED_DICE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
-    { key: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY, valueKind: RULE_VALUE_KIND.BOOLEAN },
-    ...dnd5eAddedDiceFactContracts,
-    {
-      key: REACTION_CHOICE_MIN_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.NUMBER
-    },
-    {
-      key: REACTION_CHOICE_MAX_FACT_KEY,
-      valueKind: RULE_VALUE_KIND.NUMBER
-    },
-    ...dnd5eConcentrationCapabilityContribution.factContracts,
-    ...dnd5eEncounterLifecycleCapabilityContribution.factContracts,
-    ...dnd5eInitiativeCapabilityContribution.factContracts,
-    ...dnd5eOptionalCombatContestCapabilityContribution.factContracts,
-    ...dnd5eReactionEligibilityCapabilityContribution.factContracts
-  ],
-  operationContracts: [
-    'evidence.integer-range',
-    'evidence.optional-integer-range',
-    addedDiceTotalEvidenceRuleOperation.key,
-    addNumbersRuleOperation.key,
-    REACTION_CHOICE_OPERATION_KEY,
-    DND5E_HEAL_PROPOSAL_OPERATION_KEY,
-    DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-    DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
-    DND5E_KILL_PROPOSAL_OPERATION_KEY,
-    DND5E_DEPART_PROPOSAL_OPERATION_KEY,
-    DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
-    DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
-    DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
-    DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
-    DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
-    DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
-    DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
-    DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
-    DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
-    DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-    DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
-    DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
-    DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
-    DND5E_DAMAGE_TOTAL_OPERATION_KEY,
-    DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
-    DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
-    DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
-    DND5E_HEAL_TOTAL_OPERATION_KEY,
-    DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
-    DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
-    DND5E_CONDITION_DURATION_OPERATION_KEY,
-    DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
-    DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
-    DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-    DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
-    DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
-    DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
-    ...dnd5eConcentrationCapabilityContribution.operationContracts.map(({ key }) => key),
-    ...dnd5eEncounterLifecycleCapabilityContribution.operationContracts.map(({ key }) => key),
-    ...dnd5eInitiativeCapabilityContribution.operationContracts.map(({ key }) => key),
-    ...dnd5eOptionalCombatContestCapabilityContribution.operationContracts.map(({ key }) => key),
-    ...dnd5eReactionEligibilityCapabilityContribution.operationContracts.map(({ key }) => key)
-  ]
-    .filter((key, index, keys) => keys.indexOf(key) === index)
-    .map((key) => ({ key, contractVersion: 1 }))
-    .concat(
-      [
-        dnd5eAttackTestOperation,
-        dnd5eSaveTestOperation,
-        dnd5eTestMarginConditionProposalOperation,
-        dnd5eHitPointGatedKillProposalOperation,
-        dnd5eHitPointGatedConditionApplyProposalOperation
-      ].map(({ key, contractVersion }) => ({ key, contractVersion }))
-    )
 }
 
 function testProposalOperationKey(outcome: Outcome | EntryDiceDamageOutcome): string {
@@ -7593,11 +6219,6 @@ function fixedOutcomeGraphDefinition(input: {
   }
 }
 
-/** The authored result path in a direct proposal node id: `[prefix]proposal-<path>[-condition]`. */
-function proposalNodePathCode(nodeId: string): string | null {
-  return /(?:^|-)proposal-([a-z_]+)(?:-condition)?$/.exec(nodeId)?.[1]?.toUpperCase() ?? null
-}
-
 function authoredOutcomeGroups(
   action: Dnd5eCompiledEffectActionSource,
   pathCode: SpecializedPath
@@ -8313,11 +6934,25 @@ function dnd5eActiveEffectPlans(
     (!plan || (sourceImmunity.appliesTo === 'SAVE_SUCCESS' ? plan.maintenance : plan.marginRider))
   )
     unsupported('D&D source immunity needs a lasting effect it can ride.')
+  const repeatCarrier = repeatCarrierPlan(action)
+  // The carrier takes the failure rider's slot and depends on the Concentration the grant rides.
+  if (
+    repeatCarrier &&
+    (!timedPlan?.modifierGrantContribution ||
+      !timedPlan.maintenance ||
+      !timedPlan.chosenItem ||
+      timedPlan.marginRider ||
+      sourceImmunity)
+  )
+    unsupported('D&D repeat offer needs a maintained chosen-item grant it can ride.')
   if (!plan) return []
   const frozenGraph = repeatPlan
     ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
     : timedPlan
-      ? durationPublishedGraph({ effectId: action.effectId, plan: timedPlan })
+      ? durationPublishedGraph({
+          effectId: action.effectId,
+          plan: { ...timedPlan, repeatCarrier }
+        })
       : relationship
         ? relationship.frozenGraph
         : published
@@ -8365,7 +7000,14 @@ function dnd5eActiveEffectPlans(
     throw new Dnd5eEffectActionCompilerError(
       'The D&D active effect plan does not bind one exact authored result block.'
     )
-  return [{ ...plan, frozenGraph, ...(sourceImmunity && { sourceImmunity }) }]
+  return [
+    {
+      ...plan,
+      frozenGraph,
+      ...(sourceImmunity && { sourceImmunity }),
+      ...(repeatCarrier && { repeatCarrier })
+    }
+  ]
 }
 
 function compileDnd5eEffectAction({
@@ -8406,10 +7048,12 @@ function compileDnd5eEffectAction({
   })
 }
 
-/** The hit-point ceiling the action's one direct entry gates its outcome on, when it has one. */
-function directHitPointGateAtMost(action: Dnd5eCompiledEffectActionSource): number | undefined {
+/** The hit-point band the action's one direct entry gates its outcome on, when it has one. */
+function directHitPointGateBand(
+  action: Dnd5eCompiledEffectActionSource
+): { above: number; atMost: number } | undefined {
   const entry = action.compiledEffect.entries[0]
-  return entry && 'gate' in entry ? entry.gate?.amount : undefined
+  return entry && 'gate' in entry && entry.gate ? authoredHitPointGateBand(entry.gate) : undefined
 }
 
 function compileEffectActionGraph(
@@ -8430,9 +7074,9 @@ function compileEffectActionGraph(
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
   // Only a direct outcome honours a hit-point gate; every other plan refuses one rather than skip it.
-  const gateAtMost = directHitPointGateAtMost(action)
+  const gateBand = directHitPointGateBand(action)
   const refuseGate = () => {
-    if (gateAtMost !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
+    if (gateBand !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
   }
   const composition = sequentialComposition(action)
   if (composition) {
@@ -8454,8 +7098,13 @@ function compileEffectActionGraph(
   }
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
-  if (gateAtMost !== undefined && outcome.kind !== 'KILL' && outcome.kind !== 'CONDITION_APPLY')
-    unsupported('D&D hit-point gate belongs to a kill or condition outcome.')
+  if (
+    gateBand !== undefined &&
+    outcome.kind !== 'KILL' &&
+    outcome.kind !== 'CONDITION_APPLY' &&
+    outcome.kind !== 'HEAL'
+  )
+    unsupported('D&D hit-point gate belongs to a kill, condition or heal outcome.')
   if (outcome.kind === 'DICE_HEAL') {
     const entry = action.compiledEffect.entries[0]
     if (
@@ -8545,22 +7194,22 @@ function compileEffectActionGraph(
     nodes: [
       {
         id: nodeId,
-        operation: { key: operation, contractVersion: gateAtMost === undefined ? 1 : 2 },
+        operation: { key: operation, contractVersion: gateBand === undefined ? 1 : 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           targetStateChecksum: {
             kind: 'FACT',
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
-          ...(gateAtMost === undefined
+          ...(gateBand === undefined
             ? {}
             : {
                 targetCurrentHitPoints: {
                   kind: 'FACT',
                   factKey: DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY
                 },
-                hitPointsAbove: { kind: 'LITERAL', value: NO_HIT_POINT_FLOOR },
-                hitPointsAtMost: { kind: 'LITERAL', value: gateAtMost }
+                hitPointsAbove: { kind: 'LITERAL', value: gateBand.above },
+                hitPointsAtMost: { kind: 'LITERAL', value: gateBand.atMost }
               }),
           ...(isTargetOnlyOutcome(outcome)
             ? targetOnlyOutcomeInputs(outcome)
@@ -8631,1507 +7280,6 @@ function compileEffectActionGraph(
       definition
     })
   })
-}
-function positive(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
-}
-
-function hitPointStateIsValid(input: {
-  currentHitPoints: number
-  maximumHitPoints: number
-  temporaryHitPoints: number
-}): boolean {
-  return (
-    Number.isSafeInteger(input.currentHitPoints) &&
-    Number.isSafeInteger(input.maximumHitPoints) &&
-    Number.isSafeInteger(input.temporaryHitPoints) &&
-    input.currentHitPoints >= 0 &&
-    input.maximumHitPoints >= 0 &&
-    input.temporaryHitPoints >= 0 &&
-    input.currentHitPoints <= input.maximumHitPoints
-  )
-}
-
-/**
- * The dice a zone's entry graph rolls for its damage: the enabling node follows the test result, and
- * each die either carries the one answered request (the path was authored) or settles at its minimum.
- */
-function requireEntryDamageTraces(input: {
-  traces: Parameters<
-    CharacterRuleActionSystemAdapter['interpret']
-  >[0]['execution']['evidence']['trace']
-  published: ServerPublishedRuleDefinitionDto
-  occurrenceId: string
-  resultPath: string
-}): void {
-  const { traces, published, occurrenceId, resultPath } = input
-  if (traces.length === 0) return
-  const invalid = () =>
-    new Dnd5eEffectActionCompilerError('The committed D&D zone damage dice topology is invalid.')
-  const nodeIds = published.definition.nodes.map((node) => node.id)
-  // Each save result that rolls dice has a gate of its own; the dice read the gate they are bound to.
-  const gateNodes = published.definition.nodes.filter(
-    (node) =>
-      node.id.startsWith(ENTRY_DAMAGE_NODE_PREFIX) &&
-      node.operation.key === DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY
-  )
-  if (gateNodes.length === 0) throw invalid()
-  const gateAuthorized = new Map<string, unknown>()
-  for (const enabledNode of gateNodes) {
-    const enabledTrace = traces.find((trace) => trace.nodeId === enabledNode.id)
-    const authoredPath = enabledNode.inputs.authoredPath
-    if (
-      !enabledTrace ||
-      enabledTrace.operation.key !== enabledNode.operation.key ||
-      authoredPath?.kind !== 'LITERAL' ||
-      typeof authoredPath.value !== 'string' ||
-      !isSpecializedPath(authoredPath.value) ||
-      enabledNode.id !== `${entryDamagePrefix(authoredPath.value)}enabled` ||
-      !isSpecializedPath(resultPath) ||
-      enabledTrace.inputs.resultPath !== resultPath ||
-      enabledTrace.inputs.authoredPath !== authoredPath.value ||
-      enabledTrace.outputs.authorized !==
-        dnd5eMovementInterruptionAuthorizationOperation.execute({
-          resultPath,
-          authoredPath: authoredPath.value
-        }).authorized
-    )
-      throw invalid()
-    gateAuthorized.set(enabledNode.id, enabledTrace.outputs.authorized)
-  }
-  for (const trace of traces) {
-    if (trace.operation.key !== 'evidence.optional-integer-range') continue
-    const { min, max, enabled } = trace.inputs
-    const value = trace.outputs.value
-    const answered = trace.evidence
-    const gate = published.definition.nodes.find((node) => node.id === trace.nodeId)?.inputs.enabled
-    if (
-      gate?.kind !== 'NODE_OUTPUT' ||
-      enabled !== gateAuthorized.get(gate.nodeId) ||
-      typeof min !== 'number' ||
-      typeof max !== 'number' ||
-      typeof value !== 'number' ||
-      (enabled === true
-        ? answered?.kind !== 'INTEGER_RANGE' ||
-          answered.value !== value ||
-          answered.requestId !==
-            `${occurrenceId}:${nodeIds.indexOf(trace.nodeId)}:${trace.nodeId}` ||
-          value < min ||
-          value > max
-        : answered !== undefined || value !== min)
-    )
-      throw invalid()
-  }
-}
-
-function testApplications(
-  input: Parameters<CharacterRuleActionSystemAdapter['interpret']>[0],
-  replacementPath?: 'ON_SAVE_SUCCESS'
-): readonly CharacterRuleActionApplication[] | null {
-  const { execution, published } = input
-  const [d20Trace, addedDiceTrace, testTrace, ...remainingTraces] = execution.evidence.trace
-  const containsRootTestTrace = input.execution.evidence.trace.some(
-    (trace) => trace.nodeId === 'd20' || trace.nodeId === 'test'
-  )
-  if (
-    d20Trace?.nodeId !== 'd20' ||
-    d20Trace?.operation.key !== 'evidence.integer-range' ||
-    d20Trace.operation.contractVersion !== 1 ||
-    d20Trace.inputs.min !== 1 ||
-    d20Trace.inputs.max !== 20 ||
-    d20Trace.evidence?.kind !== 'INTEGER_RANGE' ||
-    d20Trace.evidence.requestId !== `${input.occurrenceId}:0:d20` ||
-    testTrace?.nodeId !== 'test' ||
-    (testTrace.operation.key !== DND5E_ATTACK_TEST_OPERATION_KEY &&
-      testTrace.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY)
-  ) {
-    if (containsRootTestTrace)
-      throw new Dnd5eEffectActionCompilerError('The committed D&D test graph topology is invalid.')
-    return null
-  }
-  const source = execution.evidence.source
-  if (
-    source.definitionId !== published.id ||
-    source.gameSystemId !== published.gameSystemId ||
-    source.definitionFamilyKey !== published.definitionFamilyKey ||
-    source.checksum !== published.checksum
-  )
-    throw new Dnd5eEffectActionCompilerError('The committed D&D test source identity is invalid.')
-  const expectedNodes = new Map(
-    published.definition.nodes.map((node) => [
-      node.id,
-      `${node.operation.key}:${node.operation.contractVersion}`
-    ])
-  )
-  const seenNodes = new Set<string>()
-  if (
-    execution.evidence.trace.length !== expectedNodes.size ||
-    execution.evidence.trace.some((trace) => {
-      if (seenNodes.has(trace.nodeId)) return true
-      seenNodes.add(trace.nodeId)
-      return (
-        expectedNodes.get(trace.nodeId) !==
-        `${trace.operation.key}:${trace.operation.contractVersion}`
-      )
-    })
-  )
-    throw new Dnd5eEffectActionCompilerError('The committed D&D test graph topology is invalid.')
-  const movementInterruptionTraces = remainingTraces.filter(
-    (trace) => trace.nodeId === 'movement-interruption'
-  )
-  if (movementInterruptionTraces.length > 1)
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D test movement interruption topology is invalid.'
-    )
-  const movementInterruptionTrace = movementInterruptionTraces[0]
-  if (movementInterruptionTrace) {
-    const movementInterruptionNode = published.definition.nodes.find(
-      (node) => node.id === 'movement-interruption'
-    )
-    const resultPathBinding = movementInterruptionNode?.inputs.resultPath
-    const authoredPathBinding = movementInterruptionNode?.inputs.authoredPath
-    const movementInterruptionOutput = published.definition.outputs.movementInterruption
-    const resultPath = testTrace.outputs.resultPath
-    const authoredPath = movementInterruptionTrace.inputs.authoredPath
-    if (
-      typeof resultPath !== 'string' ||
-      typeof authoredPath !== 'string' ||
-      !isSpecializedPath(resultPath) ||
-      !isSpecializedPath(authoredPath)
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D test movement interruption topology is invalid.'
-      )
-    const expected = dnd5eMovementInterruptionAuthorizationOperation.execute({
-      resultPath,
-      authoredPath
-    }).authorized
-    if (
-      movementInterruptionTrace.operation.key !==
-        DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY ||
-      movementInterruptionTrace.operation.contractVersion !== 1 ||
-      movementInterruptionNode?.operation.key !==
-        DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY ||
-      movementInterruptionNode?.operation.contractVersion !== 1 ||
-      resultPathBinding?.kind !== 'NODE_OUTPUT' ||
-      resultPathBinding.nodeId !== 'test' ||
-      resultPathBinding.port !== 'resultPath' ||
-      authoredPathBinding?.kind !== 'LITERAL' ||
-      movementInterruptionTrace.inputs.resultPath !== resultPath ||
-      authoredPath !== authoredPathBinding.value ||
-      typeof movementInterruptionTrace.outputs.authorized !== 'boolean' ||
-      movementInterruptionTrace.outputs.authorized !== expected ||
-      movementInterruptionOutput?.kind !== 'NODE_OUTPUT' ||
-      movementInterruptionOutput.nodeId !== 'movement-interruption' ||
-      movementInterruptionOutput.port !== 'authorized' ||
-      execution.outputs.movementInterruption !== movementInterruptionTrace.outputs.authorized
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D test movement interruption topology is invalid.'
-      )
-  }
-  const entryDamageTraces = remainingTraces.filter((trace) =>
-    trace.nodeId.startsWith(ENTRY_DAMAGE_NODE_PREFIX)
-  )
-  const proposalTraces = remainingTraces.filter(
-    (trace) => trace.nodeId !== 'movement-interruption' && !entryDamageTraces.includes(trace)
-  )
-  const naturalD20 = testTrace.outputs.naturalD20
-  const modifier = testTrace.inputs.modifier
-  const threshold = testTrace.inputs.threshold
-  const targetActorId = testTrace.outputs.targetActorId
-  const resultPath = testTrace.outputs.resultPath
-  const addedTotal = requireDnd5eAddedDiceTotal({
-    trace: addedDiceTrace,
-    facts: execution.evidence.facts,
-    d20NodeId: 'd20',
-    nodeIndex: 1,
-    occurrenceId: input.occurrenceId,
-    invalid: () =>
-      new Dnd5eEffectActionCompilerError('The committed D&D test result trace is invalid.')
-  })
-  if (
-    testTrace.inputs.addedTotal !== addedTotal ||
-    targetActorId !== input.targetActorId ||
-    testTrace.inputs.targetActorId !== input.targetActorId ||
-    naturalD20 !== d20Trace.evidence.value ||
-    typeof naturalD20 !== 'number' ||
-    typeof naturalD20 !== 'number' ||
-    !Number.isSafeInteger(naturalD20) ||
-    naturalD20 < 1 ||
-    naturalD20 > 20 ||
-    typeof modifier !== 'number' ||
-    !Number.isSafeInteger(modifier) ||
-    typeof threshold !== 'number' ||
-    !Number.isSafeInteger(threshold) ||
-    testTrace.outputs.total !== naturalD20 + modifier + addedTotal ||
-    typeof resultPath !== 'string'
-  )
-    throw new Dnd5eEffectActionCompilerError('The committed D&D test result trace is invalid.')
-  const attack = testTrace.operation.key === DND5E_ATTACK_TEST_OPERATION_KEY
-  const modifierFactKey = attack ? DND5E_ATTACK_MODIFIER_FACT_KEY : DND5E_SAVE_MODIFIER_FACT_KEY
-  const thresholdFactKey = attack ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
-  const expectedModifier = execution.evidence.facts[modifierFactKey]
-  const expectedThreshold = execution.evidence.facts[thresholdFactKey]
-  const expectedContributorChecksum =
-    execution.evidence.facts[DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]
-  const outcomeRule = execution.evidence.facts[DND5E_TEST_OUTCOME_RULE_FACT_KEY]
-  if (!isDnd5eTestOutcomeRule(outcomeRule) || testTrace.inputs.outcomeRule !== outcomeRule)
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D test outcome rule does not match D&D policy.'
-    )
-  const criticalThreshold = execution.evidence.facts[DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY]
-  if (
-    attack &&
-    (typeof criticalThreshold !== 'number' ||
-      testTrace.inputs.criticalThreshold !== criticalThreshold)
-  )
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D attack critical threshold does not match D&D policy.'
-    )
-  const resultInput = {
-    naturalD20,
-    total: naturalD20 + modifier + addedTotal,
-    threshold,
-    outcomeRule
-  }
-  const expectedPath = dnd5eTestResultPath(
-    attack
-      ? { kind: 'ATTACK', ...resultInput, criticalThreshold: criticalThreshold as number }
-      : { kind: 'SAVE', ...resultInput }
-  )
-  if (
-    modifier !== expectedModifier ||
-    threshold !== expectedThreshold ||
-    testTrace.inputs.contributorChecksum !== expectedContributorChecksum ||
-    testTrace.outputs.contributorChecksum !== expectedContributorChecksum ||
-    naturalD20 !== d20Trace.outputs.value ||
-    naturalD20 !== d20Trace.evidence.value ||
-    resultPath !== expectedPath ||
-    input.execution.outputs.resultPath !== resultPath
-  )
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D test result does not match D&D policy.'
-    )
-  if (
-    replacementPath !== undefined &&
-    (attack || resultPath !== 'ON_SAVE_FAIL' || replacementPath !== 'ON_SAVE_SUCCESS')
-  ) {
-    throw new Dnd5eEffectActionCompilerError(
-      'A D&D save-success replacement requires one completed failed saving throw.'
-    )
-  }
-  const authorizedPaths =
-    replacementPath !== undefined
-      ? [replacementPath]
-      : attack && resultPath === 'ON_CRIT'
-        ? ['ON_HIT', 'ON_CRIT']
-        : [resultPath]
-  requireEntryDamageTraces({
-    traces: entryDamageTraces,
-    published,
-    occurrenceId: input.occurrenceId,
-    resultPath
-  })
-  const directOperationByTestOperation = new Map<string, string>([
-    [DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY, DND5E_HEAL_PROPOSAL_OPERATION_KEY],
-    [
-      DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-      DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-    ],
-    [DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY, DND5E_DAMAGE_PROPOSAL_OPERATION_KEY],
-    [DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY, DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY]
-  ])
-  for (const proposal of proposalTraces) {
-    const authoredPath = proposal.inputs.authoredPath
-    const publishedNode = published.definition.nodes.find((node) => node.id === proposal.nodeId)
-    const expectedTarget = publishedNode?.inputs.targetActorId
-    const expectedResolvedPath = publishedNode?.inputs.resolvedPath
-    const expectedAuthoredPath = publishedNode?.inputs.authoredPath
-    const expectedImmunity = publishedNode?.inputs.conditionImmune
-    const expectedLiteral = (port: string) => {
-      const binding = publishedNode?.inputs[port]
-      return binding?.kind === 'LITERAL' ? binding.value : undefined
-    }
-    if (
-      !directOperationByTestOperation.has(proposal.operation.key) ||
-      !publishedNode ||
-      publishedNode.operation.key !== proposal.operation.key ||
-      publishedNode.operation.contractVersion !== proposal.operation.contractVersion ||
-      typeof authoredPath !== 'string' ||
-      (proposal.nodeId !== `proposal-${authoredPath.toLowerCase()}` &&
-        (proposal.operation.key !== DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY ||
-          proposal.nodeId !==
-            `proposal-${authoredPath.toLowerCase()}${CONDITION_PROPOSAL_SUFFIX}`)) ||
-      expectedTarget?.kind !== 'FACT' ||
-      expectedTarget.factKey !== DND5E_TARGET_ACTOR_FACT_KEY ||
-      proposal.inputs.targetActorId !== input.targetActorId ||
-      proposal.outputs.targetActorId !== input.targetActorId ||
-      expectedResolvedPath?.kind !== 'NODE_OUTPUT' ||
-      expectedResolvedPath.nodeId !== 'test' ||
-      expectedResolvedPath.port !== 'resultPath' ||
-      proposal.inputs.resolvedPath !== resultPath ||
-      proposal.outputs.resolvedPath !== resultPath ||
-      expectedAuthoredPath?.kind !== 'LITERAL' ||
-      expectedAuthoredPath.value !== authoredPath ||
-      proposal.outputs.authoredPath !== authoredPath ||
-      proposal.outputs.applicationCandidate !== true ||
-      proposal.outputs.authorized !==
-        ((resultPath === authoredPath || (resultPath === 'ON_CRIT' && authoredPath === 'ON_HIT')) &&
-          proposal.inputs.conditionImmune !== true) ||
-      (expectedImmunity?.kind === 'FACT' &&
-        proposal.inputs.conditionImmune !== execution.evidence.facts[expectedImmunity.factKey])
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D test proposal topology is invalid.'
-      )
-    for (const port of ['amount', 'damageTypeId', 'conditionId']) {
-      const expected = expectedLiteral(port)
-      if (
-        expected !== undefined &&
-        (proposal.inputs[port] !== expected || proposal.outputs[port] !== expected)
-      )
-        throw new Dnd5eEffectActionCompilerError(
-          'The committed D&D test proposal payload is invalid.'
-        )
-    }
-    // An amount rolled by the graph's own dice is the traced output it is bound to.
-    const amountBinding = publishedNode.inputs.amount
-    if (amountBinding?.kind === 'NODE_OUTPUT') {
-      const source = entryDamageTraces.find((trace) => trace.nodeId === amountBinding.nodeId)
-      if (
-        !source ||
-        proposal.inputs.amount !== source.outputs[amountBinding.port] ||
-        proposal.outputs.amount !== proposal.inputs.amount
-      )
-        throw new Dnd5eEffectActionCompilerError(
-          'The committed D&D test proposal payload is invalid.'
-        )
-    }
-  }
-  const applications: CharacterRuleActionApplication[] = []
-  // Each path applies its proposal, then the condition proposed beside it; trace node ids are unique.
-  const authorizedNodeIds = authorizedPaths.flatMap((path) => [
-    `proposal-${path.toLowerCase()}`,
-    `proposal-${path.toLowerCase()}${CONDITION_PROPOSAL_SUFFIX}`
-  ])
-  for (const nodeId of authorizedNodeIds) {
-    const proposal = proposalTraces.find((trace) => trace.nodeId === nodeId)
-    if (!proposal) continue
-    // A creature immune to the condition takes only the rest of its path.
-    if (
-      proposal.operation.key === DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY &&
-      proposal.inputs.conditionImmune === true
-    )
-      continue
-    if (
-      proposal.outputs.applicationCandidate !== true ||
-      (replacementPath === undefined && proposal.outputs.authorized !== true)
-    )
-      throw new Dnd5eEffectActionCompilerError('The committed D&D test proposal is unauthorized.')
-    if (proposal.outputs.targetActorId !== input.targetActorId)
-      throw new Dnd5eEffectActionCompilerError('The committed D&D test proposal target is invalid.')
-    const directOperation = directOperationByTestOperation.get(proposal.operation.key)
-    if (!directOperation)
-      throw new Dnd5eEffectActionCompilerError('The committed D&D test proposal is invalid.')
-    const replacementProposal =
-      replacementPath === undefined
-        ? proposal
-        : {
-            ...proposal,
-            inputs: { ...proposal.inputs, resolvedPath: replacementPath },
-            outputs: {
-              ...proposal.outputs,
-              resolvedPath: replacementPath,
-              authorized: true
-            }
-          }
-    const {
-      resolvedPath: _resolvedPath,
-      authoredPath: _authoredPath,
-      ...outputs
-    } = replacementProposal.outputs
-    const direct = interpretDirect(
-      {
-        ...input,
-        execution: {
-          ...input.execution,
-          outputs,
-          evidence: {
-            ...input.execution.evidence,
-            trace: [
-              {
-                ...replacementProposal,
-                operation: { key: directOperation, contractVersion: 1 },
-                outputs
-              }
-            ]
-          }
-        }
-      },
-      {
-        nodes: published.definition.nodes,
-        source: {
-          definitionId: published.id,
-          gameSystemId: published.gameSystemId,
-          definitionFamilyKey: published.definitionFamilyKey,
-          checksum: published.checksum
-        }
-      }
-    )
-    const traced = direct.map((application) => ({
-      ...application,
-      // An attack that hit as a critical hit makes its damage critical (D96).
-      ...(application.kind === 'DAMAGE' ? { critical: attack && resultPath === 'ON_CRIT' } : {}),
-      sourceNodeId: replacementProposal.nodeId,
-      sourceOperationKey: replacementProposal.operation.key,
-      authoredPath: replacementProposal.outputs.authoredPath as string,
-      resolvedPath: replacementProposal.outputs.resolvedPath as string
-    }))
-    applications.push(...traced)
-    for (const application of traced) {
-      if (
-        application.kind === 'CONDITION_APPLY' ||
-        application.kind === 'CONDITION_REMOVE' ||
-        application.kind === 'TEMPORARY_HIT_POINTS_RELEASE' ||
-        application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
-        application.kind === 'SCALAR_REDUCTION' ||
-        application.kind === 'STABILIZE' ||
-        application.kind === 'KILL_NEGATED' ||
-        application.kind === 'DEPART'
-      )
-        continue
-      input =
-        application.kind === 'KILL'
-          ? { ...input, currentHitPoints: 0, temporaryHitPoints: 0 }
-          : {
-              ...input,
-              currentHitPoints: application.afterCurrentHitPoints,
-              temporaryHitPoints: application.afterTemporaryHitPoints
-            }
-    }
-  }
-  return applications
-}
-
-/** The conditions a repeat save holds, or null for one that holds modifier grants. */
-function repeatSaveConditionIds(
-  adapterFacts: Readonly<Record<string, string | number | boolean>>
-): string[] | null {
-  const fact = adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY]
-  if (fact === undefined) return null
-  const ids = typeof fact === 'string' ? fact.split(',') : []
-  if (ids.length === 0 || !ids.every((id) => UUID.test(id))) {
-    throw new Dnd5eEffectActionCompilerError('D&D repeated save condition identity is invalid.')
-  }
-  return ids
-}
-
-function repeatedFollowUpSaveResultPath(input: {
-  execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
-  occurrenceId: string
-  definition: Parameters<
-    NonNullable<CharacterRuleActionSystemAdapter['interpretActiveEffect']>
-  >[0]['definition']
-  graph: CompiledRuleGraph
-  targetActorId: string
-}): 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS' | 'ATTEMPT_REFUSED' | null {
-  const d20NodeId = input.definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
-  if (d20NodeId !== 'repeat-save-d20') return null
-  // A repeat save that holds conditions names them; one that holds modifier grants names none.
-  repeatSaveConditionIds(input.definition.adapterFacts)
-  const [d20Trace, addedDiceTrace, saveTrace] = input.execution.evidence.trace
-  const gated =
-    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts ||
-    input.definition.recurrence.saveThresholds !== undefined
-  const d20OperationKey = gated ? 'evidence.optional-integer-range' : 'evidence.integer-range'
-  const attemptAllowed = gated
-    ? input.execution.evidence.facts[DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]
-    : true
-  if (
-    input.graph.nodes.length !== 3 ||
-    input.graph.nodes[0]?.id !== d20NodeId ||
-    input.graph.nodes[0]?.operation.key !== d20OperationKey ||
-    input.graph.nodes[2]?.id !== input.definition.frozenGraphNodeId ||
-    input.graph.nodes[2]?.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY ||
-    input.execution.evidence.trace.length !== 3 ||
-    d20Trace?.nodeId !== d20NodeId ||
-    d20Trace.operation.key !== d20OperationKey ||
-    d20Trace.inputs.min !== 1 ||
-    d20Trace.inputs.max !== 20 ||
-    typeof attemptAllowed !== 'boolean' ||
-    (gated && d20Trace.inputs.enabled !== attemptAllowed)
-  ) {
-    throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save graph is invalid.')
-  }
-  const addedTotal = requireDnd5eAddedDiceTotal({
-    trace: addedDiceTrace,
-    facts: input.execution.evidence.facts,
-    d20NodeId,
-    nodeIndex: 1,
-    occurrenceId: input.occurrenceId,
-    invalid: () =>
-      new Dnd5eEffectActionCompilerError('The committed D&D repeat-save graph is invalid.')
-  })
-  // The gate refused this turn's attempt: its d20 settled without a request, so no save was made.
-  if (!attemptAllowed) {
-    if (d20Trace.evidence !== undefined)
-      throw new Dnd5eEffectActionCompilerError('A refused D&D repeat save carries d20 evidence.')
-    return 'ATTEMPT_REFUSED'
-  }
-  const naturalD20 = d20Trace.evidence?.kind === 'INTEGER_RANGE' ? d20Trace.evidence.value : null
-  const modifier = saveTrace?.inputs.modifier
-  const threshold = saveTrace?.inputs.threshold
-  if (
-    d20Trace.evidence?.kind !== 'INTEGER_RANGE' ||
-    d20Trace.evidence.requestId !== `${input.occurrenceId}:0:${d20NodeId}` ||
-    saveTrace?.nodeId !== input.definition.frozenGraphNodeId ||
-    saveTrace.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY ||
-    saveTrace.inputs.targetActorId !== input.targetActorId ||
-    saveTrace.outputs.targetActorId !== input.targetActorId ||
-    !Number.isSafeInteger(naturalD20) ||
-    saveTrace.inputs.naturalD20 !== naturalD20 ||
-    saveTrace.outputs.naturalD20 !== naturalD20 ||
-    typeof modifier !== 'number' ||
-    !Number.isSafeInteger(modifier) ||
-    typeof threshold !== 'number' ||
-    !Number.isSafeInteger(threshold) ||
-    modifier !== input.execution.evidence.facts[DND5E_SAVE_MODIFIER_FACT_KEY] ||
-    threshold !== input.definition.adapterFacts[DND5E_SAVE_DC_FACT_KEY] ||
-    saveTrace.inputs.contributorChecksum !==
-      input.execution.evidence.facts[DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY] ||
-    saveTrace.outputs.contributorChecksum !== saveTrace.inputs.contributorChecksum ||
-    saveTrace.inputs.addedTotal !== addedTotal ||
-    saveTrace.outputs.total !== naturalD20 + modifier + addedTotal ||
-    (saveTrace.outputs.resultPath !== 'ON_SAVE_FAIL' &&
-      saveTrace.outputs.resultPath !== 'ON_SAVE_SUCCESS') ||
-    input.execution.outputs.resultPath !== saveTrace.outputs.resultPath ||
-    input.execution.outputs.total !== saveTrace.outputs.total
-  ) {
-    throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save graph is invalid.')
-  }
-  const outcomeRule = input.execution.evidence.facts[DND5E_TEST_OUTCOME_RULE_FACT_KEY]
-  if (!isDnd5eTestOutcomeRule(outcomeRule) || saveTrace.inputs.outcomeRule !== outcomeRule) {
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D repeat-save outcome rule is invalid.'
-    )
-  }
-  const expected = dnd5eTestResultPath({
-    kind: 'SAVE',
-    naturalD20,
-    total: naturalD20 + modifier + addedTotal,
-    threshold,
-    outcomeRule
-  })
-  if (saveTrace.outputs.resultPath !== expected) {
-    throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save result is invalid.')
-  }
-  return expected
-}
-
-type DirectInterpretationInput = Pick<
-  Parameters<CharacterRuleActionSystemAdapter['interpret']>[0],
-  | 'execution'
-  | 'occurrenceId'
-  | 'targetActorId'
-  | 'currentHitPoints'
-  | 'temporaryHitPoints'
-  | 'maximumHitPoints'
-  | 'defenses'
-  | 'conditionImmunityIds'
->
-
-function conditionImmunityFacts(
-  graph: Pick<CompiledRuleGraph, 'nodes'>,
-  conditionImmunityIds: readonly string[] | undefined
-): Record<string, boolean> {
-  const facts: Record<string, boolean> = {}
-  const identitiesByFactKey = new Map<string, string>()
-  const conditionNodes = graph.nodes.filter(
-    (node) =>
-      node.operation.key === DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY ||
-      node.operation.key === DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
-  )
-  const legacySingleCondition =
-    conditionNodes.length === 1 &&
-    conditionNodes[0]?.inputs.authoredPath === undefined &&
-    conditionNodes[0]?.inputs.conditionImmune?.kind === 'FACT' &&
-    conditionNodes[0].inputs.conditionImmune.factKey === DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
-  let conditionCount = 0
-  for (const node of graph.nodes) {
-    if (
-      node.operation.key !== DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY &&
-      node.operation.key !== DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
-    )
-      continue
-    conditionCount += 1
-    const conditionId = node.inputs.conditionId
-    if (
-      !conditionId ||
-      conditionId.kind !== 'LITERAL' ||
-      typeof conditionId.value !== 'string' ||
-      !UUID.test(conditionId.value)
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The D&D condition action does not bind one exact condition identity.'
-      )
-    const binding = node.inputs.conditionImmune
-    const path = node.inputs.authoredPath
-    const pathCode =
-      path?.kind === 'LITERAL' && typeof path.value === 'string'
-        ? path.value
-        : proposalNodePathCode(node.id)
-    if (
-      !binding ||
-      binding.kind !== 'FACT' ||
-      (legacySingleCondition
-        ? binding.factKey !== DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
-        : !pathCode || !isPathConditionImmuneFactKey(binding.factKey, pathCode))
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The D&D condition action immunity binding is invalid.'
-      )
-    const factKey = binding.factKey
-    const previous = identitiesByFactKey.get(factKey)
-    if (previous !== undefined && previous !== conditionId.value)
-      throw new Dnd5eEffectActionCompilerError(
-        'The D&D condition action reuses one immunity fact for different conditions.'
-      )
-    identitiesByFactKey.set(factKey, conditionId.value)
-    facts[factKey] = (conditionImmunityIds ?? []).includes(conditionId.value)
-  }
-  if (conditionCount === 1 && legacySingleCondition) {
-    const conditionId = [...identitiesByFactKey.values()][0]
-    if (conditionId !== undefined)
-      facts[DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY] = (conditionImmunityIds ?? []).includes(
-        conditionId
-      )
-  }
-  return facts
-}
-
-/**
- * Whether a proposal's authorization follows from the target's hit points on its evidence: an
- * ungated proposal always authorizes; a gated one binds the target's current hit points fact and
- * authorizes exactly while they are at most the gate's literal ceiling (and, for a proposal with
- * its own protection, while that does not refuse it).
- */
-function hitPointGateEvidenceIsValid(
-  input: Pick<DirectInterpretationInput, 'execution' | 'currentHitPoints'>,
-  publishedNode: Pick<CompiledRuleGraph['nodes'][number], 'inputs'>,
-  trace: { operation: { contractVersion: number }; outputs: Record<string, unknown> },
-  otherwiseAuthorized = true
-): boolean {
-  const hitPoints = publishedNode.inputs.targetCurrentHitPoints
-  const floor = publishedNode.inputs.hitPointsAbove
-  const ceiling = publishedNode.inputs.hitPointsAtMost
-  if (trace.operation.contractVersion === 1)
-    return !hitPoints && !floor && !ceiling && trace.outputs.authorized === true
-  const band = hitPointGateBand({
-    hitPointsAbove: floor?.kind === 'LITERAL' ? floor.value : undefined,
-    hitPointsAtMost: ceiling?.kind === 'LITERAL' ? ceiling.value : undefined
-  })
-  return (
-    hitPoints?.kind === 'FACT' &&
-    hitPoints.factKey === DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY &&
-    band !== null &&
-    input.execution.evidence.facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] ===
-      input.currentHitPoints &&
-    trace.outputs.authorized ===
-      (otherwiseAuthorized && withinHitPointBand(input.currentHitPoints, band.above, band.atMost))
-  )
-}
-
-function interpretDirectProposal(
-  input: DirectInterpretationInput,
-  graph: Pick<CompiledRuleGraph, 'nodes' | 'source'>
-): readonly CharacterRuleActionApplication[] {
-  const { outputs, evidence } = input.execution
-  const trace = evidence.trace[0]
-  if (outputs.targetActorId !== input.targetActorId || !trace || evidence.trace.length !== 1)
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D rule action did not produce one exact hit-point proposal.'
-    )
-  const publishedNode = graph.nodes.find((node) => node.id === trace.nodeId)
-  const expectedOperation =
-    publishedNode?.operation.key === DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
-      ? DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
-      : publishedNode?.operation.key.startsWith('dnd5e.test-')
-        ? publishedNode.operation.key.replace('dnd5e.test-', 'dnd5e.')
-        : publishedNode?.operation.key
-  if (
-    !publishedNode ||
-    trace.nodeId !== publishedNode.id ||
-    trace.operation.key !== expectedOperation ||
-    trace.operation.contractVersion !== publishedNode.operation.contractVersion ||
-    evidence.source.definitionId !== graph.source.definitionId ||
-    evidence.source.gameSystemId !== graph.source.gameSystemId ||
-    evidence.source.definitionFamilyKey !== graph.source.definitionFamilyKey ||
-    evidence.source.checksum !== graph.source.checksum
-  )
-    throw new Dnd5eEffectActionCompilerError('The committed D&D rule action source is invalid.')
-  if (
-    trace.outputs.applicationCandidate !== true ||
-    trace.outputs.targetStateChecksum !==
-      input.execution.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]
-  )
-    throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
-  // A grant changes no stored target state; its active effect owns the modifiers.
-  if (
-    trace.operation.key === DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_CONCEAL_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY ||
-    // A push changes no stored target state; the room settles it on the Scene (interpretSpatial).
-    trace.operation.key === DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY
-  )
-    return []
-  if (trace.operation.key === DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY) {
-    const conditionIdBinding = publishedNode.inputs.conditionId
-    const authoredPathBinding = publishedNode.inputs.authoredPath
-    const graphConditionNodes = graph.nodes.filter(
-      (node) =>
-        node.operation.key === DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY ||
-        node.operation.key === DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
-    )
-    const legacySingleCondition =
-      graphConditionNodes.length === 1 &&
-      authoredPathBinding === undefined &&
-      publishedNode.inputs.conditionImmune?.kind === 'FACT' &&
-      publishedNode.inputs.conditionImmune.factKey === DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
-    const authoredPath =
-      authoredPathBinding?.kind === 'LITERAL' && typeof authoredPathBinding.value === 'string'
-        ? authoredPathBinding.value
-        : proposalNodePathCode(publishedNode.id)
-    const conditionBinding = publishedNode.inputs.conditionImmune
-    const conditionFactKey = legacySingleCondition
-      ? DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
-      : authoredPath &&
-          conditionBinding?.kind === 'FACT' &&
-          isPathConditionImmuneFactKey(conditionBinding.factKey, authoredPath)
-        ? conditionBinding.factKey
-        : undefined
-    const conditionFacts = conditionImmunityFacts(graph, input.conditionImmunityIds)
-    if (
-      typeof outputs.conditionId !== 'string' ||
-      !UUID.test(outputs.conditionId) ||
-      trace.outputs.targetActorId !== input.targetActorId ||
-      trace.outputs.conditionId !== outputs.conditionId ||
-      conditionIdBinding?.kind !== 'LITERAL' ||
-      conditionIdBinding.value !== outputs.conditionId ||
-      !conditionFactKey ||
-      typeof conditionFacts[conditionFactKey] !== 'boolean'
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D condition proposal trace is invalid.'
-      )
-    if (
-      trace.operation.contractVersion === 1
-        ? trace.outputs.authorized !== !conditionFacts[conditionFactKey]
-        : !hitPointGateEvidenceIsValid(
-            input,
-            publishedNode,
-            trace,
-            !conditionFacts[conditionFactKey]
-          )
-    ) {
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D condition proposal protection evidence is invalid.'
-      )
-    }
-    if (trace.outputs.authorized === false) return []
-    return [
-      {
-        kind: 'CONDITION_APPLY',
-        conditionId: outputs.conditionId,
-        targetActorId: input.targetActorId,
-        sourceNodeId: trace.nodeId,
-        sourceOperationKey: trace.operation.key,
-        authoredPath: null,
-        resolvedPath: null
-      }
-    ]
-  }
-  if (trace.operation.key === DND5E_KILL_PROPOSAL_OPERATION_KEY) {
-    if (trace.outputs.targetActorId !== input.targetActorId)
-      throw new Dnd5eEffectActionCompilerError('The committed D&D kill proposal trace is invalid.')
-    if (!hitPointGateEvidenceIsValid(input, publishedNode, trace))
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D kill proposal hit-point gate evidence is invalid.'
-      )
-    // A target above the gate's ceiling is left as it was.
-    if (trace.outputs.authorized === false) return []
-    return [
-      {
-        kind: 'KILL',
-        targetActorId: input.targetActorId,
-        sourceNodeId: trace.nodeId,
-        sourceOperationKey: trace.operation.key,
-        authoredPath: null,
-        resolvedPath: null
-      }
-    ]
-  }
-  if (trace.outputs.authorized !== true)
-    throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
-  const storedKind =
-    trace.operation.key === DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
-      ? 'STABILIZE'
-      : trace.operation.key === DND5E_DEPART_PROPOSAL_OPERATION_KEY
-        ? 'DEPART'
-        : null
-  if (storedKind) {
-    if (trace.outputs.targetActorId !== input.targetActorId)
-      throw new Dnd5eEffectActionCompilerError(
-        `The committed D&D ${storedKind.toLowerCase()} proposal trace is invalid.`
-      )
-    return [
-      {
-        kind: storedKind,
-        targetActorId: input.targetActorId,
-        sourceNodeId: trace.nodeId,
-        sourceOperationKey: trace.operation.key,
-        authoredPath: null,
-        resolvedPath: null
-      }
-    ]
-  }
-  // Damage the floor took to nothing (a subtracted die, a negative modifier) deals none.
-  if (
-    trace.operation.key === DND5E_DAMAGE_PROPOSAL_OPERATION_KEY &&
-    outputs.amount === 0 &&
-    trace.outputs.amount === 0 &&
-    trace.outputs.targetActorId === input.targetActorId
-  )
-    return []
-  if (!positive(outputs.amount) || !hitPointStateIsValid(input))
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D rule action did not produce one exact hit-point proposal.'
-    )
-  if (
-    trace.outputs.targetActorId !== input.targetActorId ||
-    trace.outputs.amount !== outputs.amount ||
-    trace.operation.contractVersion !== 1
-  )
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D rule action proposal trace is invalid.'
-    )
-  const requestedAmount = outputs.amount
-  if (trace.operation.key === DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY) {
-    const valueDefinitionId = outputs.valueDefinitionId
-    const recoveryTriggers = outputs.recoveryTriggers
-    const terminalConsequence = outputs.terminalConsequence
-    if (
-      typeof valueDefinitionId !== 'string' ||
-      !UUID.test(valueDefinitionId) ||
-      typeof recoveryTriggers !== 'string' ||
-      typeof terminalConsequence !== 'string' ||
-      terminalConsequence !== 'TARGET_DIED'
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D scalar reduction proposal is invalid.'
-      )
-    let parsedTriggers: unknown
-    try {
-      parsedTriggers = JSON.parse(recoveryTriggers)
-    } catch {
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D scalar reduction recovery is invalid.'
-      )
-    }
-    if (
-      !Array.isArray(parsedTriggers) ||
-      parsedTriggers.length < 1 ||
-      parsedTriggers.length > 2 ||
-      new Set(parsedTriggers).size !== parsedTriggers.length ||
-      parsedTriggers.some((trigger) => trigger !== 'SHORT_REST' && trigger !== 'LONG_REST')
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D scalar reduction recovery is invalid.'
-      )
-    return [
-      {
-        kind: 'SCALAR_REDUCTION',
-        targetActorId: input.targetActorId,
-        sourceNodeId: trace.nodeId,
-        sourceOperationKey: trace.operation.key,
-        authoredPath: null,
-        resolvedPath: null,
-        valueDefinitionId,
-        reductionAmount: requestedAmount,
-        stacking: 'ADDITIVE',
-        floor: 0,
-        recoveryTriggers: parsedTriggers,
-        terminalConsequence: 'TARGET_DIED',
-        sourceOutcomeId: input.execution.evidence.source.definitionId
-      }
-    ]
-  }
-  if (trace.operation.key === DND5E_HEAL_PROPOSAL_OPERATION_KEY) {
-    const appliedAmount = Math.min(requestedAmount, input.maximumHitPoints - input.currentHitPoints)
-    const afterCurrentHitPoints = input.currentHitPoints + appliedAmount
-    return [
-      {
-        kind: 'HEAL',
-        requestedAmount,
-        resolvedAmount: requestedAmount,
-        appliedAmount,
-        beforeCurrentHitPoints: input.currentHitPoints,
-        afterCurrentHitPoints,
-        beforeTemporaryHitPoints: input.temporaryHitPoints,
-        afterTemporaryHitPoints: input.temporaryHitPoints,
-        maximumHitPoints: input.maximumHitPoints,
-        targetActorId: input.targetActorId,
-        sourceNodeId: trace.nodeId,
-        sourceOperationKey: trace.operation.key,
-        authoredPath: null,
-        resolvedPath: null
-      }
-    ]
-  }
-  if (trace.operation.key === DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY) {
-    const afterTemporaryHitPoints = Math.max(input.temporaryHitPoints, requestedAmount)
-    return [
-      {
-        kind: 'TEMPORARY_HIT_POINTS',
-        requestedAmount,
-        resolvedAmount: requestedAmount,
-        appliedAmount: afterTemporaryHitPoints - input.temporaryHitPoints,
-        beforeCurrentHitPoints: input.currentHitPoints,
-        afterCurrentHitPoints: input.currentHitPoints,
-        beforeTemporaryHitPoints: input.temporaryHitPoints,
-        afterTemporaryHitPoints,
-        maximumHitPoints: input.maximumHitPoints,
-        targetActorId: input.targetActorId,
-        sourceNodeId: trace.nodeId,
-        sourceOperationKey: trace.operation.key,
-        authoredPath: null,
-        resolvedPath: null
-      }
-    ]
-  }
-  if (
-    trace.operation.key !== DND5E_DAMAGE_PROPOSAL_OPERATION_KEY ||
-    typeof outputs.damageTypeId !== 'string' ||
-    outputs.damageTypeId !== trace.outputs.damageTypeId
-  )
-    throw new Dnd5eEffectActionCompilerError('The committed D&D damage proposal trace is invalid.')
-  uuid(outputs.damageTypeId, 'D&D damage type identity')
-  const d = input.defenses.filter((x) => x.damageTypeId === outputs.damageTypeId)
-  const immune = d.some((x) => x.kind === 'IMMUNITY')
-  const resistant = d.some((x) => x.kind === 'RESISTANCE')
-  const vulnerable = d.some((x) => x.kind === 'VULNERABILITY')
-  const damageDisposition = immune
-    ? 'IMMUNE'
-    : resistant && vulnerable
-      ? 'RESISTANT_AND_VULNERABLE'
-      : resistant
-        ? 'RESISTANT'
-        : vulnerable
-          ? 'VULNERABLE'
-          : 'NORMAL'
-  const resolvedAmount = resolveDispositionDamage(damageDisposition, requestedAmount)
-  if (!Number.isSafeInteger(resolvedAmount))
-    throw new Dnd5eEffectActionCompilerError(
-      'D&D vulnerable damage exceeds the supported safe integer range.'
-    )
-  const temporaryLost = Math.min(input.temporaryHitPoints, resolvedAmount)
-  const currentLost = Math.min(input.currentHitPoints, resolvedAmount - temporaryLost)
-  return [
-    {
-      kind: 'DAMAGE',
-      requestedAmount,
-      resolvedAmount,
-      appliedAmount: temporaryLost + currentLost,
-      beforeCurrentHitPoints: input.currentHitPoints,
-      afterCurrentHitPoints: input.currentHitPoints - currentLost,
-      beforeTemporaryHitPoints: input.temporaryHitPoints,
-      afterTemporaryHitPoints: input.temporaryHitPoints - temporaryLost,
-      maximumHitPoints: input.maximumHitPoints,
-      targetActorId: input.targetActorId,
-      damageTypeId: outputs.damageTypeId,
-      damageDisposition,
-      critical: false,
-      sourceNodeId: trace.nodeId,
-      sourceOperationKey: trace.operation.key,
-      authoredPath: null,
-      resolvedPath: null
-    }
-  ]
-}
-
-function interpretDirect(
-  input: DirectInterpretationInput,
-  graph: Pick<CompiledRuleGraph, 'nodes' | 'source'>,
-  options: { fullTrace?: boolean } = {}
-): readonly CharacterRuleActionApplication[] {
-  if (!options.fullTrace) return interpretDirectProposal(input, graph)
-  const proposalKeys = new Set([
-    DND5E_HEAL_PROPOSAL_OPERATION_KEY,
-    DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-    DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
-    DND5E_KILL_PROPOSAL_OPERATION_KEY,
-    DND5E_DEPART_PROPOSAL_OPERATION_KEY,
-    DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
-    DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
-    DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
-    DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
-    DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
-    DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
-    DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
-    DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
-    DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
-    DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-    DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
-    DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
-    DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
-    DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
-    DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
-  ])
-  if (input.execution.evidence.trace.length !== graph.nodes.length)
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D rule action graph trace is incomplete.'
-    )
-  for (const [index, entry] of input.execution.evidence.trace.entries()) {
-    const expected = graph.nodes[index]
-    if (
-      !expected ||
-      entry.nodeId !== expected.id ||
-      entry.operation.key !== expected.operation.key ||
-      entry.operation.contractVersion !== expected.operation.contractVersion
-    )
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D rule action graph topology is invalid.'
-      )
-  }
-  const proposals = input.execution.evidence.trace.filter((entry) =>
-    proposalKeys.has(entry.operation.key)
-  )
-  // A direct relationship applies nothing here; its active effect plan owns the held state.
-  if (
-    proposals.length === 0 &&
-    input.execution.evidence.trace.some(
-      (entry) => entry.operation.key === DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
-    )
-  )
-    return []
-  if (proposals.length === 0)
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D rule action must contain an application proposal.'
-    )
-  const applications: CharacterRuleActionApplication[] = []
-  for (const originalProposal of proposals) {
-    let proposal = originalProposal
-    let nestedPaths: { authoredPath: string; resolvedPath: string } | null = null
-    const proposalNode = graph.nodes.find((node) => node.id === proposal.nodeId)
-    const nestedCondition = proposal.operation.key === DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
-    // A failure-margin rider's condition, gated by the margin its save total is compared against.
-    const riderCondition =
-      nestedCondition &&
-      proposal.operation.contractVersion ===
-        dnd5eTestMarginConditionProposalOperation.contractVersion
-    if (nestedCondition || proposal.operation.key === DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY) {
-      const saveNode = graph.nodes.find((node) => node.id === 'nested-save-test')
-      const save = input.execution.evidence.trace.find((entry) => entry.nodeId === saveNode?.id)
-      const die = input.execution.evidence.trace.find((entry) => entry.nodeId === 'nested-save-d20')
-      const path = proposalNode?.inputs.resolvedPath
-      const protection = proposalNode?.inputs.conditionImmune
-      const conditionFacts = conditionImmunityFacts(graph, input.conditionImmunityIds)
-      const marginNode = riderCondition
-        ? graph.nodes.find((node) => node.id === NESTED_SAVE_MARGIN_NODE_ID)
-        : undefined
-      const margin = input.execution.evidence.trace.find((entry) => entry.nodeId === marginNode?.id)
-      const marginCleared = proposalNode?.inputs.marginCleared
-      const marginTotal = marginNode?.inputs.value
-      const expectedNodeIds = riderCondition
-        ? Array.from({ length: MAX_CONDITIONS_PER_PATH - 1 }, (_, index) =>
-            nestedSaveRiderConditionNodeId(index)
-          )
-        : [nestedCondition ? 'nested-save-condition' : 'nested-save-proposal']
-      if (
-        !proposalNode ||
-        !expectedNodeIds.includes(proposalNode.id) ||
-        (riderCondition &&
-          (marginNode?.operation.key !== compareThresholdRuleOperation.key ||
-            marginNode.operation.contractVersion !==
-              compareThresholdRuleOperation.contractVersion ||
-            !margin ||
-            marginTotal?.kind !== 'NODE_OUTPUT' ||
-            marginTotal.nodeId !== 'nested-save-test' ||
-            marginTotal.port !== 'total' ||
-            marginNode.inputs.threshold?.kind !== 'LITERAL' ||
-            marginCleared?.kind !== 'NODE_OUTPUT' ||
-            marginCleared.nodeId !== marginNode.id ||
-            marginCleared.port !== 'passed')) ||
-        !saveNode ||
-        saveNode.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY ||
-        !save ||
-        die?.operation.key !== 'evidence.integer-range' ||
-        die.evidence?.kind !== 'INTEGER_RANGE' ||
-        die.inputs.min !== 1 ||
-        die.inputs.max !== 20 ||
-        die.outputs.value !== die.evidence.value ||
-        path?.kind !== 'NODE_OUTPUT' ||
-        path.nodeId !== saveNode.id ||
-        path.port !== 'resultPath' ||
-        (nestedCondition &&
-          (protection?.kind !== 'FACT' ||
-            input.execution.evidence.facts[protection.factKey] !==
-              conditionFacts[protection.factKey])) ||
-        input.execution.evidence.source.definitionId !== graph.source.definitionId ||
-        input.execution.evidence.source.gameSystemId !== graph.source.gameSystemId ||
-        input.execution.evidence.source.definitionFamilyKey !== graph.source.definitionFamilyKey ||
-        input.execution.evidence.source.checksum !== graph.source.checksum
-      )
-        throw new Dnd5eEffectActionCompilerError(
-          'The committed D&D nested condition binding is invalid.'
-        )
-      const addedDiceNodeId = 'nested-save-d20-added-dice'
-      requireDnd5eAddedDiceTotal({
-        trace: input.execution.evidence.trace.find((entry) => entry.nodeId === addedDiceNodeId),
-        facts: input.execution.evidence.facts,
-        d20NodeId: 'nested-save-d20',
-        nodeIndex: graph.nodes.findIndex((node) => node.id === addedDiceNodeId),
-        occurrenceId: input.occurrenceId,
-        invalid: () =>
-          new Dnd5eEffectActionCompilerError(
-            'The committed D&D nested condition evidence is invalid.'
-          )
-      })
-      const verified: readonly (readonly [
-        typeof saveNode,
-        typeof save,
-        { execute: (inputs: Readonly<Record<string, RuleValue>>) => Record<string, RuleValue> }
-      ])[] = [
-        [saveNode, save, dnd5eSaveTestOperation],
-        ...(marginNode && margin
-          ? [[marginNode, margin, compareThresholdRuleOperation] as const]
-          : []),
-        [
-          proposalNode,
-          proposal,
-          riderCondition
-            ? dnd5eTestMarginConditionProposalOperation
-            : nestedCondition
-              ? dnd5eTestConditionProposalOperation
-              : dnd5eTestDamageProposalOperation
-        ]
-      ]
-      for (const [node, trace, operation] of verified) {
-        const expectedInputs: Record<string, RuleValue> = {}
-        for (const [port, binding] of Object.entries(node.inputs)) {
-          const value =
-            binding.kind === 'LITERAL'
-              ? binding.value
-              : binding.kind === 'FACT'
-                ? input.execution.evidence.facts[binding.factKey]
-                : input.execution.evidence.trace.find((entry) => entry.nodeId === binding.nodeId)
-                    ?.outputs[binding.port]
-          if (value === undefined)
-            throw new Dnd5eEffectActionCompilerError(
-              'The committed D&D nested condition input is unavailable.'
-            )
-          expectedInputs[port] = value
-        }
-        if (
-          checksumRuleDocument(trace.inputs) !== checksumRuleDocument(expectedInputs) ||
-          checksumRuleDocument(trace.outputs) !==
-            checksumRuleDocument(operation.execute(expectedInputs))
-        )
-          throw new Dnd5eEffectActionCompilerError(
-            'The committed D&D nested condition evidence is invalid.'
-          )
-      }
-      if (
-        proposal.outputs.targetActorId !== input.targetActorId ||
-        proposal.outputs.targetStateChecksum !==
-          input.execution.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY] ||
-        typeof proposal.outputs.authoredPath !== 'string' ||
-        typeof proposal.outputs.resolvedPath !== 'string'
-      )
-        throw new Dnd5eEffectActionCompilerError(
-          'The committed D&D nested condition target is invalid.'
-        )
-      if (!proposal.outputs.authorized) continue
-      if (nestedCondition) {
-        if (typeof proposal.outputs.conditionId !== 'string')
-          throw new Dnd5eEffectActionCompilerError(
-            'The committed D&D nested condition identity is invalid.'
-          )
-        applications.push({
-          kind: 'CONDITION_APPLY',
-          conditionId: proposal.outputs.conditionId,
-          targetActorId: input.targetActorId,
-          sourceNodeId: proposal.nodeId,
-          sourceOperationKey: proposal.operation.key,
-          authoredPath: proposal.outputs.authoredPath,
-          resolvedPath: proposal.outputs.resolvedPath
-        })
-        continue
-      }
-      nestedPaths = {
-        authoredPath: proposal.outputs.authoredPath,
-        resolvedPath: proposal.outputs.resolvedPath
-      }
-      proposal = {
-        ...proposal,
-        operation: { key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 }
-      }
-    }
-    const amountBinding = proposalNode?.inputs.amount
-    const resolvedAmount =
-      amountBinding?.kind === 'NODE_OUTPUT'
-        ? input.execution.evidence.trace.find((entry) => entry.nodeId === amountBinding.nodeId)
-            ?.outputs[amountBinding.port]
-        : undefined
-    const direct = interpretDirectProposal(
-      {
-        ...input,
-        execution: {
-          ...input.execution,
-          outputs: {
-            ...proposal.outputs,
-            ...(resolvedAmount !== undefined ? { amount: resolvedAmount } : {})
-          },
-          evidence: {
-            ...input.execution.evidence,
-            trace: [
-              resolvedAmount === undefined
-                ? proposal
-                : {
-                    ...proposal,
-                    outputs: { ...proposal.outputs, amount: resolvedAmount }
-                  }
-            ]
-          }
-        }
-      },
-      graph
-    )
-    applications.push(
-      ...direct.map((application) =>
-        nestedPaths
-          ? { ...application, ...nestedPaths, sourceOperationKey: originalProposal.operation.key }
-          : application
-      )
-    )
-    for (const application of direct) {
-      if (
-        application.kind === 'CONDITION_APPLY' ||
-        application.kind === 'CONDITION_REMOVE' ||
-        application.kind === 'TEMPORARY_HIT_POINTS_RELEASE' ||
-        application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
-        application.kind === 'SCALAR_REDUCTION' ||
-        application.kind === 'STABILIZE' ||
-        application.kind === 'KILL_NEGATED' ||
-        application.kind === 'DEPART'
-      )
-        continue
-      input =
-        application.kind === 'KILL'
-          ? { ...input, currentHitPoints: 0, temporaryHitPoints: 0 }
-          : {
-              ...input,
-              currentHitPoints: application.afterCurrentHitPoints,
-              temporaryHitPoints: application.afterTemporaryHitPoints
-            }
-    }
-  }
-  const reductions = input.execution.evidence.trace.filter(
-    (entry) => entry.operation.key === DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY
-  )
-  if (reductions.length > 1)
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D rule action has duplicate hit point maximum reductions.'
-    )
-  const reduction = reductions[0]
-  if (reduction) {
-    const publishedNode = graph.nodes.find((node) => node.id === reduction.nodeId)
-    const sourceDamageNodeId = reduction.outputs.sourceDamageNodeId
-    const sourceDamageOperationKey = reduction.outputs.sourceDamageOperationKey
-    const sourceDamageOutcomeId = reduction.outputs.sourceDamageOutcomeId
-    const recoveryTags = reduction.outputs.recoveryTags
-    const parsedRecoveryTags = parseRecoveryTags(recoveryTags)
-    const resultPath = reduction.outputs.resultPath
-    // A nested save reads its own result path; a direct OUTCOME is published for its selected one.
-    const publishedResultPath = publishedNode?.inputs.resultPath
-    const publishedAuthorizedPath = publishedNode?.inputs.authorizedPath
-    if (
-      !publishedNode ||
-      publishedNode.operation.key !== DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY ||
-      publishedNode.operation.contractVersion !== 1 ||
-      reduction.operation.contractVersion !== 1 ||
-      reduction.outputs.applicationCandidate !== true ||
-      reduction.outputs.targetActorId !== input.targetActorId ||
-      reduction.inputs.targetActorId !== input.targetActorId ||
-      reduction.outputs.targetStateChecksum !==
-        input.execution.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY] ||
-      reduction.inputs.targetStateChecksum !== reduction.outputs.targetStateChecksum ||
-      typeof sourceDamageNodeId !== 'string' ||
-      typeof sourceDamageOperationKey !== 'string' ||
-      typeof sourceDamageOutcomeId !== 'string' ||
-      !UUID.test(sourceDamageOutcomeId) ||
-      !parsedRecoveryTags ||
-      typeof resultPath !== 'string' ||
-      reduction.inputs.resultPath !== resultPath ||
-      reduction.inputs.sourceDamageNodeId !== sourceDamageNodeId ||
-      reduction.inputs.sourceDamageOperationKey !== sourceDamageOperationKey ||
-      reduction.inputs.sourceDamageOutcomeId !== sourceDamageOutcomeId ||
-      reduction.inputs.recoveryTags !== recoveryTags ||
-      publishedNode.inputs.sourceDamageNodeId?.kind !== 'LITERAL' ||
-      publishedNode.inputs.sourceDamageNodeId.value !== sourceDamageNodeId ||
-      publishedNode.inputs.sourceDamageOperationKey?.kind !== 'LITERAL' ||
-      publishedNode.inputs.sourceDamageOperationKey.value !== sourceDamageOperationKey ||
-      publishedNode.inputs.sourceDamageOutcomeId?.kind !== 'LITERAL' ||
-      publishedNode.inputs.sourceDamageOutcomeId.value !== sourceDamageOutcomeId ||
-      publishedNode.inputs.recoveryTags?.kind !== 'LITERAL' ||
-      publishedNode.inputs.recoveryTags.value !== recoveryTags ||
-      !(publishedResultPath?.kind === 'NODE_OUTPUT'
-        ? publishedResultPath.nodeId === 'nested-save-test' &&
-          publishedResultPath.port === 'resultPath'
-        : publishedResultPath?.kind === 'LITERAL' && publishedResultPath.value === resultPath) ||
-      publishedAuthorizedPath?.kind !== 'LITERAL' ||
-      reduction.inputs.authorizedPath !== publishedAuthorizedPath.value ||
-      reduction.outputs.authorized !== (resultPath === publishedAuthorizedPath.value)
-    ) {
-      throw new Dnd5eEffectActionCompilerError(
-        'The committed D&D hit point maximum reduction trace is invalid.'
-      )
-    }
-    if (reduction.outputs.authorized === true) {
-      const sourceDamage = applications.filter(
-        (application): application is Extract<CharacterRuleActionApplication, { kind: 'DAMAGE' }> =>
-          application.kind === 'DAMAGE' &&
-          application.sourceNodeId === sourceDamageNodeId &&
-          application.sourceOperationKey === sourceDamageOperationKey
-      )
-      if (sourceDamage.length !== 1)
-        throw new Dnd5eEffectActionCompilerError(
-          'The committed D&D hit point maximum reduction source damage is invalid.'
-        )
-      const damage = sourceDamage[0]!
-      if (damage.resolvedAmount > 0) {
-        applications.push({
-          kind: 'HIT_POINT_MAXIMUM_REDUCTION',
-          targetActorId: input.targetActorId,
-          sourceNodeId: reduction.nodeId,
-          sourceOperationKey: reduction.operation.key,
-          authoredPath: damage.authoredPath,
-          resolvedPath: resultPath,
-          sourceDamageNodeId,
-          sourceDamageOperationKey,
-          sourceDamageOutcomeId,
-          reductionAmount: damage.resolvedAmount,
-          recoveryTags: parsedRecoveryTags
-        })
-      }
-    }
-  }
-  return applications
-}
-
-function interpret(
-  input: Parameters<CharacterRuleActionSystemAdapter['interpret']>[0]
-): readonly CharacterRuleActionApplication[] {
-  const resolvedTest = testApplications(input)
-  if (resolvedTest) return resolvedTest
-  const result = interpretDirect(
-    input,
-    {
-      nodes: input.published.definition.nodes,
-      source: {
-        definitionId: input.published.id,
-        gameSystemId: input.published.gameSystemId,
-        definitionFamilyKey: input.published.definitionFamilyKey,
-        checksum: input.published.checksum
-      }
-    },
-    { fullTrace: true }
-  )
-  return result
-}
-
-function interpretSpatial(
-  input: Parameters<NonNullable<CharacterRuleActionSystemAdapter['interpretSpatial']>>[0]
-): readonly CharacterRuleActionSpatialDirective[] {
-  const traces = input.execution.evidence.trace.filter(
-    (entry) => entry.operation.key === DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY
-  )
-  if (traces.length > 1)
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D rule action has duplicate movement proposals.'
-    )
-  const trace = traces[0]
-  if (!trace) return []
-  const node = input.published.definition.nodes.find((candidate) => candidate.id === trace.nodeId)
-  const value = (key: string) => trace.outputs[key]
-  const sourceEntryId = value('sourceEntryId')
-  const direction = value('direction')
-  const feet = value('feet')
-  const upTo = value('upTo')
-  const collision = decodeForcedMovementCollision(value('collision'))
-  const bindings = input.published.definition.sourceEntryBindings?.filter(
-    (binding) => binding.nodeId === trace.nodeId
-  )
-  // The trace must echo the published node's literals: the evidence moves only what was authored.
-  const literalsEchoed =
-    node !== undefined &&
-    (['sourceEntryId', 'authoredPath', 'direction', 'feet', 'upTo', 'collision'] as const).every(
-      (port) => {
-        const binding = node.inputs[port]
-        return (
-          binding?.kind === 'LITERAL' &&
-          binding.value === trace.inputs[port] &&
-          trace.inputs[port] === value(port)
-        )
-      }
-    )
-  if (
-    !node ||
-    !literalsEchoed ||
-    node.operation.key !== DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY ||
-    node.operation.contractVersion !== 1 ||
-    trace.operation.contractVersion !== 1 ||
-    value('targetActorId') !== input.targetActorId ||
-    trace.inputs.targetActorId !== input.targetActorId ||
-    typeof sourceEntryId !== 'string' ||
-    !UUID.test(sourceEntryId) ||
-    bindings?.length !== 1 ||
-    bindings[0]?.sourceEntryId !== sourceEntryId ||
-    !isCharacterRuleActionForcedMovementDirection(direction) ||
-    typeof feet !== 'number' ||
-    !Number.isSafeInteger(feet) ||
-    feet <= 0 ||
-    typeof upTo !== 'boolean' ||
-    trace.inputs.resultPath !== value('resultPath') ||
-    value('targetStateChecksum') !==
-      input.execution.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY] ||
-    trace.inputs.targetStateChecksum !== value('targetStateChecksum') ||
-    value('authorized') !== (value('resultPath') === value('authoredPath'))
-  ) {
-    throw new Dnd5eEffectActionCompilerError(
-      'The committed D&D forced movement proposal is invalid.'
-    )
-  }
-  if (value('authorized') !== true) return []
-  return [
-    {
-      kind: 'FORCED_MOVEMENT',
-      targetActorId: input.targetActorId,
-      sourceNodeId: trace.nodeId,
-      sourceOperationKey: trace.operation.key,
-      direction,
-      feet,
-      upTo,
-      collision,
-      targetStateChecksum: String(value('targetStateChecksum'))
-    }
-  ]
 }
 
 /**
@@ -11068,7 +8216,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     targetScalarValues,
     defenses,
     conditionImmunityIds,
-    perception
+    perception,
+    rollInfluence
   }) => {
     if (definition.frozenGraph.source.gameSystemId !== DND5E_SYSTEM_ID)
       throw new Dnd5eEffectActionCompilerError(
@@ -11199,6 +8348,16 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError(
         'D&D active effect received an unbound perception result.'
       )
+    }
+    if (rollInfluence) {
+      contributors.push({
+        sourceId: createCharacterMechanicSourceKey({ kind: 'ACTIVE_EFFECT', activeEffectId }),
+        grantId: null,
+        domainKey: 'damage-repeat-save',
+        influence: rollInfluence,
+        source: { kind: 'ACTIVE_EFFECT', id: activeEffectId, holderActorId: null }
+      })
+      contributors.sort(compareCanonicalD20Contributors)
     }
     const resolvedContributors = resolveD20Contributors(contributors)
     const contributorChecksum = checksumRuleDocument(resolvedContributors.contributors)

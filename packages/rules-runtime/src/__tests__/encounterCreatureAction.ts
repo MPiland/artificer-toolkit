@@ -46,7 +46,7 @@ import {
 import type { EncounterAttackAgainstContributor } from '../encounterActiveGrants.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
-import { DND5E_DAMAGE_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionCompiler.js'
+import { DND5E_DAMAGE_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import {
   currentConditionDefinition,
   srdConditionDefinitionSource

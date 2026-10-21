@@ -150,7 +150,7 @@ describe('a used automatic reaction followed by a failed Concentration save', ()
         (entry) => entry.commandId === concentrationCommandId(concentration.result.occurrenceId)
       )
       if (!child) throw new Error('Movement Concentration receipt is unavailable.')
-      expect(child.commandType).toBe('CONCENTRATION_CHECK')
+      expect(child.commandType).toBe('DAMAGE_SAVE_CHECK')
       expect(child.actorUserId).toBe(room.base.userId)
       expect(storedRuleExecutionResultDtoSchema.parse(child.result)).toEqual(concentration.result)
       expect(result).toMatchObject({

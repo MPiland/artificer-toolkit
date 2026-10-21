@@ -42,6 +42,21 @@ export type EncounterAttackPerception = {
   attackerSenseDefinitionIds: readonly string[]
 }
 
+/**
+ * Whether the attacker (the acting creature) sees the target, or the target sees the attacker:
+ * the one reading of sight that targeting and zones share.
+ */
+export function encounterSightHolds(
+  perception: Pick<EncounterAttackPerception, 'attackerSeesTarget' | 'targetSeesAttacker'>,
+  direction: 'ACTOR_SEES_TARGET' | 'TARGET_SEES_ACTOR'
+): boolean {
+  return (
+    (direction === 'ACTOR_SEES_TARGET'
+      ? perception.attackerSeesTarget
+      : perception.targetSeesAttacker) === 'SEES'
+  )
+}
+
 /** Who rolls the d20 the perception is believed for: an attack's attacker or a save's target. */
 export type EncounterPerceptionRoller = 'ATTACKER' | 'TARGET'
 

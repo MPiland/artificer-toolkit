@@ -13,7 +13,10 @@ import {
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import {
+  damageSaveCheckMutatesRun,
+  type ConcentrationEndReason
+} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
@@ -36,6 +39,7 @@ import {
   targetTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encounterConcealment'
+import { revertDamageTypesTaken } from '@artificer-toolkit/rules-runtime/encounterDamageTypesSinceTurnStart'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
@@ -816,6 +820,20 @@ export async function revertLastEncounterAction(
       gameSystemId: state.gameSystemId
     })
 
+  // The damage this command dealt leaves the record; what a start-of-turn trigger cleared returns.
+  for (const actor of actors) {
+    const current = actorsById.get(actor.id)!
+    if (current.kind === 'CHARACTER') continue
+    actorsById.set(
+      actor.id,
+      revertDamageTypesTaken(current, {
+        commandId: root.commandId,
+        cleared:
+          root.clearedDamageTypes?.actorId === actor.id ? root.clearedDamageTypes.entries : []
+      })
+    )
+  }
+
   return commitRevert(ctx, {
     run,
     state,
@@ -908,7 +926,7 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
       continue
     }
     if (
-      (outputs?.kind !== 'CONCENTRATION_CHECK' &&
+      (outputs?.kind !== 'DAMAGE_SAVE_CHECK' &&
         outputs?.kind !== 'CONCENTRATION_END' &&
         outputs?.kind !== 'CLEAVING_DAMAGE') ||
       outputs.parentOccurrenceId !== ruleOccurrenceId
@@ -920,9 +938,13 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
     if (outputs.kind === 'CONCENTRATION_END') {
       // The receipt keeps ids, not the ended maintained effect and its dependents, so it can't be restored (D95).
       unsupported.add(CONCENTRATION_END_LIMIT[outputs.reason])
-    } else if (outputs.kind === 'CONCENTRATION_CHECK') {
-      // A failed save ended a maintained effect whose contents the receipt does not keep.
-      if (outputs.outcome === 'SAVE_FAILURE') unsupported.add('lost Concentration')
+    } else if (outputs.kind === 'DAMAGE_SAVE_CHECK') {
+      // A failed Concentration save ended a maintained effect, and a made repeat save released a
+      // turn effect; the receipt keeps the contents of neither.
+      if (damageSaveCheckMutatesRun(outputs))
+        unsupported.add(
+          outputs.source === 'CONCENTRATION' ? 'lost Concentration' : 'a released effect'
+        )
     } else if (outputs.outcome === 'APPLIED') cleaving.push(outputs)
   }
   if ([...laterOccurrenceIds].some((occurrenceId) => !childOccurrenceIds.has(occurrenceId)))

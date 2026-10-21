@@ -7,7 +7,10 @@ import {
   projectNativeAreaActionPending,
   readNativeAreaActionPending
 } from '@artificer-toolkit/encounter-persistence/actionAreaPending'
-import { projectNativeBasicActionCheckPending } from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
+import {
+  projectNativeBasicActionCheckPending,
+  projectNativeD20WindowPending
+} from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
 import { projectNativeCleavingPending } from '@artificer-toolkit/encounter-persistence/cleavingPending'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-persistence/concentrationPending'
@@ -65,6 +68,15 @@ export function readActorHitPoints(history: RoomHistory, actorId: string) {
   return actor.currentHitPoints
 }
 
+/** The damage-type record a Creature actor holds in the room's stored Run (empty when absent). */
+export function readActorDamageTypesTaken(history: RoomHistory, actorId: string) {
+  const row = history.actors.find(({ id }) => id === actorId)
+  if (!row) throw new Error('Expected the actor in the stored Run.')
+  const actor = readStoredRunActor(row)
+  if (actor.kind === 'CHARACTER') throw new Error('A Character holds no damage-type record.')
+  return actor.damageTypesSinceTurnStart ?? []
+}
+
 /** A stored receipt's rule execution, parsed by the shared contract. */
 export function parseReceiptExecution(receipt: { resultJson: string }) {
   return storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
@@ -88,33 +100,35 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
     const { kind } = snapshot.applicationContext
     // The GM's view: every actor is theirs to answer for and to see.
     const pending =
-      kind === 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'
+      kind === 'ENCOUNTER_DAMAGE_SAVE_CHECK'
         ? projectNativeConcentrationPending(occurrence, snapshot)
         : kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ||
             kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||
             kind === 'ENCOUNTER_ESCAPE_CHECK'
           ? projectNativeBasicActionCheckPending(occurrence, snapshot)
-          : kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
-            ? projectNativeCleavingPending(occurrence, snapshot, {
-                isOwner: true,
-                controlledActorIds: actorIds,
-                visibleActorIds: actorIds
-              })
-            : kind === 'ENCOUNTER_AREA_ACTION'
-              ? projectNativeAreaActionPending(
-                  occurrence,
-                  await readNativeAreaActionPending({ db: room.store }, occurrence),
-                  {
-                    isOwner,
-                    controlledActorIds: isOwner ? actorIds : new Set(),
-                    actors: room.documents('encounterRunActors').map(readStoredRunActor)
-                  }
-                )
-              : projectNativeActionPending(
-                  occurrence,
-                  await readNativeActionPending({ db: room.store }, occurrence),
-                  isOwner
-                )
+          : kind === 'ENCOUNTER_D20_WINDOW'
+            ? projectNativeD20WindowPending(occurrence, snapshot)
+            : kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
+              ? projectNativeCleavingPending(occurrence, snapshot, {
+                  isOwner: true,
+                  controlledActorIds: actorIds,
+                  visibleActorIds: actorIds
+                })
+              : kind === 'ENCOUNTER_AREA_ACTION'
+                ? projectNativeAreaActionPending(
+                    occurrence,
+                    await readNativeAreaActionPending({ db: room.store }, occurrence),
+                    {
+                      isOwner,
+                      controlledActorIds: isOwner ? actorIds : new Set(),
+                      actors: room.documents('encounterRunActors').map(readStoredRunActor)
+                    }
+                  )
+                : projectNativeActionPending(
+                    occurrence,
+                    await readNativeActionPending({ db: room.store }, occurrence),
+                    isOwner
+                  )
     if (!pending) throw new Error('The pending decision is not shown to the GM.')
     return {
       occurrence,

@@ -16,7 +16,7 @@ import { antitoxinEffect, baneEffect, blessEffect } from './antitoxinEffectFixtu
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
-import { DND5E_TEST_OUTCOME_RULE_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
+import { DND5E_TEST_OUTCOME_RULE_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import {
   creatureActor,
   type CreatureFeature,

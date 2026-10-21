@@ -4,10 +4,8 @@ import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
-import {
-  DND5E_SPELL_CAST_LEVEL_FACT_KEY,
-  dnd5eCharacterRuleActionSystemAdapter as adapter
-} from '../systems/dnd5e/effectActionCompiler.js'
+import { DND5E_SPELL_CAST_LEVEL_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
+import { dnd5eCharacterRuleActionSystemAdapter as adapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
