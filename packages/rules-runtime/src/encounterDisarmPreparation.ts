@@ -52,9 +52,7 @@ import {
   contestCheckCapabilityRegistry,
   optionalCombatPolicyCapabilityRegistry
 } from './platformEncounterPolicy.js'
-import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
-import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
-import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
+import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 import {
   createOptionalCombatActionSelectionDescriptor,
   resolveOptionalCombatActionSelection
@@ -163,6 +161,7 @@ export function readEncounterDisarmSelection(input: {
       : source.capability.mechanicFacts.invocation
   if (invocation.activation?.code !== 'ACTION' || invocation.activation.amount !== 1)
     throw new Error('Disarm requires one normalized ACTION activation.')
+  const profile = attackProfileCapabilityRegistry.require(prepared.adapter.gameSystemId)
 
   const sourcePolicyFacts = (() => {
     if (source.kind === 'CHARACTER_ACTION') {
@@ -179,12 +178,13 @@ export function readEncounterDisarmSelection(input: {
         throw new Error('Optional combat Character action policy is stale.')
       const equipment = source.candidate.equipment
       // The same scoped contributors that resolved this action's roll mode.
-      const actionTarget = {
-        ...dnd5eCharacterActionTarget(source.candidate),
+      const attack = {
+        candidate: source.candidate,
+        ammunition: null,
         attackAbility: decisions[0].mechanic.attackAbility
       }
       const contributors = (attackKind: 'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED') =>
-        dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, actionTarget)
+        profile.characterAttackRollContributors(source.effectivePolicyOutput, attackKind, attack)
       return {
         // A carried weapon used to attack is drawn for the attack unless its action requires equipping.
         equipment:
@@ -263,7 +263,7 @@ export function readEncounterDisarmSelection(input: {
           prepared.relationshipContributors,
           creatureActiveGrantAttackContributors(
             actor.id,
-            dnd5eAttackKind(source.capability.compiledEffect.invocation.triggerCode ?? '') ?? '',
+            profile.attackKind(source.capability.compiledEffect.invocation.triggerCode ?? '') ?? '',
             creatureAttackAbility(source.capability.mechanicFacts.outcomes),
             sourceFacts.activeEffects
           )

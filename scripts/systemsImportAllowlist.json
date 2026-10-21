@@ -26,16 +26,10 @@
     "packages/encounter-persistence/src/actionCommitPersistence.ts",
     "packages/encounter-persistence/src/concentrationChildrenPersistence.ts",
     "packages/encounter-persistence/src/initiativeRollCards.ts",
-    "packages/rules-runtime/src/encounterActionMechanicsPreparation.ts",
     "packages/rules-runtime/src/encounterActiveGrants.ts",
     "packages/rules-runtime/src/encounterCastReactionDiscovery.ts",
     "packages/rules-runtime/src/encounterConcentration.ts",
-    "packages/rules-runtime/src/encounterDisarmPreparation.ts",
     "packages/rules-runtime/src/encounterEndedEffectRelease.ts",
-    "packages/rules-runtime/src/encounterFeatureActionCapabilityDiscovery.ts",
-    "packages/rules-runtime/src/encounterIncomingAttackGate.ts",
-    "packages/rules-runtime/src/encounterMovementPassagePolicy.ts",
-    "packages/rules-runtime/src/encounterMovementTargets.ts",
-    "packages/rules-runtime/src/encounterZonePlacement.ts"
+    "packages/rules-runtime/src/encounterIncomingAttackGate.ts"
   ]
 }

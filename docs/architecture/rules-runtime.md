@@ -237,7 +237,7 @@ closed on a System with no roll-mode policy, an influence code the System does n
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
 `resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
-**System capability registries (RULES-2.T11a–d, current).** Every System capability is one
+**System capability registries (RULES-2.T11a–f, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the
 capability; a duplicate or non-UUID adapter identity throws at install. `find(gameSystemId)` is for
@@ -245,7 +245,8 @@ optional capabilities only, where the rule is valid for a System without the cap
 hit point condition, D63); Encounter callers use `require`. The adapter interfaces live in
 neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `creatureConditionCapability`, `initiativeFactAdapter`, `armorClassCapability`,
-`d20TestDefinitionCapability`, `contestCheckCapability`, `optionalCombatPolicyCapability`), the D&D adapters in `systems/dnd5e/`, and
+`d20TestDefinitionCapability`, `contestCheckCapability`, `optionalCombatPolicyCapability`,
+`attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
 Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions).
@@ -257,7 +258,13 @@ added-dice facts, where a System without death saves omits `deathSaveDefinition`
 `contestCheckCapabilityRegistry` for the two-participant contest graph and its modifier fact keys;
 `optionalCombatPolicyCapabilityRegistry` for Disarm, Overrun, Tumble and Cleaving, where a sealed
 action or passage choice uses `require` and Cleaving uses `find`, since a System without optional combat offers no
-Cleaving choice). Sealing and currentness of a pending contest, the optional action selection contract
+Cleaving choice; `attackProfileCapabilityRegistry` for an attack's kind and modifier domain, the
+traits a holder's grants or a Character's action give it, its critical rules and roll contributors,
+the damage defenses it meets, the itemless restrictions a feature attack reduces and what its compiled
+effect reads and spends; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
+Character-wide, which movement passage and opportunity-attack immunity read). A `MovementTarget`
+carries its actor's `movementPassage` and `grantedAttackTraits`, resolved once through these
+registries from the Run's `gameSystemId`. Sealing and currentness of a pending contest, the optional action selection contract
 (`encounterOptionalCombatActionSelection.ts`) and the Scene's enemy-proximity and move-toward facts
 are System-neutral (`encounterContestPendingContext.ts`). Encounter persistence rebuilds a stored
 contest's graph through `contestCheckCapabilityRegistry` from the Run's `gameSystemId`. Installing them there keeps Encounter modules out of

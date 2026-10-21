@@ -24,6 +24,7 @@ import type { EncounterActionEconomyConsumption } from '../encounterActionEconom
 import { discoverEncounterMovementPassage } from '../encounterMovementPassageBoundary.js'
 import { discoverEncounterMovementPassageContact } from '../encounterMovementPassageContacts.js'
 import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import {
   availableEncounterMovementPassageChoice,
@@ -324,7 +325,7 @@ function footprintPin(actorId: string, blocker: SceneToken) {
   return checksumRuleDocument({ actorId, tokenId: blocker.id, footprint: blocker })
 }
 
-const noPassage = { mover: movementPassageOfModifiers([]), sizeOf: () => null }
+const noPassage = { mover: movementPassageOfModifiers(DND5E_SYSTEM_ID, []), sizeOf: () => null }
 
 describe('discoverEncounterMovementPassage', () => {
   it('pins the first hostile contact and the next passage stop by disposition', () => {

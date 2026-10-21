@@ -10,6 +10,7 @@ import {
   movementPassageOfModifiers
 } from '../encounterMovementPassagePolicy.js'
 import { foldDnd5eCreatureFeatureGrants } from '../systems/dnd5e/creatureFeatureGrantFold.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
@@ -96,7 +97,11 @@ function holderRestriction(subject: 'CHARACTER' | 'CREATURE'): FacetAuthored {
 }
 
 const creaturePassage = (creature: CreatureAuthored) =>
-  encounterActorMovementPassage(srdCreatureActor({ id: testUuid(0x3000), creature }), null)
+  encounterActorMovementPassage(
+    DND5E_SYSTEM_ID,
+    srdCreatureActor({ id: testUuid(0x3000), creature }),
+    null
+  )
 
 describe('MOVEMENT_PASSAGE grants on SRD Creatures (SPELLS-33.T6k1)', () => {
   it.each(TRAITS)(
@@ -156,7 +161,7 @@ describe('MOVEMENT_PASSAGE on a Character', () => {
       race: 'Halfling',
       classes: [{ label: 'Rogue', level: 1 }]
     })
-    expect(movementPassageOfModifiers(output.grantFold.modifiers)).toEqual({
+    expect(movementPassageOfModifiers(DND5E_SYSTEM_ID, output.grantFold.modifiers)).toEqual({
       throughCreatures: 'LARGER_THAN_SELF',
       endInCreatures: 'NONE',
       throughBarriers: false,
@@ -173,10 +178,12 @@ describe('movementPassageOfModifiers', () => {
       race: 'Halfling',
       classes: [{ label: 'Rogue', level: 1 }]
     }).output.grantFold.modifiers
-    expect(movementPassageOfModifiers([...halfling, ...foldOf('Air Elemental')])).toEqual(
-      ELEMENTAL_FORM
-    )
-    expect(movementPassageOfModifiers([...foldOf('Air Elemental'), ...foldOf('Ghost')])).toEqual({
+    expect(
+      movementPassageOfModifiers(DND5E_SYSTEM_ID, [...halfling, ...foldOf('Air Elemental')])
+    ).toEqual(ELEMENTAL_FORM)
+    expect(
+      movementPassageOfModifiers(DND5E_SYSTEM_ID, [...foldOf('Air Elemental'), ...foldOf('Ghost')])
+    ).toEqual({
       throughCreatures: 'ANY',
       endInCreatures: 'ANY',
       throughBarriers: true,
