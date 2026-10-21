@@ -12808,7 +12808,7 @@
             },
             {
               "id": "SPELLS-31.T5ra",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -12818,7 +12818,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "optionalOnHit RESOURCE_POOL cost (D123) end to end (split 2026-10-20): authored type, DTO, node map, offer union, transport, drawer, pool candidates and payment through one extracted spend helper, session-worker wiring. Proof: a homebrew ki-costed rider authored through the real authoring path, with accept, decline and insufficient-pool cases.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "Merged m266 (fbc889988)."
             },
             {
               "id": "SPELLS-31.T5rb",
