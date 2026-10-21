@@ -141,6 +141,7 @@ export async function setupConcentration(
       .unique()
     if (!row) throw new Error('Concentration source actor is unavailable.')
     const capability = discoverEncounterFeatureActionCapabilities({
+      spells: new Map(),
       actor: await readTestActor(ctx, row),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map((ability) => ({

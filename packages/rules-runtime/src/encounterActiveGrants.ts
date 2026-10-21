@@ -869,22 +869,47 @@ export function creatureActiveGrantAttackContributors(
 
 type FeatureModifiers = CharacterGrantFoldOutput['modifiers']
 
-/** The distance a modifier's deferred requirement group asks an enemy to stand within, or null. */
-function enemyNearFeet(
-  group: FeatureModifiers[number]['deferredRequirements'][number]
-): number | null {
-  const [condition, ...rest] = group.conditions
-  return rest.length === 0 &&
-    condition?.kind === 'ENEMY_NEAR_TARGET' &&
-    condition.constraint === 'INCLUDE'
-    ? condition.max
-    : null
+type DeferredGroup = FeatureModifiers[number]['deferredRequirements'][number]
+
+function conditionsOfKind(group: DeferredGroup, kind: DeferredGroup['conditions'][number]['kind']) {
+  return group.conditions.filter((condition) => condition.kind === kind)
 }
 
 /** Whether a Creature's feature grants ask how near an enemy stands to an attack's target (Pack Tactics). */
 export function featureModifiersReadEnemyProximity(modifiers: FeatureModifiers): boolean {
   return modifiers.some(({ deferredRequirements }) =>
-    deferredRequirements.some((group) => enemyNearFeet(group) !== null)
+    deferredRequirements.some((group) => conditionsOfKind(group, 'ENEMY_NEAR_TARGET').length > 0)
+  )
+}
+
+/** Whether a Creature's feature grants ask if an attack's target has yet to take a turn (Assassinate). */
+export function featureModifiersReadTargetTurn(modifiers: FeatureModifiers): boolean {
+  return modifiers.some(({ deferredRequirements }) =>
+    deferredRequirements.some(
+      (group) => conditionsOfKind(group, 'TARGET_HAS_NOT_TAKEN_TURN').length > 0
+    )
+  )
+}
+
+/**
+ * Whether a deferred requirement group holds: every condition is an INCLUDE check of the Encounter
+ * state this attack read, and each of those holds. Any other condition fails closed.
+ */
+function deferredGroupMet(
+  group: DeferredGroup,
+  nearestEnemyFeet: number | null,
+  targetHasNotTakenTurn: boolean
+): boolean {
+  return (
+    group.conditions.length > 0 &&
+    group.conditions.every((condition) => {
+      if (condition.constraint !== 'INCLUDE') return false
+      if (condition.kind === 'ENEMY_NEAR_TARGET')
+        return (
+          nearestEnemyFeet !== null && condition.max !== null && nearestEnemyFeet <= condition.max
+        )
+      return condition.kind === 'TARGET_HAS_NOT_TAKEN_TURN' && targetHasNotTakenTurn
+    })
   )
 }
 
@@ -892,24 +917,25 @@ export function featureModifiersReadEnemyProximity(modifiers: FeatureModifiers):
  * A Creature holder's feature advantage and disadvantage grants on its own attack rolls of one
  * attack domain (Pack Tactics), as roll contributors. A grant holds when it has no deferred
  * requirement or some requirement group asks only for an enemy of the target within a distance
- * `nearestEnemyFeet` meets; any other deferred requirement fails closed. `nearestEnemyFeet` is null
- * when no enemy stands near the target or there is no Scene to measure on.
+ * `nearestEnemyFeet` meets (Pack Tactics) or a target that has yet to take a turn (Assassinate); any
+ * other deferred requirement fails closed. `nearestEnemyFeet` is null when no enemy stands near the
+ * target or there is no Scene to measure on.
  */
 export function creatureFeatureAttackContributors(
   holderActorId: string,
   attackDomain: string,
   attackAbility: string | null,
   modifiers: FeatureModifiers,
-  nearestEnemyFeet: number | null
+  nearestEnemyFeet: number | null,
+  targetHasNotTakenTurn = false
 ): EncounterRelationshipD20Contributor[] {
   return modifiers.flatMap((modifier) => {
     const grantAbility = modifier.domain.ability ?? null
     const requirementsMet =
       modifier.deferredRequirements.length === 0 ||
-      modifier.deferredRequirements.some((group) => {
-        const feet = enemyNearFeet(group)
-        return feet !== null && nearestEnemyFeet !== null && nearestEnemyFeet <= feet
-      })
+      modifier.deferredRequirements.some((group) =>
+        deferredGroupMet(group, nearestEnemyFeet, targetHasNotTakenTurn)
+      )
     return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
       modifier.valueDomainCode === 'ATTACK_ROLL' &&
       modifier.scope === 'GLOBAL' &&

@@ -202,6 +202,7 @@ describe('SRD Creature attack sweep', () => {
       const actor = srdCreatureActor({ id: ACTOR_ID, creature })
       const actors = [actor, target]
       const discovery = discoverEncounterFeatureActions({
+        spells: new Map(),
         actor,
         conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
         abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
@@ -239,7 +240,11 @@ describe('SRD Creature attack sweep', () => {
             overridable: true,
             movementTargets,
             loadSource: async (input) =>
-              resolveEncounterActionSource({ ...input, system: srdSystemRecord }),
+              resolveEncounterActionSource({
+                spells: new Map(),
+                ...input,
+                system: srdSystemRecord
+              }),
             loadRelationshipFacts: async () => [],
             loadTurnUses: async () => []
           })

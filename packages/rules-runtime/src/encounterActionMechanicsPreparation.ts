@@ -20,6 +20,7 @@ import {
   creatureActiveGrantAttackContributors,
   creatureFeatureAttackContributors,
   featureModifiersReadEnemyProximity,
+  featureModifiersReadTargetTurn,
   creatureAttackAbility,
   encounterAttackAddedDice,
   withSourceSightSave
@@ -33,6 +34,7 @@ import {
   StaleCharacterActionError
 } from './encounterErrors.js'
 import { encounterActorHeldItems } from './encounterHolderDefense.js'
+import { refuseUnmetTargetRequirements } from './encounterTargetRequirements.js'
 import {
   characterActionDrawWeapon,
   creatureActionDrawWeapon,
@@ -351,6 +353,13 @@ export async function prepareEncounterActionMechanics<
    * a path limited that way (Sneak Attack). Called only for such an attack.
    */
   loadTurnUses?: () => Promise<readonly string[]>
+  /**
+   * Whether the attack's target has yet to take a turn in the Encounter (round 1, initiative
+   * status READY), for a Creature whose feature grants ask (Assassinate). Called only for such an attack.
+   */
+  loadTargetHasNotTakenTurn?: (input: {
+    targetFacts: MovementTarget<TCharacterFacts>
+  }) => Promise<boolean>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   loadRelationshipFacts: (input: {
     state: EncounterRunState
@@ -422,6 +431,22 @@ export async function prepareEncounterActionMechanics<
     ).has(target.id)
   )
     throw new EncounterValidationError('The selected action target is not held by the user.')
+  if (targeting?.selectionKind === 'SINGLE_TARGET')
+    await refuseUnmetTargetRequirements({
+      requirements: targeting.targetRequirements,
+      actorId: actor.id,
+      target: currentTargetFacts,
+      loadSight: input.loadAttackPerception
+        ? async () =>
+            (
+              await input.loadAttackPerception!({
+                sourceFacts: currentSourceFacts,
+                targetFacts: currentTargetFacts,
+                roller: 'ATTACKER'
+              })
+            ).actual
+        : undefined
+    })
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
     source.kind === 'CHARACTER_ACTION'
@@ -618,6 +643,13 @@ export async function prepareEncounterActionMechanics<
         featureModifiersReadEnemyProximity(sourceFacts.featureModifiers)))
       ? await input.loadEnemyProximity({ sourceFacts, targetFacts })
       : null
+  const targetHasNotTakenTurn =
+    attackKind !== null &&
+    input.loadTargetHasNotTakenTurn &&
+    source.kind !== 'CHARACTER_ACTION' &&
+    featureModifiersReadTargetTurn(sourceFacts.featureModifiers)
+      ? await input.loadTargetHasNotTakenTurn({ targetFacts })
+      : false
   const moveToward =
     attackKind !== null &&
     input.loadMoveToward &&
@@ -791,7 +823,8 @@ export async function prepareEncounterActionMechanics<
                         attackKind,
                         creatureAttackAbility(source.capability.mechanicFacts.outcomes),
                         sourceFacts.featureModifiers,
-                        enemyProximity?.nearestFeet ?? null
+                        enemyProximity?.nearestFeet ?? null,
+                        targetHasNotTakenTurn
                       )
                     ),
                     contributors

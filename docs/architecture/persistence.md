@@ -231,8 +231,12 @@ the death area refuses the undo like any pending decision; the GM voids it, then
   read or recompiled again, so editing or deleting the source cannot change what the Run's actors cast.
   Actors hold Spell ids only. Pins live for the whole Run and are deleted with it (completion, Campaign
   deletion, development removal). `readEncounterSpellPins` hydrates them and fails closed on a superseded
-  compiler version or a stale or corrupt compilation. Current: written and released on every path;
-  target (SPELLS-33.T3c2a2b): discovery reads the pins.
+  compiler version or a stale or corrupt compilation. Current: written and released on every path, and
+  every discovery caller reads them: Convex through `readEncounterSpellPins`, the room through the
+  `SPELL_PINS` capture (`readNativeLiveSpellPins` hydrates the stored rows with `hydrateSpellPins`; no
+  compile, no source read). `spells` is required on `discoverEncounterFeatureActions`; a caller that needs
+  no casts passes an explicit `new Map()`, and a pinned Run whose pins omit a Spell its Creature names
+  throws instead of dropping the cast.
 - **Actor storage (ADR 0035 Amendment 29).** An actor's source `snapshot` is static, so it is stored apart from
   its play state. `encounterRunActors.stateJson` holds the play state, the projection facts evaluated when the
   actor was written, and `snapshotChecksum`, which names an immutable, content-addressed

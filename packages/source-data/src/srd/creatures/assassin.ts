@@ -47,17 +47,7 @@ export const assassin: CreatureAuthored = {
       label: 'Assassinate',
       description:
         "Assassinate. During its first turn, the assassin has advantage on attack rolls against any creature that hasn't taken a turn. Any hit the assassin scores against a surprised creature is a critical hit.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(29, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(29, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ASSASSINATE
-        })
-      ],
+      grants: S.conditionalAttackAdvantageGrants(29, 1, S.TARGET_HAS_NOT_TAKEN_TURN),
       order: 1
     },
     {

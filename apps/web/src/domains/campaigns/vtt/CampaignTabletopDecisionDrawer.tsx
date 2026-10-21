@@ -356,7 +356,9 @@ export function CampaignTabletopDecisionDrawer({
                   key={option.optionId}
                   onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
                 >
-                  Spend a level {option.slotLevel} slot
+                  {option.kind === 'SPELL_SLOT'
+                    ? `Spend a level ${option.slotLevel} slot`
+                    : `Spend ${option.cost} from a resource pool`}
                 </Button>
               ))}
               <Button

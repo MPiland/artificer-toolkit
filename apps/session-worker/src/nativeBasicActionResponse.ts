@@ -38,7 +38,8 @@ import { settleNativeConcealmentCheck } from './nativeConcealmentCheck.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
-  readNativeLiveActorsAndEffects
+  readNativeLiveActorsAndEffects,
+  readNativeLiveSpellPins
 } from './nativeEncounterTargets.js'
 
 /**
@@ -107,6 +108,7 @@ export async function planNativeLiveBasicActionResponse(
       actionId: context.actionId,
       gameSystemId: state.gameSystemId,
       system,
+      spells: await readNativeLiveSpellPins(capture),
       basicActions: await readEncounterBasicActionEntries({
         actorId: roller.id,
         actionId: context.actionId,

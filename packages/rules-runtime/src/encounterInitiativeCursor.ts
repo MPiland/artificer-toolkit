@@ -9,6 +9,55 @@ export function orderedInitiativeRows<
   return result
 }
 
+/**
+ * The one reader of the participant turn cursor. `currentActorId` pins the cursor (`null` means no
+ * actor is active yet); omitting it requires and derives exactly one ACTIVE participant.
+ */
+export function readTurnCursor(
+  state: EncounterInitiativeRoundStateDto,
+  errors: { order: string; cursor: string },
+  currentActorId?: string | null
+) {
+  const participants = [...state.participants].sort(
+    (left, right) => (left.turnOrderOrdinal ?? -1) - (right.turnOrderOrdinal ?? -1)
+  )
+  if (
+    (currentActorId === undefined && participants.length < 1) ||
+    participants.some((participant, ordinal) => participant.turnOrderOrdinal !== ordinal)
+  )
+    throw new Error(errors.order)
+  const activeIndex =
+    currentActorId === undefined
+      ? participants.findIndex((participant) => participant.status === 'ACTIVE')
+      : currentActorId === null
+        ? -1
+        : participants.findIndex((participant) => participant.actorId === currentActorId)
+  if (
+    (currentActorId !== null && activeIndex < 0) ||
+    participants.some((participant, index) =>
+      activeIndex < 0
+        ? participant.status !== 'READY'
+        : participant.status !==
+          (index < activeIndex ? 'ACTED' : index === activeIndex ? 'ACTIVE' : 'READY')
+    )
+  )
+    throw new Error(errors.cursor)
+  return { participants, activeIndex }
+}
+
+/** Side rows in settled order; non-side-roll rounds must retain none. */
+export function readSideOrder(state: EncounterInitiativeRoundStateDto, orderError: string) {
+  if (state.round.procedure !== 'SIDE_ROLL') {
+    if (state.sides.length > 0) throw new Error('Only side-roll initiative may retain side state.')
+    return []
+  }
+  const sides = [...state.sides].sort(
+    (left, right) => (left.sideOrderOrdinal ?? -1) - (right.sideOrderOrdinal ?? -1)
+  )
+  if (sides.some((side, ordinal) => side.sideOrderOrdinal !== ordinal)) throw new Error(orderError)
+  return sides
+}
+
 export function validateInitiativeCursor(input: {
   state: EncounterInitiativeRoundStateDto
   currentActorId: string | null
@@ -26,25 +75,16 @@ export function validateInitiativeCursor(input: {
     state.participants.some((participant) => !allowedSideIds.includes(participant.sideId))
   )
     throw new Error('Initiative actor cohort does not match the Encounter Run.')
-  const participants = orderedInitiativeRows(state.participants, 'turnOrderOrdinal', 'actor')
-  const activeIndex =
-    currentActorId === null ? -1 : participants.findIndex((p) => p.actorId === currentActorId)
-  if (
-    (currentActorId !== null && activeIndex < 0) ||
-    participants.some((participant, index) =>
-      currentActorId === null
-        ? participant.status !== 'READY'
-        : participant.status !==
-          (index < activeIndex ? 'ACTED' : index === activeIndex ? 'ACTIVE' : 'READY')
-    )
+  const { participants } = readTurnCursor(
+    state,
+    {
+      order: 'Initiative actor must retain one exact contiguous order.',
+      cursor: 'The current Encounter actor does not match normalized initiative.'
+    },
+    currentActorId
   )
-    throw new Error('The current Encounter actor does not match normalized initiative.')
-  if (state.round.procedure !== 'SIDE_ROLL') {
-    if (state.sides.length !== 0)
-      throw new Error('Only side-roll initiative may retain side state.')
-    return
-  }
-  const sides = orderedInitiativeRows(state.sides, 'sideOrderOrdinal', 'side')
+  const sides = readSideOrder(state, 'Initiative side must retain one exact contiguous order.')
+  if (state.round.procedure !== 'SIDE_ROLL') return
   const sideIds = [...new Set(state.participants.map((participant) => participant.sideId))].sort()
   if (
     sides.length !== sideIds.length ||

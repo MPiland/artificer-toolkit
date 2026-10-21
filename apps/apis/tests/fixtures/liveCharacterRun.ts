@@ -251,6 +251,7 @@ export async function setup({
       .unique()
     if (!row || !heroAction) throw new Error('Missing journey action sources.')
     const enemyAction = discoverEncounterFeatureActionCapabilities({
+      spells: new Map(),
       actor: await readRunActor(
         { db: createConvexEncounterStoreReader(ctx) },
         readRunState(row),

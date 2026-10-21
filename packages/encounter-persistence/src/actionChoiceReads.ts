@@ -81,6 +81,7 @@ import {
 } from './actionPreparationReads.js'
 import { requireTargetSeenByMember } from './targetVisibility.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
+import { readEncounterSpellPins } from './spellPins.js'
 import {
   grantedActionId,
   heldGrantedActions,
@@ -378,7 +379,8 @@ export async function readEncounterActionChoices(
       actor: creature,
       conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
       abilityDefinitions:
-        'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : []
+        'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : [],
+      spells: await readEncounterSpellPins(tx, state.id)
     })
     // A Legendary Action is taken only at the end of another creature's turn (SRD 5.1), in its
     // Legendary window, never from the owner's own action drawer; the room refuses it too.

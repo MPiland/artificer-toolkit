@@ -1,3 +1,4 @@
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
@@ -17,6 +18,8 @@ export function buildEncounterMovementReactionFacts<
   campaignOwnerUserId: string
   targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   system: SystemAuthoredDto
+  /** The Run's pinned Spells (D163). */
+  spells: ReadonlyMap<string, CompiledSpell>
   definitions: CurrentReusableDefinitionSource
 }) {
   const { state, targets, system } = input
@@ -61,7 +64,8 @@ export function buildEncounterMovementReactionFacts<
         ? discoverEncounterFeatureActionCapabilities({
             actor,
             conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-            abilityDefinitions
+            abilityDefinitions,
+            spells: input.spells
           })
         : []
     ),

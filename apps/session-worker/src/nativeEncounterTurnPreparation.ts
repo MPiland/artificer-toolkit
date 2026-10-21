@@ -1,6 +1,7 @@
 import type { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
 import { prepareEncounterTurnEffects } from '@artificer-toolkit/rules-runtime/encounterTurnEffects'
 import { prepareEncounterTurnZoneEffects } from '@artificer-toolkit/rules-runtime/encounterTurnZoneEffects'
+import { encounterSightHolds } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import {
   planEncounterPassiveZones,
   type EncounterPassiveZoneCharacterRules
@@ -34,6 +35,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
+import { readNativeLiveSpellPins } from './nativeEncounterTargets.js'
 import {
   readNativeLivePerceptionScene,
   readNativeLiveSpatialEffects,
@@ -140,8 +142,8 @@ export function createNativeLiveTurnStages(
             capture
           })
           return {
-            occupantSeesSource: actual.targetSeesAttacker === 'SEES',
-            sourceSeesOccupant: actual.attackerSeesTarget === 'SEES'
+            occupantSeesSource: encounterSightHolds(actual, 'TARGET_SEES_ACTOR'),
+            sourceSeesOccupant: encounterSightHolds(actual, 'ACTOR_SEES_TARGET')
           }
         },
         loadScene: async () => {
@@ -262,9 +264,10 @@ export function createNativeLiveTurnStages(
             random
           })
         },
-        discoverWindows: (discovery) =>
+        discoverWindows: async (discovery) =>
           discoverTurnLegendaryWindows({
             ...discovery,
+            spells: await readNativeLiveSpellPins(capture),
             deadCharacterIds: deadCharacterIdsOfTargets(
               discovery.movementTargets?.values() ?? [],
               turn.deadCharacterIds
@@ -302,7 +305,12 @@ export function createNativeLiveTurnStages(
                 state,
                 overridable: false,
                 movementTargets: targets,
-                loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
+                loadSource: async (source) =>
+                  resolveEncounterActionSource({
+                    ...source,
+                    system,
+                    spells: await readNativeLiveSpellPins(capture)
+                  }),
                 loadRelationshipFacts: async (relation) =>
                   lockedRelationshipActionFacts({
                     ...relation,
@@ -392,9 +400,10 @@ export function createNativeLiveTurnStages(
               }
             }
           }),
-        loadDeclarations: () =>
+        loadDeclarations: async () =>
           prepareEncounterInitiativeDeclarationSources({
             state,
+            spells: await readNativeLiveSpellPins(capture),
             campaignId: state.campaignId,
             actors: stage.actors,
             system,
