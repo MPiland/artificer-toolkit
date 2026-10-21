@@ -9,7 +9,6 @@
     "apps/apis/convex/content/creatureLoadoutHands.ts",
     "apps/apis/convex/encounters/developmentPolicies.ts",
     "apps/session-worker/src/nativeEncounterCastReaction.ts",
-    "apps/session-worker/src/nativeEncounterConcentration.ts",
     "apps/session-worker/src/nativeEncounterRules.ts",
     "apps/web/src/domains/campaigns/components/EncounterEnemyStatBlock.tsx",
     "apps/web/src/domains/characters/builder/steps/abilities/CharacterHitpointProgression.tsx",
@@ -18,10 +17,7 @@
     "apps/web/src/domains/creatures/pages/CreatureDetail.model.ts",
     "packages/encounter-persistence/src/actionChoiceReads.ts",
     "packages/encounter-persistence/src/actionCommitPersistence.ts",
-    "packages/encounter-persistence/src/concentrationChildrenPersistence.ts",
     "packages/encounter-persistence/src/initiativeRollCards.ts",
-    "packages/rules-runtime/src/encounterActiveGrants.ts",
-    "packages/rules-runtime/src/encounterConcentration.ts",
-    "packages/rules-runtime/src/encounterIncomingAttackGate.ts"
+    "packages/rules-runtime/src/encounterActiveGrants.ts"
   ]
 }

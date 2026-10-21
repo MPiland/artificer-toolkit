@@ -1,4 +1,5 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import {
@@ -15,17 +16,14 @@ import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shar
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import { settleEncounterD20Answer, settleEncounterD20Test } from './encounterD20Settlement.js'
-import { derivedAddedDice } from './systems/dnd5e/d20AddedDiceGraph.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { concentrationDamageSourceLabel } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import {
-  DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
-  dnd5eConcentrationDamageDc,
-  dnd5eConcentrationHolderSaves,
-  resolveDnd5eConcentrationSaveFacts
-} from './systems/dnd5e/concentrationPolicy.js'
-import { requireInstalledConcentrationMaintenanceDefinitionId } from './platformRulesRuntime.js'
+  concentrationDamageSourceLabel,
+  type ConcentrationDamageApplicationDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
 
 export type NativeConcentrationContext = ReturnType<
@@ -79,7 +77,7 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
     maintained.encounterId !== input.state.id ||
     maintained.ownerActorId !== input.targetActorId ||
     maintained.maintenanceDefinitionId !==
-      requireInstalledConcentrationMaintenanceDefinitionId(input.state.gameSystemId)
+      maintenanceLinkCapabilityRegistry.require(input.state.gameSystemId).maintenanceDefinitionId
   )
     throw new Error('The concentration state does not match its Encounter owner.')
   const maintenance = await input.readDefinition(maintained.maintenanceDefinitionId)
@@ -126,7 +124,8 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
   if (
     bindings.length !== 1 ||
     bindings[0]?.kind !== 'ABILITY' ||
-    bindings[0].definitionId !== DND5E_CONSTITUTION_ABILITY_DEFINITION_ID ||
+    bindings[0].definitionId !==
+      maintenanceLinkCapabilityRegistry.require(input.state.gameSystemId).saveAbilityDefinitionId ||
     vocabulary.systemId !== input.state.gameSystemId ||
     !('abilities' in vocabulary.document) ||
     !vocabulary.document.abilities.some((ability) => ability.id === bindings[0]!.definitionId)
@@ -150,6 +149,7 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
 }
 
 export function createNativeConcentrationContext(input: {
+  gameSystemId: string
   current: {
     maintained: EncounterMaintainedEffectStateRecord
     pins: Pick<
@@ -169,16 +169,13 @@ export function createNativeConcentrationContext(input: {
   repeatSaveDamagerActorId?: string | null
 }) {
   const { current, application } = input
-  const addedDice = derivedAddedDice(
-    current.target.targetDerivedFacts.savingThrowAddedDice,
-    DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
-  )
-  const facts = resolveDnd5eConcentrationSaveFacts({
+  const link = maintenanceLinkCapabilityRegistry.require(input.gameSystemId)
+  const facts = link.saveFacts({
     appliedDamage: application.appliedAmount,
     targetActorId: application.targetActorId,
-    rulePolicyOutput: dnd5eConcentrationHolderSaves(current.target),
-    addedDice
+    target: current.target
   })
+  const { addedDice } = facts
   const saveAddedDice = addedDice.length > 0 ? { addedDice } : {}
   const maintainedState = {
     id: current.maintained.id,
@@ -203,12 +200,12 @@ export function createNativeConcentrationContext(input: {
       damageTypeLabel:
         current.damageTypes.find((damageType) => damageType.id === application.damageTypeId)
           ?.label ?? null,
-      dc: dnd5eConcentrationDamageDc(application.appliedAmount)
+      dc: link.saveDc(application.appliedAmount)
     },
     maintainedState,
     ...current.pins,
     save: {
-      savingThrowAbilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
+      savingThrowAbilityDefinitionId: link.saveAbilityDefinitionId,
       modifier: facts.modifier,
       rollMode: facts.rollMode,
       contributors: [...facts.contributors],
@@ -217,7 +214,7 @@ export function createNativeConcentrationContext(input: {
     },
     contextChecksum: checksumRuleDocument({
       ...current.pins,
-      savingThrowAbilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
+      savingThrowAbilityDefinitionId: link.saveAbilityDefinitionId,
       modifier: facts.modifier,
       rollMode: facts.rollMode,
       contributors: [...facts.contributors],
@@ -230,6 +227,40 @@ export function createNativeConcentrationContext(input: {
     remaining: input.remaining
   })
   return { context, facts: facts.facts }
+}
+
+/**
+ * The Concentration checks a finalized damage envelope owes: one per application whose holder
+ * holds a maintenance link (`maintainedStateIds`, by holder) and whose damage meets the System's
+ * save hook in the event table.
+ */
+export function concentrationSaveApplications<
+  Application extends ConcentrationDamageApplicationDto
+>(input: {
+  gameSystemId: string
+  applications: readonly Application[]
+  maintainedStateIds: ReadonlyMap<string, string>
+  damagerActorId: string | null
+  dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
+}) {
+  const { hooks } = maintenanceLinkCapabilityRegistry.require(input.gameSystemId)
+  return input.applications.flatMap((application) => {
+    const maintainedStateId = input.maintainedStateIds.get(application.targetActorId)
+    if (!maintainedStateId) return []
+    const { maintenanceSave } = discoverEncounterEventHooks({
+      maintenanceHooks: hooks,
+      events: [
+        {
+          kind: 'DAMAGED',
+          phase: 'AFTER',
+          damagerActorId: input.damagerActorId,
+          damageTypeIds: [application.damageTypeId],
+          dispositions: input.dispositions
+        }
+      ]
+    })
+    return maintenanceSave ? [{ ...application, maintainedStateId }] : []
+  })
 }
 
 /** Names a pending Concentration check for its roller: the damage behind it and its DC. */
