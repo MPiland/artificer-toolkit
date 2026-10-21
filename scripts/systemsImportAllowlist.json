@@ -27,7 +27,6 @@
     "packages/encounter-persistence/src/concentrationChildrenPersistence.ts",
     "packages/encounter-persistence/src/initiativeRollCards.ts",
     "packages/rules-runtime/src/encounterActiveGrants.ts",
-    "packages/rules-runtime/src/encounterCastReactionDiscovery.ts",
     "packages/rules-runtime/src/encounterConcentration.ts",
     "packages/rules-runtime/src/encounterIncomingAttackGate.ts"
   ]

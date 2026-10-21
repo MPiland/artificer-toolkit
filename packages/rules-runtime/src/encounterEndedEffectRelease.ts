@@ -217,6 +217,7 @@ export function targetEndedEffects(input: {
       ? [
           {
             kind: 'DAMAGED',
+            phase: 'AFTER',
             damagerActorId: input.damagerActorId,
             damageTypeIds: dealt,
             dispositions: input.dispositions

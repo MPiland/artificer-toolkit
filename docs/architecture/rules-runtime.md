@@ -138,7 +138,7 @@ All seven are D&D 2014 policy (their keys, messages and facts name D&D), so they
 first neutral piece is the outcomes registry below; the interpretation dispatcher is a later RULES-2 step once the
 compiler stops naming D&D facts. Each file stays under the 1,500-line budget, and the golden above gates every move.
 
-### Effect outcomes registry (current, RULES-2.T6c1; ADR 0039 decision 1)
+### Effect outcomes registry (current, RULES-2.T6c1–T6c2; ADR 0039 decision 1)
 
 The neutral `effectOutcomeRegistry` replaces the per-kind proposal-node ladders. An `EffectOutcomeDefinition` names
 one outcome kind's direct proposal, its path-gated proposal (or null), its payload bindings and output ports, and
@@ -157,8 +157,17 @@ literal of its payload, then interprets it as its direct proposal.
 `MODIFIER_GRANT`, `ACTOR_LINK`, `CREATURE_FORM`, `CONCEAL` and `DETECT_CONCEALED` have no path-gated form: their state
 lives in an active-effect plan, which cannot yet be gated on a test's result path. Under a test the compiler refuses
 them and names that missing primitive (RULES-2.T6d adds it). `KILL` under a test stays limited to hit-point tiers,
-which is a rule, not a missing primitive. Which outcomes a test admits is still decided by `boundedTestOutcome`;
-RULES-2.T6c2 widens it to the registry.
+which is a rule, not a missing primitive.
+
+A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
+`ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the
+damage, heal, condition and hit-point-tier `KILL` outcomes. `dnd5eTargetOnlyOutcome` is the one home for that set, so
+the compiler's direct and test admissions cannot drift. The commit-side readers (`executionAddsSpeedToMovement`,
+`executionTeleportAllowance`, `executionCancelsTriggeringEvent`) find their proposal through
+`dnd5eResolvedProposalTrace`: the direct key, or the path-gated key only when its trace output is authorized, so a
+test that resolved to another path commits nothing. Under a test, two outcomes stay refused for their own rule: a self
+teleport, which takes its reach from a self-targeted action's range, and `CANCEL_TRIGGERING_EVENT`, which belongs to a
+spell-cast reaction and a spell-cast reaction is never a test activation.
 
 ## Ownership and publication
 
@@ -915,20 +924,25 @@ whatever its pause kind.
 
 **Worker handler layout (current, RULES-2.T4b).** `planNativeLiveEncounterAction` no longer answers pauses inline. `apps/session-worker/src/nativePauseHandlers.ts` holds one exhaustive table, `{ [Kind in NativePauseKind]: NativePauseHandler<Kind> }`, so a new pause kind fails to compile until it has a handler. Each handler has `read` (turn the response into that kind's typed answer, refusing a missing decision or die) and, for the kinds the rules graphs resume, `settle` (continue the action into its execution). One module per kind: `nativePauseLegendaryResistance`, `nativePauseReaction` (`REACTION` and `ON_HIT`, which share the target's current reaction), `nativePauseForcedMovement`, and read-only `nativePauseCastReaction`, `nativePauseIncomingGate`, `nativePauseAttackRetarget`: cast, ward and retarget answers feed their own earlier steps of the planner. Shared types live in `nativePauseTypes.ts`. The planner calls `readNativePauseAnswer` once, then `settleNativePauseAnswer` where it used to branch per kind.
 
-**Live room layout (current, RULES-2.T13a).** `NativeLiveSessionRoom` keeps the Durable Object lifecycle, command dispatch and field wiring; it hands each responsibility to a module with a typed port instead of growing in place. `roomSocket.ts` owns the shared room vocabulary (socket attachment schema, `Admission`, `TransientCache`, `send`, `viewer`, `accountBucket`). `roomSceneCommit.ts` owns the Scene commit paths (fog staging, inline edit/undo/fog publication, geometry and movement-decision commits) and declares `RoomSceneCommitHost`, the stores and room steps (aggregate reload, authorization boundary, fanout, alarm) the room builds once in its constructor. **(T13b)** `roomCommandHost.ts` is now the one definition of what the room lends (`RoomCommandHost`); each module declares the `Pick` it uses (`RoomSceneCommitHost`, `RoomEncounterExecutionHost`, `RoomEncounterBindingHost`). `roomEncounterExecution.ts` runs every Encounter command (the ACTIVE-Run path and the local Encounter path, including movement decisions through `roomSceneCommit.ts`); `roomEncounterBindingCommand.ts` commits the GM's Encounter-to-Scene binding. **(T13c)** `roomCharacterSheetCommands.ts` runs held Character Sheet commands (`RoomCharacterSheetHost`) and `roomChatCommands.ts` runs Campaign chat commands (`RoomCampaignChatHost`), each beside the pure per-command helper it already owned. Later T13 slices move admission and recovery, and the scene cache and outbox the same way.
+**Live room layout (current, RULES-2.T13a).** `NativeLiveSessionRoom` keeps the Durable Object lifecycle, command dispatch and field wiring; it hands each responsibility to a module with a typed port instead of growing in place. `roomSocket.ts` owns the shared room vocabulary (socket attachment schema, `Admission`, `TransientCache`, `send`, `viewer`, `accountBucket`). `roomSceneCommit.ts` owns the Scene commit paths (fog staging, inline edit/undo/fog publication, geometry and movement-decision commits) and declares `RoomSceneCommitHost`, the stores and room steps (aggregate reload, authorization boundary, fanout, alarm) the room builds once in its constructor. **(T13b)** `roomCommandHost.ts` is now the one definition of what the room lends (`RoomCommandHost`); each module declares the `Pick` it uses (`RoomSceneCommitHost`, `RoomEncounterExecutionHost`, `RoomEncounterBindingHost`). `roomEncounterExecution.ts` runs every Encounter command (the ACTIVE-Run path and the local Encounter path, including movement decisions through `roomSceneCommit.ts`); `roomEncounterBindingCommand.ts` commits the GM's Encounter-to-Scene binding. **(T13c)** `roomCharacterSheetCommands.ts` runs held Character Sheet commands (`RoomCharacterSheetHost`) and `roomChatCommands.ts` runs Campaign chat commands (`RoomCampaignChatHost`), each beside the pure per-command helper it already owned. **(T13d)** `roomAdmissions.ts` (`RoomAdmissions`) owns the socket admission state (admissions, generations, in-flight sign-ins, early-challenge expiries, the one cold admission) and the authenticate, admit, challenge and close steps over it; `roomStorageAuthority.ts` (`RoomStorageAuthority`) owns the single authority activation and the single storage recovery; `roomAggregateLoad.ts` loads and reloads the held aggregate and journals an input reload; `roomActorSweeps.ts` journals actor departures and broken relationships after a commit; `roomLocalPlayAuthorization.ts` overlays unpublished local play onto an authorization read. Each declares the `Pick` of `RoomCommandHost` (plus, for admissions, its own extra steps) it uses. The scene cache and outbox move the same way in the next slice.
 
-### Event hooks (current, RULES-2.T5a; ADR 0039 decision 4)
+### Event hooks (current, RULES-2.T5a-c; ADR 0039 decision 4)
 
-An effect subscribes to events through authored data; a feature never adds a call site. The pieces live in
+An effect or a reaction subscribes to events through authored data; a feature never adds a call site. The pieces live in
 `packages/rules-runtime/src/events/` and never import `systems/*`:
 
 - **Event table** (`encounterEventTable.ts`). `EncounterEvent` is the structural facts every System has: `ACTION`
   (whether it makes an attack roll or casts a spell, and whether it is aimed at an enemy), `ATTACKED`, `HIT`, `TEST`
-  (`CHECK` or `SAVE`, with its ability by code or definition id, or none), `DAMAGED` (damager, damage types,
-  dispositions), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
-  `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED` and `AREA_LEFT`. `EncounterEventSubscription`
+  (`CHECK` or `SAVE`, with its ability by code or definition id, or none), `DAMAGED` (`AFTER` it lands: damager,
+  damage types, dispositions; `BEFORE` it lands: the current hit points it takes the holder from and to), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
+  `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED`, `AREA_LEFT`, and the events a reaction answers:
+  `HIT_BY_ATTACK` (melee or not, attacker seen or not, the damage types the hit deals), `SPELL_CAST_BY_OTHER` and
+  `TARGETED_BY_CAST` (with the spell cast), and the events an intercept answers before they resolve: the `BEFORE`-phase
+  `DAMAGED`, `KILLED` (an outright kill) and `HARMFUL_ACTION_AIMED` (an attack or harmful spell, by an attacker of a
+  Creature type or a Character). `EncounterEventSubscription`
   is what a hook listens for, with its filters; `EncounterEffectHook` is what it does when met (`END`, or `REPEAT_SAVE`
   with its trigger). Ending and consuming are the same hook: the effect is gone, restored by the same receipt.
+  `EncounterReactionHook` is the reaction an event offers, by the event and the authored trigger it met.
 - **Event vocabulary** (System capability `event-vocabulary`, `EventVocabularyCapabilityAdapter`, registered through
   `createSystemCapabilityRegistry` in `platformPolicyModules.ts`). The System maps its authored codes to subscriptions:
   the 5e adapter (`systems/dnd5e/eventVocabulary.ts`) reads `consumeOnFirstEvents`, `endOnEvents` (`ON_ATTACKED` is
@@ -944,6 +958,23 @@ An effect subscribes to events through authored data; a feature never adds a cal
   where a caller only asks what it listens for (`stateBoundGrants`, a zone's `AREA_LEFT` hold). A rest is the Sheet's
   event: `activeEffectEndsOnRest` reads the `REST` subscription there, and no Encounter raises one.
   `effectEventScope` (whose events and turn an effect meets), `damageTriggerMet` and `damagerOnSourceSide` live here too.
+  Given the holder's `reactions` too, it returns the reactions the events offer, in held order, each once with the first
+  hook met. A reaction's authored `reactionTrigger` is its subscription, already structural, so no vocabulary reads it:
+  `ATTACKED_SELF` meets a hit its qualifiers admit (melee only, attacker seen), `DAMAGE_TAKEN` a hit dealing a type it
+  names (it names the types that triggered it), `SPELL_CAST` another's cast when the reaction cancels it, and
+  `TARGETED_SELF` being chosen by a cast of a listed spell (any, unlisted). The holder's reactions are listed by
+  `encounterReactors.ts` (a Creature's feature actions, a Character's actions and castable spells), and whether one is
+  affordable is decided when the Worker prepares it. A `MOVEMENT` reaction meets no event here: the movement path
+  discovers it from the reach a mover passes (`encounterMovementReaction*`); zone interactions join in T5d.
+  Given the holder's `damageInterceptions` and `incomingGates`, it returns the intercepts the events meet before they
+  resolve, in the order given (spend order); an intercept's authored payload is its subscription. A damage interception
+  (`DAMAGE_INTERCEPTION`, Death Ward) meets a `BEFORE` `DAMAGED` taking its holder from above 0 hit points to 0, and a
+  `KILLED` when it negates kills: `hitPointsAfterDamage` and `killInterception` (`encounterDamageInterception.ts`)
+  ask discovery, and both the planner (`applyDamageInterceptions`) and the fold that validates it call them, so a
+  filter added to the subscription (SPELLS-33.T4i2) reaches both. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
+  meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
+  passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
+  `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.
 
 **One dispatch per event** means one subscription-reading dispatch per event kind, not one raise site. Callers state
 facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decides what fires; the release helpers in
@@ -952,8 +983,8 @@ facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decid
 `encounterGrantLifetimes.ts` build events and call it. The raise sites stay where the pipelines commit: `DAMAGED` is
 still raised from its seven damage-commit roots (Worker rules, area rules, Legendary action, turn effect state, spatial
 damage ends, movement reaction effects, turn resources), since funnelling them into one damage-commit root is an
-envelope change outside T5. Reaction discovery (T5b), interception (T5c) and zone interaction kinds (T5d) join the
-same table later.
+envelope change outside T5. The `BEFORE`-phase `DAMAGED` and `KILLED` are raised where a batch plans and folds its
+damage, and `HARMFUL_ACTION_AIMED` where the incoming gate is decided. Zone interaction kinds (T5d) join the same table later.
 
 ### Legendary Resistance on single-target saves (current, D104)
 
@@ -1026,7 +1057,7 @@ that stores nothing; `executionCancelsTriggeringEvent` reads it from the committ
 `executionAddsSpeedToMovement` does.
 
 Before a Character's single-target spell cast runs its graph, the Worker (`nativeEncounterCastReaction.ts`) asks
-`discoverCastReactionActions` which other Characters hold a reaction for it, keeps those whose own invocation range
+event-hook discovery (a `SPELL_CAST_BY_OTHER` event, see "Event hooks") which other Characters hold a reaction for it, keeps those whose own invocation range
 reaches the caster on the Scene and that the reactor can afford, and
 holds the cast in a `CAST_REACTION` pause (`REACTION_CHOICE` to the reactor). Declining records the reactor
 and the cast proceeds; using the reaction commits a countered cast (`persistEncounterCounteredCastCommit`): the
@@ -1070,7 +1101,7 @@ cast's slot already spent (`projectSpellSlotSpend`), on the same Character versi
 #### `DAMAGE_TAKEN` (current, REACTION-4.T2)
 
 `reactionTrigger: { kind: 'DAMAGE_TAKEN', damageTypeIds }` (a user-authored Absorb Elements) rides the same
-pause as `ATTACKED_SELF`: discovery (`discoverAttackReactionActions`) offers it when one of `damageTypeIds`
+pause as `ATTACKED_SELF`: discovery (a `HIT_BY_ATTACK` event, see "Event hooks") offers it when one of `damageTypeIds`
 is a damage type of the hit attack's `ON_HIT`/`ON_CRIT` outcomes (`attackHitDamageTypeIds`). The candidate and
 the sealed pin carry their `trigger`, so a changed trigger is a different offer. The reaction's effect carries
 a `DAMAGE_RESISTANCE` grant, which `encounterActiveGrants` turns into a defense of the reactor; the
@@ -1191,7 +1222,7 @@ options (ADR 0038); nothing in code names Hide.
   unseen-attacker path. The believed
   mode must not reveal which observers failed, so it treats the hider as hidden from any non-allied target while a concealment
   exists; the true mode uses the set and may cancel it ("Advantage cancelled: the target can sense you"). The first attack
-  roll consumes the concealment for everyone (`discoverEncounterEventHooks`, SPELLS-27: any v2 effect that lists the event in `consumeOnFirstEvents` or
+  roll consumes the concealment for everyone (`discoverEncounterEventHooks`, SPELLS-27: any effect that lists the event in `consumeOnFirstEvents` or
   `endOnEvents`, so Invisibility ends the same way).
 - **Redaction.** The observer ids are GM knowledge. They live only in the stored effect and receipt; no player projection,
   timeline line, pending read or roll card carries them, so the hider's and other players' views never name the observers.

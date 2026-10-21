@@ -1,3 +1,4 @@
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { RuleInputBinding } from '@artificer-toolkit/shared/rules'
 import type { EffectOutcomeDefinition } from '../../effectOutcomeRegistry.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
@@ -26,7 +27,7 @@ import {
   type Outcome,
   unsupported
 } from './effectActionContracts.js'
-import { dnd5ePathGatedOperationKey } from './effectActionOperationRegistry.js'
+import { dnd5ePathGatedOperationKey } from './dnd5eTestOperationKeys.js'
 import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllowance.js'
 
 /** The outcomes one proposal node applies; forced movement is settled on the Scene by its own node. */
@@ -201,3 +202,75 @@ export const DND5E_STATELESS_OUTCOME_OPERATION_KEYS: ReadonlySet<string> = new S
     ({ operationKey }) => operationKey
   )
 )
+
+export type Dnd5eAuthoredOutcome = Extract<
+  CompiledEffectGroup['entries'][number],
+  { outcome: unknown }
+>['outcome']
+
+/**
+ * An outcome that needs nothing from its action beyond its target, so it is proposed alike with no
+ * test and on a test's result path. Null for any other outcome.
+ */
+export function dnd5eTargetOnlyOutcome(
+  outcome: Dnd5eAuthoredOutcome
+): Extract<
+  Outcome,
+  { kind: 'STABILIZE' | 'DEPART' | 'MANUAL_ADJUDICATION' | 'ADD_SPEED_TO_MOVEMENT' }
+> | null {
+  if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
+  // The target leaves the Scene for a place the table does not model; the commit marks it as
+  // departed (D128) and a Scene-bound destination waits for the movement service.
+  if (
+    outcome.effectKind === 'TELEPORT' &&
+    outcome.targetKind !== 'SELF' &&
+    (outcome.destinationKind === 'LINKED_LOCATION' || outcome.destinationKind === 'SPECIAL')
+  )
+    return { kind: 'DEPART' }
+  // The Action is spent and the GM rules the result: nothing is stored on the target.
+  if (outcome.effectKind === 'MANUAL_ADJUDICATION') return { kind: 'MANUAL_ADJUDICATION' }
+  // Dash: the committed action adds the actor's speed to this turn's movement; the commit records it.
+  if (outcome.effectKind === 'MOVEMENT_RULE' && outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT')
+    return { kind: 'ADD_SPEED_TO_MOVEMENT' }
+  return null
+}
+
+/** The outcome an active-effect plan owns when one is authored, which a test cannot gate yet. */
+function activeEffectPlanOutcomeKind(
+  outcome: Dnd5eAuthoredOutcome
+): 'MODIFIER_GRANT' | 'ACTOR_LINK' | 'CREATURE_FORM' | 'CONCEAL' | 'DETECT_CONCEALED' | null {
+  if (outcome.effectKind === 'APPLY_GRANT') return 'MODIFIER_GRANT'
+  if (outcome.effectKind === 'TELEPATHIC_LINK') return 'ACTOR_LINK'
+  if (outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'CREATURE')
+    return 'CREATURE_FORM'
+  if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return 'CONCEAL'
+  if (outcome.effectKind === 'DETECT_CONCEALED') return 'DETECT_CONCEALED'
+  return null
+}
+
+export function dnd5eUnsupportedPlanUnderTest(kind: string): never {
+  return unsupported(
+    `D&D ${kind} under a test needs an active-effect plan gated on the test's result path, which the runtime does not have yet.`
+  )
+}
+
+export const DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION =
+  'D&D cancel-triggering-event outcome belongs to a spell-cast reaction.'
+
+/**
+ * The target-only outcome a test's result path proposes (RULES-2.T6c2). Refuses an outcome a test
+ * cannot carry for its own reason; null for any other outcome, which the caller reads on.
+ */
+export function dnd5eTestPathTargetOnlyOutcome(outcome: Dnd5eAuthoredOutcome) {
+  const targetOnly = dnd5eTargetOnlyOutcome(outcome)
+  if (targetOnly) return targetOnly
+  if (outcome.effectKind === 'TELEPORT' && outcome.targetKind === 'SELF')
+    unsupported(
+      "D&D self teleport takes its reach from a self-targeted action's range, which a test action does not have."
+    )
+  if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT')
+    unsupported(DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION)
+  const planKind = activeEffectPlanOutcomeKind(outcome)
+  if (planKind) dnd5eUnsupportedPlanUnderTest(planKind)
+  return null
+}

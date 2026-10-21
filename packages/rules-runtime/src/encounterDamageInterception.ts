@@ -14,6 +14,7 @@ import {
   listActiveEffectGrants
 } from './character/activeEffectGrantTotals.js'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 
 /**
  * A held `DAMAGE_INTERCEPTION` grant (Death Ward; Undead Fortitude and Relentless Endurance reuse
@@ -54,20 +55,33 @@ export function heldDamageInterceptions(
 }
 
 /**
- * The hit points damage leaves the holder at: the interception's when the damage would drop it from
- * above 0 to 0, otherwise the plain result. `currentLost` is what the damage takes off current hit
- * points after temporary hit points.
+ * The hit points damage leaves the holder at, and the interception that decided them: the first
+ * unspent interception the damage's `BEFORE` event meets (it would drop the holder from above 0 to 0)
+ * holds it at its hit points; with none, the plain result. `currentLost` is what the damage takes off
+ * current hit points after temporary hit points.
  */
 export function hitPointsAfterDamage(input: {
   current: number
   currentLost: number
   maximum: number
-  interception: HeldDamageInterception | undefined
+  interceptions: readonly HeldDamageInterception[]
 }) {
-  const { current, currentLost, interception } = input
-  return interception !== undefined && current > 0 && current - currentLost === 0
-    ? Math.min(interception.dropToHitPoints, input.maximum)
-    : current - currentLost
+  const after = input.current - input.currentLost
+  const [interception] = discoverEncounterEventHooks({
+    damageInterceptions: input.interceptions,
+    events: [{ kind: 'DAMAGED', phase: 'BEFORE', hitPoints: { before: input.current, after } }]
+  }).damageInterceptions
+  return interception === undefined
+    ? { after, interception }
+    : { after: Math.min(interception.dropToHitPoints, input.maximum), interception }
+}
+
+/** The first unspent interception that negates a kill about to land on its holder. */
+export function killInterception(interceptions: readonly HeldDamageInterception[]) {
+  return discoverEncounterEventHooks({
+    damageInterceptions: interceptions,
+    events: [{ kind: 'KILLED' }]
+  }).damageInterceptions[0]
 }
 
 /**
@@ -96,15 +110,15 @@ export function applyDamageInterceptions(input: {
   let rebased = false
   return input.applications.map((application) => {
     if (application.kind === 'KILL') {
-      const index = unspent.findIndex((interception) => interception.negatesKill)
-      if (index < 0) {
+      const spent = killInterception(unspent)
+      if (spent === undefined) {
         current = 0
         pool = { amount: 0, sourceEffectId: null }
         return application
       }
-      const [spent] = unspent.splice(index, 1)
+      unspent.splice(unspent.indexOf(spent), 1)
       const { kind: _kind, ...trace } = application
-      return { ...trace, kind: 'KILL_NEGATED', negatedBy: spent!.effectId }
+      return { ...trace, kind: 'KILL_NEGATED', negatedBy: spent.effectId }
     }
     if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {
       pool = temporaryHitPointsAfterRelease(pool, application.sourceActiveEffectId)
@@ -152,15 +166,14 @@ export function applyDamageInterceptions(input: {
     )
     const temporaryLost = Math.min(pool.amount, resolvedAmount)
     const currentLost = Math.min(current, resolvedAmount - temporaryLost)
-    const interception = unspent[0]
-    const after = hitPointsAfterDamage({
+    const { after, interception } = hitPointsAfterDamage({
       current,
       currentLost,
       maximum: application.maximumHitPoints,
-      interception
+      interceptions: unspent
     })
-    const intercepted = interception !== undefined && after !== current - currentLost
-    if (intercepted) unspent.shift()
+    const intercepted = interception !== undefined
+    if (intercepted) unspent.splice(unspent.indexOf(interception), 1)
     rebased ||= intercepted
     const result = {
       ...application,

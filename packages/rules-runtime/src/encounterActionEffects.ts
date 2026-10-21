@@ -18,7 +18,7 @@ import {
   type EncounterPassiveWeaponHit
 } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
-import { preparedSpellCastLevel } from './encounterCastReactionDiscovery.js'
+import { preparedSpellCastLevel } from './encounterPreparedSpellCast.js'
 import { readEncounterChosenItem } from './encounterChosenItem.js'
 import { planEncounterEquipmentDegradation } from './encounterEquipmentDegradation.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'

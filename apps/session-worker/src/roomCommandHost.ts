@@ -5,6 +5,7 @@ import {
   type LiveSessionCorrectionDto,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import type { LiveSessionRoomSceneCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { LiveSessionCheckpointReason } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import {
@@ -13,6 +14,8 @@ import {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { DurableCommandJournal } from './durableCommandJournal.js'
+import type { SessionWorkerEnvironment } from './environment.js'
+import { RoomCheckpoints } from './roomCheckpoints.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { type Admission, type SocketAttachment, type TransientCache } from './roomSocket.js'
@@ -28,6 +31,9 @@ import { RoomAuthorization } from './roomAuthorization.js'
  * port stays narrow and each capability has one definition.
  */
 export interface RoomCommandHost {
+  readonly env: SessionWorkerEnvironment
+  readonly storage: DurableObjectStorage
+  readonly checkpoints: RoomCheckpoints
   readonly store: RoomEncounterStore
   readonly inputs: RoomInputs
   readonly journal: DurableCommandJournal
@@ -35,8 +41,13 @@ export interface RoomCommandHost {
   readonly authorization: RoomAuthorization
   readonly fogUploads: RoomSceneFogUploads
   cache(): TransientCache | null
-  setCache(cache: TransientCache): void
+  setCache(cache: TransientCache | null): void
   aggregateNeedsReload(): boolean
+  setAggregateNeedsReload(value: boolean): void
+  refreshSceneCache(value: SocketAttachment): Promise<LiveSessionRoomSceneCapture | null>
+  roomCampaignId(): string | null
+  bumpCacheGeneration(): void
+  challenge(socket: WebSocket, expectedGeneration?: number): void
   flushOutbox(reason: LiveSessionCheckpointReason): Promise<void>
   loadRoomAggregate(sceneId: string | null): Promise<void>
   authorizationBoundary(value: SocketAttachment): Promise<LiveSessionRoomAuthorization>
@@ -77,6 +88,13 @@ export interface RoomCommandHost {
     correction?: LiveSessionCorrectionDto
   ): void
   webSockets(): WebSocket[]
+  /** Resolves once the commands already queued have run. */
+  commandsSettled(): Promise<void>
+  /** Runs `run` after the queued commands, and holds later commands behind it. */
+  afterCommands<T>(run: () => Promise<T>): Promise<T>
+  /** The outbox flush in flight, if any. */
+  outboxFlushing(): Promise<void> | null
+  closeRoomSockets(reason: string): void
   presentationChanging(): boolean
   random(maximum: number): number
   checkpointThrough(

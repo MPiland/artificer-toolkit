@@ -3,10 +3,10 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 
 /**
- * The events an Encounter raises on the creature that holds effects (ADR 0039 decision 4). The kinds
- * are structural facts every System has; a System's event vocabulary binds its authored codes to
- * them, so shared code never names a System's events. A rest is the Sheet's event, so only its
- * subscription is here. See the rules-runtime guide's "Event hooks" section.
+ * The events an Encounter raises on the creature that holds effects or reactions (ADR 0039 decision
+ * 4). The kinds are structural facts every System has; a System's event vocabulary binds its
+ * authored codes to them, so shared code never names a System's events. A rest is the Sheet's event,
+ * so only its subscription is here. See the rules-runtime guide's "Event hooks" section.
  */
 export type EncounterEvent =
   /** The holder takes an action, which may make an attack roll or cast a spell, aimed at an enemy or not. */
@@ -31,15 +31,26 @@ export type EncounterEvent =
       ability: { code: string | null } | { definitionId: string } | null
     }
   /**
-   * The holder takes damage that survived its defenses, of these types (null for a source that dealt
-   * several), from `damagerActorId` (null when nobody dealt it).
+   * The holder takes damage. `AFTER`, it survived the holder's defenses and intercepts: of these types
+   * (null for a source that dealt several), from `damagerActorId` (null when nobody dealt it).
+   * `BEFORE`, it is about to land as the batch settling it plans it, taking the holder's current hit
+   * points from `before` to `after`; an intercept it meets changes where it lands.
    */
   | {
       kind: 'DAMAGED'
+      phase: 'AFTER'
       damagerActorId: string | null
       damageTypeIds: readonly (string | null)[]
       dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
     }
+  | { kind: 'DAMAGED'; phase: 'BEFORE'; hitPoints: { before: number; after: number } }
+  /** An effect is about to kill the holder outright. */
+  | { kind: 'KILLED' }
+  /**
+   * An attack or harmful spell is about to be aimed at the holder by a creature of this Creature type
+   * (null for a Character, whose type is not in its facts).
+   */
+  | { kind: 'HARMFUL_ACTION_AIMED'; attackerCreatureTypeId: string | null }
   | { kind: 'HIT_POINTS_REGAINED' }
   /** The holder is incapacitated or defeated, or the sources named are. */
   | { kind: 'INCAPACITATED'; of: 'HOLDER' }
@@ -56,6 +67,17 @@ export type EncounterEvent =
   | { kind: 'MOVED' }
   /** The holder leaves the area holding the effect. */
   | { kind: 'AREA_LEFT' }
+  /** An attack hits the holder: melee or not, by an attacker it sees or not, dealing these damage types. */
+  | {
+      kind: 'HIT_BY_ATTACK'
+      melee: boolean
+      attackerSeen: boolean
+      damageTypeIds: ReadonlySet<string>
+    }
+  /** Another creature casts a spell. */
+  | { kind: 'SPELL_CAST_BY_OTHER' }
+  /** The holder is chosen as a target of a cast of `castOwnerId` (the spell cast). */
+  | { kind: 'TARGETED_BY_CAST'; castOwnerId: string }
 
 /** What an authored subscription listens for: an event kind and the filters it adds. */
 export type EncounterEventSubscription =
@@ -91,6 +113,36 @@ export type EncounterEffectHook =
       subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }>
       trigger: ActiveEffectRepeatTrigger
     }
+
+/**
+ * A reaction an event offers its holder, by the event and the authored trigger it met. A damage-type
+ * reaction names the types that triggered it (those it names that the hit deals), which its effect
+ * may bind; any other names none.
+ */
+export type EncounterReactionHook =
+  | {
+      event: 'HIT_BY_ATTACK'
+      trigger: 'ATTACKED_SELF' | 'DAMAGE_TAKEN'
+      triggerDamageTypeIds: readonly string[]
+    }
+  | { event: 'SPELL_CAST_BY_OTHER'; trigger: 'SPELL_CAST' }
+  | { event: 'TARGETED_BY_CAST'; trigger: 'TARGETED_SELF' }
+
+/**
+ * A held damage interception (`DAMAGE_INTERCEPTION`) by its authored payload, which is its
+ * subscription: it intercepts damage about to take its holder from above 0 hit points to 0, and an
+ * outright kill when `negatesKill`.
+ */
+export type DamageInterceptionSubscription = { negatesKill: boolean }
+
+/**
+ * A held incoming gate (`INCOMING_ATTACK_GATE`) by its authored payload, which is its subscription: it
+ * intercepts a harmful action aimed at its holder by an attacker of a listed Creature type (any
+ * attacker when unlisted).
+ */
+export type IncomingGateSubscription = {
+  payload: { attackerCreatureTypeIds?: readonly string[] | undefined }
+}
 
 /** The recurrence a stored effect authors its subscriptions in. */
 export type EncounterEffectRecurrence = Extract<

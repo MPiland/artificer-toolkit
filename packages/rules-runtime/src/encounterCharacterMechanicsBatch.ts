@@ -25,7 +25,11 @@ import { z } from 'zod'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
-import { hitPointsAfterDamage, type HeldDamageInterception } from './encounterDamageInterception.js'
+import {
+  hitPointsAfterDamage,
+  killInterception,
+  type HeldDamageInterception
+} from './encounterDamageInterception.js'
 import { EncounterValidationError } from './encounterErrors.js'
 
 export type ReceiptApplications = Extract<
@@ -311,13 +315,10 @@ export function foldCharacterMechanicsApplications<
       continue
     }
     if (application.kind === 'KILL_NEGATED') {
-      const index = unspentInterceptions.findIndex(
-        (interception) =>
-          interception.effectId === application.negatedBy && interception.negatesKill
-      )
-      if (index < 0 || unspentInterceptions.findIndex((entry) => entry.negatesKill) !== index)
+      const spent = killInterception(unspentInterceptions)
+      if (spent === undefined || spent.effectId !== application.negatedBy)
         throw new EncounterValidationError('The Character kill negation is invalid.')
-      unspentInterceptions.splice(index, 1)
+      unspentInterceptions.splice(unspentInterceptions.indexOf(spent), 1)
       receipt.push({
         ordinal,
         kind: 'KILL_NEGATED',
@@ -330,7 +331,7 @@ export function foldCharacterMechanicsApplications<
       continue
     }
     if (application.kind === 'KILL') {
-      if (unspentInterceptions.some((interception) => interception.negatesKill))
+      if (killInterception(unspentInterceptions) !== undefined)
         throw new EncounterValidationError('The Character kill skipped a damage interception.')
       receipt.push({
         ordinal,
@@ -520,12 +521,16 @@ export function foldCharacterMechanicsApplications<
         temporaryLost
       ).sourceEffectId
       const currentLost = Math.min(current, resolvedAmount - temporaryLost)
-      const interception = unspentInterceptions[0]
-      const afterCurrent = hitPointsAfterDamage({ current, currentLost, maximum, interception })
-      const intercepted = afterCurrent !== current - currentLost
+      const { after: afterCurrent, interception } = hitPointsAfterDamage({
+        current,
+        currentLost,
+        maximum,
+        interceptions: unspentInterceptions
+      })
+      const intercepted = interception !== undefined
       if (intercepted !== (application.interceptedBy !== undefined))
         throw new EncounterValidationError('The Character damage interception is invalid.')
-      if (intercepted) unspentInterceptions.shift()
+      if (intercepted) unspentInterceptions.splice(unspentInterceptions.indexOf(interception), 1)
       if (
         application.resolvedAmount !== resolvedAmount ||
         application.appliedAmount !== temporaryLost + current - afterCurrent ||

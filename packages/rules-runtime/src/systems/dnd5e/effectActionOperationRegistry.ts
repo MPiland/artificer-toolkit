@@ -39,7 +39,8 @@ import { dnd5eOptionalCombatContestCapabilityContribution } from './optionalComb
 import { dnd5eReactionEligibilityCapabilityContribution } from './reactionEligibilityPolicy.js'
 import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
-  DND5E_SAVE_TEST_OPERATION_KEY
+  DND5E_SAVE_TEST_OPERATION_KEY,
+  dnd5ePathGatedOperationKey
 } from './dnd5eTestOperationKeys.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
 import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllowance.js'
@@ -997,10 +998,6 @@ export const dnd5eMovementInterruptionAuthorizationOperation: PureRuleOperationC
 /** A test's result path selects an outcome authored on it, and a critical hit also selects the hit's. */
 export function dnd5eResultPathSatisfies(resolvedPath: string, authoredPath: string): boolean {
   return resolvedPath === authoredPath || (resolvedPath === 'ON_CRIT' && authoredPath === 'ON_HIT')
-}
-/** The key of a direct proposal's form inside a test graph: `dnd5e.<x>` becomes `dnd5e.test-<x>`. */
-export function dnd5ePathGatedOperationKey(directOperationKey: string): string {
-  return directOperationKey.replace(/^dnd5e\./, 'dnd5e.test-')
 }
 /** The target-only proposals a test's result path gates; each is its direct contract plus the path. */
 export const dnd5ePathGatedTargetProposalOperations = [

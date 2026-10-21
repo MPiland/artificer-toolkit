@@ -1,3 +1,4 @@
+import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -6,9 +7,12 @@ import { encounterActorRelationship } from '../encounterActionTargetPolicy.js'
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 import { effectHooks } from './effectHooks.js'
 import type {
+  DamageInterceptionSubscription,
   EncounterEffectHook,
   EncounterEvent,
-  EncounterEventSubscription
+  EncounterEventSubscription,
+  EncounterReactionHook,
+  IncomingGateSubscription
 } from './encounterEventTable.js'
 
 type HookedEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>
@@ -165,6 +169,7 @@ function subscriptionMet(
     case 'DAMAGED':
       return (
         event.kind === 'DAMAGED' &&
+        event.phase === 'AFTER' &&
         damageTriggerMet(subscription, {
           onSourceSide: damagerOnSourceSide({
             damagerActorId: event.damagerActorId,
@@ -196,34 +201,116 @@ function subscriptionMet(
         subscription.actionDefinitionIds.includes(event.basicActionDefinitionId)
       )
     case 'REST':
-      // A rest is the Sheet's event, read there (ctiveEffectEndsOnRest); no Encounter raises it.
+      // A rest is the Sheet's event, read there (activeEffectEndsOnRest); no Encounter raises it.
       return false
     default:
       return event.kind === subscription.event
   }
 }
 
+/** An action its holder may react with; its authored reaction trigger is its subscription. */
+type ReactionCandidate = Pick<CharacterActionCandidate, 'mechanicFacts'>
+
+/**
+ * The hook an event meets in a held reaction: an authored reaction whose trigger the event meets with
+ * the qualifiers it adds (a melee attack, an attacker the holder sees, a damage type the hit deals, a
+ * cast of a listed spell). A cast reaction answers a cast only by cancelling it. A movement reaction
+ * meets none here: the movement path discovers it from the reach it is moved through.
+ */
+function reactionHookMet(
+  { mechanicFacts: { invocation, outcomes } }: ReactionCandidate,
+  event: EncounterEvent
+): EncounterReactionHook | null {
+  const trigger = invocation.reactionTrigger
+  if (invocation.activation?.code !== 'REACTION' || !trigger) return null
+  switch (trigger.kind) {
+    case 'ATTACKED_SELF':
+      return event.kind === 'HIT_BY_ATTACK' &&
+        (trigger.attackRange !== 'MELEE' || event.melee) &&
+        (!trigger.requiresSight || event.attackerSeen)
+        ? { event: event.kind, trigger: trigger.kind, triggerDamageTypeIds: [] }
+        : null
+    case 'DAMAGE_TAKEN': {
+      if (event.kind !== 'HIT_BY_ATTACK') return null
+      const triggerDamageTypeIds = trigger.damageTypeIds.filter((damageTypeId) =>
+        event.damageTypeIds.has(damageTypeId)
+      )
+      return triggerDamageTypeIds.length > 0
+        ? { event: event.kind, trigger: trigger.kind, triggerDamageTypeIds }
+        : null
+    }
+    case 'SPELL_CAST':
+      return event.kind === 'SPELL_CAST_BY_OTHER' &&
+        outcomes.some(
+          (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'CANCEL_TRIGGERING_EVENT'
+        )
+        ? { event: event.kind, trigger: trigger.kind }
+        : null
+    case 'TARGETED_SELF':
+      return event.kind === 'TARGETED_BY_CAST' &&
+        (!trigger.sourceEffectIds?.length || trigger.sourceEffectIds.includes(event.castOwnerId))
+        ? { event: event.kind, trigger: trigger.kind }
+        : null
+    case 'MOVEMENT':
+      return null
+  }
+}
+
 /** A passive feature's subscription to its holder's damage: a grant it gives itself (see `targetEndedEffects`). */
 type DamageGrantSubscription = { damageTypeIds: readonly string[] }
 
+/** Whether a damage interception intercepts the event: a blow about to drop its holder to 0, or a kill. */
+function damageInterceptionMet(
+  { negatesKill }: DamageInterceptionSubscription,
+  event: EncounterEvent
+) {
+  return event.kind === 'KILLED'
+    ? negatesKill
+    : event.kind === 'DAMAGED' &&
+        event.phase === 'BEFORE' &&
+        event.hitPoints.before > 0 &&
+        event.hitPoints.after === 0
+}
+
+/** Whether an incoming gate intercepts the event: a harmful action by an attacker of a type it lists. */
+function incomingGateMet({ payload }: IncomingGateSubscription, event: EncounterEvent) {
+  const listed = payload.attackerCreatureTypeIds
+  return (
+    event.kind === 'HARMFUL_ACTION_AIMED' &&
+    (listed === undefined ||
+      (event.attackerCreatureTypeId !== null && listed.includes(event.attackerCreatureTypeId)))
+  )
+}
+
 /**
  * The one discovery entry point for event hooks (ADR 0039 decision 4): what these events, raised on
- * the holder of `effects`, set off. `ended` are the effects one of whose `END` subscriptions an event
- * meets, in held order, each once however many events it meets (a spell attack is an attack roll and
- * a cast). `repeatSaves` are the effects a `DAMAGED` event makes repeat their save, with the first
- * repeat trigger met. `grants` are the passive damage grants a `DAMAGED` event of their types meets.
+ * the holder of `effects` and `reactions`, set off. `ended` are the effects one of whose `END`
+ * subscriptions an event meets, in held order, each once however many events it meets (a spell attack
+ * is an attack roll and a cast). `repeatSaves` are the effects a `DAMAGED` event makes repeat their
+ * save, with the first repeat trigger met. `grants` are the passive damage grants a `DAMAGED` event of
+ * their types meets. `reactions` are the held reactions an event offers, in held order, each once
+ * with the first hook met; whether one is affordable is decided when it is prepared.
+ * `damageInterceptions` and `incomingGates` are the held intercepts an event meets before it resolves,
+ * in the order given (their spend order); the caller spends the first.
  */
 export function discoverEncounterEventHooks<
-  Effect extends HookedEffect,
-  Grant extends DamageGrantSubscription = never
+  Event extends EncounterEvent,
+  Effect extends HookedEffect = HookedEffect,
+  Grant extends DamageGrantSubscription = never,
+  Reaction extends ReactionCandidate = never,
+  Interception extends DamageInterceptionSubscription = never,
+  Gate extends IncomingGateSubscription = never
 >(input: {
-  effects: readonly Effect[]
-  events: readonly EncounterEvent[]
+  effects?: readonly Effect[]
+  reactions?: readonly Reaction[]
+  damageInterceptions?: readonly Interception[]
+  incomingGates?: readonly Gate[]
+  events: readonly Event[]
   grantSubscriptions?: readonly Grant[]
 }) {
   const ended: Effect[] = []
   const repeatSaves: { effect: Effect; trigger: ActiveEffectRepeatTrigger }[] = []
-  for (const effect of input.effects) {
+  for (const effect of input.effects ?? []) {
     const hooks: readonly EncounterEffectHook[] = effectHooks(effect)
     const met = (hook: EncounterEffectHook) =>
       input.events.some((event) => subscriptionMet(effect, hook.subscription, event))
@@ -232,12 +319,27 @@ export function discoverEncounterEventHooks<
     if (repeat?.hook === 'REPEAT_SAVE') repeatSaves.push({ effect, trigger: repeat.trigger })
   }
   const damageTypeIds = input.events.flatMap((event) =>
-    event.kind === 'DAMAGED' ? event.damageTypeIds : []
+    event.kind === 'DAMAGED' && event.phase === 'AFTER' ? event.damageTypeIds : []
   )
   const grants = (input.grantSubscriptions ?? []).filter((grant) =>
     damageTypeIds.some(
       (damageTypeId) => damageTypeId !== null && grant.damageTypeIds.includes(damageTypeId)
     )
   )
-  return { ended, repeatSaves, grants }
+  const reactions = (input.reactions ?? []).flatMap((reaction) => {
+    for (const event of input.events) {
+      const hook = reactionHookMet(reaction, event)
+      // The hook's event is one of `events`, so it is the variant of one of their kinds.
+      if (hook)
+        return [{ ...(hook as Extract<EncounterReactionHook, { event: Event['kind'] }>), reaction }]
+    }
+    return []
+  })
+  const damageInterceptions = (input.damageInterceptions ?? []).filter((interception) =>
+    input.events.some((event) => damageInterceptionMet(interception, event))
+  )
+  const incomingGates = (input.incomingGates ?? []).filter((gate) =>
+    input.events.some((event) => incomingGateMet(gate, event))
+  )
+  return { ended, repeatSaves, grants, reactions, damageInterceptions, incomingGates }
 }

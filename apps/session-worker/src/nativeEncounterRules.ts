@@ -119,7 +119,7 @@ import { readNativePauseAnswer, settleNativePauseAnswer } from './nativePauseHan
 import type { NativePauseAnswer } from './nativePauseTypes.js'
 import { createNativeCurrentReaction } from './nativePauseReaction.js'
 import { advanceNativeIncomingGate, planNativeGatedAction } from './nativeEncounterIncomingGate.js'
-import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
+import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
   buildEncounterActionPendingSnapshot,
   buildEncounterHeldActionPendingSnapshot
