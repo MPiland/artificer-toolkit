@@ -13,8 +13,8 @@ const held = (n: number) => ({
   grantId: `00000000-0000-4000-8000-00000000f00${n}`,
   label: `Held ${n}`,
   count: n,
-  faces: 4,
-  sign: 1 as const
+  faces: 4 as const,
+  sign: 'ADD' as const
 })
 const offer = {
   executionChecksum: CHECKSUM,
