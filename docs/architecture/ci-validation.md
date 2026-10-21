@@ -73,7 +73,14 @@ Settings from the PLATFORM-13.T4 trial ([record](../validation/platform-13-t4-ci
 
 ## Lint
 
-The `lint` job runs `yarn lint` on every run, whatever the selection: oxlint with `--deny-warnings` (`.oxlintrc.jsonc`), then the repo check scripts it chains: `lint:schemas` (`scripts/lazySchemas.mjs`) and `lint:casts` (`scripts/doubleCasts.mjs`). The second fails on any `as unknown as` outside tests and generated modules, except the per-file counts in its `ALLOWED` list, which only shrink. Any finding fails the run.
+The `lint` job runs `yarn lint` on every run, whatever the selection: oxlint with `--deny-warnings` (`.oxlintrc.jsonc`), then the repo check scripts it chains: `lint:schemas` (`scripts/lazySchemas.mjs`), `lint:casts` (`scripts/doubleCasts.mjs`) and `lint:ratchets` (`scripts/sourceRatchets.mjs`). `lint:casts` fails on any `as unknown as` outside tests and generated modules, except the per-file counts in its `ALLOWED` list, which only shrink. Any finding fails the run.
+
+`lint:ratchets` holds the two shrink-only ratchets of [ADR 0039](../adr/0039-composable-system-neutral-rules-engine.md) decision 6 (RULES-2.T1, superseding QUALITY-3.T1d). It checks every tracked module under `apps/`, `packages/` and `scripts/` except tests and test helpers (`isTestPath`), `.d.ts` files and generated modules (`_generated/`, `*.gen.*`, `*.generated.*`):
+
+- **File size.** A module over 1,500 code lines (non-blank lines outside comments) fails unless `scripts/fileSizeBudget.json` lists it. An entry's cap is the file's size: growth past it fails, a file that shrank fails until its cap is lowered to the new size, and a file back within 1,500 lines fails until its entry is removed. Split a module rather than list it.
+- **Import fence.** A module under `packages/rules-runtime/src` outside `systems/` and `character/` never imports `systems/*` (an import, re-export or dynamic import that resolves there). It reaches System behaviour through a capability registry. `scripts/systemsImportAllowlist.json` lists the modules that still do; an entry that no longer imports `systems/` fails until it is removed.
+
+A step after the format check runs `node scripts/sourceRatchets.mjs --base "$MERGE_BASE"`, which also compares both lists with the ones at the merge base: a raised cap or a new entry in either list fails, so a slice cannot buy itself room. Run the same locally with `--base origin/codex/phase-08-2-convex-cutover`.
 
 The job then runs oxfmt in check mode on the files the branch changed since its merge base with the phase branch (`scripts/formatChanged.mjs`, deleted files skipped, `.oxfmtrc.jsonc` ignore patterns applied). Only those files: the phase branch is not oxfmt-clean, and a repo-wide format would rewrite other slices' files. Before a push, `node scripts/formatChanged.mjs --base origin/codex/phase-08-2-convex-cutover` formats the same files locally.
 
