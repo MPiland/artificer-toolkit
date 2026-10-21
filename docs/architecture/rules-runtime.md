@@ -123,6 +123,7 @@ names.
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, forced-movement collision encoding, node-id helpers                                                                   |
 | `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                                                                                           |
+| `effectActionOutcomes`           | `DND5E_EFFECT_OUTCOMES`: one outcome definition per `Outcome` kind (see the outcomes registry below), and the key sets interpretation derives from it                                                          |
 | `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                                                                             |
 | `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                             |
 | `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                |
@@ -133,10 +134,31 @@ levels are a validated map, and the roll mode is always present. Downstream comp
 A parsed dice configuration is one bounded term plus its flat modifier, so callers never re-check the term's bounds; only
 a critical hit's doubled count is re-bounded.
 
-All six are D&D 2014 policy (their keys, messages and facts name D&D), so they stay under `systems/dnd5e`. Nothing
-moved here is System-neutral yet; the neutral pieces (the generic proposal-operation factories, the interpretation
-dispatcher) are a later RULES-2 step once the compiler stops naming D&D facts. Each file stays under the 1,500-line
-budget, and the golden above gates every move.
+All seven are D&D 2014 policy (their keys, messages and facts name D&D), so they stay under `systems/dnd5e`. The
+first neutral piece is the outcomes registry below; the interpretation dispatcher is a later RULES-2 step once the
+compiler stops naming D&D facts. Each file stays under the 1,500-line budget, and the golden above gates every move.
+
+### Effect outcomes registry (current, RULES-2.T6c1; ADR 0039 decision 1)
+
+The neutral `effectOutcomeRegistry` replaces the per-kind proposal-node ladders. An `EffectOutcomeDefinition` names
+one outcome kind's direct proposal, its path-gated proposal (or null), its payload bindings and output ports, and
+whether it changes stored target state. Every phase builds its node through `effectOutcomeProposalNode`: `DIRECT` (no
+test, or the selected outcome graph of a split test) or `PATH_GATED` (a branch of an inline test, which adds
+`resolvedPath` and `authoredPath`). So an outcome composes with any test phase without a per-kind branch, and a new
+kind is one registry entry. `pathGatedProposalOperation` wraps any direct proposal contract into its path-gated form:
+authorized only while the base authorizes and the System's path rule holds (`dnd5eResultPathSatisfies`: the exact path,
+or a critical hit satisfying a hit).
+
+`systems/dnd5e/effectActionOutcomes` holds the D&D entries. Interpretation derives its maps from them: path-gated to
+direct proposal, the direct outcome keys and the stateless keys (outcomes an active effect, the room or the triggering
+event owns, which settle no target application). A path-gated proposal's interpretation re-checks every published
+literal of its payload, then interprets it as its direct proposal.
+
+`MODIFIER_GRANT`, `ACTOR_LINK`, `CREATURE_FORM`, `CONCEAL` and `DETECT_CONCEALED` have no path-gated form: their state
+lives in an active-effect plan, which cannot yet be gated on a test's result path. Under a test the compiler refuses
+them and names that missing primitive (RULES-2.T6d adds it). `KILL` under a test stays limited to hit-point tiers,
+which is a rule, not a missing primitive. Which outcomes a test admits is still decided by `boundedTestOutcome`;
+RULES-2.T6c2 widens it to the registry.
 
 ## Ownership and publication
 
@@ -882,7 +904,7 @@ whatever its pause kind.
 
 **Worker handler layout (current, RULES-2.T4b).** `planNativeLiveEncounterAction` no longer answers pauses inline. `apps/session-worker/src/nativePauseHandlers.ts` holds one exhaustive table, `{ [Kind in NativePauseKind]: NativePauseHandler<Kind> }`, so a new pause kind fails to compile until it has a handler. Each handler has `read` (turn the response into that kind's typed answer, refusing a missing decision or die) and, for the kinds the rules graphs resume, `settle` (continue the action into its execution). One module per kind: `nativePauseLegendaryResistance`, `nativePauseReaction` (`REACTION` and `ON_HIT`, which share the target's current reaction), `nativePauseForcedMovement`, and read-only `nativePauseCastReaction`, `nativePauseIncomingGate`, `nativePauseAttackRetarget`: cast, ward and retarget answers feed their own earlier steps of the planner. Shared types live in `nativePauseTypes.ts`. The planner calls `readNativePauseAnswer` once, then `settleNativePauseAnswer` where it used to branch per kind.
 
-**Live room layout (current, RULES-2.T13a).** `NativeLiveSessionRoom` keeps the Durable Object lifecycle, command dispatch and field wiring; it hands each responsibility to a module with a typed port instead of growing in place. `roomSocket.ts` owns the shared room vocabulary (socket attachment schema, `Admission`, `TransientCache`, `send`, `viewer`, `accountBucket`). `roomSceneCommit.ts` owns the Scene commit paths (fog staging, inline edit/undo/fog publication, geometry and movement-decision commits) and declares `RoomSceneCommitHost`, the stores and room steps (aggregate reload, authorization boundary, fanout, alarm) the room builds once in its constructor. **(T13b)** `roomCommandHost.ts` is now the one definition of what the room lends (`RoomCommandHost`); each module declares the `Pick` it uses (`RoomSceneCommitHost`, `RoomEncounterExecutionHost`, `RoomEncounterBindingHost`). `roomEncounterExecution.ts` runs every Encounter command (the ACTIVE-Run path and the local Encounter path, including movement decisions through `roomSceneCommit.ts`); `roomEncounterBindingCommand.ts` commits the GM's Encounter-to-Scene binding. **(T13c)** `roomCharacterSheetCommands.ts` runs held Character Sheet commands (`RoomCharacterSheetHost`) and `roomChatCommands.ts` runs Campaign chat commands (`RoomCampaignChatHost`), each beside the pure per-command helper it already owned. Later T13 slices move admission and recovery, and the scene cache and outbox the same way.
+**Live room layout (current, RULES-2.T13a).** `NativeLiveSessionRoom` keeps the Durable Object lifecycle, command dispatch and field wiring; it hands each responsibility to a module with a typed port instead of growing in place. `roomSocket.ts` owns the shared room vocabulary (socket attachment schema, `Admission`, `TransientCache`, `send`, `viewer`, `accountBucket`). `roomSceneCommit.ts` owns the Scene commit paths (fog staging, inline edit/undo/fog publication, geometry and movement-decision commits) and declares `RoomSceneCommitHost`, the stores and room steps (aggregate reload, authorization boundary, fanout, alarm) the room builds once in its constructor. **(T13b)** `roomCommandHost.ts` is now the one definition of what the room lends (`RoomCommandHost`); each module declares the `Pick` it uses (`RoomSceneCommitHost`, `RoomEncounterExecutionHost`, `RoomEncounterBindingHost`). `roomEncounterExecution.ts` runs every Encounter command (the ACTIVE-Run path and the local Encounter path, including movement decisions through `roomSceneCommit.ts`); `roomEncounterBindingCommand.ts` commits the GM's Encounter-to-Scene binding. **(T13c)** `roomCharacterSheetCommands.ts` runs held Character Sheet commands (`RoomCharacterSheetHost`) and `roomChatCommands.ts` runs Campaign chat commands (`RoomCampaignChatHost`), each beside the pure per-command helper it already owned. **(T13d)** `roomAdmissions.ts` (`RoomAdmissions`) owns the socket admission state (admissions, generations, in-flight sign-ins, early-challenge expiries, the one cold admission) and the authenticate, admit, challenge and close steps over it; `roomStorageAuthority.ts` (`RoomStorageAuthority`) owns the single authority activation and the single storage recovery; `roomAggregateLoad.ts` loads and reloads the held aggregate and journals an input reload; `roomActorSweeps.ts` journals actor departures and broken relationships after a commit; `roomLocalPlayAuthorization.ts` overlays unpublished local play onto an authorization read. Each declares the `Pick` of `RoomCommandHost` (plus, for admissions, its own extra steps) it uses. The scene cache and outbox move the same way in the next slice.
 
 ### Event hooks (current, RULES-2.T5a-b; ADR 0039 decision 4)
 

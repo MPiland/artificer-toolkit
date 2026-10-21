@@ -17,21 +17,12 @@ import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY
 } from './dnd5eTestOperationKeys.js'
-import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
-import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllowance.js'
-import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 import {
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
-  DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
-  DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
-  DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
-  DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
-  DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
-  DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -51,8 +42,6 @@ import {
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   MAX_CONDITIONS_PER_PATH,
   isPathConditionImmuneFactKey,
-  DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
-  DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   UUID,
@@ -82,8 +71,14 @@ import {
   dnd5eMovementInterruptionAuthorizationOperation,
   dnd5eTestDamageProposalOperation,
   dnd5eTestConditionProposalOperation,
-  dnd5eTestMarginConditionProposalOperation
+  dnd5eTestMarginConditionProposalOperation,
+  dnd5eResultPathSatisfies
 } from './effectActionOperationRegistry.js'
+import {
+  DND5E_DIRECT_OPERATION_BY_PATH_GATED_OPERATION,
+  DND5E_DIRECT_OUTCOME_OPERATION_KEYS,
+  DND5E_STATELESS_OUTCOME_OPERATION_KEYS
+} from './effectActionOutcomes.js'
 
 /**
  * The dice a zone's entry graph rolls for its damage: the enabling node follows the test result, and
@@ -365,15 +360,6 @@ export function testApplications(
     occurrenceId: input.occurrenceId,
     resultPath
   })
-  const directOperationByTestOperation = new Map<string, string>([
-    [DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY, DND5E_HEAL_PROPOSAL_OPERATION_KEY],
-    [
-      DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-      DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-    ],
-    [DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY, DND5E_DAMAGE_PROPOSAL_OPERATION_KEY],
-    [DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY, DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY]
-  ])
   for (const proposal of proposalTraces) {
     const authoredPath = proposal.inputs.authoredPath
     const publishedNode = published.definition.nodes.find((node) => node.id === proposal.nodeId)
@@ -381,12 +367,8 @@ export function testApplications(
     const expectedResolvedPath = publishedNode?.inputs.resolvedPath
     const expectedAuthoredPath = publishedNode?.inputs.authoredPath
     const expectedImmunity = publishedNode?.inputs.conditionImmune
-    const expectedLiteral = (port: string) => {
-      const binding = publishedNode?.inputs[port]
-      return binding?.kind === 'LITERAL' ? binding.value : undefined
-    }
     if (
-      !directOperationByTestOperation.has(proposal.operation.key) ||
+      !DND5E_DIRECT_OPERATION_BY_PATH_GATED_OPERATION.has(proposal.operation.key) ||
       !publishedNode ||
       publishedNode.operation.key !== proposal.operation.key ||
       publishedNode.operation.contractVersion !== proposal.operation.contractVersion ||
@@ -409,7 +391,7 @@ export function testApplications(
       proposal.outputs.authoredPath !== authoredPath ||
       proposal.outputs.applicationCandidate !== true ||
       proposal.outputs.authorized !==
-        ((resultPath === authoredPath || (resultPath === 'ON_CRIT' && authoredPath === 'ON_HIT')) &&
+        (dnd5eResultPathSatisfies(resultPath, authoredPath) &&
           proposal.inputs.conditionImmune !== true) ||
       (expectedImmunity?.kind === 'FACT' &&
         proposal.inputs.conditionImmune !== execution.evidence.facts[expectedImmunity.factKey])
@@ -417,11 +399,11 @@ export function testApplications(
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D test proposal topology is invalid.'
       )
-    for (const port of ['amount', 'damageTypeId', 'conditionId']) {
-      const expected = expectedLiteral(port)
+    // Every authored literal of the payload is read and echoed exactly as published.
+    for (const [port, binding] of Object.entries(publishedNode.inputs)) {
       if (
-        expected !== undefined &&
-        (proposal.inputs[port] !== expected || proposal.outputs[port] !== expected)
+        binding.kind === 'LITERAL' &&
+        (proposal.inputs[port] !== binding.value || proposal.outputs[port] !== binding.value)
       )
         throw new Dnd5eEffectActionCompilerError(
           'The committed D&D test proposal payload is invalid.'
@@ -463,7 +445,9 @@ export function testApplications(
       throw new Dnd5eEffectActionCompilerError('The committed D&D test proposal is unauthorized.')
     if (proposal.outputs.targetActorId !== input.targetActorId)
       throw new Dnd5eEffectActionCompilerError('The committed D&D test proposal target is invalid.')
-    const directOperation = directOperationByTestOperation.get(proposal.operation.key)
+    const directOperation = DND5E_DIRECT_OPERATION_BY_PATH_GATED_OPERATION.get(
+      proposal.operation.key
+    )
     if (!directOperation)
       throw new Dnd5eEffectActionCompilerError('The committed D&D test proposal is invalid.')
     const replacementProposal =
@@ -557,11 +541,9 @@ export function interpretDirectProposal(
     )
   const publishedNode = graph.nodes.find((node) => node.id === trace.nodeId)
   const expectedOperation =
-    publishedNode?.operation.key === DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
-      ? DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
-      : publishedNode?.operation.key.startsWith('dnd5e.test-')
-        ? publishedNode.operation.key.replace('dnd5e.test-', 'dnd5e.')
-        : publishedNode?.operation.key
+    publishedNode &&
+    (DND5E_DIRECT_OPERATION_BY_PATH_GATED_OPERATION.get(publishedNode.operation.key) ??
+      publishedNode.operation.key)
   if (
     !publishedNode ||
     trace.nodeId !== publishedNode.id ||
@@ -581,15 +563,7 @@ export function interpretDirectProposal(
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
   // A grant changes no stored target state; its active effect owns the modifiers.
   if (
-    trace.operation.key === DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_CONCEAL_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY ||
-    trace.operation.key === DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY ||
+    DND5E_STATELESS_OUTCOME_OPERATION_KEYS.has(trace.operation.key) ||
     // A push changes no stored target state; the room settles it on the Scene (interpretSpatial).
     trace.operation.key === DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY
   )
@@ -880,25 +854,10 @@ export function interpretDirect(
   options: { fullTrace?: boolean } = {}
 ): readonly CharacterRuleActionApplication[] {
   if (!options.fullTrace) return interpretDirectProposal(input, graph)
+  // A nested save's riders propose their condition and damage in their test form.
   const proposalKeys = new Set([
-    DND5E_HEAL_PROPOSAL_OPERATION_KEY,
-    DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-    DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
-    DND5E_KILL_PROPOSAL_OPERATION_KEY,
-    DND5E_DEPART_PROPOSAL_OPERATION_KEY,
-    DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
-    DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
-    DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
-    DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
-    DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
-    DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
-    DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
-    DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
-    DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
-    DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-    DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
+    ...DND5E_DIRECT_OUTCOME_OPERATION_KEYS,
     DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
-    DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
   ])
