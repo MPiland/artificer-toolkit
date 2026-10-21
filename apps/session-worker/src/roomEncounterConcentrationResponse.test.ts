@@ -445,6 +445,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
   })
   if (!current) throw new Error('Missing maintained Character concentration.')
   const pending = createNativeConcentrationContext({
+    gameSystemId: state.gameSystemId,
     current,
     parentOccurrenceId,
     parentCommandFingerprint: parentFingerprint,

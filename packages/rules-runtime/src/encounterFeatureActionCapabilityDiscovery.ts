@@ -11,8 +11,8 @@ import type { EffectActionCapabilityDescriptor } from './characterActionCapabili
 import { listCreatureSpellCasts } from './encounterCreatureSpellCasts.js'
 import { castableEffectGroups, spellCastActionId, spellCastLabel } from './spellCastCandidates.js'
 import { passiveMeleeRetaliationZone, placedSpaceManifest } from './encounterZonePlacement.js'
-import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
-import { reduceEffectRestrictions } from './systems/dnd5e/attackRestrictions.js'
+import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
+import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 import {
   type EncounterCreatureEquipmentSource,
   snapshotCreatureEquipmentLoadout,
@@ -130,11 +130,13 @@ interface EncounterFeatureSourceProvenance {
 type EncounterFeatureEffect = NonNullable<FeatureDto['effects']>[number]
 
 function featureAttackMechanic(
+  profile: AttackProfileCapabilityAdapter,
   entry: FeatureEffectEntry,
   compiledEffect: CompiledEffectGroup
 ): EncounterFeatureActionCapabilityDescriptor['attackMechanic'] {
   const invocation = compiledEffect.invocation
-  if (invocation.kind !== 'ACTION' || dnd5eAttackKind(invocation.triggerCode) === null) return null
+  if (invocation.kind !== 'ACTION' || profile.attackKind(invocation.triggerCode) === null)
+    return null
   const source = entry.actionFeature ?? entry.featureOption ?? entry.ownerFeature
   const definitions = (source.rollDefinitions ?? []).filter(
     (definition) => definition.kind === 'ATTACK'
@@ -441,7 +443,8 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   if (!entry || (entry.actionFeature?.id ?? null) !== capability.actionFeatureId)
     throw new Error('Encounter feature action capability Effect is stale.')
   const { effect } = entry
-  const compiledEffect = creatureActionEffect(effect, features)
+  const profile = attackProfileCapabilityRegistry.require(capability.gameSystemId)
+  const compiledEffect = creatureActionEffect(profile, effect, features)
   if (
     capability.entryPointDefinitionId !== effect.id ||
     capability.actionId !==
@@ -471,7 +474,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   }
   if (
     JSON.stringify(capability.attackMechanic) !==
-    JSON.stringify(featureAttackMechanic(entry, compiledEffect))
+    JSON.stringify(featureAttackMechanic(profile, entry, compiledEffect))
   ) {
     throw new Error('Encounter feature action attack roll is stale.')
   }
@@ -483,6 +486,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
  * settled. A Creature attack has no Equipment facts here, so a rider's weapon checks never hold.
  */
 function creatureActionEffect(
+  profile: AttackProfileCapabilityAdapter,
   effect: EncounterFeatureEffect,
   features: readonly FeatureDto[]
 ): CompiledEffectGroup {
@@ -494,7 +498,9 @@ function creatureActionEffect(
       )
     )
   )
-  const compiled = reduceEffectRestrictions(mergeOnHitRiders(compileEffect(effect), riders), null)
+  const compiled = profile.reduceItemlessAttackRestrictions(
+    mergeOnHitRiders(compileEffect(effect), riders)
+  )
   const { invocation } = compiled
   // A passive "when reduced to 0 hit points" save effect runs as the save action the System fires
   // for its holder, so it compiles and plans like any other area save. A passive start-of-turn
@@ -676,6 +682,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
       const passiveWeaponHitCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const passiveStartOfTurnCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const actionIds = new Set<string>()
+      const profile = attackProfileCapabilityRegistry.require(gameSystemId)
       const features = snapshotFeatures(input.actor)
       for (const feature of features) {
         const ownerFeatureId = requireCanonicalUuid(feature.id, 'Creature feature identity')
@@ -700,7 +707,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           const label = entry.featureOption?.label ?? entry.ownerFeature.label
           // One action's invalid authored mechanics make only that action unavailable (D54).
           try {
-            const compiledEffect = creatureActionEffect(effect, features)
+            const compiledEffect = creatureActionEffect(profile, effect, features)
             const damageGrant =
               passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
             const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
@@ -713,7 +720,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               !weaponHit &&
               !startOfTurn &&
               !placedSpaceManifest(compiledEffect) &&
-              !passiveMeleeRetaliationZone(compiledEffect, label)
+              !passiveMeleeRetaliationZone(gameSystemId, compiledEffect, label)
             )
               continue
             const equipmentBinding = entryEquipmentBinding(input.actor, entry, compiledEffect)
@@ -761,7 +768,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               compiledEffectChecksum: checksumRuleDocument(compiledEffect),
               featureResourceUse: featureResourceUse(entry, compiledEffect),
               equipmentBinding,
-              attackMechanic: featureAttackMechanic(entry, compiledEffect),
+              attackMechanic: featureAttackMechanic(profile, entry, compiledEffect),
               ...provenance
             })
           } catch (error) {
@@ -848,7 +855,9 @@ export function featureActionMechanic(
 ): Readonly<Record<string, unknown>> {
   const invocation = capability.mechanicFacts.invocation
   const savingThrow = invocation.savingThrow
-  const attackKind = dnd5eAttackKind(invocation.triggerCode)
+  const attackKind = attackProfileCapabilityRegistry
+    .require(capability.gameSystemId)
+    .attackKind(invocation.triggerCode)
   const save =
     savingThrow?.dcMethod === 'FIXED_DC' &&
     Number.isSafeInteger(savingThrow.baseDc) &&

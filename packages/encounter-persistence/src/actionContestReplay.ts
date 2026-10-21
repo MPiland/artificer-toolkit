@@ -8,7 +8,7 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { createDnd5eOptionalCombatContestGraph } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestGraph'
+import { contestCheckCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import type { ContestRootCommand } from './contestAdmission.js'
 import { readEncounterReplayReceipt } from './replayReceipts.js'
 import { presentTimelineEntry } from './timelineEntries.js'
@@ -78,7 +78,9 @@ export async function readNativeContestReplay(
   const { policy } = application
   // An optional combat contest rebuilds its System graph from the pin; a basic action contest runs
   // its capability's own graph, which the stored receipts bind.
-  const optionalCombat = policy ? createDnd5eOptionalCombatContestGraph(policy) : null
+  const optionalCombat = policy
+    ? contestCheckCapabilityRegistry.require(run.gameSystemId).optionalCombatContestGraph(policy)
+    : null
   const graph = optionalCombat?.published ?? {
     id: application.contestGraph.definitionId,
     checksum: application.contestGraph.checksum

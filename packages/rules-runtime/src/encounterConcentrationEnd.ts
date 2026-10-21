@@ -3,6 +3,9 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { isEncounterActorDefeated, type DeadCharacterIds } from './encounterActorDefeat.js'
 import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
 import { encounterActorCannotAct } from './encounterBasicActions.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
+import type { EncounterEvent } from './events/encounterEventTable.js'
+import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
 
 /**
  * Why a holder's Concentration ends without a check (D95): the actor is defeated, its System
@@ -16,9 +19,15 @@ export async function encounterConcentrationEndReason(
     deadCharacterIds: DeadCharacterIds
   } & Parameters<typeof encounterActorCannotAct>[0]
 ): Promise<Exclude<ConcentrationEndReason, 'CHOSEN'> | null> {
-  if (isEncounterActorDefeated(input.actor, input.deadCharacterIds)) return 'DEFEATED'
-  if (await encounterActorCannotAct(input)) return 'INCAPACITATED'
-  return encounterGrantsEnabledDomain(input.activeEffects, 'SPELLCASTING_LOCK')
-    ? 'SPELLCASTING_LOCKED'
-    : null
+  const events: EncounterEvent[] = []
+  if (isEncounterActorDefeated(input.actor, input.deadCharacterIds))
+    events.push({ kind: 'DEFEATED' })
+  else if (await encounterActorCannotAct(input))
+    events.push({ kind: 'INCAPACITATED', of: 'HOLDER' })
+  else if (encounterGrantsEnabledDomain(input.activeEffects, 'SPELLCASTING_LOCK'))
+    events.push({ kind: 'MAINTENANCE_BARRED' })
+  return discoverEncounterEventHooks({
+    maintenanceHooks: maintenanceLinkCapabilityRegistry.require(input.gameSystemId).hooks,
+    events
+  }).maintenanceBreakReason
 }

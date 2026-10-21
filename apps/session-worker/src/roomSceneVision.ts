@@ -29,10 +29,11 @@ import { readRoomSceneHeader } from './roomSceneRead.js'
 
 /** The same resolved passage the server moves the actor with decides whether it passes barriers. */
 function barrierPassage(
+  gameSystemId: string,
   actor: EncounterRunActorState,
   characterPolicy: CharacterRulePolicyOutput | null
 ): { passesBlockingBarriers?: true } {
-  return encounterActorMovementPassage(actor, characterPolicy).throughBarriers
+  return encounterActorMovementPassage(gameSystemId, actor, characterPolicy).throughBarriers
     ? { passesBlockingBarriers: true }
     : {}
 }
@@ -222,7 +223,7 @@ export async function composeRoomSceneVision(input: {
       if (bound.characterId === characterId)
         actorVisions.push({
           ...deriveActorSceneVision(bound.actor.id, senses),
-          ...barrierPassage(bound.actor, policy)
+          ...barrierPassage(campaign.gameSystemId, bound.actor, policy)
         })
     characterRevisions.push({ characterId, revision: revisions[0]!.revision })
   }
@@ -233,7 +234,7 @@ export async function composeRoomSceneVision(input: {
         await actorSenses(snapshotStatBlock(actor)?.senses ?? []),
         creatureEmittedLight(actor)
       ),
-      ...barrierPassage(actor, null)
+      ...barrierPassage(campaign.gameSystemId, actor, null)
     })
   const composition = sceneSessionVisionCompositionSchema.parse({
     context: { actorVisions, encounterActorBindings: selectedBindings },
