@@ -1,3 +1,4 @@
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import {
   discoverEncounterLegendaryActionCandidates,
   type EncounterLegendaryActionCandidate
@@ -96,6 +97,8 @@ export async function discoverTurnLegendaryWindows(input: {
   movementTargets?: ReadonlyMap<string, MovementTarget>
   loadTargets(actorIds: readonly string[]): Promise<ReadonlyMap<string, MovementTarget>>
   loadSystem(): Promise<SystemAuthoredDto>
+  /** The Run's pinned Spells (D163). */
+  spells: ReadonlyMap<string, CompiledSpell>
   definitions: CurrentReusableDefinitionSource
   createRuntime(): Promise<RulesRuntimeService>
 }): Promise<
@@ -157,7 +160,8 @@ export async function discoverTurnLegendaryWindows(input: {
         ? discoverEncounterFeatureActionCapabilities({
             actor,
             conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-            abilityDefinitions
+            abilityDefinitions,
+            spells: input.spells
           })
         : []
     ),

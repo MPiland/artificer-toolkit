@@ -1,4 +1,4 @@
-import type { TargetingAuthored } from '#authored'
+import type { TargetRequirementAuthored, TargetingAuthored } from '#authored'
 import {
   TARGET_DISPOSITION_KIND_OPTIONS,
   TARGET_SELECTION_KIND_OPTIONS,
@@ -75,10 +75,97 @@ const SIZE_LIMIT_NODE_MAP = sizeLimit.define('sizeLimit', ({ map, nodes }) => {
   )
 })
 
+const targetRequirement = buildNodeMap<TargetRequirementAuthored>()
+
+const TARGET_REQUIREMENT_NODE_MAP: NodeMap<TargetRequirementAuthored> = targetRequirement.define(
+  'targetRequirement',
+  ({ map, nodes, cond, data }) => {
+    const { selectSingle, selectMulti } = nodes
+    const local = cond.local()
+    const { table } = data
+    const holdsCondition = local.field(['kind']).eq('HAS_CONDITION')
+    const needsSight = local.field(['kind']).eq('SIGHT')
+
+    map
+      .set(
+        'kind',
+        selectSingle(
+          ['kind'],
+          'Requirement',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              {
+                code: 'HAS_CONDITION',
+                label: 'Target has a condition',
+                description: 'The target holds one of the conditions, from the user or from anyone.'
+              },
+              {
+                code: 'SIGHT',
+                label: 'One sees the other',
+                description: 'The user sees the target, or the target sees the user.'
+              },
+              {
+                code: 'AT_ZERO_HIT_POINTS',
+                label: 'Target is at 0 hit points',
+                description: 'The target has 0 hit points and is not dead.'
+              }
+            ]
+          },
+          { order: 1, requiredIf: true }
+        )
+      )
+      .set(
+        'conditionIds',
+        selectMulti(
+          ['conditionIds'],
+          'Conditions',
+          {
+            kind: 'DATA',
+            relationship: table('condition_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { order: 2, showIf: holdsCondition, requiredIf: holdsCondition }
+        )
+      )
+      .set(
+        'source',
+        selectSingle(
+          ['source'],
+          'Held From',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'ACTOR', label: 'The user' },
+              { code: 'ANY', label: 'Anyone' }
+            ]
+          },
+          { order: 3, showIf: holdsCondition, requiredIf: holdsCondition }
+        )
+      )
+      .set(
+        'direction',
+        selectSingle(
+          ['direction'],
+          'Sight',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'ACTOR_SEES_TARGET', label: 'The user sees the target' },
+              { code: 'TARGET_SEES_ACTOR', label: 'The target sees the user' }
+            ]
+          },
+          { order: 4, showIf: needsSight, requiredIf: needsSight }
+        )
+      )
+  }
+)
+
 export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
   'targeting',
   ({ map, nodes, cond, logic, data }) => {
-    const { selectSingle, selectMulti, number, groupObject } = nodes
+    const { selectSingle, selectMulti, number, groupObject, groupArray } = nodes
     const { not } = logic
     const local = cond.local()
     const { table } = data
@@ -143,6 +230,19 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
           order: 12,
           showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
         })
+      )
+      .set(
+        'targetRequirements',
+        groupArray(
+          ['targetRequirements'],
+          'Target Requirements',
+          () => TARGET_REQUIREMENT_NODE_MAP,
+          {
+            presentation: 'inline',
+            order: 13,
+            showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
+          }
+        )
       )
       .set(
         'maxTargets',

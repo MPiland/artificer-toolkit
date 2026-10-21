@@ -131,7 +131,8 @@ export async function prepareNativeLiveMovement(
   }
 ) {
   const captured = await readNativeLiveMovementInputs(input)
-  const { state, save, response, system, definitions, capture, spatialEffects, runtime } = captured
+  const { state, save, response, system, spells, definitions, capture, spatialEffects, runtime } =
+    captured
   if (save.input.type !== 'MOVE_SCENE_TOKEN' || save.input.expectedEncounterVersion === null)
     throw new Error('Movement requires an Encounter move.')
   const { random, scene } = input
@@ -153,6 +154,7 @@ export async function prepareNativeLiveMovement(
         state,
         targets,
         system,
+        spells,
         definitions,
         userId,
         campaignOwnerUserId: captured.facts.campaignOwnerUserId
@@ -257,7 +259,8 @@ export async function prepareNativeLiveMovement(
                 ])
                 return { actual, believed }
               },
-              loadSource: async (source) => resolveEncounterActionSource({ ...source, system }),
+              loadSource: async (source) =>
+                resolveEncounterActionSource({ ...source, system, spells }),
               // The reaction attack is made from where the mover is in contact with the reactor.
               loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
                 measureNativeEnemyProximity({

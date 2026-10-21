@@ -30,6 +30,7 @@ function discoveredClaws(targeting?: { selectionKind: 'SELF' }) {
     )
   }
   const discovery = discoverEncounterFeatureActions({
+    spells: new Map(),
     actor: srdCreatureActor({ id: SPAWN_ID, creature }),
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))

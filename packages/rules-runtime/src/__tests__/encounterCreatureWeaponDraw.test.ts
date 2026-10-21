@@ -44,6 +44,7 @@ async function attack(
   const actors = [actor, target]
   const featureId = creatureFeature(creature, label).id
   const capability = discoverEncounterFeatureActions({
+    spells: new Map(),
     actor,
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
@@ -60,7 +61,7 @@ async function attack(
       overridable: true,
       movementTargets: new Map(actors.map((entry) => [entry.id, srdCreatureTarget(entry)])),
       loadSource: async (input) =>
-        resolveEncounterActionSource({ ...input, system: srdSystemRecord }),
+        resolveEncounterActionSource({ spells: new Map(), ...input, system: srdSystemRecord }),
       loadRelationshipFacts: async () => [],
       loadTurnUses: async () => []
     })

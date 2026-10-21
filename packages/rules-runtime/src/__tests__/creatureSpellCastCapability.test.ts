@@ -18,13 +18,16 @@ function paralyzingTouch(spellCast?: { castLevel: number }) {
         ? {
             ...feature,
             effects: feature.effects?.map((effect) =>
-              effect.invocation.kind === 'ACTION' ? { ...effect, ...(spellCast && { spellCast }) } : effect
+              effect.invocation.kind === 'ACTION'
+                ? { ...effect, ...(spellCast && { spellCast }) }
+                : effect
             )
           }
         : feature
     )
   }
   const capability = discoverEncounterFeatureActionCapabilities({
+    spells: new Map(),
     actor: srdCreatureActor({ id: LICH_ID, creature }),
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))

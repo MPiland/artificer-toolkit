@@ -35,6 +35,7 @@ import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runti
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import type { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
+import { readNativeLiveSpellPins } from './nativeEncounterTargets.js'
 
 type CharacterFacts = PreparedLiveCharacterSheet
 type CleavingProjection = Pick<
@@ -261,6 +262,7 @@ export async function readNativeLiveCleavingStep(
     actionId: context.action.actionId,
     gameSystemId: state.gameSystemId,
     system: input.system,
+    spells: await readNativeLiveSpellPins(input.capture),
     ...(character &&
     candidate &&
     entry?.kind === 'CHARACTER_ACTION' &&
