@@ -10,7 +10,6 @@ import {
   type CharacterRuleActionExecutionPlan,
   type CharacterRuleActionSystemAdapter
 } from './characterRuleActionSystemAdapter.js'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   buildCompiledActionTargetPolicy,
   compileCastChoicePlans,
@@ -18,15 +17,11 @@ import {
 } from './encounterActionEntryPointCompiler.js'
 import { castChoiceOptions } from './encounterCastChoice.js'
 import {
-  createEncounterFeatureActionCapabilityDiscoveryRegistry,
+  discoverUncompiledEncounterFeatureActions,
   type EncounterFeatureActionCapabilityDescriptor,
   type EncounterFeatureActionDiscovery
 } from './encounterFeatureActionCapabilityDiscovery.js'
-import { dnd5eEncounterFeatureActionCapabilityAdapter } from './systems/dnd5e/encounterFeatureActionCapabilityDiscovery.js'
-
-const registry = createEncounterFeatureActionCapabilityDiscoveryRegistry([
-  dnd5eEncounterFeatureActionCapabilityAdapter
-])
+import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 
 /** A zone a Creature's passive feature keeps around it while it is in the Encounter (D144). */
 export interface EncounterPassiveZone {
@@ -63,7 +58,7 @@ export interface EncounterPassiveWeaponHit {
  * System cannot execute is unavailable too, so no caller offers or places it.
  */
 export function discoverEncounterFeatureActions(
-  input: Parameters<typeof registry.discover>[0]
+  input: Parameters<typeof discoverUncompiledEncounterFeatureActions>[0]
 ): Omit<
   EncounterFeatureActionDiscovery,
   | 'passiveZoneCapabilities'
@@ -78,7 +73,7 @@ export function discoverEncounterFeatureActions(
   passiveWeaponHits: readonly EncounterPassiveWeaponHit[]
   passiveStartOfTurnEffects: readonly EncounterPassiveStartOfTurnEffect[]
 } {
-  const discovered = registry.discover(input)
+  const discovered = discoverUncompiledEncounterFeatureActions(input)
   const available: EncounterFeatureActionCapabilityDescriptor[] = []
   const passiveZones: EncounterPassiveZone[] = []
   const passiveDamageGrants: EncounterPassiveDamageGrant[] = []
@@ -90,8 +85,7 @@ export function discoverEncounterFeatureActions(
     capability: EncounterFeatureActionCapabilityDescriptor,
     compile: (adapter: CharacterRuleActionSystemAdapter) => void
   ) => {
-    const adapter = characterRuleActionSystemAdapterRegistry.get(capability.gameSystemId)
-    if (!adapter) throw new Error('The Creature Game System cannot execute this action.')
+    const adapter = characterRuleActionSystemAdapterRegistry.require(capability.gameSystemId)
     try {
       compile(adapter)
     } catch (error) {
@@ -215,14 +209,9 @@ function assertStartOfTurnHealOnly(capability: EffectActionCapabilityDescriptor)
     )
 }
 
-/** The System bindings of one compiled Effect, shared by every action source; null without an adapter. */
-export function bindEncounterEffect(input: Parameters<typeof registry.bind>[0]) {
-  return registry.bind(input)
-}
-
 /** The actions a Creature can take; an action with invalid authored mechanics is left out. */
 export function discoverEncounterFeatureActionCapabilities(
-  input: Parameters<typeof registry.discover>[0]
+  input: Parameters<typeof discoverUncompiledEncounterFeatureActions>[0]
 ) {
   return discoverEncounterFeatureActions(input).available
 }

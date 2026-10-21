@@ -1120,6 +1120,22 @@ function damageMultiplier(outcome: {
   return (outcome.multiplier ?? 1) * kind
 }
 
+/** `amount` times an authored damage multiplier, rounded down (SRD); no node when it is 1. */
+function multipliedDamage(id: string, amount: RuleInputBinding, multiplier: number) {
+  return multiplier === 1
+    ? { nodes: [], amount }
+    : {
+        nodes: [
+          {
+            id,
+            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
+            inputs: { amount, multiplier: { kind: 'LITERAL' as const, value: multiplier } }
+          }
+        ],
+        amount: { kind: 'NODE_OUTPUT' as const, nodeId: id, port: 'value' }
+      }
+}
+
 function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   // An instant kill is admitted only as a hit-point tier's result or behind a reduced-to-0 gate,
@@ -4249,7 +4265,7 @@ function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceDamageOutcome)
     nodeId: enabledNodeId,
     port: 'authorized'
   })
-  const multipliedNodeId = `${prefix}multiplied`
+  const multiplied = multipliedDamage(`${prefix}multiplied`, dice.subtotal, outcome.multiplier)
   const nodes: RuleGraphDefinition['nodes'] = [
     {
       id: enabledNodeId,
@@ -4263,26 +4279,9 @@ function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceDamageOutcome)
       }
     },
     ...dice.nodes,
-    ...(outcome.multiplier === 1
-      ? []
-      : [
-          {
-            id: multipliedNodeId,
-            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
-            inputs: {
-              amount: dice.subtotal,
-              multiplier: { kind: 'LITERAL' as const, value: outcome.multiplier }
-            }
-          }
-        ])
+    ...multiplied.nodes
   ]
-  return {
-    nodes,
-    amount:
-      outcome.multiplier === 1
-        ? dice.subtotal
-        : { kind: 'NODE_OUTPUT' as const, nodeId: multipliedNodeId, port: 'value' }
-  }
+  return { nodes, amount: multiplied.amount }
 }
 
 function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceDamageOutcome) {
@@ -4817,28 +4816,11 @@ function diceGraphDefinition(input: {
   const total = !needsTotal
     ? rolledSubtotal
     : { kind: 'NODE_OUTPUT' as const, nodeId: totalNodeId, port: 'value' }
-  const multiplier =
-    outcome.effectKind === 'DAMAGE' && damageMultiplier(outcome) !== 1
-      ? damageMultiplier(outcome)
-      : null
-  const multipliedNodeId = `${prefix}damage-multiplied`
-  const multiplierNode =
-    multiplier === null
-      ? []
-      : [
-          {
-            id: multipliedNodeId,
-            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
-            inputs: {
-              amount: total,
-              multiplier: { kind: 'LITERAL' as const, value: multiplier }
-            }
-          }
-        ]
-  const amount =
-    multiplier === null
-      ? total
-      : { kind: 'NODE_OUTPUT' as const, nodeId: multipliedNodeId, port: 'value' }
+  const { nodes: multiplierNode, amount } = multipliedDamage(
+    `${prefix}damage-multiplied`,
+    total,
+    outcome.effectKind === 'DAMAGE' ? damageMultiplier(outcome) : 1
+  )
   const proposalId =
     input.recurring?.frozenGraphNodeId ?? `${prefix}proposal-${input.entry.pathCode.toLowerCase()}`
   const sourceEntryId = input.recurring?.compiledEntryId ?? input.entry.entryId
@@ -4989,7 +4971,7 @@ function immediateFollowUpSaveGraphDefinition(
         if (!roll || outcome.scalingKind !== 'NONE' || outcome.bonuses?.length)
           unsupported('D&D immediate follow-up save damage must be one unscaled roll.')
         const multiplier = damageMultiplier(outcome)
-        const multipliedNodeId = `${id}-multiplied`
+        const multiplied = multipliedDamage(`${id}-multiplied`, roll.subtotal, multiplier)
         const node = pathGatedProposalNode({
           id,
           pathCode,
@@ -5002,24 +4984,9 @@ function immediateFollowUpSaveGraphDefinition(
             multiplier
           },
           conditionImmuneFactKey: undefined,
-          amount:
-            multiplier === 1
-              ? roll.subtotal
-              : { kind: 'NODE_OUTPUT', nodeId: multipliedNodeId, port: 'value' }
+          amount: multiplied.amount
         })
-        const multiplied = {
-          id: multipliedNodeId,
-          operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
-          inputs: {
-            amount: roll.subtotal,
-            multiplier: { kind: 'LITERAL' as const, value: multiplier }
-          }
-        }
-        return {
-          sourceEntryId: outcome.id,
-          id,
-          nodes: multiplier === 1 ? [node] : [multiplied, node]
-        }
+        return { sourceEntryId: outcome.id, id, nodes: [...multiplied.nodes, node] }
       }
       const bounded = boundedOutcome(outcome, false)
       const node =
@@ -5377,7 +5344,11 @@ function addedDamageDieGraphDefinition(input: {
   multiplier: number
 }): RuleGraphDefinition {
   const { nodes: rolledNodes, subtotal } = rolledDiceNodes(input.term, input.prefix)
-  const multipliedNodeId = `${input.prefix}damage-multiplied`
+  const multiplied = multipliedDamage(
+    `${input.prefix}damage-multiplied`,
+    subtotal,
+    input.multiplier
+  )
   const proposalId = `${input.prefix}proposal`
   return {
     schemaVersion: 1,
@@ -5386,28 +5357,14 @@ function addedDamageDieGraphDefinition(input: {
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
       ...rolledNodes,
-      ...(input.multiplier === 1
-        ? []
-        : [
-            {
-              id: multipliedNodeId,
-              operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
-              inputs: {
-                amount: subtotal,
-                multiplier: { kind: 'LITERAL' as const, value: input.multiplier }
-              }
-            }
-          ]),
+      ...multiplied.nodes,
       {
         id: proposalId,
         operation: { key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
-          amount:
-            input.multiplier === 1
-              ? subtotal
-              : { kind: 'NODE_OUTPUT', nodeId: multipliedNodeId, port: 'value' },
+          amount: multiplied.amount,
           damageTypeId: { kind: 'LITERAL', value: input.damageTypeId }
         }
       }
@@ -6563,7 +6520,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   compile: compileDnd5eEffectAction,
   compileZonePlacement: ({ action, label }) => {
     const executable = executableAction(action)
-    const zone = passiveMeleeRetaliationZone(DND5E_SYSTEM_ID, executable.compiledEffect, label)
+    const zone = passiveMeleeRetaliationZone(executable.compiledEffect, label, dnd5eAttackKind)
     return zone
       ? zoneComponentPlan(executable, zone, zone.components[0]!)
       : (zoneChoicePlan(executable) ?? zonePlacementPlan(executable))
@@ -7471,12 +7428,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError('D&D active-effect execution source is invalid.')
     // A timed condition (D62.2) ends after the target's last counted turn.
     if (definition.adapterFacts[DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY] === true) {
-      const timedConditionIds =
-        definition.schemaVersion === 2
-          ? definition.stateContributions.flatMap((contribution) =>
-              contribution.kind === 'CONDITION_OWNERSHIP' ? [contribution.conditionId] : []
-            )
-          : []
+      const timedConditionIds = definition.stateContributions.flatMap((contribution) =>
+        contribution.kind === 'CONDITION_OWNERSHIP' ? [contribution.conditionId] : []
+      )
       if (timedConditionIds.length === 0 || !timedConditionIds.every((id) => UUID.test(id)))
         throw new Dnd5eEffectActionCompilerError('D&D timed condition identity is unavailable.')
       return lifecycle.remainingTicks === 1
@@ -7498,7 +7452,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     // A link, a creature form or a source immunity holds state for its duration: each counted turn
     // applies nothing, and the turn pass expires the effect after the last one.
     if (
-      definition.schemaVersion === 2 &&
       definition.stateContributions.some(
         ({ kind }) =>
           kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM' || kind === 'SOURCE_IMMUNITY'

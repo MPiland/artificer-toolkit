@@ -43,7 +43,6 @@ function hasteRecord() {
 describe('Haste authored from core options (SPELLS-4.T2l-a)', () => {
   it('doubles speed, adds 2 AC and grants Dexterity-save advantage while it lasts, and suppresses nothing', () => {
     const { definition } = hasteRecord()
-    if (definition.schemaVersion !== 2) throw new Error('Expected a version 2 definition.')
     const [contribution] = definition.stateContributions
     expect(contribution).toMatchObject({ kind: 'MODIFIER_GRANT' })
     if (contribution?.kind !== 'MODIFIER_GRANT') throw new Error('Expected a grant.')

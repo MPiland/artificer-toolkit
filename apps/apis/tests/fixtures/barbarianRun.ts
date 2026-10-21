@@ -1,5 +1,5 @@
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
+import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscovery'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { greataxe } from '@artificer-toolkit/source-data/srd/equipment/greataxe.js'

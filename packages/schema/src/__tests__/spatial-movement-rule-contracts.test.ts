@@ -1260,7 +1260,8 @@ describe('spatial movement rule contracts', () => {
 
   it('retains only the exact deleted spatial roots required by frozen contacts', () => {
     const definition = {
-      schemaVersion: 1 as const,
+      schemaVersion: 2 as const,
+      stateContributions: [],
       origin: {
         kind: 'ENCOUNTER' as const,
         sourceActorId: null,

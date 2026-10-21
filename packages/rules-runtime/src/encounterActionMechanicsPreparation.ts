@@ -60,7 +60,6 @@ import {
 import { featureChargeUsed } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
 import { isInEffectEventScope } from './events/encounterEventHooks.js'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import {
   encounterHeldActorIds,
   mergeCanonicalD20Contributors,
@@ -74,7 +73,10 @@ import {
 import { activeAttackCriticalRules, activeDamageDice } from './character/activeEffectGrantTotals.js'
 import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
-import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
+import {
+  attackProfileCapabilityRegistry,
+  characterRuleActionSystemAdapterRegistry
+} from './platformEncounterPolicy.js'
 import type { CharacterAttack } from './attackProfileCapability.js'
 import type { EnemyProximity } from './encounterEnemyProximity.js'
 import type { MoveToward } from './encounterMoveToward.js'
@@ -253,8 +255,7 @@ export async function prepareEncounterActionSource<
             fallsBackToFirst
           )
         )
-  const adapter = characterRuleActionSystemAdapterRegistry.get(state.gameSystemId)
-  if (!adapter) throw new Error('The Encounter Game System cannot execute this action.')
+  const adapter = characterRuleActionSystemAdapterRegistry.require(state.gameSystemId)
   const targetPolicy =
     source.kind === 'CHARACTER_ACTION'
       ? source.entry.targetPolicy

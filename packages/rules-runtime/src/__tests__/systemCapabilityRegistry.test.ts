@@ -3,16 +3,22 @@ import { describe, expect, it } from 'vitest'
 import {
   abilityScoreCapabilityRegistry,
   actionEconomyCapabilityRegistry,
+  characterActionCapabilityRegistry,
   creatureConditionCapabilityRegistry
 } from '../platformPolicyModules.js'
 import {
   armorClassCapabilityRegistry,
   attackProfileCapabilityRegistry,
+  characterRuleActionSystemAdapterRegistry,
   contestCheckCapabilityRegistry,
   d20TestDefinitionCapabilityRegistry,
+  encounterFeatureActionCapabilityRegistry,
   initiativeCapabilityRegistry,
+  legendaryActionEligibilityCapabilityRegistry,
   modifierScopeCapabilityRegistry,
-  optionalCombatPolicyCapabilityRegistry
+  movementReactionEligibilityCapabilityRegistry,
+  optionalCombatPolicyCapabilityRegistry,
+  sceneGridPolicyCapabilityRegistry
 } from '../platformEncounterPolicy.js'
 import { createSystemCapabilityRegistry } from '../systemCapabilityRegistry.js'
 import {
@@ -220,10 +226,31 @@ describe('installed D&D capability adapters', () => {
     ['contest-check', contestCheckCapabilityRegistry],
     ['optional-combat', optionalCombatPolicyCapabilityRegistry],
     ['attack-profile', attackProfileCapabilityRegistry],
-    ['modifier-scope', modifierScopeCapabilityRegistry]
+    ['modifier-scope', modifierScopeCapabilityRegistry],
+    ['character-action', characterActionCapabilityRegistry],
+    ['character-rule-action', characterRuleActionSystemAdapterRegistry],
+    ['encounter-feature-action', encounterFeatureActionCapabilityRegistry],
+    ['legendary-action', legendaryActionEligibilityCapabilityRegistry],
+    ['movement-reaction', movementReactionEligibilityCapabilityRegistry],
+    ['scene-grid', sceneGridPolicyCapabilityRegistry]
   ] as const)('%s fails closed on a System that does not install it', (capability, registry) => {
     expect(() => registry.require(UNKNOWN_SYSTEM_ID)).toThrow(
       `The Game System does not provide ${capability} policy.`
     )
+  })
+
+  it.each([
+    ['character-action', characterActionCapabilityRegistry],
+    ['character-rule-action', characterRuleActionSystemAdapterRegistry],
+    ['encounter-feature-action', encounterFeatureActionCapabilityRegistry],
+    ['legendary-action', legendaryActionEligibilityCapabilityRegistry],
+    ['movement-reaction', movementReactionEligibilityCapabilityRegistry],
+    ['scene-grid', sceneGridPolicyCapabilityRegistry]
+  ] as const)('installs the D&D %s capability', (_capability, registry) => {
+    expect(registry.require(DND5E_SYSTEM_ID).gameSystemId).toBe(DND5E_SYSTEM_ID)
+  })
+
+  it('leaves the optional scene grid policy absent for a System that does not install it', () => {
+    expect(sceneGridPolicyCapabilityRegistry.find(UNKNOWN_SYSTEM_ID)).toBeUndefined()
   })
 })

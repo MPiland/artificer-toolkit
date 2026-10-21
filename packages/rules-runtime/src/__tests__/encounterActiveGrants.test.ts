@@ -86,7 +86,7 @@ describe('the Antitoxin active effect', () => {
   it('is a valid persisted definition carrying six poison-scoped save advantages', () => {
     const { definition } = antitoxin()
     expect(activeRuleEffectDefinitionDtoSchema.parse(definition)).toEqual(definition)
-    expect(definition.schemaVersion === 2 && definition.stateContributions).toMatchObject([
+    expect(definition.stateContributions).toMatchObject([
       { kind: 'MODIFIER_GRANT', sourceLabel: 'Antitoxin (vial)', modifiers: expect.any(Array) }
     ])
   })
@@ -124,7 +124,6 @@ describe('rolled dice from active grants (D156)', () => {
 
   it('names a hidden source "Unseen source"', () => {
     const hidden = bless()
-    if (hidden.definition.schemaVersion !== 2) throw new Error('Bless plans a version 2 effect.')
     const definition = {
       ...hidden.definition,
       stateContributions: hidden.definition.stateContributions.map((contribution) =>
@@ -400,8 +399,6 @@ describe('Creature holder of an active grant', () => {
 
   it('keeps the authored content a defense is limited to, and treats an empty list as unfiltered (REACTION-4.1)', () => {
     const withSources = (effect: ReturnType<typeof protectionFromEnergyEffect>, ids: string[]) => {
-      if (effect.definition.schemaVersion !== 2)
-        throw new Error('A grant stores a version 2 definition.')
       return {
         ...effect,
         definition: {
@@ -485,7 +482,6 @@ describe('Creature holder of an active grant', () => {
 
   it('applies a Strength check grant to its Athletics skill check, and to no other skill', () => {
     const help = helpEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
-    if (help.definition.schemaVersion !== 2) throw new Error('Expected a modifier grant.')
     const strengthHelp = {
       ...help,
       definition: {

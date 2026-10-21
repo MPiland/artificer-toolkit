@@ -70,7 +70,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import { executionCancelsTriggeringEvent } from '@artificer-toolkit/rules-runtime/systems/dnd5e/cancelTriggeringEvent'
 
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
@@ -151,7 +151,7 @@ export function discoverNativeCastReactions(input: {
   ) => ReturnType<LiveCaptureReads['encounterRules']>
 }): CastReactionDiscovery<NativeCastReaction> {
   const { state, caster, scene } = input
-  const grid = encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+  const grid = resolveEncounterSceneGrid({
     encounter: state,
     sceneGrid: scene.sceneGrid
   })

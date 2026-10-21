@@ -4,7 +4,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import { requireEncounterBasicActionDefinition } from './encounterBasicActions.js'
-import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscovery.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 
 /** A published basic-action catalogue entry that carries authored Effects. */

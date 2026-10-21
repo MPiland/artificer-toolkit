@@ -1,7 +1,7 @@
 import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
-import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
@@ -53,10 +53,12 @@ import { characterFormStatBlock, snapshotStatBlock } from './encounterProjection
 import type { TargetBoundActiveRuleEffectExecutionInput } from './targetBoundActiveRuleEffectExecutor.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
-import { evaluateInstalledEncounterActors } from './platformEncounterPolicy.js'
 import { resolveCharacterRulePolicyRollModes } from './character/characterRuleRollProjection.js'
 import type { QualifiedDamageDefense } from './attackProfileCapability.js'
-import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
+import {
+  attackProfileCapabilityRegistry,
+  evaluateInstalledEncounterActors
+} from './platformEncounterPolicy.js'
 import {
   encounterActorMovementPassage,
   type EncounterMovementPassage

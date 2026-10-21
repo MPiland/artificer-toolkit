@@ -29,7 +29,8 @@ const effectId = (offset: number) =>
   `00000000-0000-4000-8000-${offset.toString().padStart(12, '0')}`
 
 const definition: ActiveRuleEffectDefinitionDto = {
-  schemaVersion: 1,
+  schemaVersion: 2,
+  stateContributions: [],
   origin: {
     kind: 'ENCOUNTER',
     sourceAggregateId: ids.encounter,

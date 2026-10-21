@@ -293,7 +293,7 @@ closed on a System with no roll-mode policy, an influence code the System does n
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
 `resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
-**System capability registries (RULES-2.T11a–f, current).** Every System capability is one
+**System capability registries (RULES-2.T11a–g, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the
 capability; a duplicate or non-UUID adapter identity throws at install. `find(gameSystemId)` is for
@@ -305,7 +305,9 @@ neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions).
+Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
+`characterActionCapabilityRegistry` (the Sheet's Character action discovery,
+`discoverCharacterActionCapabilities`).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
 `platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`; `armorClassCapabilityRegistry`
 for a Creature's loadout armor class and the shield a two-handed grip stows;
@@ -318,7 +320,17 @@ Cleaving choice; `attackProfileCapabilityRegistry` for an attack's kind and modi
 traits a holder's grants or a Character's action give it, its critical rules and roll contributors,
 the damage defenses it meets, the itemless restrictions a feature attack reduces and what its compiled
 effect reads and spends; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
-Character-wide, which movement passage and opportunity-attack immunity read). A `MovementTarget`
+Character-wide, which movement passage and opportunity-attack immunity read;
+`characterRuleActionSystemAdapterRegistry` for compiling, binding and interpreting rule actions and
+frozen active effects, where entry-point compilation and perception use `find` because a System
+without it plays its entries manually; `encounterFeatureActionCapabilityRegistry` for feature action
+discovery and effect binding (`encounterFeatureActionCapabilityDiscovery.ts`);
+`legendaryActionEligibilityCapabilityRegistry` and `movementReactionEligibilityCapabilityRegistry`
+for eligibility and the capability definitions it requires; `sceneGridPolicyCapabilityRegistry`, an
+optional `find` capability through `resolveEncounterSceneGrid`, where a System without it plays on the
+Scene's own grid). The four `platform*` files are the only composition roots: no other neutral
+module installs an adapter, and a `systems/dnd5e` adapter never value-imports a platform file, so
+`passiveMeleeRetaliationZone` takes the attack kind instead of reading the registry. A `MovementTarget`
 carries its actor's `movementPassage` and `grantedAttackTraits`, resolved once through these
 registries from the Run's `gameSystemId`. Sealing and currentness of a pending contest, the optional action selection contract
 (`encounterOptionalCombatActionSelection.ts`) and the Scene's enemy-proximity and move-toward facts
@@ -360,7 +372,11 @@ Actions in a Manual Encounter are refused with the
 
 **Active effects and maintained state.** Current active effects are state, not occurrences. Each stores an
 immutable definition (origin, one frozen `SINGLE_GRAPH`, adapter facts, recurrence, perception
-contributions) and a mutable lifecycle (remaining ticks). The pure executor
+contributions, and an aggregate-state `stateContributions` list that is empty for an effect that only ticks)
+and a mutable lifecycle (remaining ticks). The definition has one schema version, `schemaVersion 2`
+(current, RULES-2.T16): version 1, an effect with no `stateContributions`, was deleted outright rather than kept for
+compatibility (pre-launch, no live rows), and every producer, fixture and seed writes version 2. A change to the stored
+definition shape adds the next version and migrates its producers in the same change. The pure executor
 (`targetBoundActiveRuleEffectExecutor`) executes the frozen graph without current-definition lookup and
 returns a lifecycle `UPDATE` or `EXPIRE` proposal for the owner to apply. Maintained-effect state
 (Concentration) is generic persistence keyed by a System maintenance-definition identity; the System
@@ -755,7 +771,7 @@ on the window's application. Both replay from that evidence (`retained`), so a s
 re-run rolls no fresh die.
 A creature's passive melee trait with no zone (Remorhaz Heated Body, SPELLS-33 T4k2) is the same zone derived from the
 trait: a PASSIVE effect whose melee attack trigger and distance range say how near a hitter must stand, with direct
-dice damage on `ON_USE`. `passiveMeleeRetaliationZone` stands for it as a SOURCE sphere of that range with one
+dice damage on `ON_USE`. `passiveMeleeRetaliationZone` (given the System's attack kind) stands for it as a SOURCE sphere of that range with one
 `MELEE_HIT_ON_SOURCE` component whose behavior is the trait's own effect, so discovery, placement on the token, the
 selection, the system-rolled plan, persistence and the damage-ends seam are the zone path above. Placement centers every
 passive zone on its holder whatever range its trait authors. A hit by touch is not modeled.

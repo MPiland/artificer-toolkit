@@ -115,12 +115,9 @@ export async function settleEncounterConcealmentCheck(
         occurredAt: input.occurredAt
       })
       const receipt = resolution.createdEffect
-      const concealment =
-        created.definition.schemaVersion === 2
-          ? created.definition.stateContributions.find(
-              ({ kind }) => kind === 'LOCATION_CONCEALMENT'
-            )
-          : undefined
+      const concealment = created.definition.stateContributions.find(
+        ({ kind }) => kind === 'LOCATION_CONCEALMENT'
+      )
       if (
         !receipt ||
         concealment?.kind !== 'LOCATION_CONCEALMENT' ||

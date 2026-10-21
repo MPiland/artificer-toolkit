@@ -47,8 +47,6 @@ function grantEffect(input: {
     lifecycle: {},
     ...(input.sourceLabel ? { sourceLabel: input.sourceLabel } : {})
   })
-  if (planned.definition.schemaVersion !== 2)
-    throw new Error('A grant stores a version 2 definition.')
   return {
     id: testUuid(input.id),
     createdOrdinal: input.createdOrdinal,
@@ -64,18 +62,15 @@ function grantEffect(input: {
   }
 }
 
-const nonGrant = (effect: ListedEffect): ListedEffect =>
-  effect.definition.schemaVersion === 2
-    ? {
-        ...effect,
-        definition: {
-          ...effect.definition,
-          stateContributions: effect.definition.stateContributions.filter(
-            ({ kind }) => kind !== 'MODIFIER_GRANT'
-          )
-        }
-      }
-    : effect
+const nonGrant = (effect: ListedEffect): ListedEffect => ({
+  ...effect,
+  definition: {
+    ...effect.definition,
+    stateContributions: effect.definition.stateContributions.filter(
+      ({ kind }) => kind !== 'MODIFIER_GRANT'
+    )
+  }
+})
 
 describe('listActiveGrantListings', () => {
   it('lists grants oldest first with their source label and what is left of them', () => {
@@ -142,7 +137,6 @@ function piecesEffect(pieces: readonly PolarityPiece[], senseCount: number): Lis
     createdOrdinal: 1,
     lifecycle: { schemaVersion: 1, remainingTicks: 3 }
   })
-  if (base.definition.schemaVersion !== 2) throw new Error('A grant stores a version 2 definition.')
   return {
     ...base,
     definition: {

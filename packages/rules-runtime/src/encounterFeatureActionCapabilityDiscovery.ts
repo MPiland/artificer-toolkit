@@ -12,7 +12,10 @@ import { listCreatureSpellCasts } from './encounterCreatureSpellCasts.js'
 import { castableEffectGroups, spellCastActionId, spellCastLabel } from './spellCastCandidates.js'
 import { passiveMeleeRetaliationZone, placedSpaceManifest } from './encounterZonePlacement.js'
 import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
-import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
+import {
+  attackProfileCapabilityRegistry,
+  encounterFeatureActionCapabilityRegistry
+} from './platformEncounterPolicy.js'
 import {
   type EncounterCreatureEquipmentSource,
   snapshotCreatureEquipmentLoadout,
@@ -617,234 +620,203 @@ function bindEffect(
   return normalized
 }
 
-export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
-  adapters: readonly EncounterFeatureActionCapabilityAdapter[]
-) {
-  const adaptersBySystemId = new Map<string, EncounterFeatureActionCapabilityAdapter>()
-  for (const adapter of adapters) {
-    requireCanonicalUuid(
-      adapter.gameSystemId,
-      'Encounter feature capability adapter System identity'
-    )
-    if (adaptersBySystemId.has(adapter.gameSystemId)) {
-      throw new Error(`Duplicate Encounter feature capability adapter: ${adapter.gameSystemId}.`)
+/** The System bindings of one compiled Effect, shared by every action source. */
+export function bindEncounterEffect(input: EncounterEffectCompilerInput) {
+  return bindEffect(encounterFeatureActionCapabilityRegistry.require(input.gameSystemId), input)
+}
+
+export function discoverUncompiledEncounterFeatureActions(input: {
+  actor: EncounterProjectionActorInput
+  conditionDefinitionIds?: readonly string[]
+  abilityDefinitions?: readonly { id: string; code: string }[]
+  /**
+   * The Run's pinned Spells (D163) the Creature's spell grants name. Required so a caller that
+   * misses it is a type error, not a Creature that silently casts nothing; a caller that needs
+   * no casts passes an empty map.
+   */
+  spells: ReadonlyMap<string, CompiledSpell>
+}): EncounterFeatureActionDiscovery {
+  if (input.actor.kind === 'CUSTOM' || input.actor.kind === 'CHARACTER')
+    return {
+      available: [],
+      unavailable: [],
+      passiveZoneCapabilities: [],
+      passiveDamageGrantCapabilities: [],
+      passiveHpZeroCapabilities: [],
+      passiveWeaponHitCapabilities: [],
+      passiveStartOfTurnCapabilities: []
     }
-    adaptersBySystemId.set(adapter.gameSystemId, adapter)
+  const provenance = snapshotProvenance(input.actor)
+  const gameSystemId = requireCanonicalUuid(input.actor.systemId!, 'Creature Game System identity')
+  const adapter = encounterFeatureActionCapabilityRegistry.require(gameSystemId)
+  const available: EncounterFeatureActionCapabilityDescriptor[] = []
+  const unavailable: EncounterFeatureActionUnavailable[] = []
+  const passiveZoneCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+  const passiveDamageGrantCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+  const passiveHpZeroCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+  const passiveWeaponHitCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+  const passiveStartOfTurnCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+  const actionIds = new Set<string>()
+  const profile = attackProfileCapabilityRegistry.require(gameSystemId)
+  const features = snapshotFeatures(input.actor)
+  for (const feature of features) {
+    const ownerFeatureId = requireCanonicalUuid(feature.id, 'Creature feature identity')
+    for (const featureOption of feature.options ?? []) {
+      requireCanonicalUuid(featureOption.id, 'Creature feature option identity')
+    }
+    for (const entry of featureEffectEntries(feature, features)) {
+      const featureOptionId =
+        entry.featureOption === null
+          ? null
+          : requireCanonicalUuid(entry.featureOption.id, 'Creature feature option identity')
+      const effect = entry.effect
+      const effectId = requireCanonicalUuid(effect.id, 'Creature feature Effect identity')
+      const passive = effect.invocation.kind === 'PASSIVE'
+      const exactActionId = actionId(input.actor.id, ownerFeatureId, featureOptionId, effectId)
+      if (actionIds.has(exactActionId)) {
+        throw new Error(
+          'Encounter feature capability discovery produced a duplicate action identity.'
+        )
+      }
+      actionIds.add(exactActionId)
+      const label = entry.featureOption?.label ?? entry.ownerFeature.label
+      // One action's invalid authored mechanics make only that action unavailable (D54).
+      try {
+        const compiledEffect = creatureActionEffect(profile, effect, features)
+        const damageGrant = passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
+        const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
+        const weaponHit = passive && effect.invocation.triggerCode === 'INCOMING_WEAPON_HIT'
+        const startOfTurn = passive && effect.invocation.triggerCode === 'START_OF_TURN'
+        if (
+          passive &&
+          !damageGrant &&
+          !hpZero &&
+          !weaponHit &&
+          !startOfTurn &&
+          !placedSpaceManifest(compiledEffect) &&
+          !passiveMeleeRetaliationZone(compiledEffect, label, profile.attackKind)
+        )
+          continue
+        const equipmentBinding = entryEquipmentBinding(input.actor, entry, compiledEffect)
+        const normalized = bindEffect(adapter, {
+          gameSystemId,
+          compiledEffect,
+          conditionDefinitionIds: input.conditionDefinitionIds ?? [],
+          abilityDefinitions: input.abilityDefinitions ?? []
+        })
+        if (normalized === null) continue
+        ;(damageGrant
+          ? passiveDamageGrantCapabilities
+          : hpZero
+            ? passiveHpZeroCapabilities
+            : weaponHit
+              ? passiveWeaponHitCapabilities
+              : startOfTurn
+                ? passiveStartOfTurnCapabilities
+                : passive
+                  ? passiveZoneCapabilities
+                  : available
+        ).push({
+          kind: 'ENCOUNTER_FEATURE',
+          gameSystemId,
+          authoredRootKind: 'effect',
+          entryPointDefinitionId: effectId,
+          effectId,
+          actionId: exactActionId,
+          label,
+          grip: effect.grip ?? null,
+          spellCast: effect.spellCast ?? null,
+          sourceId: ownerFeatureId,
+          mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
+          conditionDefinitionIds:
+            normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
+          savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
+          compiledEffect,
+          encounterActorId: input.actor.id,
+          ownerFeatureId,
+          featureOptionId,
+          actionFeatureId: entry.actionFeature?.id ?? null,
+          ownerRuleDefinitionIds: entry.ownerFeature.ruleDefinitionIds ?? [],
+          optionRuleDefinitionIds: entry.featureOption?.ruleDefinitionIds ?? [],
+          authoredEffectChecksum: checksumRuleDocument(effect),
+          compiledEffectChecksum: checksumRuleDocument(compiledEffect),
+          featureResourceUse: featureResourceUse(entry, compiledEffect),
+          equipmentBinding,
+          attackMechanic: featureAttackMechanic(profile, entry, compiledEffect),
+          ...provenance
+        })
+      } catch (error) {
+        if (passive) continue
+        unavailable.push({
+          actionId: exactActionId,
+          ownerFeatureId,
+          label,
+          reason: error instanceof Error ? error.message : 'Its authored mechanics are invalid.'
+        })
+      }
+    }
+  }
+  const spells = input.spells
+  if (spells.size) {
+    const casts = listCreatureSpellCasts({
+      actor: input.actor,
+      features,
+      spellLevelsById: spells
+    })
+    for (const { ownerFeature, cast } of casts) {
+      const spell = spells.get(cast.spellId)!
+      for (const [index, compiledEffect] of castableEffectGroups(spell).entries()) {
+        const normalized = bindEffect(adapter, {
+          gameSystemId,
+          compiledEffect,
+          conditionDefinitionIds: input.conditionDefinitionIds ?? [],
+          abilityDefinitions: input.abilityDefinitions ?? []
+        })
+        if (normalized === null) continue
+        available.push({
+          kind: 'ENCOUNTER_FEATURE',
+          gameSystemId,
+          authoredRootKind: 'effect',
+          entryPointDefinitionId: compiledEffect.id,
+          effectId: compiledEffect.id,
+          actionId: spellCastActionId(
+            cast.candidateId,
+            index === 0 ? undefined : compiledEffect.id
+          ),
+          label: spellCastLabel(spell, cast),
+          grip: null,
+          spellCast: { castLevel: cast.castLevel },
+          spellCastLevel: cast.castLevel,
+          sourceId: ownerFeature.id,
+          mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
+          conditionDefinitionIds:
+            normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
+          savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
+          compiledEffect,
+          encounterActorId: input.actor.id,
+          ownerFeatureId: ownerFeature.id,
+          featureOptionId: null,
+          actionFeatureId: null,
+          ownerRuleDefinitionIds: ownerFeature.ruleDefinitionIds ?? [],
+          optionRuleDefinitionIds: [],
+          authoredEffectChecksum: checksumRuleDocument(compiledEffect),
+          compiledEffectChecksum: checksumRuleDocument(compiledEffect),
+          featureResourceUse: null,
+          equipmentBinding: null,
+          attackMechanic: null,
+          ...provenance
+        })
+      }
+    }
   }
   return {
-    /** The System bindings of one compiled Effect; null when its System has no adapter. */
-    bind(input: EncounterEffectCompilerInput) {
-      const adapter = adaptersBySystemId.get(input.gameSystemId)
-      return adapter ? bindEffect(adapter, input) : null
-    },
-    discover(input: {
-      actor: EncounterProjectionActorInput
-      conditionDefinitionIds?: readonly string[]
-      abilityDefinitions?: readonly { id: string; code: string }[]
-      /**
-       * The Run's pinned Spells (D163) the Creature's spell grants name. Required so a caller that
-       * misses it is a type error, not a Creature that silently casts nothing; a caller that needs
-       * no casts passes an empty map.
-       */
-      spells: ReadonlyMap<string, CompiledSpell>
-    }): EncounterFeatureActionDiscovery {
-      if (input.actor.kind === 'CUSTOM' || input.actor.kind === 'CHARACTER')
-        return {
-          available: [],
-          unavailable: [],
-          passiveZoneCapabilities: [],
-          passiveDamageGrantCapabilities: [],
-          passiveHpZeroCapabilities: [],
-          passiveWeaponHitCapabilities: [],
-          passiveStartOfTurnCapabilities: []
-        }
-      const provenance = snapshotProvenance(input.actor)
-      const gameSystemId = requireCanonicalUuid(
-        input.actor.systemId!,
-        'Creature Game System identity'
-      )
-      const adapter = adaptersBySystemId.get(gameSystemId)
-      if (!adapter)
-        return {
-          available: [],
-          unavailable: [],
-          passiveZoneCapabilities: [],
-          passiveDamageGrantCapabilities: [],
-          passiveHpZeroCapabilities: [],
-          passiveWeaponHitCapabilities: [],
-          passiveStartOfTurnCapabilities: []
-        }
-      const available: EncounterFeatureActionCapabilityDescriptor[] = []
-      const unavailable: EncounterFeatureActionUnavailable[] = []
-      const passiveZoneCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
-      const passiveDamageGrantCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
-      const passiveHpZeroCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
-      const passiveWeaponHitCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
-      const passiveStartOfTurnCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
-      const actionIds = new Set<string>()
-      const profile = attackProfileCapabilityRegistry.require(gameSystemId)
-      const features = snapshotFeatures(input.actor)
-      for (const feature of features) {
-        const ownerFeatureId = requireCanonicalUuid(feature.id, 'Creature feature identity')
-        for (const featureOption of feature.options ?? []) {
-          requireCanonicalUuid(featureOption.id, 'Creature feature option identity')
-        }
-        for (const entry of featureEffectEntries(feature, features)) {
-          const featureOptionId =
-            entry.featureOption === null
-              ? null
-              : requireCanonicalUuid(entry.featureOption.id, 'Creature feature option identity')
-          const effect = entry.effect
-          const effectId = requireCanonicalUuid(effect.id, 'Creature feature Effect identity')
-          const passive = effect.invocation.kind === 'PASSIVE'
-          const exactActionId = actionId(input.actor.id, ownerFeatureId, featureOptionId, effectId)
-          if (actionIds.has(exactActionId)) {
-            throw new Error(
-              'Encounter feature capability discovery produced a duplicate action identity.'
-            )
-          }
-          actionIds.add(exactActionId)
-          const label = entry.featureOption?.label ?? entry.ownerFeature.label
-          // One action's invalid authored mechanics make only that action unavailable (D54).
-          try {
-            const compiledEffect = creatureActionEffect(profile, effect, features)
-            const damageGrant =
-              passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
-            const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
-            const weaponHit = passive && effect.invocation.triggerCode === 'INCOMING_WEAPON_HIT'
-            const startOfTurn = passive && effect.invocation.triggerCode === 'START_OF_TURN'
-            if (
-              passive &&
-              !damageGrant &&
-              !hpZero &&
-              !weaponHit &&
-              !startOfTurn &&
-              !placedSpaceManifest(compiledEffect) &&
-              !passiveMeleeRetaliationZone(gameSystemId, compiledEffect, label)
-            )
-              continue
-            const equipmentBinding = entryEquipmentBinding(input.actor, entry, compiledEffect)
-            const normalized = bindEffect(adapter, {
-              gameSystemId,
-              compiledEffect,
-              conditionDefinitionIds: input.conditionDefinitionIds ?? [],
-              abilityDefinitions: input.abilityDefinitions ?? []
-            })
-            if (normalized === null) continue
-            ;(damageGrant
-              ? passiveDamageGrantCapabilities
-              : hpZero
-                ? passiveHpZeroCapabilities
-                : weaponHit
-                  ? passiveWeaponHitCapabilities
-                  : startOfTurn
-                    ? passiveStartOfTurnCapabilities
-                    : passive
-                      ? passiveZoneCapabilities
-                      : available
-            ).push({
-              kind: 'ENCOUNTER_FEATURE',
-              gameSystemId,
-              authoredRootKind: 'effect',
-              entryPointDefinitionId: effectId,
-              effectId,
-              actionId: exactActionId,
-              label,
-              grip: effect.grip ?? null,
-              spellCast: effect.spellCast ?? null,
-              sourceId: ownerFeatureId,
-              mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
-              conditionDefinitionIds:
-                normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
-              savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
-              compiledEffect,
-              encounterActorId: input.actor.id,
-              ownerFeatureId,
-              featureOptionId,
-              actionFeatureId: entry.actionFeature?.id ?? null,
-              ownerRuleDefinitionIds: entry.ownerFeature.ruleDefinitionIds ?? [],
-              optionRuleDefinitionIds: entry.featureOption?.ruleDefinitionIds ?? [],
-              authoredEffectChecksum: checksumRuleDocument(effect),
-              compiledEffectChecksum: checksumRuleDocument(compiledEffect),
-              featureResourceUse: featureResourceUse(entry, compiledEffect),
-              equipmentBinding,
-              attackMechanic: featureAttackMechanic(profile, entry, compiledEffect),
-              ...provenance
-            })
-          } catch (error) {
-            if (passive) continue
-            unavailable.push({
-              actionId: exactActionId,
-              ownerFeatureId,
-              label,
-              reason: error instanceof Error ? error.message : 'Its authored mechanics are invalid.'
-            })
-          }
-        }
-      }
-      const spells = input.spells
-      if (spells.size) {
-        const casts = listCreatureSpellCasts({
-          actor: input.actor,
-          features,
-          spellLevelsById: spells
-        })
-        for (const { ownerFeature, cast } of casts) {
-          const spell = spells.get(cast.spellId)!
-          for (const [index, compiledEffect] of castableEffectGroups(spell).entries()) {
-            const normalized = bindEffect(adapter, {
-              gameSystemId,
-              compiledEffect,
-              conditionDefinitionIds: input.conditionDefinitionIds ?? [],
-              abilityDefinitions: input.abilityDefinitions ?? []
-            })
-            if (normalized === null) continue
-            available.push({
-              kind: 'ENCOUNTER_FEATURE',
-              gameSystemId,
-              authoredRootKind: 'effect',
-              entryPointDefinitionId: compiledEffect.id,
-              effectId: compiledEffect.id,
-              actionId: spellCastActionId(
-                cast.candidateId,
-                index === 0 ? undefined : compiledEffect.id
-              ),
-              label: spellCastLabel(spell, cast),
-              grip: null,
-              spellCast: { castLevel: cast.castLevel },
-              spellCastLevel: cast.castLevel,
-              sourceId: ownerFeature.id,
-              mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
-              conditionDefinitionIds:
-                normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
-              savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
-              compiledEffect,
-              encounterActorId: input.actor.id,
-              ownerFeatureId: ownerFeature.id,
-              featureOptionId: null,
-              actionFeatureId: null,
-              ownerRuleDefinitionIds: ownerFeature.ruleDefinitionIds ?? [],
-              optionRuleDefinitionIds: [],
-              authoredEffectChecksum: checksumRuleDocument(compiledEffect),
-              compiledEffectChecksum: checksumRuleDocument(compiledEffect),
-              featureResourceUse: null,
-              equipmentBinding: null,
-              attackMechanic: null,
-              ...provenance
-            })
-          }
-        }
-      }
-      return {
-        available,
-        unavailable,
-        passiveZoneCapabilities,
-        passiveDamageGrantCapabilities,
-        passiveHpZeroCapabilities,
-        passiveWeaponHitCapabilities,
-        passiveStartOfTurnCapabilities
-      }
-    }
+    available,
+    unavailable,
+    passiveZoneCapabilities,
+    passiveDamageGrantCapabilities,
+    passiveHpZeroCapabilities,
+    passiveWeaponHitCapabilities,
+    passiveStartOfTurnCapabilities
   }
 }
 

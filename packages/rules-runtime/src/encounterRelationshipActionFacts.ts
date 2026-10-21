@@ -24,7 +24,7 @@ export function encounterRelationships(
     .flatMap(([actorId, effects]) =>
       effects.flatMap((effect) => {
         const { definition } = effect
-        if (definition.schemaVersion !== 2 || definition.origin.kind !== 'ENCOUNTER') return []
+        if (definition.origin.kind !== 'ENCOUNTER') return []
         const { sourceActorId } = definition.origin
         // A relationship no actor applied has no source to hold it.
         if (!sourceActorId) return []

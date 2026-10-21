@@ -63,7 +63,7 @@ import {
   targetEndedEffects,
   withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import {
   snapshotCreatureTypeId,
   withFeatureChargeUsed
@@ -518,7 +518,7 @@ export async function planNativeLiveEncounterAction(
         sceneVersion: sceneInputs.sceneVersion,
         sourceToken: sceneInputs.sourceToken,
         targetToken: sceneInputs.targetToken,
-        grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+        grid: resolveEncounterSceneGrid({
           encounter: state,
           sceneGrid: sceneInputs.sceneGrid
         })
