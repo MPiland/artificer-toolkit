@@ -136,6 +136,7 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
       actionId,
       gameSystemId: DND5E_SYSTEM_ID,
       system,
+      spells: new Map(),
       repeat: { effectsByHolder: new Map([[HOLDER_ID, [heldCarrier()]]]) }
     })
     if (source.kind !== 'REPEAT_PATH') throw new Error('The id must resolve to a repeat.')
@@ -154,7 +155,7 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
   })
 
   it('is stale once the carrier is gone or the id names another offer', () => {
-    const input = { actor: caster, gameSystemId: DND5E_SYSTEM_ID, system }
+    const input = { actor: caster, gameSystemId: DND5E_SYSTEM_ID, system, spells: new Map() }
     expect(() =>
       resolveEncounterActionSource({
         ...input,
