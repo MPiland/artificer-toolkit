@@ -304,8 +304,13 @@ export const incomingAttackGatePayloadDtoSchema = lazySchema(() =>
   })
 )
 
-/** Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). */
-export const rolledDiePayloadDtoSchema = lazySchema(() => z.strictObject(rolledDieShape()))
+/**
+ * Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). An
+ * `AFTER_ROLL` die is offered in the roll's window once the d20 is seen, never rolled with it.
+ */
+export const rolledDiePayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ ...rolledDieShape(), timing: z.optional(z.literal('AFTER_ROLL')) })
+)
 
 const damageTypePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ damageTypeId: authoredIdentifierSchema })

@@ -25782,7 +25782,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -36915,7 +36921,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -48057,7 +48069,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -59190,7 +59208,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -70358,7 +70382,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -81491,7 +81521,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -92592,7 +92628,13 @@ export declare const api: {
                       }
                     | {
                         kind: "PASSIVE";
-                        optionalOnHit?: { kind: "SPELL_SLOT" };
+                        optionalOnHit?:
+                          | { kind: "SPELL_SLOT" }
+                          | {
+                              chargeId: string;
+                              cost: number;
+                              kind: "RESOURCE_POOL";
+                            };
                         range:
                           | {
                               id: string;
@@ -103609,7 +103651,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -114742,7 +114790,13 @@ export declare const api: {
                         }
                       | {
                           kind: "PASSIVE";
-                          optionalOnHit?: { kind: "SPELL_SLOT" };
+                          optionalOnHit?:
+                            | { kind: "SPELL_SLOT" }
+                            | {
+                                chargeId: string;
+                                cost: number;
+                                kind: "RESOURCE_POOL";
+                              };
                           range:
                             | {
                                 id: string;
@@ -128270,11 +128324,54 @@ export declare const api: {
                 kind: "ON_HIT_CHOICE";
                 occurrenceId: string;
                 occurrenceVersion: number;
+                options: Array<
+                  | {
+                      kind: "SPELL_SLOT";
+                      optionId: string;
+                      riderId: string;
+                      slotLevel: number;
+                    }
+                  | {
+                      cost: number;
+                      kind: "RESOURCE_POOL";
+                      optionId: string;
+                      poolId: string;
+                      riderId: string;
+                    }
+                >;
+              }
+            | {
+                allowedResponses: Array<
+                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                >;
+                d20: { selectedNatural: number; total: number };
+                encounterVersion: number;
+                kind: "D20_WINDOW";
+                occurrenceId: string;
+                occurrenceVersion: number;
                 options: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
                   optionId: string;
-                  riderId: string;
-                  slotLevel: number;
+                  sign: "ADD" | "SUBTRACT";
                 }>;
+                requestId: string;
+                rollerActorId: string;
+                trigger:
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    }
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number }
+                  | {
+                      actionLabel: string;
+                      checkLabel: string;
+                      dc: number | null;
+                      kind: "BASIC_ACTION_CHECK";
+                    };
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -128632,11 +128729,58 @@ export declare const api: {
                   kind: "ON_HIT_CHOICE";
                   occurrenceId: string;
                   occurrenceVersion: number;
+                  options: Array<
+                    | {
+                        kind: "SPELL_SLOT";
+                        optionId: string;
+                        riderId: string;
+                        slotLevel: number;
+                      }
+                    | {
+                        cost: number;
+                        kind: "RESOURCE_POOL";
+                        optionId: string;
+                        poolId: string;
+                        riderId: string;
+                      }
+                  >;
+                }
+              | {
+                  allowedResponses: Array<
+                    "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                  >;
+                  d20: { selectedNatural: number; total: number };
+                  encounterVersion: number;
+                  kind: "D20_WINDOW";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
                   options: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
                     optionId: string;
-                    riderId: string;
-                    slotLevel: number;
+                    sign: "ADD" | "SUBTRACT";
                   }>;
+                  requestId: string;
+                  rollerActorId: string;
+                  trigger:
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "CONCENTRATION";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        failures: number;
+                        kind: "DEATH_SAVE";
+                        successes: number;
+                      }
+                    | {
+                        actionLabel: string;
+                        checkLabel: string;
+                        dc: number | null;
+                        kind: "BASIC_ACTION_CHECK";
+                      };
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -129514,11 +129658,52 @@ export declare const api: {
             kind: "ON_HIT_CHOICE";
             occurrenceId: string;
             occurrenceVersion: number;
+            options: Array<
+              | {
+                  kind: "SPELL_SLOT";
+                  optionId: string;
+                  riderId: string;
+                  slotLevel: number;
+                }
+              | {
+                  cost: number;
+                  kind: "RESOURCE_POOL";
+                  optionId: string;
+                  poolId: string;
+                  riderId: string;
+                }
+            >;
+          }
+        | {
+            allowedResponses: Array<"D20_WINDOW_DECLINE" | "D20_WINDOW_USE">;
+            d20: { selectedNatural: number; total: number };
+            encounterVersion: number;
+            kind: "D20_WINDOW";
+            occurrenceId: string;
+            occurrenceVersion: number;
             options: Array<{
+              count: number;
+              faces: 4 | 6 | 8 | 10 | 12;
+              label: string;
               optionId: string;
-              riderId: string;
-              slotLevel: number;
+              sign: "ADD" | "SUBTRACT";
             }>;
+            requestId: string;
+            rollerActorId: string;
+            trigger:
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "CONCENTRATION";
+                  sourceLabel: string | null;
+                }
+              | { failures: number; kind: "DEATH_SAVE"; successes: number }
+              | {
+                  actionLabel: string;
+                  checkLabel: string;
+                  dc: number | null;
+                  kind: "BASIC_ACTION_CHECK";
+                };
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -130392,11 +130577,54 @@ export declare const api: {
                 kind: "ON_HIT_CHOICE";
                 occurrenceId: string;
                 occurrenceVersion: number;
+                options: Array<
+                  | {
+                      kind: "SPELL_SLOT";
+                      optionId: string;
+                      riderId: string;
+                      slotLevel: number;
+                    }
+                  | {
+                      cost: number;
+                      kind: "RESOURCE_POOL";
+                      optionId: string;
+                      poolId: string;
+                      riderId: string;
+                    }
+                >;
+              }
+            | {
+                allowedResponses: Array<
+                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                >;
+                d20: { selectedNatural: number; total: number };
+                encounterVersion: number;
+                kind: "D20_WINDOW";
+                occurrenceId: string;
+                occurrenceVersion: number;
                 options: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
                   optionId: string;
-                  riderId: string;
-                  slotLevel: number;
+                  sign: "ADD" | "SUBTRACT";
                 }>;
+                requestId: string;
+                rollerActorId: string;
+                trigger:
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    }
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number }
+                  | {
+                      actionLabel: string;
+                      checkLabel: string;
+                      dc: number | null;
+                      kind: "BASIC_ACTION_CHECK";
+                    };
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;

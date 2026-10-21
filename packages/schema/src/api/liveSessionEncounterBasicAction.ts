@@ -43,7 +43,12 @@ const stabilizeCheckSettlementSchema = lazySchema(() =>
     context: encounterBasicActionCheckPendingContextDtoSchema,
     execution: storedRuleExecutionResultDtoSchema,
     /** The recorded app roll the d20 settled with, whose card exists; null for an entered or auto-rolled die. */
-    appRollId: z.nullable(postgresUuidSchema)
+    appRollId: z.nullable(postgresUuidSchema),
+    /**
+     * Present when the check settles a d20 window: the roller's held die the answer spent (null when
+     * declined), which the commit ends with the check.
+     */
+    window: z.optional(z.strictObject({ spentEffect: z.nullable(activeRuleEffectRecordSchema) }))
   })
 )
 
@@ -116,6 +121,21 @@ export const liveSessionEncounterBasicActionResponseCommitInputSchema = lazySche
     revisions: liveSessionRulesRevisionsSchema,
     occurredAt: z.iso.datetime(),
     settlement: basicActionCheckSettlementSchema,
+    rules: encounterActorRuleOutputSchema
+  })
+)
+
+/**
+ * A room-planned pause on a rolled d20 whose roller holds an after-roll die: the sealed window the
+ * roller answers. Convex checks the d20 as it would at settlement, then records the window as the
+ * occurrence's next pending state instead of completing it.
+ */
+export const liveSessionEncounterD20WindowOpenCommitInputSchema = lazySchema(() =>
+  z.extend(basicActionScope, {
+    command: resolveRuleOccurrenceInputDtoSchema,
+    revisions: liveSessionRulesRevisionsSchema,
+    occurredAt: z.iso.datetime(),
+    snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema,
     rules: encounterActorRuleOutputSchema
   })
 )
@@ -234,4 +254,7 @@ export type LiveSessionEncounterBasicActionCommitInput = z.infer<
 >
 export type LiveSessionEncounterBasicActionResponseCommitInput = z.infer<
   typeof liveSessionEncounterBasicActionResponseCommitInputSchema
+>
+export type LiveSessionEncounterD20WindowOpenCommitInput = z.infer<
+  typeof liveSessionEncounterD20WindowOpenCommitInputSchema
 >

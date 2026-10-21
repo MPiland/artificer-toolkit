@@ -5,6 +5,80 @@ import { testUuid } from './dnd5eSrdEncounter.js'
 
 export const OPTIONAL_SMITE_FEATURE_ID = testUuid(0xb01)
 export const OPTIONAL_SMITE_EFFECT_ID = testUuid(0xb02)
+export const OPTIONAL_POOL_STRIKE_FEATURE_ID = testUuid(0xb21)
+export const OPTIONAL_POOL_STRIKE_EFFECT_ID = testUuid(0xb22)
+export const OPTIONAL_POOL_STRIKE_CHARGE_ID = testUuid(0xb27)
+
+/**
+ * A homebrew melee-weapon Feature built only from core options: after a hit its wielder may spend
+ * `cost` charges of its own pool of `maximum` short-rest charges to add `diceConfig` damage of
+ * `damageTypeCode`.
+ */
+export function optionalPoolStrike(input: {
+  maximum: number
+  cost: number
+  diceConfig: string
+  damageTypeCode: string
+}): FeatureAuthored {
+  const damageType = SRD_DAMAGE_TYPES.find((entry) => entry.code === input.damageTypeCode)
+  if (!damageType) throw new Error(`SRD damage type "${input.damageTypeCode}" is missing.`)
+  return {
+    id: OPTIONAL_POOL_STRIKE_FEATURE_ID,
+    label: 'Optional Pool Strike',
+    description: 'After a hit you may spend charges of a resource pool to add damage.',
+    availableAtLevel: 1,
+    order: 1,
+    attributes: ['LIMITED_USE'],
+    charges: {
+      id: OPTIONAL_POOL_STRIKE_CHARGE_ID,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'SHORT_REST',
+      amount: input.maximum
+    },
+    effects: [
+      {
+        id: OPTIONAL_POOL_STRIKE_EFFECT_ID,
+        order: 1,
+        invocation: {
+          kind: 'PASSIVE',
+          triggerCode: 'MELEE_WEAPON_ATTACK',
+          range: { id: testUuid(0xb23), rangeKind: 'SPECIAL' },
+          targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'HOSTILE' },
+          optionalOnHit: {
+            kind: 'RESOURCE_POOL',
+            chargeId: OPTIONAL_POOL_STRIKE_CHARGE_ID,
+            cost: input.cost
+          }
+        },
+        paths: [
+          {
+            id: testUuid(0xb24),
+            order: 1,
+            pathCode: 'ON_HIT',
+            groupType: 'SINGLE',
+            originKind: 'SOURCE',
+            selectionKind: 'FIXED',
+            resultBlock: {
+              id: testUuid(0xb25),
+              resultKind: 'SINGLE',
+              outcomes: [
+                {
+                  id: testUuid(0xb26),
+                  effectKind: 'DAMAGE',
+                  damageTypeId: damageType.id,
+                  valueKind: 'DICE',
+                  diceConfig: input.diceConfig,
+                  scalingKind: 'NONE'
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
 
 const SMITE_DICE = [
   [1, '2d8'],

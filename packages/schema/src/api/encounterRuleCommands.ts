@@ -529,6 +529,18 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
         requestId: requestIdSchema,
         position: spatialPointDtoSchema
       }),
+      /** The roller lets a held die go unused after seeing the d20. */
+      z.strictObject({ kind: z.literal('D20_WINDOW_DECLINE'), requestId: requestIdSchema }),
+      /**
+       * The roller adds a held die the window offered. `faces` are the die's entered faces; absent,
+       * the server rolls it.
+       */
+      z.strictObject({
+        kind: z.literal('D20_WINDOW_USE'),
+        requestId: requestIdSchema,
+        optionId: checksumSchema,
+        faces: z.optional(d20AddedFacesDtoSchema)
+      }),
       z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
       z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema }),
       /** A Legendary Action option and the actor it targets, from the option's targets. */
