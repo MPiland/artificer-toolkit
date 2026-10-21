@@ -7053,7 +7053,7 @@ function compileDnd5eEffectAction({
 /** The gates the action's one direct entry authors on its outcome, when it authors any. */
 function directGates(action: Dnd5eCompiledEffectActionSource): Dnd5eAuthoredGates | undefined {
   const entry = action.compiledEffect.entries[0]
-  return entry && isGated(entry) ? entry : undefined
+  return entry?.resolutionKind === 'DIRECT' && isGated(entry) ? entry : undefined
 }
 
 function compileEffectActionGraph(

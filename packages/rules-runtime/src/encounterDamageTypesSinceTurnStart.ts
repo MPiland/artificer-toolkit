@@ -1,13 +1,14 @@
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
 
 /** One damage type a creature took, and the command that dealt it. */
 export type DamageTypeTaken = { damageTypeId: string; commandId: string }
 
 /** The damage types an actor took since its last turn began; none for an actor that keeps no record. */
-export function damageTypeIdsTaken(holder: {
-  damageTypesSinceTurnStart?: DamageTypeTaken[]
-}): string[] {
-  return (holder.damageTypesSinceTurnStart ?? []).map(({ damageTypeId }) => damageTypeId)
+export function damageTypeIdsTaken(holder: EncounterRunActorState): string[] {
+  return (
+    'damageTypesSinceTurnStart' in holder ? (holder.damageTypesSinceTurnStart ?? []) : []
+  ).map(({ damageTypeId }) => damageTypeId)
 }
 
 /**
