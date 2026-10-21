@@ -291,6 +291,7 @@ export async function readEncounterActionChoices(
             : undefined
         const wieldConflict = candidate
           ? evaluateEncounterCharacterActionWieldConflict({
+              gameSystemId: state.gameSystemId,
               candidate,
               ruleFacts: facts.ruleEvaluation.facts,
               policyOutput

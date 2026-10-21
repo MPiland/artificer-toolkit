@@ -479,6 +479,7 @@ export async function prepareEncounterActionMechanics<
   const wieldConflict =
     source.kind === 'CHARACTER_ACTION' && characterFacts && acceptance.kind === 'PROMPTED'
       ? evaluateEncounterCharacterActionWieldConflict({
+          gameSystemId: state.gameSystemId,
           candidate: source.candidate,
           ruleFacts: characterFacts.ruleEvaluation.facts,
           policyOutput: source.effectivePolicyOutput

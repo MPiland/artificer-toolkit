@@ -5,7 +5,11 @@ import {
   actionEconomyCapabilityRegistry,
   creatureConditionCapabilityRegistry
 } from '../platformPolicyModules.js'
-import { initiativeCapabilityRegistry } from '../platformEncounterPolicy.js'
+import {
+  armorClassCapabilityRegistry,
+  d20TestDefinitionCapabilityRegistry,
+  initiativeCapabilityRegistry
+} from '../platformEncounterPolicy.js'
 import { createSystemCapabilityRegistry } from '../systemCapabilityRegistry.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
@@ -16,6 +20,10 @@ import {
   DND5E_SYSTEM_ID,
   DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID
 } from '../systems/dnd5e/identity.js'
+import {
+  createDnd5eBasicActionCheckDefinition,
+  createDnd5eDeathSaveDefinition
+} from '../systems/dnd5e/encounterLifecyclePolicy.js'
 import { dnd5eInitiativeFactAdapter } from '../systems/dnd5e/initiativeFactAdapter.js'
 
 const UNKNOWN_SYSTEM_ID = '00000000-0000-4000-8000-0000000000ff'
@@ -94,5 +102,42 @@ describe('installed D&D capability adapters', () => {
 
   it('initiative resolves the D&D initiative fact adapter', () => {
     expect(initiativeCapabilityRegistry.require(DND5E_SYSTEM_ID)).toBe(dnd5eInitiativeFactAdapter)
+  })
+
+  it('armor class reads Dexterity for a Creature and has no shield to count without one', () => {
+    const armorClass = armorClassCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(
+      armorClass.creatureArmorClass({
+        abilityScores: { DEXTERITY: 14 },
+        naturalArmorBonus: 1,
+        equipment: []
+      })
+    ).toEqual({ ok: true, armorClass: 13 })
+    expect(
+      armorClass.creatureArmorClass({ abilityScores: {}, naturalArmorBonus: 0, equipment: [] })
+    ).toBeNull()
+    expect(
+      armorClass.countedShield({
+        equipment: [],
+        activeEquipmentInstanceIds: [],
+        armorClass: { contributions: [] }
+      })
+    ).toBeNull()
+  })
+
+  it('d20 test definitions give the D&D basic action check and death save graphs', () => {
+    const d20Tests = d20TestDefinitionCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(d20Tests.basicActionCheckDefinition()).toEqual(createDnd5eBasicActionCheckDefinition())
+    expect(d20Tests.deathSaveDefinition?.()).toEqual(createDnd5eDeathSaveDefinition())
+  })
+
+  it.each([
+    ['initiative', initiativeCapabilityRegistry],
+    ['armor-class', armorClassCapabilityRegistry],
+    ['d20-test-definition', d20TestDefinitionCapabilityRegistry]
+  ] as const)('%s fails closed on a System that does not install it', (capability, registry) => {
+    expect(() => registry.require(UNKNOWN_SYSTEM_ID)).toThrow(
+      `The Game System does not provide ${capability} policy.`
+    )
   })
 })
