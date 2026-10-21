@@ -77,6 +77,8 @@ export interface RoomCommandHost {
     correction?: LiveSessionCorrectionDto
   ): void
   webSockets(): WebSocket[]
+  presentationChanging(): boolean
+  random(maximum: number): number
   checkpointThrough(
     epoch: string,
     sequence: number,
