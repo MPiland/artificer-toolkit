@@ -205,7 +205,13 @@ import {
   effectOutcomeProposalNode,
   effectOutcomeProposalOutputs
 } from '../../effectOutcomeRegistry.js'
-import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'
+import {
+  DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION,
+  dnd5eOutcomeDefinition,
+  dnd5eTargetOnlyOutcome,
+  dnd5eTestPathTargetOnlyOutcome,
+  dnd5eUnsupportedPlanUnderTest
+} from './effectActionOutcomes.js'
 import {
   hitPointMaximumReductionProposalNode,
   forcedMovementProposalNode,
@@ -1284,6 +1290,8 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
   // An instant kill is admitted only as a hit-point tier's result, never on a save alone.
   if (outcome.effectKind === 'KILL' && 'hitPointTier' in entry && entry.hitPointTier)
     return { kind: 'KILL' }
+  const targetOnly = dnd5eTestPathTargetOnlyOutcome(outcome)
+  if (targetOnly) return targetOnly
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D test action outcome is not supported.')
   if (
@@ -4451,7 +4459,7 @@ function supported(
     outcome.effectKind === 'CANCEL_TRIGGERING_EVENT' &&
     !('reactionTrigger' in invocation && invocation.reactionTrigger?.kind === 'SPELL_CAST')
   )
-    unsupported('D&D cancel-triggering-event outcome belongs to a spell-cast reaction.')
+    unsupported(DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION)
   // A concealment check is decided against scores the roller never sees: a passive DC only conceals
   // and a concealment DC only detects, and neither pairs with any other outcome.
   if (
@@ -4506,16 +4514,10 @@ function supported(
       unsupported('D&D Effect action condition is not in the pinned System vocabulary.')
     return notOnAList({ kind: 'CONDITION_APPLY', conditionId: outcome.conditionId })
   }
-  if (outcome.effectKind === 'STABILIZE') return notOnAList({ kind: 'STABILIZE' })
   if (outcome.effectKind === 'KILL') return notOnAList({ kind: 'KILL' })
-  // The targets leave the Scene for a place the table does not model; the commit marks each as
-  // departed (D128) and a Scene-bound destination waits for the movement service.
-  if (
-    outcome.effectKind === 'TELEPORT' &&
-    outcome.targetKind === 'CHOSEN_CREATURES' &&
-    (outcome.destinationKind === 'LINKED_LOCATION' || outcome.destinationKind === 'SPECIAL')
-  )
-    return { kind: 'DEPART' }
+  // Each chosen creature departs on its own, so a departure runs on a list too.
+  const targetOnly = dnd5eTargetOnlyOutcome(outcome)
+  if (targetOnly) return targetOnly.kind === 'DEPART' ? targetOnly : notOnAList(targetOnly)
   // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
   // following TELEPORT move spends, bounded by the spell's range.
   if (outcome.effectKind === 'TELEPORT' && selfTeleport)
@@ -4528,12 +4530,6 @@ function supported(
   if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
   if (outcome.effectKind === 'TELEPATHIC_LINK' && linkPlan) return { kind: 'ACTOR_LINK' }
   if (outcome.effectKind === 'MANIFEST' && formPlan) return { kind: 'CREATURE_FORM' }
-  // The Action is spent and the GM rules the result: nothing is stored on the target.
-  if (outcome.effectKind === 'MANUAL_ADJUDICATION')
-    return notOnAList({ kind: 'MANUAL_ADJUDICATION' })
-  // Dash: the committed action adds the actor's speed to this turn's movement; the commit records it.
-  if (outcome.effectKind === 'MOVEMENT_RULE' && outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT')
-    return notOnAList({ kind: 'ADD_SPEED_TO_MOVEMENT' })
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
@@ -4578,10 +4574,7 @@ function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcom
   if (outcome.kind === 'FORCED_MOVEMENT')
     unsupported('D&D forced movement resolves only in its selected outcome phase.')
   const definition = dnd5eOutcomeDefinition(outcome.kind)
-  if (definition.pathGatedOperationKey === null)
-    unsupported(
-      `D&D ${outcome.kind} under a test needs an active-effect plan gated on the test's result path, which the runtime does not have yet.`
-    )
+  if (definition.pathGatedOperationKey === null) dnd5eUnsupportedPlanUnderTest(outcome.kind)
   return effectOutcomeProposalNode({
     id: `proposal-${pathCode.toLowerCase()}${suffix}`,
     definition,
