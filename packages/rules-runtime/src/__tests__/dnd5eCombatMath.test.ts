@@ -44,6 +44,7 @@ import {
   srdFeature
 } from '../testing/dnd5eSrdCharacter.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 const EB_EFFECT = '0b7e4c6a-1f2d-4e3b-9a8c-7d6e5f4a3b2c'
 const FB_EFFECT = '1c8f5d7b-2a3e-4f4c-8b9d-8e7f6a5b4c3d'
@@ -444,6 +445,7 @@ describe('D&D 5e armor class', () => {
     const { candidate } = itemAction(character, 'Greatsword', { attackKind: 'MELEE' })
     expect(
       evaluateEncounterCharacterActionWieldConflict({
+        gameSystemId: DND5E_SYSTEM_ID,
         candidate,
         ruleFacts: character.facts,
         policyOutput: character.output

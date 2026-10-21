@@ -35,10 +35,8 @@ import { EncounterValidationError } from './encounterErrors.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import { actorContestFacts, checkAbilityCode } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
+import { d20TestDefinitionCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { dnd5eAddedDiceFacts } from './systems/dnd5e/d20AddedDiceGraph.js'
-import { createDnd5eBasicActionCheckDefinition } from './systems/dnd5e/encounterLifecyclePolicy.js'
-import { DND5E_SYSTEM_ID } from './systems/dnd5e/identity.js'
 
 type EncounterBasicActionCheckPendingContextDto = ReturnType<
   typeof encounterBasicActionCheckPendingContextDtoSchema.parse
@@ -53,17 +51,6 @@ type CharacterMechanicsTargetStateDto = ReturnType<
 type EncounterD20CheckContext = Pick<EncounterBasicActionCheckPendingContextDto, 'd20'> & {
   check: Pick<EncounterBasicActionCheckPendingContextDto['check'], 'dc'>
 }
-
-/** Each System's basic action check graph: its d20 request, then its added dice (D156). */
-const basicActionCheckBySystemId: ReadonlyMap<
-  string,
-  { definition: typeof createDnd5eBasicActionCheckDefinition; facts: typeof dnd5eAddedDiceFacts }
-> = new Map([
-  [
-    DND5E_SYSTEM_ID,
-    { definition: createDnd5eBasicActionCheckDefinition, facts: dnd5eAddedDiceFacts }
-  ]
-])
 
 /** The mechanics application of a check that reached its DC: the target becomes stable. */
 export function encounterBasicActionStabilizeApplication(
@@ -174,14 +161,13 @@ export async function startEncounterBasicActionCheck(input: {
   /** The frozen check's added dice; absent when it rolls none. */
   addedDice?: readonly D20AddedDieDto[]
 }): Promise<ServerRuleExecutionContinuationDto> {
-  const system = basicActionCheckBySystemId.get(input.gameSystemId)
-  if (!system) throw new EncounterValidationError('This System has no basic action check.')
-  const published = system.definition()
+  const system = d20TestDefinitionCapabilityRegistry.require(input.gameSystemId)
+  const published = system.basicActionCheckDefinition()
   const started = await input.runtime.executeResolved({
     command: {
       definitionId: published.id,
       occurrenceId: input.occurrenceId,
-      facts: system.facts(input.addedDice ?? [])
+      facts: system.addedDiceFacts(input.addedDice ?? [])
     },
     published
   })
