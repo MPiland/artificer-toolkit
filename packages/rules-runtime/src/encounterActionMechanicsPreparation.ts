@@ -75,6 +75,7 @@ import { activeAttackCriticalRules, activeDamageDice } from './character/activeE
 import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
 import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
+import type { CharacterAttack } from './attackProfileCapability.js'
 import type { EnemyProximity } from './encounterEnemyProximity.js'
 import type { MoveToward } from './encounterMoveToward.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
@@ -562,27 +563,21 @@ export async function prepareEncounterActionMechanics<
   if (weaponDraw.kind === 'RELEASE_REQUIRED') throw new HandReleaseRequiredError()
   const profile = attackProfileCapabilityRegistry.require(state.gameSystemId)
   // A Character attack's modifiers are evaluated for its action, its ammunition and its ability.
-  const characterAttacker =
-    source.kind === 'CHARACTER_ACTION'
-      ? {
-          policy: source.effectivePolicyOutput,
-          attack: {
-            candidate: source.candidate,
-            ammunition: characterActionState?.ammunition ?? null,
-            attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
-          }
-        }
-      : null
+  const characterAttack = (candidate: CharacterAttack['candidate']): CharacterAttack => ({
+    candidate,
+    ammunition: characterActionState?.ammunition ?? null,
+    attackAbility: characterActionState?.actionMechanic.attackAbility ?? null
+  })
   // Only attack damage meets "from nonmagical attacks" defenses; any other attack than a
   // Character action's has its kind's traits and those its holder's grants give (Magic Weapons).
   const attackTraits =
     attackKind === null
       ? null
-      : characterAttacker
+      : source.kind === 'CHARACTER_ACTION'
         ? profile.characterAttackTraits({
-            candidate: characterAttacker.attack.candidate,
+            candidate: source.candidate,
             attackKind,
-            policy: characterAttacker.policy
+            policy: source.effectivePolicyOutput
           })
         : profile.featureAttackTraits(attackKind, sourceFacts.grantedAttackTraits)
   // A target's ATTACKS_AGAINST grants (Dodge, applied to its facts) give attacks against it their
@@ -763,28 +758,29 @@ export async function prepareEncounterActionMechanics<
         ...(attackKind === null
           ? {}
           : {
-              attackCriticalRules: characterAttacker
-                ? profile.characterAttackCriticalRules(
-                    characterAttacker.policy,
-                    profile.attackDomain(attackKind),
-                    characterAttacker.attack
-                  )
-                : activeAttackCriticalRules(
-                    sourceFacts.activeEffects,
-                    profile.attackDomain(attackKind)
-                  )
+              attackCriticalRules:
+                source.kind === 'CHARACTER_ACTION'
+                  ? profile.characterAttackCriticalRules(
+                      source.effectivePolicyOutput,
+                      profile.attackDomain(attackKind),
+                      characterAttack(source.candidate)
+                    )
+                  : activeAttackCriticalRules(
+                      sourceFacts.activeEffects,
+                      profile.attackDomain(attackKind)
+                    )
             }),
         // A Character attack uses the same scoped roll-mode contributors as its Sheet action.
         rollContributorEvidence: {
           attacks: Object.fromEntries(
             attackDomainCodeSchema.options.map((attackKind) => [
               attackKind,
-              characterAttacker
+              source.kind === 'CHARACTER_ACTION'
                 ? mergeCanonicalD20Contributors(
                     profile.characterAttackRollContributors(
-                      characterAttacker.policy,
+                      source.effectivePolicyOutput,
                       attackKind,
-                      characterAttacker.attack
+                      characterAttack(source.candidate)
                     ),
                     contributors
                   )
@@ -846,7 +842,7 @@ export async function prepareEncounterActionMechanics<
         targetFacts.defenses,
         targetFacts.qualifiedDefenses,
         attackTraits,
-        characterAttacker?.attack.candidate.mechanicsOwner.id ?? null
+        source.kind === 'CHARACTER_ACTION' ? source.candidate.mechanicsOwner.id : null
       ),
       conditionImmunityIds: targetFacts.conditionImmunityIds,
       targetDamageTypesTaken: damageTypeIdsTaken(targetFacts.actor)
