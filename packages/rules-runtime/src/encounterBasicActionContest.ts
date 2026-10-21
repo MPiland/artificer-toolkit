@@ -17,14 +17,14 @@ import {
   encounterBasicActionCheckLabel
 } from './encounterMovementPassagePreparation.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
-import { createDnd5eContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
+import { contestCheckCapabilityRegistry } from './platformEncounterPolicy.js'
 import {
-  isDnd5eOptionalCombatContestPendingContextCurrent,
-  prepareDnd5eOptionalCombatContestPendingContext
-} from './systems/dnd5e/optionalCombatContestPendingContext.js'
+  isEncounterContestPendingContextCurrent,
+  prepareEncounterContestPendingContext,
+  type EncounterContestPendingContextInput
+} from './encounterContestPendingContext.js'
 
 type PreparedMechanics = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
-type ContestContext = Parameters<typeof prepareDnd5eOptionalCombatContestPendingContext>[0]
 type ContestSceneContext = {
   sceneId: string
   sceneVersion: number
@@ -57,10 +57,10 @@ function sealEncounterContest(input: {
   sceneContext: ContestSceneContext
   actionEconomy: EncounterActionEconomyConsumption | null
   priorContest: ServerContestCheckPendingApplicationContextDto | undefined
-  origin: ContestContext['origin']
+  origin: EncounterContestPendingContextInput['origin']
   actionId: string
-  contestGraph: ContestContext['contestGraph']
-  source: ContestContext['source']
+  contestGraph: EncounterContestPendingContextInput['contestGraph']
+  source: EncounterContestPendingContextInput['source']
   initiatorCheck: ContestCheck
   defenderChecks: readonly ContestCheck[]
 }) {
@@ -111,7 +111,7 @@ function sealEncounterContest(input: {
   const targetCharacter = targetFacts.characterFacts
   const targetCurrentness = targetFacts.characterCurrentness
   const { actionEconomy } = input
-  const current: ContestContext = {
+  const current: EncounterContestPendingContextInput = {
     origin: input.origin,
     actionId: input.actionId,
     sourceActorId: actor.id,
@@ -158,10 +158,10 @@ function sealEncounterContest(input: {
       : null,
     rollEvidence: input.priorContest?.rollEvidence ?? { initiator: null, defender: null }
   }
-  const contest = prepareDnd5eOptionalCombatContestPendingContext(current)
+  const contest = prepareEncounterContestPendingContext(current)
   if (
     input.priorContest &&
-    !isDnd5eOptionalCombatContestPendingContextCurrent({ pending: input.priorContest, current })
+    !isEncounterContestPendingContextCurrent({ pending: input.priorContest, current })
   )
     throw new EncounterValidationError('The pending contest facts changed.')
   return {
@@ -258,7 +258,9 @@ export function prepareEncounterEscapeContest(input: {
     ({ id }) => id === input.checkDefinitionId
   )
   if (!initiatorCheck) throw new EncounterValidationError('The escape does not allow that check.')
-  const published = createDnd5eContestGraph(escape.escapeSourceId)
+  const published = contestCheckCapabilityRegistry
+    .require(input.state.gameSystemId)
+    .contestGraph(escape.escapeSourceId)
   const definitionChecksum = checksumRuleDocument(effect.definition)
   const sealed = sealEncounterContest({
     state: input.state,

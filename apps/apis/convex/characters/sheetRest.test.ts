@@ -159,7 +159,7 @@ function reductionDefinition(
       schemaVersion: 1,
       source: {
         definitionId,
-        gameSystemId: '00000000-0000-4000-8000-000000000105',
+        gameSystemId: srdSystemRecord.id,
         definitionFamilyKey: 'effect',
         checksum: 'a'.repeat(64)
       },

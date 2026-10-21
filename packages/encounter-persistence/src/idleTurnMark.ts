@@ -3,7 +3,7 @@ import {
   withEncounterActorIdleTurnMark,
   type EncounterIdleTurnMark
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { effectsEndedBy } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterRunActorStateSchema,
@@ -47,7 +47,8 @@ export function armIdleTurnActor(input: {
   const { actor } = input
   if (
     encounterActorIdleTurnMark(actor) !== null ||
-    effectsEndedBy(input.createdEffects, 'ON_IDLE_TURN').length === 0
+    discoverEncounterEventHooks({ effects: input.createdEffects, events: [{ kind: 'IDLE_TURN' }] })
+      .ended.length === 0
   )
     return actor
   return encounterRunActorStateSchema.parse({

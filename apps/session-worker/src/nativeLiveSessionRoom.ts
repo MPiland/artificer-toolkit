@@ -18,31 +18,17 @@ import type { LiveSessionCheckpointReason } from '@artificer-toolkit/schema/api/
 import type { LiveSessionCheckpointJournalEntry } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import type { LiveSessionRoomSceneCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
-import type { LiveSessionScenePublicationDto } from '@artificer-toolkit/schema/api/liveSessionState'
-import {
-  scenePresentationFenceSchema,
-  type SceneBaseOrdinals
-} from '@artificer-toolkit/schema/api/sceneGeometry'
-import {
-  sceneLiveStateHeaderSchema,
-  type SceneLiveStateHeader
-} from '@artificer-toolkit/schema/api/sceneLiveState'
+import { scenePresentationFenceSchema } from '@artificer-toolkit/schema/api/sceneGeometry'
+import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneLiveState'
 import { withCharacterControllers } from '@artificer-toolkit/shared/campaign/characterControl'
-import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
   LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT,
-  LIVE_SESSION_TRY_AGAIN_MESSAGE,
-  type LiveSessionCommandDto
+  LIVE_SESSION_TRY_AGAIN_MESSAGE
 } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { readCharacterCommandReplay } from '@artificer-toolkit/encounter-persistence/characterSheetReceipts'
 import { readSceneHoldingDecision } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
-import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
-import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import {
   sceneCommandResultDtoSchema,
-  type BindEncounterToPresentedSceneInputDto,
   type CampaignSceneStateDto,
   type SceneCommandResultDto,
   type SceneTransientEnvelopeDto
@@ -59,19 +45,11 @@ import {
   SceneBarrierIndex,
   sceneFogOwnerFailure,
   sceneTransientStreamKey,
-  type ScenePoint,
-  type SceneViewer
+  type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
-import type {
-  EncounterCommandResultDto,
-  ResolveRuleOccurrenceInputDto,
-  VoidRuleOccurrenceInputDto
-} from '@artificer-toolkit/schema/api/encounters'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import type { RoomNativeEncounterCommand } from '@artificer-toolkit/schema/api/liveSessionEncounterCommand'
 import { decodeJwt } from 'jose'
 import { z } from 'zod'
-
 import { DurableCommandJournal, DurableCommandJournalError } from './durableCommandJournal.js'
 import type { SessionWorkerEnvironment } from './environment.js'
 import { isLocalDevelopment } from './contentSnapshotStorage.js'
@@ -92,26 +70,33 @@ import {
   LiveSessionDomainRejectionError,
   LiveSessionRouteError
 } from './liveSessionRoutes.js'
-import {
-  encounterCommandRefusal,
-  RoomAdmissionExpiredError,
-  sceneNotPresentedRejection
-} from './nativeRoomEncounterCommand.js'
+import { encounterCommandRefusal, RoomAdmissionExpiredError } from './nativeRoomEncounterCommand.js'
 import { RetryableCommandError } from './nativeRulesRevisions.js'
 import { retryPreparation } from './roomPreparationRetry.js'
-import type { StagedSceneCommand, StagedSceneContext } from './roomSceneGeometryPlan.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomTestDice } from './roomTestDice.js'
 import { RoomInputs } from './roomInputs.js'
 import { RoomCheckpoints } from './roomCheckpoints.js'
 import { publishRoomCheckpoint } from './roomCheckpointPublication.js'
-import { meterFrame, meterStorage, RoomMeter, sqlRoomMeterStore } from './roomMeter.js'
+import { meterStorage, RoomMeter, sqlRoomMeterStore } from './roomMeter.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
-import { executeRoomSceneGeometry } from './roomSceneGeometryCommand.js'
-import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
+import { commitRoomGeometry, commitRoomSceneEdit, stageSceneFog } from './roomSceneCommit.js'
+import type { RoomCommandHost } from './roomCommandHost.js'
+import { executeEncounterCommand } from './roomEncounterExecution.js'
+import { executeEncounterBinding } from './roomEncounterBindingCommand.js'
+import {
+  accountBucket,
+  attachment,
+  replayReceipt,
+  send,
+  viewer,
+  type Admission,
+  type SocketAttachment,
+  type TransientCache
+} from './roomSocket.js'
+import { readRoomSceneState } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
-import { executeRoomSceneBinding } from './roomSceneBinding.js'
 import {
   NoSceneMoveToUndoError,
   SceneMoveFromActionError,
@@ -122,37 +107,21 @@ import { restoreRoomMoveUndo } from './roomMoveUndoRestore.js'
 import {
   publishRoomSceneFog,
   publishRoomSceneInline,
-  readRoomSceneFogReceipt,
-  RoomSceneCommandRefusal,
-  type RoomSceneEditWork
+  RoomSceneCommandRefusal
 } from './roomSceneEdits.js'
 import { RoomSceneFogUploads } from './roomSceneFogUploads.js'
-import { executeRoomCharacterSheetCommand } from './roomCharacterSheetCommands.js'
-import { CampaignChatCommandError, executeRoomCampaignChatCommand } from './roomChatCommands.js'
-import {
-  RoomAccountBuckets,
-  RoomRateLimitedError,
-  type AccountBucketKind
-} from './roomRateLimits.js'
+import { executeCharacterSheetCommand } from './roomCharacterSheetCommands.js'
+import { executeCampaignChatCommand } from './roomChatCommands.js'
+import { RoomAccountBuckets, RoomRateLimitedError } from './roomRateLimits.js'
 import { endRoomBrokenRelationships, roomHasBrokenRelationships } from './roomRelationshipEnds.js'
 import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
 import { RoomCharacterSheetFeed, type FeedScope } from './roomCharacterSheetFeed.js'
 import type { RoomSceneTokens } from './roomEncounterReadPorts.js'
 import { RoomEncounterReads } from './roomEncounterReads.js'
-import { lookupRoomEncounterReplay } from './roomEncounterReplayIndex.js'
 import { RoomCampaignSummaryFeed } from './roomCampaignSummaryFeed.js'
 import { RoomEncounterSessionFeed } from './roomEncounterSessionFeed.js'
 import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
-import {
-  executeRoomEncounterCommand,
-  replayRoomEncounterCommand,
-  readRoomEncounterPlayAuthorization,
-  roomEncounterCommandFingerprint
-} from './roomEncounterCommands.js'
-import {
-  readRoomEncounterResponseRoute,
-  roomOwnsEncounterVoid
-} from './roomEncounterResponseRouting.js'
+import { readRoomEncounterPlayAuthorization } from './roomEncounterCommands.js'
 import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import {
   adoptSceneVisionRevisions,
@@ -174,68 +143,6 @@ import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
 
-/**
- * What survives hibernation about a socket. `admissionDeadline` (the admission's token expiry) and
- * `feeds` are set only while the socket is admitted and cleared when it is challenged or closed, so
- * a woken room restores an admission only for a socket that held one. No token is ever stored.
- */
-const socketAttachmentSchema = z.strictObject({
-  acceptedAt: z.number().int().positive(),
-  admissionDeadline: z.nullable(z.number().int().positive()),
-  authSubject: z.string().min(1),
-  authorityEpoch: z.string().uuid(),
-  campaignId: z.string().uuid(),
-  feeds: z.nullable(
-    z.strictObject({
-      characterSheet: z.nullable(z.string().uuid()),
-      encounterSession: z.nullable(
-        z.strictObject({
-          timeline: z.boolean(),
-          shown: z.nullable(
-            z.strictObject({
-              encounterId: z.string().uuid(),
-              occurrenceId: z.string().uuid(),
-              occurrenceVersion: z.number().int().nonnegative()
-            })
-          )
-        })
-      ),
-      campaignSummary: z.boolean()
-    })
-  ),
-  membershipEpoch: z.nullable(z.iso.datetime({ offset: true })),
-  role: z.enum(['OWNER', 'PLAYER']),
-  socketId: z.string().uuid(),
-  ticketExpiresAt: z.number().int().positive(),
-  userId: z.string().uuid()
-})
-type SocketAttachment = z.infer<typeof socketAttachmentSchema>
-
-interface Admission {
-  deadline: number
-  generation: number
-  membershipEpoch: string
-  role: 'OWNER' | 'PLAYER'
-  userId: string
-}
-
-/**
- * The room's shared Scene: every entity (never filtered for one member), each token's and
- * barrier's definition ordinal and the bound Encounter.
- */
-interface TransientCache {
-  baseOrdinals: SceneBaseOrdinals
-  characterRevisions: LiveSessionRoomSceneCapture['observedCharacterRevisions']
-  encounterId: string | null
-  key: string
-  scene: CampaignSceneStateDto | null
-  /** Authored token vision only; derived Character vision is never persisted as an override. */
-  uncomposedScene: CampaignSceneStateDto | null
-  sceneHeader: SceneLiveStateHeader | null
-  presentation: LiveSessionScenePublicationDto['presentation'] | null
-}
-
-/** The part of the cache a woken room cannot derive from its own rows; the rest is rebuilt from them. */
 const persistedSceneCacheSchema = z.strictObject({
   key: z.string(),
   sceneHeader: z.nullable(sceneLiveStateHeaderSchema),
@@ -257,51 +164,6 @@ interface PreviewStream {
 
 interface NativeRoomIdentityRow extends Record<string, SqlStorageValue> {
   campaign_id: string
-}
-
-function attachment(socket: WebSocket): SocketAttachment | null {
-  const parsed = socketAttachmentSchema.safeParse(socket.deserializeAttachment())
-  return parsed.success ? parsed.data : null
-}
-
-function viewer(value: Pick<Admission, 'role' | 'userId'>): SceneViewer {
-  return {
-    role: value.role === 'OWNER' ? 'GM' : 'PLAYER',
-    userId: value.userId
-  }
-}
-
-function send(socket: WebSocket, message: LiveSessionWebSocketServerMessageDto): void {
-  if (socket.readyState !== WebSocket.OPEN) return
-  socket.send(JSON.stringify(liveSessionWebSocketServerMessageDtoSchema.parse(message)))
-  meterFrame(socket, message.type)
-}
-
-/**
- * A stored command receipt sent again for an exact retry. Its Scene or binding result reports
- * `replayed: true`, as Convex's replays do; an Encounter result has no replay flag.
- */
-function replayReceipt(receiptJson: string): LiveSessionWebSocketServerMessageDto {
-  return replayMessage(liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(receiptJson)))
-}
-
-function replayMessage(
-  receipt: LiveSessionWebSocketServerMessageDto
-): LiveSessionWebSocketServerMessageDto {
-  if (receipt.type !== 'COMMAND_COMMITTED')
-    throw new Error('Live Session command receipt is invalid.')
-  const { delta } = receipt
-  if (delta?.scope === 'SCENE')
-    return {
-      ...receipt,
-      delta: { ...delta, result: { ...delta.result, replayed: true } }
-    }
-  if (delta?.scope === 'ENCOUNTER_BINDING')
-    return {
-      ...receipt,
-      delta: { ...delta, result: { ...delta.result, replayed: true } }
-    }
-  return receipt
 }
 
 function cacheKey(capture: LiveSessionRoomSceneCapture): string {
@@ -344,6 +206,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   readonly #summaryFeed: RoomCampaignSummaryFeed
   /** The version-keyed turn reads a member asks the room for instead of Convex. */
   readonly #encounterReads: RoomEncounterReads
+  readonly #host: RoomCommandHost
   #postCommitQueued = false
   readonly #checkpoints: RoomCheckpoints
   #aggregateNeedsReload = false
@@ -539,6 +402,42 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     // expiry, never the token) with its feed subscriptions, and the authorization lease and Scene
     // cache are restored from SQLite, so a wake costs no sign-in round. A socket that was challenged,
     // never admitted, or whose token expired asleep authenticates again.
+    this.#host = {
+      store: this.#roomStore,
+      inputs: this.#roomInputs,
+      journal: this.#journal,
+      buckets: this.#buckets,
+      authorization: this.#authorization,
+      fogUploads: this.#fogUploads,
+      cache: () => this.#cache,
+      setCache: (cache) => {
+        this.#cache = cache
+      },
+      aggregateNeedsReload: () => this.#aggregateNeedsReload,
+      flushOutbox: (reason) => this.#flushOutbox(reason),
+      loadRoomAggregate: (sceneId) => this.#loadRoomAggregate(sceneId),
+      authorizationBoundary: (value) => this.#authorizationBoundary(value),
+      prepareWithRetry: (authorization, run) => this.#prepareWithRetry(authorization, run),
+      liveAdmission: (socket) => this.#liveAdmission(socket),
+      sceneTokens: (epoch) => this.#sceneTokens(epoch),
+      liveRulesRuntime: () => this.#liveRulesRuntime(),
+      sceneCommittedFor: (input) => this.#sceneCommittedFor(input),
+      broadcastSceneCommitted: (...args) => this.#broadcastSceneCommitted(...args),
+      broadcastStateSync: () => this.#broadcastStateSync(),
+      scheduleAlarm: () => this.#scheduleAlarm(),
+      rejectCommand: (...args) => this.#rejectCommand(...args),
+      webSockets: () => this.ctx.getWebSockets(),
+      presentationChanging: () => this.#presentationChanging,
+      random: this.#random,
+      checkpointThrough: (epoch, sequence, reason) =>
+        this.#checkpointThrough(epoch, sequence, reason),
+      rejectRoomFailure: (...args) => this.#rejectRoomFailure(...args),
+      rejectSceneCommand: (...args) => this.#rejectSceneCommand(...args),
+      sendDomainRejection: (...args) => this.#sendDomainRejection(...args),
+      controlledScene: (scene, epoch) => this.#controlledScene(scene, epoch),
+      boundTokenControl: (scene, admission, epoch) =>
+        this.#boundTokenControl(scene, admission, epoch)
+    }
     for (const socket of ctx.getWebSockets()) this.#wake(socket)
   }
 
@@ -951,7 +850,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       const commandId =
         message.type === 'SCENE_FOG_BEGIN' ? message.input.commandId : message.commandId
       const next = this.#commandChain
-        .then(() => this.#stageSceneFog(socket, admission, message))
+        .then(() => stageSceneFog(this.#host, socket, admission, message))
         .catch((error: unknown) => this.#rejectRoomFailure(socket, commandId, error))
       this.#commandChain = next
       await next
@@ -1777,13 +1676,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     if (message.command.scope === 'ENCOUNTER')
-      return this.#executeEncounterCommand(socket, admission, value, message.command.command)
+      return executeEncounterCommand(this.#host, socket, admission, value, message.command.command)
     if (message.command.scope === 'ENCOUNTER_BINDING')
-      return this.#executeEncounterBinding(socket, admission, value, message.command.command)
+      return executeEncounterBinding(this.#host, socket, admission, value, message.command.command)
     if (message.command.scope === 'CHARACTER_SHEET')
-      return this.#executeCharacterSheetCommand(socket, admission, value, message.command)
+      return executeCharacterSheetCommand(this.#host, socket, admission, value, message.command)
     if (message.command.scope === 'CAMPAIGN_CHAT')
-      return this.#executeCampaignChatCommand(socket, admission, value, message.command)
+      return executeCampaignChatCommand(this.#host, socket, admission, value, message.command)
     const sceneCommand =
       message.command.scope === 'SCENE'
         ? liveSessionSceneCommandInputSchema.safeParse(message.command.command)
@@ -1844,7 +1743,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             )
           }
         : undefined
-    if (!this.#buckets.admits(this.#bucket('SCENE', value, admission))) {
+    if (!this.#buckets.admits(accountBucket('SCENE', value, admission))) {
       this.#rejectCommand(
         socket,
         commandId,
@@ -1901,8 +1800,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     if (isInlineSceneCommand(command)) {
       try {
-        await this.#commitRoomSceneEdit(socket, admission, value, command, fingerprint, (base) =>
-          publishRoomSceneInline({ ...base, actor: admission, command })
+        await commitRoomSceneEdit(
+          this.#host,
+          socket,
+          admission,
+          value,
+          command,
+          fingerprint,
+          (base) => publishRoomSceneInline({ ...base, actor: admission, command })
         )
       } catch (error) {
         this.#rejectSceneCommand(socket, commandId, error, correction())
@@ -1915,7 +1820,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         userId: admission.userId
       }
       try {
-        await this.#commitRoomSceneEdit(
+        await commitRoomSceneEdit(
+          this.#host,
           socket,
           admission,
           value,
@@ -1966,7 +1872,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         return
       }
       try {
-        await this.#commitRoomSceneEdit(
+        await commitRoomSceneEdit(
+          this.#host,
           socket,
           admission,
           value,
@@ -2012,7 +1919,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     if (command.type !== 'MOVE_SCENE_TOKEN' && command.type !== 'SET_SCENE_DOOR_STATE') {
       try {
-        await this.#commitRoomGeometry(socket, admission, value, command, fingerprint)
+        await commitRoomGeometry(this.#host, socket, admission, value, command, fingerprint)
       } catch (error) {
         this.#rejectSceneCommand(socket, commandId, error, correction())
       }
@@ -2038,7 +1945,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     if (plan.kind === 'STAGED') {
       try {
-        await this.#commitRoomGeometry(socket, admission, value, command, fingerprint)
+        await commitRoomGeometry(this.#host, socket, admission, value, command, fingerprint)
       } catch (error) {
         this.#rejectSceneCommand(socket, commandId, error, correction())
       }
@@ -2118,7 +2025,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           throw new RoomAdmissionExpiredError()
         if (entry.sequence !== current.sequence + 1)
           throw new Error('Room command sequence does not match its authority.')
-        this.#buckets.charge(this.#bucket('SCENE', value, admission))
+        this.#buckets.charge(accountBucket('SCENE', value, admission))
         const result = this.#journal.commitInTransaction({
           actorId: admission.userId,
           authorityEpoch: value.authorityEpoch,
@@ -2154,1441 +2061,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     )
     await this.#scheduleAlarm()
     return
-  }
-
-  /**
-   * Every ACTIVE-Run Encounter command commits in the room's SQLite (D78); a movement decision
-   * settles through the presented Scene's movement path.
-   */
-  async #executeEncounterCommand(
-    socket: WebSocket,
-    admission: Admission,
-    value: SocketAttachment,
-    command: RoomNativeEncounterCommand
-  ): Promise<void> {
-    // A movement decision the room committed is journaled; its session sequence is not fenced (D28).
-    const fingerprint = roomEncounterCommandFingerprint(command)
-    let movementResponse = false
-    if (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') {
-      try {
-        if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-        await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-        movementResponse =
-          (await readRoomEncounterResponseRoute(this.#roomStore, command)) === 'MOVEMENT' &&
-          (command.type === 'RESOLVE_RULE_OCCURRENCE' ||
-            !(await roomOwnsEncounterVoid(this.#roomStore, command)))
-      } catch (error) {
-        this.#rejectRoomFailure(socket, command.commandId, error)
-        return
-      }
-    }
-    const prior = this.#journal.lookupCommand({
-      actorId: admission.userId,
-      commandId: command.commandId,
-      fingerprint
-    })
-    if (prior.kind === 'MISMATCHED_REUSE') {
-      this.#rejectCommand(
-        socket,
-        command.commandId,
-        'INVALID_COMMAND',
-        'The command ID was already used for different input.'
-      )
-      return
-    }
-    if (prior.kind === 'REPLAY') {
-      const stored: unknown = JSON.parse(prior.receipt.receiptJson)
-      // A movement decision stores the Scene receipt its sender was sent, then the Encounter result.
-      const messages = (Array.isArray(stored) ? stored : [stored]).map((message) =>
-        liveSessionWebSocketServerMessageDtoSchema.parse(message)
-      )
-      const replay = messages.at(-1)
-      // A commit recovered after a restart kept only its Scene receipt.
-      if (replay?.type === 'COMMAND_COMMITTED' && replay.delta?.scope === 'ENCOUNTER') {
-        try {
-          if (
-            prior.receipt.checkpointBeforeAcknowledgement &&
-            prior.receipt.sequence > (this.#journal.readCurrent()?.publishedSequence ?? 0)
-          )
-            await this.#checkpointThrough(
-              value.authorityEpoch,
-              prior.receipt.sequence,
-              'ACKNOWLEDGEMENT'
-            )
-          await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-          const authorization = await this.#authorizationBoundary(value)
-          if (
-            this.#liveAdmission(socket)?.generation !== admission.generation ||
-            !admitsRoomMember(authorization, admission)
-          )
-            return
-          const result = await replayRoomEncounterCommand({
-            store: this.#roomStore,
-            inputs: this.#roomInputs,
-            authorization,
-            userId: admission.userId,
-            sceneTokens: this.#sceneTokens(value.authorityEpoch),
-            replayed: { kind: 'RECORDED', result: replay.delta.result }
-          })
-          for (const sceneReceipt of messages.slice(0, -1))
-            send(socket, replayMessage(sceneReceipt))
-          send(socket, {
-            ...replay,
-            sequence:
-              result.projection.version === replay.delta.result.projection.version
-                ? replay.sequence
-                : (this.#journal.readCurrent()?.sequence ?? replay.sequence),
-            delta: { scope: 'ENCOUNTER', result }
-          })
-        } catch (error) {
-          this.#rejectRoomFailure(socket, command.commandId, error)
-        }
-      } else
-        this.#rejectCommand(
-          socket,
-          command.commandId,
-          'STALE_STATE',
-          'This decision was already settled.'
-        )
-      return
-    }
-    // A command the room's history no longer holds is still recognized from the Run's replay index.
-    try {
-      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-      await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-      const indexed = await lookupRoomEncounterReplay(this.#roomStore, {
-        campaignId: value.campaignId,
-        commandId: command.commandId,
-        encounterId: command.encounterId,
-        userId: admission.userId,
-        fingerprint
-      })
-      if (indexed.kind === 'MISMATCH') {
-        this.#rejectCommand(
-          socket,
-          command.commandId,
-          'INVALID_COMMAND',
-          'The command ID was already used for different input.'
-        )
-        return
-      }
-      if (indexed.kind === 'INDEXED') {
-        const authorization = await this.#authorizationBoundary(value)
-        if (
-          this.#liveAdmission(socket)?.generation !== admission.generation ||
-          !admitsRoomMember(authorization, admission)
-        )
-          return
-        const result = await replayRoomEncounterCommand({
-          store: this.#roomStore,
-          inputs: this.#roomInputs,
-          authorization,
-          userId: admission.userId,
-          sceneTokens: this.#sceneTokens(value.authorityEpoch),
-          replayed: indexed
-        })
-        send(socket, {
-          commandId: command.commandId,
-          delta: { scope: 'ENCOUNTER', result },
-          sequence: this.#journal.readCurrent()?.sequence ?? 0,
-          type: 'COMMAND_COMMITTED'
-        })
-        return
-      }
-    } catch (error) {
-      this.#rejectRoomFailure(socket, command.commandId, error)
-      return
-    }
-    if (
-      movementResponse &&
-      (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE')
-    ) {
-      try {
-        const result = await this.#commitMovementDecision(
-          socket,
-          admission,
-          value,
-          command,
-          fingerprint
-        )
-        if (this.#liveAdmission(socket)?.generation === admission.generation)
-          send(socket, {
-            commandId: command.commandId,
-            delta: { scope: 'ENCOUNTER', result },
-            sequence: this.#journal.readCurrent()?.sequence ?? 0,
-            type: 'COMMAND_COMMITTED'
-          })
-      } catch (error) {
-        this.#rejectSceneCommand(socket, command.commandId, error, undefined)
-      }
-      return
-    }
-    return this.#executeLocalEncounterCommand(socket, admission, value, command, fingerprint)
-  }
-
-  /** Held Sheet play, its private history and the journal receipt commit before acknowledgement. */
-  async #executeCharacterSheetCommand(
-    socket: WebSocket,
-    admission: Admission,
-    value: SocketAttachment,
-    command: Extract<LiveSessionCommandDto, { scope: 'CHARACTER_SHEET' }>
-  ): Promise<void> {
-    const commandId = command.command.commandId
-    const fingerprint = checksumCanonicalJson(command)
-    try {
-      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-      await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-      const current = this.#journal.readCurrent()
-      if (
-        !current ||
-        current.authorityEpoch !== value.authorityEpoch ||
-        current.status !== 'ACTIVE'
-      )
-        throw new Error('Live Session authority changed.')
-      const authorization = await this.#authorizationBoundary(value)
-      if (
-        this.#liveAdmission(socket)?.generation !== admission.generation ||
-        !admitsRoomMember(authorization, admission)
-      )
-        return
-      const assigned = authorization.campaign.assignments.find(
-        (entry) => entry.characterId === command.characterId.toLowerCase()
-      )
-      const character = authorization.characters.find(
-        (entry) => entry.characterId === command.characterId.toLowerCase()
-      )
-      if (
-        !assigned ||
-        !character ||
-        assigned.userId !== character.ownerUserId ||
-        (admission.role !== 'OWNER' && assigned.userId !== admission.userId)
-      )
-        throw new CharacterSheetCommandError('Assigned Character not found.')
-      if (character.ownerUserId !== admission.userId)
-        assertCampaignGmSheetCommandAllowed(command.command)
-      this.#roomStore.assertAuthorityHead({
-        epoch: current.authorityEpoch,
-        sequence: current.sequence,
-        checksum: current.stateChecksum
-      })
-      const prior = this.#journal.lookupCommand({
-        actorId: admission.userId,
-        commandId,
-        fingerprint
-      })
-      if (prior.kind === 'MISMATCHED_REUSE') {
-        this.#rejectCommand(
-          socket,
-          commandId,
-          'INVALID_COMMAND',
-          'The command ID was already used for different input.'
-        )
-        return
-      }
-      if (prior.kind === 'REPLAY') {
-        const receipt = liveSessionWebSocketServerMessageDtoSchema.parse(
-          JSON.parse(prior.receipt.receiptJson)
-        )
-        if (
-          receipt.type !== 'COMMAND_COMMITTED' ||
-          receipt.delta?.scope !== 'CHARACTER_SHEET' ||
-          receipt.delta.result.characterId !== character.characterId
-        )
-          throw new Error('Stored Character Sheet receipt scope mismatch.')
-        const run = await this.#roomStore.store
-          .query('encounterRuns')
-          .withIndex('by_publicId', (query) => query.eq('id', command.encounterId.toLowerCase()))
-          .unique()
-        if (!run) throw new CharacterSheetCommandError('Encounter is unavailable.')
-        const state = readRunState(run)
-        if (state.status !== 'ACTIVE' || state.campaignId !== value.campaignId)
-          throw new CharacterSheetCommandError('Character is not held by this active Encounter.')
-        const held = (await readRunActors({ db: this.#roomStore.store }, state)).some(
-          (actor) =>
-            actor.kind === 'CHARACTER' &&
-            actor.sourceId === character.characterId &&
-            actor.frozenState === null
-        )
-        if (!held) {
-          // A caster outside the Run holds no play here: the stored acknowledgement is the replay.
-          if (command.command.type !== 'END_CONCENTRATION')
-            throw new CharacterSheetCommandError('Character is not held by this active Encounter.')
-          send(socket, receipt)
-          return
-        }
-        // Member admission above already requires an ACTIVE Campaign: archived Campaigns have no members.
-        const [play, campaignPlay] = await Promise.all([
-          this.#roomStore.store
-            .query('characterPlayStates')
-            .withIndex('by_characterId', (query) => query.eq('characterId', character.characterId))
-            .unique(),
-          this.#roomInputs.play(
-            this.#roomInputs.revisions(value.campaignId, authorization.revisions)
-          )
-        ])
-        if (
-          !play ||
-          campaignPlay.campaign.id !== value.campaignId ||
-          state.gameSystemId !== campaignPlay.campaign.gameSystemId ||
-          play.userId !== character.ownerUserId
-        )
-          throw new Error('Current Character Sheet replay scope mismatch.')
-        readCharacterPlay(play)
-        const result = await readCharacterCommandReplay(
-          {
-            characterId: character.characterId,
-            userId: admission.userId,
-            command: command.command,
-            streamVersion: play.streamVersion,
-            contentMaturity: campaignPlay.campaign.contentMaturity,
-            viewer:
-              character.ownerUserId === admission.userId ? 'CHARACTER_OWNER' : 'CAMPAIGN_OWNER'
-          },
-          () =>
-            this.#roomStore.store
-              .query('characterCommandReceipts')
-              .withIndex('by_characterId_commandId', (query) =>
-                query
-                  .eq('characterId', character.characterId)
-                  .eq('commandId', commandId.toLowerCase())
-              )
-              .unique()
-        )
-        if (
-          !result ||
-          result.historyEntry?.eventType !== command.command.type ||
-          result.historyEntry?.eventId !== receipt.delta.result.historyEntry?.eventId
-        )
-          throw new Error('Stored Character Sheet replay identity mismatch.')
-        send(socket, {
-          ...receipt,
-          sequence:
-            result.streamVersion === receipt.delta.result.streamVersion
-              ? receipt.sequence
-              : current.sequence,
-          delta: { scope: 'CHARACTER_SHEET', result }
-        })
-        return
-      }
-      const sceneCache = this.#cache
-      let receipt: LiveSessionWebSocketServerMessageDto | null = null
-      let nextStateJson = current.stateJson
-      const { result, authorization: committedAuthorization } = await this.#prepareWithRetry(
-        authorization,
-        (prepared, random) =>
-          this.#roomStore.transact(
-            async (transaction) => {
-              const executed = await executeRoomCharacterSheetCommand({
-                store: this.#roomStore,
-                transaction,
-                inputs: this.#roomInputs,
-                authorization: prepared,
-                campaignId: value.campaignId,
-                epoch: value.authorityEpoch,
-                userId: admission.userId,
-                command,
-                random
-              })
-              const composition = sceneCache?.uncomposedScene
-                ? await composeRoomSceneVision({
-                    store: this.#roomStore,
-                    transaction,
-                    inputs: this.#roomInputs,
-                    authorization: prepared,
-                    campaignId: value.campaignId,
-                    epoch: value.authorityEpoch,
-                    scene: sceneCache.uncomposedScene
-                  })
-                : null
-              if (composition)
-                nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
-              receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
-                type: 'COMMAND_COMMITTED',
-                commandId,
-                sequence: current.sequence + 1,
-                delta: {
-                  scope: 'CHARACTER_SHEET',
-                  result: executed.acknowledgement
-                }
-              })
-              return { ...executed, composition }
-            },
-            (entry) => {
-              const latest = this.#authorization.current(value.authorityEpoch)
-              if (
-                this.#liveAdmission(socket)?.generation !== admission.generation ||
-                !latest ||
-                !admitsRoomMember(latest, admission) ||
-                checksumCanonicalJson(latest.revisions) !==
-                  checksumCanonicalJson(prepared.revisions) ||
-                this.#cache !== sceneCache ||
-                this.#presentationChanging
-              )
-                throw new RoomAdmissionExpiredError()
-              if (!receipt || entry.sequence !== current.sequence + 1)
-                throw new Error('Room Sheet command sequence does not match its authority.')
-              const committed = this.#journal.commitInTransaction({
-                actorId: admission.userId,
-                authorityEpoch: value.authorityEpoch,
-                commandId,
-                fingerprint,
-                expectedSequence: current.sequence,
-                expectedStateChecksum: current.stateChecksum,
-                nextStateChecksum: entry.chainChecksum,
-                nextStateJson,
-                receiptJson: JSON.stringify(receipt)
-              })
-              if (committed.kind !== 'COMMITTED')
-                throw new Error(
-                  'Room Sheet command unexpectedly replayed inside its write transaction.'
-                )
-            }
-          )
-      )
-      this.#authorization.applyCharacters(
-        value.authorityEpoch,
-        committedAuthorization.characters.map((entry) =>
-          entry.characterId === character.characterId
-            ? {
-                ...entry,
-                partyVisibility: result.facts?.sheetState.partyVisibility ?? entry.partyVisibility
-              }
-            : entry
-        )
-      )
-      if (result.composition && sceneCache)
-        this.#cache = {
-          ...sceneCache,
-          scene: result.composition.scene,
-          characterRevisions: result.composition.characterRevisions
-        }
-      if (!receipt) throw new Error('Room Sheet command receipt is unavailable.')
-      for (const recipient of this.ctx.getWebSockets()) {
-        const member = this.#liveAdmission(recipient)
-        if (!member || !admitsRoomMember(committedAuthorization, member)) continue
-        // Character history is private; every member still advances the same room sequence.
-        send(
-          recipient,
-          member.userId === admission.userId
-            ? receipt
-            : {
-                type: 'COMMAND_COMMITTED',
-                commandId,
-                delta: null,
-                sequence: this.#journal.readCurrent()!.sequence
-              }
-        )
-        // A Concentration end or death save card the command caused tells the whole table, as the
-        // encounter route does.
-        for (const entry of result.chatEntries)
-          send(recipient, {
-            type: 'COMMAND_COMMITTED',
-            commandId,
-            sequence: current.sequence + 1,
-            delta: { scope: 'CAMPAIGN_CHAT', entry, privateRoll: null }
-          })
-        // A roll retained for the GM reaches that user's sockets alone.
-        for (const { userId, roll } of result.privateRolls)
-          if (userId === member.userId)
-            send(recipient, {
-              type: 'COMMAND_COMMITTED',
-              commandId,
-              sequence: current.sequence + 1,
-              delta: { scope: 'CAMPAIGN_CHAT', entry: null, privateRoll: roll }
-            })
-      }
-      if (
-        result.composition &&
-        (command.command.type === 'SET_PARTY_VISIBILITY' ||
-          !equalCanonicalJson(sceneCache?.scene?.tokens, result.composition.scene.tokens))
-      )
-        this.#broadcastStateSync()
-      await this.#scheduleAlarm()
-    } catch (error) {
-      if (error instanceof CharacterSheetCommandError) {
-        this.#rejectCommand(socket, commandId, 'DOMAIN_REJECTED', error.message)
-        return
-      }
-      if (error instanceof EncounterDomainRejection) {
-        this.#sendDomainRejection(socket, commandId, error)
-        return
-      }
-      const refusal = encounterCommandRefusal(error)
-      this.#rejectCommand(socket, commandId, refusal.code, refusal.message)
-    }
-  }
-
-  #bucket(kind: AccountBucketKind, value: SocketAttachment, admission: Admission) {
-    return {
-      epoch: value.authorityEpoch,
-      kind,
-      role: admission.role,
-      userId: admission.userId
-    } as const
-  }
-
-  /**
-   * General chat and Campaign rolls (D69): the entry fans out to its conversation immediately and
-   * reaches Convex with the room's next checkpoint. The D72 charge, the journal receipt and the
-   * records commit together, so an exact retry replays the original entry for free.
-   */
-  async #executeCampaignChatCommand(
-    socket: WebSocket,
-    admission: Admission,
-    value: SocketAttachment,
-    command: Extract<LiveSessionCommandDto, { scope: 'CAMPAIGN_CHAT' }>
-  ): Promise<void> {
-    const commandId = command.command.commandId
-    const fingerprint = checksumCanonicalJson(command)
-    const prior = this.#journal.lookupCommand({
-      actorId: admission.userId,
-      commandId,
-      fingerprint
-    })
-    if (prior.kind === 'MISMATCHED_REUSE') {
-      this.#rejectCommand(
-        socket,
-        commandId,
-        'INVALID_COMMAND',
-        'The command ID was already used for different input.'
-      )
-      return
-    }
-    if (prior.kind === 'REPLAY') {
-      send(socket, replayReceipt(prior.receipt.receiptJson))
-      return
-    }
-    try {
-      const bucket = this.#bucket('TABLE', value, admission)
-      if (!this.#buckets.admits(bucket)) throw new RoomRateLimitedError()
-      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-      await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-      const current = this.#journal.readCurrent()
-      if (
-        !current ||
-        current.authorityEpoch !== value.authorityEpoch ||
-        current.status !== 'ACTIVE'
-      )
-        throw new Error('Live Session authority changed.')
-      const authorization = await this.#authorizationBoundary(value)
-      if (
-        this.#liveAdmission(socket)?.generation !== admission.generation ||
-        !admitsRoomMember(authorization, admission)
-      )
-        return
-      this.#roomStore.assertAuthorityHead({
-        epoch: current.authorityEpoch,
-        sequence: current.sequence,
-        checksum: current.stateChecksum
-      })
-      let receipt: LiveSessionWebSocketServerMessageDto | null = null
-      let replayed = false
-      const executed = await this.#roomStore.transact(
-        async (transaction) => {
-          const posted = await executeRoomCampaignChatCommand({
-            store: this.#roomStore,
-            transaction,
-            inputs: this.#roomInputs,
-            authorization,
-            campaignId: value.campaignId,
-            epoch: value.authorityEpoch,
-            userId: admission.userId,
-            command: command.command,
-            random: this.#random
-          })
-          replayed = posted.replayed
-          receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
-            type: 'COMMAND_COMMITTED',
-            commandId,
-            sequence: current.sequence + 1,
-            delta: {
-              scope: 'CAMPAIGN_CHAT',
-              entry: posted.entry,
-              privateRoll: posted.privateRoll
-            }
-          })
-          return posted
-        },
-        (entry) => {
-          const latest = this.#authorization.current(value.authorityEpoch)
-          if (
-            this.#liveAdmission(socket)?.generation !== admission.generation ||
-            !latest ||
-            !admitsRoomMember(latest, admission) ||
-            checksumCanonicalJson(latest.revisions) !==
-              checksumCanonicalJson(authorization.revisions)
-          )
-            throw new RoomAdmissionExpiredError()
-          if (!receipt || entry.sequence !== current.sequence + 1)
-            throw new Error('Room chat command sequence does not match its authority.')
-          // A replayed entry spends nothing, as an exact retry in this epoch spends nothing.
-          if (!replayed) this.#buckets.charge(bucket)
-          const committed = this.#journal.commitInTransaction({
-            actorId: admission.userId,
-            authorityEpoch: value.authorityEpoch,
-            commandId,
-            fingerprint,
-            expectedSequence: current.sequence,
-            expectedStateChecksum: current.stateChecksum,
-            nextStateChecksum: entry.chainChecksum,
-            nextStateJson: current.stateJson,
-            receiptJson: JSON.stringify(receipt)
-          })
-          if (committed.kind !== 'COMMITTED')
-            throw new Error('Room chat command unexpectedly replayed inside its transaction.')
-        }
-      )
-      if (!receipt) throw new Error('Room chat command receipt is unavailable.')
-      for (const recipient of this.ctx.getWebSockets()) {
-        const member = this.#liveAdmission(recipient)
-        if (!member || !admitsRoomMember(authorization, member)) continue
-        // Every member advances the same room sequence; only the conversation reads the entry.
-        send(
-          recipient,
-          executed.recipientUserIds.includes(member.userId)
-            ? member.userId === admission.userId
-              ? receipt
-              : {
-                  type: 'COMMAND_COMMITTED',
-                  commandId,
-                  sequence: current.sequence + 1,
-                  delta: {
-                    scope: 'CAMPAIGN_CHAT',
-                    entry: executed.entry,
-                    privateRoll: null
-                  }
-                }
-            : {
-                type: 'COMMAND_COMMITTED',
-                commandId,
-                sequence: current.sequence + 1,
-                delta: null
-              }
-        )
-      }
-      await this.#scheduleAlarm()
-    } catch (error) {
-      if (error instanceof RoomRateLimitedError)
-        this.#rejectCommand(socket, commandId, 'RATE_LIMITED', error.message)
-      else if (error instanceof CampaignChatCommandError)
-        this.#rejectCommand(socket, commandId, 'DOMAIN_REJECTED', error.message)
-      else {
-        const refusal = encounterCommandRefusal(error)
-        this.#rejectCommand(socket, commandId, refusal.code, refusal.message)
-      }
-    }
-  }
-
-  async #executeLocalEncounterCommand(
-    socket: WebSocket,
-    admission: Admission,
-    value: SocketAttachment,
-    command: RoomNativeEncounterCommand,
-    fingerprint: string
-  ): Promise<void> {
-    // A roll posted to the table spends the same D72 allowance as chat and Campaign rolls.
-    const tableBucket =
-      command.type === 'ROLL_RULE_EVIDENCE' ||
-      command.type === 'ROLL_ACTOR_INITIATIVE' ||
-      (command.type === 'ROLL_ENEMY_ACTION' && command.visibility === 'PUBLIC')
-        ? this.#bucket('TABLE', value, admission)
-        : null
-    try {
-      if (tableBucket && !this.#buckets.admits(tableBucket)) throw new RoomRateLimitedError()
-      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-      await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-      const current = this.#journal.readCurrent()
-      if (
-        !current ||
-        current.authorityEpoch !== value.authorityEpoch ||
-        current.status !== 'ACTIVE'
-      )
-        throw new Error('Live Session authority changed.')
-      const authorization = await this.#authorizationBoundary(value)
-      if (
-        this.#liveAdmission(socket)?.generation !== admission.generation ||
-        !admitsRoomMember(authorization, admission)
-      )
-        return
-      this.#roomStore.assertAuthorityHead({
-        epoch: current.authorityEpoch,
-        sequence: current.sequence,
-        checksum: current.stateChecksum
-      })
-      let receipt: LiveSessionWebSocketServerMessageDto | null = null
-      let checkpointBeforeAcknowledgement = false
-      let nextSceneStateJson = current.stateJson
-      const sceneCache = this.#cache
-      const { result } = await this.#prepareWithRetry(authorization, (prepared, random) =>
-        this.#roomStore.transact(
-          async (transaction) => {
-            const result = await executeRoomEncounterCommand({
-              store: this.#roomStore,
-              transaction,
-              inputs: this.#roomInputs,
-              authorization: prepared,
-              campaignId: value.campaignId,
-              epoch: value.authorityEpoch,
-              userId: admission.userId,
-              recipientUserIds: this.ctx.getWebSockets().flatMap((candidate) => {
-                const member = this.#liveAdmission(candidate)
-                return member && admitsRoomMember(prepared, member) ? [member.userId] : []
-              }),
-              command,
-              presentedSceneId: sceneCache?.scene?.id ?? null,
-              sceneTokens: this.#sceneTokens(value.authorityEpoch),
-              random,
-              ...(command.type === 'START' ||
-              command.type === 'ADVANCE_TURN' ||
-              command.type === 'RESOLVE_ACTION' ||
-              command.type === 'RESOLVE_RULE_OCCURRENCE' ||
-              command.type === 'VOID_RULE_OCCURRENCE' ||
-              command.type === 'REMOVE_AREA_TARGET' ||
-              command.type === 'ESCAPE' ||
-              command.type === 'END_HELD_GRANT' ||
-              command.type === 'MOVE_HELD_EFFECT' ||
-              command.type === 'RELEASE_RELATIONSHIP'
-                ? {
-                    turnExecution: { runtime: this.#liveRulesRuntime() }
-                  }
-                : {})
-            })
-            const ownResult = result.recipients.get(admission.userId)
-            if (!ownResult) throw new Error('Room command has no admitted recipient result.')
-            checkpointBeforeAcknowledgement = result.checkpointBeforeAcknowledgement
-            receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
-              type: 'COMMAND_COMMITTED',
-              commandId: command.commandId,
-              sequence: current.sequence + 1,
-              delta: { scope: 'ENCOUNTER', result: ownResult }
-            })
-            // An action's forced movement (D139) or its revert moved tokens on the presented Scene.
-            const sceneHeader = sceneCache?.sceneHeader
-              ? readRoomSceneHeader(transaction, sceneCache.sceneHeader.id)
-              : null
-            const sceneState =
-              sceneHeader && sceneHeader.version !== sceneCache?.sceneHeader?.version
-                ? await readRoomSceneState(transaction, sceneHeader.id)
-                : null
-            const uncomposedScene = sceneState?.scene ?? sceneCache?.uncomposedScene
-            const composition = uncomposedScene
-              ? await composeRoomSceneVision({
-                  store: this.#roomStore,
-                  transaction,
-                  inputs: this.#roomInputs,
-                  authorization: prepared,
-                  campaignId: value.campaignId,
-                  epoch: value.authorityEpoch,
-                  scene: uncomposedScene
-                })
-              : null
-            if (composition)
-              nextSceneStateJson = createNativeLiveSessionState(composition.scene).stateJson
-            return {
-              ...result,
-              composition,
-              moved: sceneState && sceneHeader ? { ...sceneState, header: sceneHeader } : null
-            }
-          },
-          (entry) => {
-            const latest = this.#authorization.current(value.authorityEpoch)
-            if (
-              this.#liveAdmission(socket)?.generation !== admission.generation ||
-              !latest ||
-              checksumCanonicalJson(latest.revisions) !==
-                checksumCanonicalJson(prepared.revisions) ||
-              !admitsRoomMember(latest, admission)
-            )
-              throw new RoomAdmissionExpiredError()
-            if (!receipt || entry.sequence !== current.sequence + 1)
-              throw new Error('Room command sequence does not match its authority.')
-            if (tableBucket) this.#buckets.charge(tableBucket)
-            const committed = this.#journal.commitInTransaction({
-              actorId: admission.userId,
-              authorityEpoch: value.authorityEpoch,
-              commandId: command.commandId,
-              fingerprint,
-              expectedSequence: current.sequence,
-              expectedStateChecksum: current.stateChecksum,
-              nextStateChecksum: entry.chainChecksum,
-              nextStateJson: nextSceneStateJson,
-              receiptJson: JSON.stringify(receipt),
-              checkpointBeforeAcknowledgement
-            })
-            if (committed.kind !== 'COMMITTED')
-              throw new Error(
-                'Room command unexpectedly replayed inside its write-set transaction.'
-              )
-          }
-        )
-      )
-      if (result.play) this.#authorization.applyPlay(value.authorityEpoch, result.play)
-      if (result.composition && sceneCache) {
-        this.#cache = {
-          ...sceneCache,
-          ...(result.play ? { encounterId: result.play.encounter?.encounterId ?? null } : {}),
-          scene: result.composition.scene,
-          characterRevisions: result.composition.characterRevisions,
-          ...(result.moved
-            ? {
-                uncomposedScene: result.moved.scene,
-                baseOrdinals: result.moved.baseOrdinals,
-                sceneHeader: result.moved.header
-              }
-            : {})
-        }
-        if (!equalCanonicalJson(sceneCache.scene?.tokens, result.composition.scene.tokens))
-          this.#broadcastStateSync()
-      }
-      if (result.checkpointBeforeAcknowledgement)
-        await this.#checkpointThrough(value.authorityEpoch, current.sequence + 1, 'ACKNOWLEDGEMENT')
-      const latest = await this.#authorizationBoundary(value)
-      for (const recipientSocket of this.ctx.getWebSockets()) {
-        const member = this.#liveAdmission(recipientSocket)
-        if (!member || !latest || !admitsRoomMember(latest, member)) continue
-        const projection = result.recipients.get(member.userId)
-        if (projection)
-          send(recipientSocket, {
-            type: 'COMMAND_COMMITTED',
-            commandId: command.commandId,
-            sequence: current.sequence + 1,
-            delta: { scope: 'ENCOUNTER', result: projection }
-          })
-        // Roll cards the command posted to the TABLE reach every member in the commit, after the
-        // result they belong to, on the same room sequence.
-        for (const entry of result.chatEntries)
-          send(recipientSocket, {
-            type: 'COMMAND_COMMITTED',
-            commandId: command.commandId,
-            sequence: current.sequence + 1,
-            delta: { scope: 'CAMPAIGN_CHAT', entry, privateRoll: null }
-          })
-        // A roll retained for the GM reaches that user's sockets alone.
-        for (const { userId, roll } of result.privateRolls)
-          if (userId === member.userId)
-            send(recipientSocket, {
-              type: 'COMMAND_COMMITTED',
-              commandId: command.commandId,
-              sequence: current.sequence + 1,
-              delta: { scope: 'CAMPAIGN_CHAT', entry: null, privateRoll: roll }
-            })
-      }
-      await this.#scheduleAlarm()
-    } catch (error) {
-      if (
-        error instanceof EncounterDomainRejection ||
-        error instanceof LiveSessionDomainRejectionError
-      ) {
-        this.#sendDomainRejection(socket, command.commandId, error)
-        return
-      }
-      if (error instanceof RoomRateLimitedError)
-        this.#rejectCommand(socket, command.commandId, 'RATE_LIMITED', error.message)
-      else if (error instanceof CharacterSheetCommandError)
-        this.#rejectCommand(socket, command.commandId, 'DOMAIN_REJECTED', error.message)
-      else {
-        const refusal = encounterCommandRefusal(error)
-        this.#rejectCommand(socket, command.commandId, refusal.code, refusal.message)
-      }
-    }
-  }
-
-  /**
-   * A movement decision's answer or GM void commits through the room with its presented Scene
-   * (D27); a decision off the presented Scene is refused (D42).
-   */
-  async #commitMovementDecision(
-    socket: WebSocket,
-    admission: Admission,
-    value: SocketAttachment,
-    command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
-    fingerprint: string
-  ): Promise<EncounterCommandResultDto> {
-    if (this.#cache && this.#cache.encounterId !== command.encounterId.toLowerCase())
-      throw sceneNotPresentedRejection()
-    const { encounter } = await this.#commitRoomGeometry(
-      socket,
-      admission,
-      value,
-      command,
-      fingerprint
-    )
-    if (!encounter) throw new Error('A movement decision commit returned no Encounter result.')
-    return encounter
-  }
-
-  /**
-   * Stages one step of a GM fog patch (D79). Staging is not Scene state, so it neither journals nor
-   * charges; the SCENE bucket must admit each step, and `PUBLISH_SCENE_FOG_PATCH` charges and
-   * commits. A begin whose command already published reports that publication.
-   */
-  async #stageSceneFog(
-    socket: WebSocket,
-    admission: Admission,
-    message: Extract<
-      LiveSessionWebSocketClientMessageDto,
-      { type: 'SCENE_FOG_BEGIN' | 'SCENE_FOG_APPEND' }
-    >
-  ): Promise<void> {
-    if (this.#liveAdmission(socket)?.generation !== admission.generation) return
-    const value = attachment(socket)
-    const current = this.#journal.readCurrent()
-    const commandId =
-      message.type === 'SCENE_FOG_BEGIN' ? message.input.commandId : message.commandId
-    if (
-      !value ||
-      !current ||
-      current.authorityEpoch !== value.authorityEpoch ||
-      current.status !== 'ACTIVE'
-    ) {
-      this.#rejectCommand(socket, commandId, 'AUTHORITY_CHANGED', 'Live Session authority changed.')
-      return
-    }
-    if (admission.role !== 'OWNER') {
-      this.#rejectCommand(socket, commandId, 'FORBIDDEN', 'Only the GM can change this Scene.')
-      return
-    }
-    if (!this.#buckets.admits(this.#bucket('SCENE', value, admission))) {
-      this.#rejectCommand(socket, commandId, 'RATE_LIMITED', new RoomRateLimitedError().message)
-      return
-    }
-    const uploader = { epoch: value.authorityEpoch, userId: admission.userId }
-    try {
-      if (message.type === 'SCENE_FOG_APPEND') {
-        send(socket, {
-          type: 'SCENE_FOG_PROGRESS',
-          progress: this.#fogUploads.append(uploader, commandId, message.input)
-        })
-        return
-      }
-      const { input } = message
-      const scene = this.#cache?.scene ?? null
-      if (!scene || scene.id !== input.sceneId || input.expectedSceneVersion > scene.version) {
-        this.#rejectCommand(
-          socket,
-          commandId,
-          'STALE_STATE',
-          'Scene changed; the current state has been restored.',
-          current.sequence,
-          scene
-            ? {
-                scope: 'SCENE',
-                state: projectSceneForViewer(
-                  this.#controlledScene(scene, value.authorityEpoch),
-                  viewer(admission),
-                  this.#boundTokenControl(scene, admission, value.authorityEpoch)
-                )
-              }
-            : undefined
-        )
-        return
-      }
-      if (scene.fogMode === 'OFF')
-        throw new RoomSceneCommandRefusal('INVALID_COMMAND', 'Fog of war is off for this Scene.')
-      const published = await this.#roomStore.transact(async (transaction) =>
-        readRoomSceneFogReceipt(transaction, input.sceneId, commandId)
-      )
-      if (published && published.inputChecksum !== checksumCanonicalJson(input))
-        throw new RoomSceneCommandRefusal(
-          'INVALID_COMMAND',
-          'Command ID was already used with different input.'
-        )
-      send(socket, {
-        type: 'SCENE_FOG_PROGRESS',
-        progress: published
-          ? {
-              saveId: published.result.patch.saveId,
-              sceneId: published.sceneId,
-              commandId: published.commandId,
-              status: 'PUBLISHED',
-              receivedChunks: published.input.chunkManifest.length,
-              totalChunks: published.input.chunkManifest.length
-            }
-          : this.#fogUploads.begin(uploader, input)
-      })
-      await this.#scheduleAlarm()
-    } catch (error) {
-      if (!(error instanceof RoomSceneCommandRefusal)) throw error
-      this.#rejectCommand(socket, commandId, error.code, error.message)
-    }
-  }
-
-  /**
-   * An undo, inline edit or fog publication: its Scene rows, recomposed vision, replay evidence and
-   * acknowledgement commit in one SQLite transaction (D79).
-   */
-  async #commitRoomSceneEdit(
-    socket: WebSocket,
-    admission: Admission,
-    value: SocketAttachment,
-    command: { sceneId: string; commandId: string },
-    fingerprint: string,
-    edit: RoomSceneEditWork,
-    /** Runs inside the durable commit, with the journal receipt. */
-    onDurable?: () => void
-  ): Promise<void> {
-    if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-    await this.#loadRoomAggregate(command.sceneId)
-    const cache = this.#cache
-    const current = this.#journal.readCurrent()
-    if (
-      !cache?.scene ||
-      !cache.uncomposedScene ||
-      !cache.presentation ||
-      !current ||
-      current.authorityEpoch !== value.authorityEpoch
-    )
-      throw new LiveSessionRouteError(409)
-    const before = cache.scene
-    const authorization = await this.#authorizationBoundary(value)
-    if (!admitsRoomMember(authorization, admission)) throw new RoomAdmissionExpiredError()
-    this.#roomStore.assertAuthorityHead({
-      epoch: current.authorityEpoch,
-      sequence: current.sequence,
-      checksum: current.stateChecksum
-    })
-    let receipt: LiveSessionWebSocketServerMessageDto | null = null
-    let nextStateJson: string | null = null
-    const sequence = current.sequence + 1
-    const { result: committed } = await this.#prepareWithRetry(authorization, (prepared) =>
-      this.#roomStore.transact(
-        async (transaction) => {
-          const edited = await edit({
-            transaction,
-            authorization: prepared,
-            scene: cache.uncomposedScene!,
-            presentation: cache.presentation!
-          })
-          const composition = await composeRoomSceneVision({
-            store: this.#roomStore,
-            transaction,
-            inputs: this.#roomInputs,
-            authorization: prepared,
-            campaignId: value.campaignId,
-            epoch: value.authorityEpoch,
-            scene: edited.scene
-          })
-          nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
-          receipt = liveSessionWebSocketServerMessageDtoSchema.parse(
-            this.#sceneCommittedFor({
-              admission,
-              epoch: value.authorityEpoch,
-              committed: { commandId: command.commandId, sequence },
-              before,
-              after: composition.scene,
-              result: edited.result,
-              occurrence: null
-            })
-          )
-          return { ...edited, composition, receipt }
-        },
-        (entry) => {
-          const latest = this.#authorization.current(value.authorityEpoch)
-          if (
-            !latest ||
-            this.#liveAdmission(socket)?.generation !== admission.generation ||
-            !admitsRoomMember(latest, admission) ||
-            checksumCanonicalJson(latest.revisions) !== checksumCanonicalJson(prepared.revisions) ||
-            this.#cache?.scene?.id !== before.id ||
-            this.#cache.scene.version !== before.version ||
-            this.#cache.presentation?.expectedPresentationVersion !==
-              cache.presentation!.expectedPresentationVersion
-          )
-            throw new RoomAdmissionExpiredError()
-          if (!receipt || !nextStateJson || entry.sequence !== sequence)
-            throw new Error('Room Scene edit sequence does not match its authority.')
-          this.#buckets.charge(this.#bucket('SCENE', value, admission))
-          onDurable?.()
-          const result = this.#journal.commitInTransaction({
-            actorId: admission.userId,
-            authorityEpoch: value.authorityEpoch,
-            commandId: command.commandId,
-            fingerprint,
-            expectedSequence: current.sequence,
-            expectedStateChecksum: current.stateChecksum,
-            nextStateChecksum: entry.chainChecksum,
-            nextStateJson,
-            receiptJson: JSON.stringify(receipt)
-          })
-          if (result.kind !== 'COMMITTED')
-            throw new Error('Room Scene edit unexpectedly replayed inside its transaction.')
-        }
-      )
-    )
-    this.#cache = {
-      ...cache,
-      scene: committed.composition.scene,
-      uncomposedScene: committed.scene,
-      sceneHeader: committed.header,
-      characterRevisions: committed.composition.characterRevisions
-    }
-    this.#broadcastSceneCommitted(
-      { commandId: command.commandId, sequence },
-      before,
-      committed.composition.scene,
-      committed.result,
-      { socket, message: committed.receipt }
-    )
-    if (committed.fogChanged) this.#broadcastStateSync()
-    await this.#scheduleAlarm()
-  }
-
-  /** Geometry, fog, rules, replay evidence and acknowledgement commit in one SQLite transaction. */
-  async #commitRoomGeometry(
-    socket: WebSocket,
-    admission: Admission,
-    value: SocketAttachment,
-    command: StagedSceneCommand,
-    fingerprint: string
-  ) {
-    if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-    await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-    const context = this.#stagedSceneContext()
-    if (!context) throw new LiveSessionRouteError(409)
-    const before = context.scene
-    const cache = this.#cache!
-    if (!cache.uncomposedScene) throw new Error('Native Scene persistence inputs are unavailable.')
-    const current = this.#journal.readCurrent()
-    if (
-      !current ||
-      current.authorityEpoch !== value.authorityEpoch ||
-      this.#cache?.scene?.id !== before.id ||
-      this.#cache.scene.version !== before.version
-    )
-      throw new LiveSessionRouteError(409)
-    const authorization = await this.#authorizationBoundary(value)
-    if (
-      this.#liveAdmission(socket)?.generation !== admission.generation ||
-      !admitsRoomMember(authorization, admission)
-    )
-      throw new RoomAdmissionExpiredError()
-    this.#roomStore.assertAuthorityHead({
-      epoch: current.authorityEpoch,
-      sequence: current.sequence,
-      checksum: current.stateChecksum
-    })
-    const sequence = current.sequence + 1
-    // A movement decision stores both messages its sender is sent: the Scene receipt, then the Encounter result.
-    let receipt:
-      | LiveSessionWebSocketServerMessageDto
-      | [LiveSessionWebSocketServerMessageDto, LiveSessionWebSocketServerMessageDto]
-      | null = null
-    let nextStateJson: string | null = null
-    const { result: committed } = await this.#prepareWithRetry(authorization, (prepared, random) =>
-      this.#roomStore.transact(
-        async (transaction) => {
-          const result = await executeRoomSceneGeometry({
-            store: this.#roomStore,
-            transaction,
-            inputs: this.#roomInputs,
-            authorization: prepared,
-            campaignId: value.campaignId,
-            epoch: value.authorityEpoch,
-            userId: admission.userId,
-            command,
-            context,
-            sceneTokens: this.#sceneTokens(value.authorityEpoch),
-            runtime: this.#liveRulesRuntime(),
-            random
-          })
-          // The fog patches are written by their owners; the acknowledged DTO carries none.
-          const scene = sceneCommandResultDtoSchema.parse({
-            commandId: result.scene.commandId,
-            delta: result.scene.delta,
-            occurrence: result.scene.occurrence,
-            replayed: result.scene.replayed,
-            sceneId: result.scene.sceneId,
-            version: result.scene.version
-          })
-          const raw = result.scene.delta
-            ? applySceneDelta(cache.uncomposedScene!, result.scene.delta, result.nextScene.version)
-            : cache.uncomposedScene!
-          const uncomposedScene = {
-            ...raw,
-            version: result.nextScene.version,
-            fogLayers: result.nextScene.fogLayers
-          }
-          const composition = await composeRoomSceneVision({
-            store: this.#roomStore,
-            transaction,
-            inputs: this.#roomInputs,
-            authorization: prepared,
-            campaignId: value.campaignId,
-            epoch: value.authorityEpoch,
-            scene: uncomposedScene
-          })
-          nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
-          const sent = liveSessionWebSocketServerMessageDtoSchema.parse(
-            this.#sceneCommittedFor({
-              admission,
-              epoch: value.authorityEpoch,
-              committed: { commandId: command.commandId, sequence },
-              before,
-              after: composition.scene,
-              result: scene,
-              occurrence: scene.occurrence
-            })
-          )
-          // Only a movement decision commits an Encounter result; a Scene command's retry replays one message.
-          if (
-            (command.type === 'RESOLVE_RULE_OCCURRENCE' ||
-              command.type === 'VOID_RULE_OCCURRENCE') !==
-            (result.encounter !== null)
-          )
-            throw new Error('Only a movement decision commits an Encounter result.')
-          receipt = result.encounter
-            ? [
-                sent,
-                liveSessionWebSocketServerMessageDtoSchema.parse({
-                  commandId: command.commandId,
-                  delta: { scope: 'ENCOUNTER', result: result.encounter },
-                  sequence,
-                  type: 'COMMAND_COMMITTED'
-                })
-              ]
-            : sent
-          return {
-            ...result,
-            scene,
-            sent,
-            nextScene: composition.scene,
-            uncomposedScene,
-            characterRevisions: composition.characterRevisions,
-            header: readRoomSceneHeader(transaction, before.id),
-            play: await readRoomEncounterPlayAuthorization(
-              { db: this.#roomStore.store },
-              value.campaignId,
-              prepared.play,
-              before.id
-            )
-          }
-        },
-        (entry) => {
-          const latest = this.#authorization.current(value.authorityEpoch)
-          if (
-            this.#liveAdmission(socket)?.generation !== admission.generation ||
-            !latest ||
-            checksumCanonicalJson(latest.revisions) !== checksumCanonicalJson(prepared.revisions) ||
-            !admitsRoomMember(latest, admission) ||
-            this.#cache?.scene?.id !== before.id ||
-            this.#cache.scene.version !== before.version ||
-            this.#cache.presentation?.expectedPresentationVersion !==
-              context.presentation.expectedPresentationVersion
-          )
-            throw new RoomAdmissionExpiredError()
-          if (!receipt || !nextStateJson || entry.sequence !== sequence)
-            throw new Error('Room command sequence does not match its authority.')
-          this.#buckets.charge(this.#bucket('SCENE', value, admission))
-          const result = this.#journal.commitInTransaction({
-            actorId: admission.userId,
-            authorityEpoch: value.authorityEpoch,
-            commandId: command.commandId,
-            fingerprint,
-            expectedSequence: current.sequence,
-            expectedStateChecksum: current.stateChecksum,
-            nextStateChecksum: entry.chainChecksum,
-            nextStateJson,
-            receiptJson: JSON.stringify(receipt)
-          })
-          if (result.kind !== 'COMMITTED')
-            throw new Error('Room command unexpectedly replayed inside its write-set transaction.')
-        }
-      )
-    )
-    if (committed.play) this.#authorization.applyPlay(value.authorityEpoch, committed.play)
-    this.#cache = {
-      ...cache,
-      scene: committed.nextScene,
-      uncomposedScene: committed.uncomposedScene,
-      characterRevisions: committed.characterRevisions,
-      sceneHeader: committed.header
-    }
-    this.#broadcastSceneCommitted(
-      { commandId: command.commandId, sequence },
-      before,
-      committed.nextScene,
-      committed.scene,
-      { socket, message: committed.sent }
-    )
-    if (committed.fogChanged || !equalCanonicalJson(before.tokens, committed.nextScene.tokens))
-      this.#broadcastStateSync()
-    await this.#scheduleAlarm()
-    return committed
-  }
-
-  /** The room's presented Scene that geometry commands plan against; null while none is presented. */
-  #stagedSceneContext(): StagedSceneContext | null {
-    const cached = this.#cache
-    if (!cached?.scene || !cached.presentation) return null
-    return {
-      scene: cached.scene,
-      baseOrdinals: cached.baseOrdinals,
-      characterRevisions: cached.characterRevisions,
-      presentation: cached.presentation
-    }
-  }
-
-  /** The GM's binding, native controls and room receipt commit together before fanout. */
-  async #executeEncounterBinding(
-    socket: WebSocket,
-    admission: Admission,
-    value: SocketAttachment,
-    command: BindEncounterToPresentedSceneInputDto
-  ): Promise<void> {
-    const commandId = command.commandId
-    const fingerprint = checksumCanonicalJson({
-      command,
-      scope: 'ENCOUNTER_BINDING'
-    })
-    const prior = this.#journal.lookupCommand({
-      actorId: admission.userId,
-      commandId,
-      fingerprint
-    })
-    if (prior.kind === 'MISMATCHED_REUSE') {
-      this.#rejectCommand(
-        socket,
-        commandId,
-        'INVALID_COMMAND',
-        'The command ID was already used for different input.'
-      )
-      return
-    }
-    if (prior.kind === 'REPLAY') {
-      send(socket, replayReceipt(prior.receipt.receiptJson))
-      return
-    }
-    if (admission.role !== 'OWNER') {
-      send(socket, {
-        code: 'DOMAIN_REJECTED',
-        commandId,
-        currentSequence: this.#journal.readCurrent()?.sequence ?? 0,
-        message: DOMAIN_REJECTION_MESSAGES.GM_ONLY,
-        reason: 'GM_ONLY',
-        warnings: null,
-        type: 'COMMAND_REJECTED'
-      })
-      return
-    }
-    const cached = this.#cache
-    if (!cached?.scene || !cached.presentation) {
-      this.#rejectCommand(
-        socket,
-        commandId,
-        'UNAVAILABLE',
-        'The presented Scene is not available yet; try again.'
-      )
-      return
-    }
-    const sceneId = cached.scene.id
-    const { presentation } = cached
-    try {
-      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
-      await this.#loadRoomAggregate(sceneId)
-      const current = this.#journal.readCurrent()
-      if (!current || current.authorityEpoch !== value.authorityEpoch)
-        throw new LiveSessionRouteError(409)
-      const authorization = await this.#authorizationBoundary(value)
-      if (
-        !cached.uncomposedScene ||
-        this.#liveAdmission(socket)?.generation !== admission.generation ||
-        !admitsRoomMember(authorization, admission)
-      )
-        throw new RoomAdmissionExpiredError()
-      this.#roomStore.assertAuthorityHead({
-        epoch: current.authorityEpoch,
-        sequence: current.sequence,
-        checksum: current.stateChecksum
-      })
-      const sequence = current.sequence + 1
-      let receipt: LiveSessionWebSocketServerMessageDto | null = null
-      let nextStateJson: string | null = null
-      const { result, authorization: committedAuthorization } = await this.#prepareWithRetry(
-        authorization,
-        (prepared) =>
-          this.#roomStore.transact(
-            async (transaction) => {
-              const bound = await executeRoomSceneBinding({
-                store: this.#roomStore,
-                transaction,
-                inputs: this.#roomInputs,
-                authorization: prepared,
-                campaignId: value.campaignId,
-                epoch: value.authorityEpoch,
-                userId: admission.userId,
-                sceneId,
-                expectedPresentationVersion: presentation.expectedPresentationVersion,
-                command
-              })
-              const encounterId = bound.play
-                ? (bound.play.encounter?.encounterId ?? null)
-                : cached.encounterId
-              const composition = await composeRoomSceneVision({
-                store: this.#roomStore,
-                transaction,
-                inputs: this.#roomInputs,
-                authorization: prepared,
-                campaignId: value.campaignId,
-                epoch: value.authorityEpoch,
-                scene: cached.uncomposedScene!
-              })
-              nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
-              receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
-                commandId,
-                delta: { scope: 'ENCOUNTER_BINDING', result: bound.result },
-                sequence,
-                type: 'COMMAND_COMMITTED'
-              })
-              return { ...bound, encounterId, composition }
-            },
-            (entry) => {
-              const latest = this.#authorization.current(value.authorityEpoch)
-              if (
-                !latest ||
-                this.#liveAdmission(socket)?.generation !== admission.generation ||
-                !admitsRoomMember(latest, admission) ||
-                checksumCanonicalJson(latest.revisions) !==
-                  checksumCanonicalJson(prepared.revisions) ||
-                this.#cache?.scene?.id !== sceneId ||
-                this.#cache.presentation?.expectedPresentationVersion !==
-                  presentation.expectedPresentationVersion
-              )
-                throw new RoomAdmissionExpiredError()
-              if (!receipt || !nextStateJson || entry.sequence !== sequence)
-                throw new Error('Room binding sequence does not match its authority.')
-              const committed = this.#journal.commitInTransaction({
-                actorId: admission.userId,
-                authorityEpoch: value.authorityEpoch,
-                commandId,
-                fingerprint,
-                expectedSequence: current.sequence,
-                expectedStateChecksum: current.stateChecksum,
-                nextStateChecksum: entry.chainChecksum,
-                nextStateJson,
-                receiptJson: JSON.stringify(receipt)
-              })
-              if (committed.kind !== 'COMMITTED')
-                throw new Error('Room binding unexpectedly replayed inside its transaction.')
-            }
-          )
-      )
-      if (result.play) this.#authorization.applyPlay(value.authorityEpoch, result.play)
-      this.#cache = {
-        ...cached,
-        encounterId: result.encounterId,
-        scene: result.composition.scene,
-        characterRevisions: result.composition.characterRevisions
-      }
-      if (!receipt) throw new Error('Committed room binding receipt is unavailable.')
-      for (const member of this.ctx.getWebSockets()) {
-        const active = this.#liveAdmission(member)
-        if (active && admitsRoomMember(committedAuthorization, active)) send(member, receipt)
-      }
-      this.#broadcastStateSync()
-      await this.#scheduleAlarm()
-    } catch (error) {
-      this.#rejectSceneCommand(socket, commandId, error, undefined)
-    }
   }
 
   /** Maps a failed Scene command to its user-safe rejection. */
@@ -4012,7 +2484,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   /**
    * The committed Scene command as `admission` receives it. The sender's stored receipt is this
    * message, so an exact retry replays what the sender was sent, never the raw delta. When a
-   * movement decision settles, `#commitRoomGeometry` stores it ahead of the Encounter result.
+   * movement decision settles, `commitRoomGeometry` stores it ahead of the Encounter result.
    */
   #sceneCommittedFor({
     admission,

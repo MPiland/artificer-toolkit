@@ -15,7 +15,7 @@ import {
   targetEndedEffects,
   withOwnedTemporaryHitPoints
 } from '../encounterEndedEffectRelease.js'
-import { effectEventScope, isInEffectEventScope } from '../encounterGrantLifetimes.js'
+import { effectEventScope, isInEffectEventScope } from '../events/encounterEventHooks.js'
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'

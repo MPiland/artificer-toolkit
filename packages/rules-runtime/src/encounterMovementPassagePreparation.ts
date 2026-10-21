@@ -39,14 +39,12 @@ import { createEncounterMovementPassageChoice } from './encounterMovementPassage
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import { EncounterValidationError } from './encounterErrors.js'
-import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
-import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from './systems/dnd5e/identity.js'
-import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
-import { prepareDnd5eOptionalCombatContestPendingContext } from './systems/dnd5e/optionalCombatContestPendingContext.js'
+import { prepareEncounterContestPendingContext } from './encounterContestPendingContext.js'
 import {
-  prepareDnd5eOverrunContest,
-  prepareDnd5eTumbleContest
-} from './systems/dnd5e/optionalMovementPolicy.js'
+  contestCheckCapabilityRegistry,
+  optionalCombatPolicyCapabilityRegistry
+} from './platformEncounterPolicy.js'
+import { abilityScoreCapabilityRegistry } from './platformPolicyModules.js'
 
 type PassageReads<TCharacterFacts extends CharacterMovementFacts> = {
   loadSystem: () => Promise<SystemAuthoredDto>
@@ -127,10 +125,7 @@ export function checkAbilityCode(
     checkKind === 'ABILITY'
       ? checkDefinitionId
       : system.skills.find((skill) => skill.id === checkDefinitionId)?.governingAbilityDefinitionId
-  return (
-    Object.entries(DND5E_ABILITY_DEFINITION_ID_BY_CODE).find(([, id]) => id === abilityId)?.[0] ??
-    null
-  )
+  return system.abilities.find((ability) => ability.id === abilityId)?.code ?? null
 }
 
 /**
@@ -234,7 +229,7 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
           )
         : abilityScore === undefined
           ? undefined
-          : abilityModifier(abilityScore)
+          : abilityScoreCapabilityRegistry.require(input.gameSystemId).abilityModifier(abilityScore)
     const granted = mergedRollContributors(
       input.gameSystemId,
       [],
@@ -341,15 +336,16 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     system,
     targets: input.targets
   }).size
+  const policy = optionalCombatPolicyCapabilityRegistry.require(input.state.gameSystemId)
   const preliminary =
     option.ruleKind === 'OVERRUN'
-      ? prepareDnd5eOverrunContest({
+      ? policy.prepareOverrunContest({
           ...common,
           initiatorSizeRank: sizeRank(sourceSize),
           targetSizeRank: sizeRank(blockerSize),
           qualifiedInitiatorContributors: []
         })
-      : prepareDnd5eTumbleContest(common)
+      : policy.prepareTumbleContest(common)
   if (preliminary.kind !== 'PROPOSED') throw new Error('Movement passage policy is unavailable.')
   const initiator = actorContestFacts({
     actorId: source.actor.id,
@@ -373,7 +369,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     option.ruleKind === 'OVERRUN'
       ? {
           ruleKind: 'OVERRUN' as const,
-          result: prepareDnd5eOverrunContest({
+          result: policy.prepareOverrunContest({
             ...common,
             initiatorSizeRank: sizeRank(initiator.size),
             targetSizeRank: sizeRank(defender.size),
@@ -384,7 +380,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
             }))
           })
         }
-      : { ruleKind: 'TUMBLE' as const, result: prepareDnd5eTumbleContest(common) }
+      : { ruleKind: 'TUMBLE' as const, result: policy.prepareTumbleContest(common) }
   if (resolved.result.kind !== 'PROPOSED')
     throw new Error('Movement passage policy changed before contest.')
   const proposal = resolved.result.proposal
@@ -424,8 +420,10 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     )
     initiatorRollMode = overrun.result.proposal.contest.initiatorMode
   }
-  const graph = createDnd5eOptionalCombatContestGraph(proposal.pin)
-  return prepareDnd5eOptionalCombatContestPendingContext({
+  const graph = contestCheckCapabilityRegistry
+    .require(input.state.gameSystemId)
+    .optionalCombatContestGraph(proposal.pin)
+  return prepareEncounterContestPendingContext({
     origin: {
       kind: 'OPTIONAL_COMBAT',
       actionKind: option.ruleKind,

@@ -30,7 +30,7 @@ import {
   settleEncounterD20Answer,
   settleEncounterD20Test
 } from './encounterD20Settlement.js'
-import { effectsEndedBy } from './encounterGrantLifetimes.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import { actorContestFacts, checkAbilityCode } from './encounterMovementPassagePreparation.js'
@@ -132,14 +132,22 @@ export function prepareEncounterBasicActionCheck<
         dc: input.check.dc
       },
       d20: freezeD20Context({ ...facts, modifier: facts.modifier }),
-      consumedGrants: effectsEndedBy(helper.activeEffects, {
-        event: 'ON_ABILITY_CHECK',
-        abilityCode: checkAbilityCode(
-          input.system,
-          input.check.checkKind,
-          input.check.checkDefinitionId
-        )
-      })
+      consumedGrants: discoverEncounterEventHooks({
+        effects: helper.activeEffects,
+        events: [
+          {
+            kind: 'TEST',
+            test: 'CHECK',
+            ability: {
+              code: checkAbilityCode(
+                input.system,
+                input.check.checkKind,
+                input.check.checkDefinitionId
+              )
+            }
+          }
+        ]
+      }).ended
     })
   }
 }

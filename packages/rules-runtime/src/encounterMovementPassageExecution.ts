@@ -258,6 +258,7 @@ export async function evaluateEncounterMovementPassageContest<
       return face
     }
     const execution = await executeEncounterMovementPassageContest({
+      gameSystemId: input.state.gameSystemId,
       autoRoll: input.autoRoll,
       occurrenceId: input.snapshot.occurrenceId,
       pending,
@@ -391,6 +392,7 @@ export async function evaluateEncounterMovementPassageContest<
     throw new Error('A movement passage response carries its own d20 faces.')
   }
   const execution = await executeEncounterMovementPassageContest({
+    gameSystemId: input.state.gameSystemId,
     autoRoll: {},
     continuation,
     occurrenceId: input.snapshot.occurrenceId,

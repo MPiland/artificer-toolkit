@@ -4,7 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
+import { contestCheckCapabilityRegistry } from './platformEncounterPolicy.js'
 import {
   contestDefenderPolicy,
   executeEncounterOptionalContestAction,
@@ -21,6 +21,7 @@ import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 export async function executeEncounterMovementPassageContest(input: {
   readonly autoRoll: EncounterAutoRollByActorId
   readonly continuation?: ServerRuleExecutionContinuationDto
+  readonly gameSystemId: string
   readonly pending: ServerContestCheckPendingApplicationContextDto
   readonly occurrenceId: string
   readonly resolution?: OptionalContestResolution
@@ -56,13 +57,15 @@ export async function executeEncounterMovementPassageContest(input: {
   ) {
     throw new EncounterConflictError('Movement passage contest is unavailable.')
   }
-  const graph = createDnd5eOptionalCombatContestGraph({
-    definitionId: input.pending.origin.pin.definitionId,
-    definitionVersion: input.pending.origin.pin.definitionVersion,
-    definitionChecksum: input.pending.origin.pin.definitionChecksum,
-    moduleKey: input.pending.origin.pin.moduleKey,
-    moduleContractVersion: input.pending.origin.pin.moduleContractVersion
-  })
+  const graph = contestCheckCapabilityRegistry
+    .require(input.gameSystemId)
+    .optionalCombatContestGraph({
+      definitionId: input.pending.origin.pin.definitionId,
+      definitionVersion: input.pending.origin.pin.definitionVersion,
+      definitionChecksum: input.pending.origin.pin.definitionChecksum,
+      moduleKey: input.pending.origin.pin.moduleKey,
+      moduleContractVersion: input.pending.origin.pin.moduleContractVersion
+    })
   if (
     graph.published.id !== input.pending.contestGraph.definitionId ||
     graph.published.checksum !== input.pending.contestGraph.checksum ||
