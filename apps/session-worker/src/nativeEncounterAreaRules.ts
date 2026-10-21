@@ -8,6 +8,7 @@ import {
   type ResolveEncounterActionTargetDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { EncounterSealedChoiceSelection } from '@artificer-toolkit/rules-runtime/encounterSealedChoice'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { EncounterFailedCounterDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -59,7 +60,6 @@ import {
   encounterTargetLegendaryResistance,
   offerEncounterAreaLegendaryResistance
 } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
-import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import {
   answerEncounterAreaTest,
@@ -1309,7 +1309,7 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
   }
 ) {
   const { command, actors, areaSnapshot, decision } = input
-  const selection: EncounterLegendaryResistanceSelection =
+  const selection: EncounterSealedChoiceSelection =
     decision.decision.kind === 'USE'
       ? { kind: 'OPTION', optionId: decision.decision.optionId }
       : { kind: 'DECLINE' }

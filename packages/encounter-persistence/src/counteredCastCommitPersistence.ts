@@ -79,7 +79,8 @@ export async function persistEncounterCounteredCastCommit(
     throw new Error('Live Session terminal action is not an ordinary countered cast.')
   const root = rootExecution.applicationOutputs
   const { counter } = root
-  const offered = resume.pending.context.castReaction
+  const { pause } = resume.pending.context
+  const offered = pause?.kind === 'CAST_REACTION' ? pause.payload : null
   const standing = offered?.chain?.counters[0]
   const sameCounter = (left: unknown, right: unknown) =>
     checksumCanonicalJson(left) === checksumCanonicalJson(right)

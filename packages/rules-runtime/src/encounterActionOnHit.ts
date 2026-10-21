@@ -1,4 +1,5 @@
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
+import type { EncounterSealedChoiceSelection } from './encounterSealedChoice.js'
 import {
   continueNativeActionAfterTest,
   reconstructNativeActionTest
@@ -6,8 +7,7 @@ import {
 import {
   encounterOnHitAudit,
   settleEncounterOnHitChoice,
-  type EncounterOnHitCandidate,
-  type EncounterOnHitSelection
+  type EncounterOnHitCandidate
 } from './encounterOnHitChoice.js'
 
 type ActionSource = Omit<
@@ -46,7 +46,7 @@ export async function resolveNativeActionOnHit(
   input: ActionSource &
     CurrentOnHit & {
       offer: EncounterOnHitOfferDto
-      selection: EncounterOnHitSelection
+      selection: EncounterSealedChoiceSelection
     }
 ) {
   const binding = heldHitBinding(input, input.offer.reaction)

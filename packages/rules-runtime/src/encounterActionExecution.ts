@@ -49,20 +49,12 @@ import {
   RULE_GRAPH_LIMITS,
   type RuleValue
 } from '@artificer-toolkit/shared/rules'
-import {
-  directActionTwoPhaseDtoSchema,
-  type EncounterLegendaryResistanceOfferDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
+import { directActionTwoPhaseDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
-import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
-import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
+import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
 import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
 import type { z } from 'zod'
-import {
-  encounterOnHitOptions,
-  openEncounterOnHitChoice,
-  type EncounterOnHitCandidate
-} from './encounterOnHitChoice.js'
+import { holdForOnHitChoice, type EncounterOnHitCandidate } from './encounterOnHitChoice.js'
 import {
   encounterReactionPin,
   openEncounterReactionChoice,
@@ -290,14 +282,14 @@ export type PendingNativeActionGraphs = {
   d20Belief?: EncounterAttackD20Belief
   /** The d20 already entered while one more is needed to settle the true mode. */
   heldD20?: EncounterActionHeldD20Dto
-  /** Set while the target's failed save waits on its Legendary Resistance choice; `continuation` is that choice. */
-  legendaryResistance?: EncounterLegendaryResistanceOfferDto
-  /** Set while a hit waits on its target's reaction decision; `continuation` is that choice. */
-  reactionChoice?: EncounterReactionOfferDto
-  /** Set while a hit waits on its attacker's choice to add an optional on-hit rider; `continuation` is that choice. */
-  onHitChoice?: EncounterOnHitOfferDto
-  /** Set while a settled action waits on its source's forced-movement destination; `continuation` is that choice. */
-  forcedMovementDestination?: EncounterForcedMovementOfferDto
+  /**
+   * Set while the action waits on a choice: a failed save's Legendary Resistance, a hit's reaction or
+   * on-hit rider, or a settled action's forced-movement destination. `continuation` is that choice.
+   */
+  pause?: Extract<
+    EncounterActionPauseDto,
+    { kind: 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT' }
+  >
 }
 
 type NativeActionTestBoundary = {
@@ -884,42 +876,6 @@ function outcomeSelectionFacts(input: {
         published: input.published
       }).facts
     : input.testFacts
-}
-
-/** Holds a hit before its OUTCOME so the attacker may add an optional on-hit rider to it. */
-async function holdForOnHitChoice(input: {
-  runtime: RulesRuntimeService
-  occurrenceId: string
-  candidates: readonly EncounterOnHitCandidate[]
-  twoPhase: Extract<NativeTwoPhase, { phase: 'TEST' }>
-  execution: ServerCompletedRuleExecutionDto
-  testD20: ServerRuleExecutionD20EvidenceDto
-  d20: ServerRuleExecutionD20PolicyDto
-  gameSystemId: string
-  reaction: NativeActionReactionAudit | null
-}): Promise<PendingNativeActionGraphs> {
-  const testExecutionChecksum = checksumRuleDocument(input.execution)
-  const options = encounterOnHitOptions(testExecutionChecksum, input.candidates)
-  return {
-    kind: 'PENDING',
-    continuation: await openEncounterOnHitChoice({
-      runtime: input.runtime,
-      occurrenceId: input.occurrenceId,
-      gameSystemId: input.gameSystemId,
-      optionCount: options.length
-    }),
-    d20Policy: null,
-    twoPhase: input.twoPhase,
-    roller: 'SOURCE',
-    onHitChoice: {
-      testExecution: input.execution,
-      testD20: input.testD20,
-      d20: input.d20,
-      testExecutionChecksum,
-      reaction: input.reaction,
-      options
-    }
-  }
 }
 
 /** Executes the selected OUTCOME after a sealed TEST boundary, without replaying TEST randomness. */
@@ -1593,13 +1549,16 @@ export async function advanceNativeActionGraphs(input: {
         d20Policy: null,
         twoPhase,
         roller: 'TARGET',
-        legendaryResistance: {
-          originalExecution: result,
-          originalD20: testD20,
-          d20: stage.d20.policy,
-          originalExecutionChecksum: checksumRuleDocument(result),
-          targetStateChecksum: resistance.targetStateChecksum,
-          resistance: encounterLegendaryResistancePin(candidate)
+        pause: {
+          kind: 'LEGENDARY_RESISTANCE',
+          payload: {
+            originalExecution: result,
+            originalD20: testD20,
+            d20: stage.d20.policy,
+            originalExecutionChecksum: checksumRuleDocument(result),
+            targetStateChecksum: resistance.targetStateChecksum,
+            resistance: encounterLegendaryResistancePin(candidate)
+          }
         }
       }
     }
@@ -1622,13 +1581,16 @@ export async function advanceNativeActionGraphs(input: {
         d20Policy: null,
         twoPhase,
         roller: 'TARGET',
-        reactionChoice: {
-          originalExecution: result,
-          originalD20: testD20,
-          d20: stage.d20.policy,
-          originalExecutionChecksum: checksumRuleDocument(result),
-          targetStateChecksum: reaction.targetStateChecksum,
-          reactions: reactionCandidates.map(encounterReactionPin)
+        pause: {
+          kind: 'REACTION',
+          payload: {
+            originalExecution: result,
+            originalD20: testD20,
+            d20: stage.d20.policy,
+            originalExecutionChecksum: checksumRuleDocument(result),
+            targetStateChecksum: reaction.targetStateChecksum,
+            reactions: reactionCandidates.map(encounterReactionPin)
+          }
         }
       }
     }

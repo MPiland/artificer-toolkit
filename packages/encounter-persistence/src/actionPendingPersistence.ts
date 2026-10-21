@@ -113,7 +113,7 @@ export async function persistEncounterActionPending(
           next: snapshot,
           requestId: resume.pending.snapshot.request.requestId
         })
-    } else if (resume && !resume.pending.context.castReaction)
+    } else if (resume && resume.pending.context.pause?.kind !== 'CAST_REACTION')
       throw new Error('Live Session pending area answer mismatch.')
     else if (snapshot.snapshotKind === 'KERNEL_EVIDENCE') {
       // Before a multi-creature cast does anything, another Character may counter it. The pause is
@@ -121,7 +121,7 @@ export async function persistEncounterActionPending(
       const context = snapshot.applicationContext
       if (
         context.kind !== 'ENCOUNTER_ACTION' ||
-        context.castReaction === undefined ||
+        context.pause?.kind !== 'CAST_REACTION' ||
         context.initiatorUserId !== initiatorUserId ||
         context.commandFingerprint !== fingerprint ||
         checksumCanonicalJson(JSON.parse(context.commandJson)) !== fingerprint ||
@@ -129,14 +129,10 @@ export async function persistEncounterActionPending(
         snapshot.graph.source.gameSystemId !== state.gameSystemId ||
         snapshot.deferredCleaving !== undefined ||
         context.contest !== undefined ||
-        context.legendaryResistance !== undefined ||
-        context.reactionChoice !== undefined ||
-        context.onHitChoice !== undefined ||
-        context.forcedMovementDestination !== undefined ||
         (resume &&
           (snapshot.occurrenceId !== resume.occurrence.id ||
             (context.currentnessChecksum !== resume.pending.context.currentnessChecksum &&
-              !resume.pending.context.attackRetarget) ||
+              resume.pending.context.pause?.kind !== 'ATTACK_RETARGET') ||
             !castPendingContinues(resume.pending.context, input.response, context)))
       )
         throw new Error('Live Session pending action root mismatch.')
@@ -181,6 +177,11 @@ export async function persistEncounterActionPending(
         throw new Error('Live Session pending area action root mismatch.')
     }
   } else {
+    const pause =
+      snapshot.snapshotKind === 'KERNEL_EVIDENCE' &&
+      snapshot.applicationContext.kind === 'ENCOUNTER_ACTION'
+        ? snapshot.applicationContext.pause
+        : null
     if (
       snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
       snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
@@ -188,10 +189,10 @@ export async function persistEncounterActionPending(
       (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
         snapshot.applicationContext.rollerActorId !== target.actorId &&
         // A creature offered the chance to counter the cast is the roller of that decision.
-        snapshot.applicationContext.castReaction === undefined) ||
+        pause?.kind !== 'CAST_REACTION') ||
       // The save a ward owes is asked of the one who attacks it.
-      (snapshot.applicationContext.incomingGate !== undefined &&
-        (snapshot.applicationContext.incomingGate.holderActorId !== target.actorId ||
+      (pause?.kind === 'INCOMING_GATE' &&
+        (pause.payload.holderActorId !== target.actorId ||
           snapshot.applicationContext.rollerActorId !== admission.input.actorId)) ||
       snapshot.applicationContext.commandFingerprint !== fingerprint ||
       checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
@@ -199,22 +200,18 @@ export async function persistEncounterActionPending(
       snapshot.graph.source.gameSystemId !== state.gameSystemId ||
       snapshot.deferredCleaving !== undefined ||
       snapshot.applicationContext.contest !== undefined ||
-      (snapshot.applicationContext.legendaryResistance !== undefined &&
-        snapshot.applicationContext.legendaryResistance.resistance.targetActorId !==
-          target.actorId) ||
-      (snapshot.applicationContext.reactionChoice !== undefined &&
-        snapshot.applicationContext.reactionChoice.reactions.some(
-          ({ reactorActorId }) => reactorActorId !== target.actorId
-        )) ||
-      ((snapshot.applicationContext.onHitChoice !== undefined ||
-        snapshot.applicationContext.forcedMovementDestination !== undefined) &&
+      (pause?.kind === 'LEGENDARY_RESISTANCE' &&
+        pause.payload.resistance.targetActorId !== target.actorId) ||
+      (pause?.kind === 'REACTION' &&
+        pause.payload.reactions.some(({ reactorActorId }) => reactorActorId !== target.actorId)) ||
+      ((pause?.kind === 'ON_HIT' || pause?.kind === 'FORCED_MOVEMENT') &&
         snapshot.applicationContext.rollerActorId !== admission.input.actorId) ||
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||
           // A retarget answer turns the action on another creature, so its facts are the new creature's.
           (snapshot.applicationContext.currentnessChecksum !==
             resume.pending.context.currentnessChecksum &&
-            !resume.pending.context.attackRetarget) ||
+            resume.pending.context.pause?.kind !== 'ATTACK_RETARGET') ||
           !castPendingContinues(
             resume.pending.context,
             input.response,
@@ -236,7 +233,7 @@ export async function persistEncounterActionPending(
       membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
     )
   }
-  const castReaction = evidence?.castReaction
+  const castReaction = evidence?.pause?.kind === 'CAST_REACTION' ? evidence.pause.payload : null
   if (
     castReaction &&
     !castReaction.reactions.every((reaction) =>
@@ -283,7 +280,9 @@ export async function persistEncounterActionPending(
   // A counter's check pause rolls the reactor's own d20, and a ward's the attacker's save: neither is the
   // action's own policy.
   const d20Policy =
-    evidence?.d20Policy ?? evidence?.castReaction?.check?.d20 ?? evidence?.incomingGate?.d20
+    evidence?.d20Policy ??
+    castReaction?.check?.d20 ??
+    (evidence?.pause?.kind === 'INCOMING_GATE' ? evidence.pause.payload.d20 : undefined)
   if (resume && input.response)
     await insertActionEvidenceReceipt(ctx, {
       occurrence,

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
+import type { EncounterSealedChoiceSelection } from '../encounterSealedChoice.js'
 import { onHitCandidates, onHitSlotChoices } from '../character/characterOnHitCosts.js'
 import { advanceNativeActionGraphs } from '../encounterActionExecution.js'
 import { resolveNativeActionOnHit } from '../encounterActionOnHit.js'
-import type { EncounterOnHitCandidate, EncounterOnHitSelection } from '../encounterOnHitChoice.js'
+import type { EncounterOnHitCandidate } from '../encounterOnHitChoice.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   OPTIONAL_POOL_STRIKE_CHARGE_ID,
@@ -60,15 +61,15 @@ function longswordAttack(rolls: readonly number[], character?: SrdCharacter) {
     answer: async (
       held: Awaited<ReturnType<typeof advanceNativeActionGraphs>>,
       candidates: readonly EncounterOnHitCandidate[],
-      selection: EncounterOnHitSelection
+      selection: EncounterSealedChoiceSelection
     ) => {
-      if (held.kind !== 'PENDING' || !held.onHitChoice)
+      if (held.kind !== 'PENDING' || held.pause?.kind !== 'ON_HIT')
         throw new Error('The hit must be held for the on-hit choice.')
       return resolveNativeActionOnHit({
         ...source,
         candidates,
         adjustedBinding: null,
-        offer: held.onHitChoice,
+        offer: held.pause.payload,
         selection
       })
     }
@@ -90,12 +91,15 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
       roller: 'SOURCE',
       d20Policy: null,
       continuation: { request: { min: 0, max: 2 } },
-      onHitChoice: {
-        reaction: null,
-        options: [
-          { riderId: OPTIONAL_SMITE_EFFECT_ID, slotLevel: 1 },
-          { riderId: OPTIONAL_SMITE_EFFECT_ID, slotLevel: 2 }
-        ]
+      pause: {
+        kind: 'ON_HIT',
+        payload: {
+          reaction: null,
+          options: [
+            { riderId: OPTIONAL_SMITE_EFFECT_ID, slotLevel: 1 },
+            { riderId: OPTIONAL_SMITE_EFFECT_ID, slotLevel: 2 }
+          ]
+        }
       }
     })
     expect(attack.scripted.remaining()).toEqual([])
@@ -116,8 +120,9 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
   it('adds the dice row of the slot level paid, as radiant damage', async () => {
     const attack = longswordAttack([HIT, 3, 0, 1, 2])
     const held = await attack.advance([smiteAt(1), smiteAt(2)])
-    if (held.kind !== 'PENDING' || !held.onHitChoice) throw new Error('Expected a held hit.')
-    const second = held.onHitChoice.options[1]
+    if (held.kind !== 'PENDING' || held.pause?.kind !== 'ON_HIT')
+      throw new Error('Expected a held hit.')
+    const second = held.pause.payload.options[1]
     const { execution, audit } = await attack.answer(held, [smiteAt(1), smiteAt(2)], {
       kind: 'OPTION',
       optionId: second!.useOptionId
@@ -134,10 +139,11 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
   it('doubles the rider dice on a critical hit', async () => {
     const attack = longswordAttack([NATURAL_20, 3, 6, 0, 1, 2, 3, 4, 5])
     const held = await attack.advance([smiteAt(2)])
-    if (held.kind !== 'PENDING' || !held.onHitChoice) throw new Error('Expected a held hit.')
+    if (held.kind !== 'PENDING' || held.pause?.kind !== 'ON_HIT')
+      throw new Error('Expected a held hit.')
     const { execution } = await attack.answer(held, [smiteAt(2)], {
       kind: 'OPTION',
-      optionId: held.onHitChoice.options[0]!.useOptionId
+      optionId: held.pause.payload.options[0]!.useOptionId
     })
 
     expect(completed(execution).d20).toMatchObject({ resultPath: 'ON_CRIT' })
@@ -150,10 +156,11 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
   it('never rolls more than 5 dice, however high the slot', async () => {
     const attack = longswordAttack([HIT, 3, 0, 0, 0, 0, 0])
     const held = await attack.advance([smiteAt(9)])
-    if (held.kind !== 'PENDING' || !held.onHitChoice) throw new Error('Expected a held hit.')
+    if (held.kind !== 'PENDING' || held.pause?.kind !== 'ON_HIT')
+      throw new Error('Expected a held hit.')
     const { execution } = await attack.answer(held, [smiteAt(9)], {
       kind: 'OPTION',
-      optionId: held.onHitChoice.options[0]!.useOptionId
+      optionId: held.pause.payload.options[0]!.useOptionId
     })
 
     expect(outcomeDice(completed(execution)).hit).toEqual(['d8', 'd8', 'd8', 'd8', 'd8', 'd8'])
@@ -172,7 +179,8 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
   it('refuses an option the offer never issued, and one that can no longer be paid', async () => {
     const attack = longswordAttack([HIT])
     const held = await attack.advance([smiteAt(2)])
-    if (held.kind !== 'PENDING' || !held.onHitChoice) throw new Error('Expected a held hit.')
+    if (held.kind !== 'PENDING' || held.pause?.kind !== 'ON_HIT')
+      throw new Error('Expected a held hit.')
 
     await expect(
       attack.answer(held, [smiteAt(2)], { kind: 'OPTION', optionId: 'a'.repeat(64) })
@@ -180,7 +188,7 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
     await expect(
       attack.answer(held, [smiteAt(1)], {
         kind: 'OPTION',
-        optionId: held.onHitChoice.options[0]!.useOptionId
+        optionId: held.pause.payload.options[0]!.useOptionId
       })
     ).rejects.toThrow('On-hit evidence is stale.')
   })
@@ -322,21 +330,25 @@ describe('an optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a, D
     const held = await attack.advance([poolStrikeAt(2)])
     expect(held).toMatchObject({
       kind: 'PENDING',
-      onHitChoice: {
-        options: [
-          {
-            kind: 'RESOURCE_POOL',
-            riderId: OPTIONAL_POOL_STRIKE_EFFECT_ID,
-            poolId: POOL_ID,
-            cost: 2
-          }
-        ]
+      pause: {
+        kind: 'ON_HIT',
+        payload: {
+          options: [
+            {
+              kind: 'RESOURCE_POOL',
+              riderId: OPTIONAL_POOL_STRIKE_EFFECT_ID,
+              poolId: POOL_ID,
+              cost: 2
+            }
+          ]
+        }
       }
     })
-    if (held.kind !== 'PENDING' || !held.onHitChoice) throw new Error('Expected a held hit.')
+    if (held.kind !== 'PENDING' || held.pause?.kind !== 'ON_HIT')
+      throw new Error('Expected a held hit.')
     const { execution, audit } = await attack.answer(held, [poolStrikeAt(2)], {
       kind: 'OPTION',
-      optionId: held.onHitChoice.options[0]!.useOptionId
+      optionId: held.pause.payload.options[0]!.useOptionId
     })
 
     expect(audit).toMatchObject({
@@ -363,8 +375,9 @@ describe('an optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a, D
   it('refuses a pool option whose cost or pool changed since it was offered', async () => {
     const attack = strikerAttack([HIT])
     const held = await attack.advance([poolStrikeAt(2)])
-    if (held.kind !== 'PENDING' || !held.onHitChoice) throw new Error('Expected a held hit.')
-    const optionId = held.onHitChoice.options[0]!.useOptionId
+    if (held.kind !== 'PENDING' || held.pause?.kind !== 'ON_HIT')
+      throw new Error('Expected a held hit.')
+    const optionId = held.pause.payload.options[0]!.useOptionId
 
     for (const stale of [poolStrikeAt(3), poolStrikeAt(2, 'CLASS:monk:charge-2'), smiteAt(2)])
       await expect(attack.answer(held, [stale], { kind: 'OPTION', optionId })).rejects.toThrow(

@@ -2,11 +2,14 @@ import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/ap
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { d20CheckTotal } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import {
-  d20WindowUseOptionId,
   encounterD20WindowPendingContextDtoSchema,
-  type D20WindowOptionDto,
   type EncounterD20WindowPendingContextDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
+import {
+  d20WindowUseOptionId,
+  type D20WindowOptionDto,
+  type D20WindowPausePayloadDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   type ServerKernelRuleExecutionPendingSnapshotDto
@@ -20,8 +23,12 @@ import { activeAfterRollAbilityCheckDice } from './character/activeEffectGrantTo
 import { encounterBasicActionCheckTrigger } from './encounterBasicActionCheck.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { checkAbilityCode } from './encounterMovementPassagePreparation.js'
-import { createReactionChoiceDefinition, startReactionChoice } from './reactionChoiceDefinition.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import {
+  encounterSealedChoiceIndex,
+  openEncounterSealedChoice,
+  settleEncounterSealedChoice
+} from './encounterSealedChoice.js'
 
 /** The System-owned bounded-choice graph that holds a d20 window until its roller decides. */
 export const ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID = '3b7e91c4-5a2d-4f08-8c6e-d14a0f92b7e5'
@@ -90,24 +97,6 @@ export function encounterD20WindowOptions(
   }))
 }
 
-function openEncounterD20WindowChoice(input: {
-  runtime: RulesRuntimeService
-  occurrenceId: string
-  gameSystemId: string
-  optionCount: number
-}): Promise<ServerRuleExecutionContinuationDto> {
-  return startReactionChoice({
-    runtime: input.runtime,
-    occurrenceId: input.occurrenceId,
-    published: createReactionChoiceDefinition({
-      definitionId: ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID,
-      gameSystemId: input.gameSystemId
-    }),
-    // Index 0 keeps the roll; index `n` spends the `n`th option.
-    optionCount: input.optionCount + 1
-  })
-}
-
 /**
  * Pauses a rolled d20 for its roller to spend a held die: the sealed bounded choice the roller
  * answers, under the context that freezes the roll and the options. `heldDice` must not be empty.
@@ -117,7 +106,7 @@ export async function openEncounterD20Window(input: {
   occurrenceId: string
   gameSystemId: string
   source: EncounterD20WindowPendingContextDto['source']
-  rolled: EncounterD20WindowPendingContextDto['rolled']
+  rolled: D20WindowPausePayloadDto['rolled']
   appRollId: string | null
   heldDice: readonly EncounterD20WindowHeldDie[]
   optionalCombatSnapshotChecksum: string | null
@@ -127,11 +116,16 @@ export async function openEncounterD20Window(input: {
 }> {
   const { rolled, source } = input
   const executionChecksum = checksumRuleDocument(rolled.execution)
-  const continuation = await openEncounterD20WindowChoice({
+  // Index 0 keeps the roll; index `n` spends the `n`th option.
+  const continuation = await openEncounterSealedChoice({
     runtime: input.runtime,
     occurrenceId: input.occurrenceId,
-    gameSystemId: input.gameSystemId,
-    optionCount: input.heldDice.length
+    graph: {
+      definitionId: ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID,
+      gameSystemId: input.gameSystemId
+    },
+    optionCount: input.heldDice.length,
+    declinable: true
   })
   const context = encounterD20WindowPendingContextDtoSchema.parse({
     kind: 'ENCOUNTER_D20_WINDOW',
@@ -139,11 +133,16 @@ export async function openEncounterD20Window(input: {
     commandId: source.context.commandId,
     commandFingerprint: source.context.commandFingerprint,
     source,
-    rolled,
-    appRollId: input.appRollId,
-    offer: {
-      executionChecksum,
-      options: encounterD20WindowOptions(executionChecksum, input.heldDice)
+    pause: {
+      kind: 'D20_WINDOW',
+      payload: {
+        rolled,
+        appRollId: input.appRollId,
+        offer: {
+          executionChecksum,
+          options: encounterD20WindowOptions(executionChecksum, input.heldDice)
+        }
+      }
     }
   })
   return {
@@ -159,22 +158,24 @@ export async function openEncounterD20Window(input: {
 
 /** The option a decision answers, or null for a decline. An option the offer never issued is refused. */
 export function chosenEncounterD20WindowOption(
-  context: Pick<EncounterD20WindowPendingContextDto, 'offer'>,
+  window: Pick<D20WindowPausePayloadDto, 'offer'>,
   selection: EncounterD20WindowSelection
 ): D20WindowOptionDto | null {
   if (selection.kind === 'DECLINE') return null
-  const chosen = context.offer.options.find((option) => option.optionId === selection.optionId)
+  const chosen = window.offer.options.find((option) => option.optionId === selection.optionId)
   if (!chosen) throw new EncounterValidationError('The d20 window option was not offered.')
   return chosen
 }
 
 /** The kernel index a selection answers the window's choice with: 0 keeps the roll. */
 export function encounterD20WindowSelectedIndex(
-  context: Pick<EncounterD20WindowPendingContextDto, 'offer'>,
+  window: Pick<D20WindowPausePayloadDto, 'offer'>,
   selection: EncounterD20WindowSelection
 ): number {
-  const option = chosenEncounterD20WindowOption(context, selection)
-  return option ? context.offer.options.indexOf(option) + 1 : 0
+  return encounterSealedChoiceIndex(
+    window.offer.options,
+    chosenEncounterD20WindowOption(window, selection)
+  )
 }
 
 /**
@@ -189,18 +190,18 @@ export async function settleEncounterD20Window(input: {
   selection: EncounterD20WindowSelection
   random: (maxExclusive: number) => number
 }) {
-  const { context, selection } = input
-  const { rolled } = context
-  const option = chosenEncounterD20WindowOption(context, selection)
-  if (checksumRuleDocument(rolled.execution) !== context.offer.executionChecksum)
+  const { selection } = input
+  const window = input.context.pause.payload
+  const { rolled } = window
+  const option = chosenEncounterD20WindowOption(window, selection)
+  if (checksumRuleDocument(rolled.execution) !== window.offer.executionChecksum)
     throw new EncounterValidationError('The d20 window evidence is stale.')
-  const selectedIndex = encounterD20WindowSelectedIndex(context, selection)
-  const choice = await input.runtime.resume({
+  await settleEncounterSealedChoice({
+    runtime: input.runtime,
     continuation: input.continuation,
-    response: { requestId: input.continuation.request.requestId, value: selectedIndex }
+    selectedIndex: encounterSealedChoiceIndex(window.offer.options, option),
+    label: 'The d20 window'
   })
-  if (choice.status !== 'COMPLETE' || choice.outputs.selectedIndex !== selectedIndex)
-    throw new EncounterValidationError('The d20 window did not settle its exact selection.')
   if (selection.kind === 'DECLINE' || !option) return { option: null, d20: rolled.d20 }
   const rolledFaces =
     selection.faces ?? Array.from({ length: option.count }, () => input.random(option.faces) + 1)

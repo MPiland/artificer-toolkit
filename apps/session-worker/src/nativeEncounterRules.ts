@@ -3,6 +3,7 @@ import {
   type LiveSessionEncounterRulesInput,
   type LiveSessionEncounterRulesRequest
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type { EncounterSealedChoiceSelection } from '@artificer-toolkit/rules-runtime/encounterSealedChoice'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
   actionTargetActorId,
@@ -114,13 +115,9 @@ import {
   replayNativeActionReaction,
   resolveNativeActionReaction
 } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
-import {
-  chosenEncounterReaction,
-  type EncounterReactionSelection
-} from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
+import { chosenEncounterReaction } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import type { EncounterReactionOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { resolveNativeActionOnHit } from '@artificer-toolkit/rules-runtime/encounterActionOnHit'
-import type { EncounterOnHitSelection } from '@artificer-toolkit/rules-runtime/encounterOnHitChoice'
 import {
   onHitCandidates,
   onHitResourceConsumption,
@@ -144,9 +141,7 @@ import {
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterCastReactionDiscovery'
 import {
   buildEncounterActionPendingSnapshot,
-  buildEncounterCastReactionPendingSnapshot,
-  buildEncounterAttackRetargetPendingSnapshot,
-  buildEncounterIncomingGatePendingSnapshot
+  buildEncounterHeldActionPendingSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import {
   chosenEncounterAttackRetarget,
@@ -154,8 +149,7 @@ import {
   openEncounterAttackRetargetChoice,
   retargetEncounterAction,
   settleEncounterAttackRetarget,
-  type EncounterAttackRetargetCandidate,
-  type EncounterAttackRetargetSelection
+  type EncounterAttackRetargetCandidate
 } from '@artificer-toolkit/rules-runtime/encounterAttackRetarget'
 import type { EncounterAttackRetargetOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import {
@@ -168,7 +162,6 @@ import {
   replayNativeActionLegendaryResistance,
   resolveNativeActionLegendaryResistance
 } from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
-import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import type { EncounterLegendaryResistanceOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { settleEncounterAttackActionHit } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
@@ -314,21 +307,21 @@ export async function planNativeLiveEncounterAction(
   > | null = null
   let resistanceAnswer: {
     offer: EncounterLegendaryResistanceOfferDto
-    selection: EncounterLegendaryResistanceSelection
+    selection: EncounterSealedChoiceSelection
   } | null = null
   let reactionAnswer: {
     offer: EncounterReactionOfferDto
-    selection: EncounterReactionSelection
+    selection: EncounterSealedChoiceSelection
   } | null = null
   let castAnswer: NativeCastReactionAnswer | null = null
   let gateAnswer: NativeIncomingGateAnswer | null = null
   let retargetAnswer: {
     offer: EncounterAttackRetargetOfferDto
-    selection: EncounterAttackRetargetSelection
+    selection: EncounterSealedChoiceSelection
   } | null = null
   let onHitAnswer: {
     offer: EncounterOnHitOfferDto
-    selection: EncounterOnHitSelection
+    selection: EncounterSealedChoiceSelection
   } | null = null
   let forcedMovementAnswer: {
     offer: EncounterForcedMovementOfferDto
@@ -347,80 +340,83 @@ export async function planNativeLiveEncounterAction(
     if (resolution.kind === 'AREA_LEGENDARY_RESISTANCE') areaDecision = resolution
     // An area's push pick is the area's own, never its pushed creature's save (D157).
     else if (areaSnapshot && resolution.kind === 'FORCED_MOVEMENT') areaLanding = resolution
-    else if (snapshot.applicationContext.legendaryResistance) {
-      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
-        throw new Error('The action requires a Legendary Resistance decision.')
-      resistanceAnswer = {
-        offer: snapshot.applicationContext.legendaryResistance,
-        selection: resolution
+    else {
+      const { pause } = snapshot.applicationContext
+      const decision =
+        resolution.kind === 'DECLINE' || resolution.kind === 'OPTION' ? resolution : null
+      // A d20 pause's answer is its own die, sealed to the request it was offered for.
+      const dice =
+        (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL') &&
+        snapshot.request.requestId === resolution.requestId
+          ? resolution
+          : null
+      switch (pause?.kind) {
+        case undefined:
+          if (
+            resolution.kind !== 'ENTER_DICE' &&
+            resolution.kind !== 'ENTER_INTEGER' &&
+            resolution.kind !== 'SYSTEM_ROLL'
+          )
+            throw new Error('The action requires dice or integer evidence.')
+          evidenceResolution = resolution
+          break
+        case 'LEGENDARY_RESISTANCE':
+          if (!decision) throw new Error('The action requires a Legendary Resistance decision.')
+          resistanceAnswer = { offer: pause.payload, selection: decision }
+          break
+        case 'REACTION':
+          if (!decision) throw new Error('The action requires a reaction decision.')
+          reactionAnswer = { offer: pause.payload, selection: decision }
+          break
+        case 'ATTACK_RETARGET':
+          if (!decision) throw new Error('The action requires a retarget decision.')
+          retargetAnswer = { offer: pause.payload, selection: decision }
+          break
+        case 'INCOMING_GATE':
+          // The attacker's save against a ward is its own d20: the answer settles it and the action replays.
+          if (!dice) throw new Error('The ward requires dice evidence.')
+          gateAnswer = {
+            offer: pause.payload,
+            continuation: pendingSnapshotContinuation(snapshot),
+            evidence: dice
+          }
+          break
+        case 'CAST_REACTION': {
+          const { check } = pause.payload
+          // A counter's check is its own d20: the answer settles it and never resumes the cast's graphs.
+          if (check) {
+            if (!dice) throw new Error('The counter requires dice evidence.')
+            castAnswer = {
+              kind: 'CHECK',
+              offer: { ...pause.payload, check },
+              continuation: pendingSnapshotContinuation(snapshot),
+              evidence: dice
+            }
+          } else {
+            if (!decision) throw new Error('The action requires a reaction decision.')
+            castAnswer = { kind: 'SELECTION', offer: pause.payload, selection: decision }
+          }
+          break
+        }
+        case 'ON_HIT':
+          if (!decision) throw new Error('The action requires an on-hit decision.')
+          onHitAnswer = { offer: pause.payload, selection: decision }
+          break
+        case 'FORCED_MOVEMENT':
+          if (
+            resolution.kind !== 'FORCED_MOVEMENT' ||
+            snapshot.request.requestId !== resolution.requestId
+          )
+            throw new Error('The action requires a forced-movement destination.')
+          forcedMovementAnswer = {
+            offer: pause.payload,
+            continuation: pendingSnapshotContinuation(snapshot),
+            outcomePhase: restoreEncounterActionPending(snapshot).twoPhase,
+            position: resolution.position
+          }
+          break
       }
-    } else if (snapshot.applicationContext.reactionChoice) {
-      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
-        throw new Error('The action requires a reaction decision.')
-      reactionAnswer = { offer: snapshot.applicationContext.reactionChoice, selection: resolution }
-    } else if (snapshot.applicationContext.attackRetarget) {
-      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
-        throw new Error('The action requires a retarget decision.')
-      retargetAnswer = { offer: snapshot.applicationContext.attackRetarget, selection: resolution }
-    } else if (snapshot.applicationContext.incomingGate) {
-      // The attacker's save against a ward is its own d20: the answer settles it and the action replays.
-      if (
-        (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL') ||
-        snapshot.request.requestId !== resolution.requestId
-      )
-        throw new Error('The ward requires dice evidence.')
-      gateAnswer = {
-        offer: snapshot.applicationContext.incomingGate,
-        continuation: pendingSnapshotContinuation(snapshot),
-        evidence: resolution
-      }
-    } else if (snapshot.applicationContext.castReaction?.check) {
-      // A counter's check is its own d20: the answer settles it and never resumes the cast's graphs.
-      if (
-        (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL') ||
-        snapshot.request.requestId !== resolution.requestId
-      )
-        throw new Error('The counter requires dice evidence.')
-      castAnswer = {
-        kind: 'CHECK',
-        offer: {
-          ...snapshot.applicationContext.castReaction,
-          check: snapshot.applicationContext.castReaction.check
-        },
-        continuation: pendingSnapshotContinuation(snapshot),
-        evidence: resolution
-      }
-    } else if (snapshot.applicationContext.castReaction) {
-      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
-        throw new Error('The action requires a reaction decision.')
-      castAnswer = {
-        kind: 'SELECTION',
-        offer: snapshot.applicationContext.castReaction,
-        selection: resolution
-      }
-    } else if (snapshot.applicationContext.onHitChoice) {
-      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
-        throw new Error('The action requires an on-hit decision.')
-      onHitAnswer = { offer: snapshot.applicationContext.onHitChoice, selection: resolution }
-    } else if (snapshot.applicationContext.forcedMovementDestination) {
-      if (
-        resolution.kind !== 'FORCED_MOVEMENT' ||
-        snapshot.request.requestId !== resolution.requestId
-      )
-        throw new Error('The action requires a forced-movement destination.')
-      forcedMovementAnswer = {
-        offer: snapshot.applicationContext.forcedMovementDestination,
-        continuation: pendingSnapshotContinuation(snapshot),
-        outcomePhase: restoreEncounterActionPending(snapshot).twoPhase,
-        position: resolution.position
-      }
-    } else if (
-      resolution.kind !== 'ENTER_DICE' &&
-      resolution.kind !== 'ENTER_INTEGER' &&
-      resolution.kind !== 'SYSTEM_ROLL'
-    )
-      throw new Error('The action requires dice or integer evidence.')
-    else evidenceResolution = resolution
+    }
     const context = snapshot.applicationContext
     const root = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
     if (
@@ -1182,7 +1178,10 @@ export async function planNativeLiveEncounterAction(
           optionCount: candidates.length
         }),
         rollerActorId: prepared.actor.id,
-        attackRetarget: encounterAttackRetargetOffer(gate.gate, candidates)
+        pause: {
+          kind: 'ATTACK_RETARGET' as const,
+          payload: encounterAttackRetargetOffer(gate.gate, candidates)
+        }
       }
   }
   if (gate.kind === 'FAILED')
@@ -1969,37 +1968,24 @@ export function buildNativeLiveEncounterActionPendingInput(
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     ),
     snapshot:
-      plan.kind === 'RETARGET_PENDING'
-        ? buildEncounterAttackRetargetPendingSnapshot({
+      plan.kind === 'PENDING'
+        ? buildEncounterActionPendingSnapshot({
+            ...pinned,
+            execution: plan.execution,
+            sourceActorId: plan.prepared.actor.id,
+            targetActorId: plan.prepared.target.id,
+            failedCounters: plan.failedCounters,
+            passedIncomingGate: plan.passedIncomingGate
+          })
+        : buildEncounterHeldActionPendingSnapshot({
             ...pinned,
             continuation: plan.continuation,
-            attackRetarget: plan.attackRetarget,
-            rollerActorId: plan.rollerActorId
+            pause: plan.pause,
+            rollerActorId: plan.rollerActorId,
+            ...(plan.kind === 'CAST_PENDING'
+              ? { failedCounters: plan.failedCounters, passedIncomingGate: plan.passedIncomingGate }
+              : {})
           })
-        : plan.kind === 'GATE_PENDING'
-          ? buildEncounterIncomingGatePendingSnapshot({
-              ...pinned,
-              continuation: plan.continuation,
-              incomingGate: plan.incomingGate,
-              rollerActorId: plan.rollerActorId
-            })
-          : plan.kind === 'CAST_PENDING'
-            ? buildEncounterCastReactionPendingSnapshot({
-                ...pinned,
-                continuation: plan.continuation,
-                castReaction: plan.castReaction,
-                rollerActorId: plan.rollerActorId,
-                failedCounters: plan.failedCounters,
-                passedIncomingGate: plan.passedIncomingGate
-              })
-            : buildEncounterActionPendingSnapshot({
-                ...pinned,
-                execution: plan.execution,
-                sourceActorId: plan.prepared.actor.id,
-                targetActorId: plan.prepared.target.id,
-                failedCounters: plan.failedCounters,
-                passedIncomingGate: plan.passedIncomingGate
-              })
   })
 }
 

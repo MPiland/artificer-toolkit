@@ -203,11 +203,12 @@ export async function persistEncounterD20WindowOpen(
     pending.context.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' ||
     snapshot.occurrenceId !== occurrence.id ||
     checksumCanonicalJson(window.source.context) !== checksumCanonicalJson(pending.context) ||
-    window.rolled.initialFactsChecksum !== checksumRuleDocument(pending.continuation.facts) ||
-    window.rolled.execution.evidence.source.gameSystemId !== state.gameSystemId ||
+    window.pause.payload.rolled.initialFactsChecksum !==
+      checksumRuleDocument(pending.continuation.facts) ||
+    window.pause.payload.rolled.execution.evidence.source.gameSystemId !== state.gameSystemId ||
     !rulesMatch ||
-    (window.appRollId !== null) !== (admission.appRoll !== null) ||
-    (admission.appRoll !== null && window.appRollId !== admission.appRoll.rollId)
+    (window.pause.payload.appRollId !== null) !== (admission.appRoll !== null) ||
+    (admission.appRoll !== null && window.pause.payload.appRollId !== admission.appRoll.rollId)
   )
     throw new Error('Live Session check result does not match its pending evidence.')
   return recordCheckResponse(ctx, {
@@ -215,7 +216,7 @@ export async function persistEncounterD20WindowOpen(
     input,
     actors,
     endedEffects: [],
-    ruleResult: window.rolled.execution,
+    ruleResult: window.pause.payload.rolled.execution,
     receipt: null,
     next: { kind: 'PENDING', snapshot }
   })
@@ -240,12 +241,13 @@ export async function persistEncounterD20WindowAnswer(
   if (admission.kind === 'REPLAY') return admission.result
   const { state, campaign, occurrence, pending, response } = admission
   const { context: window, continuation } = pending
+  const offered = window.pause.payload
   const { settlement } = input
   if (isConcealmentCheckSettlement(settlement) || !settlement.window)
     throw new Error('Live Session check result does not match its pending evidence.')
   const { execution } = settlement
   const selection = encounterD20WindowSelection(response.resolution)
-  const option = chosenEncounterD20WindowOption(window, selection)
+  const option = chosenEncounterD20WindowOption(offered, selection)
   const spentEffect = settlement.window.spentEffect
   const { actors, rulesMatch } = await readCheckScope(
     ctx,
@@ -257,21 +259,21 @@ export async function persistEncounterD20WindowAnswer(
     execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'BASIC_ACTION_CHECK'
       ? execution.applicationOutputs
       : null
-  const rolledDice = window.rolled.d20.addedDice ?? []
+  const rolledDice = offered.rolled.d20.addedDice ?? []
   const addedDie = output?.d20.addedDice?.at(rolledDice.length)
   if (
     !output ||
     execution.status !== 'COMPLETE' ||
     checksumCanonicalJson(settlement.context) !== checksumCanonicalJson(window.source.context) ||
     execution.occurrenceId !== occurrence.id ||
-    execution.initialFactsChecksum !== window.rolled.initialFactsChecksum ||
+    execution.initialFactsChecksum !== offered.rolled.initialFactsChecksum ||
     checksumRuleDocument(execution.evidence) !==
-      checksumRuleDocument(window.rolled.execution.evidence) ||
+      checksumRuleDocument(offered.rolled.execution.evidence) ||
     !rulesMatch ||
-    settlement.appRollId !== window.appRollId ||
+    settlement.appRollId !== offered.appRollId ||
     (option === null) !== (spentEffect === null) ||
     (spentEffect !== null && spentEffect.id !== option?.effectId) ||
-    output.d20.selectedNatural !== window.rolled.d20.selectedNatural ||
+    output.d20.selectedNatural !== offered.rolled.d20.selectedNatural ||
     (output.d20.addedDice?.length ?? 0) !== rolledDice.length + (option ? 1 : 0) ||
     (option !== null &&
       (addedDie?.rolledFaces.length !== option.count ||
@@ -302,7 +304,7 @@ export async function persistEncounterD20WindowAnswer(
     ruleResult: execution,
     receipt: {
       requestId: continuation.request.requestId,
-      value: encounterD20WindowSelectedIndex(window, selection)
+      value: encounterD20WindowSelectedIndex(offered, selection)
     },
     next: { kind: 'COMPLETE' }
   })
