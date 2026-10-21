@@ -8,12 +8,17 @@ import { storedCompilationOf } from '@artificer-toolkit/rules-runtime/testing/st
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import { lich } from '@artificer-toolkit/source-data/srd/creatures/lich.js'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
+import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
+import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { insertRunActor } from '../documents.js'
 import { removeFinishedRunRowsPage } from '../finishedRunRows.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import {
   creatureSnapshotSpellIds,
   ensureEncounterSpellPins,
+  hydrateSpellPins,
+  readEncounterSpellPinRows,
   readEncounterSpellPins
 } from '../spellPins.js'
 
@@ -146,5 +151,35 @@ describe('Encounter spell pins (D163)', () => {
     const left = memory.documents('encounterSpellPins')
     expect(left).toHaveLength(perRun)
     expect(left.every((pin) => pin.encounterId === OTHER_ENCOUNTER_ID)).toBe(true)
+  })
+
+  it('discovers identical casts after the source Spell is edited or deleted (replay safety)', async () => {
+    const memory = createMemoryEncounterStore()
+    const ctx = { db: memory.store }
+    let version = 1
+    const reader = spellReader(() => version)
+    await ensureEncounterSpellPins(ctx, reader.read, lichInput())
+    const discover = (spells: ReadonlyMap<string, CompiledSpell>) =>
+      discoverEncounterFeatureActionCapabilities({
+        actor: lichActor,
+        conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
+        abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+        spells
+      })
+        .filter((capability) => capability.spellCast !== null)
+        .map((capability) => capability.actionId)
+    const before = discover(await readEncounterSpellPins(ctx, ENCOUNTER_ID))
+    expect(before.length).toBeGreaterThan(20)
+    const reads = reader.reads.length
+
+    version = 2
+    const deleted = async () => {
+      throw new Error('The source Spell was deleted.')
+    }
+    await ensureEncounterSpellPins(ctx, deleted, lichInput())
+    const rows = await readEncounterSpellPinRows(ctx, ENCOUNTER_ID)
+    expect(discover(hydrateSpellPins(rows))).toEqual(before)
+    expect(discover(await readEncounterSpellPins(ctx, ENCOUNTER_ID))).toEqual(before)
+    expect(reader.reads).toHaveLength(reads)
   })
 })

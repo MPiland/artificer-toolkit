@@ -12,10 +12,15 @@ import {
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { nearestAbleEnemyProximity } from '@artificer-toolkit/rules-runtime/encounterEnemyProximity'
+import { movedTowardTarget } from '@artificer-toolkit/rules-runtime/encounterMoveToward'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { CurrentReusableDefinitionSource } from '@artificer-toolkit/rules-runtime/ruleCapabilityStateService'
-import type { Dnd5eEnemyProximity } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackRestrictions'
+import type {
+  Dnd5eEnemyProximity,
+  Dnd5eMoveToward
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackRestrictions'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
+import { readNativeLiveTurnLastMove } from './nativeTurnUses.js'
 
 type EnemyProximityInput = {
   state: EncounterRunState
@@ -33,7 +38,9 @@ type EnemyProximityInput = {
  * How near an enemy stands to an attack's target among the given Scene tokens. Every actor
  * consulted is loaded through `loadTarget`, so its revision joins the commit's read fence.
  */
-export function measureNativeEnemyProximity(input: EnemyProximityInput): Promise<Dnd5eEnemyProximity> {
+export function measureNativeEnemyProximity(
+  input: EnemyProximityInput
+): Promise<Dnd5eEnemyProximity> {
   return nearestAbleEnemyProximity({
     grid: input.grid,
     actors: input.actors,
@@ -63,17 +70,54 @@ export function measureNativeEnemyProximity(input: EnemyProximityInput): Promise
  * Scene whose version moved since the action was composed.
  */
 export async function readNativeLiveEnemyProximity(
-  input: Omit<EnemyProximityInput, 'attackerActorId' | 'targetActorId' | 'grid' | 'tokens'> & {
-    attacker: MovementTarget
-    target: MovementTarget
-    sceneContext: { sceneId: string; sceneVersion: number; grid: SceneGrid } | null
-    capture: (
-      request: LiveSessionEncounterRulesRequest
-    ) => Promise<LiveSessionEncounterRulesResponse>
-  }
+  input: Omit<EnemyProximityInput, 'attackerActorId' | 'targetActorId' | 'grid' | 'tokens'> &
+    LiveAttackScene
 ): Promise<Dnd5eEnemyProximity | null> {
   const { sceneContext } = input
   if (!sceneContext) return null
+  const tokens = await captureActionSceneTokens(input, sceneContext)
+  return measureNativeEnemyProximity({
+    ...input,
+    attackerActorId: input.attacker.actor.id,
+    targetActorId: input.target.actor.id,
+    grid: sceneContext.grid,
+    tokens
+  })
+}
+
+/**
+ * How far the attacker's latest move this turn closed its distance to the attack's target, from
+ * the live Scene the action locked and the room's turn record (D164). Null for an action without
+ * Scene positions, which leaves the check unanswerable.
+ */
+export async function readNativeLiveMoveToward(
+  input: LiveAttackScene
+): Promise<Dnd5eMoveToward | null> {
+  const { sceneContext } = input
+  if (!sceneContext) return null
+  const tokens = await captureActionSceneTokens(input, sceneContext)
+  const attackerToken = tokens.find(({ actorId }) => actorId === input.attacker.actor.id)
+  const targetToken = tokens.find(({ actorId }) => actorId === input.target.actor.id)
+  if (!attackerToken || !targetToken) throw new Error('Encounter action facts are stale.')
+  return movedTowardTarget({
+    grid: sceneContext.grid,
+    lastMove: await readNativeLiveTurnLastMove(input.capture, input.attacker.actor.id),
+    attackerToken,
+    targetToken
+  })
+}
+
+type LiveAttackScene = {
+  attacker: MovementTarget
+  target: MovementTarget
+  sceneContext: { sceneId: string; sceneVersion: number; grid: SceneGrid } | null
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}
+
+async function captureActionSceneTokens(
+  input: Pick<LiveAttackScene, 'attacker' | 'capture'>,
+  sceneContext: { sceneId: string; sceneVersion: number }
+) {
   const captured = await input.capture({
     kind: 'ACTION_AREA_SCENE',
     command: {
@@ -83,11 +127,5 @@ export async function readNativeLiveEnemyProximity(
     }
   })
   if (captured.kind !== 'ACTION_AREA_SCENE') throw new Error('Action Scene context is unavailable.')
-  return measureNativeEnemyProximity({
-    ...input,
-    attackerActorId: input.attacker.actor.id,
-    targetActorId: input.target.actor.id,
-    grid: sceneContext.grid,
-    tokens: captured.context.tokens
-  })
+  return captured.context.tokens
 }

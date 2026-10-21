@@ -16,6 +16,7 @@ import { readEncounterTurnCommandCapture } from '@artificer-toolkit/encounter-pe
 import { readEncounterTurnCapture } from '@artificer-toolkit/encounter-persistence/turnCapture'
 import { readEncounterInitiativeRound } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import {
+  readTurnLastMove,
   readTurnMovedFeet,
   readTurnTeleportAllowances,
   readTurnUses
@@ -50,6 +51,7 @@ import { readLiveEncounterActionScope } from '@artificer-toolkit/encounter-persi
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
 import { readContestAdmission } from '@artificer-toolkit/encounter-persistence/contestAdmission'
 import { readRoomLiveMovementAdmission } from './roomSceneGeometryRead.js'
+import { readEncounterSpellPinRows } from '@artificer-toolkit/encounter-persistence/spellPins'
 import { readMovementResolution } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 
 type SemanticResponse = {
@@ -475,6 +477,27 @@ export async function readRoomEncounterTurnCapture(
         membership
       })
     }
+  } else if (request.kind === 'SPELL_PINS') {
+    response = {
+      kind: 'SPELL_PINS',
+      pins: (await readEncounterSpellPinRows(ctx, state.id)).map(
+        ({
+          encounterId,
+          spellId,
+          sourceRevision,
+          sourceVersionId,
+          sourceChecksum,
+          compilationJson
+        }) => ({
+          encounterId,
+          spellId,
+          sourceRevision,
+          sourceVersionId,
+          sourceChecksum,
+          compilationJson
+        })
+      )
+    }
   } else if (request.kind === 'OCCUPANT_SAVE_AURAS') {
     const actorId = request.actorId.toLowerCase()
     response = {
@@ -540,6 +563,11 @@ export async function readRoomEncounterTurnCapture(
     if (!state.actorIds.includes(actorId))
       throw new Error('Turn movement actor is not in the Encounter.')
     response = { kind: 'TURN_MOVED_FEET', feet: await readTurnMovedFeet(ctx, { state, actorId }) }
+  } else if (request.kind === 'TURN_LAST_MOVE') {
+    const actorId = request.actorId.toLowerCase()
+    if (!state.actorIds.includes(actorId))
+      throw new Error('Turn movement actor is not in the Encounter.')
+    response = { kind: 'TURN_LAST_MOVE', lastMove: await readTurnLastMove(ctx, { state, actorId }) }
   } else if (request.kind === 'TELEPORT_ALLOWANCES') {
     const actorId = request.actorId.toLowerCase()
     if (!state.actorIds.includes(actorId))

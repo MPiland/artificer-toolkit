@@ -16,7 +16,10 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import type { CompiledCreature } from '@artificer-toolkit/shared/subjects/compilers'
 
 import { buildCharacterChargeRuleFact } from './characterChargeRuleFacts.js'
-import { isCharacterSpellActionAccessCandidate } from './characterSpellRuleFacts.js'
+import {
+  findCompiledSpellGrant,
+  isCharacterSpellActionAccessCandidate
+} from './characterSpellRuleFacts.js'
 
 type ResourceFacts = {
   resourcePoolCandidates: NonNullable<CharacterRulePolicyInput['resourcePoolCandidates']>
@@ -100,13 +103,7 @@ function findSpellCharge(
   candidate: SpellAccessCandidate,
   registry: CharacterAssemblyRegistry
 ): CompiledCharge | undefined {
-  const source =
-    candidate.sourceKind === 'CLASS' || candidate.sourceKind === 'SUBCLASS'
-      ? registry.classes[candidate.sourceId]
-      : registry.races[candidate.sourceId]
-  const feature = source?.features?.find((entry) => entry.id === candidate.sourceFeatureId)
-  const grant = feature?.spells?.find((entry) => entry.id === candidate.grantId)
-  return ownedCharge(grant?.charges)
+  return ownedCharge(findCompiledSpellGrant(registry, candidate)?.charges)
 }
 
 export function buildCharacterResourceRuleFacts(params: {

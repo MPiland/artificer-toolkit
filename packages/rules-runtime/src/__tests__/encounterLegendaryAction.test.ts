@@ -160,6 +160,7 @@ function discoverWindows(input: {
   outgoingActorId: string
 }) {
   return discoverTurnLegendaryWindows({
+    spells: new Map(),
     state: srdEncounterState({ actors: input.actors, currentActorId: input.outgoingActorId }),
     occurrenceId: OCCURRENCE_ID,
     outgoingActorId: input.outgoingActorId,
@@ -418,6 +419,7 @@ describe('Legendary Action choices offered at the end of a turn', () => {
     const loaded: string[][] = []
     const discover = (actors: readonly EncounterRunActorState[]) =>
       discoverTurnLegendaryWindows({
+        spells: new Map(),
         state: srdEncounterState({ actors, currentActorId: actors[0]!.id }),
         occurrenceId: OCCURRENCE_ID,
         outgoingActorId: actors[0]!.id,
@@ -570,7 +572,7 @@ describe('Legendary Action turn window', () => {
             ...(mechanics.movementTargets ?? [])
           ]),
           loadSource: async (source) =>
-            resolveEncounterActionSource({ ...source, system: srdSystemRecord }),
+            resolveEncounterActionSource({ spells: new Map(), ...source, system: srdSystemRecord }),
           loadRelationshipFacts: async () => []
         }),
       definitions: srdDefinitions,

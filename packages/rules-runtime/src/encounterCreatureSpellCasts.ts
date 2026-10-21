@@ -40,7 +40,7 @@ export function listCreatureSpellCasts(input: {
       if (mode !== 'AT_WILL' && mode !== 'SPELL_SLOT') continue
       for (const spellId of grant.spellIds) {
         const spell = input.spellLevelsById.get(spellId)
-        if (!spell) continue
+        if (!spell) throw new Error(`Spell ${spellId} is not pinned to this Run.`)
         const before = candidates.length
         append(
           {

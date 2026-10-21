@@ -8,6 +8,7 @@ import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const discover = (label: string) =>
   discoverEncounterFeatureActions({
+    spells: new Map(),
     actor: srdCreatureActor({ id: testUuid(0xd101), creature: srdByLabel(SRD.creatures, label) }),
     conditionDefinitionIds: [],
     abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

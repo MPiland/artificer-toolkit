@@ -54,50 +54,6 @@ export const bugbear: CreatureAuthored = {
       label: 'Surprise Attack',
       description:
         'Surprise Attack. If the bugbear surprises a creature and hits it with an attack during the first round of combat, the target takes an extra 7 (2d6) damage from the attack.',
-      effects: [
-        {
-          id: S.actionId(56, 103),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(56, 104), rangeKind: S.RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(56, 105),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${S.actionId(56, 105)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.actionId(56, 106),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PIERCING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d6'
-                  },
-                  {
-                    id: S.actionId(56, 107),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SURPRISE_ATTACK
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
       order: 2
     },
     {

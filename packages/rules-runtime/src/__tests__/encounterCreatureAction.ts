@@ -293,6 +293,7 @@ export function featureActionId(
   effectId?: string
 ) {
   const capability = discoverEncounterFeatureActionCapabilities({
+    spells: new Map(),
     actor,
     conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
     abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
@@ -467,7 +468,7 @@ export async function prepareCreatureAction(input: {
         }
       : {}),
     loadSource: async (source) =>
-      resolveEncounterActionSource({ ...source, system: srdSystemRecord }),
+      resolveEncounterActionSource({ spells: new Map(), ...source, system: srdSystemRecord }),
     loadRelationshipFacts: async () => []
   })
 }

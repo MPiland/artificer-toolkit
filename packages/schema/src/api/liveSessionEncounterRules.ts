@@ -21,7 +21,9 @@ import {
 } from '../projections/encounterRunState.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
 import {
+  encounterStoredSpellPinSchema,
   encounterTeleportAllowanceSchema,
+  encounterTurnLastMoveSchema,
   encounterTurnUseKeysSchema
 } from '../projections/encounterRunPersistence.js'
 import { systemAuthoredDtoSchema } from '../vocabulary/system.js'
@@ -53,7 +55,7 @@ import {
 import { sceneGridDtoSchema, scenePointDtoSchema } from './vttScenes.js'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { encounterInitiativeRoundStateDtoSchema } from '../shared/initiativeState.js'
-import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import {
   sceneCurrentEntityPageInputSchema,
   sceneCurrentEntityPageSchema
@@ -138,9 +140,11 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('INITIATIVE_ROUND') }),
     z.strictObject({ kind: z.literal('TURN_USES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TURN_MOVED_FEET'), actorId: postgresUuidSchema }),
+    z.strictObject({ kind: z.literal('TURN_LAST_MOVE'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('TELEPORT_ALLOWANCES'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('ACTOR_TOKEN_BINDINGS') }),
     z.strictObject({ kind: z.literal('SEEN_ACTORS') }),
+    z.strictObject({ kind: z.literal('SPELL_PINS') }),
     z.strictObject({ kind: z.literal('OCCUPANT_SAVE_AURAS'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('SYSTEM_VOCABULARY') }),
     z.strictObject({
@@ -308,6 +312,14 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       actorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     }),
     z.strictObject({
+      kind: z.literal('SPELL_PINS'),
+      revisions: liveSessionRulesRevisionsSchema,
+      /** The Spells the Run pinned (D163), as stored; the room hydrates them without compiling. */
+      pins: z
+        .array(encounterStoredSpellPinSchema)
+        .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
+    }),
+    z.strictObject({
       kind: z.literal('OCCUPANT_SAVE_AURAS'),
       revisions: liveSessionRulesRevisionsSchema,
       actorId: postgresUuidSchema,
@@ -343,6 +355,12 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       revisions: liveSessionRulesRevisionsSchema,
       /** The feet the actor has moved this turn; 0 off its turn. */
       feet: z.number().check(z.nonnegative())
+    }),
+    z.strictObject({
+      kind: z.literal('TURN_LAST_MOVE'),
+      revisions: liveSessionRulesRevisionsSchema,
+      /** The actor's latest voluntary move this turn; null off its turn or once displaced since. */
+      lastMove: z.nullable(encounterTurnLastMoveSchema)
     }),
     z.strictObject({
       kind: z.literal('TELEPORT_ALLOWANCES'),

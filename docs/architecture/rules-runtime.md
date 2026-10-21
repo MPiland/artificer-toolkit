@@ -394,7 +394,7 @@ actor in range, allies included, except the holder. It never recurses: the burst
 
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 
-A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`packTacticsGrants`, Pack Tactics) reaches
+A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`conditionalAttackAdvantageGrants`, Pack Tactics and Assassinate) reaches
 its own attack rolls through `creatureFeatureAttackContributors`, merged beside the active-effect contributors in
 `prepareEncounterActionMechanics`. The grant's `ENEMY_NEAR_TARGET { feet }` restriction (an EQUIPMENT context, as a
 rider's) folds to a deferred `ENEMY_NEAR_TARGET` condition (`max` is the distance); a Character's item checks still
@@ -402,6 +402,15 @@ fail it closed. `featureModifiersReadEnemyProximity` makes the preparation load 
 grant that reads it, so the contributor holds only with a Scene and an able enemy of the target within the distance.
 "Enemy of the target" is the disposition-based set a rider uses, which equals "an ally of the attacker" when the
 attacker is hostile to the target. Disarm attacks do not read these grants yet.
+
+**Target has not taken a turn (SPELLS-33.T6d3b, D165).** Assassinate authors the same grant with
+`TARGET_HAS_NOT_TAKEN_TURN` (no parameters) in place of `ENEMY_NEAR_TARGET`; it folds to a deferred
+`TARGET_HAS_NOT_TAKEN_TURN` condition. `featureModifiersReadTargetTurn` makes the preparation call the optional
+`loadTargetHasNotTakenTurn` supplier, which the session worker backs with `readNativeLiveHasNotTakenTurn` (the
+`INITIATIVE_ROUND` capture; no stored state): the target is a participant still `READY` in round 1. The same
+supplier serves opportunity attacks. Limitation: a Creature reinforced into a later round never reads as having
+yet to take a turn, and the attacker's own first-turn clause is not gated. The automatic critical hit against a
+surprised Creature and the Bugbear's Surprise Attack stay description-only (the engine has no surprise step).
 
 ### Caster-centered radius areas (current, SPELLS-22)
 
@@ -1066,8 +1075,14 @@ event can fall inside that round. SRD Intimidating Presence (save immunity) and 
 and creature types) author it, as do the SRD Cloaker's Moan, the Nalfeshnee's Horror Nimbus, and the Frightful
 Presence of the Tarrasque and the 20 adult and ancient dragons (SPELLS-33.T7a). The creature fears share
 `minuteFearSaveEffect` in the source data: Frightened for a minute with a repeat save at the end of each of the
-target's turns. Chains stays MANUAL in play until the chosen invocation's spell grant reaches
-spell access (SPELLS-31.T5t).
+target's turns. A chosen option's spell grant reaches spell access through `snapshot.features` (SPELLS-31.T5t),
+so Chains of Carceri is automated in play.
+
+**Chosen-feature spell access (SPELLS-31.T5t).** `buildCharacterSpellRuleFacts` reads class, subclass and heritage
+features from their compiled definitions, and Feats, Background features and selected options from
+`snapshot.features` by provenance. Candidates and `spellAccess` carry source kind CLASS, SUBCLASS, RACE, SUBRACE,
+FEAT, BACKGROUND or OPTION, plus `acquiredParentId` for OPTION. `findCompiledSpellGrant` is the one lookup from an
+access to its authored grant, used by charge resolution and the Sheet projection.
 
 **Repeat attempt gate (SPELLS-29.T1a, D134).** A `FOLLOW_UP_SAVE` repeated at the end of the
 target's turn may author `repeatAttemptGate` (`allow: WHEN_MET | WHEN_UNMET` over the same target→source
@@ -1640,7 +1655,7 @@ Smite (`source-data/srd/classes/paladin`) are authored from core options only. I
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
 mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
 restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
@@ -1674,6 +1689,19 @@ unavailable token refuses the attack, as for an area action. Persistence never
 re-runs rules (ADR 0035); this is the room-authoritative reading of "persistence re-verifies". A movement
 opportunity attack supplies the same fact: the Session Worker places the mover at the contact point of its
 planned path and measures the Scene with the same helper (`measureNativeEnemyProximity`).
+
+**Moved toward the target (D164).** `MOVED_TOWARD_TARGET {minFeet}` is the third circumstance check, the
+printed Charge gate ("moves at least N feet straight toward a target and then hits it on the same turn"). It
+passes when the attacker's latest voluntary move this turn closed at least `minFeet` between its start and
+end positions and the target's token (`movedTowardTarget`, `encounterMoveToward`): distance(start, target) -
+distance(end, target). No heading or path is stored. The D38 `encounterTurnMovements` row keeps that move as
+`lastMove` `{start, end}` beside `usedFeet`; each voluntary move replaces it, and forced movement or a teleport
+clears it (`recordTurnLastMove`, `clearTurnLastMove`). A `lastMove.end` that is not the attacker's current token
+position (undo, a drag) answers 0 closed feet. `loadMoveToward` (supplied only for an Effect that reads the
+predicate, `effectReadsMoveToward`) binds the TEXT fact `dnd5e.attack-move-toward` (`{"closedFeet": number}`);
+without it (no Scene, or a reaction or opportunity attack, which have no turn record) the group fails whichever
+the constraint. The Session Worker reads the record through the `TURN_LAST_MOVE` capture. A move published in
+segments records only its last segment.
 
 **Once per turn (D119 f).** `usage: ONCE_PER_TURN` on a path limits it to one hit per turn of any creature
 (Sneak Attack can land on a reaction). The usage key is the compiled effect id for a path in the attack's own
@@ -2027,6 +2055,13 @@ same `resolveSave` path every save-trigger plan uses) under that fact when the a
 graph's threshold reads the fact either way. Hold Person and Hold Monster author the SRD repeat save as a
 `FOLLOW_UP_SAVE` after their Paralyzed condition, and the condition lasts the `conditionDurationTurns` of its
 duration.
+
+A `CONDITION` lead may be several conditions in one result block (Hideous Laughter: Prone and Incapacitated, then
+one `FOLLOW_UP_SAVE`): each lead is a `conditionContributions` entry and its own proposal in the OUTCOME graph
+(`nodePrefix` and `conditionOrdinal`, as in `timedConditionPlan`), and the plan's
+`dnd5e.active-effect-repeat-save-condition-ids` fact is the comma-joined list that the terminal tick removes in
+order. A grant lead or an escalation takes a single condition lead only. The follow-up's `repeatTriggers` (advantage
+on a damage-triggered repeat) are stored on the plan's lifecycle; the Funnel hook that consumes them is T2m1b2.
 
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it
 (Guardian Naga Spit Poison) and one whose failure applies a condition and then a once-only `TARGET_TURN_END`

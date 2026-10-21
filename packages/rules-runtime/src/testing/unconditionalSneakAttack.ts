@@ -71,9 +71,18 @@ export function unconditionalSneakAttack(rogueClassId: string): FeatureAuthored 
 
 /** One property check of a rider gate group, on the attacking weapon or on the attack's roll. */
 export type RiderGateCondition =
-  | { constraint?: 'EXCLUDE'; predicateCode: 'EQUIPMENT_PROPERTY'; properties: readonly ['FINESSE'] }
-  | { constraint?: 'EXCLUDE'; predicateCode: 'ATTACK_ROLL_MODE'; rollMode: 'ADVANTAGE' | 'NOT_DISADVANTAGE' }
+  | {
+      constraint?: 'EXCLUDE'
+      predicateCode: 'EQUIPMENT_PROPERTY'
+      properties: readonly ['FINESSE']
+    }
+  | {
+      constraint?: 'EXCLUDE'
+      predicateCode: 'ATTACK_ROLL_MODE'
+      rollMode: 'ADVANTAGE' | 'NOT_DISADVANTAGE'
+    }
   | { constraint?: 'EXCLUDE'; predicateCode: 'ENEMY_NEAR_TARGET'; feet: number }
+  | { constraint?: 'EXCLUDE'; predicateCode: 'MOVED_TOWARD_TARGET'; minFeet: number }
 
 /** A gate of the given OR-ed groups, each an AND of checks on the attacking weapon. */
 export function riderGate(...groups: readonly (readonly RiderGateCondition[])[]): FacetAuthored {
@@ -120,7 +129,10 @@ export function gatedSneakAttack(rogueClassId: string, gate: FacetAuthored): Fea
 }
 
 /** The rider limited to one use each turn, behind the given gate when there is one. */
-export function oncePerTurnSneakAttack(rogueClassId: string, gate?: FacetAuthored): FeatureAuthored {
+export function oncePerTurnSneakAttack(
+  rogueClassId: string,
+  gate?: FacetAuthored
+): FeatureAuthored {
   const feature = unconditionalSneakAttack(rogueClassId)
   return {
     ...feature,

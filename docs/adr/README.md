@@ -53,6 +53,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0036](0036-versioned-content-snapshots-and-browser-builder.md)        | Versioned content snapshots and Builder evaluation in the browser     | decision (S1–S9/S11 local; S10 and integrated proof pending)        |
 | [0037](0037-web-app-on-cloudflare-workers.md)                          | Netlify → Cloudflare Workers web hosting                              | decision (local migration validated; managed cutover pending)       |
 | [0038](0038-rules-authored-from-core-options.md)                       | Rules mechanics are authored from core options; `CLOSED_RULE` retired | transitional (SPELLS-4 conversions pending)                         |
+| [0039](0039-composable-system-neutral-rules-engine.md)                 | Composable, System-neutral rules engine; size and import ratchets     | decision (RULES-2 in progress)                                      |
 
 ## Updating an ADR
 

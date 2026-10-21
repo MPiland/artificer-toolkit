@@ -116,7 +116,8 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
   return discoverEncounterFeatureActions({
     actor: holder,
     conditionDefinitionIds: [],
-    abilityDefinitions: []
+    abilityDefinitions: [],
+    spells: new Map()
   }).passiveDamageGrants.map(({ capability, damageTypeIds, plan }) => {
     const effect = prepareRecurringActiveEffect({
       encounterId: input.encounter.id,

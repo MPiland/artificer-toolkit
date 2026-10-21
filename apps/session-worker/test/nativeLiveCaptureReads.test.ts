@@ -3,13 +3,27 @@ import type { ActiveRuleEffectOwner } from '@artificer-toolkit/schema/projection
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 
+import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
+import {
+  ensureEncounterSpellPins,
+  readEncounterSpellPinRows
+} from '@artificer-toolkit/encounter-persistence/spellPins'
+import { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
+import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { storedCompilationOf } from '@artificer-toolkit/rules-runtime/testing/storedCompilations'
+import { mage } from '@artificer-toolkit/source-data/srd/creatures/mage.js'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
+
 import { liveEncounterCaptures } from '../src/nativeEncounterReads.js'
 import {
   readNativeLiveMaintenanceOwners,
   readNativeLiveMaintenanceSlot
 } from '../src/nativeEncounterMaintenance.js'
 import { readNativeLiveMovementConcentrationState } from '../src/nativeEncounterMovementConcentration.js'
-import { readNativeLiveActorsAndEffects } from '../src/nativeEncounterTargets.js'
+import {
+  readNativeLiveActorsAndEffects,
+  readNativeLiveSpellPins
+} from '../src/nativeEncounterTargets.js'
 import { characterOwnerRowFor } from '../src/testing/characterPageFixture.js'
 import {
   activeEffect,
@@ -307,6 +321,56 @@ describe('readNativeLiveActorsAndEffects', () => {
 
     await expect(readNativeLiveActorsAndEffects({ state, capture: fake.capture })).rejects.toThrow(
       'Encounter Character source binding mismatch.'
+    )
+  })
+})
+
+describe('native live Spell pin capture', () => {
+  it('hydrates the Run’s pinned Spells from the captured rows without compiling or reading a source', async () => {
+    const memory = createMemoryEncounterStore()
+    const ctx = { db: memory.store }
+    const snapshot = srdCreatureActor({ id: CASTER_ID, creature: mage }).snapshot
+    let sourceReads = 0
+    await ensureEncounterSpellPins(
+      ctx,
+      async (_userId, _systemId, spellId) => {
+        sourceReads += 1
+        const document = srdBaselineContent.subjects.spells.find((spell) => spell.id === spellId)
+        if (!document) throw new Error(`Unknown SRD Spell ${spellId}.`)
+        const compilation = storedCompilationOf(parsePublicationDocument('SPELL', document))
+        return {
+          document,
+          checksum: compilation.authoredChecksum,
+          version: 1,
+          versionId: testUuid(0xe3),
+          compilation
+        }
+      },
+      {
+        encounterId: ENCOUNTER_ID,
+        userId: USER_ID,
+        systemId: GAME_SYSTEM_ID,
+        snapshots: [snapshot]
+      }
+    )
+    const pins = (await readEncounterSpellPinRows(ctx, ENCOUNTER_ID)).map(
+      ({ _id, _creationTime, ...stored }) => stored
+    )
+    expect(pins.length).toBeGreaterThan(0)
+    const readsAfterPinning = sourceReads
+    const fake = captureFake(() => ({ kind: 'SPELL_PINS', ...captureEnvelope, pins }))
+
+    const spells = await readNativeLiveSpellPins(fake.capture)
+
+    expect([...spells.keys()].sort()).toEqual(pins.map((pin) => pin.spellId).sort())
+    expect(sourceReads).toBe(readsAfterPinning)
+    expect(fake.requests).toEqual([{ kind: 'SPELL_PINS' }])
+  })
+
+  it('refuses any other capture response', async () => {
+    const fake = captureFake(() => ({ kind: 'DEFINITION', ...captureEnvelope, definition: null }))
+    await expect(readNativeLiveSpellPins(fake.capture)).rejects.toThrow(
+      'Encounter Spell pins are unavailable.'
     )
   })
 })

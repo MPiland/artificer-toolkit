@@ -79,10 +79,18 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import {
   prepareNativeLiveMovementTarget,
-  readNativeLiveActorsAndEffects
+  readNativeLiveActorsAndEffects,
+  readNativeLiveSpellPins
 } from './nativeEncounterTargets.js'
-import { readNativeLiveEnemyProximity } from './nativeAttackEnemyProximity.js'
-import { readNativeLiveTurnMovedFeet, readNativeLiveTurnUses } from './nativeTurnUses.js'
+import {
+  readNativeLiveEnemyProximity,
+  readNativeLiveMoveToward
+} from './nativeAttackEnemyProximity.js'
+import {
+  readNativeLiveHasNotTakenTurn,
+  readNativeLiveTurnMovedFeet,
+  readNativeLiveTurnUses
+} from './nativeTurnUses.js'
 import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
@@ -647,6 +655,7 @@ export async function planNativeLiveEncounterAction(
           ? { effectsByHolder: activeEffectsByActorId }
           : undefined,
         system,
+        spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
           actorId: input.actor.id,
           actionId: input.actionId,
@@ -710,7 +719,16 @@ export async function planNativeLiveEncounterAction(
           definitions,
           capture
         }),
+      loadMoveToward: ({ sourceFacts, targetFacts }) =>
+        readNativeLiveMoveToward({
+          attacker: sourceFacts,
+          target: targetFacts,
+          sceneContext,
+          capture
+        }),
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
+      loadTargetHasNotTakenTurn: ({ targetFacts }) =>
+        readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
@@ -1238,6 +1256,7 @@ export async function planNativeLiveEncounterAction(
   const discoverReaction = discoverNativeAttackReaction({
     state,
     system,
+    spells: await readNativeLiveSpellPins(capture),
     attack: prepared,
     reactionSpentActorIds: failedCounters.map(({ reaction }) => reaction.reactorActorId),
     prepareReaction: (actionId) =>
@@ -1446,7 +1465,8 @@ export async function planNativeLiveEncounterAction(
         ? discoverEncounterFeatureActions({
             actor: prepared.target,
             conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-            abilityDefinitions: systemAbilityDefinitions(system)
+            abilityDefinitions: systemAbilityDefinitions(system),
+            spells: new Map()
           }).passiveWeaponHits
         : []
   })

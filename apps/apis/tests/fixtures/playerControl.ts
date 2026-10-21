@@ -256,6 +256,7 @@ export async function playerControlFixture(
       .unique()
     if (!actorRow) throw new Error('Missing player control companion.')
     return discoverEncounterFeatureActionCapabilities({
+      spells: new Map(),
       actor: await readTestActor(ctx, actorRow),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

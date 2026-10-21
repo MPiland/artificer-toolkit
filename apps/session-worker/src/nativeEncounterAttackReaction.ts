@@ -24,6 +24,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
 import { isInstalledMeleeAttackTrigger } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
@@ -57,6 +58,8 @@ export function discoverNativeAttackReaction(input: {
   state: EncounterRunState
   attack: Pick<Prepared, 'actor' | 'target' | 'movementTargets' | 'source' | 'attackSight'>
   system: SystemAuthoredDto
+  /** The Run's pinned Spells (D163). */
+  spells: ReadonlyMap<string, CompiledSpell>
   prepareReaction(actionId: string): Promise<Prepared>
   /** Creatures whose reaction this action already spent (a failed counter), though the run still shows it unspent. */
   reactionSpentActorIds: readonly string[]
@@ -84,7 +87,12 @@ export function discoverNativeAttackReaction(input: {
         : source.capability.mechanicFacts
     const reactions: NativeAttackReaction[] = []
     for (const { actionId, trigger, triggerDamageTypeIds } of discoverAttackReactionActions(
-      encounterReactorCandidates({ actor: target, target: reactor, system: input.system }),
+      encounterReactorCandidates({
+        actor: target,
+        target: reactor,
+        system: input.system,
+        spells: input.spells
+      }),
       {
         damageTypeIds: attackHitDamageTypeIds(attackFacts, hit.critical),
         melee: isInstalledMeleeAttackTrigger(

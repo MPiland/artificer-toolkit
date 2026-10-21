@@ -5,7 +5,8 @@ import {
 import { MAX_TURN_TELEPORT_ALLOWANCES } from '@artificer-toolkit/schema/shared/teleportAllowance'
 import {
   encounterStoredTurnMovementSchema,
-  type EncounterTeleportAllowance
+  type EncounterTeleportAllowance,
+  type EncounterTurnLastMove
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -104,6 +105,39 @@ export async function recordTurnMovement(
     speedId: input.speedId,
     speedBonuses: 0
   })
+}
+
+/**
+ * Replaces an actor's latest voluntary move this turn with the one just made (D164); the record
+ * was created by the move's own `recordTurnMovement`.
+ */
+export async function recordTurnLastMove(
+  ctx: EncounterWriteContext,
+  input: { state: RunTurnState; actorId: string; lastMove: EncounterTurnLastMove }
+) {
+  const turn = currentTurn(input.state)
+  const row = turn ? await readTurnRow(ctx, turn, input.actorId) : null
+  if (row) await ctx.db.patch(row._id, { lastMove: input.lastMove })
+}
+
+/** Forgets an actor's latest voluntary move this turn: it was moved some other way since (D164). */
+export async function clearTurnLastMove(
+  ctx: EncounterWriteContext,
+  input: { state: RunTurnState; actorId: string }
+) {
+  const turn = currentTurn(input.state)
+  const row = turn ? await readTurnRow(ctx, turn, input.actorId) : null
+  if (row?.lastMove) await ctx.db.patch(row._id, { lastMove: null })
+}
+
+/** The actor's latest voluntary move this turn; null off its turn, before moving or once displaced. */
+export async function readTurnLastMove(
+  ctx: EncounterReadContext,
+  input: { state: RunTurnState; actorId: string }
+): Promise<EncounterTurnLastMove | null> {
+  const turn = currentTurn(input.state)
+  const row = turn ? await readTurnRow(ctx, turn, input.actorId) : null
+  return row?.lastMove ?? null
 }
 
 /** Records a basic action that added the actor's speed to its budget this turn (Dash, D38). */

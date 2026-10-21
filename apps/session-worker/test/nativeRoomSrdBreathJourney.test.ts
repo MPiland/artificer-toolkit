@@ -156,6 +156,7 @@ describe('every SRD breath weapon is offered and resolves through the area (SPEL
     // area resolution nativeRoomSrdBreathCondition and nativeRoomSrdBreathEscalation run.
     const breaths = srdBaselineContent.subjects.creatures.flatMap((creature, index) => {
       const discovery = discoverEncounterFeatureActions({
+        spells: new Map(),
         actor: srdCreatureActor({ id: testUuid(0xc00 + index), creature }),
         conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
         abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

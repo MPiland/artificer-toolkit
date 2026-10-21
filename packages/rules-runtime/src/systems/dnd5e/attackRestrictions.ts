@@ -12,11 +12,19 @@ export type Dnd5eAttackRollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
  */
 export type Dnd5eEnemyProximity = { nearestFeet: number | null }
 
+/**
+ * How far the attacker's latest voluntary move this turn closed its distance to the target, from
+ * the Scene (D164); 0 when it made none, or has been moved since.
+ */
+export type Dnd5eMoveToward = { closedFeet: number }
+
 /** What an attack decides when it rolls, which its path restrictions are held against. */
 export type Dnd5eAttackCircumstances = {
   rollMode: Dnd5eAttackRollMode
   /** Null when the attack has no Scene to measure on, so an enemy-distance check cannot be answered. */
   enemyProximity: Dnd5eEnemyProximity | null
+  /** Null when the attack has no Scene to measure on, so a movement check cannot be answered. */
+  moveToward: Dnd5eMoveToward | null
   /** The creature type of the target; null for a target with none, such as a Character. */
   targetCreatureTypeId: string | null
 }
@@ -26,13 +34,22 @@ type Group = Restrictions['groups'][number]
 type Context = Group['contexts'][number]
 type Condition = NonNullable<Context['conditions']>[number]
 type RollModeCondition = Extract<Condition, { predicateCode: 'ATTACK_ROLL_MODE' }>
+type MoveTowardCondition = Extract<Condition, { predicateCode: 'MOVED_TOWARD_TARGET' }>
 type CreatureTypeCondition = Extract<Condition, { predicateCode: 'CREATURE_TYPE' }>
 type EnemyNearCondition = Extract<Condition, { predicateCode: 'ENEMY_NEAR_TARGET' }>
 type DamageTypeCondition = Extract<Condition, { predicateCode: 'DAMAGE_TYPE' }>
-type CircumstanceCondition = RollModeCondition | EnemyNearCondition | CreatureTypeCondition
+type CircumstanceCondition =
+  | RollModeCondition
+  | EnemyNearCondition
+  | MoveTowardCondition
+  | CreatureTypeCondition
 
 function isEnemyNearCondition(condition: Condition): condition is EnemyNearCondition {
   return condition.kind === 'PREDICATE' && condition.predicateCode === 'ENEMY_NEAR_TARGET'
+}
+
+function isMoveTowardCondition(condition: Condition): condition is MoveTowardCondition {
+  return condition.kind === 'PREDICATE' && condition.predicateCode === 'MOVED_TOWARD_TARGET'
 }
 
 function isCreatureTypeCondition(condition: Condition): condition is CreatureTypeCondition {
@@ -67,7 +84,8 @@ function damageTypeChecksMet(group: Group, dealtDamageTypeIds: ReadonlySet<strin
 
 /**
  * The checks an attack decides at the moment it rolls, rather than from the weapon it holds: its
- * net roll mode, the enemies near its target, and the creature type of the target.
+ * net roll mode, the enemies near its target, how far it closed on its target, and the creature
+ * type of the target.
  */
 function isCircumstanceCondition(
   context: Context,
@@ -76,6 +94,7 @@ function isCircumstanceCondition(
   return (
     (condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ROLL_MODE') ||
     isEnemyNearCondition(condition) ||
+    isMoveTowardCondition(condition) ||
     (context.subject === 'CREATURE' && isCreatureTypeCondition(condition))
   )
 }
@@ -203,6 +222,9 @@ function circumstanceMet(
     if (!circumstances.enemyProximity) return false
     const { nearestFeet } = circumstances.enemyProximity
     matches = nearestFeet !== null && nearestFeet <= condition.feet
+  } else if (isMoveTowardCondition(condition)) {
+    if (!circumstances.moveToward) return false
+    matches = circumstances.moveToward.closedFeet >= condition.minFeet
   } else {
     const { rollMode } = circumstances
     matches =
@@ -258,6 +280,17 @@ export function spentTurnUses(
 /** Whether any path of a compiled attack Effect is limited to one use each turn. */
 export function effectReadsTurnUses(effect: Pick<CompiledEffectGroup, 'entries'>): boolean {
   return effect.entries.some((entry) => 'usage' in entry && entry.usage !== undefined)
+}
+
+/** Whether any path of a compiled attack Effect asks how far the attacker closed on the target. */
+export function effectReadsMoveToward(effect: Pick<CompiledEffectGroup, 'entries'>): boolean {
+  return effect.entries.some(
+    (entry) =>
+      'restrictions' in entry &&
+      entry.restrictions?.groups.some((group) =>
+        group.contexts.some((context) => (context.conditions ?? []).some(isMoveTowardCondition))
+      )
+  )
 }
 
 /** Whether any path of a compiled attack Effect asks how near an enemy stands to the target. */
