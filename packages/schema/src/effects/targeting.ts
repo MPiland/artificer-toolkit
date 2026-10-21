@@ -8,6 +8,32 @@ import {
 /** Whether a single-target action may aim at its own user: freely, with a warning, or never. */
 export const targetingSelfDtoSchema = lazySchema(() => z.enum(['ALLOWED', 'WARN', 'REFUSED']))
 
+/** The most requirements one single-target action carries. */
+const MAX_TARGET_REQUIREMENTS = 4
+
+/**
+ * What a creature must be, to the user, to be named as the one target (Encounter only); the commit
+ * refuses any other. `HAS_CONDITION` needs one of `conditionIds` held, from the user (`ACTOR`) or from
+ * any source (`ANY`). `SIGHT` needs the user to see the target, or the target to see the user.
+ * `AT_ZERO_HIT_POINTS` needs a target at 0 hit points that is not dead.
+ */
+export const targetRequirementDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('HAS_CONDITION'),
+      conditionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema),
+      source: z.enum(['ACTOR', 'ANY'])
+    }),
+    z.strictObject({
+      kind: z.literal('SIGHT'),
+      direction: z.enum(['ACTOR_SEES_TARGET', 'TARGET_SEES_ACTOR'])
+    }),
+    z.strictObject({ kind: z.literal('AT_ZERO_HIT_POINTS') })
+  ])
+)
+
+export type TargetRequirementDto = z.infer<typeof targetRequirementDtoSchema>
+
 export const targetingDtoSchema = lazySchema(() =>
   z.discriminatedUnion('selectionKind', [
     z.object({
@@ -23,6 +49,12 @@ export const targetingDtoSchema = lazySchema(() =>
       ),
       /** The target must be a creature the actor holds through a relationship it sources (Grappled); any other is refused. */
       heldBySource: z.optional(z.literal(true)),
+      targetRequirements: z.optional(
+        z
+          .array(targetRequirementDtoSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_TARGET_REQUIREMENTS))
+      ),
       allowedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       ),

@@ -113,7 +113,7 @@ describe('the SRD Assassin’s and Spy’s Sneak Attack, authored from core opti
     expect(damage).toEqual([[3 + 3, srdDamageTypeId('PIERCING')]])
   })
 
-  it('folds no rider from a passive that still carries a closed rule: the Bugbear’s gated Surprise Attack', async () => {
+  it('folds no rider from the Bugbear’s description-only Surprise Attack', async () => {
     const feature = creatureFeature(srdByLabel(SRD.creatures, 'Bugbear'), 'Surprise Attack')
     expect(collectOnHitRiders((feature.effects ?? []).map(compileEffect), feature.id)).toEqual([])
     // Morningstar, +4: 2d8 + 2 piercing, with no 2d6 surprise damage. d20 15; dice 3 and 1.

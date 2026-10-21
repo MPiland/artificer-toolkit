@@ -2,6 +2,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterReactionPinDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 
 import { systemAbilityDefinitions } from './encounterActionSources.js'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
@@ -55,12 +56,14 @@ export function encounterReactorCandidates(input: {
   actor: EncounterRunActorState
   target: Pick<MovementTarget, 'characterReactionSource' | 'characterSpellCast'>
   system: SystemAuthoredDto
+  spells: ReadonlyMap<string, CompiledSpell>
 }): readonly Pick<CharacterActionCandidate, 'actionId' | 'effectId' | 'mechanicFacts'>[] {
   if (input.actor.kind !== 'CREATURE') return characterReactionCandidates(input.target)
   return discoverEncounterFeatureActions({
     actor: input.actor,
     conditionDefinitionIds: input.system.conditionTypes.map(({ id }) => id),
-    abilityDefinitions: systemAbilityDefinitions(input.system)
+    abilityDefinitions: systemAbilityDefinitions(input.system),
+    spells: input.spells
   }).available
 }
 

@@ -62,7 +62,8 @@ const DEFERRED_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new 
   'FREE_HAND',
   'TURN_MOVEMENT',
   'ATTACK_ACTION_OTHER_WEAPON',
-  'ENEMY_NEAR_TARGET'
+  'ENEMY_NEAR_TARGET',
+  'TARGET_HAS_NOT_TAKEN_TURN'
 ])
 
 /**
@@ -247,6 +248,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'TURN_MOVEMENT':
       case 'ATTACK_ACTION_OTHER_WEAPON':
       case 'ENEMY_NEAR_TARGET':
+      case 'TARGET_HAS_NOT_TAKEN_TURN':
       case 'CREATURE_TYPE':
       case 'UNAVAILABLE':
       case 'UNSUPPORTED':

@@ -257,6 +257,7 @@ export async function nativeDisarmFixture(
           )?.actionId
         })()
       : discoverEncounterFeatureActionCapabilities({
+          spells: new Map(),
           actor: sourceState,
           conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
           abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({

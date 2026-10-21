@@ -63,12 +63,14 @@ describe('a Character in a creature form acts from the form stat block (SPELLS-2
   it('resolves the form’s action as a Creature action of the Character actor', () => {
     const view = characterFormCreatureView(wornCharacter)!
     const bite = discoverEncounterFeatureActions({
+      spells: new Map(),
       actor: view,
       conditionDefinitionIds,
       abilityDefinitions
     }).available.find(({ label }) => label.startsWith('Bite'))!
 
     const source = resolveEncounterActionSource({
+      spells: new Map(),
       actor: wornCharacter,
       actionId: bite.actionId,
       gameSystemId: SRD_SYSTEM_ID,
@@ -84,6 +86,7 @@ describe('a Character in a creature form acts from the form stat block (SPELLS-2
     const sheetActionId = '00000000-0000-4000-8000-0000000d40ff'
     expect(() =>
       resolveEncounterActionSource({
+        spells: new Map(),
         actor: wornCharacter,
         actionId: sheetActionId,
         gameSystemId: SRD_SYSTEM_ID,
@@ -92,6 +95,7 @@ describe('a Character in a creature form acts from the form stat block (SPELLS-2
     ).toThrow('stale')
     expect(() =>
       resolveEncounterActionSource({
+        spells: new Map(),
         actor: sheetCharacter,
         actionId: sheetActionId,
         gameSystemId: SRD_SYSTEM_ID,

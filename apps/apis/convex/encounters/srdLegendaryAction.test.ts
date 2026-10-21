@@ -304,6 +304,7 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
       const actor = await readTestActor(ctx, row)
       const legendary = encounterLegendaryActionFeatureIds(actor)
       return discoverEncounterFeatureActionCapabilities({
+        spells: new Map(),
         actor,
         conditionDefinitionIds: srdSystemRecord.conditionTypes.map(({ id }) => id),
         abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))

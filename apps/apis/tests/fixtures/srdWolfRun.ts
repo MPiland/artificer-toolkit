@@ -93,6 +93,7 @@ export async function setupWolfRun(input: {
       .unique()
     if (!row) throw new Error('The Wolf Run fixture Run is missing.')
     const bite = discoverEncounterFeatureActionCapabilities({
+      spells: new Map(),
       actor: await readRunActor(
         { db: createConvexEncounterStoreReader(ctx) },
         readRunState(row),

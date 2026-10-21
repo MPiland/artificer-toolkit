@@ -105,6 +105,8 @@ export type PredicatePayloadByCode = {
   ENEMY_NEAR_TARGET: {
     feet: number
   }
+  /** The target has not taken a turn in the Encounter yet: its Round-1 initiative turn is still to come. */
+  TARGET_HAS_NOT_TAKEN_TURN: EmptyObject
   /**
    * The attacker's latest voluntary move this turn closed its distance to the target by at least
    * `minFeet` (D164). On the grid that is a move of at least that far straight toward the target.
@@ -371,6 +373,13 @@ export const PREDICATE_REGISTRY = {
     label: 'Enemy Near Target',
     description:
       'Requires another creature hostile to the target, and not incapacitated, within the distance of the target.',
+    subjects: ['EQUIPMENT']
+  },
+
+  TARGET_HAS_NOT_TAKEN_TURN: {
+    code: 'TARGET_HAS_NOT_TAKEN_TURN',
+    label: 'Target Has Not Taken a Turn',
+    description: 'Requires the attack target not to have taken a turn in the Encounter yet.',
     subjects: ['EQUIPMENT']
   },
 

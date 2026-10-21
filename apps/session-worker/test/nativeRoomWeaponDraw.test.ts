@@ -191,6 +191,7 @@ describe('a thrown weapon leaves its hand (D107, ATTACK-19.3), in the room', () 
     }
     const bugbearActor = srdCreatureActor({ id: OGRE_ID, creature: holding })
     const [, thrownJavelin] = discoverEncounterFeatureActions({
+      spells: new Map(),
       actor: bugbearActor,
       conditionDefinitionIds: [],
       abilityDefinitions: []

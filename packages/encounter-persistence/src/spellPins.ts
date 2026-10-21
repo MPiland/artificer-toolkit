@@ -27,7 +27,12 @@ function readPinRow(ctx: EncounterReadContext, encounterId: string, spellId: str
     .unique()
 }
 
-function parsePinRow(row: EncounterDocument<'encounterSpellPins'>): CompiledSpell {
+type SpellPinRow = Pick<
+  EncounterDocument<'encounterSpellPins'>,
+  'spellId' | 'sourceChecksum' | 'compilationJson'
+>
+
+function parsePinRow(row: SpellPinRow): CompiledSpell {
   const compilation: AuthoredStoredCompilation = authoredStoredCompilationSchema.parse(
     JSON.parse(row.compilationJson)
   )
@@ -39,8 +44,13 @@ function parsePinRow(row: EncounterDocument<'encounterSpellPins'>): CompiledSpel
 }
 
 /** A pin row's compiled Spell; fails closed on another compiler version or a corrupt compilation. */
-export function readStoredSpellPin(row: EncounterDocument<'encounterSpellPins'>): CompiledSpell {
+export function readStoredSpellPin(row: SpellPinRow): CompiledSpell {
   return deriveOnce(row, parsePinRow)
+}
+
+/** The compiled Spells of pin rows read elsewhere (the room's capture), by Spell ID; nothing compiles. */
+export function hydrateSpellPins(rows: readonly SpellPinRow[]): ReadonlyMap<string, CompiledSpell> {
+  return new Map(rows.map((row) => [row.spellId, readStoredSpellPin(row)]))
 }
 
 /**
@@ -73,14 +83,18 @@ export async function ensureEncounterSpellPins(
   }
 }
 
+/** The Run's stored pin rows. */
+export function readEncounterSpellPinRows(ctx: EncounterReadContext, encounterId: string) {
+  return ctx.db
+    .query('encounterSpellPins')
+    .withIndex('by_encounterId_spellId', (q) => q.eq('encounterId', encounterId))
+    .collect()
+}
+
 /** The Run's pinned Spells by ID, hydrated from their stored compilations; nothing compiles. */
 export async function readEncounterSpellPins(
   ctx: EncounterReadContext,
   encounterId: string
 ): Promise<ReadonlyMap<string, CompiledSpell>> {
-  const rows = await ctx.db
-    .query('encounterSpellPins')
-    .withIndex('by_encounterId_spellId', (q) => q.eq('encounterId', encounterId))
-    .collect()
-  return new Map(rows.map((row) => [row.spellId, readStoredSpellPin(row)]))
+  return hydrateSpellPins(await readEncounterSpellPinRows(ctx, encounterId))
 }

@@ -86,6 +86,32 @@ asks the installed System for the Run's `gameSystemId` through `platformRulesRun
 registered by the System module (`systems/dnd5e/characterActionRuntime`). An unknown System fails
 closed.
 
+### SRD effect compile golden (current, RULES-2.T2)
+
+`packages/rules-runtime/src/__tests__/srdEffectCompileGolden.test.ts` compiles every authored SRD Effect, found by
+parsing nodes with the authored Effect schemas, through the entry point its owner uses in play, and compares one line
+per Effect with `__tests__/__golden__/srdEffectCompile.golden.txt`, sorted by Effect id: `<effect id> <owner kind>
+<owner label> | <outcome>`.
+
+- `CREATURE`: Creature action discovery (the Encounter's path), then `compileEncounterFeatureActionPlan`. An Effect
+  discovery does not list as an action reads `NOT_A_DISCOVERED_ACTION`. The checksum includes the Effect's real id.
+- `CHARACTER:<subject>`: a Character action descriptor over the compiled Effect, then
+  `compileExecutionPlan`, at Character level 20 and, for a spell, its own level. The Effect is compiled under the
+  descriptor's fixed id, so the checksum does not depend on the Effect's own id.
+- Outcome: `SINGLE_GRAPH <graph checksum> nodes=N outputs=M`, `TEST_OUTCOME test=<checksum> nodes=N outputs=M
+  outcomes=[<path>=<checksum>,...]` or `REFUSED <error name>: <message>`.
+- Scaling variants of a Character-owned Effect (`<id> @L1`, `@L5`, `@L11` at that Character level, `@U9` for a leveled
+  spell upcast to 9th level) appear only when their outcome differs from the base line. Most scaling is bound at
+  execution from facts, so few variants differ; a new one is a scaling change.
+
+Reading a diff: a changed checksum means the compiled graph for that Effect changed; changed `nodes`/`outputs` show
+its size; `SINGLE_GRAPH`/`TEST_OUTCOME` flipping is a plan-shape change; `REFUSED` or `NOT_A_DISCOVERED_ACTION`
+appearing or disappearing is a support change; a variant line appearing or vanishing is a scaling change. A refactor
+slice (RULES-2.T6a-f) must keep the file green. If a line must change, the slice's review explains every changed
+checksum and reseeds development data in the same change, because published graphs and frozen occurrences carry
+these checksums. Regenerate with `vitest run -u` on that test only. Passive Creature traits compiled by other
+adapter methods (zones, damage grants) are not covered.
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014. Reusable mechanics remain
@@ -394,7 +420,7 @@ actor in range, allies included, except the holder. It never recurses: the burst
 
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 
-A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`packTacticsGrants`, Pack Tactics) reaches
+A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`conditionalAttackAdvantageGrants`, Pack Tactics and Assassinate) reaches
 its own attack rolls through `creatureFeatureAttackContributors`, merged beside the active-effect contributors in
 `prepareEncounterActionMechanics`. The grant's `ENEMY_NEAR_TARGET { feet }` restriction (an EQUIPMENT context, as a
 rider's) folds to a deferred `ENEMY_NEAR_TARGET` condition (`max` is the distance); a Character's item checks still
@@ -402,6 +428,15 @@ fail it closed. `featureModifiersReadEnemyProximity` makes the preparation load 
 grant that reads it, so the contributor holds only with a Scene and an able enemy of the target within the distance.
 "Enemy of the target" is the disposition-based set a rider uses, which equals "an ally of the attacker" when the
 attacker is hostile to the target. Disarm attacks do not read these grants yet.
+
+**Target has not taken a turn (SPELLS-33.T6d3b, D165).** Assassinate authors the same grant with
+`TARGET_HAS_NOT_TAKEN_TURN` (no parameters) in place of `ENEMY_NEAR_TARGET`; it folds to a deferred
+`TARGET_HAS_NOT_TAKEN_TURN` condition. `featureModifiersReadTargetTurn` makes the preparation call the optional
+`loadTargetHasNotTakenTurn` supplier, which the session worker backs with `readNativeLiveHasNotTakenTurn` (the
+`INITIATIVE_ROUND` capture; no stored state): the target is a participant still `READY` in round 1. The same
+supplier serves opportunity attacks. Limitation: a Creature reinforced into a later round never reads as having
+yet to take a turn, and the attacker's own first-turn clause is not gated. The automatic critical hit against a
+surprised Creature and the Bugbear's Surprise Attack stay description-only (the engine has no surprise step).
 
 ### Caster-centered radius areas (current, SPELLS-22)
 

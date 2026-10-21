@@ -40,7 +40,7 @@ function plannedAction(effects: NonNullable<CreatureAuthored['features']>[number
   const feature = creatureFeature(creature, 'Invisibility')
   const actor = srdCreatureActor({ id: testUuid(0x2200), creature })
   const capability = discovery
-    .discover({ actor, conditionDefinitionIds, abilityDefinitions })
+    .discover({ spells: new Map(), actor, conditionDefinitionIds, abilityDefinitions })
     .available.find((candidate) => candidate.ownerFeatureId === feature.id)
   if (!capability) throw new Error('The feature is not offered as an action.')
   const executionPlan = compileEncounterFeatureActionPlan(

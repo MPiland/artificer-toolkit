@@ -25663,6 +25663,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -26795,6 +26809,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -27932,6 +27960,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -29113,6 +29155,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -30346,6 +30402,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -31494,6 +31564,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -32625,6 +32709,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -33816,6 +33914,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -36689,6 +36801,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -37821,6 +37947,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -38958,6 +39098,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -40139,6 +40293,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -41372,6 +41540,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -42520,6 +42702,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -43651,6 +43847,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -44842,6 +45052,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -47724,6 +47948,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -48856,6 +49094,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -49993,6 +50245,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -51174,6 +51440,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -52407,6 +52687,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -53555,6 +53849,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -54686,6 +54994,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -55877,6 +56199,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -58750,6 +59086,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -59882,6 +60232,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -61019,6 +61383,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -62200,6 +62578,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -63433,6 +63825,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -64581,6 +64987,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -65712,6 +66132,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -66903,6 +67337,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -69811,6 +70259,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -70943,6 +71405,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -72080,6 +72556,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -73261,6 +73751,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -74494,6 +74998,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -75642,6 +76160,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -76773,6 +77305,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -77964,6 +78510,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -80837,6 +81397,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -81969,6 +82543,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -83106,6 +83694,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -84287,6 +84889,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -85520,6 +86136,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -86668,6 +87298,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -87799,6 +88443,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -88990,6 +89648,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -91832,6 +92504,19 @@ export declare const api: {
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
+                              targetRequirements?: Array<
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "HAS_CONDITION";
+                                    source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    direction:
+                                      "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
+                                    kind: "SIGHT";
+                                  }
+                                | { kind: "AT_ZERO_HIT_POINTS" }
+                              >;
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -92952,6 +93637,19 @@ export declare const api: {
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
+                              targetRequirements?: Array<
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "HAS_CONDITION";
+                                    source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    direction:
+                                      "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
+                                    kind: "SIGHT";
+                                  }
+                                | { kind: "AT_ZERO_HIT_POINTS" }
+                              >;
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -94077,6 +94775,19 @@ export declare const api: {
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
+                              targetRequirements?: Array<
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "HAS_CONDITION";
+                                    source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    direction:
+                                      "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
+                                    kind: "SIGHT";
+                                  }
+                                | { kind: "AT_ZERO_HIT_POINTS" }
+                              >;
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -95240,6 +95951,19 @@ export declare const api: {
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
+                              targetRequirements?: Array<
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "HAS_CONDITION";
+                                    source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    direction:
+                                      "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
+                                    kind: "SIGHT";
+                                  }
+                                | { kind: "AT_ZERO_HIT_POINTS" }
+                              >;
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -96451,6 +97175,19 @@ export declare const api: {
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
+                              targetRequirements?: Array<
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "HAS_CONDITION";
+                                    source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    direction:
+                                      "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
+                                    kind: "SIGHT";
+                                  }
+                                | { kind: "AT_ZERO_HIT_POINTS" }
+                              >;
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -97587,6 +98324,19 @@ export declare const api: {
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
+                              targetRequirements?: Array<
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "HAS_CONDITION";
+                                    source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    direction:
+                                      "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
+                                    kind: "SIGHT";
+                                  }
+                                | { kind: "AT_ZERO_HIT_POINTS" }
+                              >;
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -98706,6 +99456,19 @@ export declare const api: {
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
+                              targetRequirements?: Array<
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "HAS_CONDITION";
+                                    source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    direction:
+                                      "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
+                                    kind: "SIGHT";
+                                  }
+                                | { kind: "AT_ZERO_HIT_POINTS" }
+                              >;
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -99881,6 +100644,19 @@ export declare const api: {
                               selectionKind: "SINGLE_TARGET";
                               self?: "ALLOWED" | "WARN" | "REFUSED";
                               sizeLimit?: { stepsAboveActor: number };
+                              targetRequirements?: Array<
+                                | {
+                                    conditionIds: Array<string>;
+                                    kind: "HAS_CONDITION";
+                                    source: "ACTOR" | "ANY";
+                                  }
+                                | {
+                                    direction:
+                                      "ACTOR_SEES_TARGET" | "TARGET_SEES_ACTOR";
+                                    kind: "SIGHT";
+                                  }
+                                | { kind: "AT_ZERO_HIT_POINTS" }
+                              >;
                             }
                           | {
                               allowRepeatedTargets?: boolean;
@@ -102749,6 +103525,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -103881,6 +104671,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -105018,6 +105822,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -106199,6 +107017,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -107432,6 +108264,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -108580,6 +109426,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -109711,6 +110571,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -110902,6 +111776,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -113775,6 +114663,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -114907,6 +115809,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -116044,6 +116960,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -117225,6 +118155,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -118458,6 +119402,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -119606,6 +120564,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -120737,6 +121709,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;
@@ -121928,6 +122914,20 @@ export declare const api: {
                                 selectionKind: "SINGLE_TARGET";
                                 self?: "ALLOWED" | "WARN" | "REFUSED";
                                 sizeLimit?: { stepsAboveActor: number };
+                                targetRequirements?: Array<
+                                  | {
+                                      conditionIds: Array<string>;
+                                      kind: "HAS_CONDITION";
+                                      source: "ACTOR" | "ANY";
+                                    }
+                                  | {
+                                      direction:
+                                        | "ACTOR_SEES_TARGET"
+                                        | "TARGET_SEES_ACTOR";
+                                      kind: "SIGHT";
+                                    }
+                                  | { kind: "AT_ZERO_HIT_POINTS" }
+                                >;
                               }
                             | {
                                 allowRepeatedTargets?: boolean;

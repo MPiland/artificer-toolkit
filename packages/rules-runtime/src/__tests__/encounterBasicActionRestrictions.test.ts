@@ -514,12 +514,17 @@ describe('a basic action source exists only where the catalogue entries are read
       abilityDefinitions: SRD_ABILITIES
     }).available
     expect(
-      resolveEncounterActionSource({ ...source, actionId: offered!.actionId, basicActions })
+      resolveEncounterActionSource({
+        spells: new Map(),
+        ...source,
+        actionId: offered!.actionId,
+        basicActions
+      })
     ).toMatchObject({ kind: 'BASIC_ACTION' })
   })
 
   it('is stale for a caller that reads none, as the area, movement and Disarm paths load sources', () => {
-    expect(() => resolveEncounterActionSource(source)).toThrow(
+    expect(() => resolveEncounterActionSource({ ...source, spells: new Map() })).toThrow(
       'The selected basic action source is stale.'
     )
   })

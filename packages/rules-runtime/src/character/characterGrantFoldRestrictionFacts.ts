@@ -259,6 +259,8 @@ function normalizeItemContext(
         }
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'ENEMY_NEAR_TARGET')
         return { ...baseCondition(condition, 'ENEMY_NEAR_TARGET'), max: condition.feet }
+      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'TARGET_HAS_NOT_TAKEN_TURN')
+        return baseCondition(condition, 'TARGET_HAS_NOT_TAKEN_TURN')
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'SOLE_WIELDED_WEAPON')
         return baseCondition(condition, 'ITEM_SOLE_WEAPON')
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ABILITY')
