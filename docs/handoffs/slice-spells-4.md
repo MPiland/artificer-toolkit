@@ -17,7 +17,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 ### T2e (a grant bound to a chosen held item, D156 T2 class B)
 
 - New core options, generic and data-authored: a path's `chosenItem` (category, required and excluded properties, named equipment), `bindsChosenItem` on `APPLY_GRANT` (its SOURCE-scoped modifiers apply only to that item's attacks), `unlessChosenItemReleased` on `APPLY_GRANT`, and a `RELEASE_CHOSEN_ITEM` outcome that lets the item go through Disarm's equipment change (held items only; worn armor is never released). `WEAPON_DAMAGE_DIE` `SET_VALUE`, `ATTACK_TRAIT` `ENABLE` (MAGICAL bypass) and `SPELLCASTING` on `OPTIONAL_ABILITY_MODIFIER_BONUS` complete the grant vocabulary. Node-map fields: `pathChosenItem` group on the path, the two `APPLY_GRANT` toggles.
-- The release event is `ON_CHOSEN_ITEM_RELEASED` (the design called it `ON_BOUND_ITEM_RELEASED`): a bound grant whose `endOnEvents` names it ends when its item is no longer held (`grantsEndedByHolderState`, `heldItemInstanceIds`).
+- The release event is `ON_CHOSEN_ITEM_RELEASED` (the design called it `ON_BOUND_ITEM_RELEASED`): a bound grant whose `endOnEvents` names it ends when its item is no longer held (`grantsEndedByHolderState`, `itemInstanceIdsOnActor`).
 - Room contract: the cast command target carries `boundItemInstanceId`; the `ACTION_ITEM_CHOICES` read lists the items a chosen-item action may be used on. A Character cast that needs an item and names none, or names one it does not take, is refused before it rolls (`TARGET_UNAVAILABLE`, "Choose the item this action is used on.", `encounterChosenItemRefusal`). Commit persistence re-applies the target's release from the room's `targetItemUseStateTransition` and checks it, so the drop is stored.
 - Damage: a grant-set weapon die rides the DAMAGE mechanic as `weaponDieFaces` and the `dnd5e.weapon-damage-die` fact, so the authored-dice check accepts the weapon's own dice with that die (Shillelagh's d8).
 - Other data: the Abilities field of `OPTIONAL_ABILITY_MODIFIER_BONUS` offers Spellcasting; METAL is in the weapon and armor property lists; Vicious Mockery's grant is gated to its failed save (`ON_SAVE_FAIL`).
@@ -384,6 +384,19 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Design: generic authored `lifecycle.grantedActions` on the result block, no spell names in code; id form `<basic action id>:GRANTED:<activeEffectId>:<offerIndex>`; offers re-check the live effect at resolve time (stale or spent offers are refused); a capped offer's use count is a `granted:<effectId>:<offerIndex>:<use>` key in the turn row's `usedOncePerTurn`, so the commit spends it and an undo restores it. See rules-runtime.md "Granted-action offers" and persistence.md.
 - Proofs: `encounterGrantedActions.test.ts` (offers, id form, resolve-time refusal, source), the Haste and Expeditious Retreat entries in `grantAuthoringParity.test.ts`, `nativeRoomGrantedActions.test.ts` (Haste Dash once a turn, second use refused, undo restores the use, stale offer refused; Expeditious Retreat bonus-action Dash).
 - Deferred edge: a `FREE` offer skips the allowance, so it also skips the incapacitation warning an Action would raise (rare; post-launch list).
+
+### T2lb2a (Heat Metal's repeat, D166 option B)
+
+- Status: implemented; CI on `ci/spells-4-t2lb2` pending.
+- Built: effect-offer kind `REPEAT_SOURCE_PATH` and action source `REPEAT_PATH`; a frozen `FIXED_DC` Effect on the item-bound carrier (Heat Metal paths 0x218/0x219, `repeatCarrierPath`); the pick through `effectOffers` (`actionId`); no slot and no new Concentration. See rules-runtime.md "Repeat offers".
+- Deviations from D166: (1) the pending-context arm is skipped, the `ENCOUNTER_ACTION` command replay already re-resolves the repeat id from live effects; (2) cast-level scaling is a sibling `castLevel` on the offer, not converted rows; (3) `encounterItemInstanceIdsOnActor` now means held or worn; (4) a `BONUS_ACTION` saving throw is a supported activation; (5) `LOCAL_COLLECTION` node-map sources gained `up`.
+- Not built: the web repeat row (`CampaignTabletopEffectOffers.tsx` lists the offer; starting its `actionId` from the offer row is a follow-up).
+- Proofs: `encounterRepeatPathAction.test.ts` (id form, offer to the source alone, frozen DC and cast level independent of the caster, stale carrier), `nativeRoomCoreOptionSpells.test.ts` Heat Metal (bonus-action repeat on the frozen DC, no slot or Concentration change, carrier gone with the item), the parity and source-data tests.
+
+#### T2lb2b resume notes (Eyebite's retarget)
+
+- Build on the same seam: another `effectOffers` kind (retarget the held effect to a new target) in `effectOffer.ts`/`storedEffectOffer.ts`, discovered by `encounterEffectOffers.ts`; the carrier stays a plan-level `repeatCarrier`-style rider. Reuse `frozenRepeatOffer` for any frozen cast value; the cast level comes from `preparedSpellCastLevel(prepared)` passed as `spellCastLevel`, not from the TEST-phase execution evidence (which holds only target facts).
+- Do not delete the EYEBITE kind here; T2l2 does, with Panicked and Sickened.
 
 ### T2i (hit point threshold gates and KILL, D156 class B; design ruled 2026-10-20)
 

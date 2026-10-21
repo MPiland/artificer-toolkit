@@ -100,7 +100,8 @@ describe('the effect offers a held effect makes', () => {
       effectsByHolder: byHolder(),
       zeroHitPointActorIds: atZero,
       effectId: EFFECT_ID,
-      offerIndex: 0
+      offerIndex: 0,
+      kind: 'MOVE_HELD_EFFECT' as const
     }
     expect(resolveEffectOffer(live)).toMatchObject({
       effectId: EFFECT_ID,

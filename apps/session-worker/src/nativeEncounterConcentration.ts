@@ -66,7 +66,7 @@ import {
   sourceBoundGrants,
   stateBoundGrants
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import { encounterHeldItemInstanceIds } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
+import { encounterItemInstanceIdsOnActor } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -373,7 +373,7 @@ export async function planNativeLiveConcentration(input: {
         ...grantsEndedByHolderState(stateBound, {
           reason,
           conditionIds: target.state.conditions,
-          heldItemInstanceIds: encounterHeldItemInstanceIds(
+          itemInstanceIdsOnActor: encounterItemInstanceIdsOnActor(
             target.actor,
             target.characterFacts?.character.state.equipment.equipped
           )

@@ -2,7 +2,7 @@ import {
   FORCED_MOVEMENT_DIRECTION,
   type ForcedMovementDirection
 } from '@artificer-toolkit/shared/core'
-import type { EffectOffer } from '@artificer-toolkit/schema/effects/effectOffer'
+import type { CompiledEffectOffer } from '@artificer-toolkit/schema/effects/storedEffectOffer'
 import type { GrantedAction } from '@artificer-toolkit/schema/effects/grantedAction'
 import type { AttackSlotConditionDto } from '@artificer-toolkit/schema/features/attackSlots'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
@@ -137,7 +137,7 @@ export interface CharacterRuleActionActiveEffectPlan {
     /** The actions the holder may take while the effect is held. */
     grantedActions?: readonly GrantedAction[]
     /** The choices the effect offers beside its holder's turns, such as moving it when the holder falls. */
-    effectOffers?: readonly EffectOffer[]
+    effectOffers?: readonly CompiledEffectOffer[]
   }
   /**
    * The item the action is used on, chosen at use from what its target holds or wears; null for
@@ -255,6 +255,17 @@ export interface CharacterRuleActionActiveEffectPlan {
     immuneToId: string
     initialRemaining: number | null
     frozenGraph: ServerPublishedRuleDefinitionDto
+  }
+  /**
+   * The effect that holds a repeat offer for the cast's whole Concentration (D166), bound to the
+   * chosen item and ended through the chosen-item release. It rides the rider slot under its own
+   * node of this plan's frozen graph.
+   */
+  repeatCarrier?: null | {
+    compiledEntryId: string
+    frozenGraphNodeId: string
+    applyGrantOutcomeId: string
+    effectOffers: readonly CompiledEffectOffer[]
   }
 }
 

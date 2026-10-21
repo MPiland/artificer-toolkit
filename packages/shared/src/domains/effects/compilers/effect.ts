@@ -54,6 +54,31 @@ import {
   type CompiledDuration
 } from '#compilers'
 
+type AuthoredEffectOffer = NonNullable<PathLifecycleAuthored['effectOffers']>[number]
+
+/**
+ * An offer once its Effect has resolved the paths it names (D166): a repeat offer carries the
+ * Effect subset it re-runs, with the offer's activation as the invocation's, in place of `pathIds`.
+ */
+export type CompiledEffectOffer =
+  | {
+      kind: 'MOVE_HELD_EFFECT'
+      offeredTo: AuthoredEffectOffer['offeredTo']
+      when: 'HOLDER_AT_ZERO_HP'
+      activation: AuthoredEffectOffer['activation']
+      range: NonNullable<AuthoredEffectOffer['range']>
+    }
+  | {
+      kind: 'REPEAT_SOURCE_PATH'
+      offeredTo: 'SOURCE'
+      activation: AuthoredEffectOffer['activation']
+      effect: EffectAuthored
+    }
+
+export type CompiledPathLifecycle = Omit<PathLifecycleAuthored, 'effectOffers'> & {
+  effectOffers?: CompiledEffectOffer[]
+}
+
 export type CompiledEffect = {
   id: string
   entryId: string
@@ -67,7 +92,7 @@ export type CompiledEffect = {
   description?: string
   maintenanceDefinitionId?: string
   duration?: CompiledDuration
-  lifecycle?: PathLifecycleAuthored
+  lifecycle?: CompiledPathLifecycle
   /** The margin rider of the failed direct saving throw this entry belongs to. */
   failureMarginRider?: FailureMarginRiderAuthored
   /** The target condition that must hold when the action resolves, else the entry does nothing to that target. */
@@ -370,7 +395,57 @@ function groupKindFromResultKind(
   return resultKind === 'SEQUENCE' ? PATH_GROUP_TYPE.SEQUENTIAL : PATH_GROUP_TYPE.SINGLE
 }
 
+function compileLifecycle(
+  effect: EffectAuthored<Trigger, import('#authored').OutcomeAuthored>,
+  lifecycle: PathLifecycleAuthored
+): CompiledPathLifecycle {
+  const { effectOffers, ...rest } = lifecycle
+  if (!effectOffers) return rest
+  return {
+    ...rest,
+    effectOffers: effectOffers.map((offer): CompiledEffectOffer => {
+      if (offer.kind === 'MOVE_HELD_EFFECT') {
+        const { when, range } = offer
+        if (!when || !range)
+          throw new Error(`Move offer of Effect ${effect.id} needs a trigger and a range.`)
+        return {
+          kind: 'MOVE_HELD_EFFECT',
+          offeredTo: offer.offeredTo,
+          when,
+          activation: offer.activation,
+          range
+        }
+      }
+      const pathIds = new Set(offer.pathIds)
+      const paths = effect.paths.filter((path) => pathIds.has(path.id))
+      if (paths.length !== pathIds.size)
+        throw new Error(`Repeat offer names a path that Effect ${effect.id} does not have.`)
+      const { invocation } = effect
+      if (
+        invocation.kind === 'PASSIVE' ||
+        invocation.reactionTrigger ||
+        offer.activation === 'FREE' ||
+        offer.activation === 'REACTION'
+      )
+        throw new Error(
+          `Effect ${effect.id} is not an action a repeat offer can charge to ${offer.activation}.`
+        )
+      return {
+        kind: 'REPEAT_SOURCE_PATH',
+        offeredTo: 'SOURCE',
+        activation: offer.activation,
+        effect: {
+          ...effect,
+          invocation: { ...invocation, activation: { code: offer.activation, amount: 1 } },
+          paths
+        }
+      }
+    })
+  }
+}
+
 function compileResultBlock(
+  effect: EffectAuthored<Trigger, import('#authored').OutcomeAuthored>,
   path: EffectPathAuthored<Trigger, import('#authored').OutcomeAuthored>,
   resultBlock: ResultBlockAuthored,
   meta?: {
@@ -423,7 +498,9 @@ function compileResultBlock(
           : {}),
         outcome: compiledOutcome,
         ...(duration ? { duration } : {}),
-        ...(resultBlock.lifecycle ? { lifecycle: resultBlock.lifecycle } : {}),
+        ...(resultBlock.lifecycle
+          ? { lifecycle: compileLifecycle(effect, resultBlock.lifecycle) }
+          : {}),
         ...(resultBlock.failureMarginRider
           ? { failureMarginRider: resultBlock.failureMarginRider }
           : {}),
@@ -488,12 +565,12 @@ export function compileEffectResult<
   >[]) {
     switch (path.selectionKind) {
       case 'FIXED':
-        rules.push(...compileResultBlock(path, path.resultBlock))
+        rules.push(...compileResultBlock(effect, path, path.resultBlock))
         break
       case 'CHOICE':
         for (const option of path.options) {
           rules.push(
-            ...compileResultBlock(path, option.resultBlock, {
+            ...compileResultBlock(effect, path, option.resultBlock, {
               entryId: option.id,
               entryOrderBase: option.order * 1000,
               ...(option.label !== undefined ? { label: option.label } : {}),
@@ -505,7 +582,7 @@ export function compileEffectResult<
       case 'HIT_POINT_TIERS':
         for (const row of path.rows) {
           rules.push(
-            ...compileResultBlock(path, row.resultBlock, {
+            ...compileResultBlock(effect, path, row.resultBlock, {
               entryOrderBase: row.order * 1000,
               hitPointTier: { atMost: row.atMost }
             })
@@ -549,6 +626,7 @@ export function compileEffectResult<
 
           rules.push(
             ...compileResultBlock(
+              effect,
               path,
               row.resultBlock,
               {

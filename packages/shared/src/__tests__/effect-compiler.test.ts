@@ -920,6 +920,40 @@ describe('hit-point gate and tiers (SPELLS-4.T2i)', () => {
     ])
   })
 
+  it('carries an at-least gate onto a compiled heal entry', () => {
+    const heal = {
+      id: 'heal',
+      effectKind: EFFECT_KIND.HEAL,
+      valueKind: 'FIXED',
+      scalingKind: SCALING.NONE,
+      amount: 10
+    } as const
+    const result = compileEffectResult({
+      id: 'regen-effect',
+      order: 1,
+      invocation: { triggerCode: TRIGGER.START_OF_TURN, kind: 'PASSIVE', range: invocation.range },
+      paths: [
+        {
+          id: 'regen-path',
+          order: 1,
+          pathCode: PATH_CODE.PASSIVE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'regen-result',
+            resultKind: 'SINGLE',
+            gate: { kind: 'TARGET_HIT_POINTS_AT_LEAST', amount: 1 },
+            outcomes: [heal]
+          }
+        }
+      ]
+    })
+    if (!result.ok) throw new Error('Expected compileEffectResult to succeed')
+    expect(result.value.entries).toMatchObject([
+      { gate: { kind: 'TARGET_HIT_POINTS_AT_LEAST', amount: 1 }, outcome: heal }
+    ])
+  })
+
   it('compiles each tier row to its own entry carrying the row ceiling', () => {
     const result = compileEffectResult({
       id: 'tier-effect',

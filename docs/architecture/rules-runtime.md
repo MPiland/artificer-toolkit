@@ -418,6 +418,20 @@ raises each holder's effect as a `CASTER_CENTERED` area through the SYSTEM admis
 actor in range, allies included, except the holder. It never recurses: the burst's own defeats raise nothing
 (deferred edge case in the SPELLS-33 workbook).
 
+### Passive effect at the start of the holder's turn (current, SPELLS-33.T4i1a)
+
+An authored Effect with invocation `{ kind: PASSIVE, triggerCode: START_OF_TURN }` is a creature trait that
+heals its holder as its turn begins (Oni and Shield Guardian Regeneration: a `HEAL` outcome behind a
+`TARGET_HIT_POINTS_AT_LEAST` result-block gate). Discovery lists it in `passiveStartOfTurnEffects`, never in
+`available`, and refuses any outcome but `HEAL` as unavailable with a clear reason. The gate compiles to the
+same hit-point band as `TARGET_HIT_POINTS_AT_MOST` (`hitPointGateBand`), so a gated heal is a version 2
+`dnd5e.heal-proposal` operation. After a START or ADVANCE_TURN commits, `raiseRoomStartOfTurnEffects`
+(`roomEncounterStartOfTurnTriggers.ts`) raises each effect of the creature whose turn began as a self-targeted
+`ACTOR` root (`systemTrigger.trigger: START_OF_TURN`), admitted by the SYSTEM admission when the parent is the
+turn command and the holder still has the turn. A player-submitted `RESOLVE_ACTION` that names the trait is refused,
+so it is never a free heal. Damage-type suppression (Troll, Vampire) is the next slice (T4i1b); sunlight and
+running water are deferred edge cases.
+
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 
 A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`conditionalAttackAdvantageGrants`, Pack Tactics and Assassinate) reaches
@@ -1447,6 +1461,18 @@ A held effect's result block may carry `lifecycle.grantedActions` (generic autho
 - **Listing:** `effectOffers[]` on the action choices response (`effectId`, `offerIndex`, `kind`, `holderActorId`, `activation`, `range`, `warnings` of the offer's activation).
 - **Pick:** `MOVE_HELD_EFFECT` (`planNativeLiveMoveHeldEffect`): current actor, controlled, no pending occurrence; a stale offer is refused `SOURCE_REQUIREMENTS_NOT_MET`, a defeated or old-holder target `TARGET_UNAVAILABLE`. The new holder is held to the offer's range by `evaluateEncounterActionTargetPolicy` over `effectOfferTargetPolicy(range)` (any single creature within the distance; warnings, including `TARGET_RANGE_UNCHECKED` without a Scene, are acknowledged like the activation's through `spendNativeHolderActivation`'s `extraWarnings`).
 - **Commit:** `persistEncounterMoveHeldEffect` re-derives the offer from the stored effect and the Run's hit points (the room's plan is trusted only for economy and warnings), `deleteCas` with `removal: 'REMOVED'` (no `onEnd` follow-on, maintained state untouched), then `create` with the same id, definition, lifecycle (remaining ticks) and `maintainedEffectStateId` under the new owner. `requireDefinitionOwner` checks only ENCOUNTER-scope provenance, so a different owner in the same Encounter is accepted; the per-owner effect cap and the Concentration dependent cap are re-checked by `create`.
+
+#### Repeat offers: `REPEAT_SOURCE_PATH` (current, SPELLS-4.T2lb2a, D166)
+
+The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one of the spell's paths on the effect's holder (Heat Metal's repeated damage) without recasting.
+
+- **Authoring:** `{ kind: 'REPEAT_SOURCE_PATH', activation, pathIds, effect }`. The compiler keeps only the offer's `pathIds` in a copy of the authored Effect and sets its invocation activation to the offer's; the stored copy reuses `effectDtoSchema` (no parallel shape). Heat Metal authors it on a **carrier** path (`repeatCarrierPath`): an item-bound `APPLY_GRANT` with no modifiers that ends on `ON_CHOSEN_ITEM_RELEASED`, lasts the Concentration and is a maintained dependent of it. The 1-round disadvantage grant is unchanged.
+- **Frozen at cast:** `frozenRepeatOffer` (`encounterActionEffectPlans.ts`) rewrites the stored offer's save to `FIXED_DC` with the DC the cast settled (`d20.defenseOrDc`) and records the cast level as a sibling `castLevel` (D166 words it as converted rows; a sibling lets the compiler's own scaling rows select, with no second scaling path). The repeat therefore never reads the caster's stats or slots as they stand later.
+- **Action source:** `REPEAT_PATH` (`encounterRepeatPathAction.ts`), id `<actorId>:REPEAT_PATH:<carrierEffectId>:<offerIndex>`. `resolveEncounterActionSource` resolves it from the holder's live effects and compiles the offer's frozen Effect (`compileEffect` then `bindEncounterEffect`); a missing carrier or offer is stale. `featureActionMechanic` supplies `spellCastLevel`, the activation and `save.dc`, so the repeat runs the normal capability pipeline: no slot, no new Concentration.
+- **No new pending arm:** the repeat is an ordinary `RESOLVE_ACTION`; its `ENCOUNTER_ACTION` pending replays the command and the repeat id re-resolves from live effects at each replay.
+- **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
+- **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. `isSupportedTestActivation` allows a `BONUS_ACTION` saving throw (a repeat's charge).
+- **Node maps:** `LOCAL_COLLECTION` sources take `up` (ancestors, nearest first) so the offer's `pathIds` select from the path list several groups up.
 
 Initiative is application policy over typed rules evidence. Campaign settings select an allowed
 UUID-backed policy and tie resolver for future Encounters; admission freezes the exact policy and graph

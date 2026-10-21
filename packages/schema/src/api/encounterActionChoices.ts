@@ -13,7 +13,7 @@ import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.
 import { shapeMeasurementDtoSchema } from '../shared/shape.js'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '../shared/basicActions.js'
 import { targetingSelfDtoSchema } from '../effects/targeting.js'
-import { effectOfferKindSchema, effectOfferRangeDtoSchema } from '../effects/effectOffer.js'
+import { effectOfferRangeDtoSchema } from '../effects/effectOffer.js'
 
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 const labelSchema = lazySchema(() => z.string().check(z.trim()).check(z.minLength(1)))
@@ -369,18 +369,30 @@ export const encounterHeldGrantEndChoiceDtoSchema = lazySchema(() =>
  * client submits `effectId` and `offerIndex` with its chosen target; the effect names the cost and the
  * range. The actor need not hold the effect: `holderActorId` does.
  */
-export const encounterEffectOfferChoiceDtoSchema = lazySchema(() =>
-  z.strictObject({
+export const encounterEffectOfferChoiceDtoSchema = lazySchema(() => {
+  const base = {
     effectId: postgresUuidSchema,
     offerIndex: z.number().check(z.int()).check(z.nonnegative()),
-    kind: effectOfferKindSchema,
     holderActorId: postgresUuidSchema,
     activation: activationCodeSchema,
-    range: effectOfferRangeDtoSchema,
     /** Soft-rule warnings that already apply, as for `actions`. */
     warnings: encounterRuleWarningsDtoSchema
-  })
-)
+  }
+  return z.discriminatedUnion('kind', [
+    z.strictObject({
+      ...base,
+      kind: z.literal('MOVE_HELD_EFFECT'),
+      /** The distance the pick reaches. */
+      range: effectOfferRangeDtoSchema
+    }),
+    z.strictObject({
+      ...base,
+      kind: z.literal('REPEAT_SOURCE_PATH'),
+      /** The action the client resolves against the holder (D166); it spends the offer's activation. */
+      actionId: z.string().check(z.minLength(1))
+    })
+  ])
+})
 
 /**
  * A creature the actor holds through a relationship it applied (D152): the release offer, which

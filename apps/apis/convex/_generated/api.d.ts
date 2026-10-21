@@ -26934,7 +26934,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -38072,7 +38073,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -49219,7 +49221,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -60357,7 +60360,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -71530,7 +71534,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -82668,7 +82673,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -93761,7 +93767,8 @@ export declare const api: {
                           | "INCOMING_SAVING_THROW"
                           | "ENTER_AREA"
                           | "INCOMING_WEAPON_HIT"
-                          | "ROLL_INITIATIVE";
+                          | "ROLL_INITIATIVE"
+                          | "START_OF_TURN";
                       }
                     | {
                         damageTypeIds: Array<string>;
@@ -104796,7 +104803,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -115934,7 +115942,8 @@ export declare const api: {
                             | "INCOMING_SAVING_THROW"
                             | "ENTER_AREA"
                             | "INCOMING_WEAPON_HIT"
-                            | "ROLL_INITIATIVE";
+                            | "ROLL_INITIATIVE"
+                            | "START_OF_TURN";
                         }
                       | {
                           damageTypeIds: Array<string>;
@@ -127673,35 +127682,63 @@ export declare const api: {
               | null;
           }>;
           defaultActionId: string | null;
-          effectOffers: Array<{
-            activation: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
-            effectId: string;
-            holderActorId: string;
-            kind: "MOVE_HELD_EFFECT";
-            offerIndex: number;
-            range: {
-              amount: number;
-              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-            };
-            warnings: Array<{
-              code:
-                | "ACTION_ECONOMY_UNAVAILABLE"
-                | "CONDITION_SOURCE_APPROACH"
-                | "CONDITION_SOURCE_FLEE"
-                | "RESOURCE_UNAVAILABLE"
-                | "SOURCE_NOT_EQUIPPED"
-                | "TARGET_DEFEATED"
-                | "TARGET_CREATURE_TYPE_EXCLUDED"
-                | "TARGET_DISPOSITION"
-                | "TARGET_INTELLIGENCE_EXCLUDED"
-                | "TARGET_NOT_DYING"
-                | "TARGET_OUT_OF_RANGE"
-                | "TARGET_OUT_OF_SIGHT"
-                | "TARGET_RANGE_UNCHECKED"
-                | "TARGET_TOO_LARGE";
-              message: string;
-            }>;
-          }>;
+          effectOffers: Array<
+            | {
+                activation: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+                effectId: string;
+                holderActorId: string;
+                kind: "MOVE_HELD_EFFECT";
+                offerIndex: number;
+                range: {
+                  amount: number;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                };
+                warnings: Array<{
+                  code:
+                    | "ACTION_ECONOMY_UNAVAILABLE"
+                    | "CONDITION_SOURCE_APPROACH"
+                    | "CONDITION_SOURCE_FLEE"
+                    | "RESOURCE_UNAVAILABLE"
+                    | "SOURCE_NOT_EQUIPPED"
+                    | "TARGET_DEFEATED"
+                    | "TARGET_CREATURE_TYPE_EXCLUDED"
+                    | "TARGET_DISPOSITION"
+                    | "TARGET_INTELLIGENCE_EXCLUDED"
+                    | "TARGET_NOT_DYING"
+                    | "TARGET_OUT_OF_RANGE"
+                    | "TARGET_OUT_OF_SIGHT"
+                    | "TARGET_RANGE_UNCHECKED"
+                    | "TARGET_TOO_LARGE";
+                  message: string;
+                }>;
+              }
+            | {
+                actionId: string;
+                activation: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+                effectId: string;
+                holderActorId: string;
+                kind: "REPEAT_SOURCE_PATH";
+                offerIndex: number;
+                warnings: Array<{
+                  code:
+                    | "ACTION_ECONOMY_UNAVAILABLE"
+                    | "CONDITION_SOURCE_APPROACH"
+                    | "CONDITION_SOURCE_FLEE"
+                    | "RESOURCE_UNAVAILABLE"
+                    | "SOURCE_NOT_EQUIPPED"
+                    | "TARGET_DEFEATED"
+                    | "TARGET_CREATURE_TYPE_EXCLUDED"
+                    | "TARGET_DISPOSITION"
+                    | "TARGET_INTELLIGENCE_EXCLUDED"
+                    | "TARGET_NOT_DYING"
+                    | "TARGET_OUT_OF_RANGE"
+                    | "TARGET_OUT_OF_SIGHT"
+                    | "TARGET_RANGE_UNCHECKED"
+                    | "TARGET_TOO_LARGE";
+                  message: string;
+                }>;
+              }
+          >;
           encounterId: string;
           encounterVersion: number;
           escapes: Array<{

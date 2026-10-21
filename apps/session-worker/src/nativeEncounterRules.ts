@@ -178,6 +178,7 @@ import {
   prepareNativeIncomingDamageGrantTriggers
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
+import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import {
   pendingSnapshotContinuation,
   restoreEncounterActionPending
@@ -651,6 +652,10 @@ export async function planNativeLiveEncounterAction(
               spentKeys: await readNativeLiveTurnUses(capture, input.actor.id)
             }
           : undefined,
+        // A repeat offer resolves against the effects every holder keeps now (D166).
+        repeat: parseRepeatPathActionId(input.actor.id, input.actionId)
+          ? { effectsByHolder: activeEffectsByActorId }
+          : undefined,
         system,
         spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
@@ -782,9 +787,23 @@ export async function planNativeLiveEncounterAction(
     }
   )
   refuseUnmetItemActionRequirements(prepared, state)
+  // A repeat runs against the creature that holds the offering effect, on the item that cast chose.
+  if (
+    prepared.source.kind === 'REPEAT_PATH' &&
+    prepared.target.id !== prepared.source.capability.holderActorId
+  )
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: TARGET_NOT_PERMITTED_MESSAGE
+    })
   // A Character action's item choice is known before it rolls; a Creature's plan follows its roll.
   const chosenItemInstanceId =
-    command.target.kind === 'ACTOR' ? command.target.boundItemInstanceId : undefined
+    prepared.source.kind === 'REPEAT_PATH'
+      ? prepared.source.boundItemInstanceId
+      : command.target.kind === 'ACTOR'
+        ? command.target.boundItemInstanceId
+        : undefined
   const chosenItemTarget = movementTargets.get(prepared.target.id)
   const chosenItemRefusal =
     prepared.source.kind === 'CHARACTER_ACTION' && chosenItemTarget

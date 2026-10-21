@@ -102,7 +102,8 @@ export const triggerCodeSchema = lazySchema(() =>
     'INCOMING_DAMAGE',
     'HP_ZERO',
     'INCOMING_WEAPON_HIT',
-    'ROLL_INITIATIVE'
+    'ROLL_INITIATIVE',
+    'START_OF_TURN'
   ])
 )
 
