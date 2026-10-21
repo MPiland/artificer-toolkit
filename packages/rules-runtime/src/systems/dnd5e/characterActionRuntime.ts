@@ -38,7 +38,8 @@ import {
   dnd5eTestDamageProposalOperation,
   dnd5eTestHealProposalOperation,
   dnd5eTestTemporaryHitPointsProposalOperation,
-  dnd5eMovementInterruptionAuthorizationOperation
+  dnd5eMovementInterruptionAuthorizationOperation,
+  dnd5ePathGatedTargetProposalOperations
 } from './effectActionOperationRegistry.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind, isDnd5eSpellAttackKind } from './attackKind.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
@@ -105,6 +106,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eTestScalarReductionProposalOperation,
     dnd5eTestConditionProposalOperation,
     dnd5eTestMarginConditionProposalOperation,
-    dnd5eMovementInterruptionAuthorizationOperation
+    dnd5eMovementInterruptionAuthorizationOperation,
+    ...dnd5ePathGatedTargetProposalOperations
   ] satisfies readonly RuleOperationContract[]
 } as const
