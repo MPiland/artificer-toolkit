@@ -3185,7 +3185,8 @@
                 "size": 3,
                 "after": ["RULES-2.T3a"]
               },
-              "text": "Session Worker: one app-roll binding and d20-evidence requirement replacing the 8 copies."
+              "text": "Session Worker: one app-roll binding and d20-evidence requirement replacing the 8 copies.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T4a",
@@ -3198,7 +3199,8 @@
                 "size": 8,
                 "after": ["RULES-2.T3a", "SPELLS-31.T4c1a"]
               },
-              "text": "One pending-choice pause: shared sealed-choice lifecycle (open, choose, settle, checksum, undo) and a single pause union in the action snapshot; converts reaction, cast reaction, on-hit, retarget, forced movement and Legendary Resistance; extends the T4c1a decision module."
+              "text": "One pending-choice pause: shared sealed-choice lifecycle (open, choose, settle, checksum, undo) and a single pause union in the action snapshot; converts reaction, cast reaction, on-hit, retarget, forced movement and Legendary Resistance; extends the T4c1a decision module.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T4b",
@@ -3242,7 +3244,7 @@
             },
             {
               "id": "RULES-2.T6b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3251,7 +3253,8 @@
                 "size": 3,
                 "after": ["RULES-2.T6a"]
               },
-              "text": "Compiler: scaling facts and dice contract with validation at the boundary."
+              "text": "Compiler: scaling facts and dice contract with validation at the boundary.",
+              "note": "Merged m281 (bd56f5b55)."
             },
             {
               "id": "RULES-2.T6c",
@@ -3264,7 +3267,8 @@
                 "size": 8,
                 "after": ["RULES-2.T6b"]
               },
-              "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase."
+              "text": "Compiler: outcomes registry replacing proposal-node ladders; outcomes compose with any test phase.",
+              "note": "From T6b: boundedSingleDiceCount catches Dnd5eEffectActionCompilerError, but parseBoundedDiceConfiguration throws CharacterRuleActionUnsupportedCompilationError, so malformed dice propagate instead of returning null (pre-existing). Fix with a regression test."
             },
             {
               "id": "RULES-2.T6d",
@@ -3317,7 +3321,8 @@
                 "size": 8,
                 "after": ["RULES-2.T3a"]
               },
-              "text": "Neutral roll-modifier pipeline: contributor influence becomes System vocabulary, not an advantage field; keep-by-roll-mode wording neutral."
+              "text": "Neutral roll-modifier pipeline: contributor influence becomes System vocabulary, not an advantage field; keep-by-roll-mode wording neutral.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T8",
@@ -3343,7 +3348,7 @@
                 "size": 13,
                 "after": ["RULES-2.T5", "RULES-2.T7"]
               },
-              "text": "System-supplied vocabulary: trigger names, damage and condition lists, creature type, alignment and similar lists move to a System vocabulary registry."
+              "text": "System-supplied vocabulary: trigger names, damage and condition lists, creature type, alignment and similar lists move to a System vocabulary registry. Includes the schema wire enums for roll-mode influence (ADVANTAGE/DISADVANTAGE in DTOs, authored grant and condition influence, rollMode refinements), deferred from RULES-2.T7 (2026-10-21)."
             },
             {
               "id": "RULES-2.T10",
@@ -13354,7 +13359,7 @@
             },
             {
               "id": "SPELLS-33.T4i1e",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13363,7 +13368,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T4i1c"]
               },
-              "text": "Bug (found 2026-10-21): Previous Turn then Next re-rolls Recharge and the turn-start death save, because neither stage checks the begun-turn marker T4i1c added (encounterTurnPreparation.ts:289/:324; turnCommitPersistence.ts:308, :459, :473). Every turn-start stage skips a begun (round, actor) turn through the one startedByCommandId check, not a per-stage guard, with room regression tests for Recharge and for the death save that fail before the fix."
+              "text": "Bug (found 2026-10-21): Previous Turn then Next re-rolls Recharge and the turn-start death save, because neither stage checks the begun-turn marker T4i1c added (encounterTurnPreparation.ts:289/:324; turnCommitPersistence.ts:308, :459, :473). Every turn-start stage skips a begun (round, actor) turn through the one startedByCommandId check, not a per-stage guard, with room regression tests for Recharge and for the death save that fail before the fix.",
+              "note": "Merged m282 (4436eb191)."
             },
             {
               "id": "SPELLS-33.T4i2",
@@ -16033,7 +16039,8 @@
                 "rr": 8,
                 "size": 1
               },
-              "text": "Seed or tie-handle the settling cases in apps/apis/convex/encounters/initiativeSpellDeclarations.test.ts (flaked at :349, \"pins an authorized Spell publication and completes without spending resources\", expected ACTIVE got PREPARED) the way RELIABILITY-15.T1/T2 did; red per case on a ci/ branch."
+              "text": "Seed or tie-handle the settling cases in apps/apis/convex/encounters/initiativeSpellDeclarations.test.ts (flaked at :349, \"pins an authorized Spell publication and completes without spending resources\", expected ACTIVE got PREPARED) the way RELIABILITY-15.T1/T2 did; red per case on a ci/ branch.",
+              "activeWorkbook": "docs/handoffs/slice-reliability-15.md"
             }
           ]
         },

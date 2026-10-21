@@ -247,6 +247,25 @@ describe('a dying Character’s turn-start death save (D96)', () => {
     }
   }, 120000)
 
+  it('saves once when Previous Turn then Next returns to the Character’s begun turn (SPELLS-33 T4i1e)', async () => {
+    const { fixture, bitten } = await dyingCharacter('AUTO_ROLL')
+    await queueRoomRolls(fixture.campaign.id, { rolls: [], repeat: draw(1) })
+    const first = await advance(fixture, bitten)
+    expect(first.projection.currentActorId).toBe(fixture.hero.id)
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 2, stable: false })
+
+    const back = await execute(fixture, (base) => ({
+      ...base,
+      type: 'PREVIOUS_TURN',
+      expectedVersion: first.projection.version
+    }))
+    expect(back.projection.currentActorId).toBe(fixture.enemy.id)
+    const again = await advance(fixture, back)
+    expect(again.projection.currentActorId).toBe(fixture.hero.id)
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 2, stable: false })
+    expect(await deathSaveCards(fixture)).toHaveLength(1)
+  }, 120000)
+
   it('brings the Character back at 1 hit point and resets its saves on a 20', async () => {
     const { fixture, bitten } = await dyingCharacter('AUTO_ROLL')
     await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
