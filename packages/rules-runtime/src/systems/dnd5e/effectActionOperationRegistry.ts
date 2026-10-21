@@ -15,6 +15,7 @@ import {
 } from '@artificer-toolkit/shared/rules'
 import type { CharacterRuleActionConditionOutcomeRules } from '../../characterRuleActionSystemAdapter.js'
 import { isCharacterRuleActionForcedMovementDirection } from '../../characterRuleActionSystemAdapter.js'
+import { pathGatedProposalOperation } from '../../effectOutcomeRegistry.js'
 import { DND5E_GATE_INPUT_KINDS, gatesAdmit } from './effectActionGates.js'
 import {
   BASIC_ACTION_DEFINITION_FAMILY_KEY,
@@ -989,13 +990,30 @@ export const dnd5eMovementInterruptionAuthorizationOperation: PureRuleOperationC
       !isSpecializedPath(authoredPath)
     )
       throw new Error('D&D movement interruption requires canonical result paths.')
-    return {
-      authorized:
-        resultPath === authoredPath || (resultPath === 'ON_CRIT' && authoredPath === 'ON_HIT')
-    }
+    return { authorized: dnd5eResultPathSatisfies(resultPath, authoredPath) }
   }
 }
 
+/** A test's result path selects an outcome authored on it, and a critical hit also selects the hit's. */
+export function dnd5eResultPathSatisfies(resolvedPath: string, authoredPath: string): boolean {
+  return resolvedPath === authoredPath || (resolvedPath === 'ON_CRIT' && authoredPath === 'ON_HIT')
+}
+/** The key of a direct proposal's form inside a test graph: `dnd5e.<x>` becomes `dnd5e.test-<x>`. */
+export function dnd5ePathGatedOperationKey(directOperationKey: string): string {
+  return directOperationKey.replace(/^dnd5e\./, 'dnd5e.test-')
+}
+/** The target-only proposals a test's result path gates; each is its direct contract plus the path. */
+export const dnd5ePathGatedTargetProposalOperations = [
+  dnd5eStabilizeProposalOperation,
+  dnd5eKillProposalOperation,
+  dnd5eDepartProposalOperation,
+  dnd5eManualAdjudicationProposalOperation,
+  dnd5eAddSpeedToMovementProposalOperation,
+  dnd5eTeleportAllowanceProposalOperation,
+  dnd5eCancelTriggeringEventProposalOperation
+].map((base) =>
+  pathGatedProposalOperation(base, dnd5ePathGatedOperationKey(base.key), dnd5eResultPathSatisfies)
+)
 export function testProposalOperation(
   key: string,
   payload: Readonly<Record<string, typeof RULE_VALUE_KIND.NUMBER | typeof RULE_VALUE_KIND.TEXT>>,
@@ -1059,8 +1077,7 @@ export function testProposalOperation(
         resolvedPath,
         authoredPath,
         authorized:
-          (resolvedPath === authoredPath ||
-            (resolvedPath === 'ON_CRIT' && authoredPath === 'ON_HIT')) &&
+          dnd5eResultPathSatisfies(resolvedPath, authoredPath) &&
           (!conditionProtection || !conditionImmune) &&
           (!marginGated || !marginCleared),
         applicationCandidate: true,
@@ -1256,6 +1273,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
+    ...dnd5ePathGatedTargetProposalOperations.map(({ key }) => key),
     ...dnd5eConcentrationCapabilityContribution.operationContracts.map(({ key }) => key),
     ...dnd5eEncounterLifecycleCapabilityContribution.operationContracts.map(({ key }) => key),
     ...dnd5eInitiativeCapabilityContribution.operationContracts.map(({ key }) => key),

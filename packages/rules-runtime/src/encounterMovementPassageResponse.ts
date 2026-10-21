@@ -11,7 +11,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { withEncounterRuleUsageUsed } from './encounterActorState.js'
-import { effectsEndedBy } from './encounterGrantLifetimes.js'
+import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import { evaluateEncounterMovementPassageContest } from './encounterMovementPassageExecution.js'
 import { stopSceneMovementResult } from './encounterMovementContinuation.js'
@@ -193,8 +193,12 @@ export async function evaluateEncounterMovementPassageResponse<
   // The contest's checks used these grants; the continuation can't reuse them.
   const consumedGrants =
     evaluated.kind === 'COMPLETE'
-      ? [evaluated.pending.initiator, evaluated.pending.defender].flatMap(({ actorId }) =>
-          effectsEndedBy(targets.get(actorId)?.activeEffects ?? [], 'ON_ABILITY_CHECK')
+      ? [evaluated.pending.initiator, evaluated.pending.defender].flatMap(
+          ({ actorId }) =>
+            discoverEncounterEventHooks({
+              effects: targets.get(actorId)?.activeEffects ?? [],
+              events: [{ kind: 'TEST', test: 'CHECK', ability: null }]
+            }).ended
         )
       : []
   if (evaluated.kind === 'COMPLETE') {
