@@ -7,6 +7,7 @@ import { actionRoom, fireballWolf } from './actionRoomFixture.js'
 import { answerAllSaves } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { hitPointsOf } from './placedZoneRoomReads.js'
+import { readPendingActionDecision } from './roomHistoryReads.js'
 
 /**
  * SPELLS-33 T4i1b2: a creature whose regeneration a damage type suppresses takes that damage in a
@@ -54,10 +55,21 @@ async function advance(room: Awaited<ReturnType<typeof regeneratingRoom>>) {
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
-/** The caster's area hits the holder, who fails its save and takes the 1 damage. */
+/** The caster's area hits the holder, who fails its save (declining Legendary Resistance) and takes 1 damage. */
 async function hitHolder(room: Awaited<ReturnType<typeof regeneratingRoom>>) {
   await room.startAreaAction({ x: 50, y: 150 })
   await answerAllSaves(room)
+  const decision = await readPendingActionDecision(room.room.base.stub)
+  if (decision?.pending.kind === 'AREA_SAVES' && decision.pending.legendaryResistance.length > 0) {
+    const declined = await room.send(
+      room.resolveCommand(decision, {
+        kind: 'AREA_LEGENDARY_RESISTANCE',
+        actorId: HOLDER_ID,
+        decision: { kind: 'DECLINE' }
+      })
+    )
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+  }
 }
 
 describe('damage-type suppression of start-of-turn regeneration in a room (SPELLS-33 T4i1b2)', () => {
