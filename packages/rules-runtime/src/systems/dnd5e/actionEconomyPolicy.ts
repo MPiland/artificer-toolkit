@@ -58,9 +58,9 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
   },
   refreshCapabilityDefinitionIds() {
     return [
+      DND5E_REACTION_ALLOWANCE_DEFINITION_ID,
       DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
-      DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
-      DND5E_REACTION_ALLOWANCE_DEFINITION_ID
+      DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
     ]
   }
 }

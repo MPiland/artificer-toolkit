@@ -15,20 +15,14 @@ import {
 } from './encounterActionTargetPolicy.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
-import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
+import {
+  creatureConditionCapabilityRegistry,
+  rollModeCapabilityRegistry
+} from './platformPolicyModules.js'
 import {
   resolveRuleCapabilityState,
   type CurrentReusableDefinitionSource
 } from './ruleCapabilityStateService.js'
-import {
-  DND5E_EXHAUSTION_CONDITION_DEFINITION_ID,
-  DND5E_SYSTEM_ID
-} from './systems/dnd5e/identity.js'
-
-/** The System condition a Character's exhaustion level is a level of. */
-const exhaustionConditionIdBySystemId: ReadonlyMap<string, string> = new Map([
-  [DND5E_SYSTEM_ID, DND5E_EXHAUSTION_CONDITION_DEFINITION_ID]
-])
 
 /** One mechanic an actor's condition applies now, and the condition that holds it (D94). */
 export type EncounterConditionMechanic = {
@@ -89,7 +83,8 @@ export function encounterConditionLevels(input: {
       row.level >= 1
     )
       levels.set(row.conditionTypeId, row.level)
-  const exhaustionConditionId = exhaustionConditionIdBySystemId.get(input.gameSystemId)
+  const { exhaustionConditionDefinitionId: exhaustionConditionId } =
+    creatureConditionCapabilityRegistry.require(input.gameSystemId)
   if (exhaustionConditionId && input.exhaustionLevel > 0)
     levels.set(exhaustionConditionId, input.exhaustionLevel)
   return levels

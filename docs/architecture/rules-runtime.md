@@ -67,14 +67,14 @@ package before tests that import newly added modules.
 
 | Area                          | Modules                                                                                                                                                                                             | Owns                                                                                                                                                                         |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Execution wrapper             | `rulesRuntimeService`, `platformRulesRuntime`, `platformPolicyModules`, `platformEncounterPolicy`, `platformCharacterPolicy`, `random`                                                              | Schema-aware Kernel execution, frozen-graph admission, installed System lookup by System UUID                                                                                |
+| Execution wrapper             | `rulesRuntimeService`, `platformRulesRuntime`, `platformPolicyModules`, `systemCapabilityRegistry`, `*Capability*`, `platformEncounterPolicy`, `platformCharacterPolicy`, `random`                  | Schema-aware Kernel execution, frozen-graph admission, installed System lookup by System UUID, fail-closed System capability registries                                      |
 | Systems                       | `systems/dnd5e/*`                                                                                                                                                                                   | D&D 2014 policy, action compiler, grant fold, modifier scope, concentration, lifecycle and optional-combat policy                                                            |
 | Character                     | `character/*`                                                                                                                                                                                       | Context and Sheet preparation, Builder catalogue/eligibility/reconciliation/readiness/payload, snapshot readers, Sheet commands, rest, roll, projection, rule-fact composers |
 | Encounter actions             | `encounterAction*`, `encounterBasicActions`, `encounterDisarmPreparation`, `encounterWieldConflict`, `encounterCleaving*`, `encounterConcentration*`                                                | Source resolution, mechanics preparation, economy, target policy, effects, receipts, warnings                                                                                |
 | Encounter turn and initiative | `encounterTurn*`, `encounterInitiative*`, `encounterRecharge*`, `encounterLegendary*`, `legendaryActionEligibility*`                                                                                | Initiative graphs and settlement, turn effects, Recharge, Legendary Actions                                                                                                  |
 | Encounter movement            | `encounterMovement*`, `encounterSpatialMovement*`, `movementReaction*`                                                                                                                              | Path timeline, Passage contacts, reaction discovery, decision and settlement planning                                                                                        |
 | Encounter state               | `encounterActor*`, `encounterMechanicsBatchPlan`, `encounterCharacterMechanicsBatch`, `encounterScalarReductions`, `encounterProjection`, `encounterPlayerProjection`, `encounterCombatPerception*` | Actor facts and state, outcome folds, projection, perception                                                                                                                 |
-| Snapshots and misc            | `contentSnapshots`, `contentCatalogue`, `campaignClock`, `characterZeroHitPoints`, `sceneGridPolicy*`, `targetBoundActiveRuleEffectExecutor`, `characterRuleActionSystemAdapter*`                   | Content snapshot build/index shapes, clock boundaries, grid policy, frozen active-effect execution                                                                           |
+| Snapshots and misc            | `contentSnapshots`, `contentCatalogue`, `campaignClock`, `sceneGridPolicy*`, `targetBoundActiveRuleEffectExecutor`, `characterRuleActionSystemAdapter*`                                             | Content snapshot build/index shapes, clock boundaries, grid policy, frozen active-effect execution                                                                           |
 
 Everything here takes structural inputs (domain types, injected readers, ports). None of it imports
 Convex contexts, database rows, or Worker APIs, so the room and Convex run the same functions.
@@ -237,6 +237,20 @@ closed on a System with no roll-mode policy, an influence code the System does n
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
 `resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
+**System capability registries (RULES-2.T11a, current).** Every System capability is one
+`createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
+`require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the
+capability; a duplicate or non-UUID adapter identity throws at install. `find(gameSystemId)` is for
+optional capabilities only, where the rule is valid for a System without the capability (the Sheet's 0
+hit point condition, D63); Encounter callers use `require`. The adapter interfaces live in
+neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
+`creatureConditionCapability`, `initiativeFactAdapter`), the D&D adapters in `systems/dnd5e/`, and
+`platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
+`actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
+Creature form keeps), `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
+`initiativeCapabilityRegistry`. Ability id↔code stays System vocabulary data (`system.abilities`).
+Neutral modules reach System behaviour only through these registries; the `systems/*` import
+allowlist (`scripts/systemsImportAllowlist.json`) only shrinks.
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
@@ -988,7 +1002,7 @@ player, move its token. Naming one as a `RESOLVE_ACTION` target is the overridab
 warning; Disarm refuses it.
 
 A Character at 0 hit points is never defeated; it is dying (D96). Dropping to 0 adds the System's 0 hit
-point condition (`characterZeroHitPointsConditionId`; D&D: Unconscious), and regaining hit points removes
+point condition (`creatureConditionCapabilityRegistry`'s `zeroHitPointsConditionDefinitionId`; D&D: Unconscious), and regaining hit points removes
 it, in `planEncounterMechanicsBatch` and the Sheet's hit point commands. `REVERT_LAST_ACTION` removes it
 with the damage that caused it and refuses to undo a heal that woke the Character.
 

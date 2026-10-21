@@ -1,4 +1,4 @@
-import { actionEconomyCapabilityRegistry } from '@artificer-toolkit/rules-runtime/actionEconomyCapabilityRegistry.default'
+import { actionEconomyCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import {
   ESCAPE_GRAPPLE_MODULE_ID,
   escapeGrappleEffectDefinition
@@ -197,11 +197,12 @@ describe('settleEncounterEscapeCheck against the stored effect', () => {
 })
 
 describe('requireEscapeAllowance', () => {
-  const actionBinding = actionEconomyCapabilityRegistry.resolveActionEconomyCapability({
-    gameSystemId: SRD_SYSTEM_ID,
-    activationKind: 'ACTION',
-    activationAmount: 1
-  })
+  const actionBinding = actionEconomyCapabilityRegistry
+    .require(SRD_SYSTEM_ID)
+    .resolveActionEconomyCapability({
+      activationKind: 'ACTION',
+      activationAmount: 1
+    })
   if (actionBinding.kind !== 'REQUIRED') throw new Error('The Action must bind an allowance.')
   const action = { definitionId: actionBinding.capabilityDefinitionId }
   const state = { gameSystemId: SRD_SYSTEM_ID }

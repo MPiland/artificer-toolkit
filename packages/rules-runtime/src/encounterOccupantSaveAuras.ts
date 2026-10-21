@@ -8,7 +8,7 @@ import {
   spatialGeometryOverlapsTokenFootprint,
   type SpatialSceneToken
 } from '@artificer-toolkit/shared/vtt'
-import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
+import { creatureConditionCapabilityRegistry } from './platformPolicyModules.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { toSpatialInstances } from './encounterSpatialCandidateExecution.js'
@@ -82,16 +82,18 @@ export async function withEncounterOccupantSaveBonus<T extends MovementTarget>(i
   }): Promise<readonly string[]>
 }): Promise<T> {
   const { target } = input
-  const unconscious = characterZeroHitPointsConditionId(input.gameSystemId)
+  const unconscious = creatureConditionCapabilityRegistry.require(
+    input.gameSystemId
+  ).zeroHitPointsConditionDefinitionId
   const amounts: number[] = []
   for (const { sourceActorId, sourceCharacterId, amount } of input.auras) {
     const conditionIds =
-      sourceCharacterId === null || unconscious === undefined
+      sourceCharacterId === null || unconscious === null
         ? []
         : sourceActorId === target.actor.id
           ? heldConditionIds(target)
           : await input.readCharacterConditionIds({ sourceActorId, sourceCharacterId })
-    if (unconscious === undefined || !conditionIds.includes(unconscious)) amounts.push(amount)
+    if (unconscious === null || !conditionIds.includes(unconscious)) amounts.push(amount)
   }
   return amounts.length ? withOccupantSaveBonusRows(target, Math.max(...amounts)) : target
 }

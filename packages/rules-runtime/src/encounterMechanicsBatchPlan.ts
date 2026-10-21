@@ -50,7 +50,7 @@ import {
   revertActorForm,
   type EncounterActorFormCreature
 } from './encounterActorForm.js'
-import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
+import { creatureConditionCapabilityRegistry } from './platformPolicyModules.js'
 import {
   applyEncounterActorItemDraw,
   applyEncounterActorItemThrow,
@@ -581,8 +581,10 @@ export function planEncounterMechanicsBatch(input: {
   const nextConditionIds = new Set(folded.afterOwnConditionIds)
   // D63: dropping to 0 adds the System's 0 hit point condition and regaining any removes it. It
   // follows from the hit point transition, which the receipt records, so the applications don't list it.
-  const zeroHitPointsConditionId = characterZeroHitPointsConditionId(loaded.character.systemId)
-  if (zeroHitPointsConditionId !== undefined) {
+  const zeroHitPointsConditionId = creatureConditionCapabilityRegistry.require(
+    loaded.character.systemId
+  ).zeroHitPointsConditionDefinitionId
+  if (zeroHitPointsConditionId !== null) {
     if (sheetHitPoints.current > 0 && folded.sheet.currentHitPoints === 0)
       nextConditionIds.add(zeroHitPointsConditionId)
     else if (

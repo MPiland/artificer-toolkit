@@ -1,5 +1,6 @@
-import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type { RollMode } from '@artificer-toolkit/shared/rolls'
+
+import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
 
 /** Which of two rolled faces a test keeps: the first, the higher or the lower. */
 export type RollModeKeep = 'FIRST' | 'HIGHER' | 'LOWER'
@@ -20,28 +21,14 @@ export interface RollModeCapabilityAdapter {
   resolveRollMode(influences: readonly string[]): RollModeResolution
 }
 
-function canonicalSystemId(value: string): string {
-  const parsed = postgresUuidSchema.safeParse(value)
-  if (!parsed.success) throw new Error('Roll-mode System identity must be a PostgreSQL UUID.')
-  return parsed.data
-}
-
 export function createRollModeCapabilityRegistry(adapters: readonly RollModeCapabilityAdapter[]) {
-  const bySystemId = new Map<string, RollModeCapabilityAdapter>()
-  for (const adapter of adapters) {
-    const gameSystemId = canonicalSystemId(adapter.gameSystemId)
-    if (bySystemId.has(gameSystemId)) {
-      throw new Error(`Duplicate roll-mode System adapter: ${gameSystemId}.`)
-    }
-    bySystemId.set(gameSystemId, adapter)
-  }
+  const registry = createSystemCapabilityRegistry('roll-mode', adapters)
   return {
     resolveRollMode(input: {
       gameSystemId: string
       contributors: readonly { influence: string }[]
     }): RollModeResolution {
-      const adapter = bySystemId.get(canonicalSystemId(input.gameSystemId))
-      if (!adapter) throw new Error('The Game System does not provide roll-mode policy.')
+      const adapter = registry.require(input.gameSystemId)
       const influences = input.contributors.map(({ influence }) => influence)
       const unknown = influences.find((influence) => !adapter.influences.includes(influence))
       if (unknown !== undefined) {

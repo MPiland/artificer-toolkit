@@ -1,3 +1,5 @@
+import type { CreatureConditionCapabilityAdapter } from '../../creatureConditionCapability.js'
+
 /** Stable identities are also used by persistence without loading rule discovery or execution. */
 export const DND5E_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
 export const DND5E_REACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d2'
@@ -28,3 +30,10 @@ export function dnd5eAbilityCode(abilityDefinitionId: string) {
 }
 /** The SRD Exhaustion condition, whose level a Character's exhaustion records. */
 export const DND5E_EXHAUSTION_CONDITION_DEFINITION_ID = '00000000-0000-0000-0002-000400000000'
+
+export const dnd5eCreatureConditionCapabilityAdapter: CreatureConditionCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  // Unconscious, while dying.
+  zeroHitPointsConditionDefinitionId: DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID,
+  exhaustionConditionDefinitionId: DND5E_EXHAUSTION_CONDITION_DEFINITION_ID
+}

@@ -42,7 +42,7 @@ import {
   deathSavesAfterSheetEdit,
   isCharacterDying
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
-import { characterZeroHitPointsConditionId } from '../characterZeroHitPoints.js'
+import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js'
 import { CharacterSheetCommandError } from './sheetCommandError.js'
 import { applyCharacterNoteCommand } from './sheetNotes.js'
 export type SheetSpell = ReducerSheetResponseDto['spells']['spells'][number]
@@ -436,8 +436,10 @@ function requireAcquirableCurrencyIdentity(
 
 /** D63: dropping to 0 hit points adds the System's 0 hit point condition; regaining any removes it. */
 function applyZeroHitPointsCondition(character: CharacterAuthored, beforeCurrentHitPoints: number) {
-  const conditionTypeId = characterZeroHitPointsConditionId(character.systemId)
-  if (conditionTypeId === undefined) return
+  const conditionTypeId = creatureConditionCapabilityRegistry.find(
+    character.systemId
+  )?.zeroHitPointsConditionDefinitionId
+  if (!conditionTypeId) return
   const current = character.state.hitpoints.current
   const conditions = character.state.conditions ?? []
   const present = conditions.some((condition) => condition.conditionTypeId === conditionTypeId)

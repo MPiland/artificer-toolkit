@@ -5,6 +5,7 @@ import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_BLINDSIGHT_SENSE_ID,
   SRD_DARKVISION_SENSE_ID,
+  SRD_SYSTEM_ID,
   SRD_TRUESIGHT_SENSE_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
@@ -21,7 +22,7 @@ import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
 
 const HOLDER_ID = testUuid(0xd002)
 const [mirrorImageEffect] = mirrorImage.effects ?? []
-const abilities = SRD_ABILITIES.map(({ id, code }) => ({ id, code }))
+const system = { id: SRD_SYSTEM_ID, abilities: SRD_ABILITIES.map(({ id, code }) => ({ id, code })) }
 const dexterityId = SRD_ABILITY_DEFINITION_IDS.DEXTERITY
 const scalarValues = { [dexterityId]: 14 }
 
@@ -59,7 +60,7 @@ function occurrenceRolling(predicate: (roll: number) => boolean, effect: ActiveR
       occurrenceId,
       effects: [effect],
       scalarValues,
-      abilities,
+      system,
       perception: null
     })
     const roll = decoy?.roll
@@ -78,7 +79,7 @@ describe('attack decoys (Mirror Image)', () => {
         occurrenceId: testUuid(seed),
         effects: [effect],
         scalarValues,
-        abilities,
+        system,
         perception: null
       })
       if (decoy) hits.add(decoy.roll)
@@ -95,11 +96,11 @@ describe('attack decoys (Mirror Image)', () => {
     const { occurrenceId, decoy } = occurrenceRolling((roll) => roll >= 6 && roll < 11, three)
     expect(decoy.minimumRoll).toBe(6)
     expect(
-      attackDecoyFor({ occurrenceId, effects: [three], scalarValues, abilities, perception: null })
+      attackDecoyFor({ occurrenceId, effects: [three], scalarValues, system, perception: null })
         ?.roll
     ).toBe(decoy.roll)
     expect(
-      attackDecoyFor({ occurrenceId, effects: [one], scalarValues, abilities, perception: null })
+      attackDecoyFor({ occurrenceId, effects: [one], scalarValues, system, perception: null })
     ).toBeNull()
   })
 
@@ -122,7 +123,7 @@ describe('attack decoys (Mirror Image)', () => {
         occurrenceId: testUuid(1),
         effects: [],
         scalarValues,
-        abilities,
+        system,
         perception: null
       })
     ).toBeNull()
@@ -134,7 +135,7 @@ describe('attack decoys (Mirror Image)', () => {
         occurrenceId: testUuid(1),
         effects: [spent],
         scalarValues,
-        abilities,
+        system,
         perception: null
       })
     ).toBeNull()
@@ -148,7 +149,7 @@ describe('attack decoys (Mirror Image)', () => {
         occurrenceId,
         effects: [effect],
         scalarValues,
-        abilities,
+        system,
         perception: {
           targetSeesAttacker: 'SEES',
           attackerSeesTarget: 'SEES',

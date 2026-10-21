@@ -5,7 +5,7 @@ import {
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
+import { actionEconomyCapabilityRegistry } from './platformPolicyModules.js'
 import { activeEffectCapabilitySuppressions } from './encounterActionEconomy.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
@@ -20,8 +20,9 @@ export async function encounterActorCannotAct(input: {
   gameSystemId: string
   definitions: CurrentReusableDefinitionSource
 }) {
-  const capabilityDefinitionId =
-    actionEconomyCapabilityRegistry.requireActorActionCapabilityDefinitionId(input.gameSystemId)
+  const capabilityDefinitionId = actionEconomyCapabilityRegistry
+    .require(input.gameSystemId)
+    .actorActionCapabilityDefinitionId()
   const state = await resolveRuleCapabilityState({
     definitions: input.definitions,
     gameSystemId: input.gameSystemId,
