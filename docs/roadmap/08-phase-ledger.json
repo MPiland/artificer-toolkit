@@ -3620,7 +3620,7 @@
             },
             {
               "id": "RULES-2.T11g1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3629,8 +3629,8 @@
                 "size": 2,
                 "after": ["RULES-2.T11f"]
               },
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
-              "text": "System import burn-down (split 2026-10-21): move the six *Registry.ts composition roots onto createSystemCapabilityRegistry installed from the platform files."
+              "text": "System import burn-down (split 2026-10-21): move the six *Registry.ts composition roots onto createSystemCapabilityRegistry installed from the platform files.",
+              "note": "Merged m309 (4739f7a3d)."
             },
             {
               "id": "RULES-2.T11g2",
@@ -3643,7 +3643,8 @@
                 "size": 3,
                 "after": ["RULES-2.T11g1"]
               },
-              "text": "System import burn-down (split 2026-10-21): remaining Convex, web, encounter-persistence (except concentration), Worker cast-reaction and nativeEncounterRules importers. Concentration importers go to RULES-2.T8."
+              "text": "System import burn-down (split 2026-10-21): remaining Convex, web, encounter-persistence (except concentration), Worker cast-reaction and nativeEncounterRules importers. Concentration importers go to RULES-2.T8.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             },
             {
               "id": "RULES-2.T12",
@@ -3792,7 +3793,7 @@
               "note": "Merged m269 (5bcadf7a5)."
             },
             {
-              "id": "RULES-2.T15",
+              "id": "RULES-2.T16",
               "status": "TODO",
               "closes": ["RULES-2.5"],
               "wsjf": {
@@ -3802,7 +3803,8 @@
                 "size": 2,
                 "after": ["RULES-2.T5c"]
               },
-              "text": "Delete definition schemaVersion 1 (ruled at T5a review, 2026-10-21; pre-launch, no compatibility): migrate every v1 definition and seed to the current version in the same change and remove the v1 read paths."
+              "text": "Delete definition schemaVersion 1 (ruled at T5a review, 2026-10-21; pre-launch, no compatibility): migrate every v1 definition and seed to the current version in the same change and remove the v1 read paths.",
+              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
             }
           ]
         }
@@ -13776,7 +13778,7 @@
             },
             {
               "id": "SPELLS-33.T4i3a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13786,8 +13788,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2i", "SPELLS-4.T2i2b", "RULES-2.T6c2"]
               },
               "text": "REDUCED_TO_ZERO_BY gate (split 2026-10-21): the gate kind in the one gate table (schema, node map, web default, evidence), honoured on any outcome entry through the outcomes registry rather than the hit-path hitPointBand ladder; homebrew proof.",
-              "note": "Held behind RULES-2.T6c: the hit path honours only hitPointBand tiers today, and ADR 0039 rejects widening the ladder.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Merged m308 (bb62f5642)."
             },
             {
               "id": "SPELLS-33.T4i3b",

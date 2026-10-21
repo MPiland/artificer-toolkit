@@ -9,9 +9,9 @@ import type { SceneGrid, SpatialSceneToken } from '@artificer-toolkit/shared/vtt
 
 import type { CharacterRuleEvaluationResult } from './character/characterRuleEvaluation.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
-import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscovery.js'
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
+import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 import { buildCompiledActionTargetPolicy } from './encounterActionEntryPointCompiler.js'
 import { systemAbilityDefinitions } from './encounterActionSources.js'
 import { snapshotAbilityScore } from './encounterActorState.js'
@@ -26,7 +26,7 @@ import {
   type PlacedZoneSource
 } from './encounterPlacedZone.js'
 import { abilityScoreCapabilityRegistry } from './platformPolicyModules.js'
-import { encounterSceneGridPolicyRegistry } from './sceneGridPolicyRegistry.js'
+import { resolveEncounterSceneGrid } from './sceneGridPolicy.js'
 
 const PASSIVE_ZONE_NAMESPACE = '13ea735c-3dd6-4f0c-929d-175f96c227f7'
 
@@ -61,7 +61,7 @@ export function planEncounterPassiveZones(input: {
 }): LiveSessionPlacedSpatialEffect[] {
   const conditionDefinitionIds = input.system.conditionTypes.map(({ id }) => id)
   const abilityDefinitions = systemAbilityDefinitions(input.system)
-  const grid = encounterSceneGridPolicyRegistry.resolveEffectiveGrid({
+  const grid = resolveEncounterSceneGrid({
     encounter: input.state,
     sceneGrid: input.sceneGrid
   })
@@ -157,8 +157,7 @@ function characterPassiveZones(
   }
   const { candidates, entryPoints } = rules.passiveZoneSources
   if (!candidates.length) return { passiveZones: [], source }
-  const adapter = characterRuleActionSystemAdapterRegistry.get(gameSystemId)
-  if (!adapter) throw new Error('The Character Game System cannot execute its passive zones.')
+  const adapter = characterRuleActionSystemAdapterRegistry.require(gameSystemId)
   const passiveZones = discoverCharacterActionCapabilities({
     gameSystemId,
     candidates,

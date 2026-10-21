@@ -8,6 +8,7 @@ import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { ReactionReachCandidate, SpatialMovementKind } from '@artificer-toolkit/shared/vtt'
 
+import { movementReactionEligibilityCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
 export interface MovementReactionEligibilitySource {
@@ -56,58 +57,57 @@ export interface MovementReactionEligibilityAdapter {
  * The caller owns authoritative locks and factual derivation; this service
  * neither discovers mutable state nor branches on authored labels/features.
  */
-export function createMovementReactionEligibilityService(
-  adapters: readonly MovementReactionEligibilityAdapter[]
-) {
-  const adaptersBySystemId = new Map<string, MovementReactionEligibilityAdapter>()
-  for (const adapter of adapters) {
-    if (adaptersBySystemId.has(adapter.gameSystemId)) {
-      throw new Error(`Duplicate movement reaction eligibility adapter: ${adapter.gameSystemId}.`)
+export async function evaluateMovementReactionEligibility<
+  TSource extends MovementReactionEligibilitySource
+>(input: {
+  runtime: RulesRuntimeService
+  occurrenceId: string
+  movementKind: SpatialMovementKind
+  candidates: readonly {
+    candidate: ReactionReachCandidate
+    contactSourceId: string
+    source: TSource
+    facts: MovementReactionEligibilityFacts
+  }[]
+}): Promise<readonly EvaluatedMovementReactionCandidate<TSource>[]> {
+  const evaluated: EvaluatedMovementReactionCandidate<TSource>[] = []
+  for (const entry of input.candidates) {
+    if (
+      entry.candidate.sourceId !== entry.contactSourceId ||
+      entry.candidate.stage !== entry.source.binding.stage
+    ) {
+      throw new Error('Movement reaction contact does not match its exact authored capability.')
     }
-    adaptersBySystemId.set(adapter.gameSystemId, adapter)
-  }
-  return async function evaluateMovementReactionEligibility<
-    TSource extends MovementReactionEligibilitySource
-  >(input: {
-    runtime: RulesRuntimeService
-    occurrenceId: string
-    movementKind: SpatialMovementKind
-    candidates: readonly {
-      candidate: ReactionReachCandidate
-      contactSourceId: string
-      source: TSource
-      facts: MovementReactionEligibilityFacts
-    }[]
-  }): Promise<readonly EvaluatedMovementReactionCandidate<TSource>[]> {
-    const evaluated: EvaluatedMovementReactionCandidate<TSource>[] = []
-    for (const entry of input.candidates) {
-      if (
-        entry.candidate.sourceId !== entry.contactSourceId ||
-        entry.candidate.stage !== entry.source.binding.stage
-      ) {
-        throw new Error('Movement reaction contact does not match its exact authored capability.')
-      }
-      const adapter = adaptersBySystemId.get(entry.source.capability.gameSystemId)
-      if (!adapter) continue
-      const result = await adapter.evaluate({
-        runtime: input.runtime,
-        occurrenceId: input.occurrenceId,
-        movementKind: input.movementKind,
-        ...entry
-      })
-      if (
-        result.evidence.source.definitionId !== entry.source.binding.eligibilityDefinitionId ||
-        result.evidence.source.gameSystemId !== entry.source.capability.gameSystemId
-      ) {
-        throw new Error('Movement reaction eligibility evidence does not match its exact source.')
-      }
-      evaluated.push({
-        candidate: entry.candidate,
-        source: entry.source,
-        policy: movementReactionEligibilityOutputDtoSchema.parse(result.policy),
-        evidence: result.evidence
-      })
+    const adapter = movementReactionEligibilityCapabilityRegistry.require(
+      entry.source.capability.gameSystemId
+    )
+    const result = await adapter.evaluate({
+      runtime: input.runtime,
+      occurrenceId: input.occurrenceId,
+      movementKind: input.movementKind,
+      ...entry
+    })
+    if (
+      result.evidence.source.definitionId !== entry.source.binding.eligibilityDefinitionId ||
+      result.evidence.source.gameSystemId !== entry.source.capability.gameSystemId
+    ) {
+      throw new Error('Movement reaction eligibility evidence does not match its exact source.')
     }
-    return evaluated
+    evaluated.push({
+      candidate: entry.candidate,
+      source: entry.source,
+      policy: movementReactionEligibilityOutputDtoSchema.parse(result.policy),
+      evidence: result.evidence
+    })
   }
+  return evaluated
+}
+
+export function requireMovementReactionCapabilityDefinitionIds(
+  gameSystemId: string
+): readonly string[] {
+  return [
+    ...movementReactionEligibilityCapabilityRegistry.require(gameSystemId)
+      .requiredCapabilityDefinitionIds
+  ]
 }

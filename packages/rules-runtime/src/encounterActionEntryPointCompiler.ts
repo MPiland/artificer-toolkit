@@ -19,7 +19,7 @@ import {
   type CharacterRuleActionExecutionPlan,
   type CharacterRuleActionSystemAdapter
 } from './characterRuleActionSystemAdapter.js'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
+import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 import {
   encounterActionChoiceTarget,
   resolveAreaContentsTargeting,
@@ -335,9 +335,8 @@ export function compileCharacterActionEntryPoints(
     candidates: readonly CharacterActionCandidate[]
     descriptors: readonly CharacterActionCapabilityDescriptor[]
   },
-  registry = characterRuleActionSystemAdapterRegistry
+  adapter = characterRuleActionSystemAdapterRegistry.find(input.gameSystemId)
 ): CompiledActionEntryPoint[] {
-  const adapter = registry.get(input.gameSystemId)
   if (!adapter) {
     return input.candidates.map((candidate) => ({
       schemaVersion: 1,

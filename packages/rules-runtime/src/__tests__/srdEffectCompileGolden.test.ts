@@ -12,9 +12,8 @@ import {
   buildCompiledActionCompilerSource,
   compileEncounterFeatureActionPlan
 } from '../encounterActionEntryPointCompiler.js'
-import { createEncounterFeatureActionCapabilityDiscoveryRegistry } from '../encounterFeatureActionCapabilityDiscovery.js'
+import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
-import { dnd5eEncounterFeatureActionCapabilityAdapter } from '../systems/dnd5e/encounterFeatureActionCapabilityDiscovery.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
@@ -161,11 +160,6 @@ function characterLines({ effect, label, spellLevel }: Found, kind: string): Lin
   ]
 }
 
-/** Every action of a Creature before its System compiles the plan it runs. */
-const everyCreatureAction = createEncounterFeatureActionCapabilityDiscoveryRegistry([
-  dnd5eEncounterFeatureActionCapabilityAdapter
-])
-
 /**
  * A Creature-owned Effect, compiled the way the Encounter does: Creature action discovery, which
  * binds the real Effect identity, then the shared Feature action plan. An Effect that discovery
@@ -173,7 +167,7 @@ const everyCreatureAction = createEncounterFeatureActionCapabilityDiscoveryRegis
  */
 function creatureLines(creatureIndex: number): Line[] {
   const creature = srdBaselineContent.subjects.creatures[creatureIndex]!
-  const discovery = everyCreatureAction.discover({
+  const discovery = discoverUncompiledEncounterFeatureActions({
     actor: srdCreatureActor({ id: testUuid(0x1000 + creatureIndex), creature }),
     conditionDefinitionIds,
     abilityDefinitions,

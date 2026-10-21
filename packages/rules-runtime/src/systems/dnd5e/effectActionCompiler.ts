@@ -6867,7 +6867,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   compile: compileDnd5eEffectAction,
   compileZonePlacement: ({ action, label }) => {
     const executable = executableAction(action)
-    const zone = passiveMeleeRetaliationZone(DND5E_SYSTEM_ID, executable.compiledEffect, label)
+    const zone = passiveMeleeRetaliationZone(executable.compiledEffect, label, dnd5eAttackKind)
     return zone
       ? zoneComponentPlan(executable, zone, zone.components[0]!)
       : (zoneChoicePlan(executable) ?? zonePlacementPlan(executable))

@@ -9,9 +9,8 @@ import {
   compileEncounterFeatureActionPlan
 } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionChoiceTarget, encounterActionTargetKind } from '../encounterAreaAction.js'
-import { createEncounterFeatureActionCapabilityDiscoveryRegistry } from '../encounterFeatureActionCapabilityDiscovery.js'
+import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
-import { dnd5eEncounterFeatureActionCapabilityAdapter } from '../systems/dnd5e/encounterFeatureActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
@@ -48,9 +47,6 @@ const conditionDefinitionIds = srdSystemRecord.conditionTypes.map(({ id }) => id
 const abilityDefinitions = (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
 
 /** Every action of a Creature before its System compiles the plan it runs. */
-const everyAction = createEncounterFeatureActionCapabilityDiscoveryRegistry([
-  dnd5eEncounterFeatureActionCapabilityAdapter
-])
 
 /** Why the System cannot execute the action, or null when it can; any other compile failure is a real error. */
 function compileRefusal(capability: Parameters<typeof compileEncounterFeatureActionPlan>[1]) {
@@ -71,7 +67,7 @@ const breathRows = srdBaselineContent.subjects.creatures.flatMap((creature, crea
     abilityDefinitions,
     spells: new Map()
   }
-  const discovery = everyAction.discover(input)
+  const discovery = discoverUncompiledEncounterFeatureActions(input)
   const offered = discoverEncounterFeatureActions(input)
   return creature.features
     .filter((feature) => BREATH_DESCRIPTION.test(feature.description ?? ''))

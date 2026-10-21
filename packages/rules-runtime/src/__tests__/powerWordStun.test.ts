@@ -6,7 +6,6 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
@@ -177,8 +176,7 @@ describe('the SRD Power Word Stun (a hit-point gate, a condition and a repeated 
         ]
       },
       defenses: [],
-      runtime: createSrdRulesRuntime(),
-      adapters: characterRuleActionSystemAdapterRegistry
+      runtime: createSrdRulesRuntime()
     } as const
     const paused = await executeTargetBoundActiveRuleEffectWithPause(input)
     if (!('continuation' in paused)) throw new Error('The stun asks for the target save.')

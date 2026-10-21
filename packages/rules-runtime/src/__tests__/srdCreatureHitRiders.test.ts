@@ -1,7 +1,6 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { describe, expect, it } from 'vitest'
 
-import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
@@ -140,8 +139,7 @@ async function tickTimedCondition(input: {
     targetConditionIds: [srdCondition('Poisoned')],
     targetDerivedFacts: {},
     defenses: [],
-    runtime: createSrdRulesRuntime(),
-    adapters: characterRuleActionSystemAdapterRegistry
+    runtime: createSrdRulesRuntime()
   })
   if ('continuation' in result) throw new Error('A timed condition asks for no dice.')
   return result
