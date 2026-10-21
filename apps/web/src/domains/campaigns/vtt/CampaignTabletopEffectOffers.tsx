@@ -147,7 +147,7 @@ function EffectOfferList({
                         offer.dc === undefined ? null : `DC ${offer.dc}`
                       ]
                         .filter(Boolean)
-                        .map((part) => `· ${part}`)
+                        .map((part) => `Â· ${part}`)
                         .join(' ')}
                     </Text>
                   </Text>

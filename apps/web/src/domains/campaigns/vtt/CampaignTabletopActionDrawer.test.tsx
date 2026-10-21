@@ -729,7 +729,7 @@ describe('CampaignTabletopActionDrawer effect offers', () => {
 
     const section = await screen.findByRole('region', { name: 'Effect choices' })
     expect(within(section).getByText(/Repeat Heat Metal on Vault Warden/)).toBeVisible()
-    expect(within(section).getByText(/Bonus Action · cast at level 3 · DC 15/i)).toBeVisible()
+    expect(within(section).getByText(/Bonus Action Â· cast at level 3 Â· DC 15/i)).toBeVisible()
 
     await user.click(within(section).getByRole('button', { name: /Repeat Heat Metal on/ }))
 

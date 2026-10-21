@@ -828,7 +828,7 @@ export const RepeatOfferResolved: Story = {
     const section = within(drawer.getByRole('region', { name: 'Effect choices' }))
 
     await expect(section.getByText(/Repeat Heat Metal on Vault Warden/)).toBeVisible()
-    await expect(section.getByText(/Bonus Action · cast at level 3 · DC 15/i)).toBeVisible()
+    await expect(section.getByText(/Bonus Action Â· cast at level 3 Â· DC 15/i)).toBeVisible()
     await userEvent.click(section.getByRole('button', { name: /Repeat Heat Metal on/ }))
 
     await expect(await section.findByText('Repeated.')).toBeVisible()
