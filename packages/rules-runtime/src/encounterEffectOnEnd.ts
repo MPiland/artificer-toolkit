@@ -9,7 +9,7 @@ import {
 const ON_END_GRANT_NAMESPACE = '8e2b4c1a-6d7f-4a39-b0c5-1f9a3d7e5b62'
 
 type ModifierGrantContribution = Extract<
-  Extract<ActiveRuleEffectDefinitionDto, { schemaVersion: 2 }>['stateContributions'][number],
+  ActiveRuleEffectDefinitionDto['stateContributions'][number],
   { kind: 'MODIFIER_GRANT' }
 >
 
@@ -27,7 +27,7 @@ export function onEndGrantEffect(
   ended: Pick<ActiveRuleEffectRecord, 'id' | 'owner' | 'definition'>
 ) {
   const { definition } = ended
-  if (definition.schemaVersion !== 2 || definition.origin.kind !== 'ENCOUNTER') return null
+  if (definition.origin.kind !== 'ENCOUNTER') return null
   const template = definition.stateContributions.find(
     (contribution): contribution is ModifierGrantContribution =>
       contribution.kind === 'MODIFIER_GRANT'

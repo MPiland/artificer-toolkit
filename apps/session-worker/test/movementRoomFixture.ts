@@ -104,7 +104,8 @@ export function dependentEffectDefinition(input: { encounterId: string; sourceAc
   const definitionId = testUuid(0x5201)
   const entryId = testUuid(0x5202)
   return activeRuleEffectDefinitionDtoSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
+    stateContributions: [],
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,

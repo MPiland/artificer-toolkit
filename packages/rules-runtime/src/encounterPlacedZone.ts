@@ -148,7 +148,7 @@ function placedZoneRecord(
     ? { [entry.castSaveDcFactKey]: castSaveDc(input.saveDc) }
     : {}
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
-    schemaVersion: grant ? 2 : 1,
+    schemaVersion: 2,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,
@@ -172,21 +172,19 @@ function placedZoneRecord(
       lifetimeScope: 'ENCOUNTER',
       expiration: { kind: 'INDEFINITE' }
     },
-    ...(grant
-      ? {
-          stateContributions: [
-            {
-              kind: 'MODIFIER_GRANT' as const,
-              applyGrantOutcomeId: grant.applyGrantOutcomeId,
-              modifiers: grant.modifiers,
-              senses: grant.senses,
-              sourceLabel: zone.label,
-              sourceHidden: false,
-              endOnEvents: grant.endOnEvents
-            }
-          ]
-        }
-      : {})
+    stateContributions: grant
+      ? [
+          {
+            kind: 'MODIFIER_GRANT' as const,
+            applyGrantOutcomeId: grant.applyGrantOutcomeId,
+            modifiers: grant.modifiers,
+            senses: grant.senses,
+            sourceLabel: zone.label,
+            sourceHidden: false,
+            endOnEvents: grant.endOnEvents
+          }
+        ]
+      : []
   })
   return {
     id,

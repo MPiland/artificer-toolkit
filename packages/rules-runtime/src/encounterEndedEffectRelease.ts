@@ -32,13 +32,11 @@ export function endedEffectReleases(input: {
     input.held.filter(({ id }) => !endedIds.has(id))
   )
   const conditionReleases = [...released].sort().map((conditionId) => {
-    const owner = input.ended.find(
-      ({ definition }) =>
-        definition.schemaVersion === 2 &&
-        definition.stateContributions.some(
-          (contribution) =>
-            contribution.kind === 'CONDITION_OWNERSHIP' && contribution.conditionId === conditionId
-        )
+    const owner = input.ended.find(({ definition }) =>
+      definition.stateContributions.some(
+        (contribution) =>
+          contribution.kind === 'CONDITION_OWNERSHIP' && contribution.conditionId === conditionId
+      )
     )
     if (!owner) throw new Error('An ended effect released a condition it does not own.')
     return {
@@ -53,12 +51,10 @@ export function endedEffectReleases(input: {
     }
   })
   const temporaryReleases = input.ended
-    .filter(
-      ({ definition }) =>
-        definition.schemaVersion === 2 &&
-        definition.stateContributions.some(
-          (contribution) => contribution.kind === 'TEMPORARY_HIT_POINTS_OWNERSHIP'
-        )
+    .filter(({ definition }) =>
+      definition.stateContributions.some(
+        (contribution) => contribution.kind === 'TEMPORARY_HIT_POINTS_OWNERSHIP'
+      )
     )
     .map((owner) => ({
       kind: 'TEMPORARY_HIT_POINTS_RELEASE' as const,
@@ -371,11 +367,9 @@ export function withOwnedTemporaryHitPoints<Application extends CharacterRuleAct
   applications: readonly Application[],
   effect: Pick<ActiveRuleEffectRecord, 'id' | 'definition'>
 ): Application[] {
-  const owns =
-    effect.definition.schemaVersion === 2 &&
-    effect.definition.stateContributions.some(
-      (contribution) => contribution.kind === 'TEMPORARY_HIT_POINTS_OWNERSHIP'
-    )
+  const owns = effect.definition.stateContributions.some(
+    (contribution) => contribution.kind === 'TEMPORARY_HIT_POINTS_OWNERSHIP'
+  )
   return applications.map((application) =>
     owns && application.kind === 'TEMPORARY_HIT_POINTS'
       ? { ...application, sourceActiveEffectId: effect.id }

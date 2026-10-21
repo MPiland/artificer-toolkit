@@ -28,35 +28,30 @@ export function seedModifierGrant(input: {
     const { ownedConditionId, endsOnCast, maintainedEffectStateId, ...grant } = input
     const planned = plannedModifierGrant({ encounterId, ...grant })
     const { definition } = planned
-    if ((ownedConditionId || endsOnCast) && definition.schemaVersion !== 2)
-      throw new Error('Only a version 2 effect can own a condition or end on a cast.')
     await effects.create({
       id: crypto.randomUUID(),
       owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: input.holderActorId },
-      definition:
-        definition.schemaVersion === 2
+      definition: {
+        ...definition,
+        recurrence: endsOnCast
           ? {
-              ...definition,
-              recurrence: endsOnCast
-                ? {
-                    ...definition.recurrence,
-                    endOnEvents: [
-                      ...new Set([...definition.recurrence.endOnEvents, 'ON_CAST_SPELL' as const])
-                    ].sort()
-                  }
-                : definition.recurrence,
-              stateContributions: ownedConditionId
-                ? [
-                    ...definition.stateContributions,
-                    {
-                      kind: 'CONDITION_OWNERSHIP',
-                      conditionId: ownedConditionId,
-                      baselinePresent: false
-                    }
-                  ]
-                : definition.stateContributions
+              ...definition.recurrence,
+              endOnEvents: [
+                ...new Set([...definition.recurrence.endOnEvents, 'ON_CAST_SPELL' as const])
+              ].sort()
             }
-          : definition,
+          : definition.recurrence,
+        stateContributions: ownedConditionId
+          ? [
+              ...definition.stateContributions,
+              {
+                kind: 'CONDITION_OWNERSHIP',
+                conditionId: ownedConditionId,
+                baselinePresent: false
+              }
+            ]
+          : definition.stateContributions
+      },
       lifecycle: planned.lifecycle,
       maintainedEffectStateId,
       occurredAt

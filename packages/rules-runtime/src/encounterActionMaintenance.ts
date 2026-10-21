@@ -124,7 +124,6 @@ export function endedMaintenanceConditions(
   const ended = new Set<string>()
   const retained = new Set<string>()
   for (const effect of removed) {
-    if (effect.definition.schemaVersion !== 2) continue
     for (const contribution of effect.definition.stateContributions) {
       if (contribution.kind !== 'CONDITION_OWNERSHIP') continue
       if (contribution.baselinePresent) retained.add(contribution.conditionId)
@@ -132,7 +131,6 @@ export function endedMaintenanceConditions(
     }
   }
   for (const effect of remaining) {
-    if (effect.definition.schemaVersion !== 2) continue
     for (const contribution of effect.definition.stateContributions)
       if (contribution.kind === 'CONDITION_OWNERSHIP') retained.add(contribution.conditionId)
   }

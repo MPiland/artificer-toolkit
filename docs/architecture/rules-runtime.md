@@ -366,7 +366,11 @@ Actions in a Manual Encounter are refused with the
 
 **Active effects and maintained state.** Current active effects are state, not occurrences. Each stores an
 immutable definition (origin, one frozen `SINGLE_GRAPH`, adapter facts, recurrence, perception
-contributions) and a mutable lifecycle (remaining ticks). The pure executor
+contributions, and an aggregate-state `stateContributions` list that is empty for an effect that only ticks)
+and a mutable lifecycle (remaining ticks). The definition has one schema version, `schemaVersion 2`
+(current, RULES-2.T16): version 1, an effect with no `stateContributions`, was deleted outright rather than kept for
+compatibility (pre-launch, no live rows), and every producer, fixture and seed writes version 2. A change to the stored
+definition shape adds the next version and migrates its producers in the same change. The pure executor
 (`targetBoundActiveRuleEffectExecutor`) executes the frozen graph without current-definition lookup and
 returns a lifecycle `UPDATE` or `EXPIRE` proposal for the owner to apply. Maintained-effect state
 (Concentration) is generic persistence keyed by a System maintenance-definition identity; the System
