@@ -80,6 +80,8 @@ export interface EncounterFeatureActionDiscovery {
   /** The passive features that fire when their holder is reduced to 0 hit points, never offered as actions. */
   passiveHpZeroCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   passiveWeaponHitCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  /** The passive features that fire at the start of their holder's turn, never offered as actions. */
+  passiveStartOfTurnCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
 }
 
 type FeatureOption = NonNullable<FeatureDto['options']>[number]
@@ -495,14 +497,27 @@ function creatureActionEffect(
   const compiled = reduceEffectRestrictions(mergeOnHitRiders(compileEffect(effect), riders), null)
   const { invocation } = compiled
   // A passive "when reduced to 0 hit points" save effect runs as the save action the System fires
-  // for its holder, so it compiles and plans like any other area save.
-  return invocation.kind === 'PASSIVE' && invocation.triggerCode === 'HP_ZERO'
+  // for its holder, so it compiles and plans like any other area save. A passive start-of-turn
+  // effect runs as the activated self-action the System fires for its holder.
+  if (invocation.kind !== 'PASSIVE') return compiled
+  if (invocation.triggerCode === 'HP_ZERO')
+    return {
+      ...compiled,
+      invocation: {
+        ...invocation,
+        kind: 'ACTION',
+        triggerCode: 'SAVING_THROW',
+        activation: { code: 'ACTION', amount: 1 }
+      }
+    }
+  return invocation.triggerCode === 'START_OF_TURN'
     ? {
         ...compiled,
+        entries: compiled.entries.map((entry) => ({ ...entry, pathCode: 'ON_USE' as const })),
         invocation: {
           ...invocation,
           kind: 'ACTION',
-          triggerCode: 'SAVING_THROW',
+          triggerCode: 'ACTIVATED',
           activation: { code: 'ACTION', amount: 1 }
         }
       }
@@ -634,7 +649,8 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           passiveZoneCapabilities: [],
           passiveDamageGrantCapabilities: [],
           passiveHpZeroCapabilities: [],
-          passiveWeaponHitCapabilities: []
+          passiveWeaponHitCapabilities: [],
+          passiveStartOfTurnCapabilities: []
         }
       const provenance = snapshotProvenance(input.actor)
       const gameSystemId = requireCanonicalUuid(
@@ -649,7 +665,8 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
           passiveZoneCapabilities: [],
           passiveDamageGrantCapabilities: [],
           passiveHpZeroCapabilities: [],
-          passiveWeaponHitCapabilities: []
+          passiveWeaponHitCapabilities: [],
+          passiveStartOfTurnCapabilities: []
         }
       const available: EncounterFeatureActionCapabilityDescriptor[] = []
       const unavailable: EncounterFeatureActionUnavailable[] = []
@@ -657,6 +674,7 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
       const passiveDamageGrantCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const passiveHpZeroCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const passiveWeaponHitCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+      const passiveStartOfTurnCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
       const actionIds = new Set<string>()
       const features = snapshotFeatures(input.actor)
       for (const feature of features) {
@@ -687,11 +705,13 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
               passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
             const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
             const weaponHit = passive && effect.invocation.triggerCode === 'INCOMING_WEAPON_HIT'
+            const startOfTurn = passive && effect.invocation.triggerCode === 'START_OF_TURN'
             if (
               passive &&
               !damageGrant &&
               !hpZero &&
               !weaponHit &&
+              !startOfTurn &&
               !placedSpaceManifest(compiledEffect) &&
               !passiveMeleeRetaliationZone(compiledEffect, label)
             )
@@ -710,9 +730,11 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
                 ? passiveHpZeroCapabilities
                 : weaponHit
                   ? passiveWeaponHitCapabilities
-                  : passive
-                    ? passiveZoneCapabilities
-                    : available
+                  : startOfTurn
+                    ? passiveStartOfTurnCapabilities
+                    : passive
+                      ? passiveZoneCapabilities
+                      : available
             ).push({
               kind: 'ENCOUNTER_FEATURE',
               gameSystemId,
@@ -812,7 +834,8 @@ export function createEncounterFeatureActionCapabilityDiscoveryRegistry(
         passiveZoneCapabilities,
         passiveDamageGrantCapabilities,
         passiveHpZeroCapabilities,
-        passiveWeaponHitCapabilities
+        passiveWeaponHitCapabilities,
+        passiveStartOfTurnCapabilities
       }
     }
   }
