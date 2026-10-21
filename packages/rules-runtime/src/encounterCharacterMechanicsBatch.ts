@@ -28,7 +28,8 @@ import type { CharacterRuleActionApplication } from './characterRuleActionSystem
 import {
   hitPointsAfterDamage,
   killInterception,
-  type HeldDamageInterception
+  type HeldDamageInterception,
+  type InterceptionSaveRoll
 } from './encounterDamageInterception.js'
 import { EncounterValidationError } from './encounterErrors.js'
 
@@ -155,6 +156,8 @@ export function foldCharacterMechanicsApplications<
    * the first interception it fits and names it (`interceptedBy`, `negatedBy`).
    */
   damageInterceptions?: readonly HeldDamageInterception[]
+  /** The save dice the planner used for the saves those interceptions asked (`hitPointsAfterDamage`). */
+  interceptionSaveRolls?: readonly InterceptionSaveRoll[]
   /**
    * A dying Character's turn-start death save (D96), applied after the applications: its kept d20
    * and the signed total of its added dice (D156).
@@ -225,6 +228,7 @@ export function foldCharacterMechanicsApplications<
   let absence = input.absence ?? null
   const receipt: ReceiptApplications = []
   const unspentInterceptions = [...(input.damageInterceptions ?? [])]
+  let interceptionRollsUsed = 0
   for (const [ordinal, application] of input.applications.entries()) {
     if (application.targetActorId !== input.targetActorId)
       throw new EncounterValidationError('The Character rule action target is invalid.')
@@ -521,14 +525,38 @@ export function foldCharacterMechanicsApplications<
         temporaryLost
       ).sourceEffectId
       const currentLost = Math.min(current, resolvedAmount - temporaryLost)
-      const { after: afterCurrent, interception } = hitPointsAfterDamage({
+      const {
+        after: afterCurrent,
+        interception,
+        saves,
+        rollsUsed
+      } = hitPointsAfterDamage({
         current,
         currentLost,
         maximum,
-        interceptions: unspentInterceptions
+        damageTaken: resolvedAmount,
+        damageTypeId: application.damageTypeId,
+        critical: application.critical,
+        interceptions: unspentInterceptions,
+        saveRolls: (input.interceptionSaveRolls ?? []).slice(interceptionRollsUsed)
       })
+      interceptionRollsUsed += rollsUsed
       const intercepted = interception !== undefined
-      if (intercepted !== (application.interceptedBy !== undefined))
+      const recordedSaves = application.interceptionSaves ?? []
+      if (
+        intercepted !== (application.interceptedBy !== undefined) ||
+        recordedSaves.length !== saves.length ||
+        saves.some((save, index) => {
+          const recorded = recordedSaves[index]
+          return (
+            recorded?.effectId !== save.effectId ||
+            recorded.rawDie !== save.rawDie ||
+            recorded.addedTotal !== save.addedTotal ||
+            recorded.dc !== save.dc ||
+            recorded.passed !== save.passed
+          )
+        })
+      )
         throw new EncounterValidationError('The Character damage interception is invalid.')
       if (intercepted) unspentInterceptions.splice(unspentInterceptions.indexOf(interception), 1)
       if (

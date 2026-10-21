@@ -43,7 +43,10 @@ import type {
 } from '@artificer-toolkit/shared/vtt'
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
-import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import type {
+  DamageDispositionDto,
+  DamageInterceptionSaveDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type {
   CompiledActionActiveEffectPlan,
@@ -373,6 +376,8 @@ export type CharacterHitPointOutcomeApplication =
       critical: boolean
       /** The held effect whose damage interception left the target above 0 hit points instead. */
       interceptedBy?: string
+      /** The saves the blow's interceptions asked of the holder, in the order they were rolled. */
+      interceptionSaves?: DamageInterceptionSaveDto[]
     })
 
 export interface CharacterConditionApplyOutcomeApplication {

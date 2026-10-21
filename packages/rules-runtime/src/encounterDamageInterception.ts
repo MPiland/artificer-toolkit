@@ -1,6 +1,9 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { damageInterceptionPayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
-import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import {
+  resolveDispositionDamage,
+  type DamageInterceptionSaveDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 
 import {
   temporaryHitPointsAfterGrant,
@@ -14,6 +17,7 @@ import {
   listActiveEffectGrants
 } from './character/activeEffectGrantTotals.js'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import { EncounterValidationError } from './encounterErrors.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 
 /**
@@ -26,7 +30,19 @@ export type HeldDamageInterception = {
   effectId: string
   dropToHitPoints: number
   negatesKill: boolean
+  /** The save the holder must pass to be intercepted; its DC may grow with the damage taken. */
+  save?: { ability: string; dc: { base: number; plusDamageTaken: boolean } }
+  /** Damage this interception does not meet (`DamageInterceptionSubscription`). */
+  excludes?: { damageTypeIds: readonly string[]; critical: boolean }
+  maxDamageTaken?: number
 }
+
+/**
+ * One save die the caller rolled for a save an interception asks of its holder: the kept d20 and the
+ * signed total of its added dice. A batch carries them in the order its interceptions ask (see
+ * `hitPointsAfterDamage`).
+ */
+export type InterceptionSaveRoll = { rawDie: number; addedTotal: number }
 
 /**
  * The holder's interceptions in the order they are spent: lowest effect id first, so every replay
@@ -47,7 +63,12 @@ export function heldDamageInterceptions(
             return {
               effectId: effect.id,
               dropToHitPoints: payload.dropToHitPoints,
-              negatesKill: payload.negatesKill
+              negatesKill: payload.negatesKill,
+              ...(payload.save && { save: payload.save }),
+              ...(payload.excludes && { excludes: payload.excludes }),
+              ...(payload.maxDamageTaken !== undefined && {
+                maxDamageTaken: payload.maxDamageTaken
+              })
             }
           })
       )
@@ -56,24 +77,61 @@ export function heldDamageInterceptions(
 
 /**
  * The hit points damage leaves the holder at, and the interception that decided them: the first
- * unspent interception the damage's `BEFORE` event meets (it would drop the holder from above 0 to 0)
- * holds it at its hit points; with none, the plain result. `currentLost` is what the damage takes off
- * current hit points after temporary hit points.
+ * unspent interception the damage's `BEFORE` event meets (it would drop the holder from above 0 to 0,
+ * and its exclusions and damage cap admit the blow) holds it at its hit points; with none, the plain
+ * result. `currentLost` is what the damage takes off current hit points after temporary hit points;
+ * `damageTaken` is the whole blow, which sets a save's DC. An interception that asks a save is spent
+ * only on a pass: each save takes the next of `saveRolls`, and a failure lets the blow meet the next
+ * interception. `saves` records every save asked and `rollsUsed` how many dice they took.
  */
 export function hitPointsAfterDamage(input: {
   current: number
   currentLost: number
   maximum: number
+  damageTaken: number
+  damageTypeId: string | null
+  critical: boolean
   interceptions: readonly HeldDamageInterception[]
+  saveRolls: readonly InterceptionSaveRoll[]
 }) {
   const after = input.current - input.currentLost
-  const [interception] = discoverEncounterEventHooks({
+  const met = discoverEncounterEventHooks({
     damageInterceptions: input.interceptions,
-    events: [{ kind: 'DAMAGED', phase: 'BEFORE', hitPoints: { before: input.current, after } }]
+    events: [
+      {
+        kind: 'DAMAGED',
+        phase: 'BEFORE',
+        hitPoints: { before: input.current, after },
+        damageTaken: input.damageTaken,
+        damageTypeId: input.damageTypeId,
+        critical: input.critical
+      }
+    ]
   }).damageInterceptions
-  return interception === undefined
-    ? { after, interception }
-    : { after: Math.min(interception.dropToHitPoints, input.maximum), interception }
+  const saves: DamageInterceptionSaveDto[] = []
+  for (const candidate of met) {
+    if (candidate.save === undefined)
+      return {
+        after: Math.min(candidate.dropToHitPoints, input.maximum),
+        interception: candidate,
+        saves,
+        rollsUsed: saves.length
+      }
+    const roll = input.saveRolls[saves.length]
+    if (roll === undefined)
+      throw new EncounterValidationError('A damage interception save has no die.')
+    const dc = candidate.save.dc.base + (candidate.save.dc.plusDamageTaken ? input.damageTaken : 0)
+    const passed = roll.rawDie + roll.addedTotal >= dc
+    saves.push({ effectId: candidate.effectId, ...roll, dc, passed })
+    if (passed)
+      return {
+        after: Math.min(candidate.dropToHitPoints, input.maximum),
+        interception: candidate,
+        saves,
+        rollsUsed: saves.length
+      }
+  }
+  return { after, interception: undefined, saves, rollsUsed: saves.length }
 }
 
 /** The first unspent interception that negates a kill about to land on its holder. */
@@ -99,6 +157,8 @@ export function applyDamageInterceptions(input: {
   temporaryHitPoints: number
   temporaryHitPointsSourceEffectId?: string | null
   interceptions: readonly HeldDamageInterception[]
+  /** The save dice for the saves the interceptions ask, in the order they ask (`hitPointsAfterDamage`). */
+  saveRolls?: readonly InterceptionSaveRoll[]
 }): CharacterRuleActionApplication[] {
   if (input.interceptions.length === 0) return [...input.applications]
   const unspent = [...input.interceptions]
@@ -108,6 +168,7 @@ export function applyDamageInterceptions(input: {
     sourceEffectId: input.temporaryHitPointsSourceEffectId ?? null
   }
   let rebased = false
+  let rollsUsed = 0
   return input.applications.map((application) => {
     if (application.kind === 'KILL') {
       const spent = killInterception(unspent)
@@ -166,12 +227,22 @@ export function applyDamageInterceptions(input: {
     )
     const temporaryLost = Math.min(pool.amount, resolvedAmount)
     const currentLost = Math.min(current, resolvedAmount - temporaryLost)
-    const { after, interception } = hitPointsAfterDamage({
+    const {
+      after,
+      interception,
+      saves,
+      rollsUsed: used
+    } = hitPointsAfterDamage({
       current,
       currentLost,
       maximum: application.maximumHitPoints,
-      interceptions: unspent
+      damageTaken: resolvedAmount,
+      damageTypeId: application.damageTypeId,
+      critical: application.critical,
+      interceptions: unspent,
+      saveRolls: (input.saveRolls ?? []).slice(rollsUsed)
     })
+    rollsUsed += used
     const intercepted = interception !== undefined
     if (intercepted) unspent.splice(unspent.indexOf(interception), 1)
     rebased ||= intercepted
@@ -182,7 +253,8 @@ export function applyDamageInterceptions(input: {
       afterCurrentHitPoints: after,
       beforeTemporaryHitPoints: pool.amount,
       afterTemporaryHitPoints: pool.amount - temporaryLost,
-      ...(intercepted && { interceptedBy: interception.effectId })
+      ...(intercepted && { interceptedBy: interception.effectId }),
+      ...(saves.length > 0 && { interceptionSaves: saves })
     }
     current = after
     pool = temporaryHitPointsAfterLoss(pool, temporaryLost)

@@ -352,6 +352,52 @@ const INCOMING_GATE_SUCCESS_IMMUNITY_NODE_MAP = incomingGateSuccessImmunity.defi
   }
 )
 
+const damageInterceptionSave = buildNodeMap<NonNullable<AllUnionFields<ModifierPayload>['save']>>()
+
+const DAMAGE_INTERCEPTION_SAVE_DC_NODE_MAP = buildNodeMap<
+  NonNullable<AllUnionFields<ModifierPayload>['save']>['dc']
+>().define('damageInterceptionSaveDc', ({ map, nodes }) => {
+  map
+    .set('base', nodes.number(['base'], 'Base DC', { constraints: { minimum: 0, maximum: 100 } }))
+    .set('plusDamageTaken', nodes.toggle(['plusDamageTaken'], 'Add The Damage Taken'))
+})
+
+const DAMAGE_INTERCEPTION_SAVE_NODE_MAP = damageInterceptionSave.define(
+  'damageInterceptionSave',
+  ({ map, nodes }) => {
+    map
+      .set(
+        'ability',
+        nodes.selectSingle(['ability'], 'Save Ability', {
+          kind: 'INLINE_OPTIONS',
+          options: ABILITY_OPTIONS
+        })
+      )
+      .set(
+        'dc',
+        nodes.groupObject(['dc'], 'Save DC', () => DAMAGE_INTERCEPTION_SAVE_DC_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+  }
+)
+
+const DAMAGE_INTERCEPTION_EXCLUDES_NODE_MAP = buildNodeMap<
+  NonNullable<AllUnionFields<ModifierPayload>['excludes']>
+>().define('damageInterceptionExcludes', ({ map, nodes, data }) => {
+  const { table } = data
+  map
+    .set(
+      'damageTypeIds',
+      nodes.selectMulti(['damageTypeIds'], 'Damage Types Not Intercepted', {
+        kind: 'DATA',
+        relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
+      })
+    )
+    .set('critical', nodes.toggle(['critical'], 'Critical Hits Not Intercepted'))
+})
+
 const modifierPayload = buildNodeMap<ModifierPayload>()
 
 const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
@@ -969,6 +1015,27 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
       .set(
         'negatesKill',
         toggle(['negatesKill'], 'Also Negates Instant Death', {
+          showIf: parent.field(['valueDomainCode']).eq('DAMAGE_INTERCEPTION')
+        })
+      )
+      .set(
+        'save',
+        groupObject(['save'], 'Required Save', () => DAMAGE_INTERCEPTION_SAVE_NODE_MAP, {
+          presentation: 'inline',
+          showIf: parent.field(['valueDomainCode']).eq('DAMAGE_INTERCEPTION')
+        })
+      )
+      .set(
+        'excludes',
+        groupObject(['excludes'], 'Exclusions', () => DAMAGE_INTERCEPTION_EXCLUDES_NODE_MAP, {
+          presentation: 'inline',
+          showIf: parent.field(['valueDomainCode']).eq('DAMAGE_INTERCEPTION')
+        })
+      )
+      .set(
+        'maxDamageTaken',
+        number(['maxDamageTaken'], 'Only Damage Of At Most', {
+          constraints: { minimum: 1 },
           showIf: parent.field(['valueDomainCode']).eq('DAMAGE_INTERCEPTION')
         })
       )
