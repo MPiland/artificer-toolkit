@@ -2878,7 +2878,7 @@ type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extrac
   { effectKind: Kind }
 >
 
-const unsupportedDirectOutcome = (): never =>
+const unsupportedDirectOutcome: () => never = () =>
   unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
 // A list runs the action's one graph on each chosen creature, so it carries any outcome that lands
 // on its target. An outcome that acts on the actor (a Dash, a self teleport, a concealment) or on the
