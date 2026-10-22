@@ -131667,9 +131667,19 @@ export declare const api: {
       get: FunctionReference<
         "query",
         "public",
-        { owner: { kind: "SCENE"; campaignId: string; sceneDefinitionId: string } },
         {
-          owner: { kind: "SCENE"; campaignId: string; sceneDefinitionId: string };
+          owner: {
+            campaignId: string;
+            kind: "SCENE";
+            sceneDefinitionId: string;
+          };
+        },
+        {
+          owner: {
+            campaignId: string;
+            kind: "SCENE";
+            sceneDefinitionId: string;
+          };
           tables: Array<{
             id: string;
             name: string;
@@ -131693,7 +131703,11 @@ export declare const api: {
         "public",
         {
           expectedVersion: number;
-          owner: { kind: "SCENE"; campaignId: string; sceneDefinitionId: string };
+          owner: {
+            campaignId: string;
+            kind: "SCENE";
+            sceneDefinitionId: string;
+          };
           tables: Array<{
             id: string;
             name: string;
@@ -131711,7 +131725,11 @@ export declare const api: {
           }>;
         },
         {
-          owner: { kind: "SCENE"; campaignId: string; sceneDefinitionId: string };
+          owner: {
+            campaignId: string;
+            kind: "SCENE";
+            sceneDefinitionId: string;
+          };
           tables: Array<{
             id: string;
             name: string;
