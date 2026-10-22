@@ -4175,7 +4175,7 @@
               "text": "Challenge rating, currency and passives read from the System record: xp, proficiencyBonus and rank on each CR entry, baseValue on currency, the passive ability on its entry, all seeded from source-data. creatureRuleFacts, encounterFormChoice and collectionPresentation read the record; delete packages/shared/src/domains/vocabulary.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
               "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39832309307"
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39837914940"
             },
             {
               "id": "RULES-2.T9k",
