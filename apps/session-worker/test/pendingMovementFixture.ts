@@ -128,6 +128,7 @@ export async function insertPendingMovementDecision(
           ? {
               requestNodeId: 'd20',
               rollMode: 'NORMAL',
+              keep: 'FIRST',
               contributors: [],
               contributorChecksum: checksumRuleDocument([]),
               modifier: 0,

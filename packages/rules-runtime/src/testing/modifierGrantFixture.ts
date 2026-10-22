@@ -1,4 +1,3 @@
-import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
 import type {
   ServerCompletedRuleExecutionDto,
   ServerPublishedRuleDefinitionDto
@@ -226,10 +225,7 @@ export function plannedModifierGrant(input: {
       ? {
           requestId: testUuid(0xc312),
           rollMode: 'NORMAL',
-          keep: rollModeCapabilityRegistry.rollModeKeep({
-            gameSystemId: published.gameSystemId,
-            rollMode: 'NORMAL'
-          }),
+          keep: 'FIRST',
           derivedRollMode: 'NORMAL',
           rawFaces: [15],
           selectedNatural: 15,
