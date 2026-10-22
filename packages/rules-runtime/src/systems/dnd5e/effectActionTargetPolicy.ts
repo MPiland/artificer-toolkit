@@ -84,7 +84,7 @@ export function isSupportedArea(
 export function isChargedFreeActivation(
   invocation: Extract<
     Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
-    { kind: 'ACTION' }
+    { activation: unknown }
   >
 ): boolean {
   return invocation.activation.code === 'FREE' && invocation.resourceUse !== undefined
