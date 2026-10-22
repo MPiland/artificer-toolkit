@@ -3,6 +3,7 @@ import { relative } from 'node:path'
 import { defineConfig } from 'vitest/config'
 import { BaseSequencer, type TestSpecification } from 'vitest/node'
 import { DURATIONS_FILE, longestFirst, shardPaths } from '../../scripts/convexShards.mjs'
+import { inlineWorkspacePackages, sourceResolve } from '../../scripts/vitestSource.mjs'
 
 const durations: Record<string, number> = JSON.parse(readFileSync(DURATIONS_FILE, 'utf8'))
 
@@ -41,6 +42,7 @@ class DurationSequencer extends BaseSequencer {
 }
 
 export default defineConfig({
+  ...sourceResolve,
   test: {
     allowOnly: false,
     environment: 'edge-runtime',
@@ -60,6 +62,7 @@ export default defineConfig({
     server: {
       deps: {
         inline: [
+          ...inlineWorkspacePackages,
           'convex-test',
           '@convex-dev/migrations',
           '@convex-dev/better-auth',

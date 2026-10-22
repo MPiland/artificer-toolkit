@@ -5,18 +5,22 @@
   "type": "module",
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./content": {
+      "source": "./src/content.ts",
       "types": "./dist/content.d.ts",
       "default": "./dist/content.js"
     },
     "./srd": {
+      "source": "./src/srd/index.ts",
       "types": "./dist/srd/index.d.ts",
       "default": "./dist/srd/index.js"
     },
     "./srd/*.js": {
+      "source": "./src/srd/*.ts",
       "types": "./dist/srd/*.d.ts",
       "default": "./dist/srd/*.js"
     }

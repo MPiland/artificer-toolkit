@@ -7,164 +7,204 @@
   "types": "./dist/index.d.ts",
   "imports": {
     "#core": {
+      "source": "./src/barrels/core/index.ts",
       "types": "./dist/barrels/core/index.d.ts",
       "default": "./dist/barrels/core/index.js"
     },
     "#authored": {
+      "source": "./src/barrels/authored/index.ts",
       "types": "./dist/barrels/authored/index.d.ts",
       "default": "./dist/barrels/authored/index.js"
     },
     "#compilers": {
+      "source": "./src/barrels/compilers/index.ts",
       "types": "./dist/barrels/compilers/index.d.ts",
       "default": "./dist/barrels/compilers/index.js"
     },
     "#utils": {
+      "source": "./src/utils/index.ts",
       "types": "./dist/utils/index.d.ts",
       "default": "./dist/utils/index.js"
     },
     "#maps": {
+      "source": "./src/barrels/maps/index.ts",
       "types": "./dist/barrels/maps/index.d.ts",
       "default": "./dist/barrels/maps/index.js"
     }
   },
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./utils": {
+      "source": "./src/utils/index.ts",
       "types": "./dist/utils/index.d.ts",
       "default": "./dist/utils/index.js"
     },
     "./canonicalJson": {
+      "source": "./src/utils/canonicalJson.ts",
       "types": "./dist/utils/canonicalJson.d.ts",
       "default": "./dist/utils/canonicalJson.js"
     },
     "./contentMemo": {
+      "source": "./src/utils/contentMemo.ts",
       "types": "./dist/utils/contentMemo.d.ts",
       "default": "./dist/utils/contentMemo.js"
     },
     "./sha256": {
+      "source": "./src/utils/sha256.ts",
       "types": "./dist/utils/sha256.d.ts",
       "default": "./dist/utils/sha256.js"
     },
     "./base64": {
+      "source": "./src/utils/base64.ts",
       "types": "./dist/utils/base64.d.ts",
       "default": "./dist/utils/base64.js"
     },
     "./jsonPayloadChunks": {
+      "source": "./src/utils/jsonPayloadChunks.ts",
       "types": "./dist/utils/jsonPayloadChunks.d.ts",
       "default": "./dist/utils/jsonPayloadChunks.js"
     },
     "./utils/authoringLimits": {
+      "source": "./src/utils/authoringLimits.ts",
       "types": "./dist/utils/authoringLimits.d.ts",
       "default": "./dist/utils/authoringLimits.js"
     },
     "./authored": {
+      "source": "./src/barrels/authored/index.ts",
       "types": "./dist/barrels/authored/index.d.ts",
       "default": "./dist/barrels/authored/index.js"
     },
     "./compilers": {
+      "source": "./src/barrels/compilers/index.ts",
       "types": "./dist/barrels/compilers/index.d.ts",
       "default": "./dist/barrels/compilers/index.js"
     },
     "./core": {
+      "source": "./src/barrels/core/index.ts",
       "types": "./dist/barrels/core/index.d.ts",
       "default": "./dist/barrels/core/index.js"
     },
     "./maps": {
+      "source": "./src/barrels/maps/index.ts",
       "types": "./dist/barrels/maps/index.d.ts",
       "default": "./dist/barrels/maps/index.js"
     },
     "./character": {
+      "source": "./src/domains/character/index.ts",
       "types": "./dist/domains/character/index.d.ts",
       "default": "./dist/domains/character/index.js"
     },
     "./character/sheetRest": {
+      "source": "./src/domains/character/sheetRest.ts",
       "types": "./dist/domains/character/sheetRest.d.ts",
       "default": "./dist/domains/character/sheetRest.js"
     },
     "./rolls": {
+      "source": "./src/domains/rolls/index.ts",
       "types": "./dist/domains/rolls/index.d.ts",
       "default": "./dist/domains/rolls/index.js"
     },
     "./rules": {
+      "source": "./src/domains/rules/index.ts",
       "types": "./dist/domains/rules/index.d.ts",
       "default": "./dist/domains/rules/index.js"
     },
     "./rules/*": {
+      "source": "./src/domains/rules/*.ts",
       "types": "./dist/domains/rules/*.d.ts",
       "default": "./dist/domains/rules/*.js"
     },
     "./vtt": {
+      "source": "./src/domains/vtt/index.ts",
       "types": "./dist/domains/vtt/index.d.ts",
       "default": "./dist/domains/vtt/index.js"
     },
     "./vtt/scene": {
+      "source": "./src/domains/vtt/scene.ts",
       "types": "./dist/domains/vtt/scene.d.ts",
       "default": "./dist/domains/vtt/scene.js"
     },
     "./vtt/lootTable": {
+      "source": "./src/domains/vtt/lootTable.ts",
       "types": "./dist/domains/vtt/lootTable.d.ts",
       "default": "./dist/domains/vtt/lootTable.js"
     },
     "./vtt/teleportAllowanceDestinationKind": {
+      "source": "./src/domains/vtt/teleportAllowanceDestinationKind.ts",
       "types": "./dist/domains/vtt/teleportAllowanceDestinationKind.d.ts",
       "default": "./dist/domains/vtt/teleportAllowanceDestinationKind.js"
     },
     "./vtt/segments": {
+      "source": "./src/domains/vtt/segments.ts",
       "types": "./dist/domains/vtt/segments.d.ts",
       "default": "./dist/domains/vtt/segments.js"
     },
     "./account/username": {
+      "source": "./src/domains/account/usernamePolicy.ts",
       "types": "./dist/domains/account/usernamePolicy.d.ts",
       "default": "./dist/domains/account/usernamePolicy.js"
     },
     "./account/usernameServer": {
+      "source": "./src/domains/account/usernameServerPolicy.ts",
       "types": "./dist/domains/account/usernameServerPolicy.d.ts",
       "default": "./dist/domains/account/usernameServerPolicy.js"
     },
     "./account/ageAttestation": {
+      "source": "./src/domains/account/ageAttestation.ts",
       "types": "./dist/domains/account/ageAttestation.d.ts",
       "default": "./dist/domains/account/ageAttestation.js"
     },
     "./account/entitlements": {
+      "source": "./src/domains/account/entitlementPolicy.ts",
       "types": "./dist/domains/account/entitlementPolicy.d.ts",
       "default": "./dist/domains/account/entitlementPolicy.js"
     },
     "./social/rateLimits": {
+      "source": "./src/domains/social/rateLimitPolicy.ts",
       "types": "./dist/domains/social/rateLimitPolicy.d.ts",
       "default": "./dist/domains/social/rateLimitPolicy.js"
     },
     "./campaign/textPolicy": {
+      "source": "./src/domains/campaign/campaignTextPolicy.ts",
       "types": "./dist/domains/campaign/campaignTextPolicy.d.ts",
       "default": "./dist/domains/campaign/campaignTextPolicy.js"
     },
     "./campaign/characterControl": {
+      "source": "./src/domains/campaign/characterControl.ts",
       "types": "./dist/domains/campaign/characterControl.d.ts",
       "default": "./dist/domains/campaign/characterControl.js"
     },
     "./campaign/capabilities": {
+      "source": "./src/domains/campaign/campaignCapabilities.ts",
       "types": "./dist/domains/campaign/campaignCapabilities.d.ts",
       "default": "./dist/domains/campaign/campaignCapabilities.js"
     },
     "./subjects/authored": {
+      "source": "./src/domains/subjects/authored/index.ts",
       "types": "./dist/domains/subjects/authored/index.d.ts",
       "default": "./dist/domains/subjects/authored/index.js"
     },
     "./subjects/authored/character/intent": {
+      "source": "./src/domains/subjects/authored/character/intent.ts",
       "types": "./dist/domains/subjects/authored/character/intent.d.ts",
       "default": "./dist/domains/subjects/authored/character/intent.js"
     },
     "./subjects/compilers": {
+      "source": "./src/domains/subjects/compilers/index.ts",
       "types": "./dist/domains/subjects/compilers/index.d.ts",
       "default": "./dist/domains/subjects/compilers/index.js"
     },
     "./subjects/core": {
+      "source": "./src/domains/subjects/core/index.ts",
       "types": "./dist/domains/subjects/core/index.d.ts",
       "default": "./dist/domains/subjects/core/index.js"
     },
     "./subjects/maps": {
+      "source": "./src/domains/subjects/maps/index.ts",
       "types": "./dist/domains/subjects/maps/index.d.ts",
       "default": "./dist/domains/subjects/maps/index.js"
     }
