@@ -165,7 +165,8 @@ function sneakAttackGate(variant: 'MELEE' | 'RANGED', base: number): FacetAuthor
               kind: 'PREDICATE' as const,
               constraint: 'INCLUDE' as const,
               predicateCode: 'ATTACK_ROLL_MODE' as const,
-              rollMode: 'NOT_DISADVANTAGE' as const
+              rollMode: 'DISADVANTAGE',
+              negated: true
             }
           ]
         : [
@@ -959,7 +960,8 @@ export const rogue: ClassAuthored = {
           grantKind: GRANT_KIND.MODIFIER_GRANT,
           valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
           domain: { attackDomain, requiresHolderSeesAttacker: false },
-          modifierKind: MODIFIER_KIND.NEGATE_ADVANTAGE,
+          modifierKind: MODIFIER_KIND.SUPPRESS_ROLL_INFLUENCE,
+          payload: { influence: 'ADVANTAGE' },
           scope: MODIFIER_SCOPE_KIND.GLOBAL,
           selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
           order: index,

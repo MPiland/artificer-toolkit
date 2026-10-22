@@ -29,10 +29,9 @@ export const MODIFIER_KIND = {
   ADD_BONUS_DIE: 'ADD_BONUS_DIE',
   REPLACE_DAMAGE_TYPE: 'REPLACE_DAMAGE_TYPE',
 
-  // Roll state
-  ADVANTAGE: 'ADVANTAGE',
-  DISADVANTAGE: 'DISADVANTAGE',
-  NEGATE_ADVANTAGE: 'NEGATE_ADVANTAGE',
+  // Roll state: the influence is a code from the System's roll-influence vocabulary
+  ROLL_INFLUENCE: 'ROLL_INFLUENCE',
+  SUPPRESS_ROLL_INFLUENCE: 'SUPPRESS_ROLL_INFLUENCE',
   MINIMUM_ROLL: 'MINIMUM_ROLL',
 
   // Switches a domain's rule on; the domain says what it enables
@@ -54,6 +53,24 @@ export const MODIFIER_KIND = {
 } as const
 
 export type ModifierKind = keyof typeof MODIFIER_KIND
+
+/**
+ * The System roll-influence code a `kind` grant carries, or null when the modifier is another kind.
+ * Readers never interpret the code; the System's roll-mode policy does.
+ */
+export function modifierRollInfluence(
+  modifier: { readonly modifierKind: string; readonly payload?: unknown },
+  kind: 'ROLL_INFLUENCE' | 'SUPPRESS_ROLL_INFLUENCE' = MODIFIER_KIND.ROLL_INFLUENCE
+): string | null {
+  const { payload } = modifier
+  return modifier.modifierKind === kind &&
+    typeof payload === 'object' &&
+    payload !== null &&
+    'influence' in payload &&
+    typeof payload.influence === 'string'
+    ? payload.influence
+    : null
+}
 
 export type ModifierTypeOption = CoreMeta<ModifierKind>
 
@@ -106,22 +123,16 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     description: 'Change the damage type.'
   },
 
-  ADVANTAGE: {
-    code: MODIFIER_KIND.ADVANTAGE,
-    label: 'Advantage',
-    description: 'Grant advantage on the roll.'
+  ROLL_INFLUENCE: {
+    code: MODIFIER_KIND.ROLL_INFLUENCE,
+    label: 'Roll Influence',
+    description: "Apply one of the Game System's roll influences to the roll."
   },
 
-  DISADVANTAGE: {
-    code: MODIFIER_KIND.DISADVANTAGE,
-    label: 'Disadvantage',
-    description: 'Grant disadvantage on the roll.'
-  },
-
-  NEGATE_ADVANTAGE: {
-    code: MODIFIER_KIND.NEGATE_ADVANTAGE,
-    label: 'Negate Advantage',
-    description: 'The roll cannot have advantage; disadvantage still applies.'
+  SUPPRESS_ROLL_INFLUENCE: {
+    code: MODIFIER_KIND.SUPPRESS_ROLL_INFLUENCE,
+    label: 'Suppress Roll Influence',
+    description: 'The roll cannot have this influence; every other influence still applies.'
   },
 
   MINIMUM_ROLL: {
@@ -229,16 +240,10 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
   ],
 
-  INITIATIVE: [
-    MODIFIER_KIND.BONUS,
-    MODIFIER_KIND.PENALTY,
-    MODIFIER_KIND.ADVANTAGE,
-    MODIFIER_KIND.DISADVANTAGE
-  ],
+  INITIATIVE: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.ROLL_INFLUENCE],
 
   ABILITY_CHECK: [
-    MODIFIER_KIND.ADVANTAGE,
-    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.ROLL_INFLUENCE,
     MODIFIER_KIND.ADD_BONUS_DIE,
     MODIFIER_KIND.MINIMUM_ROLL
   ],
@@ -248,26 +253,20 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
   SAVING_THROW_MODIFIER: [
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
-    MODIFIER_KIND.ADVANTAGE,
-    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.ROLL_INFLUENCE,
     MODIFIER_KIND.ADD_BONUS_DIE
   ],
 
   ATTACK_ROLL: [
     MODIFIER_KIND.BONUS,
     MODIFIER_KIND.PENALTY,
-    MODIFIER_KIND.ADVANTAGE,
-    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.ROLL_INFLUENCE,
     MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
     MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
     MODIFIER_KIND.ADD_BONUS_DIE
   ],
 
-  ATTACKS_AGAINST: [
-    MODIFIER_KIND.ADVANTAGE,
-    MODIFIER_KIND.DISADVANTAGE,
-    MODIFIER_KIND.NEGATE_ADVANTAGE
-  ],
+  ATTACKS_AGAINST: [MODIFIER_KIND.ROLL_INFLUENCE, MODIFIER_KIND.SUPPRESS_ROLL_INFLUENCE],
 
   ATTACK_TRAIT: [MODIFIER_KIND.ENABLE],
 
@@ -289,12 +288,7 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   INCOMING_ATTACK_GATE: [MODIFIER_KIND.ENABLE],
 
-  SKILL_MODIFIER: [
-    MODIFIER_KIND.BONUS,
-    MODIFIER_KIND.PENALTY,
-    MODIFIER_KIND.ADVANTAGE,
-    MODIFIER_KIND.DISADVANTAGE
-  ],
+  SKILL_MODIFIER: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.ROLL_INFLUENCE],
 
   ABILITY_SCORE: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
 
@@ -701,17 +695,19 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
                         ? { shapeKind: ShapeKind }
                         : K extends 'REPLACE_CHARGE_RESET_KIND'
                           ? { resetKind: ChargeResetKind }
-                          : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'NEGATE_ADVANTAGE' | 'ENABLE'
-                            ? undefined
-                            : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                              ? {
-                                  abilities: AbilityModifierReference[]
-                                  min?: number
-                                  max?: number
-                                }
-                              : // option-like operations must be domain-supported
-                                K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                                ? V extends keyof ValueDomainOptionPayloadByDomain
-                                  ? ValueDomainOptionPayloadByDomain[V]
+                          : K extends 'ROLL_INFLUENCE' | 'SUPPRESS_ROLL_INFLUENCE'
+                            ? { influence: string }
+                            : K extends 'ENABLE'
+                              ? undefined
+                              : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                                ? {
+                                    abilities: AbilityModifierReference[]
+                                    min?: number
+                                    max?: number
+                                  }
+                                : // option-like operations must be domain-supported
+                                  K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                                  ? V extends keyof ValueDomainOptionPayloadByDomain
+                                    ? ValueDomainOptionPayloadByDomain[V]
+                                    : never
                                   : never
-                                : never

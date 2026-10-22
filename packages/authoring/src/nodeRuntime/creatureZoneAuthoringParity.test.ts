@@ -8,6 +8,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-20 T6c (ADR 0038, D144): the SRD Balor's Fire Aura is a passive zone authored from the same
@@ -15,7 +16,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * exactly as authored, as must a variant with another radius and other dice.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 function normalize(creature: CreatureAuthored) {
   return normalizeNodeRuntimeValues(reader, {

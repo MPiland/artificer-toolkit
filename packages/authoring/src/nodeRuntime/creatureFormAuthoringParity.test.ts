@@ -10,8 +10,9 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 /**
  * Equipment carrying spell effects, so the effect node map is what normalizes them; an item authors them

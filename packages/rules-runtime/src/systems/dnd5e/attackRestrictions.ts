@@ -218,7 +218,7 @@ function circumstanceMet(
   } else {
     const { rollMode } = circumstances
     matches =
-      condition.rollMode === 'ADVANTAGE' ? rollMode === 'ADVANTAGE' : rollMode !== 'DISADVANTAGE'
+      condition.negated === true ? rollMode !== condition.rollMode : rollMode === condition.rollMode
   }
   return condition.constraint === 'INCLUDE' ? matches : !matches
 }

@@ -29,7 +29,8 @@ const advantageAgainst = (attackDomain: 'MELEE' | 'RANGED') => ({
     domainKey: 'test:advantage',
     influence: 'ADVANTAGE' as const,
     source: { kind: 'AUTHORED' as const, id: 'test:advantage', holderActorId: null }
-  }
+  },
+  suppressedInfluence: null
 })
 
 /**

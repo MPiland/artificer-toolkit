@@ -24,21 +24,6 @@ export const OWNER_KIND = {
 
 export type OwnerKind = keyof typeof OWNER_KIND
 
-export type AttackRollModeRequirement = 'ADVANTAGE' | 'NOT_DISADVANTAGE'
-
-export const ATTACK_ROLL_MODE_OPTIONS = [
-  {
-    code: 'ADVANTAGE',
-    label: 'Advantage',
-    description: 'The attack has advantage.'
-  },
-  {
-    code: 'NOT_DISADVANTAGE',
-    label: 'No disadvantage',
-    description: 'The attack has advantage or is a normal roll.'
-  }
-] as const satisfies readonly CoreMeta<AttackRollModeRequirement>[]
-
 export type PredicatePayloadByCode = {
   SUBCLASS_SPECIALIZATION: Selectable<{ specializationIds: string[] }>
   SPELLCASTING: EmptyObject
@@ -97,9 +82,10 @@ export type PredicatePayloadByCode = {
   ATTACK_ACTIVATION: {
     activation: ActivationCode
   }
-  /** The attack's net roll mode: `NOT_DISADVANTAGE` is advantage or a normal roll. */
+  /** The attack's net roll mode, a System `rollMode` code; `negated` matches every other mode. */
   ATTACK_ROLL_MODE: {
-    rollMode: AttackRollModeRequirement
+    rollMode: string
+    negated?: boolean
   }
   /** Another creature hostile to the target, able to act, stands within `feet` of the target. */
   ENEMY_NEAR_TARGET: {

@@ -18,7 +18,8 @@ export type ActorRelationshipModuleAuthored =
       order: number
       kind: 'SOURCE_ATTACK_ROLL_INFLUENCE'
       actionEffectIds: string[]
-      influence: 'ADVANTAGE'
+      /** A code from the System's roll-influence vocabulary. */
+      influence: string
     }
   | { id: string; order: number; kind: 'SOURCE_FOLLOWS_TARGET' }
   | { id: string; order: number; kind: 'SOURCE_OCCUPIES_HAND' }
@@ -49,7 +50,8 @@ export type ActorRelationshipModuleAuthored =
       id: string
       order: number
       kind: 'CONDITIONAL_TARGET_STATE'
-      whenResolvedAttackD20Mode: 'ADVANTAGE'
+      /** A code from the System's roll-mode vocabulary. */
+      whenResolvedAttackD20Mode: string
       conditionIds: string[]
       capabilityDefinitionIds: string[]
     }

@@ -70,10 +70,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
               // An attack roll's advantage or disadvantage may cover only attacks made with an ability.
               and([
                 parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
-                or([
-                  parent.field(['modifierKind']).eq('ADVANTAGE'),
-                  parent.field(['modifierKind']).eq('DISADVANTAGE')
-                ])
+                parent.field(['modifierKind']).eq('ROLL_INFLUENCE')
               ])
             ])
           }
@@ -188,10 +185,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         toggle(['againstEffectSource'], 'Only Attacks Against The Effect Source', {
           showIf: and([
             parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
-            or([
-              parent.field(['modifierKind']).eq('ADVANTAGE'),
-              parent.field(['modifierKind']).eq('DISADVANTAGE')
-            ])
+            parent.field(['modifierKind']).eq('ROLL_INFLUENCE')
           ])
         })
       )
@@ -200,10 +194,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         toggle(['requiresHolderSeesSource'], 'Only Effects Whose Source The Holder Can See', {
           showIf: and([
             parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
-            or([
-              parent.field(['modifierKind']).eq('ADVANTAGE'),
-              parent.field(['modifierKind']).eq('DISADVANTAGE')
-            ])
+            parent.field(['modifierKind']).eq('ROLL_INFLUENCE')
           ])
         })
       )
@@ -253,10 +244,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             showIf: and([
               parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
-              or([
-                parent.field(['modifierKind']).eq('ADVANTAGE'),
-                parent.field(['modifierKind']).eq('DISADVANTAGE')
-              ])
+              parent.field(['modifierKind']).eq('ROLL_INFLUENCE')
             ])
           }
         )
@@ -603,6 +591,30 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           'Dice Per Higher Spell Level',
           () => DAMAGE_DIE_CAST_LEVEL_SCALING_NODE_MAP,
           { presentation: 'inline', showIf: isDamageDie }
+        )
+      )
+      .set(
+        'influence',
+        selectSingle(
+          ['influence'],
+          'Roll Influence',
+          {
+            kind: 'DATA',
+            relationship: table('roll_influences', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            showIf: or([
+              parent.field(['modifierKind']).eq('ROLL_INFLUENCE'),
+              parent.field(['modifierKind']).eq('SUPPRESS_ROLL_INFLUENCE')
+            ]),
+            requiredIf: or([
+              parent.field(['modifierKind']).eq('ROLL_INFLUENCE'),
+              parent.field(['modifierKind']).eq('SUPPRESS_ROLL_INFLUENCE')
+            ]),
+            hiddenBehavior: 'CLEAR'
+          }
         )
       )
       .set(
@@ -1202,6 +1214,8 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('ADD_OPTION'),
             local.field(['modifierKind']).eq('REMOVE_OPTION'),
             local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS'),
+            local.field(['modifierKind']).eq('ROLL_INFLUENCE'),
+            local.field(['modifierKind']).eq('SUPPRESS_ROLL_INFLUENCE'),
             and([
               local.field(['modifierKind']).eq('ENABLE'),
               or([

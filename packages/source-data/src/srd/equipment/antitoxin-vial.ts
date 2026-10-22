@@ -60,7 +60,8 @@ export const antitoxinVial: EquipmentAuthored = {
                       ability,
                       conditionTypeId: S.conditionTypeId('POISONED')
                     },
-                    modifierKind: S.MODIFIER_KIND.ADVANTAGE,
+                    modifierKind: S.MODIFIER_KIND.ROLL_INFLUENCE,
+                    payload: { influence: 'ADVANTAGE' },
                     scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
                     selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
                     order: index + 1

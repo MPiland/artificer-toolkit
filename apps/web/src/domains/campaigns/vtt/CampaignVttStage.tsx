@@ -10,7 +10,7 @@ import {
   Tooltip
 } from '@mantine/core'
 import { convexQuery } from '@convex-dev/react-query'
-import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { Check, Crosshair, Eye, EyeOff, Gamepad2, SlidersHorizontal, Undo2 } from 'lucide-react'
@@ -19,7 +19,6 @@ import type {
   CampaignSceneStateDto,
   SceneCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type { ImageLookupInput } from '@artificer-toolkit/schema/api/media'
 import {
   createSceneFogAreaPatch,
   createUniformSceneFogLayer,
@@ -73,6 +72,9 @@ import {
   type CampaignVttToolDefinition,
   type SceneTokenNudgeDirection
 } from './CampaignVttStage.model'
+import { CampaignLiveLootPanel } from '../loot/CampaignLiveLootPanel'
+import { useCampaignLiveLoot } from '../loot/useCampaignLiveLoot'
+import { useVttTokenArtUrls } from './useVttTokenArtUrls'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
@@ -655,52 +657,17 @@ export function CampaignVttStage({
       renderedScene
     ]
   )
-  const tokenImageLookups = useMemo(() => {
-    const actorsById = new Map(
-      (activeEncounter?.actors ?? []).map((actor) => [actor.id, actor] as const)
-    )
-    return (renderedScene?.tokens ?? []).flatMap((token) => {
-      const actorId = actorIdByTokenId.get(token.id)
-      const actor = actorId === undefined ? undefined : actorsById.get(actorId)
-      if (!actor?.sourceId || (actor.kind !== 'CHARACTER' && actor.kind !== 'CREATURE')) return []
-      const target: ImageLookupInput['target'] =
-        actor.kind === 'CHARACTER'
-          ? { campaignId: campaign.id, characterId: actor.sourceId, type: 'CHARACTER_PORTRAIT' }
-          : {
-              scope: 'ACTIVE',
-              subjectId: actor.sourceId,
-              subjectKind: 'CREATURE',
-              type: 'AUTHORED_IMAGE'
-            }
-      return [{ target, tokenAssetId: token.assetId, tokenId: token.id }]
-    })
-  }, [activeEncounter?.actors, actorIdByTokenId, campaign.id, renderedScene?.tokens])
-  const tokenArtUrls = useQueries({
-    queries: tokenImageLookups.map((lookup) => ({
-      queryFn: () =>
-        lookup.target.type === 'CHARACTER_PORTRAIT'
-          ? convex.action(convexApi.media.characterPortraitActions.getImage, {
-              target: lookup.target,
-              variantKind: 'THUMBNAIL'
-            })
-          : convex.action(convexApi.media.authoredActions.getImage, {
-              target: lookup.target,
-              variantKind: 'THUMBNAIL'
-            }),
-      queryKey: ['media', lookup.target, 'THUMBNAIL'] as const,
-      refetchOnReconnect: 'always' as const,
-      refetchOnWindowFocus: false,
-      staleTime: 4 * 60_000
-    })),
-    combine: (results) =>
-      Object.fromEntries(
-        tokenImageLookups.flatMap((lookup, index) => {
-          const image = results[index]?.data
-          return image && (!lookup.tokenAssetId || lookup.tokenAssetId === image.assetId)
-            ? [[lookup.tokenId, image.url]]
-            : []
-        })
-      )
+  const tokenArtUrls = useVttTokenArtUrls({
+    actorIdByTokenId,
+    campaignId: campaign.id,
+    encounter: activeEncounter,
+    scene: renderedScene
+  })
+  const liveLoot = useCampaignLiveLoot({
+    campaignId: campaign.id,
+    encounter: activeEncounter,
+    gmView: campaign.role === 'OWNER' && !gmPreviewUserId,
+    sceneDefinitionId: scene?.definitionId
   })
   const tokenPresentations = useMemo(
     () =>
@@ -711,6 +678,7 @@ export function CampaignVttStage({
             boundTokenControl,
             currentUserId: viewerUserId,
             encounter: activeEncounter,
+            lootActorIds: liveLoot.lootActorIds,
             pending: pendingOccurrence ?? null,
             scene: renderedScene,
             targetableTokenIds: targetEntries ? targetableTokenIds(targetEntries) : undefined
@@ -720,6 +688,7 @@ export function CampaignVttStage({
       activeEncounter,
       actorIdByTokenId,
       boundTokenControl,
+      liveLoot.lootActorIds,
       pendingOccurrence,
       renderedScene,
       targetEntries,
@@ -1521,6 +1490,13 @@ export function CampaignVttStage({
             >
               Use this scene for combat
             </Button>
+          ) : null}
+          {liveLoot.available ? (
+            <CampaignLiveLootPanel
+              creatures={liveLoot.creatures}
+              gameSystemId={campaign.gameSystemId}
+              sceneTables={liveLoot.sceneTables}
+            />
           ) : null}
           {activeEncounter ? (
             <CampaignTabletopEncounterDrawer

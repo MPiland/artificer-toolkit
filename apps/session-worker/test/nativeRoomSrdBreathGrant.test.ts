@@ -138,16 +138,23 @@ describe('an unmodified SRD Gold Dragon Wyrmling leaves its grants with Weakenin
       expect(
         stateContributions
           .flatMap(({ modifiers }: { modifiers: { valueDomainCode: string }[] }) => modifiers)
-          .map((modifier: { valueDomainCode: string; modifierKind: string }) =>
-            [modifier.valueDomainCode, modifier.modifierKind].join(':')
+          .map(
+            (modifier: {
+              valueDomainCode: string
+              modifierKind: string
+              payload: { influence: string }
+            }) =>
+              [modifier.valueDomainCode, modifier.modifierKind, modifier.payload.influence].join(
+                ':'
+              )
           )
           .sort()
       ).toEqual([
-        'ABILITY_CHECK:DISADVANTAGE',
-        'ATTACK_ROLL:DISADVANTAGE',
-        'ATTACK_ROLL:DISADVANTAGE',
-        'ATTACK_ROLL:DISADVANTAGE',
-        'SAVING_THROW_MODIFIER:DISADVANTAGE'
+        'ABILITY_CHECK:ROLL_INFLUENCE:DISADVANTAGE',
+        'ATTACK_ROLL:ROLL_INFLUENCE:DISADVANTAGE',
+        'ATTACK_ROLL:ROLL_INFLUENCE:DISADVANTAGE',
+        'ATTACK_ROLL:ROLL_INFLUENCE:DISADVANTAGE',
+        'SAVING_THROW_MODIFIER:ROLL_INFLUENCE:DISADVANTAGE'
       ])
       // "for 1 minute" is ten rounds, and the grant repeats its save at the end of its holder's turn.
       expect(recurrence.expiration).toMatchObject({ kind: 'TICKS', initialRemaining: 10 })

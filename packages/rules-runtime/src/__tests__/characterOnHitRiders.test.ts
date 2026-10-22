@@ -332,7 +332,7 @@ describe('Life Domain Divine Strike rides on a weapon hit as authored ON_HIT dat
 describe('a rider gated on the attack roll mode (D119)', () => {
   const advantageOnly = riderGate([{ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' }])
   const notDisadvantaged = riderGate([
-    { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'NOT_DISADVANTAGE' }
+    { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'DISADVANTAGE', negated: true }
   ])
 
   it('applies a rider gated on advantage only to an attack with advantage', async () => {
@@ -432,7 +432,7 @@ describe('a rider gated on an enemy near the target (D119)', () => {
     [{ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' }],
     [
       { predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 },
-      { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'NOT_DISADVANTAGE' }
+      { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'DISADVANTAGE', negated: true }
     ]
   )
 

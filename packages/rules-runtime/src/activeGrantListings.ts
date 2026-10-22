@@ -7,9 +7,10 @@ import type {
   ActiveGrantListingDto,
   ConcentrationListingDto
 } from '@artificer-toolkit/schema/shared/activeGrantListing'
-import type { ValueDomainCode } from '@artificer-toolkit/shared/core'
+import { modifierRollInfluence, type ValueDomainCode } from '@artificer-toolkit/shared/core'
 
 import { isLengthModifierDomain } from './modifierLength.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 
 type GrantPolarity = ActiveGrantListingDto['polarity']
 
@@ -69,14 +70,31 @@ function scalarSign(
   return 'multiplier' in payload ? Math.sign(payload.multiplier ?? 1) : 1
 }
 
-function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
+/** What a roll influence alone does for the roller: the face the System's roll-mode policy keeps. */
+function rollInfluencePolarity(gameSystemId: string, influence: string): GrantPolarity {
+  const { keep } = rollModeCapabilityRegistry.resolveRollMode({
+    gameSystemId,
+    contributors: [{ influence }]
+  })
+  return keep === 'HIGHER' ? 'BENEFICIAL' : keep === 'LOWER' ? 'HARMFUL' : 'NEUTRAL'
+}
+
+function modifierPolarity(
+  gameSystemId: string,
+  modifier: CharacterGrantFoldModifier
+): GrantPolarity {
   const { modifierKind: kind, valueDomainCode: domain, payload } = modifier
   switch (kind) {
-    case 'ADVANTAGE':
-      return domain === 'ATTACKS_AGAINST' ? 'HARMFUL' : 'BENEFICIAL'
-    case 'DISADVANTAGE':
-    case 'NEGATE_ADVANTAGE':
-      return domain === 'ATTACKS_AGAINST' ? 'BENEFICIAL' : 'HARMFUL'
+    case 'ROLL_INFLUENCE':
+    case 'SUPPRESS_ROLL_INFLUENCE': {
+      const influence = modifierRollInfluence(modifier, kind)
+      if (influence === null) return 'NEUTRAL'
+      const polarity = rollInfluencePolarity(gameSystemId, influence)
+      // Suppressing an influence inverts it, and so does an attack made against the holder.
+      return (kind === 'SUPPRESS_ROLL_INFLUENCE') !== (domain === 'ATTACKS_AGAINST')
+        ? INVERSE_POLARITY[polarity]
+        : polarity
+    }
     case 'BONUS':
     case 'PENALTY': {
       const sign = scalarSign(domain, payload)
@@ -126,7 +144,8 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
  * What a grant does for its holder, derived from its frozen modifiers and never authored: beneficial
  * or harmful only when every piece agrees, neutral when they mix or any piece is neutral. Each piece
  * reads as follows:
- * - Advantage and disadvantage help the holder, except on attacks against them.
+ * - A roll influence follows the face the System keeps under it (advantage helps, disadvantage
+ *   harms), inverted on attacks against the holder; suppressing an influence inverts it.
  * - A bonus or penalty follows its sign; a negative amount or multiplier flips it, zero is neutral.
  * - An ability modifier bonus helps; a negative multiplier harms and a zero one is neutral. An
  *   optional ability modifier bonus always helps.
@@ -140,12 +159,15 @@ function modifierPolarity(modifier: CharacterGrantFoldModifier): GrantPolarity {
  * - Adding an option follows `OPTION_DOMAIN_POLARITY`; removing one inverts it.
  * - Senses help.
  */
-function grantPolarity(grant: {
-  modifiers: readonly CharacterGrantFoldModifier[]
-  senses: readonly CharacterGrantFoldSense[]
-}): GrantPolarity {
+function grantPolarity(
+  gameSystemId: string,
+  grant: {
+    modifiers: readonly CharacterGrantFoldModifier[]
+    senses: readonly CharacterGrantFoldSense[]
+  }
+): GrantPolarity {
   const pieces = [
-    ...grant.modifiers.map(modifierPolarity),
+    ...grant.modifiers.map((modifier) => modifierPolarity(gameSystemId, modifier)),
     ...grant.senses.map((): GrantPolarity => 'BENEFICIAL')
   ]
   const [first] = pieces
@@ -176,7 +198,7 @@ export function listActiveGrantListings(
                 sourceHidden: contribution.sourceHidden,
                 remainingTicks: lifecycle.remainingTicks,
                 expiresAtCampaignMinute: lifecycle.expiresAtCampaignMinute ?? null,
-                polarity: grantPolarity(contribution)
+                polarity: grantPolarity(definition.frozenGraph.source.gameSystemId, contribution)
               }
             ]
           : []

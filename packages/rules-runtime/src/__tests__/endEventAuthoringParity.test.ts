@@ -145,7 +145,8 @@ describe('Supreme Sneak is authorable from core options (D156, SPELLS-31.T5n)', 
     expect(JSON.stringify(srd)).not.toContain('CLOSED_RULE')
     expect(srd?.grants?.modifiers?.[0]).toMatchObject({
       valueDomainCode: 'SKILL_MODIFIER',
-      modifierKind: 'ADVANTAGE',
+      modifierKind: 'ROLL_INFLUENCE',
+      payload: { influence: 'ADVANTAGE' },
       scope: 'GLOBAL'
     })
     expect(featureDtoSchema.safeParse(srd).success).toBe(true)

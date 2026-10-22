@@ -2,7 +2,7 @@
 // docs/architecture/ci-validation.md#approved-merges). Everything it pushes is a plain push, so a branch
 // that moved meanwhile rejects it; it never force-pushes and never pushes main.
 //   node scripts/mergeSlice.mjs --branch ci/<slice> --sha <tip> --title "<title>"
-//     [--target <phase branch>] [--batch-prefix ci/merge-m]
+//     (or --slices "ci/<a>@<tip>,ci/<b>@<tip>" for one batch) [--target <phase branch>] [--batch-prefix ci/merge-m]
 // Fast path: when the phase branch changed nothing outside docs/ since the slice's merge base, the slice
 // merges --no-ff onto the phase tip, the merge must differ from the slice tree in docs/ only (not at all
 // when the slice contains the phase tip), and after the phase push the merge commit goes to
@@ -16,8 +16,11 @@ import { pathToFileURL } from 'node:url'
 export const WORKFLOWS = { Tests: 'tests.yml', 'Live backend': 'live-backend.yml' }
 const TRAILER = 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
 const POLL_MS = 60_000
-// A dispatched run can take a while to be listed; past this it is missing, not pending.
-const APPEAR_MS = 5 * 60_000
+// Overall wait for one set of runs; the workflow's own timeout is 120 minutes.
+const WAIT_MS = 90 * 60_000
+const DISPATCH_SKEW_MS = 60_000
+const LISTING_TRIES = 4
+const LISTING_RETRY_MS = 5_000
 
 export class MergeRefused extends Error {}
 
@@ -62,6 +65,19 @@ export function runsVerdict(runs, workflows = Object.keys(WORKFLOWS)) {
 // cannot change what a green run proved.
 export const docsOnly = (paths) => paths.every((path) => path.startsWith('docs/'))
 
+// One dispatch names `--slices "ci/a@<sha>,ci/b@<sha>"` (comma or whitespace separated); a lone
+// --branch/--sha pair is the single-slice form.
+export function parseSlices({ branch = '', sha = '', slices = '' }) {
+  const listed = slices.split(/[\s,]+/).filter(Boolean)
+  if (listed.length === 0) return [{ branch, sha }]
+  if (branch || sha) throw new MergeRefused('Name either branch and sha or slices, not both.')
+  return listed.map((pair) => {
+    const [name = '', tip = '', ...rest] = pair.split('@')
+    if (!tip || rest.length > 0) throw new MergeRefused(`${pair} is not <branch>@<sha>.`)
+    return { branch: name, sha: tip }
+  })
+}
+
 export function validateInputs({ branch, sha, title, target, batchPrefix }) {
   if (
     !/^ci\/[\w./-]+$/.test(branch) ||
@@ -78,144 +94,241 @@ export function validateInputs({ branch, sha, title, target, batchPrefix }) {
     throw new MergeRefused(`${batchPrefix} is not a ci/ batch prefix.`)
 }
 
-const run = (command, args) => {
+const realRun = (command, args) => {
   const result = spawnSync(command, args, { encoding: 'utf8', shell: false, windowsHide: true })
   if (result.error) throw result.error
   return result
 }
 
-const git = (...args) => {
-  const result = run('git', args)
+// Everything that touches git, gh or the clock goes through `tools`, so tests fake the platform and run
+// this logic for real.
+export const realTools = {
+  run: realRun,
+  sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
+  now: () => Date.now(),
+  log: (message) => console.log(message)
+}
+
+const git = (tools, ...args) => {
+  const result = tools.run('git', args)
   if (result.status !== 0) throw new Error(`git ${args.join(' ')} failed:\n${result.stderr}`)
   return result.stdout.trim()
 }
 
-const gh = (...args) => {
-  const result = run('gh', args)
+const gh = (tools, ...args) => {
+  const result = tools.run('gh', args)
   if (result.status !== 0) throw new Error(`gh ${args.join(' ')} failed:\n${result.stderr}`)
   return result.stdout.trim()
 }
 
 const lines = (text) => text.split('\n').filter(Boolean)
-const log = (message) => console.log(message)
-const sleep = (ms) => new Promise((done) => setTimeout(done, ms))
 
-const remoteSha = (branch) =>
-  git('ls-remote', 'origin', `refs/heads/${branch}`).split('\t')[0] || null
+const remoteSha = (tools, branch) =>
+  git(tools, 'ls-remote', 'origin', `refs/heads/${branch}`).split('\t')[0] || null
 
-const runsOn = (sha) =>
-  JSON.parse(
-    gh(
-      'run',
-      'list',
-      '--commit',
-      sha,
-      '--limit',
-      '50',
-      '--json',
-      'databaseId,workflowName,status,conclusion,createdAt'
-    )
-  )
+const RUN_FIELDS = 'databaseId,workflowName,status,conclusion,createdAt'
 
-const dispatch = (branch, names) => {
-  for (const name of names) {
-    gh('workflow', 'run', WORKFLOWS[name], '--ref', branch)
-    log(`Dispatched ${name} on ${branch}.`)
+// GitHub's filtered run listings (`--commit`, `--branch`) intermittently return nothing for runs that
+// exist (3 of 10 back-to-back calls in a measurement), so an empty listing is unknown, not missing:
+// it is retried, and only a listing that stays empty counts as empty.
+async function listRuns(tools, ...args) {
+  for (let attempt = 1; ; attempt += 1) {
+    const listed = JSON.parse(gh(tools, 'run', 'list', ...args, '--json', RUN_FIELDS))
+    if (listed.length > 0 || attempt === LISTING_TRIES) return listed
+    await tools.sleep(LISTING_RETRY_MS)
   }
+}
+
+const runsOn = (tools, sha) => listRuns(tools, '--commit', sha, '--limit', '50')
+
+// `gh workflow run` prints the created run's URL when GitHub returns it. Without a URL, the run is
+// found by a branch-and-workflow listing (not the commit filter, which lagged past 5 minutes) among
+// runs created after the dispatch.
+const dispatchRun = (tools, branch, name) => {
+  const startedAt = tools.now()
+  const output = gh(tools, 'workflow', 'run', WORKFLOWS[name], '--ref', branch)
+  tools.log(`Dispatched ${name} on ${branch}.`)
+  return { startedAt, id: output.match(/\/actions\/runs\/(\d+)/)?.[1] ?? null }
+}
+
+async function findDispatchedId(tools, branch, name, startedAt) {
+  const listed = await listRuns(
+    tools,
+    '--workflow',
+    WORKFLOWS[name],
+    '--branch',
+    branch,
+    '--event',
+    'workflow_dispatch',
+    '--limit',
+    '20'
+  )
+  // GitHub timestamps have second resolution and the runner's clock may differ slightly.
+  const created = listed
+    .filter((run) => Date.parse(run.createdAt) >= startedAt - DISPATCH_SKEW_MS)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return created[0] ? String(created[0].databaseId) : null
 }
 
 // Waits for Tests and Live to finish on `sha`. A workflow with no run is dispatched on `branch` once
-// (Live is path-filtered, and a GITHUB_TOKEN push triggers nothing); the caller has checked that
-// `branch` points at `sha`.
-async function waitForGreen(sha, branch) {
+// (Live is path-filtered, and a GITHUB_TOKEN push triggers nothing) and that run is then polled by its
+// id; workflows the script did not dispatch are read from the commit listing. The caller has checked
+// that `branch` points at `sha`.
+async function waitForGreen(tools, sha, branch) {
   const dispatched = new Map()
+  const deadline = tools.now() + WAIT_MS
   for (;;) {
-    const verdict = runsVerdict(runsOn(sha))
-    if (verdict.state === 'green') return log(`Green on ${sha}: ${verdict.detail}.`)
+    for (const [name, entry] of dispatched)
+      entry.id ??= await findDispatchedId(tools, branch, name, entry.startedAt)
+    const dispatchedRuns = [...dispatched.values()]
+      .filter((entry) => entry.id)
+      .map((entry) => JSON.parse(gh(tools, 'run', 'view', entry.id, '--json', RUN_FIELDS)))
+    const listedRuns = (await runsOn(tools, sha)).filter((run) => !dispatched.has(run.workflowName))
+    const verdict = runsVerdict([...listedRuns, ...dispatchedRuns])
+    if (verdict.state === 'green') return tools.log(`Green on ${sha}: ${verdict.detail}.`)
     if (verdict.state === 'red') throw new MergeRefused(`Not green on ${sha}: ${verdict.detail}.`)
-    if (verdict.state === 'missing') {
-      const toDispatch = verdict.missing.filter((name) => !dispatched.has(name))
-      const late = verdict.missing.filter((name) => Date.now() - dispatched.get(name) > APPEAR_MS)
-      if (late.length > 0) throw new MergeRefused(`No ${late.join(' or ')} run appeared on ${sha}.`)
-      if (toDispatch.length > 0) {
-        if (remoteSha(branch) !== sha) throw new MergeRefused(`${branch} moved off ${sha}.`)
-        dispatch(branch, toDispatch)
-        for (const name of toDispatch) dispatched.set(name, Date.now())
-      }
+    if (tools.now() > deadline)
+      throw new MergeRefused(
+        `Tests and Live did not finish on ${sha} within ${WAIT_MS / 60_000} minutes.`
+      )
+    const toDispatch = (verdict.missing ?? []).filter((name) => !dispatched.has(name))
+    if (toDispatch.length > 0) {
+      if (remoteSha(tools, branch) !== sha) throw new MergeRefused(`${branch} moved off ${sha}.`)
+      for (const name of toDispatch) dispatched.set(name, dispatchRun(tools, branch, name))
     }
-    await sleep(POLL_MS)
+    await tools.sleep(POLL_MS)
   }
 }
 
-function commitMerge(other, message) {
-  const result = run('git', ['merge', '--no-ff', '--no-edit', '-m', message, '-m', TRAILER, other])
+function commitMerge(tools, other, message) {
+  const result = tools.run('git', [
+    'merge',
+    '--no-ff',
+    '--no-edit',
+    '-m',
+    message,
+    '-m',
+    TRAILER,
+    other
+  ])
   if (result.status !== 0)
     throw new MergeRefused(
-      `Merging ${other} conflicts:\n${git('diff', '--name-only', '--diff-filter=U')}`
+      `Merging ${other} conflicts:\n${git(tools, 'diff', '--name-only', '--diff-filter=U')}`
     )
-  return git('rev-parse', 'HEAD')
+  return git(tools, 'rev-parse', 'HEAD')
 }
 
-const push = (sha, branch) => {
-  git('push', 'origin', `${sha}:refs/heads/${branch}`)
-  log(`Pushed ${sha} to ${branch}.`)
+const push = (tools, sha, branch) => {
+  git(tools, 'push', 'origin', `${sha}:refs/heads/${branch}`)
+  tools.log(`Pushed ${sha} to ${branch}.`)
 }
 
-function nextBatchNumber(batchPrefix) {
-  const refs = lines(git('ls-remote', '--heads', 'origin', `${batchPrefix}*`))
+function nextBatchNumber(tools, batchPrefix) {
+  const refs = lines(git(tools, 'ls-remote', '--heads', 'origin', `${batchPrefix}*`))
   return nextMergeNumber(
     refs.map((line) => line.split('\t')[1]),
     batchPrefix
   )
 }
 
-export async function mergeSlice({ branch, sha, title, target, batchPrefix }) {
-  validateInputs({ branch, sha, title, target, batchPrefix })
-  if (remoteSha(branch) !== sha)
-    throw new MergeRefused(`${branch} is not at ${sha}; the tip moved.`)
-  await waitForGreen(sha, branch)
+// The batch is green: the phase branch fast-forwards to it, or takes one more --no-ff merge when it
+// moved meanwhile by docs/ only.
+function landBatch(tools, { merge, batch, phaseTip, target, number }) {
+  git(tools, 'fetch', '--quiet', 'origin', `+refs/heads/${target}:refs/remotes/origin/${target}`)
+  const phaseNow = git(tools, 'rev-parse', `origin/${target}`)
+  if (phaseNow === phaseTip) {
+    push(tools, merge, target)
+    return tools.log(`Batch ${batch} green; ${target} fast-forwarded to ${merge}.`)
+  }
+  const moved = lines(git(tools, 'diff', '--name-only', '--no-renames', phaseTip, phaseNow))
+  if (!docsOnly(moved))
+    throw new MergeRefused(`${target} moved outside docs/ while ${batch} ran: ${moved.join(', ')}.`)
+  const docsMerge = commitMerge(tools, phaseNow, `Merge ${target} docs into m${number}`)
+  push(tools, docsMerge, target)
+  tools.log(`Batch ${batch} green; merged into ${target} as ${docsMerge} over its docs-only move.`)
+}
 
-  git('fetch', '--quiet', 'origin', sha, `+refs/heads/${target}:refs/remotes/origin/${target}`)
-  const phaseTip = git('rev-parse', `origin/${target}`)
-  const mergeBase = git('merge-base', sha, phaseTip)
-  const phaseChanges = lines(git('diff', '--name-only', '--no-renames', mergeBase, phaseTip))
-  const number = nextBatchNumber(batchPrefix)
-  const batch = `${batchPrefix}${number}`
+// `slices` is a list of { branch, sha }; a lone `branch` and `sha` is the single-slice form. Every tip
+// must be unchanged and green on its own runs first. Several slices merge in order onto the phase tip
+// into one batch commit that Tests and Live run on once; any refusal pushes nothing to the phase branch.
+export async function mergeSlice(
+  { branch, sha, slices = parseSlices({ branch, sha }), title, target, batchPrefix },
+  tools = realTools
+) {
+  const names = slices.map((slice) => slice.branch)
+  if (new Set(names).size !== names.length)
+    throw new MergeRefused(`A slice is named twice: ${names.join(', ')}.`)
+  for (const slice of slices) validateInputs({ ...slice, title, target, batchPrefix })
+  for (const slice of slices)
+    if (remoteSha(tools, slice.branch) !== slice.sha)
+      throw new MergeRefused(`${slice.branch} is not at ${slice.sha}; the tip moved.`)
+  for (const slice of slices) {
+    try {
+      await waitForGreen(tools, slice.sha, slice.branch)
+    } catch (error) {
+      if (error instanceof MergeRefused)
+        throw new MergeRefused(`${slice.branch}: ${error.message}`, { cause: error })
+      throw error
+    }
+  }
+
+  git(
+    tools,
+    'fetch',
+    '--quiet',
+    'origin',
+    ...slices.map((slice) => slice.sha),
+    `+refs/heads/${target}:refs/remotes/origin/${target}`
+  )
+  const phaseTip = git(tools, 'rev-parse', `origin/${target}`)
+  const number = nextBatchNumber(tools, batchPrefix)
+  const batchBranch = `${batchPrefix}${number}`
   const message = `${title.trim()} (m${number})`
 
+  if (slices.length > 1) {
+    git(tools, 'checkout', '--quiet', '--detach', phaseTip)
+    for (const slice of slices) {
+      try {
+        commitMerge(tools, slice.sha, message)
+      } catch (error) {
+        if (error instanceof MergeRefused) {
+          git(tools, 'merge', '--abort')
+          throw new MergeRefused(`${slice.branch}: ${error.message}`, { cause: error })
+        }
+        throw error
+      }
+    }
+    const merge = git(tools, 'rev-parse', 'HEAD')
+    push(tools, merge, batchBranch)
+    await waitForGreen(tools, merge, batchBranch)
+    return landBatch(tools, { merge, batch: batchBranch, phaseTip, target, number })
+  }
+
+  const [{ branch: only, sha: tip }] = slices
+  const mergeBase = git(tools, 'merge-base', tip, phaseTip)
+  const phaseChanges = lines(git(tools, 'diff', '--name-only', '--no-renames', mergeBase, phaseTip))
+
   if (docsOnly(phaseChanges)) {
-    git('checkout', '--quiet', '--detach', phaseTip)
-    const merge = commitMerge(sha, message)
-    const outsideSlice = lines(git('diff', '--name-only', '--no-renames', sha, merge))
+    git(tools, 'checkout', '--quiet', '--detach', phaseTip)
+    const merge = commitMerge(tools, tip, message)
+    const outsideSlice = lines(git(tools, 'diff', '--name-only', '--no-renames', tip, merge))
     if (!docsOnly(outsideSlice))
       throw new MergeRefused(
         `The merge differs from the slice tree outside docs/: ${outsideSlice.join(', ')}.`
       )
-    push(merge, target)
-    push(merge, batch)
-    dispatch(batch, Object.keys(WORKFLOWS))
-    return log(
-      `Fast path: ${branch} merged into ${target} as ${merge}; full-run backstop on ${batch}.`
+    push(tools, merge, target)
+    push(tools, merge, batchBranch)
+    for (const name of Object.keys(WORKFLOWS)) dispatchRun(tools, batchBranch, name)
+    return tools.log(
+      `Fast path: ${only} merged into ${target} as ${merge}; full-run backstop on ${batchBranch}.`
     )
   }
 
-  git('checkout', '--quiet', '--detach', sha)
-  const merge = commitMerge(phaseTip, message)
-  push(merge, batch)
-  await waitForGreen(merge, batch)
-
-  git('fetch', '--quiet', 'origin', `+refs/heads/${target}:refs/remotes/origin/${target}`)
-  const phaseNow = git('rev-parse', `origin/${target}`)
-  if (phaseNow === phaseTip) {
-    push(merge, target)
-    return log(`Batch ${batch} green; ${target} fast-forwarded to ${merge}.`)
-  }
-  const moved = lines(git('diff', '--name-only', '--no-renames', phaseTip, phaseNow))
-  if (!docsOnly(moved))
-    throw new MergeRefused(`${target} moved outside docs/ while ${batch} ran: ${moved.join(', ')}.`)
-  const docsMerge = commitMerge(phaseNow, `Merge ${target} docs into m${number}`)
-  push(docsMerge, target)
-  log(`Batch ${batch} green; merged into ${target} as ${docsMerge} over its docs-only move.`)
+  git(tools, 'checkout', '--quiet', '--detach', tip)
+  const merge = commitMerge(tools, phaseTip, message)
+  push(tools, merge, batchBranch)
+  await waitForGreen(tools, merge, batchBranch)
+  landBatch(tools, { merge, batch: batchBranch, phaseTip, target, number })
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -225,13 +338,17 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     return index >= 0 ? (args[index + 1] ?? '') : fallback
   }
   process.chdir(resolve(import.meta.dirname, '..'))
-  mergeSlice({
-    branch: option('--branch', ''),
-    sha: option('--sha', ''),
-    title: option('--title', ''),
-    target: option('--target', 'codex/phase-08-2-convex-cutover'),
-    batchPrefix: option('--batch-prefix', 'ci/merge-m')
-  }).catch((error) => {
+  ;(async () =>
+    mergeSlice({
+      slices: parseSlices({
+        branch: option('--branch', ''),
+        sha: option('--sha', ''),
+        slices: option('--slices', '')
+      }),
+      title: option('--title', ''),
+      target: option('--target', 'codex/phase-08-2-convex-cutover'),
+      batchPrefix: option('--batch-prefix', 'ci/merge-m')
+    }))().catch((error) => {
     console.error(
       error instanceof MergeRefused ? `Refused, nothing more pushed: ${error.message}` : error
     )

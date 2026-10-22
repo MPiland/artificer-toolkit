@@ -8,8 +8,9 @@ import {
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 /** Every escape check module the value nests, wherever it sits. */
 function escapeChecks(value: unknown): { dc: unknown }[] {

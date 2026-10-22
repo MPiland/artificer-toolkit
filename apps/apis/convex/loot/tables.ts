@@ -3,6 +3,9 @@ import {
   saveLootInputSchema,
   lootDocumentSchema,
   lootLookupInputSchema,
+  liveLootInputSchema,
+  liveLootSchema,
+  type LiveLoot,
   type LootDocument,
   type LootOwner,
   type LootTable
@@ -17,6 +20,7 @@ import { canReadAuthoredRoot } from '../content/documents'
 import { readRootCatalogue } from '../content/catalogueMetadata'
 import { requireSystem } from '../content/systemDocuments'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/api/encounterData'
 import { findLootRow } from './ownerRows'
 
 function lower(id: string) {
@@ -24,15 +28,16 @@ function lower(id: string) {
 }
 
 /** Loot tables are GM reference data: only the Campaign owner reads or writes them. */
-async function requireLootOwner(ctx: QueryCtx, owner: LootOwner) {
+async function requireCampaignOwner(ctx: QueryCtx, campaignId: string) {
   const { userId } = await requireIdentity(ctx)
-  const { campaign, membership } = await requireCampaignAuthority(
-    ctx,
-    lower(owner.campaignId),
-    userId
-  )
+  const { campaign, membership } = await requireCampaignAuthority(ctx, lower(campaignId), userId)
   if (membership.role !== 'OWNER')
     throw new Error('Loot tables are only available to the Campaign owner.')
+  return { campaign, userId }
+}
+
+async function requireLootOwner(ctx: QueryCtx, owner: LootOwner) {
+  const { campaign, userId } = await requireCampaignOwner(ctx, owner.campaignId)
   if (owner.kind === 'SCENE') {
     const definition = await ctx.db
       .query('sceneDefinitions')
@@ -119,6 +124,34 @@ export const get = query({
     if (!row) return { owner, version: 0, tables: [] }
     const { _id, _creationTime, updatedAt: _updatedAt, ...document } = row
     return lootDocumentSchema.parse(document)
+  }
+})
+
+/** Every table the live Loot panel lists, in one read: the Scene's and each Encounter creature's. */
+export const live = query({
+  args: zodToConvexFields(liveLootInputSchema.shape),
+  returns: zodToConvex(liveLootSchema),
+  handler: async (ctx, args): Promise<LiveLoot> => {
+    const input = liveLootInputSchema.parse(args)
+    const { campaign } = await requireCampaignOwner(ctx, input.campaignId)
+    const scene = await findLootRow(ctx, {
+      kind: 'SCENE',
+      campaignId: campaign.id,
+      sceneDefinitionId: lower(input.sceneDefinitionId)
+    })
+    const { encounterId } = input
+    const creatures = encounterId
+      ? await ctx.db
+          .query('lootTables')
+          .withIndex('by_actor', (q) =>
+            q.eq('owner.kind', 'ENCOUNTER_ACTOR').eq('owner.encounterId', lower(encounterId))
+          )
+          .take(MAX_ENCOUNTER_ACTORS)
+      : []
+    const documents = [...(scene ? [scene] : []), ...creatures]
+      .filter((row) => row.owner.campaignId === campaign.id && row.tables.length > 0)
+      .map(({ _id, _creationTime, updatedAt: _updatedAt, ...document }) => document)
+    return liveLootSchema.parse({ documents })
   }
 })
 

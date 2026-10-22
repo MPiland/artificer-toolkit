@@ -3,6 +3,7 @@ import {
   createNodeRuntimeSourceReader,
   type NodeRuntimeSourceReader
 } from '@artificer-toolkit/authoring/nodeRuntime'
+import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/platformSystemVocabulary'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type { QueryCtx } from '../_generated/server'
 import { readSystem } from '../content/systemDocuments'
@@ -26,6 +27,10 @@ export async function createSystemSourceReader(
   const authored = createAuthoredSourceReader(ctx, systemId, userId)
   return createNodeRuntimeSourceReader({
     system,
+    policyVocabulary: {
+      rollInfluence: systemVocabularyRegistry.entries(systemId, 'rollInfluence'),
+      rollMode: systemVocabularyRegistry.entries(systemId, 'rollMode')
+    },
     readAuthoredRows: async (table) => [
       ...(await authored(table)),
       ...(currentDraftFacts?.rows[table] ?? [])

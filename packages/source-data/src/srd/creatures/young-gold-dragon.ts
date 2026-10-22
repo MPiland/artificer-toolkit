@@ -164,7 +164,8 @@ export const youngGoldDragon: CreatureAuthored = {
                           grantKind: 'MODIFIER_GRANT',
                           valueDomainCode: 'ABILITY_CHECK',
                           domain: { ability: S.ABILITY_CODE.STRENGTH },
-                          modifierKind: 'DISADVANTAGE',
+                          modifierKind: 'ROLL_INFLUENCE',
+                          payload: { influence: 'DISADVANTAGE' },
                           scope: 'GLOBAL',
                           selectionKind: 'GRANTED',
                           order: 1
@@ -174,7 +175,8 @@ export const youngGoldDragon: CreatureAuthored = {
                           grantKind: 'MODIFIER_GRANT',
                           valueDomainCode: 'SAVING_THROW_MODIFIER',
                           domain: { ability: S.ABILITY_CODE.STRENGTH },
-                          modifierKind: 'DISADVANTAGE',
+                          modifierKind: 'ROLL_INFLUENCE',
+                          payload: { influence: 'DISADVANTAGE' },
                           scope: 'GLOBAL',
                           selectionKind: 'GRANTED',
                           order: 2
@@ -184,7 +186,8 @@ export const youngGoldDragon: CreatureAuthored = {
                           grantKind: 'MODIFIER_GRANT',
                           valueDomainCode: 'ATTACK_ROLL',
                           domain: { attackDomain: 'MELEE', ability: S.ABILITY_CODE.STRENGTH },
-                          modifierKind: 'DISADVANTAGE',
+                          modifierKind: 'ROLL_INFLUENCE',
+                          payload: { influence: 'DISADVANTAGE' },
                           scope: 'GLOBAL',
                           selectionKind: 'GRANTED',
                           order: 3
@@ -194,7 +197,8 @@ export const youngGoldDragon: CreatureAuthored = {
                           grantKind: 'MODIFIER_GRANT',
                           valueDomainCode: 'ATTACK_ROLL',
                           domain: { attackDomain: 'RANGED', ability: S.ABILITY_CODE.STRENGTH },
-                          modifierKind: 'DISADVANTAGE',
+                          modifierKind: 'ROLL_INFLUENCE',
+                          payload: { influence: 'DISADVANTAGE' },
                           scope: 'GLOBAL',
                           selectionKind: 'GRANTED',
                           order: 4
@@ -204,7 +208,8 @@ export const youngGoldDragon: CreatureAuthored = {
                           grantKind: 'MODIFIER_GRANT',
                           valueDomainCode: 'ATTACK_ROLL',
                           domain: { attackDomain: 'UNARMED', ability: S.ABILITY_CODE.STRENGTH },
-                          modifierKind: 'DISADVANTAGE',
+                          modifierKind: 'ROLL_INFLUENCE',
+                          payload: { influence: 'DISADVANTAGE' },
                           scope: 'GLOBAL',
                           selectionKind: 'GRANTED',
                           order: 5

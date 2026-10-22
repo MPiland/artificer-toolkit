@@ -68,13 +68,15 @@ const curses = [
         ...grant,
         valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
         domain: { ability },
-        modifierKind: MODIFIER_KIND.DISADVANTAGE
+        modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+        payload: { influence: 'DISADVANTAGE' }
       },
       {
         ...grant,
         valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
         domain: { ability },
-        modifierKind: MODIFIER_KIND.DISADVANTAGE
+        modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+        payload: { influence: 'DISADVANTAGE' }
       }
     ])
   })),
@@ -87,7 +89,8 @@ const curses = [
         ...grant,
         valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
         domain: { attackDomain, againstEffectSource: true },
-        modifierKind: MODIFIER_KIND.DISADVANTAGE
+        modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+        payload: { influence: 'DISADVANTAGE' }
       }))
     )
   },

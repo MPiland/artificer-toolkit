@@ -273,7 +273,15 @@ function getRowSummaryLabel(summary: RowSummary, row: unknown): string | undefin
       return getOptionLabel(PREDICATE_OPTIONS, readString(row.predicateCode))
     case 'modifier': {
       const amount = readNumber(getRecordValue(row, 'payload.amount'))
-      const modifierKind = getOptionLabel(MODIFIER_KIND_OPTIONS, readString(row.modifierKind))
+      const kind = readString(row.modifierKind)
+      const influence = formatEnumLabel(readString(getRecordValue(row, 'payload.influence')))
+      // A roll influence reads as its System code (Advantage); a suppressed one as its absence.
+      const modifierKind =
+        influence === undefined
+          ? getOptionLabel(MODIFIER_KIND_OPTIONS, kind)
+          : kind === 'SUPPRESS_ROLL_INFLUENCE'
+            ? `No ${influence}`
+            : influence
       const valueDomainCode = readString(row.valueDomainCode)
       const valueDomain =
         valueDomainCode === 'ATTACK_ROLL'

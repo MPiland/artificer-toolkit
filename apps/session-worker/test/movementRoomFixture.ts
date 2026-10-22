@@ -90,7 +90,8 @@ export const concentrationAdvantageFeature: ClassFeature = {
           ability: 'CONSTITUTION',
           ruleDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
         },
-        modifierKind: 'ADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
         scope: 'GLOBAL',
         selectionKind: 'GRANTED',
         order: 0

@@ -970,7 +970,8 @@ describe('native Convex authoring resolver', () => {
       systemId: srdSystemRecord.id,
       values: {
         valueDomainCode: 'SAVING_THROW_MODIFIER',
-        modifierKind: 'ADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
         domain: { ability: 'CONSTITUTION', ruleDefinitionId: concentration.id }
       }
     }
