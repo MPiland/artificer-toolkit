@@ -1643,10 +1643,10 @@
         {
           "id": "PLATFORM-25",
           "title": "CI fixes mechanical failures and merges approved slices itself",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "origin": ["User request 2026-10-18 (cycle-time gains)"],
           "journeyTests": ["scripts/mergeSlice.test.mjs"],
-          "journeyStatus": "verified",
+          "journeyStatus": "partial",
           "wsjf": {
             "bv": 3,
             "tc": 5,
@@ -1678,6 +1678,22 @@
               "origin": ["User request 2026-10-18 (cycle-time gains)"],
               "note": "AC confirmed by the user 2026-10-18. The orchestrator still reviews every slice for band-aids and weakened assertions before approving.",
               "text": "After the orchestrator approves a reviewed slice tip (a workflow dispatch naming the ci/<slice> branch and tip SHA), a workflow checks that Tests and Live are green on that exact tip and merges it into the phase branch: the fast path (--no-ff, tree check, then the ci/merge-m<N> backstop run) when the tip contains the phase tip, otherwise a ci/merge-m<N> batch run that pushes to the phase branch only when green. A conflict, a red run or a moved tip fails with nothing pushed."
+            },
+            {
+              "id": "PLATFORM-25.4",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-22 (merge queue waits)"],
+              "note": "Approved by the user 2026-10-22. Found when the T9b merge-slice runs 39798992843, 39802995621 and 39805154563 refused with \"No Tests or Live backend run appeared\", although the runs they dispatched existed within a second.",
+              "text": "merge-slice waits on the Tests and Live runs it dispatched by their run ids, and doesn't look them up again by commit, so a lag in GitHub's commit-filtered run listing can't refuse a green batch."
+            },
+            {
+              "id": "PLATFORM-25.3",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-22 (merge queue waits)"],
+              "note": "Approved by the user 2026-10-22 (\"worth batching if the slices are close to being ready\").",
+              "text": "One merge-slice dispatch can name several approved ci/<slice> branches with their tips. Each tip must be green and unchanged. They merge in order into one ci/merge-m<N> batch commit, Tests and Live run there once, and on green the phase branch moves once. A conflict, a moved tip or a red run refuses the whole batch, names the slice at fault and pushes nothing to the phase branch. A single slice behaves exactly as it does today."
             }
           ],
           "tasks": [
@@ -1720,6 +1736,32 @@
               },
               "text": "merge-slice ignores a cancelled duplicate run when the same workflow has a later or concurrent non-cancelled run on the tip (runsVerdict in scripts/mergeSlice.mjs), with a unit test that fails first.",
               "note": "Found 2026-10-21: m-R2T4a refused on f4888465b because duplicate Tests/Live runs that were cancelled sorted ahead of the green ones. Worked around by re-running the cancelled runs. Merged m288 (17b6cfd55)."
+            },
+            {
+              "id": "PLATFORM-25.T4",
+              "status": "TODO",
+              "closes": ["PLATFORM-25.4"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "scripts/mergeSlice.mjs keeps the run ids of the Tests and Live runs it dispatches (from gh workflow run or the dispatch response) and polls those runs directly, with no APPEAR_MS refusal for a dispatched run. It has a unit test that fails first against the faked gh. The CI validation guide is updated."
+            },
+            {
+              "id": "PLATFORM-25.T5",
+              "status": "TODO",
+              "closes": ["PLATFORM-25.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 3,
+                "size": 3,
+                "after": ["PLATFORM-25.T4"]
+              },
+              "text": "merge-slice.yml and scripts/mergeSlice.mjs accept a list of branch@sha pairs (single pair unchanged) and build one batch commit. On refusal they name the slice at fault, and push nothing to the phase branch. Unit tests cover a three-slice batch, a conflict, a moved tip, a red run and the single-slice path. The guide and the AGENTS.md dispatch line are updated. It changes .github/workflows, so the orchestrator merges it by hand."
             }
           ]
         }
