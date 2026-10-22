@@ -2596,8 +2596,13 @@ both sides with the same inputs: the room passes `repeatSaves: { damagerActorId 
 and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
 rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is
 the caster), Cleaving (the cleaving creature), and turn effects with Legendary Actions (no damager, so only `ANYONE`
-triggers match). T2m3 and SPELLS-33.T6e2/T4m add triggers or effects by changing these readers, never by adding a
-source-specific path. Movement (zone contact) damage settles through `MovementConcentrationSettlement`, a separate
+triggers match). T2m3 and SPELLS-33.T4m add triggers or effects by changing these readers, never by adding a
+source-specific path. A follow-up save with timing `ON_TRIGGERS_ONLY` (D176, SPELLS-33.T6e2 Vampire Charm) repeats
+on its `repeatTriggers` alone: it requires them, a once-only repeated save, and no `repeatRollInfluence` or
+`repeatAttemptGate`, and is never a `repeatTiming`. It compiles to the same frozen repeat-save graph, gated on the
+adapter fact `dnd5e.active-effect-repeat-save-triggers-only`; the turn tick refuses the attempt (`ATTEMPT_REFUSED`,
+no request, only the duration counts down) and the damage hook passes `onTrigger: true` so the attempt is allowed.
+Movement (zone contact) damage settles through `MovementConcentrationSettlement`, a separate
 per-step stack, and is not in the chain yet.
 
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it

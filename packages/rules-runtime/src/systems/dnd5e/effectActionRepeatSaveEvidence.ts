@@ -1,3 +1,7 @@
+import type {
+  ActiveEffectSaveThresholds,
+  ActiveRuleEffectLifecycleDto
+} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
 import { type CompiledRuleGraph } from '@artificer-toolkit/shared/rules'
 import type { CharacterRuleActionSystemAdapter } from '../../characterRuleActionSystemAdapter.js'
@@ -10,11 +14,48 @@ import {
   DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY,
   DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
   Dnd5eEffectActionCompilerError
 } from './effectActionContracts.js'
 import { repeatSaveConditionIds } from './effectActionEvidenceChecks.js'
 import { isDnd5eTestOutcomeRule, dnd5eTestResultPath } from './effectActionOperationRegistry.js'
+
+/** Whether a repeat save's d20 can be settled without a request: a gated, thresholds or triggers-only save. */
+export function repeatSaveGated(
+  adapterFacts: Readonly<Record<string, unknown>>,
+  saveThresholds: unknown
+): boolean {
+  return (
+    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in adapterFacts ||
+    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY in adapterFacts ||
+    saveThresholds !== undefined
+  )
+}
+
+/**
+ * Whether a repeat save may be attempted now: not once a thresholds tally has resolved (its duration
+ * still runs out), only when its perception gate is met, and for a triggers-only save only when a
+ * damage trigger runs it, never on the turn tick.
+ */
+export function repeatSaveAttemptAllowed(input: {
+  adapterFacts: Readonly<Record<string, unknown>>
+  thresholds: ActiveEffectSaveThresholds | undefined
+  lifecycle: ActiveRuleEffectLifecycleDto
+  gateMet: boolean
+  onTrigger: boolean | undefined
+}) {
+  const { thresholds } = input
+  const resolved =
+    thresholds !== undefined &&
+    (input.lifecycle.saveTally?.failures ?? 0) >= thresholds.failuresToResolve
+  return (
+    !resolved &&
+    input.gateMet &&
+    (input.onTrigger === true ||
+      !(DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY in input.adapterFacts))
+  )
+}
 
 export function repeatedFollowUpSaveResultPath(input: {
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
@@ -30,9 +71,10 @@ export function repeatedFollowUpSaveResultPath(input: {
   // A repeat save that holds conditions names them; one that holds modifier grants names none.
   repeatSaveConditionIds(input.definition.adapterFacts)
   const [d20Trace, addedDiceTrace, saveTrace] = input.execution.evidence.trace
-  const gated =
-    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.definition.adapterFacts ||
-    input.definition.recurrence.saveThresholds !== undefined
+  const gated = repeatSaveGated(
+    input.definition.adapterFacts,
+    input.definition.recurrence.saveThresholds
+  )
   const d20OperationKey = gated ? 'evidence.optional-integer-range' : 'evidence.integer-range'
   const attemptAllowed = gated
     ? input.execution.evidence.facts[DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]
