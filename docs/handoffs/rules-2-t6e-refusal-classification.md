@@ -41,7 +41,7 @@ Each refusal is in one of four classes:
 | 20    | 4453                            | See below                                                                                                 | Mixed                                |
 | 4     | 4435                            | Follow-up save shapes the template does not match (Blindness/Deafness, Flesh to Stone)                    | P                                    |
 | 3     | 4195                            | A fixed heal that scales (Wholeness of Body), Aid, Mass Heal                                              | P                                    |
-| 1     | list gate (4087)                | Astral Projection (manual adjudication on a list)                                                         | P; the list gate itself is **G3**    |
+| 1     | list gate (4087)                | Astral Projection (manual adjudication on a list)                                                         | G3, done in T6e2                     |
 
 The 20 refusals at site 4453:
 
@@ -58,11 +58,11 @@ The 20 refusals at site 4453:
 | --- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | G1  | The test activation check refused `FREE` outright, but the shape check accepts `FREE` with a charge | Done in T6e                                        |
 | G2  | A direct entry authored as a sequence of one outcome was refused, but a single result passes        | Done in T6e                                        |
-| G3  | The list gate refuses condition, kill, target-only, teleport allowance, conceal and cancel outcomes | RULES-2.T6e2 (needs an executor proof)             |
+| G3  | The list gate refuses condition, kill, target-only, teleport allowance, conceal and cancel outcomes | Done in RULES-2.T6e2                               |
 | G4  | A contest refuses outcomes other than a relationship, a condition or forced movement                | RULES-2.T6e3                                       |
 | G5  | A non-contest check refuses registry outcomes                                                       | RULES-2.T6e3                                       |
 | G6  | Legendary discovery drops choice options instead of planning them as a cast choice                  | SPELLS-33.T4i1f (fix is in discovery and the room) |
-| G7  | A hit-point gate under a test path is refused                                                       | RULES-2.T6e2                                       |
+| G7  | A hit-point gate under a test path is refused                                                       | Done in RULES-2.T6e2                               |
 
 ### G1: a charged free activation
 
@@ -137,3 +137,32 @@ These are out of T6e and need their own PBIs:
 
 These are kept: identity and UUID checks, malformed bounds, vocabulary checks, the normalized charge identity and
 positive cost check, and the refusal of a non-action that has no test phase.
+
+## RULES-2.T6e2: G3 and G7
+
+### G3: outcomes on a chosen-creature list
+
+The list executor (`executeEncounterActorsAction`, which the Session Worker reaches through
+`planNativeEncounterActorsAction`) runs the action's one graph on each chosen creature with that creature's binding.
+Any outcome that lands on the target therefore repeats correctly, so the list gate was a gap for those outcomes.
+
+- Admitted: condition, kill, stabilize and manual adjudication. Depart was already admitted.
+- Kept as **R**, with one message: an outcome that acts on the actor (Dash's `ADD_SPEED_TO_MOVEMENT`, a teleport
+  allowance, conceal, detect) or on the triggering event (cancel) has no creature to repeat on.
+- Proof: `chosenCreatureListOutcomes.test.ts` runs the executor on two targets for a condition, a kill, a stabilize
+  and the SRD Astral Projection (a GM ruling on each target, no applications), and checks that a Dash is refused.
+- Golden: one flip. `00000020-0000-0210-0013-000000000001 CHARACTER:spells Astral Projection` changes from REFUSED
+  (the list gate) to compiled.
+
+### G7: a hit-point gate under a test path
+
+A test path's fixed outcome now binds the result block's authored gate and damage-type suppression, as a direct
+outcome does (`testPathGates` in `effectActionGates.ts`). A gate belongs to a kill, condition or heal outcome
+(`refuseUnboundGate`, now the one home of that rule for direct and test paths). An outcome that binds none (dice, a
+hit-point maximum reduction) refuses a gate rather than skip it, and so does an authored gate beside hit-point tiers.
+Sequential composition and follow-up save templates still refuse a gate. The compiler's size budget dropped from 6260
+to 6258 code lines.
+
+- Proof: `testPathHitPointGate.test.ts` fails a DC 13 save at 10 and 11 hit points under a gate of 10: the condition
+  lands only at 10. A gated dice damage outcome is refused.
+- Golden: no flip. No SRD test path authors a gate.
