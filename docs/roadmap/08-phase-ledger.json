@@ -11375,7 +11375,8 @@
                 "size": 3,
                 "after": ["SPELLS-8.T11"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39847779497"
             }
           ]
         },
