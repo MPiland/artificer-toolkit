@@ -3,6 +3,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { revivify } from '@artificer-toolkit/source-data/srd/spells/revivify.js'
 import { trueResurrection } from '@artificer-toolkit/source-data/srd/spells/true-resurrection.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -33,7 +34,7 @@ function reviveRoom(spell: typeof revivify, wolf: { currentHitPoints: number; de
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf, ...wolf })
     ],
     characterSpellcasting: { spells: [spell], prepared: [spell.id] },
-    characterPlay: { classLevel: 13 },
+    characterPlay: { characterClass: cleric, classLevel: 17 },
     characterAction: (action) => action.label.startsWith(spell.label)
   })
 }

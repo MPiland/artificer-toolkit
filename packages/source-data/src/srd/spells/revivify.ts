@@ -3,7 +3,6 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
-  DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
   SUBJECT,
@@ -58,10 +57,6 @@ export const revivify: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.REVIVIFY, 0x212, 1) + '__result',
             resultKind: 'SEQUENCE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.REVIVIFY, 0x213, 1),
-              durationKind: DURATION_KIND.INSTANTANEOUS
-            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.REVIVIFY, 0x2f0, 1),
