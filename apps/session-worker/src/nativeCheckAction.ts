@@ -7,12 +7,19 @@ import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/a
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterRunActorStateSchema,
+  type EncounterRunActorState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import {
   checkActionApplicationOutputDtoSchema,
-  encounterCheckActionContextDtoSchema
+  encounterCheckActionContextDtoSchema,
+  type CheckActionSourceDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionCheckAction'
+import { nativeSourceFeatureResourceReceipt } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import type { NativeEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { withFeatureChargeUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
@@ -29,7 +36,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { encounterHeldCheckDice } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
-import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
@@ -42,11 +48,17 @@ import { planNativeTargetOutcome, type NativeTargetOutcomeSource } from './nativ
 
 type CheckTarget = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
 
+/** What makes a check action: a basic action, or a Creature feature authored with the check (D173). */
+export type NativeCheckActionSource = Extract<
+  NativeEncounterActionSource,
+  { kind: 'BASIC_ACTION' | 'CREATURE' }
+>
+
 export type NativeLiveCheckActionInput = {
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   command: ResolveEncounterActionInputDto
   fingerprint: string
-  capability: EncounterBasicActionCapabilityDescriptor
+  source: NativeCheckActionSource
   /** The action's prepared mechanics, whose plan a check's success outcome runs on. */
   prepared: NativeTargetOutcomeSource['prepared']
   state: {
@@ -71,7 +83,7 @@ export type NativeLiveCheckActionInput = {
 }
 
 /** The one authored check of a CHECK action: the skill (else ability) it rolls and its DC. */
-export function authoredCheckOf(capability: EncounterBasicActionCapabilityDescriptor) {
+export function authoredCheckOf(capability: NativeCheckActionSource['capability']) {
   const invocation = capability.compiledEffect.invocation
   // The compiler admits exactly one check; its types cannot say so.
   if (invocation.triggerCode !== 'CHECK')
@@ -87,6 +99,32 @@ export function authoredCheckOf(capability: EncounterBasicActionCapabilityDescri
   }
 }
 
+/** A check only a basic action makes (stabilizing, concealment) reads its catalogue entry. */
+export function basicCheckCapability(source: NativeCheckActionSource) {
+  if (source.kind !== 'BASIC_ACTION')
+    throw new EncounterValidationError('Only a basic action makes this check.')
+  return source.capability
+}
+
+/** The check action's source as its context and output record it. */
+function checkActionSourceOf(source: NativeCheckActionSource): CheckActionSourceDto {
+  return source.kind === 'BASIC_ACTION'
+    ? {
+        kind: 'BASIC_ACTION',
+        definition: {
+          id: source.capability.definitionId,
+          version: source.capability.definitionVersion,
+          checksum: source.capability.definitionChecksum
+        }
+      }
+    : {
+        kind: 'CREATURE_FEATURE',
+        ownerFeatureId: source.capability.ownerFeatureId,
+        effectId: source.capability.effectId,
+        compiledEffectChecksum: source.capability.compiledEffectChecksum
+      }
+}
+
 /**
  * The commit input of a CHECK action: the actor spends the action's allowance, and `check` is the
  * pending or settled check the caller planned. Convex records the plan; it evaluates none of it.
@@ -100,14 +138,26 @@ export function nativeLiveCheckCommitInput(
     settledTarget?: EncounterRunActorState
   }
 ) {
-  const { capability, command, state, actor } = input
-  const settled = input.actionEconomy
+  const { command, state, actor } = input
+  // A Creature feature's check spends its charges with the action (D173).
+  const featureResourceConsumption = nativeSourceFeatureResourceReceipt(input.prepared)
+  const economySpent = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: actor.actor,
         consumption: input.actionEconomy,
         overridden: overridesActionEconomy(input.overrides)
       })
     : actor.actor
+  const settled = featureResourceConsumption
+    ? encounterRunActorStateSchema.parse({
+        ...economySpent,
+        resources: withFeatureChargeUsed(
+          economySpent,
+          featureResourceConsumption.ownerFeatureId,
+          featureResourceConsumption.afterUsed
+        )
+      })
+    : economySpent
   // An action ends the effects that last until its holder takes one (Hide in Plain Sight). A check
   // that rolls nothing is no action taken, and the conditions an ending effect alone held are
   // released in the holder's own batch, which a check action does not plan.
@@ -134,11 +184,8 @@ export function nativeLiveCheckCommitInput(
     command,
     revisions: input.revisions,
     occurredAt: new Date().toISOString(),
-    definition: {
-      id: capability.definitionId,
-      version: capability.definitionVersion,
-      checksum: capability.definitionChecksum
-    },
+    source: checkActionSourceOf(input.source),
+    featureResourceConsumption,
     actionEconomy: input.actionEconomy,
     ruleOverrides: input.overrides,
     consumedGrants: [
@@ -168,7 +215,8 @@ export function nativeLiveCheckCommitInput(
  */
 export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInput) {
   if (input.prepared.plan.kind === 'TEST_OUTCOME') return planNativeLiveCheckOutcomeAction(input)
-  const { capability, command, state, actor, target } = input
+  const { command, state, actor, target } = input
+  const capability = basicCheckCapability(input.source)
   const { checkKind, checkDefinitionId, dc } = authoredCheckOf(capability)
   if (dc.kind !== 'FIXED')
     throw new EncounterValidationError('The selected action makes no fixed-DC check.')
@@ -290,8 +338,8 @@ export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInpu
  * outcome then (`planNativeLiveCheckActionResponse`).
  */
 async function planNativeLiveCheckOutcomeAction(input: NativeLiveCheckActionInput) {
-  const { capability, command, state, actor, target, prepared } = input
-  const { checkKind, checkDefinitionId, dc } = authoredCheckOf(capability)
+  const { source, command, state, actor, target, prepared } = input
+  const { checkKind, checkDefinitionId, dc } = authoredCheckOf(source.capability)
   if (dc.kind !== 'FIXED' || prepared.plan.kind !== 'TEST_OUTCOME')
     throw new EncounterValidationError('The selected action makes no fixed-DC check.')
   const autoRoll =
@@ -309,12 +357,8 @@ async function planNativeLiveCheckOutcomeAction(input: NativeLiveCheckActionInpu
     schemaVersion: 1,
     commandId: command.commandId,
     commandFingerprint: input.fingerprint,
-    definition: {
-      id: capability.definitionId,
-      version: capability.definitionVersion,
-      checksum: capability.definitionChecksum
-    },
-    actionLabel: capability.label,
+    source: checkActionSourceOf(source),
+    actionLabel: source.capability.label,
     actorId: actor.actor.id,
     targetActorId: target.actor.id,
     check: {
@@ -380,7 +424,7 @@ async function planNativeLiveCheckOutcomeAction(input: NativeLiveCheckActionInpu
     schemaVersion: 1,
     occurrenceId,
     commandId: command.commandId,
-    definition: context.definition,
+    source: context.source,
     actorId: context.actorId,
     targetActorId: context.targetActorId,
     check: { checkDefinitionId, dc: dc.value },

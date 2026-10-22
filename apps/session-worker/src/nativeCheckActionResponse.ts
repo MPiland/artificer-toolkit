@@ -233,7 +233,7 @@ export async function planNativeLiveCheckActionResponse(input: {
       schemaVersion: 1,
       occurrenceId: snapshot.occurrenceId,
       commandId: context.commandId,
-      definition: context.definition,
+      source: context.source,
       actorId: context.actorId,
       targetActorId: context.targetActorId,
       check: { checkDefinitionId: context.check.checkDefinitionId, dc: context.check.dc },

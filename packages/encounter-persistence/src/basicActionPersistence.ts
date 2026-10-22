@@ -23,14 +23,10 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import {
-  isEncounterBasicActionId,
-  readEncounterBasicActionEffect
-} from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
-import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { settleActionSourceSpend } from './actionSourceSpend.js'
+import { admitCheckActionSource } from './checkActionSourceAdmission.js'
 import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
@@ -41,7 +37,7 @@ import {
   isConcealmentCheckSettlement,
   settleEncounterConcealmentCheck
 } from './concealmentCheckSettlement.js'
-import { readRunActors, replaceRunActor } from './documents.js'
+import { readRunActors } from './documents.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
@@ -51,10 +47,11 @@ import { encounterReplayReceipt } from './replayReceipts.js'
 import type { EncounterCharacterWriteTransaction, EncounterWriteTransaction } from './ports.js'
 
 /**
- * Records the room's planned basic action (Q11): the allowance it spent, checked against the current
- * Run. A check action also records its check, waiting on the roller's d20 or settled by an
- * auto-roll, and deletes the one-roll grants that check used up; a settled success re-applies its
- * planned outcome and lands its pushes on the Scene (D173). It evaluates no rules.
+ * Records the room's planned check action (Q11), made by a basic action or a Creature feature
+ * (D173): the allowance and feature charges it spent, checked against the current Run. It also
+ * records its check, waiting on the roller's d20 or settled by an auto-roll, and deletes the
+ * one-roll grants that check used up; a settled success re-applies its planned outcome and lands
+ * its pushes on the Scene. It evaluates no rules.
  */
 export async function persistEncounterBasicAction(
   ctx: EncounterWriteTransaction,
@@ -80,27 +77,22 @@ export async function persistEncounterBasicAction(
     throw new Error('Live Session basic action overrides were not acknowledged.')
   const actors = await readRunActors(ctx, state)
   await callbacks.validateReadFence(state, actors, input)
-  // The System's catalogue is its platform-published entries (user-authored Systems are deferred).
-  const currentDefinition = await callbacks.readDefinition(
-    input.definition.id,
-    input.expectedUserId
-  )
-  const entry = requireEncounterBasicActionDefinition(state, currentDefinition)
-  const { definition } = entry
-  const effect = readEncounterBasicActionEffect(entry, command.actionId)
   const targetActorId = actionTargetActorId(command.target)
   const actor = actors.find((candidate) => candidate.id === command.actorId)
   const ruleActors = actors.filter((candidate) => candidate.kind !== 'CHARACTER')
   if (
     !actor ||
-    effect?.invocation.triggerCode !== 'CHECK' ||
-    !isEncounterBasicActionId(actor.id, command.actionId) ||
-    definition.version !== input.definition.version ||
-    definition.checksum !== input.definition.checksum ||
     input.rules.actors.length !== ruleActors.length ||
     input.rules.actors.some((entry) => !ruleActors.some((rule) => rule.id === entry.actorId))
   )
     throw new Error('Live Session basic action scope mismatch.')
+  const admitted = await admitCheckActionSource(ctx, {
+    state,
+    actor,
+    commit: input,
+    readDefinition: callbacks.readDefinition
+  })
+  const { source } = admitted
   const { check } = input
   // A check action rolls its check unless its target was not dying (an acknowledged warning).
   if (check === null && !input.ruleOverrides.some((warning) => warning.code === 'TARGET_NOT_DYING'))
@@ -108,7 +100,15 @@ export async function persistEncounterBasicAction(
   if (check === null && input.consumedGrants.length > 0)
     throw new Error('Live Session basic action check scope mismatch.')
   const pendingContext = check?.kind === 'PENDING' ? check.snapshot.applicationContext : null
-  const authoredCheck = effect.invocation.check
+  const authoredCheck = admitted.check
+  // Only a check action's outcome runs from a Creature feature; stabilizing and concealment do not.
+  if (
+    source.kind !== 'BASIC_ACTION' &&
+    (check?.kind === 'PENDING'
+      ? pendingContext?.kind !== 'ENCOUNTER_CHECK_ACTION'
+      : check === null || !isCheckActionSettlement(check.settlement))
+  )
+    throw new Error('Live Session check action source mismatch.')
   if (
     check?.kind === 'PENDING' &&
     ((pendingContext?.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' &&
@@ -116,9 +116,12 @@ export async function persistEncounterBasicAction(
       pendingContext?.kind !== 'ENCOUNTER_CHECK_ACTION') ||
       pendingContext.commandId !== command.commandId ||
       pendingContext.commandFingerprint !== fingerprint ||
-      pendingContext.definition.id !== definition.id ||
-      pendingContext.definition.version !== definition.version ||
-      pendingContext.definition.checksum !== definition.checksum ||
+      (pendingContext.kind === 'ENCOUNTER_CHECK_ACTION'
+        ? checksumCanonicalJson(pendingContext.source) !== checksumCanonicalJson(source)
+        : source.kind !== 'BASIC_ACTION' ||
+          pendingContext.definition.id !== source.definition.id ||
+          pendingContext.definition.version !== source.definition.version ||
+          pendingContext.definition.checksum !== source.definition.checksum) ||
       (pendingContext.kind === 'ENCOUNTER_BASIC_ACTION_CHECK'
         ? pendingContext.helperActorId !== actor.id ||
           pendingContext.targetActorId !== targetActorId
@@ -141,14 +144,16 @@ export async function persistEncounterBasicAction(
       check.snapshot.graph.source.gameSystemId !== state.gameSystemId)
   )
     throw new Error('Live Session pending basic action check mismatch.')
-  const spent = input.actionEconomy
-    ? consumeEncounterActionEconomy({
-        actor,
-        consumption: input.actionEconomy,
-        overridden: overridesActionEconomy(input.ruleOverrides)
-      })
-    : actor
-  await replaceRunActor(ctx, actor, spent)
+  const spent = await settleActionSourceSpend(ctx, {
+    encounterId: state.id,
+    source: actor,
+    spend: {
+      featureResourceConsumption: input.featureResourceConsumption,
+      actionEconomyTransition: input.actionEconomy,
+      attackActionTransition: undefined
+    },
+    economyOverridden: overridesActionEconomy(input.ruleOverrides)
+  })
   // A Help the check used is consumed with the action, so a pending check keeps its advantage.
   await deleteGrants(ctx, input.consumedGrants)
   let nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
@@ -178,11 +183,7 @@ export async function persistEncounterBasicAction(
           commandFingerprint: fingerprint,
           actorId: actor.id,
           targetActorId,
-          definition: {
-            id: definition.id,
-            version: definition.version,
-            checksum: definition.checksum
-          },
+          source,
           checkDefinitionIds: [...checks.skillIds, ...checks.abilityDefinitionIds],
           dc: dc.kind === 'FIXED' ? dc.value : null
         },
@@ -280,12 +281,13 @@ export async function persistEncounterBasicAction(
       encounterId: run.id,
       commandId: command.commandId,
       commandType: 'RESOLVE_ACTION',
-      label: definition.label,
+      label: admitted.label,
       root: {
         kind: 'CHECK',
         checkReceipt: {
           actorId: actor.id,
           actionEconomy: input.actionEconomy,
+          featureResourceConsumption: input.featureResourceConsumption,
           checkOccurrenceId: storedOccurrence?.id ?? null
         }
       },

@@ -209,7 +209,7 @@ export async function persistEncounterCheckActionResponse(
       commandFingerprint: context.commandFingerprint,
       actorId: context.actorId,
       targetActorId: context.targetActorId,
-      definition: context.definition,
+      source: context.source,
       checkDefinitionIds: [context.check.checkDefinitionId],
       dc: context.check.dc
     },

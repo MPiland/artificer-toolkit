@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { authoredIdentifierSchema } from './authoredLimits.js'
 import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
 import { MAX_D20_ADDED_DICE } from './d20AddedDice.js'
@@ -13,9 +14,30 @@ import {
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 
-const checkActionDefinitionSchema = lazySchema(() =>
-  z.strictObject({ id: uuidSchema, version: positiveIntegerSchema, checksum: checksumSchema })
+/**
+ * What makes a check action (D173): a published basic action's exact catalogue entry, or a Creature
+ * Feature's Effect and its compiled mechanics, which the commit re-resolves from the creature snapshot.
+ */
+export const checkActionSourceDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('BASIC_ACTION'),
+      definition: z.strictObject({
+        id: uuidSchema,
+        version: positiveIntegerSchema,
+        checksum: checksumSchema
+      })
+    }),
+    z.strictObject({
+      kind: z.literal('CREATURE_FEATURE'),
+      ownerFeatureId: authoredIdentifierSchema,
+      effectId: authoredIdentifierSchema,
+      compiledEffectChecksum: checksumSchema
+    })
+  ])
 )
+
+export type CheckActionSourceDto = z.infer<typeof checkActionSourceDtoSchema>
 
 /**
  * A fixed-DC check action whose success runs an authored outcome on its target (D173): the actor's
@@ -27,7 +49,7 @@ export const encounterCheckActionContextDtoSchema = lazySchema(() =>
     schemaVersion: z.literal(1),
     commandId: uuidSchema,
     commandFingerprint: checksumSchema,
-    definition: checkActionDefinitionSchema,
+    source: checkActionSourceDtoSchema,
     actionLabel: identifierSchema,
     actorId: uuidSchema,
     targetActorId: uuidSchema,
@@ -80,7 +102,7 @@ export const checkActionApplicationOutputDtoSchema = lazySchema(() =>
       schemaVersion: z.literal(1),
       occurrenceId: uuidSchema,
       commandId: uuidSchema,
-      definition: checkActionDefinitionSchema,
+      source: checkActionSourceDtoSchema,
       actorId: uuidSchema,
       targetActorId: uuidSchema,
       check: z.strictObject({ checkDefinitionId: uuidSchema, dc: positiveIntegerSchema }),

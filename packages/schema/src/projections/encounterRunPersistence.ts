@@ -15,7 +15,10 @@ import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecuti
 import { encounterFailedCounterReceiptDtoSchema } from '../shared/ruleExecutionReactionChoice.js'
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 import { rollRecordDtoSchema } from '../api/rolls.js'
-import { characterMechanicsTargetStateDtoSchema } from '../shared/ruleExecutionMechanics.js'
+import {
+  characterMechanicsTargetStateDtoSchema,
+  encounterFeatureResourceReceiptDtoSchema
+} from '../shared/ruleExecutionMechanics.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
 import {
   activeRuleEffectRecordSchema,
@@ -389,6 +392,8 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           checkReceipt: z.strictObject({
             actorId: postgresUuidSchema,
             actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+            /** The charges a Creature feature's check spent (D173); null for a basic action or none. */
+            featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
             /** The action's d20 check occurrence, pending or settled; null when an overridden warning ended it before the roll. */
             checkOccurrenceId: z.nullable(postgresUuidSchema)
           })

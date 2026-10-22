@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
@@ -436,5 +437,145 @@ describe('a homebrew check action whose roller rolls their own dice, in the room
     expect(occurrences).toEqual(['COMPLETED'])
     expect(activeEffects).toHaveLength(1)
     expect(targetHitPoints).toBe(hitPointsBefore)
+  })
+})
+
+const STUN_CHARGE_ID = testUuid(0xcb0)
+/** A homebrew Stunning Bite: one charge buys a DC 10 Medicine check whose success deals 3 damage. */
+const stunningWolf = creatureAuthoredDtoSchema.parse({
+  ...plainWolf,
+  features: plainWolf.features?.map((feature) =>
+    feature.label !== 'Bite'
+      ? feature
+      : {
+          ...feature,
+          charges: {
+            id: STUN_CHARGE_ID,
+            limitKind: 'FIXED_AMOUNT',
+            scalingKind: 'NONE',
+            resetKind: 'MANUAL',
+            amount: 1
+          },
+          effects: feature.effects?.map((effect) => ({
+            ...effect,
+            invocation: {
+              ...effect.invocation,
+              triggerCode: 'CHECK',
+              check: {
+                checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
+                dc: { kind: 'FIXED', value: 10 }
+              },
+              resourceUse: { chargeId: STUN_CHARGE_ID, cost: 1 }
+            },
+            paths: effect.paths.slice(0, 1).map((path) => ({
+              ...path,
+              pathCode: 'ON_CHECK_SUCCESS',
+              resultBlock: {
+                ...('resultBlock' in path ? path.resultBlock : {}),
+                outcomes: [
+                  { id: testUuid(0xcb1), ...bludgeoning({ valueKind: 'FIXED', amount: 3 }) }
+                ]
+              }
+            }))
+          }))
+        }
+  )
+})
+const STUNNING_BITE_ID = creatureFeature(stunningWolf, 'Bite').id
+/** The Bite reaches its target, which a room without a Scene cannot measure. */
+const UNMEASURED: EncounterRuleWarningCodeDto[] = ['TARGET_RANGE_UNCHECKED']
+
+/** The Stunning Wolf (Medicine +3) bites a plain Wolf, `spent` of its charges already used. */
+async function stunningRoom(options: { autoRoll: boolean; faces?: number[]; spent?: number }) {
+  const room = await actionRoom({
+    ...(options.autoRoll ? { autoRoll: 'BOTH' as const } : {}),
+    rolls: (options.faces ?? []).map(draw),
+    actors: [
+      withCheckTotals(
+        srdCreatureActor({
+          id: STRIKER_ID,
+          creature: stunningWolf,
+          featureCharges: { [STUNNING_BITE_ID]: options.spent ?? 0 }
+        }),
+        { [SRD_MEDICINE_SKILL_ID]: 3 }
+      ),
+      srdCreatureActor({ id: TARGET_ID, creature: plainWolf })
+    ],
+    ownerFeatureId: STUNNING_BITE_ID
+  })
+  const hitPointsBefore = readActorHitPoints(await readRoomHistory(room.room.base.stub), TARGET_ID)
+  return { room, hitPointsBefore }
+}
+
+/** The Stunning Bite's used charges, as the Run holds them. */
+async function stunChargesUsed(room: StrikeRoom) {
+  const row = (await readRoomHistory(room.room.base.stub)).actors.find(
+    ({ id }) => id === STRIKER_ID
+  )
+  const { resources } = JSON.parse(row!.stateJson) as {
+    resources: { featureCharges?: Record<string, number> }
+  }
+  return resources.featureCharges?.[STUNNING_BITE_ID]
+}
+
+describe('a Creature feature whose fixed-DC check runs its outcome, in the room (D173)', () => {
+  const creatureSource = { kind: 'CREATURE_FEATURE', ownerFeatureId: STUNNING_BITE_ID }
+
+  it('spends its charge and deals its damage when the check reaches the DC', async () => {
+    const { room, hitPointsBefore } = await stunningRoom({ autoRoll: true, faces: [12] })
+    const { answer } = await room.startAction(TARGET_ID, UNMEASURED)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const { outputs, occurrences, targetHitPoints } = await settled(room)
+    expect(outputs).toMatchObject([
+      {
+        source: creatureSource,
+        actorId: STRIKER_ID,
+        d20: { selectedNatural: 12, total: 15 },
+        check: { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 },
+        outcome: 'SUCCESS',
+        stateTransition: {
+          kind: 'TARGET_OUTCOME',
+          mechanics: { applications: [{ kind: 'DAMAGE', appliedAmount: 3 }] }
+        }
+      }
+    ])
+    expect(occurrences).toEqual(['COMPLETED'])
+    expect(targetHitPoints).toBe(hitPointsBefore - 3)
+    expect(await stunChargesUsed(room)).toBe(1)
+  })
+
+  it("spends its charge before the roller's own d20, and undo of a miss returns it", async () => {
+    const { room, hitPointsBefore } = await stunningRoom({ autoRoll: false })
+    const { answer } = await room.startAction(TARGET_ID, UNMEASURED)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await stunChargesUsed(room)).toBe(1)
+
+    await enterD20(room, 3)
+    const { outputs, targetHitPoints } = await settled(room)
+    expect(outputs).toMatchObject([
+      { source: creatureSource, outcome: 'FAILURE', stateTransition: { kind: 'NONE' } }
+    ])
+    expect(targetHitPoints).toBe(hitPointsBefore)
+
+    const reverted = await undo(room)
+    expect(reverted.type, JSON.stringify(reverted)).toBe('COMMAND_COMMITTED')
+    expect(await stunChargesUsed(room)).toBe(0)
+  })
+
+  it('warns when no charge is left, and spends none when the GM goes ahead anyway', async () => {
+    const { room, hitPointsBefore } = await stunningRoom({ autoRoll: true, faces: [12], spent: 1 })
+    const before = await room.version()
+    const refused = await room.startAction(TARGET_ID, UNMEASURED)
+    expect(refused.answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(refused.answer)).toContain('RESOURCE_UNAVAILABLE')
+    expect(await room.version()).toBe(before)
+
+    const { answer } = await room.startAction(TARGET_ID, [...UNMEASURED, 'RESOURCE_UNAVAILABLE'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const { outputs, targetHitPoints } = await settled(room)
+    expect(outputs).toMatchObject([{ source: creatureSource, outcome: 'SUCCESS' }])
+    expect(targetHitPoints).toBe(hitPointsBefore - 3)
+    expect(await stunChargesUsed(room)).toBe(1)
   })
 })
