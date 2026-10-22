@@ -928,37 +928,36 @@ export type CharacterMechanicsProjection = {
   compiledActionEntryPoints: CompiledActionEntryPoint[]
 }
 
-const characterMechanicsProjectionObjectSchema: z.ZodMiniType<CharacterMechanicsProjection> =
-  lazySchema(() =>
-    z.strictObject({
-      characterId: projectionIdentifierSchema,
-      commandState: characterCommandStateSchema,
-      commandStateChecksum: projectionChecksumSchema,
-      commandLaneChecksum: projectionChecksumSchema,
-      projectionSchemaVersion: z.literal(2),
-      projectionChecksum: projectionChecksumSchema,
-      characterStreamVersion: nonNegativeStreamVersionSchema,
-      authoredVersionVector: versionVector,
-      systemVocabularySnapshotId: projectionIdentifierSchema,
-      systemVocabularySnapshotVersion: projectionSchemaVersionSchema,
-      systemVocabularySnapshotChecksum: projectionChecksumSchema,
-      ruleRevisionId: projectionIdentifierSchema,
-      ruleRevisionChecksum: projectionChecksumSchema,
-      evaluatorVersion: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
-      modelContractVersion: z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000)),
-      ruleSnapshot: characterRuleSnapshot,
-      rulePolicyInput: characterRulePolicyInput,
-      rulePolicyOutput: characterRulePolicyOutput,
-      initiativeActorFacts: z._default(initiativeActorFacts, {
-        effectiveSize: null,
-        checkTotals: {},
-        equippedItems: []
-      }),
-      pinnedSenseDefinitions,
-      ruleRegistry: z.record(z.string(), jsonValueSchema),
-      compiledActionEntryPoints: compiledActionEntryPointsSchema
-    })
-  )
+const characterMechanicsProjectionObjectSchema = lazySchema(() =>
+  z.strictObject({
+    characterId: projectionIdentifierSchema,
+    commandState: characterCommandStateSchema,
+    commandStateChecksum: projectionChecksumSchema,
+    commandLaneChecksum: projectionChecksumSchema,
+    projectionSchemaVersion: z.literal(2),
+    projectionChecksum: projectionChecksumSchema,
+    characterStreamVersion: nonNegativeStreamVersionSchema,
+    authoredVersionVector: versionVector,
+    systemVocabularySnapshotId: projectionIdentifierSchema,
+    systemVocabularySnapshotVersion: projectionSchemaVersionSchema,
+    systemVocabularySnapshotChecksum: projectionChecksumSchema,
+    ruleRevisionId: projectionIdentifierSchema,
+    ruleRevisionChecksum: projectionChecksumSchema,
+    evaluatorVersion: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
+    modelContractVersion: z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000)),
+    ruleSnapshot: characterRuleSnapshot,
+    rulePolicyInput: characterRulePolicyInput,
+    rulePolicyOutput: characterRulePolicyOutput,
+    initiativeActorFacts: z._default(initiativeActorFacts, {
+      effectiveSize: null,
+      checkTotals: {},
+      equippedItems: []
+    }),
+    pinnedSenseDefinitions,
+    ruleRegistry: z.record(z.string(), jsonValueSchema),
+    compiledActionEntryPoints: compiledActionEntryPointsSchema
+  })
+)
 
 export const characterMechanicsProjectionSchema: z.ZodMiniType<CharacterMechanicsProjection> =
   lazySchema(() =>
