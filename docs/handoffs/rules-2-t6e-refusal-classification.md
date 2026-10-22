@@ -9,7 +9,7 @@ T6e covers the dispatch table, G1 and G2. The other gaps were split into their o
 
 | Gap    | Follow-up       |
 | ------ | --------------- |
-| G6     | SPELLS-33.T4i1e |
+| G6     | SPELLS-33.T4i1f |
 | G3, G7 | RULES-2.T6e2    |
 | G4, G5 | RULES-2.T6e3    |
 
@@ -61,7 +61,7 @@ The 20 refusals at site 4453:
 | G3  | The list gate refuses condition, kill, target-only, teleport allowance, conceal and cancel outcomes | RULES-2.T6e2 (needs an executor proof)             |
 | G4  | A contest refuses outcomes other than a relationship, a condition or forced movement                | RULES-2.T6e3                                       |
 | G5  | A non-contest check refuses registry outcomes                                                       | RULES-2.T6e3                                       |
-| G6  | Legendary discovery drops choice options instead of planning them as a cast choice                  | SPELLS-33.T4i1e (fix is in discovery and the room) |
+| G6  | Legendary discovery drops choice options instead of planning them as a cast choice                  | SPELLS-33.T4i1f (fix is in discovery and the room) |
 | G7  | A hit-point gate under a test path is refused                                                       | RULES-2.T6e2                                       |
 
 ### G1: a charged free activation
