@@ -3,9 +3,9 @@ import { Trash2 } from 'lucide-react'
 import type { LootEntry, LootRange } from '@artificer-toolkit/schema/api/lootTables'
 import { AppSelect } from '#ui/primitives/Select'
 import type { AppSelectOption } from '#ui/primitives/Select/Select.types'
-import { createLootEntry } from './CampaignSceneLootEditor.model'
+import { createLootEntry } from './CampaignLootEditor.model'
 
-export function CampaignSceneLootRange({
+export function CampaignLootRange({
   coinOptions,
   disabled,
   itemOptions,

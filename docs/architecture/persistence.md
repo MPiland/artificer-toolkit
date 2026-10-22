@@ -434,7 +434,7 @@ definition pinned to its save ID. `campaignScenePresentations` stores one versio
 Campaign, with exact replay through the Campaign event receipt; finishing a Session clears the derived active
 map reference but not the selection.
 
-`lootTables` holds one GM-only row per loot owner (a discriminated `owner` union; only `SCENE` exists, and Encounter placement adds its own kind rather than a second table), indexed `by_owner` and `by_campaignId`; the row is a versioned list of loot tables (name, optional
+`lootTables` holds one GM-only row per loot owner (a discriminated `owner` union: `SCENE`, or `ENCOUNTER_ACTOR` for a non-Character actor of an Encounter Run, never an authored creature), indexed `by_scene`, `by_actor` and `by_campaignId`. An actor's loot goes with the actor: the live checkpoint that deletes an `encounterRunActors` row deletes its loot (the room removes actors, so Convex cannot do it in the command), and `removeEncounterRunChildren` deletes a Run's loot with its actors; the row is a versioned list of loot tables (name, optional
 System skill id, exclusive inclusive-integer roll ranges whose top range may be open, and per-range item, coin
 and note entries). It sits outside the definition save protocol on purpose, because the definition seeds the
 player-readable live Scene; `loot/tables.ts` (`get`, `save`) serves only the Campaign `OWNER`. Overlap and

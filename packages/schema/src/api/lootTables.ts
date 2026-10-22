@@ -70,13 +70,19 @@ const lootTablesSchema = lazySchema(() =>
   )
 )
 
-/** Who the loot reference belongs to. Encounter placement adds its own kind here, not a second table. */
+/** Who the loot reference belongs to: a Scene, or a creature placed in an Encounter (a Run actor). */
 export const lootOwnerSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
       kind: z.literal('SCENE'),
       campaignId: uuid,
       sceneDefinitionId: uuid
+    }),
+    z.strictObject({
+      kind: z.literal('ENCOUNTER_ACTOR'),
+      campaignId: uuid,
+      encounterId: uuid,
+      actorId: uuid
     })
   ])
 )

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LOOT_LIMITS, lootTableSchema } from '../api/lootTables.js'
+import { LOOT_LIMITS, lootOwnerSchema, lootTableSchema } from '../api/lootTables.js'
 
 const id = () => crypto.randomUUID()
 const table = (ranges: Array<{ min: number; max: number | null }>) => ({
@@ -52,5 +52,28 @@ describe('lootTableSchema', () => {
       parsed([{ kind: 'ITEM', itemId: id(), quantity: LOOT_LIMITS.quantity + 1 }]).success
     ).toBe(false)
     expect(parsed([{ kind: 'ROLL', formula: '1d6' }]).success).toBe(false)
+  })
+})
+
+describe('lootOwnerSchema', () => {
+  it('names a Scene or one creature placement in an Encounter, and nothing else', () => {
+    const campaignId = id()
+    expect(
+      lootOwnerSchema.safeParse({ kind: 'SCENE', campaignId, sceneDefinitionId: id() }).success
+    ).toBe(true)
+    expect(
+      lootOwnerSchema.safeParse({
+        kind: 'ENCOUNTER_ACTOR',
+        campaignId,
+        encounterId: id(),
+        actorId: id()
+      }).success
+    ).toBe(true)
+    expect(
+      lootOwnerSchema.safeParse({ kind: 'ENCOUNTER_ACTOR', campaignId, encounterId: id() }).success
+    ).toBe(false)
+    expect(
+      lootOwnerSchema.safeParse({ kind: 'CREATURE', campaignId, creatureId: id() }).success
+    ).toBe(false)
   })
 })
