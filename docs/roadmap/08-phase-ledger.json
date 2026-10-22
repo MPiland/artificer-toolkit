@@ -3850,7 +3850,7 @@
               "note": "Merged m327 (dc0889001)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "RULES-2.T6e3",
               "text": "Contest outcomes end to end (G4, D173): a contest win admits registry outcomes (damage and the rest) and the Session Worker settles them through planEncounterMechanicsBatch, rolling dice in the action roll window; one generic mechanics receipt transition replaces the contest-only kinds, stored receipts migrated; parity proved by a real authored contest.",
               "closes": ["RULES-2.6"],
@@ -3861,7 +3861,7 @@
                 "size": 3,
                 "after": ["RULES-2.T6f"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "note": "Merged m330 (f0eb52a76)."
             },
             {
               "id": "RULES-2.T6g",
@@ -3887,7 +3887,8 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["RULES-2.T6e3"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             }
           ]
         }
