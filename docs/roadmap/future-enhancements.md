@@ -513,6 +513,17 @@ Found by SPELLS-33.T6e2 on 2026-10-22; post-launch.
 
 Revival spells (D177) leave their eligibility to the GM: time since death, death by old age, and a willing or free soul. Resurrection's caster cost after a year of death is description-only too. Candidate: store the time and cause of death on the Character or Creature, check eligibility as an overridable warning, and apply the caster cost from it. Found by SPELLS-4.T2g on 2026-10-22; post-launch.
 
+### Return placement and plane rules
+
+Removed-from-play effects (D178) return a creature to the space it left. Candidates:
+
+- a nearest-unoccupied-space helper with Etherealness's shunt damage (2 force damage per foot);
+- Blink's return to a chosen space within 10 feet;
+- a plane model for the Ethereal Plane's perception and "only affects creatures on that plane", and a non-native creature that Banishment sends home for good;
+- Imprisonment's immunity to later casts after a successful save.
+
+Found by SPELLS-4.T2h on 2026-10-22; post-launch.
+
 ## Other future enhancements (parked)
 
 - Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.
