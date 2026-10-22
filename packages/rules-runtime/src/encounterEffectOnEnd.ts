@@ -45,6 +45,7 @@ export function onEndGrantEffect(
     owner: ended.owner,
     definition: activeRuleEffectDefinitionDtoSchema.parse({
       schemaVersion: 2,
+      linkedEffectId: null,
       origin: definition.origin,
       authoredEffectId: definition.authoredEffectId,
       compiledEntryId: definition.compiledEntryId,

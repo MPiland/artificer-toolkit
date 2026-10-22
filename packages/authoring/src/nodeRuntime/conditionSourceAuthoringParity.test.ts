@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { adultRedDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-red-dragon.js'
+import { giantCentipede } from '@artificer-toolkit/source-data/srd/creatures/giant-centipede.js'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { awaken } from '@artificer-toolkit/source-data/srd/spells/awaken.js'
 import { colorSpray } from '@artificer-toolkit/source-data/srd/spells/color-spray.js'
@@ -163,5 +164,20 @@ describe('a self save whose failure holds a condition until a long rest (SPELLS-
     const result = await normalize('equipment', authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+  })
+})
+
+describe('a timed condition in a gated band (SPELLS-33 T4i3e, D172)', () => {
+  it('keeps the Giant Centipede’s poison for an hour and the paralysis that ends with it, as authored', async () => {
+    const timed = outcomesOf(giantCentipede, 'CONDITION').filter((outcome) => outcome.duration)
+    expect(timed).toHaveLength(2)
+    const result = await normalize('creature', giantCentipede)
+    expect(result.clearedPaths).toEqual([])
+    expect(
+      outcomesOf(result.values, 'CONDITION').map(({ duration, endsWithOutcomeId }) => ({
+        duration,
+        endsWithOutcomeId
+      }))
+    ).toEqual(timed.map(({ duration, endsWithOutcomeId }) => ({ duration, endsWithOutcomeId })))
   })
 })

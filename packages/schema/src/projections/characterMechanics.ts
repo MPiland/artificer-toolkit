@@ -373,13 +373,20 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     /**
      * Conditions a save failed by at least `failedBy` also applies, held by a second active effect
      * with its own duration node; null for none. Required: plans are recompiled, not read
-     * with a default.
+     * with a default. A gated band's second timed condition takes this slot with no margin
+     * (`failedBy` null), its own `initialRemaining` and, when it ends with the first, `linksToPrimary` (D172).
      */
     marginRider: z.nullable(
       z.strictObject({
         compiledEntryId: serverUuidIdentityDtoSchema,
         frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
-        failedBy: z.number().check(z.int()).check(z.gte(1)).check(z.lte(30)),
+        failedBy: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(30))),
+        /** Target turns this effect lasts; null shares the plan's. */
+        initialRemaining: z.nullable(
+          z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
+        ),
+        /** The effect ends with the plan's own effect, which created it. */
+        linksToPrimary: z.boolean(),
         conditionContributions: z
           .array(
             z.strictObject({

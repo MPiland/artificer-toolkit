@@ -241,12 +241,16 @@ export interface CharacterRuleActionActiveEffectPlan {
   }
   /**
    * Conditions a save failed by at least `failedBy` also applies (unconscious beside poisoned). A
-   * second active effect holds them, bound to this plan's frozen graph node under its own entry.
+   * second active effect holds them, bound to this plan's frozen graph node under its own entry. A
+   * gated band's second timed condition takes the slot with no margin, its own duration and, when
+   * it ends with the first, `linksToPrimary` (D172).
    */
   marginRider: null | {
     compiledEntryId: string
     frozenGraphNodeId: string
-    failedBy: number
+    failedBy: number | null
+    initialRemaining: number | null
+    linksToPrimary: boolean
     conditionContributions: readonly {
       conditionId: string
       recordsSource: boolean
