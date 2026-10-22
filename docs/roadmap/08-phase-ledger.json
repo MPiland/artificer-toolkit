@@ -947,7 +947,7 @@
             {
               "id": "PLATFORM-14.T2",
               "text": "Bug (found 2026-10-22 by RELIABILITY-9.T3b): the RaceEditRoute story \"Dragonborn Ancestry Feature Branch\" fails in the Storybook browser project (\"Unable to find the authoring rail expander\"), on the phase branch before T3b too. CI does not run the Storybook project, so nothing caught it. Fix the story or the rail regression it exposes, with the story as the red proof.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -955,7 +955,7 @@
                 "rr": 3,
                 "size": 1
               },
-              "activeWorkbook": "docs/handoffs/slice-reliability-9-t1.md"
+              "note": "Merged m324 (efb89cc06)."
             }
           ]
         },
