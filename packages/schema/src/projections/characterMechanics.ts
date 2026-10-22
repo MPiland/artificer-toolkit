@@ -889,6 +889,8 @@ const characterRulePolicyInput: z.ZodMiniType<CharacterRulePolicyInput> =
   characterRulePolicyInputSchema
 const characterRulePolicyOutput: z.ZodMiniType<CharacterRulePolicyOutput> =
   characterRulePolicyOutputSchema
+const characterRuleSnapshot: z.ZodMiniType<CharacterMechanicsRuleSnapshot> =
+  characterMechanicsRuleSnapshotSchema
 const characterMechanicsProjectionObjectSchema = lazySchema(() =>
   z.strictObject({
     characterId: projectionIdentifierSchema,
@@ -906,7 +908,7 @@ const characterMechanicsProjectionObjectSchema = lazySchema(() =>
     ruleRevisionChecksum: projectionChecksumSchema,
     evaluatorVersion: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
     modelContractVersion: z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000)),
-    ruleSnapshot: characterMechanicsRuleSnapshotSchema,
+    ruleSnapshot: characterRuleSnapshot,
     rulePolicyInput: characterRulePolicyInput,
     rulePolicyOutput: characterRulePolicyOutput,
     initiativeActorFacts: z._default(characterInitiativeActorFactsSchema, {
