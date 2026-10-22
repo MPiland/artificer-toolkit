@@ -86,7 +86,6 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 ## Post-launch
 
 - **Costly and consumed material components (D171):** authored `materialCost` and `consumed` fields on spells, checked against the caster's inventory and deducted on cast, for example Revivify's 300 gp diamond. Today the material description is shown only.
-- **Self-hosted live room server (product owner, 2026-10-21):** evaluate replacing the Session Durable Object with a Node room server (plain `ws` plus the existing room protocol; Colyseus only if its state sync fits per-recipient redaction) on a VPS, for example Oracle Cloud Always Free ARM. Revisit only if the phase-end performance runs show one of these: Durable Object CPU or memory limits, cost per active table at target scale, or latency for player regions. The tradeoffs are self-run operations, no uptime guarantee on a free tier, one region instead of edge placement, and redoing the transport, persistence, CI live-backend and load tests. `packages/rules-runtime` is already portable.
 - **Give loot from a table (SCENE-4):** a "Give to…" action on a loot table entry moves the catalog item, or the coins, into a Character's inventory.
 
 ### Deferred edge cases (watch for in real use)
