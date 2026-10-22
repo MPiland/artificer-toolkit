@@ -68,7 +68,10 @@ import {
   activeEffectSaveThresholdsSchema,
   activeEffectUsesSchema
 } from '../shared/activeRuleEffectLifecycle.js'
-import { characterInitiativeActorFactsSchema } from './characterInitiativeFacts.js'
+import {
+  characterInitiativeActorFactsSchema,
+  type CharacterInitiativeActorFacts
+} from './characterInitiativeFacts.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { attackSlotConditionDtoSchema } from '../features/attackSlots.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
