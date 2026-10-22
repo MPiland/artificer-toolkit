@@ -370,7 +370,9 @@ export const characterMechanicsTargetTransitionDtoSchema = lazySchema(() =>
 
 /**
  * What a won contest's outcome settled on its target (D105, D173): its mechanics batch, null when it
- * applied none, and the pushes its commit lands on the Scene (D157). It settles at least one.
+ * applied none, and the pushes its commit lands on the Scene (D157). It settles at least one. The
+ * batch keeps the Character Sheet version it left, null when it left the Sheet as it was, which
+ * fences the outcome's undo.
  */
 export const targetOutcomeTransitionDtoSchema = lazySchema(() =>
   z
@@ -379,6 +381,7 @@ export const targetOutcomeTransitionDtoSchema = lazySchema(() =>
       mechanics: z.nullable(
         z.strictObject({
           targetTransition: characterMechanicsTargetTransitionDtoSchema,
+          targetCharacterStreamVersion: z.nullable(aggregateVersionSchema),
           applications: z
             .array(characterMechanicsApplicationDtoSchema)
             .check(z.minLength(1), z.maxLength(RULE_GRAPH_LIMITS.NODES))

@@ -110,7 +110,6 @@ export function classifyNativeEncounterOccurrence({
   )
     return 'CLEAVING'
   if (
-    context?.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ||
     context?.kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||
     context?.kind === 'ENCOUNTER_CHECK_ACTION' ||
     context?.kind === 'ENCOUNTER_D20_WINDOW'

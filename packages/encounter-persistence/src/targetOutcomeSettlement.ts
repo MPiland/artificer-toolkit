@@ -53,7 +53,7 @@ export async function settleTargetOutcome(
   )
     throw new Error('The won outcome does not match its target.')
   if (!planned.mechanics) return { target, stateTransition: planned }
-  const { targetTransition, applications } = planned.mechanics
+  const { targetTransition, targetCharacterStreamVersion, applications } = planned.mechanics
   const mechanics = await input.applyMechanics({
     encounterId: state.id,
     targetActorId: target.id,
@@ -69,7 +69,8 @@ export async function settleTargetOutcome(
   })
   if (
     checksumCanonicalJson(mechanics.receiptApplications) !== checksumCanonicalJson(applications) ||
-    checksumCanonicalJson(mechanics.targetTransition) !== checksumCanonicalJson(targetTransition)
+    checksumCanonicalJson(mechanics.targetTransition) !== checksumCanonicalJson(targetTransition) ||
+    mechanics.characterStreamVersion !== targetCharacterStreamVersion
   )
     throw new Error('The won outcome mechanics receipt mismatch.')
   return { target: mechanics.updatedActor, stateTransition: planned }

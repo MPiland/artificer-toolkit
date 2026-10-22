@@ -102,8 +102,7 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
     const pending =
       kind === 'ENCOUNTER_DAMAGE_SAVE_CHECK'
         ? projectNativeConcentrationPending(occurrence, snapshot)
-        : kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ||
-            kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||
+        : kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||
             kind === 'ENCOUNTER_ESCAPE_CHECK' ||
             kind === 'ENCOUNTER_CHECK_ACTION'
           ? projectNativeBasicActionCheckPending(occurrence, snapshot)

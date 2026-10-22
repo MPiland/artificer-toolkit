@@ -166,6 +166,7 @@ export async function planNativeTargetOutcome(
       kind: 'TARGET_OUTCOME' as const,
       mechanics: mechanics && {
         targetTransition: mechanics.targetTransition,
+        targetCharacterStreamVersion: mechanics.characterStreamVersion,
         applications: mechanics.receiptApplications
       },
       forcedMovements: forcedMovements.map(({ direction, feet, upTo }) => ({
