@@ -4041,7 +4041,8 @@
                 "size": 5,
                 "after": ["RULES-2.T6f", "RULES-2.T6e2", "RULES-2.T6e3"]
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39836780695"
             },
             {
               "id": "RULES-2.T6e3b1a",
