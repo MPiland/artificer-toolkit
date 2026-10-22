@@ -11361,7 +11361,8 @@
                 "size": 3,
                 "after": ["SPELLS-8.T11"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39842110784"
             }
           ]
         },
@@ -15419,7 +15420,7 @@
                 "after": ["RULES-2.T6e"]
               },
               "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39841646563"
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39842110784"
             },
             {
               "id": "SPELLS-33.T4i3e",
