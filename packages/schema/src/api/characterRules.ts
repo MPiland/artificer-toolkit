@@ -114,7 +114,13 @@ const characterQualifiedDefenseSchema = lazySchema(() =>
   })
 )
 
-const canonicalCharacterQualifiedDefensesSchema = lazySchema(() =>
+type CharacterQualifiedDefense = z.infer<typeof characterQualifiedDefenseSchema>
+
+/** Explicitly typed so the projections embedding the policy output stay within the declaration size limit (TS7056). */
+const canonicalCharacterQualifiedDefensesSchema: z.ZodMiniType<
+  CharacterQualifiedDefense[],
+  CharacterQualifiedDefense[]
+> = lazySchema(() =>
   z.pipe(
     z
       .array(characterQualifiedDefenseSchema)
