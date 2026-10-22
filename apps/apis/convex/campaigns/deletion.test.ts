@@ -435,6 +435,16 @@ describe('native Campaign deletion', () => {
         }
       })
       await base.t.run(async (ctx) => {
+        for (const [campaignId, sceneId] of [
+          [base.campaign.id, baseScene.sceneId],
+          [unrelated.id, otherScene.sceneId]
+        ] as const)
+          await ctx.db.insert('lootTables', {
+            owner: { kind: 'SCENE', campaignId, sceneDefinitionId: sceneId },
+            version: 1,
+            tables: [],
+            updatedAt: new Date().toISOString()
+          })
         await ctx.db.insert('campaignSceneShowings', {
           campaignId: base.campaign.id,
           sceneId: baseScene.sceneId,
@@ -471,11 +481,13 @@ describe('native Campaign deletion', () => {
         'sceneFogChunks',
         'campaignScenePresentations',
         'campaignSceneShowings',
+        'lootTables',
         'campaignContentUsage'
       ]) {
         expect(after.tables[name], name).toEqual(
           before.tables[name].filter((row) => {
             if ('campaignId' in row) return row.campaignId === unrelated.id
+            if ('owner' in row) return row.owner.campaignId === unrelated.id
             if ('settings' in row && 'campaignId' in row.settings)
               return row.settings.campaignId === unrelated.id
             if ('saveId' in row) return row.saveId === otherScene.save.saveId

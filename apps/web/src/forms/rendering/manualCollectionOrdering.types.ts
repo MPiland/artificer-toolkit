@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export type ManualCollectionOrderingItem = {
+type ManualCollectionOrderingItem = {
   id: string
   label: string
 }

@@ -14,14 +14,14 @@ import {
 } from '../node-map/nodeFormUtils'
 import { hasMeaningfulAuthoringValueAtPaths, setAuthoringFieldValue } from '../utils/pathUtils'
 
-export type StructuralChangeRequest = {
+type StructuralChangeRequest = {
   commit: () => void
   fieldName: string
   label: string
   nextValue: unknown
 }
 
-export type StructuralChangeConfirmation = StructuralChangeRequest & {
+type StructuralChangeConfirmation = StructuralChangeRequest & {
   baseValuesFingerprint: string
   clearPaths: readonly NodeRuntimePathDto[]
   opener: HTMLElement | null

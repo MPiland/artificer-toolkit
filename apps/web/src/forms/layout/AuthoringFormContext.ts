@@ -31,8 +31,8 @@ export type AuthoringFormMode = 'create' | 'view' | 'edit'
  */
 export type AuthoringDraftSaveStatus = 'pending' | 'saving' | 'saved' | 'retrying' | 'replaced'
 
-export type AuthoringFormAction = () => Promise<void> | void
-export type AuthoringFormValuesAction = (values: object) => Promise<boolean | void> | void
+type AuthoringFormAction = () => Promise<void> | void
+type AuthoringFormValuesAction = (values: object) => Promise<boolean | void> | void
 
 export type AuthoringFormActionHandlers = {
   onActivate?: AuthoringFormAction

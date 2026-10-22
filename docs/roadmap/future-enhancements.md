@@ -87,8 +87,14 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 - **Costly and consumed material components (D171):** authored `materialCost` and `consumed` fields on spells, checked against the caster's inventory and deducted on cast, for example Revivify's 300 gp diamond. Today the material description is shown only.
 - **Give loot from a table (SCENE-4):** a "Give to…" action on a loot table entry moves the catalog item, or the coins, into a Character's inventory.
+- **Failure outcomes on an authored check (RULES-2.T6e3b1a):** authoring lets a CHECK trigger hold only an ON_CHECK_SUCCESS path, so a failed homebrew check does nothing. Add an ON_CHECK_FAIL path through the node map, compiler and room, for example "on a failed Athletics check you fall and take 1d6".
 
 ### Deferred edge cases (watch for in real use)
+
+- **Nested save skipped by a branch gate (SPELLS-33.T4i3d):** a gated nested-save band rolls the save even for targets the gate excludes (e.g. a target over the HP band), then discards the outcome. Rolling the save only for in-band targets would need the gate evaluated before the d20 node; no SRD content is affected.
+
+- **A drag stops when the dragged creature drops (SPELLS-4.T1k):** a zone that drops a dragged creature to 0 HP or stops its movement ends the whole drag where it happened. The rules let a grappler keep dragging an unconscious creature. It is rare, and the grappler can move again to carry on.
+- **A cure does not end a condition's effect early (D172, SPELLS-33.T4i3e):** a cure or a GM edit that removes a condition does not end the active effect that applied it, so the effect's linked dependents keep running, for example a Giant Centipede's paralysis after its poison is cured. The GM ends them by hand. Effects that expire or end on their own triggers already end their dependents.
 
 - **Haste's lethargy timing (SPELLS-4.T2l-a):** the follow-on grant lasts one end of the holder's turn. A Haste that ends during its holder's own turn (Concentration dropped mid-turn) lets the lethargy end at the end of that same turn, instead of the holder's next. The rules text is "until after its next turn"; it is rare, and the GM can end the lethargy by hand. Related, latent: a follow-on created during the outgoing boundary's turn effects could tick once before `persistEncounterGrantTicks`; `documents.ts` deletes a form-holding effect row directly, bypassing the `onEnd` seam; only the first `MODIFIER_GRANT` contribution's `onEnd` is read. No SRD effect triggers any of these today.
 

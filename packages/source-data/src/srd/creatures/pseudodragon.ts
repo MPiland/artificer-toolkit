@@ -217,6 +217,7 @@ export const pseudodragon: CreatureAuthored = {
                     failureMarginRider: {
                       id: S.actionId(226, 13),
                       failedBy: 5,
+                      endsWithOutcomeId: S.actionId(226, 12),
                       outcomes: [
                         {
                           id: S.actionId(226, 14),

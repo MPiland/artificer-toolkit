@@ -87,6 +87,8 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
       return answerRequired('A concealment check')
     case 'ENCOUNTER_ESCAPE_CHECK':
       return answerRequired('An escape check')
+    case 'ENCOUNTER_CHECK_ACTION':
+      return answerRequired('A check action')
     case 'ENCOUNTER_D20_WINDOW':
       return answerRequired('A held die decision')
     case 'ENCOUNTER_INITIATIVE':

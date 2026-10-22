@@ -1,9 +1,7 @@
-import type { ChargeDto } from '@artificer-toolkit/schema/shared'
 import type {
   FeatAuthoringInputDto,
   FeatAuthoredDto
 } from '@artificer-toolkit/schema/subjects/feat'
-import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 
 interface CreateEmptyFeatInput {
   systemId: string
@@ -39,32 +37,6 @@ export function normalizeFeatForSubmit(
     features: feat.features ?? [],
     grants: normalizeFeatGrants(feat.grants)
   }
-}
-
-export function createEmptyFeature(order: number): FeatureDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order
-  }
-}
-
-export function createEmptyCharge(): ChargeDto {
-  return {
-    id: crypto.randomUUID(),
-    resetKind: 'LONG_REST',
-    limitKind: 'FIXED_AMOUNT',
-    scalingKind: 'NONE',
-    amount: 1
-  }
-}
-
-export function upsertById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
-  const exists = items.some((current) => current.id === item.id)
-  return exists
-    ? items.map((current) => (current.id === item.id ? item : current))
-    : [...items, item]
 }
 
 function normalizeFeatGrants(grants: FeatAuthoredDto['grants']): FeatAuthoredDto['grants'] {

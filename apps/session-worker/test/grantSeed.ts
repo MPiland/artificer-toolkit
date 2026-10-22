@@ -1,5 +1,6 @@
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
+import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 
 import type { MovementRoomConfig } from './movementRoomFixture.js'
 
@@ -57,4 +58,23 @@ export function seedModifierGrant(input: {
       occurredAt
     })
   }
+}
+
+/** A held-die effect: the real Guidance grant, authored to be offered after the d20 is seen. */
+export function heldDieEffect(change: { count?: number; ability?: 'WISDOM' | 'STRENGTH' } = {}) {
+  const effect = structuredClone(guidance.effects![0]!)
+  for (const path of effect.paths)
+    if (path.selectionKind === 'FIXED')
+      for (const outcome of path.resultBlock.outcomes)
+        if (outcome.effectKind === 'APPLY_GRANT')
+          for (const modifier of outcome.grants.modifiers ?? []) {
+            if (modifier.modifierKind !== 'ADD_BONUS_DIE') continue
+            modifier.payload = {
+              ...modifier.payload,
+              ...(change.count === undefined ? {} : { count: change.count }),
+              timing: 'AFTER_ROLL'
+            }
+            if (change.ability) modifier.domain = { ability: change.ability }
+          }
+  return effect
 }

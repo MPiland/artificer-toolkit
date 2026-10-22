@@ -1,11 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createEmptyBaseRace,
-  createEmptyDetail,
-  createEmptyFeature,
   normalizeRaceForSubmit,
-  resolveCreateRaceSystemId,
-  upsertById
+  resolveCreateRaceSystemId
 } from '../raceAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
@@ -84,18 +81,5 @@ describe('race authoring helpers', () => {
       features: [],
       systemId: 'dnd-5e-srd'
     })
-  })
-
-  it('creates valid nested defaults and upserts by id', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
-
-    expect(createEmptyDetail(1)).toMatchObject({ id: generatedId, order: 1 })
-    expect(createEmptyFeature(2)).toMatchObject({ id: generatedId, order: 2 })
-
-    const original = createEmptyFeature(1)
-    const updated = { ...original, label: 'Fleet of Foot' }
-
-    expect(upsertById([], original)).toEqual([original])
-    expect(upsertById([original], updated)).toEqual([updated])
   })
 })

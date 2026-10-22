@@ -213,6 +213,7 @@ export type CompiledFollowUpBranch =
       kind: 'OUTCOMES'
       endCurrent: boolean
       resultKind: 'SINGLE' | 'SEQUENCE'
+      gate?: ResultBlockGateAuthored
       outcomes: CompiledEffectOutcome[]
     }
 

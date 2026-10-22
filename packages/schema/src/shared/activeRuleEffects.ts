@@ -263,6 +263,11 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
     compiledEntryId: uuidSchema,
     frozenGraphNodeId: localNodeIdSchema,
     frozenGraph: compiledRuleGraphDtoSchema,
+    /**
+     * The effect on the same holder this one ends with (paralyzed "while poisoned this way", D172);
+     * null for none. Whatever ends the linked effect ends this one in the same transaction.
+     */
+    linkedEffectId: z.nullable(uuidSchema),
     adapterFacts: activeEffectFactsSchema,
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     recurrence: z.strictObject({

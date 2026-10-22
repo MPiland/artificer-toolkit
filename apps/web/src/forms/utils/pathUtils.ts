@@ -72,7 +72,7 @@ export function getAuthoringFieldValue(
   let current: unknown = values
 
   for (const segment of parseAuthoringFieldName(fieldName)) {
-    if (!isRecord(current)) return undefined
+    if (!isObjectValue(current)) return undefined
     current = current[String(segment)]
   }
 

@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 export const solar: CreatureAuthored = {
   id: S.CREATURE_IDS.SOLAR,
   label: 'Solar',
@@ -284,8 +285,23 @@ export const solar: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(256, 220),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SOLAR_SLAYING_LONGBOW
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    savingThrow: {
+                      id: S.actionId(256, 221),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 15
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SINGLE',
+                      gate: { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 100 },
+                      outcomes: [{ id: S.actionId(256, 222), effectKind: S.EFFECT_KIND.KILL }]
+                    }
                   }
                 ]
               }

@@ -96,6 +96,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
   })
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
+    linkedEffectId: null,
     stateContributions: [],
     origin: {
       kind: 'ENCOUNTER',

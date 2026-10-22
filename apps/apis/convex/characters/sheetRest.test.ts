@@ -146,6 +146,7 @@ function reductionDefinition(
   const rootCommandId = '00000000-0000-4000-8000-000000000104'
   return {
     schemaVersion: 2,
+    linkedEffectId: null,
     origin: {
       kind: 'CHARACTER',
       sourceAggregateId: characterId,

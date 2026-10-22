@@ -7,6 +7,7 @@ import { activeEffectSaveTallySchema } from './activeRuleEffectLifecycle.js'
 import {
   characterMechanicsApplicationDtoSchema,
   characterMechanicsTargetStateDtoSchema,
+  characterMechanicsTargetTransitionDtoSchema,
   encounterActorActiveEffectCreateReceiptDtoSchema
 } from './ruleExecutionMechanics.js'
 import { encounterActionEconomyTransitionDtoSchema } from './ruleExecutionEncounterApplications.js'
@@ -32,14 +33,6 @@ import {
   movementConcentrationEndDtoSchema,
   movementConcentrationExecutionsDtoSchema
 } from './ruleExecutionMovementConcentration.js'
-
-const turnEffectTargetTransitionDtoSchema = lazySchema(() =>
-  z.strictObject({
-    checksum: checksumSchema,
-    before: characterMechanicsTargetStateDtoSchema,
-    after: characterMechanicsTargetStateDtoSchema
-  })
-)
 
 export const turnEffectCharacterTransitionDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -152,11 +145,7 @@ export const refineSpatialEffectTransition = (
 const spatialExecutionEvidenceFields = lazySchemaParts(() => ({
   execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
   d20: z.nullable(serverRuleExecutionD20EvidenceDtoSchema),
-  targetTransition: z.strictObject({
-    checksum: checksumSchema,
-    before: characterMechanicsTargetStateDtoSchema,
-    after: characterMechanicsTargetStateDtoSchema
-  }),
+  targetTransition: characterMechanicsTargetTransitionDtoSchema,
   applications: z
     .array(characterMechanicsApplicationDtoSchema)
     .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
@@ -472,7 +461,7 @@ export const turnEffectExecutionDtoSchema = lazySchema(() =>
     }),
     execution: serverCompletedRuleExecutionDtoSchema,
     d20: z.nullable(serverRuleExecutionD20EvidenceDtoSchema),
-    targetTransition: turnEffectTargetTransitionDtoSchema,
+    targetTransition: characterMechanicsTargetTransitionDtoSchema,
     applications: z
       .array(characterMechanicsApplicationDtoSchema)
       .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),

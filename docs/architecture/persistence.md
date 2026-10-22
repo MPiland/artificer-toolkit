@@ -434,6 +434,15 @@ definition pinned to its save ID. `campaignScenePresentations` stores one versio
 Campaign, with exact replay through the Campaign event receipt; finishing a Session clears the derived active
 map reference but not the selection.
 
+`lootTables` holds one GM-only row per loot owner (a discriminated `owner` union; only `SCENE` exists, and Encounter placement adds its own kind rather than a second table), indexed `by_owner` and `by_campaignId`; the row is a versioned list of loot tables (name, optional
+System skill id, exclusive inclusive-integer roll ranges whose top range may be open, and per-range item, coin
+and note entries). It sits outside the definition save protocol on purpose, because the definition seeds the
+player-readable live Scene; `loot/tables.ts` (`get`, `save`) serves only the Campaign `OWNER`. Overlap and
+`min > max` refusal is `findLootRangeRefusal` in `packages/shared/src/domains/vtt/lootTable.ts`, and saves check
+the skill, coin denomination and `EQUIPMENT` item references against the Campaign's System and the owner's
+catalogue. The tables are reference only: the app never resolves a check against them or grants an item.
+Deleting the Scene definition or the Campaign removes the row.
+
 Live Scene rows (see [Live room and checkpoints](#live-room-and-checkpoints)) are checkpoint-written.
 `sceneLiveStates` holds the version, settings (including the versioned `fogMode` of `OFF`, `SHARED_PARTY` or
 `PER_PLAYER`, ADR 0034), counts and ordinals; `sceneLiveEntities` holds collection-qualified overrides and

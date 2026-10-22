@@ -18,6 +18,7 @@ vi.mock('convex/react', async (importOriginal) => ({
   useAction: () => delivery
 }))
 vi.mock('#app/data/campaigns/scenes', () => ({ saveSceneDefinition: vi.fn() }))
+vi.mock('./CampaignSceneLootEditor', () => ({ CampaignSceneLootEditor: () => null }))
 vi.mock('./vttSceneRenderer', () => ({
   createVttSceneRenderer: async () => ({ update: vi.fn(), destroy: vi.fn() })
 }))
@@ -30,6 +31,7 @@ it('preserves a dirty draft during refresh and reuses its save attempt until the
   const props = {
     campaignId: tabletopSceneDefinition.campaignId,
     currentUserId: tabletopCurrentUserId,
+    gameSystemId: '11111111-1111-4111-8111-111111111111',
     memberships: [],
     onDirtyChange: vi.fn(),
     scene: tabletopSceneDefinition

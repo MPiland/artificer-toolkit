@@ -392,10 +392,21 @@ a mark, only to damage the effect's source deals to the holder (`SOURCE_DEALS_TO
 Contest outcomes (D105, ATTACK-7.6): a basic action whose win is a picked outcome (Shove) lists the options as
 `target.choiceOptions` in the action choices, and `RESOLVE_ACTION` names one with `target.choiceOptionId`; an attempt
 without a pick, or with one the action does not offer, is rejected. The `CONTESTED_ACTION` output's `stateTransition`
-records a win's outcome as `CONDITIONS_APPLIED` (`appliedConditionIds`, the conditions newly applied) or
-`FORCED_MOVEMENT` (`direction`, `feet`, `upTo`); `SCENE_TOKEN_MOVED` is removed. The room's contest commit
-(`LiveSessionEncounterContestCommitInput`) carries the planned `conditionApplications` and `forcedMovements`; the commit
-lands the push on the Scene through the same `applyRoomForcedMovements` path as an action's push.
+records a win's outcome as one `TARGET_OUTCOME` (D173): `mechanics` (the target's `targetTransition` and the receipt
+`applications`, the same shapes as an action's mechanics receipt) or null, and `forcedMovements` (`direction`, `feet`,
+`upTo`), at least one of the two. The contest-only `CONDITIONS_APPLIED` and `FORCED_MOVEMENT` kinds are removed, and a
+stored receipt of either fails its schema parse. A win's dice that its initiator does not auto-roll pause the contest on
+an `ACTION_OUTCOME_EVIDENCE` pending summary for the initiator, answered with `ENTER_DICE`, `ENTER_INTEGER` or
+`SYSTEM_ROLL`. The room's contest commit (`LiveSessionEncounterContestCommitInput`) carries the planned
+`forcedMovements`; the commit lands the push on the Scene through the same `applyRoomForcedMovements` path as an
+action's push. A fixed-DC check action whose success runs an outcome (D173), made by a basic action or a Creature feature,
+commits through the basic action commit input, which names its `source` (`BASIC_ACTION` or `CREATURE_FEATURE`) and a
+feature's `featureResourceConsumption` receipt, with a `CheckActionSettlement` (`ENCOUNTER_CHECK_ACTION` context, the stored execution, `appRollId` and the planned
+`forcedMovements`) and records one `CHECK_ACTION` output with the same `TARGET_OUTCOME` or `NONE` `stateTransition`.
+A roller who does not auto-roll answers the check's `D20_EVIDENCE` summary (or its `D20_WINDOW`), then a success's
+outcome dice on an `ACTION_OUTCOME_EVIDENCE` summary answered with `ENTER_INTEGER` or `SYSTEM_ROLL`. The room commits
+each pause with `LiveSessionEncounterCheckPauseCommitInput` (the next snapshot, and `window.spentEffect` after a d20
+window's answer) and the settled check with the basic action response commit input.
 
 Forced-movement destinations (D157): an action whose push has two or more legal squares pauses on a
 `FORCED_MOVEMENT_DESTINATION` pending summary (`sourceActorId`, `targetActorId`, `requestId`, and the server-derived

@@ -3,10 +3,7 @@ import {
   type ActiveEffectSaveThresholds,
   type ActiveRuleEffectLifecycleDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
-import {
-  MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS,
-  type ReceiptD20ContributorDto
-} from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
   type ServerPublishedRuleDefinitionDto
@@ -16,7 +13,6 @@ import {
   pathLifecycleGrantConsumeEventSchema,
   pathLifecycleGrantEndEventSchema
 } from '@artificer-toolkit/schema/shared/enums'
-import { zoneMovementCostMultiplierSchema } from '@artificer-toolkit/schema/shared/spatial'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
@@ -24,8 +20,7 @@ import {
   compileModifierGrant,
   type CompiledDamageEffect,
   type CompiledDuration,
-  type CompiledEffectGroup,
-  type CompiledManifestComponent
+  type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import { buildCharacterGrantFoldModifierFacts } from '../../character/characterGrantFoldSourceFacts.js'
 import { abilityModifier } from './abilityModifier.js'
@@ -33,60 +28,46 @@ import type {
   ActorRelationshipAuthored,
   HitPointMaximumReductionAuthored,
   OptionalOnHitAuthored,
-  FailureMarginRiderAuthored,
-  ForcedMovementCollisionAuthored,
-  PathLifecycleAuthored,
   FollowUpSaveRepeatTriggerAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
   addNumbersRuleOperation,
   checksumRuleDocument,
   compareCanonicalD20Contributors,
-  compareThresholdRuleOperation,
   type CompiledRuleGraph,
-  type RuleGraphDefinition,
-  type RuleInputBinding
+  type RuleGraphDefinition
 } from '@artificer-toolkit/shared/rules'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { v5 as uuidv5 } from 'uuid'
 import type { EffectActionCapabilityDescriptor } from '../../characterActionCapabilityDiscovery.js'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   CharacterRuleActionSystemAdapter,
   CharacterRuleActionActiveEffectPlan,
-  CharacterRuleActionPositionalFacts,
-  CharacterRuleActionZoneChoicePlan,
-  CharacterRuleActionZonePlacementPlan
+  CharacterRuleActionPositionalFacts
 } from '../../characterRuleActionSystemAdapter.js'
 import type {
-  ActiveEffectEndTrigger,
   ActiveEffectRepeatTrigger,
   GrantConsumeEvent,
   GrantEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import {
-  type CharacterRuleActionForcedMovementCollision,
-  CharacterRuleActionTargetDefenseUnavailableError,
-  CharacterRuleActionUnsupportedCompilationError,
-  isCharacterRuleActionForcedMovementDirection
-} from '../../characterRuleActionSystemAdapter.js'
+import { CharacterRuleActionTargetDefenseUnavailableError } from '../../characterRuleActionSystemAdapter.js'
 import {
   chosenCreaturesAreaSupported,
   chosenCreaturesCap,
   hitPointPoolIsAuthored,
-  resolveChosenCreaturesTargeting,
-  encounterZoneChoiceTarget
+  resolveChosenCreaturesTargeting
 } from '../../encounterAreaAction.js'
-import { gateFacts, gateNodeInputs, isGated, type Dnd5eAuthoredGates } from './effectActionGates.js'
-import { castChoiceOptions } from '../../encounterCastChoice.js'
-import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../../hitPointTiers.js'
 import {
-  passiveMeleeRetaliationZone,
-  placedSpaceZone,
-  ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY,
-  zoneTriggers,
-  type PlacedSpaceZone
-} from '../../encounterZonePlacement.js'
+  gateFacts,
+  gateNodeInputs,
+  isGated,
+  refuseUnboundGate,
+  testPathGates,
+  type Dnd5eAuthoredGates
+} from './effectActionGates.js'
+import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../../hitPointTiers.js'
+import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from '../../encounterZonePlacement.js'
+import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
 import type { EnemyProximity } from '../../encounterEnemyProximity.js'
@@ -110,6 +91,7 @@ import {
   DEFAULT_CRITICAL_HIT_THRESHOLD
 } from '@artificer-toolkit/schema/shared/attackCriticalRules'
 import { createDnd5eContestGraph } from './optionalCombatContestGraph.js'
+import { createDnd5eCheckDefinition } from './encounterLifecyclePolicy.js'
 import {
   resolveDnd5eFlankingContributor,
   resolveDnd5eFlankingParticipantCapabilityDefinitionIds
@@ -123,12 +105,10 @@ import {
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
-  DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
-  DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
   DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
@@ -186,17 +166,15 @@ import {
   isUuid,
   uuid,
   unsupported,
-  multipliedDamageAmount,
-  COLLISION_DICE_CONFIG,
-  NESTED_SAVE_MARGIN_NODE_ID,
-  nestedSaveRiderConditionNodeId
+  multipliedDamageAmount
 } from './effectActionContracts.js'
 import { repeatSaveConditionIds, conditionImmunityFacts } from './effectActionEvidenceChecks.js'
 import {
-  conditionDurationTurns,
-  dnd5eRepeatSave,
-  type FollowUpSaveOutcome
-} from './effectActionFollowUp.js'
+  canonicalEndTriggers,
+  marginRiderPlan,
+  timedBandConditions
+} from './effectActionBandConditions.js'
+import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
 import {
   effectOutcomeProposalNode,
   effectOutcomeProposalOutputs
@@ -205,8 +183,6 @@ import {
   DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION,
   dnd5eOutcomeDefinition,
   dnd5eTargetOnlyOutcome,
-  dnd5eTestPathTargetOnlyOutcome,
-  dnd5eUnsupportedPlanUnderTest,
   type Dnd5eAuthoredOutcome
 } from './effectActionOutcomes.js'
 import {
@@ -214,8 +190,7 @@ import {
   forcedMovementProposalNode,
   dnd5eResultGate,
   dnd5eSaveOutcomeRule,
-  testContractVersion,
-  dnd5eTestMarginConditionProposalOperation
+  testContractVersion
 } from './effectActionOperationRegistry.js'
 import {
   testApplications,
@@ -224,7 +199,11 @@ import {
   interpretSpatial
 } from './effectActionInterpretation.js'
 import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
-import { isSupportedArea, isSupportedTestTargetPolicy } from './effectActionTargetPolicy.js'
+import {
+  isChargedFreeActivation,
+  isSupportedArea,
+  isSupportedTestTargetPolicy
+} from './effectActionTargetPolicy.js'
 import {
   boundedDiceTerm,
   dnd5eEffectScalingFacts,
@@ -233,6 +212,25 @@ import {
   type BoundedDiceTerm,
   type Dnd5eEffectScalingFacts
 } from './effectActionScalingFacts.js'
+
+import {
+  DND5E_OUTCOME_TARGET,
+  damageTypeIdentity,
+  damageMultiplier,
+  multipliedDamage,
+  boundedOutcome,
+  rolledDiceNodes,
+  pathGatedProposalNode,
+  validateDamageBonuses
+} from './effectActionOutcomeNodes.js'
+import {
+  isImmediateFollowUpSave,
+  escalationCondition,
+  escalatingImmediateSave,
+  immediateFollowUpSaveEntries,
+  exactFailureMarginRider,
+  immediateFollowUpSaveGraphDefinition
+} from './effectActionNestedSave.js'
 
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
 const DND5E_ORDINARY_SIGHT_NAMESPACE = '6871f0d5-9ac4-45d4-84c0-30cbd4e7df0c'
@@ -246,14 +244,19 @@ const DND5E_ORDINARY_SIGHT_CAPABILITY = {
   physicalConstraints: ['LINE_OF_EFFECT'] as const
 }
 const DND5E_ORDINARY_SIGHT_CHECKSUM = checksumRuleDocument(DND5E_ORDINARY_SIGHT_CAPABILITY)
+/** The published DTO of a graph this compiler built: its identity, checksum and definition. */
+function publishedGraph(definition: RuleGraphDefinition) {
+  return serverPublishedRuleDefinitionDtoSchema.parse({
+    id: definition.id,
+    gameSystemId: definition.gameSystemId,
+    definitionFamilyKey: definition.definitionFamilyKey,
+    checksum: checksumRuleDocument(definition),
+    definition
+  })
+}
 function activeEffectGraphNodeId(compiledEntryId: string): string {
   return `active_effect_${compiledEntryId}`
 }
-/** The target every outcome proposal reads: the target actor and its state checksum. */
-const DND5E_OUTCOME_TARGET = {
-  targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-  targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY }
-} as const satisfies Readonly<Record<string, RuleInputBinding>>
 type SpecializedOutcome =
   | Outcome
   | { kind: 'DICE_DAMAGE'; damageTypeId: string }
@@ -363,13 +366,14 @@ interface TestPlan {
   conditions?: ReadonlyMap<string, { outcome: Outcome; entryId: string }>
 }
 
-/** A contest whose win runs its ON_CHECK_SUCCESS outcome after the contest test (Shove, D105). */
-function isContestOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean {
-  const { invocation } = action.compiledEffect
+/**
+ * A check whose success runs its ON_CHECK_SUCCESS outcome after the check test: a contest's win
+ * (Shove, D105) or a fixed-DC check's success (D173).
+ */
+function isCheckOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean {
   return (
-    invocation.triggerCode === 'CHECK' &&
-    invocation.check.dc.kind === 'CONTEST' &&
-    supported(action).kind === 'CONTEST_OUTCOME'
+    action.compiledEffect.invocation.triggerCode === 'CHECK' &&
+    supported(action).kind === 'CHECK_OUTCOME'
   )
 }
 
@@ -447,7 +451,7 @@ function isSupportedTestActivation(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
-  if (invocation.activation.code === 'FREE') return false
+  if (invocation.activation.code === 'FREE') return isChargedFreeActivation(invocation)
   if (invocation.activation.amount !== 1) return false
   if (invocation.activation.code === 'ACTION') return true
   // A save is a bonus action only as a repeat offer's charge (Heat Metal's repeated damage, D166).
@@ -460,11 +464,6 @@ function isSupportedTestActivation(
     'reactionTrigger' in invocation &&
     invocation.reactionTrigger?.kind === 'MOVEMENT'
   )
-}
-
-function damageTypeIdentity(damageTypeId: string | undefined): string {
-  uuid(damageTypeId, 'D&D damage type identity')
-  return damageTypeId
 }
 
 /**
@@ -555,7 +554,7 @@ function supportedRecurringPlan(
       ...repeatSave,
       perceptionContributions: [],
       maintenance,
-      marginRider: null
+      marginRiders: []
     }
   }
   if (
@@ -585,7 +584,7 @@ function supportedRecurringPlan(
     adapterFacts: {},
     perceptionContributions: [],
     maintenance,
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -748,13 +747,7 @@ function sequentialCompositionPlan(
     authoredEffectId: action.effectId,
     compiledEntryId: recurring.resultBlockId,
     frozenGraphNodeId: nodeId,
-    frozenGraph: serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    }),
+    frozenGraph: publishedGraph(definition),
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: stage,
     initialRemaining: turns,
@@ -770,7 +763,7 @@ function sequentialCompositionPlan(
     ...(temporary && { ownsTemporaryHitPoints: true }),
     perceptionContributions: [],
     maintenance: maintenancePlan(action, recurring),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -929,7 +922,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
     adapterFacts: { 'dnd5e.relationship-authored-path': entry.pathCode },
     perceptionContributions: [],
     maintenance: null,
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -957,13 +950,7 @@ function relationshipStateGraph(input: {
     },
     sourceEntryBindings: [{ sourceEntryId: input.relationship.id, nodeId: 'relationship-state' }]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 function relationshipRecurrenceGraph(input: {
@@ -1098,42 +1085,7 @@ function relationshipRecurrenceGraph(input: {
     ]
   }
   void input.modules
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
-}
-
-/**
- * The factor an authored damage outcome scales its total by: its `multiplier` (the monster
- * vocabulary for half on a successful save) times its `amountKind` (the spell vocabulary: HALF is
- * 0.5, DOUBLE is 2). Every compiled damage amount reads it, so both vocabularies compile alike.
- */
-function damageMultiplier(outcome: {
-  amountKind?: 'FULL' | 'HALF' | 'DOUBLE'
-  multiplier?: number
-}): number {
-  const kind = outcome.amountKind === 'HALF' ? 0.5 : outcome.amountKind === 'DOUBLE' ? 2 : 1
-  return (outcome.multiplier ?? 1) * kind
-}
-
-/** `amount` times an authored damage multiplier, rounded down (SRD); no node when it is 1. */
-function multipliedDamage(id: string, amount: RuleInputBinding, multiplier: number) {
-  return multiplier === 1
-    ? { nodes: [], amount }
-    : {
-        nodes: [
-          {
-            id,
-            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
-            inputs: { amount, multiplier: { kind: 'LITERAL' as const, value: multiplier } }
-          }
-        ],
-        amount: { kind: 'NODE_OUTPUT' as const, nodeId: id, port: 'value' }
-      }
+  return publishedGraph(definition)
 }
 
 function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outcome {
@@ -1145,185 +1097,6 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
     ('gate' in entry && entry.gate?.kind === 'REDUCED_TO_ZERO_BY')
   )
   return boundedOutcome(entry.outcome, killAdmitted)
-}
-
-function boundedOutcome(outcome: Dnd5eAuthoredOutcome, killAdmitted: boolean): Outcome {
-  if (outcome.effectKind === 'CONDITION') {
-    uuid(outcome.conditionId, 'D&D condition definition identity')
-    return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
-  }
-  if (outcome.effectKind === 'SCALAR_REDUCTION') {
-    uuid(outcome.valueDefinitionId, 'D&D scalar definition identity')
-    return {
-      kind: 'SCALAR_REDUCTION',
-      amount: 1,
-      valueDefinitionId: outcome.valueDefinitionId,
-      recoveryTriggers: outcome.recoveryTriggers,
-      terminalConsequence: outcome.terminalConsequence
-    }
-  }
-  if (outcome.effectKind === 'FORCED_MOVEMENT')
-    return (
-      settledForcedMovement(outcome) ??
-      unsupported('D&D forced movement must move its target a distance in feet, at no cost to it.')
-    )
-  if (outcome.effectKind === 'KILL' && killAdmitted) return { kind: 'KILL' }
-  const targetOnly = dnd5eTestPathTargetOnlyOutcome(outcome)
-  if (targetOnly) return targetOnly
-  if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
-    unsupported('D&D test action outcome is not supported.')
-  if (
-    outcome.valueKind !== 'FIXED' ||
-    outcome.scalingKind !== 'NONE' ||
-    outcome.bonuses?.length ||
-    !Number.isSafeInteger(outcome.amount) ||
-    outcome.amount <= 0
-  )
-    unsupported('D&D test action outcomes must use positive safe fixed amounts.')
-  if (outcome.effectKind === 'HEAL')
-    return {
-      kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL',
-      amount: outcome.amount
-    }
-  uuid(outcome.damageTypeId, 'D&D damage type identity')
-  return {
-    kind: 'DAMAGE',
-    amount: multipliedDamageAmount(outcome.amount, damageMultiplier(outcome)),
-    damageTypeId: outcome.damageTypeId
-  }
-}
-
-/**
- * An authored forced movement the room settles on the Scene (D105, D157): an exact or up-to distance
- * in feet, in any authored direction, that costs the target nothing. Null for any other forced
- * movement, which the System cannot settle yet.
- */
-function settledForcedMovement(outcome: {
-  direction: string
-  actionEconomy: string
-  distanceMode: string
-  amount?: number
-  unit?: string
-  collision?: ForcedMovementCollisionAuthored
-}): Extract<Outcome, { kind: 'FORCED_MOVEMENT' }> | null {
-  if (
-    !isCharacterRuleActionForcedMovementDirection(outcome.direction) ||
-    outcome.actionEconomy !== 'NONE' ||
-    (outcome.distanceMode !== 'EXACT' && outcome.distanceMode !== 'UP_TO') ||
-    outcome.unit !== 'FEET' ||
-    typeof outcome.amount !== 'number' ||
-    !Number.isSafeInteger(outcome.amount) ||
-    outcome.amount <= 0
-  )
-    return null
-  const collision = outcome.collision ? settledForcedMovementCollision(outcome.collision) : null
-  if (outcome.collision && !collision) return null
-  return {
-    kind: 'FORCED_MOVEMENT',
-    direction: outcome.direction,
-    feet: outcome.amount,
-    upTo: outcome.distanceMode === 'UP_TO',
-    collision
-  }
-}
-
-/**
- * The collision of an authored forced movement (D159), flat for the proposal. Null for one the System
- * cannot settle: a save that is not a fixed DC, or a damage or condition identity that is not a UUID.
- */
-function settledForcedMovementCollision(
-  collision: ForcedMovementCollisionAuthored
-): CharacterRuleActionForcedMovementCollision | null {
-  const { savingThrow } = collision
-  if (
-    savingThrow.dcMethod !== 'FIXED_DC' ||
-    savingThrow.bonuses?.length ||
-    !Number.isSafeInteger(savingThrow.baseDc) ||
-    !COLLISION_DICE_CONFIG.test(collision.diceConfig) ||
-    !UUID.test(collision.damageTypeId) ||
-    !UUID.test(savingThrow.abilityDefinitionId) ||
-    !UUID.test(collision.conditionId)
-  )
-    return null
-  return {
-    diceConfig: collision.diceConfig,
-    damageTypeId: collision.damageTypeId,
-    abilityDefinitionId: savingThrow.abilityDefinitionId,
-    dc: savingThrow.baseDc,
-    conditionId: collision.conditionId
-  }
-}
-
-/**
- * The one authored row a placed zone deals on a save result: its only row, or, for damage that
- * scales by the level its action is cast at, the row that level reaches (compiled one row per level).
- */
-function zoneDamageRow(
-  rows: readonly CompiledEffectGroup['entries'][number][],
-  spellCastLevel: number | undefined
-): CompiledEffectGroup['entries'][number] {
-  const [first] = rows
-  if (!first || !('outcome' in first))
-    unsupported('D&D test actions require direct authored outcomes.')
-  const { outcome } = first
-  if (
-    outcome.effectKind !== 'DAMAGE' ||
-    outcome.valueKind !== 'DICE' ||
-    outcome.scalingKind === 'NONE'
-  ) {
-    if (rows.length !== 1) unsupported('A placed zone deals one damage outcome per save result.')
-    return first
-  }
-  if (spellCastLevel === undefined)
-    unsupported('A placed zone damage that scales needs the level its action is cast at.')
-  const candidates = rows.flatMap((entry) =>
-    'outcome' in entry &&
-    entry.outcome.effectKind === 'DAMAGE' &&
-    entry.outcome.valueKind === 'DICE' &&
-    entry.outcome.scalingKind === 'PER_LEVEL' &&
-    entry.outcome.scalingSource === 'SPELL_CAST_LEVEL'
-      ? [{ level: entry.outcome.level, order: entry.outcome.order, entry }]
-      : []
-  )
-  if (candidates.length !== rows.length)
-    unsupported('A placed zone damage scales only by the level its action is cast at.')
-  const selected = selectScalingRow(candidates, spellCastLevel)
-  if (!selected) unsupported('A placed zone damage scaling does not select an authored value.')
-  return selected.entry
-}
-
-/**
- * A placed zone's damage on one result: fixed, or one unmodified dice roll that the entry graph
- * rolls itself (D133). The failed save, or an outcome with no save, deals the roll in full; the made
- * save may deal half of it. Bonuses and other multipliers belong to the zone turn trigger.
- */
-function zoneDamageOutcome(
-  entry: CompiledEffectGroup['entries'][number],
-  pathCode: 'ON_USE' | 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
-): Outcome | EntryDiceDamageOutcome {
-  if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
-  const { outcome } = entry
-  if (outcome.effectKind !== 'DAMAGE' || outcome.valueKind !== 'DICE')
-    return boundedTestOutcome(entry)
-  const authored = specializedTestOutcome(entry)
-  if (authored.kind === 'DAMAGE') return authored
-  const multiplier = damageMultiplier(outcome)
-  if (
-    outcome.bonuses?.length ||
-    multiplier !== (pathCode === 'ON_SAVE_SUCCESS' ? 0.5 : 1) ||
-    boundedDiceTerm(outcome.dice).modifier !== 0
-  )
-    unsupported(
-      'A placed zone dice damage is one unmodified roll: in full with no save or a failed one, halved on a made one.'
-    )
-  uuid(outcome.damageTypeId, 'D&D damage type identity')
-  return {
-    kind: 'ENTRY_DICE_DAMAGE',
-    diceConfig: outcome.dice,
-    damageTypeId: outcome.damageTypeId,
-    entryId: entry.entryId,
-    multiplier
-  }
 }
 
 /**
@@ -1385,134 +1158,6 @@ function specializedTestOutcome(entry: CompiledEffectGroup['entries'][number]): 
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
   }
   return boundedTestOutcome(entry)
-}
-
-type ImmediatePrimaryDamageEntry = CompiledEffectGroup['entries'][number] & {
-  resultBlockId: string
-  outcome: Extract<
-    Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>['outcome'],
-    { effectKind: 'DAMAGE' }
-  >
-}
-type ImmediateSaveEntry = CompiledEffectGroup['entries'][number] & {
-  resultBlockId: string
-  outcome: Extract<
-    Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>['outcome'],
-    { effectKind: 'FOLLOW_UP_SAVE' }
-  >
-}
-
-type FollowUpSaveConditionOutcome = Extract<
-  Extract<FollowUpSaveOutcome['onFailure'], { kind: 'OUTCOMES' }>['outcomes'][number],
-  { effectKind: 'CONDITION' }
->
-
-/**
- * A save a hit calls for at once, settled inside the hit's OUTCOME so it cannot become an
- * independently invoked action or a delayed workflow: one roll against a fixed DC, whose failure
- * has outcomes and whose success ends it or has outcomes of its own.
- */
-function isImmediateFollowUpSave(save: FollowUpSaveOutcome): save is FollowUpSaveOutcome & {
-  attempts: Extract<FollowUpSaveOutcome['attempts'], { kind: 'ONCE' }>
-  savingThrow: Extract<FollowUpSaveOutcome['savingThrow'], { dcMethod: 'FIXED_DC' }>
-} {
-  return (
-    save.timing === 'IMMEDIATE' &&
-    save.attempts.kind === 'ONCE' &&
-    save.savingThrow.dcMethod === 'FIXED_DC' &&
-    UUID.test(save.savingThrow.abilityDefinitionId) &&
-    Number.isSafeInteger(save.savingThrow.baseDc) &&
-    save.onFailure.kind === 'OUTCOMES' &&
-    (save.onSuccess.kind === 'END' || save.onSuccess.kind === 'OUTCOMES')
-  )
-}
-
-/**
- * The second condition a repeated save leaves in place of the held one when it fails ("restrained,
- * then petrified"): its only failure outcome, ending the held effect. Null for any other repeat.
- */
-function escalationCondition(repeat: FollowUpSaveOutcome): FollowUpSaveConditionOutcome | null {
-  const { onFailure } = repeat
-  const [outcome] = onFailure.kind === 'OUTCOMES' ? onFailure.outcomes : []
-  return onFailure.kind === 'OUTCOMES' &&
-    onFailure.endCurrent &&
-    onFailure.outcomes.length === 1 &&
-    outcome?.effectKind === 'CONDITION' &&
-    UUID.test(outcome.conditionId)
-    ? outcome
-    : null
-}
-
-/**
- * An immediate save whose failure holds a condition and a one-time repeat at the end of the
- * target's next turn that escalates it (Cockatrice Bite). The conditions are not yet checked
- * against the System vocabulary; the plan does.
- */
-function escalatingImmediateSave(save: FollowUpSaveOutcome): {
-  condition: FollowUpSaveConditionOutcome
-  repeat: FollowUpSaveOutcome
-  escalation: FollowUpSaveConditionOutcome
-} | null {
-  const { onFailure } = save
-  if (onFailure.kind !== 'OUTCOMES' || onFailure.outcomes.length !== 2) return null
-  const [condition, repeat] = onFailure.outcomes
-  if (condition?.effectKind !== 'CONDITION' || repeat?.effectKind !== 'FOLLOW_UP_SAVE') return null
-  const escalation = escalationCondition(repeat)
-  return escalation &&
-    save.attempts.kind === 'ONCE' &&
-    save.attempts.repeatOnFailure !== true &&
-    repeat.timing === 'TARGET_TURN_END' &&
-    repeat.attempts.kind === 'ONCE' &&
-    repeat.attempts.repeatOnFailure !== true &&
-    repeat.onSuccess.kind === 'END' &&
-    !repeat.repeatAttemptGate &&
-    !repeat.repeatRollInfluence &&
-    (repeat.onDurationComplete === undefined || repeat.onDurationComplete.kind === 'END')
-    ? { condition, repeat, escalation }
-    : null
-}
-
-function immediateFollowUpSaveEntries(entries: readonly CompiledEffectGroup['entries'][number][]): {
-  primaryDamageEntries: readonly ImmediatePrimaryDamageEntry[]
-  saveEntry: ImmediateSaveEntry
-} | null {
-  const saveEntry = entries.at(-1)
-  const primaryDamageEntries = entries.slice(0, -1)
-  if (!saveEntry) return null
-  if (!('resultBlockId' in saveEntry) || !('outcome' in saveEntry)) return null
-  const resultBlockId = saveEntry.resultBlockId
-  if (
-    saveEntry.resolutionKind !== 'DIRECT' ||
-    // A hit with no damage before its save (Spit Poison) is a SINGLE group of that one save.
-    (saveEntry.groupKind !== 'SEQUENTIAL' &&
-      !(primaryDamageEntries.length === 0 && saveEntry.groupKind === 'SINGLE')) ||
-    saveEntry.pathCode !== 'ON_HIT' ||
-    saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE'
-  ) {
-    return null
-  }
-  const primary = [] as ImmediatePrimaryDamageEntry[]
-  for (const entry of primaryDamageEntries) {
-    if (!('resultBlockId' in entry) || !('outcome' in entry)) return null
-    const outcome = entry.outcome
-    if (
-      entry.resolutionKind !== 'DIRECT' ||
-      entry.groupKind !== 'SEQUENTIAL' ||
-      entry.pathCode !== 'ON_HIT' ||
-      entry.resultBlockId !== resultBlockId ||
-      outcome.effectKind !== 'DAMAGE' ||
-      primaryDamageDiceCount(outcome) === null ||
-      !UUID.test(entry.entryId) ||
-      !isUuid(outcome.damageTypeId)
-    ) {
-      return null
-    }
-    primary.push(entry as ImmediatePrimaryDamageEntry)
-  }
-  return {
-    primaryDamageEntries: primary,
-    saveEntry: saveEntry as ImmediateSaveEntry
-  }
 }
 
 /**
@@ -1593,7 +1238,7 @@ function repeatingImmediateFollowUpSavePlan(
     ...repeatSave,
     perceptionContributions: [],
     maintenance: maintenancePlan(action, saveEntry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -1617,7 +1262,6 @@ function timedImmediateConditionPlan(
   const resolved = immediateFollowUpSaveEntries(action.compiledEffect.entries)
   const save = resolved?.saveEntry.outcome
   if (
-    !duration ||
     !resolved ||
     !save ||
     !isImmediateFollowUpSave(save) ||
@@ -1626,19 +1270,30 @@ function timedImmediateConditionPlan(
     save.onDurationComplete
   )
     return null
+  // A band that times its own conditions (D172) has no one duration to share.
+  const band = timedBandConditions(save)
+  if (band && duration) unsupported('D&D a timed band takes no duration from its result block.')
   const failure = save.onFailure
-  const condition = failure.kind === 'OUTCOMES' ? failure.outcomes[0] : undefined
-  const initialRemaining = conditionDurationTurns(duration)
+  const condition = band
+    ? band.primary.condition
+    : failure.kind === 'OUTCOMES'
+      ? failure.outcomes[0]
+      : undefined
+  const initialRemaining = band ? band.primary.turns : duration && conditionDurationTurns(duration)
   const rider = save.failureMarginRider
+  if (band && rider) unsupported('D&D a timed band takes no failure-margin rider.')
   const knownConditionIds = action.conditionDefinitionIds ?? []
   // The duration times the failed save's one condition; any other failure has nothing to time.
   if (
     failure.kind !== 'OUTCOMES' ||
-    failure.outcomes.length !== 1 ||
+    (!band && failure.outcomes.length !== 1) ||
     condition?.effectKind !== 'CONDITION' ||
-    initialRemaining === null ||
+    !initialRemaining ||
     !knownConditionIds.includes(condition.conditionId) ||
     !UUID.test(resolved.saveEntry.resultBlockId) ||
+    band?.riders.some(
+      ({ conditionContributions: [c] }) => !knownConditionIds.includes(c!.conditionId)
+    ) ||
     rider?.outcomes.some(({ conditionId }) => !knownConditionIds.includes(conditionId))
   )
     return null
@@ -1659,24 +1314,7 @@ function timedImmediateConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, resolved.saveEntry),
-    marginRider: rider ? marginRiderPlan(rider) : null
-  }
-}
-
-/** The second active effect a failure-margin rider holds its conditions in. */
-function marginRiderPlan(
-  rider: FailureMarginRiderAuthored
-): NonNullable<CharacterRuleActionActiveEffectPlan['marginRider']> {
-  return {
-    compiledEntryId: rider.id,
-    frozenGraphNodeId: 'rider-condition-duration',
-    failedBy: rider.failedBy,
-    conditionContributions: rider.outcomes.map((outcome) => ({
-      conditionId: outcome.conditionId,
-      recordsSource: outcome.recordsSource === true,
-      fleesSource: outcome.fleesSource === true
-    })),
-    lifecycle: { endOnTriggers: canonicalEndTriggers(rider.lifecycle.endOnTriggers ?? []) }
+    marginRiders: band ? band.riders : rider ? [marginRiderPlan(rider, condition.id)] : []
   }
 }
 
@@ -1800,7 +1438,7 @@ function timedConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance,
-    marginRider: rider ? marginRiderPlan(rider) : null
+    marginRiders: rider ? [marginRiderPlan(rider)] : []
   }
 }
 
@@ -1872,7 +1510,7 @@ function sourceImmunityPlan(
       initialRemaining: null,
       frozenGraph: durationPublishedGraph({
         effectId: action.effectId,
-        plan: { ...plan, marginRider: null }
+        plan: { ...plan, marginRiders: [] }
       })
     }
   }
@@ -1899,7 +1537,7 @@ function sourceImmunityPlan(
     initialRemaining,
     frozenGraph: durationPublishedGraph({
       effectId: action.effectId,
-      plan: { ...plan, marginRider: null }
+      plan: { ...plan, marginRiders: [] }
     })
   }
 }
@@ -1922,7 +1560,7 @@ export function incomingGateImmunityPlan(input: { wardId: string; duration: Comp
       initialRemaining,
       frozenGraph: durationPublishedGraph({
         effectId: input.wardId,
-        plan: { ...plan, marginRider: null }
+        plan: { ...plan, marginRiders: [] }
       })
     }
   }
@@ -1934,28 +1572,6 @@ const GRANT_END_TRIGGER_EVENTS: ReadonlySet<string> = new Set([
   'ATTACK_ROLL',
   'SPELL_CAST'
 ])
-
-/** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
-function canonicalEndTriggers(
-  triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
-): ActiveEffectEndTrigger[] {
-  const compiled = triggers.map((trigger): ActiveEffectEndTrigger => {
-    if (trigger.event === 'ACTION_USED_ON_HOLDER')
-      return {
-        event: trigger.event,
-        actionDefinitionIds: [...new Set(trigger.actionDefinitionIds)].sort()
-      }
-    if (trigger.event !== 'DAMAGE_TAKEN') return trigger
-    const { event, by, damageTypeIds } = trigger
-    return {
-      event,
-      by,
-      damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null
-    }
-  })
-  const keyed = new Map(compiled.map((trigger) => [JSON.stringify(trigger), trigger]))
-  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
-}
 
 /** The authored repeat triggers as the stored effect carries them: filters explicit, canonical order. */
 function canonicalRepeatTriggers(
@@ -2384,7 +2000,7 @@ function modifierGrantEntryPlan(input: {
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -2425,7 +2041,7 @@ function actorLinkPlan(
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -2496,7 +2112,7 @@ function creatureFormPlan(
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -2536,7 +2152,7 @@ function concealmentPlan(
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -2554,7 +2170,7 @@ function durationPublishedGraph(input: {
     | 'modifierGrantContribution'
     | 'actorLinkContribution'
     | 'creatureFormContribution'
-    | 'marginRider'
+    | 'marginRiders'
     | 'repeatCarrier'
   >
 }): ServerPublishedRuleDefinitionDto {
@@ -2571,7 +2187,7 @@ function durationPublishedGraph(input: {
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
       input.plan.frozenGraphNodeId,
-      input.plan.marginRider?.frozenGraphNodeId,
+      ...input.plan.marginRiders.map(({ frozenGraphNodeId }) => frozenGraphNodeId),
       input.plan.repeatCarrier?.frozenGraphNodeId
     ].flatMap((id) =>
       id
@@ -2606,14 +2222,10 @@ function durationPublishedGraph(input: {
               { compiledEntryId: { kind: 'LITERAL', value: input.plan.compiledEntryId } },
     sourceEntryBindings: [
       { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId },
-      ...(input.plan.marginRider
-        ? [
-            {
-              sourceEntryId: input.plan.marginRider.compiledEntryId,
-              nodeId: input.plan.marginRider.frozenGraphNodeId
-            }
-          ]
-        : []),
+      ...input.plan.marginRiders.map(({ compiledEntryId, frozenGraphNodeId }) => ({
+        sourceEntryId: compiledEntryId,
+        nodeId: frozenGraphNodeId
+      })),
       ...(input.plan.repeatCarrier
         ? [
             {
@@ -2624,600 +2236,7 @@ function durationPublishedGraph(input: {
         : [])
     ]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
-}
-
-/**
- * The zones an action lets its caster pick one of at cast (D140), one plan per option, or null when
- * it offers no zone pick. The options must agree on what is settled before the pick: where the zone
- * is anchored, whether the caster spares creatures, and the Concentration the cast opens; each may
- * have its own area, aimed after the pick (D154).
- */
-function zoneChoicePlan(
-  action: Dnd5eCompiledEffectActionSource
-): CharacterRuleActionZoneChoicePlan | null {
-  const choices = castChoiceOptions(action.compiledEffect)
-  if (!choices) return null
-  const options = choices.flatMap(({ optionId, label, compiledEffect }) => {
-    const zone = zonePlacementPlan({ ...action, compiledEffect })
-    return zone ? [{ optionId, label, zone }] : []
-  })
-  if (options.length !== choices.length) return null
-  // Zones that use the caster's save DC share its save too, since the cast resolves one.
-  const settled = ({ zone }: (typeof options)[number]) =>
-    checksumCanonicalJson([
-      zone.attachment,
-      zone.choosesUnaffected ?? false,
-      zone.maintenance,
-      zone.entry.castSaveDcFactKey ? zone.entry.adapterFacts : null
-    ])
-  if (new Set(options.map(settled)).size !== 1)
-    unsupported(
-      'The zones a cast picks between share their anchor, the creatures they spare, their Concentration and any save at the caster’s DC.'
-    )
-  return { options }
-}
-
-/**
- * The zone a PLACED_SPACE or SOURCE manifest action places: its first component over the zone's
- * shape, each later one over a band beside its wall on the side the caster picks (D154), all
- * maintained by the Concentration the cast opens, and the grant its placer holds (D153).
- */
-function zonePlacementPlan(
-  action: Dnd5eCompiledEffectActionSource
-): CharacterRuleActionZonePlacementPlan | null {
-  const zone = placedSpaceZone(action.compiledEffect)
-  if (!zone) return null
-  const [first, ...later] = zone.components
-  const { appearSave } = zone
-  if (later.length > 1) unsupported('A zone reaches at most one band beside its wall.')
-  // A passive zone's radius scaled by class level is resolved when it is placed on its source's
-  // token (D155); a cast's area is aimed before any source resolves it, and no other size scales.
-  const passive = action.compiledEffect.invocation.kind === 'PASSIVE'
-  if (
-    Object.entries(zone.shape).some(
-      ([key, measurement]) =>
-        typeof measurement === 'object' &&
-        'scaling' in measurement &&
-        measurement.scaling !== undefined &&
-        (!passive || key !== 'radius' || measurement.scaling.scalingSource !== 'CLASS_LEVEL')
-    )
-  )
-    unsupported('A zone size scales only as a passive zone’s radius by class level.')
-  const placementKind = encounterZoneChoiceTarget(
-    { ...zone, regionComponents: later.map(({ component }) => ({ region: component.region! })) },
-    action.compiledEffect.invocation.range.rangeKind
-  )?.kind
-  // A directed area is aimed, not placed; a zone is left where its action is centered or its wall
-  // is drawn (D154), and a source zone is centered on the caster. Only a wall has a side to reach.
-  if (zone.attachment === 'SOURCE' ? placementKind !== 'CASTER_CENTERED' : !placementKind)
-    unsupported(
-      later.length
-        ? 'A zone with a band beside it is a straight wall or a ring.'
-        : zone.attachment === 'SOURCE'
-          ? 'A source zone is centered on the caster.'
-          : 'A placed zone takes a point, a wall or a ring within range, or the caster as its center.'
-    )
-  // A zone no creature interacts with is placed with no triggers; its appear save, if any, is its
-  // provenance and names the condition it holds (Entangle's restraint), and its one component, if
-  // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).
-  // A zone with components holds only theirs.
-  const terrain =
-    first && !first.behavior && !first.component.occupantSaveBonus ? first.component : null
-  if (terrain && later.length)
-    unsupported('A zone whose component only prices movement has no band beside its wall.')
-  if (
-    first &&
-    !terrain &&
-    appearSave?.entries.some((entry) => 'lifecycle' in entry && entry.lifecycle?.heldBySource)
-  )
-    unsupported(
-      'Only a zone no creature interacts with holds the condition its appear save applies.'
-    )
-  if (first && !first.behavior && !terrain)
-    return occupantBonusZonePlacementPlan(action, zone, first.component)
-  const primary =
-    first && (!terrain || !appearSave)
-      ? zoneComponentPlan(action, zone, first, terrain ? { triggerModes: [] } : undefined)
-      : zoneComponentPlan(
-          action,
-          zone,
-          {
-            component: { id: appearSave!.id, order: 1, label: zone.label, ...terrain },
-            behavior: appearSave!
-          },
-          { triggerModes: [] }
-        )
-  // Each band is a record of its own, sparing whom the zone spares.
-  const regionComponents = later.map((planned) => {
-    const { region, choosesUnaffected, perDistanceMoved, label } = planned.component
-    if (!planned.behavior) unsupported('A zone’s band beside its wall acts where it reaches.')
-    if (choosesUnaffected)
-      unsupported('A zone’s region component spares the creatures the zone spares.')
-    if (perDistanceMoved) unsupported('Only a zone’s own component acts per distance moved.')
-    const { attachment, shape, ringThickness, maintenance, ...component } = zoneComponentPlan(
-      action,
-      zone,
-      planned
-    )
-    if (checksumCanonicalJson(maintenance) !== checksumCanonicalJson(primary.maintenance))
-      unsupported('Every component of a zone depends on the Concentration its cast opens.')
-    return { region: region!, ...component, label }
-  })
-  const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
-  return {
-    ...primary,
-    ...(regionComponents.length ? { regionComponents } : {}),
-    ...(sourceGrant ? { sourceGrant } : {})
-  }
-}
-
-/**
- * A zone that only lends its occupants a save bonus (D155): an untriggered source zone with one
- * component and no other rule, whose entry is a lasting graph so its spatial definition keeps the
- * shape every zone has. Placement resolves a passive zone's amount and class-level radius against
- * its source.
- */
-function occupantBonusZonePlacementPlan(
-  action: Dnd5eCompiledEffectActionSource,
-  zone: PlacedSpaceZone,
-  component: PlacedSpaceZone['components'][number]['component']
-): CharacterRuleActionZonePlacementPlan {
-  const bonus = component.occupantSaveBonus
-  if (!bonus) unsupported('A placed zone component needs exactly one behavior.')
-  if (zone.attachment !== 'SOURCE')
-    unsupported('An occupant save bonus is lent by a zone centered on its source.')
-  if (bonus.amountKind !== 'FIXED' && action.compiledEffect.invocation.kind !== 'PASSIVE')
-    unsupported('A save bonus of its source’s modifier is lent by a passive zone.')
-  if (
-    zone.components.length !== 1 ||
-    component.interactionKinds?.length ||
-    component.bypassAtHalfSpeed ||
-    component.choosesUnaffected ||
-    component.maxApplicationsPerTurn !== undefined ||
-    component.requiresFullyWithin ||
-    component.requiredSight?.length ||
-    component.movementCostMultiplier !== undefined ||
-    component.perDistanceMoved ||
-    component.blockingRules?.length ||
-    component.automaticSaveSuccessImmunityDamageTypeId !== undefined ||
-    zone.ringThickness ||
-    zone.sourceGrantEntry
-  )
-    unsupported('A zone lending an occupant save bonus has no trigger or other rule.')
-  return {
-    attachment: 'SOURCE',
-    label: zone.label,
-    shape: zone.shape,
-    triggerModes: [],
-    occupantSaveBonus: {
-      domain: bonus.domain,
-      dispositionFilter: bonus.dispositionFilter,
-      amount:
-        bonus.amountKind === 'FIXED'
-          ? { kind: 'FIXED', value: bonus.amount }
-          : {
-              kind: 'SOURCE_ABILITY_MODIFIER',
-              ability: bonus.ability,
-              minimum: bonus.minimum ?? null
-            }
-    },
-    ...lastingZoneEntry(action, zone)
-  }
-}
-
-/**
- * The entry of a zone that runs no rule of its own (an occupant save bonus, or terrain placed with
- * no appear save): a lasting graph from the zone's manifest entry, so its spatial definition keeps
- * the shape every zone has, maintained only by the Concentration its cast opens.
- */
-function lastingZoneEntry(
-  action: Dnd5eCompiledEffectActionSource,
-  zone: PlacedSpaceZone
-): Pick<CharacterRuleActionZonePlacementPlan, 'entry' | 'grant' | 'maintenance'> {
-  const { entry } = zone
-  if (!UUID.test(entry.entryId)) unsupported('A placed zone outcome needs a compiled identity.')
-  const plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
-    authoredEffectId: action.effectId,
-    compiledEntryId: entry.entryId,
-    frozenGraphNodeId: 'proposal-on_use',
-    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'NONE',
-    initialRemaining: null,
-    adapterFacts: {},
-    castSaveDcFactKey: null,
-    perceptionContributions: [],
-    maintenance: null,
-    marginRider: null
-  }
-  return {
-    entry: { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) },
-    grant: null,
-    maintenance: maintenancePlan(action, entry)
-  }
-}
-
-/**
- * What one component of a placed zone does where it reaches (D154). Its one entering behavior is a
- * saving throw against a fixed DC or the caster's save DC (stored when the zone is placed) whose
- * failure stops the mover, deals damage and may leave a grant that lasts until its authored end
- * event; or, for a zone that acts only at turn boundaries or on entry, damage dealt with no save
- * (D144). Anything else the behavior authors is refused rather than partly honored.
- */
-function zoneComponentPlan(
-  action: Dnd5eCompiledEffectActionSource,
-  zone: PlacedSpaceZone,
-  { component, behavior }: PlacedSpaceZone['components'][number],
-  triggers = zoneTriggers(component)
-): Omit<CharacterRuleActionZonePlacementPlan, 'regionComponents' | 'sourceGrant'> {
-  if (!behavior && !component.movementCostMultiplier)
-    unsupported('Only a zone’s own component lends an occupant save bonus.')
-  const {
-    requiresFullyWithin,
-    requiredSight,
-    movementCostMultiplier,
-    perDistanceMoved,
-    blockingRules,
-    automaticSaveSuccessImmunityDamageTypeId: successImmunity
-  } = component
-  if (requiresFullyWithin && triggers?.triggerModes.length)
-    unsupported('A zone that catches only creatures fully within it acts only at turn boundaries.')
-  if (!triggers) unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
-  if (
-    movementCostMultiplier !== undefined &&
-    !zoneMovementCostMultiplierSchema.safeParse(movementCostMultiplier).success
-  )
-    unsupported('A zone movement cost multiplies the cost of moving by more than 1, up to 100.')
-  if (triggers.retaliatesMeleeHits && zone.attachment !== 'SOURCE')
-    unsupported('Only a zone centered on its source answers a melee hit on that source.')
-  // Transitional (D156): per distance moved, a zone deals damage to whoever enters or moves within
-  // it, until content needs a save, a turn boundary or a per-turn limit beside it.
-  if (
-    perDistanceMoved &&
-    (!triggers.triggerModes.includes('ENTER') ||
-      triggers.turnTriggers ||
-      triggers.retaliatesMeleeHits ||
-      component.maxApplicationsPerTurn !== undefined ||
-      action.compiledEffect.invocation.triggerCode === 'SAVING_THROW')
-  )
-    unsupported('A zone acting per distance moved deals damage with no save to whoever enters it.')
-  const placement = {
-    attachment: zone.attachment,
-    label: zone.label,
-    shape: zone.shape,
-    ...(zone.ringThickness ? { ringThickness: zone.ringThickness } : {}),
-    ...triggers,
-    bypassAtHalfSpeed: component.bypassAtHalfSpeed === true,
-    ...(component.choosesUnaffected ? { choosesUnaffected: true } : {}),
-    ...(component.maxApplicationsPerTurn
-      ? { maxApplicationsPerTurn: component.maxApplicationsPerTurn }
-      : {}),
-    ...(requiresFullyWithin ? { requiresFullyWithin: true } : {}),
-    ...(requiredSight?.length ? { requiredSight: [...new Set(requiredSight)].sort() } : {}),
-    ...(movementCostMultiplier ? { movementCostMultiplier } : {}),
-    ...(perDistanceMoved
-      ? { perDistanceMoved: { amount: perDistanceMoved.amount, unit: perDistanceMoved.unit } }
-      : {}),
-    ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
-  }
-  if (!behavior) return { ...placement, ...lastingZoneEntry(action, zone) }
-  const { invocation, entries } = behavior
-  const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
-  const zoneSave =
-    savingThrow &&
-    dnd5eRepeatSave({
-      abilityDefinitionId: savingThrow.abilityDefinitionId,
-      savingThrow,
-      requestNodeId: 'd20'
-    })
-  if (requiredSight?.length && invocation.triggerCode !== 'SAVING_THROW')
-    unsupported('A zone that needs sight of its source gates a saving throw.')
-  if (invocation.triggerCode !== 'SAVING_THROW')
-    return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
-  if (
-    invocation.triggerCode !== 'SAVING_THROW' ||
-    !zoneSave ||
-    entries.some(
-      (entry) =>
-        entry.resolutionKind !== 'DIRECT' ||
-        !('outcome' in entry) ||
-        (entry.pathCode !== 'ON_SAVE_FAIL' && entry.pathCode !== 'ON_SAVE_SUCCESS') ||
-        entry.rangeOverride ||
-        entry.targetingOverride
-    )
-  )
-    unsupported('A placed zone behavior is a saving throw with direct save outcomes.')
-  const failEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_FAIL')
-  const madeEntries = entries.filter((entry) => entry.pathCode === 'ON_SAVE_SUCCESS')
-  if (requiredSight?.length && madeEntries.length)
-    unsupported('A zone that needs sight of its source has no outcome for a made save.')
-  // D142: a failed save composes damage rows with at most one of each other outcome kind.
-  const outcomeEntries = (effectKind: string, ruleKind?: string) =>
-    failEntries.filter(
-      (entry) =>
-        'outcome' in entry &&
-        entry.outcome.effectKind === effectKind &&
-        (ruleKind === undefined ||
-          ('ruleKind' in entry.outcome && entry.outcome.ruleKind === ruleKind))
-    )
-  const damageRows = outcomeEntries('DAMAGE')
-  const singles = {
-    stop: outcomeEntries('MOVEMENT_RULE', 'STOP_CURRENT_MOVEMENT'),
-    grant: outcomeEntries('APPLY_GRANT'),
-    condition: outcomeEntries('CONDITION'),
-    lostAction: outcomeEntries('ACTION_ECONOMY_RULE', 'LOSE_ACTION')
-  }
-  const [stop] = singles.stop
-  const [grant] = singles.grant
-  const [condition] = singles.condition
-  const [lostAction] = singles.lostAction
-  const composed = Object.values(singles).reduce((count, list) => count + list.length, 0)
-  if (
-    failEntries.length === 0 ||
-    Object.values(singles).some((list) => list.length > 1) ||
-    damageRows.length + composed !== failEntries.length ||
-    madeEntries.some((entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'DAMAGE')
-  )
-    unsupported(
-      'A placed zone failure composes damage with at most one stop, grant, condition and lost action; a made save only deals damage.'
-    )
-  if (
-    condition &&
-    'outcome' in condition &&
-    condition.outcome.effectKind === 'CONDITION' &&
-    !(action.conditionDefinitionIds ?? []).includes(condition.outcome.conditionId)
-  )
-    unsupported('A placed zone condition is not in the pinned System vocabulary.')
-  // The Action is lost for the turn just starting, after its allowances refresh.
-  if (
-    lostAction &&
-    (triggers.triggerModes.length > 0 ||
-      triggers.turnTriggers?.length !== 1 ||
-      triggers.turnTriggers[0] !== 'START_OF_TURN')
-  )
-    unsupported('A placed zone failure that costs the Action acts only at the start of a turn.')
-  // The graph proposes the damage, else the condition; a condition beside damage has a proposal of
-  // its own, and a failure without either binds the save itself.
-  const proposed =
-    damageRows.length > 0 ? zoneDamageRow(damageRows, action.spellCastLevel) : condition
-  const besideDamage = damageRows.length > 0 ? condition : undefined
-  const heldCondition = condition ? zoneHeldCondition(condition) : null
-  const primary = proposed ?? lostAction ?? grant ?? stop
-  const madeDamageRows =
-    madeEntries.length > 0 ? [zoneDamageRow(madeEntries, action.spellCastLevel)] : []
-  if (!primary || !UUID.test(primary.entryId))
-    unsupported('A placed zone outcome needs a compiled identity.')
-  const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
-    authoredEffectId: action.effectId,
-    compiledEntryId: primary.entryId,
-    frozenGraphNodeId: proposed ? 'proposal-on_save_fail' : 'test',
-    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'NONE',
-    initialRemaining: null,
-    adapterFacts: {
-      ...zoneSave.adapterFacts,
-      ...(successImmunity
-        ? {
-            [DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]:
-              damageTypeIdentity(successImmunity)
-          }
-        : {})
-    },
-    castSaveDcFactKey: zoneSave.castSaveDcFactKey,
-    perceptionContributions: [],
-    maintenance: null,
-    marginRider: null
-  }
-  const saveGraph = compileTestDefinition(
-    action,
-    {
-      kind: 'SAVE',
-      branches: new Map([
-        ...(proposed
-          ? [['ON_SAVE_FAIL', zoneDamageOutcome(proposed, 'ON_SAVE_FAIL')] as const]
-          : []),
-        ...madeDamageRows.map(
-          (row) => ['ON_SAVE_SUCCESS', zoneDamageOutcome(row, 'ON_SAVE_SUCCESS')] as const
-        )
-      ]),
-      ...(besideDamage
-        ? {
-            conditions: new Map([
-              [
-                'ON_SAVE_FAIL',
-                { outcome: boundedTestOutcome(besideDamage), entryId: besideDamage.entryId }
-              ]
-            ])
-          }
-        : {})
-    },
-    entryPlan
-  )
-  const lingeringPlan = grant
-    ? modifierGrantEntryPlan({
-        action,
-        entry: grant,
-        resultGated: false,
-        untilEndEvent: true
-      })
-    : null
-  const lingering = lingeringPlan?.modifierGrantContribution
-  // The grant is read only for its modifiers and end events; one that is also consumed or
-  // maintained would silently lose that behavior on a creature.
-  if (
-    grant &&
-    (!lingering || lingering.consumeOnFirstEvents.length > 0 || lingeringPlan?.maintenance)
-  )
-    unsupported('A placed zone grant must last until its end event.')
-  const maintenance = maintenancePlan(action, primary)
-  // A held condition ends with its zone through the zone's maintenance, which nothing else ends.
-  if (heldCondition && !heldCondition.endsAtEndOfHolderTurn && !maintenance)
-    unsupported('A zone-held condition needs a zone that Concentration maintains.')
-  if (heldCondition?.escape && !zone.label)
-    unsupported('A zone-held condition escape names its zone.')
-  return {
-    ...placement,
-    // A creature leaving the area is released there: the exit ends its holder effect, never a save.
-    ...(heldCondition?.endsOnLeavingArea
-      ? {
-          triggerModes: (['ENTER', 'EXIT', 'CROSS'] as const).filter(
-            (trigger) => trigger === 'EXIT' || placement.triggerModes.includes(trigger)
-          )
-        }
-      : {}),
-    ...(lostAction ? { failedSaveLosesAction: true } : {}),
-    ...(heldCondition ? { heldCondition } : {}),
-    entry: {
-      ...entryPlan,
-      frozenGraph: stop ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
-    },
-    grant: lingering
-      ? {
-          applyGrantOutcomeId: lingering.applyGrantOutcomeId,
-          modifiers: [...lingering.modifiers],
-          senses: [...lingering.senses],
-          endOnEvents: [...lingering.endOnEvents]
-        }
-      : null,
-    maintenance
-  }
-}
-
-/**
- * The condition a zone holds on a creature failing its save (D146), or null when it is unheld. An
- * unheld condition carries none of the held terms (the result's other lifecycle is its grant's); a
- * held one ends with its zone, and when authored on leaving the area or through its escape.
- */
-function zoneHeldCondition(
-  entry: CompiledEffectGroup['entries'][number]
-): NonNullable<CharacterRuleActionZonePlacementPlan['heldCondition']> | null {
-  if (!('outcome' in entry) || entry.outcome.effectKind !== 'CONDITION')
-    unsupported('A placed zone condition is a direct condition outcome.')
-  const {
-    heldBySource,
-    endOnEvents = [],
-    escape,
-    turnAnchor,
-    ...otherLifecycle
-  } = entry.lifecycle ?? {}
-  const unread =
-    turnAnchor !== undefined || Object.values(otherLifecycle).some((value) => value !== undefined)
-  if (!heldBySource) {
-    if (endOnEvents.includes('ON_LEAVING_AREA') || escape)
-      unsupported('A placed zone condition that its zone does not hold has no leave or escape.')
-    if (!turnAnchor) return null
-    // The one timed form: until the end of the holder's turn, which the occupant's own turn
-    // boundary counts, so it neither outlasts the turn nor depends on the zone's lifetime.
-    if (
-      turnAnchor.actor !== 'TARGET' ||
-      turnAnchor.boundary !== 'END_OF_TURN' ||
-      !entry.duration ||
-      conditionDurationTurns(entry.duration) !== 1 ||
-      endOnEvents.length > 0 ||
-      Object.values(otherLifecycle).some((value) => value !== undefined)
-    )
-      unsupported(
-        'A placed zone condition that its zone does not hold lasts until the end of its holder turn.'
-      )
-    return {
-      conditionId: entry.outcome.conditionId,
-      endsAtEndOfHolderTurn: true as const,
-      ...(entry.outcome.recordsSource ? { recordsSource: true as const } : {})
-    }
-  }
-  if (unread || endOnEvents.some((event) => event !== 'ON_LEAVING_AREA'))
-    unsupported(
-      'A zone-held condition ends only with its zone, on leaving the area, or through its escape.'
-    )
-  return {
-    conditionId: entry.outcome.conditionId,
-    ...(endOnEvents.length > 0 ? { endsOnLeavingArea: true as const } : {}),
-    ...(escape
-      ? { escape: { activation: escape.activation, checks: escape.checks, dc: escape.dc } }
-      : {})
-  }
-}
-
-/**
- * The timed grant a zone's placer receives when the zone is placed (D153), counted on its own
- * active-effect clock rather than the zone's, compiled as any timed modifier grant. A grant that is not one is refused rather than dropped.
- */
-function sourceGrantPlan(
-  action: Dnd5eCompiledEffectActionSource,
-  entry: CompiledEffectGroup['entries'][number]
-): CharacterRuleActionActiveEffectPlan {
-  const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
-  if (!plan) unsupported('A zone’s placer holds a timed modifier grant.')
-  return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
-}
-
-/**
- * A zone whose outcome needs no save (D144, D154): it rolls one unmodified damage dice row and deals
- * it in full, with no test node, at a turn boundary or when a mover enters it; its source rolls the
- * dice.
- */
-function unsavedZonePlacementPlan(
-  action: Dnd5eCompiledEffectActionSource,
-  placement: Omit<CharacterRuleActionZonePlacementPlan, 'entry' | 'grant' | 'maintenance'>,
-  entries: readonly CompiledEffectGroup['entries'][number][],
-  successImmunity: CompiledManifestComponent['automaticSaveSuccessImmunityDamageTypeId']
-): CharacterRuleActionZonePlacementPlan {
-  if (
-    successImmunity ||
-    entries.length === 0 ||
-    entries.some(
-      (entry) =>
-        entry.resolutionKind !== 'DIRECT' ||
-        entry.pathCode !== 'ON_USE' ||
-        entry.rangeOverride ||
-        entry.targetingOverride
-    )
-  )
-    unsupported('A zone outcome with no save is direct damage on use.')
-  const row = zoneDamageRow(entries, action.spellCastLevel)
-  const outcome = zoneDamageOutcome(row, 'ON_USE')
-  if (outcome.kind !== 'ENTRY_DICE_DAMAGE' || !UUID.test(row.entryId))
-    unsupported('A zone outcome with no save rolls one damage dice row.')
-  const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
-    authoredEffectId: action.effectId,
-    compiledEntryId: row.entryId,
-    frozenGraphNodeId: 'proposal-on_use',
-    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'NONE',
-    initialRemaining: null,
-    adapterFacts: {},
-    castSaveDcFactKey: null,
-    perceptionContributions: [],
-    maintenance: null,
-    marginRider: null
-  }
-  const definition = diceGraphDefinition({
-    action,
-    entry: row,
-    diceConfig: outcome.diceConfig,
-    recurring: entryPlan
-  })
-  return {
-    ...placement,
-    entry: {
-      ...entryPlan,
-      frozenGraph: serverPublishedRuleDefinitionDtoSchema.parse({
-        id: definition.id,
-        gameSystemId: definition.gameSystemId,
-        definitionFamilyKey: definition.definitionFamilyKey,
-        checksum: checksumRuleDocument(definition),
-        definition
-      })
-    },
-    grant: null,
-    maintenance: maintenancePlan(action, row)
-  }
+  return publishedGraph(definition)
 }
 
 /**
@@ -3370,7 +2389,7 @@ function repeatingDirectFollowUpSavePlan(
     castSaveDcFactKey: triggerCode === 'ACTIVATED' ? null : repeatSave.castSaveDcFactKey,
     perceptionContributions: [],
     maintenance: maintenancePlan(action, leadEntry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -3507,57 +2526,7 @@ function repeatFollowUpSavePublishedGraph(input: {
       }
     ]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
-}
-
-/**
- * A margin rider the nested save can gate: a bounded margin and identified conditions, which share
- * the failed-save path's immunity facts after the failure's own condition.
- */
-function exactFailureMarginRider(rider: FailureMarginRiderAuthored): boolean {
-  return (
-    UUID.test(rider.id) &&
-    Number.isSafeInteger(rider.failedBy) &&
-    rider.failedBy >= 1 &&
-    rider.failedBy <= 30 &&
-    rider.outcomes.length > 0 &&
-    rider.outcomes.length < MAX_CONDITIONS_PER_PATH &&
-    rider.outcomes.every(
-      (outcome) =>
-        outcome.effectKind === 'CONDITION' &&
-        UUID.test(outcome.id) &&
-        UUID.test(outcome.conditionId)
-    )
-  )
-}
-
-/**
- * The dice one primary hit-damage outcome requests before the nested save: its exact bounded
- * term (a flat modifier or ability bonuses allowed, at most 15 dice) or none for a fixed amount.
- */
-function primaryDamageDiceCount(outcome: ImmediatePrimaryDamageEntry['outcome']): number | null {
-  if (outcome.scalingKind !== 'NONE') return null
-  if (outcome.valueKind === 'FIXED')
-    return Number.isSafeInteger(outcome.amount) && outcome.amount > 0 && !outcome.bonuses?.length
-      ? 0
-      : null
-  if (outcome.valueKind !== 'DICE') return null
-  // A constant authored as dice ("1") rolls nothing, like a fixed amount.
-  if (/^[1-9]\d*$/.test(outcome.dice)) return outcome.bonuses?.length ? null : 0
-  try {
-    validateDamageBonuses(outcome.bonuses)
-    const count = parseBoundedDiceConfiguration(outcome.dice).term.count
-    return count <= 15 ? count : null
-  } catch (error) {
-    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
-    throw error
-  }
+  return publishedGraph(definition)
 }
 
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
@@ -3575,6 +2544,11 @@ function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSou
     ...(save.onFailure.kind === 'OUTCOMES' ? save.onFailure.outcomes : []),
     ...(save.onSuccess.kind === 'OUTCOMES' ? save.onSuccess.outcomes : [])
   ]
+  // A band's gate is held by the hit's own graph; a held condition or repeat would bypass it.
+  const gated =
+    (save.onFailure.kind === 'OUTCOMES' && save.onFailure.gate !== undefined) ||
+    (save.onSuccess.kind === 'OUTCOMES' && save.onSuccess.gate !== undefined)
+  if (gated && (repeats || timed || lifecycle)) return false
   return (
     (repeats
       ? repeatingImmediateFollowUpSavePlan(action) !== null
@@ -3640,33 +2614,6 @@ function authoredHealingDiceTerm(published: ServerPublishedRuleDefinitionDto): {
       'D&D dice healing compiled graph has inconsistent authored dice sizes.'
     )
   return { count: dieNodes.size, die }
-}
-
-function validateDamageBonuses(value: unknown): void {
-  if (value === undefined) return
-  if (!Array.isArray(value) || value.length > 100)
-    unsupported('D&D dice outcome bonuses exceed the bounded contract.')
-  for (const bonus of value) {
-    if (!bonus || typeof bonus !== 'object' || Array.isArray(bonus))
-      unsupported('D&D dice outcome bonus is malformed.')
-    const row = bonus as Record<string, unknown>
-    if (
-      (row.bonusKind !== 'ABILITY_BONUS' &&
-        row.bonusKind !== 'SKILL_BONUS' &&
-        row.bonusKind !== 'PROFICIENCY_BONUS') ||
-      !Number.isSafeInteger(row.order) ||
-      Number(row.order) < 0 ||
-      (row.min !== undefined && !Number.isSafeInteger(row.min)) ||
-      (row.max !== undefined && !Number.isSafeInteger(row.max)) ||
-      (row.multiplier !== undefined && !Number.isSafeInteger(row.multiplier)) ||
-      (row.bonusKind === 'ABILITY_BONUS' &&
-        (typeof row.ability !== 'string' || row.ability.length === 0)) ||
-      (row.bonusKind === 'SKILL_BONUS' &&
-        (typeof row.skillId !== 'string' || row.skillId.length === 0))
-    ) {
-      unsupported('D&D dice outcome bonus is malformed.')
-    }
-  }
 }
 
 /**
@@ -3911,17 +2858,146 @@ function executableAction(action: Dnd5eCompiledEffectActionSource) {
   return rulingSequence(action)?.executable ?? action
 }
 
+/** An outcome no test decides, as one proposal node, a dice graph or the action's relationship graph proposes it. */
+type Dnd5eDirectOutcome =
+  | Exclude<
+      SpecializedOutcome,
+      { kind: 'DICE_SCALAR_REDUCTION' | 'HIT_POINT_MAXIMUM_REDUCTION' | 'FORCED_MOVEMENT' }
+    >
+  | { kind: 'DIRECT_RELATIONSHIP' }
+/** What a direct outcome reads from its action once `supported` has resolved its targets and plans. */
+type DirectOutcomeInput = Readonly<{
+  action: Dnd5eCompiledEffectActionSource
+  onList: boolean
+  selfTeleport: { maxFeet: number; destinationKind: 'VISIBLE' | 'SPECIFIED_POINT' } | null
+  plans: Readonly<{ grant: boolean; link: boolean; form: boolean }>
+}>
+type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extract<
+  Dnd5eAuthoredOutcome,
+  { effectKind: Kind }
+>
+
+function unsupportedDirectOutcome(): never {
+  return unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
+}
+// A list runs the action's one graph on each chosen creature, so it carries any outcome that lands
+// on its target. An outcome that acts on the actor (a Dash, a self teleport, a concealment) or on the
+// event a reaction answered has no creature to repeat on; an outcome no cast can run keeps the reason
+// a single target gets, so the list is refused only once it is read.
+function offList<Plan extends Dnd5eDirectOutcome>(plan: Plan, input: DirectOutcomeInput): Plan {
+  if (input.onList)
+    unsupported(
+      'D&D chosen-creature action outcome must land on each chosen creature, not on the actor or a triggering event.'
+    )
+  return plan
+}
+function targetOnlyDirectOutcome(outcome: Dnd5eAuthoredOutcome, input: DirectOutcomeInput) {
+  const targetOnly = dnd5eTargetOnlyOutcome(outcome) ?? unsupportedDirectOutcome()
+  return targetOnly.kind === 'ADD_SPEED_TO_MOVEMENT' ? offList(targetOnly, input) : targetOnly
+}
+function positiveFixedAmount(outcome: AuthoredOutcomeOf<'HEAL' | 'DAMAGE'>): number {
+  if (
+    outcome.valueKind !== 'FIXED' ||
+    outcome.scalingKind !== 'NONE' ||
+    outcome.bonuses?.length ||
+    !Number.isSafeInteger(outcome.amount) ||
+    outcome.amount <= 0
+  )
+    unsupported(
+      'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.'
+    )
+  return outcome.amount
+}
+
+/**
+ * The one dispatch from an authored outcome kind to the direct outcome it compiles to (ADR 0039
+ * decision 1). A kind with no entry is not a direct outcome.
+ */
+const DND5E_DIRECT_OUTCOMES: {
+  [Kind in Dnd5eAuthoredOutcome['effectKind']]?: (
+    outcome: AuthoredOutcomeOf<Kind>,
+    input: DirectOutcomeInput
+  ) => Dnd5eDirectOutcome
+} = {
+  // The action holds its target by its relationship alone (Engulf): the relationship's own graph
+  // is the action's, and its active-effect plan stores the hold.
+  ACTOR_RELATIONSHIP: (_outcome, { action, onList }) => {
+    if (onList) unsupported('D&D chosen-creature action outcome cannot be a relationship.')
+    relationshipPlan(action)
+    return { kind: 'DIRECT_RELATIONSHIP' }
+  },
+  CONDITION: (outcome, input) => {
+    uuid(outcome.conditionId, 'D&D condition definition identity')
+    if (!(input.action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
+      unsupported('D&D Effect action condition is not in the pinned System vocabulary.')
+    return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
+  },
+  KILL: () => ({ kind: 'KILL' }),
+  STABILIZE: targetOnlyDirectOutcome,
+  MANUAL_ADJUDICATION: targetOnlyDirectOutcome,
+  MOVEMENT_RULE: targetOnlyDirectOutcome,
+  TELEPORT: (outcome, input) => {
+    if (dnd5eTargetOnlyOutcome(outcome)) return targetOnlyDirectOutcome(outcome, input)
+    // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
+    // following TELEPORT move spends, bounded by the spell's range.
+    if (!input.selfTeleport) unsupportedDirectOutcome()
+    return offList({ kind: 'TELEPORT_ALLOWANCE', ...input.selfTeleport }, input)
+  },
+  CONCEAL_FROM_OBSERVERS: (_outcome, input) => offList({ kind: 'CONCEAL' }, input),
+  DETECT_CONCEALED: (_outcome, input) => offList({ kind: 'DETECT_CONCEALED' }, input),
+  // The reaction cancels the event it answered: nothing is stored on its target, the cast.
+  CANCEL_TRIGGERING_EVENT: (_outcome, input) => offList({ kind: 'CANCEL_TRIGGERING_EVENT' }, input),
+  APPLY_GRANT: (_outcome, { plans }) =>
+    plans.grant ? { kind: 'MODIFIER_GRANT' } : unsupportedDirectOutcome(),
+  TELEPATHIC_LINK: (_outcome, { plans }) =>
+    plans.link ? { kind: 'ACTOR_LINK' } : unsupportedDirectOutcome(),
+  MANIFEST: (_outcome, { plans }) =>
+    plans.form ? { kind: 'CREATURE_FORM' } : unsupportedDirectOutcome(),
+  HEAL: (outcome, { action }) => {
+    if (outcome.valueKind === 'DICE') {
+      parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
+      validateHealBonuses(outcome.bonuses)
+      return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
+    }
+    const amount = positiveFixedAmount(outcome)
+    return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
+  },
+  DAMAGE: (outcome) => {
+    // Dice damage with no attack or save to decide it (Magic Missile's dart): one roll of the
+    // authored dice, which a bonus or a scaling row would have to be bound to facts to read.
+    if (outcome.valueKind === 'DICE') {
+      if (outcome.scalingKind !== 'NONE' || outcome.bonuses?.length || outcome.halfHitPointsDice)
+        unsupported('D&D direct dice damage must be one unscaled roll with no bonuses.')
+      parseBoundedDiceConfiguration(outcome.dice)
+      uuid(outcome.damageTypeId, 'D&D damage type identity')
+      return { kind: 'DICE_DAMAGE', damageTypeId: outcome.damageTypeId }
+    }
+    const amount = positiveFixedAmount(outcome)
+    uuid(outcome.damageTypeId, 'D&D damage type identity')
+    return {
+      kind: 'DAMAGE',
+      amount: multipliedDamageAmount(amount, damageMultiplier(outcome)),
+      damageTypeId: outcome.damageTypeId
+    }
+  }
+}
+
+function specializedDirectOutcome<Kind extends Dnd5eAuthoredOutcome['effectKind']>(
+  kind: Kind,
+  outcome: AuthoredOutcomeOf<Kind>,
+  input: DirectOutcomeInput
+): Dnd5eDirectOutcome {
+  const specialize = DND5E_DIRECT_OUTCOMES[kind]
+  return specialize ? specialize(outcome, input) : unsupportedDirectOutcome()
+}
+
 // A contest whose win holds the target under the action's relationship (Grapple, D152) compiles
 // to the contest graph alone; its relationship is the action's active-effect plan. A contest whose
 // win applies a condition or moves its target (Shove, D105) tests by the contest graph and
 // specializes its win as the ON_CHECK_SUCCESS outcome.
 function supported(
   action: Dnd5eCompiledEffectActionSource
-):
-  | SpecializedOutcome
-  | { kind: 'CONTEST_RELATIONSHIP' }
-  | { kind: 'CONTEST_OUTCOME' }
-  | { kind: 'DIRECT_RELATIONSHIP' } {
+): Dnd5eDirectOutcome | { kind: 'CONTEST_RELATIONSHIP' } | { kind: 'CHECK_OUTCOME' } {
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
@@ -3975,9 +3051,8 @@ function supported(
         (grantPlan !== null || conditionPlan !== null || checkAction)))
   // A resolved list of chosen creatures, capped (Mass Healing Word) or naming each creature once
   // (Pass without Trace), inside a round area when it names one (Mass Cure Wounds), resolves the one
-  // outcome on each; only a heal or dice damage that needs no test (Magic Missile), or a plan that
-  // holds one active effect per chosen creature (Pass without Trace), is supported, checked below
-  // once the outcome is read.
+  // outcome on each (Magic Missile's darts, Pass without Trace's one active effect per creature);
+  // an outcome that lands on the actor instead is refused once it is read.
   const supportsChosenCreatures =
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
@@ -3994,11 +3069,10 @@ function supported(
     invocation.targeting?.selectionKind === 'AREA_CONTENTS' &&
     hitPointPoolIsAuthored(invocation.targeting) &&
     isSupportedArea(invocation)
-  // A Legendary Action option is free; the Feature charge it spends is its cost.
   const supportedActivation =
     invocation.kind === 'ACTION' &&
     (invocation.activation.code === 'FREE'
-      ? invocation.resourceUse !== undefined
+      ? isChargedFreeActivation(invocation)
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION' ||
           // A reaction to being attacked, to taking damage, to being chosen as a target or to a spell
@@ -4029,7 +3103,8 @@ function supported(
     effect.entries.length !== (repeatPlan ? 2 : 1) ||
     !entry ||
     entry.resolutionKind !== 'DIRECT' ||
-    (entry.groupKind !== 'SINGLE' && !repeatPlan) ||
+    // A sequence of one outcome (Haste) resolves as a single result does.
+    (entry.groupKind === 'CHOICE' && !repeatPlan) ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
     (entry.maintenanceDefinitionId &&
       !repeatPlan &&
@@ -4063,32 +3138,6 @@ function supported(
   const outcome = entry.outcome
   if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
     unsupported('D&D hit-point pool area outcome must be a timed condition.')
-  if (
-    contestAction &&
-    outcome.effectKind !== 'ACTOR_RELATIONSHIP' &&
-    outcome.effectKind !== 'CONDITION' &&
-    outcome.effectKind !== 'FORCED_MOVEMENT'
-  )
-    unsupported(
-      'D&D contest check action outcome must be an actor relationship, a condition or a forced movement.'
-    )
-  if (
-    checkAction &&
-    !contestAction &&
-    outcome.effectKind !== 'STABILIZE' &&
-    outcome.effectKind !== 'CONCEAL_FROM_OBSERVERS' &&
-    outcome.effectKind !== 'DETECT_CONCEALED'
-  )
-    unsupported('D&D check action outcome is not supported yet.')
-  // A list runs only a hit-point, teleport, grant, link or creature form outcome, but an outcome no cast can run keeps the
-  // reason a single target gets, so each other plan below is refused here rather than up front.
-  const notOnAList = <Plan extends SpecializedOutcome>(plan: Plan): Plan => {
-    if (supportsChosenCreatures)
-      unsupported(
-        'D&D chosen-creature action outcome must be a heal, damage, teleport, grant, link or creature form.'
-      )
-    return plan
-  }
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -4131,81 +3180,28 @@ function supported(
       relationshipPlan(action)
       return { kind: 'CONTEST_RELATIONSHIP' }
     }
+  }
+  // Stabilize, conceal and detect settle on a fixed-DC or passive check itself; a contest's win,
+  // and any other success outcome, runs after the check test (D173).
+  const settlesOnCheck =
+    outcome.effectKind === 'STABILIZE' ||
+    outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' ||
+    outcome.effectKind === 'DETECT_CONCEALED'
+  if (contestAction || (checkAction && !settlesOnCheck)) {
     const won = specializedTestOutcome(entry)
     if (
       won.kind === 'CONDITION_APPLY' &&
       !(action.conditionDefinitionIds ?? []).includes(won.conditionId)
     )
-      unsupported('D&D contest check action condition is not in the pinned System vocabulary.')
-    return { kind: 'CONTEST_OUTCOME' }
+      unsupported('D&D check action condition is not in the pinned System vocabulary.')
+    return { kind: 'CHECK_OUTCOME' }
   }
-  // The action holds its target by its relationship alone (Engulf): the relationship's own graph
-  // is the action's, and its active-effect plan stores the hold.
-  if (outcome.effectKind === 'ACTOR_RELATIONSHIP') {
-    if (supportsChosenCreatures)
-      unsupported('D&D chosen-creature action outcome cannot be a relationship.')
-    relationshipPlan(action)
-    return { kind: 'DIRECT_RELATIONSHIP' }
-  }
-  if (outcome.effectKind === 'CONDITION') {
-    uuid(outcome.conditionId, 'D&D condition definition identity')
-    if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
-      unsupported('D&D Effect action condition is not in the pinned System vocabulary.')
-    return notOnAList({ kind: 'CONDITION_APPLY', conditionId: outcome.conditionId })
-  }
-  if (outcome.effectKind === 'KILL') return notOnAList({ kind: 'KILL' })
-  // Each chosen creature departs on its own, so a departure runs on a list too.
-  const targetOnly = dnd5eTargetOnlyOutcome(outcome)
-  if (targetOnly) return targetOnly.kind === 'DEPART' ? targetOnly : notOnAList(targetOnly)
-  // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
-  // following TELEPORT move spends, bounded by the spell's range.
-  if (outcome.effectKind === 'TELEPORT' && selfTeleport)
-    return notOnAList({ kind: 'TELEPORT_ALLOWANCE', ...selfTeleport })
-  if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return notOnAList({ kind: 'CONCEAL' })
-  if (outcome.effectKind === 'DETECT_CONCEALED') return notOnAList({ kind: 'DETECT_CONCEALED' })
-  // The reaction cancels the event it answered: nothing is stored on its target, the cast.
-  if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT')
-    return notOnAList({ kind: 'CANCEL_TRIGGERING_EVENT' })
-  if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
-  if (outcome.effectKind === 'TELEPATHIC_LINK' && linkPlan) return { kind: 'ACTOR_LINK' }
-  if (outcome.effectKind === 'MANIFEST' && formPlan) return { kind: 'CREATURE_FORM' }
-  if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
-    unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
-  if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
-    parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
-    validateHealBonuses(outcome.bonuses)
-    return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
-  }
-  // Dice damage with no attack or save to decide it (Magic Missile's dart): one roll of the authored
-  // dice, which a bonus or a scaling row would have to be bound to facts to read.
-  if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {
-    if (outcome.scalingKind !== 'NONE' || outcome.bonuses?.length || outcome.halfHitPointsDice)
-      unsupported('D&D direct dice damage must be one unscaled roll with no bonuses.')
-    parseBoundedDiceConfiguration(outcome.dice)
-    uuid(outcome.damageTypeId, 'D&D damage type identity')
-    return { kind: 'DICE_DAMAGE', damageTypeId: outcome.damageTypeId }
-  }
-  if (
-    outcome.valueKind !== 'FIXED' ||
-    outcome.scalingKind !== 'NONE' ||
-    outcome.bonuses?.length ||
-    !Number.isSafeInteger(outcome.amount) ||
-    outcome.amount <= 0
-  )
-    unsupported(
-      'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.'
-    )
-  if (outcome.effectKind === 'HEAL')
-    return {
-      kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL',
-      amount: outcome.amount
-    }
-  uuid(outcome.damageTypeId, 'D&D damage type identity')
-  return {
-    kind: 'DAMAGE',
-    amount: multipliedDamageAmount(outcome.amount, damageMultiplier(outcome)),
-    damageTypeId: outcome.damageTypeId
-  }
+  return specializedDirectOutcome(outcome.effectKind, outcome, {
+    action,
+    onList: supportsChosenCreatures,
+    selfTeleport,
+    plans: { grant: grantPlan !== null, link: linkPlan !== null, form: formPlan !== null }
+  })
 }
 
 /** A result path's outcome inside a test graph: proposed only when the test resolves to that path. */
@@ -4221,35 +3217,6 @@ function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcom
       outcome.kind === 'ENTRY_DICE_DAMAGE'
         ? entryDiceDamageGraph(pathCode, outcome).amount
         : undefined
-  })
-}
-
-/** An outcome from the registry gated on a test node's result path, with the amount its own dice rolled. */
-function pathGatedProposalNode(input: {
-  id: string
-  pathCode: string
-  testNodeId: string
-  outcome: Outcome | EntryDiceDamageOutcome
-  conditionImmuneFactKey: string | undefined
-  amount?: RuleInputBinding
-}) {
-  const { outcome } = input
-  if (outcome.kind === 'FORCED_MOVEMENT')
-    unsupported('D&D forced movement resolves only in its selected outcome phase.')
-  const definition = dnd5eOutcomeDefinition(outcome.kind)
-  if (definition.pathGatedOperationKey === null) dnd5eUnsupportedPlanUnderTest(outcome.kind)
-  return effectOutcomeProposalNode({
-    id: input.id,
-    definition,
-    outcome,
-    context: { conditionImmuneFactKey: input.conditionImmuneFactKey },
-    target: DND5E_OUTCOME_TARGET,
-    phase: {
-      kind: 'PATH_GATED',
-      resolvedPath: { kind: 'NODE_OUTPUT', nodeId: input.testNodeId, port: 'resultPath' },
-      authoredPath: input.pathCode
-    },
-    extraInputs: input.amount ? { amount: input.amount } : {}
   })
 }
 
@@ -4393,13 +3360,7 @@ function compileTestDefinition(
         }
       : {})
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKind {
@@ -4517,8 +3478,11 @@ function compileDnd5eEffectActionTestTemplate({
       'D&D Effect action entry point does not match its exact Effect.'
     )
   }
-  if (isContestOutcomeAction(action)) {
-    const published = createDnd5eContestGraph(action.effectId)
+  if (isCheckOutcomeAction(action)) {
+    const { invocation } = action.compiledEffect
+    const contest = invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'CONTEST'
+    const graph = contest ? createDnd5eContestGraph : createDnd5eCheckDefinition
+    const published = graph(action.effectId)
     return { phase: 'TEST', published, templateChecksum: published.checksum }
   }
   const kind = supportedTestPhaseKind(action)
@@ -4583,13 +3547,7 @@ function compileDnd5eEffectActionTestTemplate({
       }
     }
   }
-  const base = serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  const base = publishedGraph(definition)
   const published = bindMovementInterruptionTestOutput({ action, published: base, kind })
   return { phase: 'TEST', published, templateChecksum: published.checksum }
 }
@@ -4703,66 +3661,6 @@ function criticalHitDice(
   return isCriticalHitDamage(selectedPath, entry)
     ? { extraDice: facts.criticalExtraDice ?? 0 }
     : undefined
-}
-
-/**
- * One evidence node per die plus the running sums, and the output that holds the rolled subtotal.
- * With `enabled` the dice ask for no request (and settle at 1) unless that output is true.
- */
-function rolledDiceNodes(
-  term: BoundedDiceTerm,
-  prefix: string,
-  enabled?: { kind: 'NODE_OUTPUT'; nodeId: string; port: string }
-) {
-  const dieNodeId = (index: number) => `${prefix}die-${index + 1}`
-  const sumNodeId = (index: number) => `${prefix}sum-${index + 1}`
-  const diceNodes = Array.from({ length: term.count }, (_, index) => ({
-    id: dieNodeId(index),
-    operation: {
-      key: enabled ? 'evidence.optional-integer-range' : 'evidence.integer-range',
-      contractVersion: 1
-    },
-    inputs: {
-      min: { kind: 'LITERAL' as const, value: 1 },
-      max: { kind: 'LITERAL' as const, value: term.die },
-      ...(enabled ? { enabled } : {})
-    }
-  }))
-  const sumNodes = Array.from({ length: Math.max(0, term.count - 1) }, (_, index) => ({
-    id: sumNodeId(index),
-    operation: {
-      key: addNumbersRuleOperation.key,
-      contractVersion: addNumbersRuleOperation.contractVersion
-    },
-    inputs: {
-      left:
-        index === 0
-          ? {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: dieNodeId(0),
-              port: 'value'
-            }
-          : {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: sumNodeId(index - 1),
-              port: 'value'
-            },
-      right: {
-        kind: 'NODE_OUTPUT' as const,
-        nodeId: dieNodeId(index + 1),
-        port: 'value'
-      }
-    }
-  }))
-  const subtotal =
-    term.count === 1
-      ? { kind: 'NODE_OUTPUT' as const, nodeId: dieNodeId(0), port: 'value' }
-      : {
-          kind: 'NODE_OUTPUT' as const,
-          nodeId: sumNodeId(term.count - 2),
-          port: 'value'
-        }
-  return { nodes: [...diceNodes, ...sumNodes], subtotal }
 }
 
 function diceGraphDefinition(input: {
@@ -4895,238 +3793,6 @@ function diceGraphDefinition(input: {
   }
 }
 
-/**
- * The save a hit calls for at once (isExactImmediateFollowUpSaveAction): one d20 against the fixed
- * DC, then each band's outcomes from the outcome registry, gated on the save's own result path. The
- * bands' damage shares one roll, as "half as much damage on a successful one" does.
- */
-function immediateFollowUpSaveGraphDefinition(
-  action: Dnd5eCompiledEffectActionSource
-): RuleGraphDefinition {
-  const resolved = immediateFollowUpSaveEntries(action.compiledEffect.entries)
-  const save = resolved?.saveEntry.outcome
-  if (!resolved || !save || !isImmediateFollowUpSave(save) || save.onFailure.kind !== 'OUTCOMES')
-    unsupported('D&D immediate follow-up save source is unavailable.')
-  const dc = save.savingThrow.baseDc
-  // An escalating save's repeat is held by its active effect, not proposed by the hit.
-  const repeat = escalatingImmediateSave(save)?.repeat
-  const bands = [
-    ['ON_SAVE_FAIL', save.onFailure.outcomes.filter((outcome) => outcome !== repeat)],
-    ['ON_SAVE_SUCCESS', save.onSuccess.kind === 'OUTCOMES' ? save.onSuccess.outcomes : []]
-  ] as const
-  const outcomes = bands.flatMap(([, band]) => band)
-  const diceConfigs = new Set(
-    outcomes.flatMap((outcome) =>
-      outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE' ? [outcome.dice] : []
-    )
-  )
-  if (diceConfigs.size > 1)
-    unsupported('D&D immediate follow-up save damage must share one roll across its results.')
-  const [diceConfig] = diceConfigs
-  const dice = diceConfig === undefined ? null : boundedDiceTerm(diceConfig)
-  if (dice && dice.modifier !== 0)
-    unsupported('D&D immediate follow-up save dice exceed the exact bounded contract.')
-  const primaryDiceCount = resolved.primaryDamageEntries.reduce(
-    (total, entry) => total + (primaryDamageDiceCount(entry.outcome) ?? 0),
-    0
-  )
-  // One TEST d20, doubled primary critical dice, one nested save d20, and the nested damage dice
-  // must fit the coordinator-wide bound.
-  if (
-    1 + primaryDiceCount * 2 + 1 + (dice?.term.count ?? 0) >
-    MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS
-  )
-    unsupported('D&D immediate follow-up save dice exceed the coordinator-wide evidence bound.')
-  if (outcomes.filter((outcome) => outcome.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION').length > 1)
-    unsupported('D&D immediate follow-up save reduces hit point maximum more than once.')
-  const roll = dice ? rolledDiceNodes(dice.term, 'nested-save-') : null
-  const resultPath = {
-    kind: 'NODE_OUTPUT',
-    nodeId: 'nested-save-test',
-    port: 'resultPath'
-  } as const
-  const bandOutcomeNodes = bands.flatMap(([pathCode, band]) =>
-    band.map((outcome, index) => {
-      uuid(outcome.id, 'D&D immediate follow-up save outcome identity')
-      const id = `nested-save-${pathCode.toLowerCase()}-${index + 1}`
-      if (outcome.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION') {
-        const source = outcome.amountSource
-        if (
-          source.kind !== 'DAMAGE_TAKEN' ||
-          source.damageOutcomeId !== resolved.primaryDamageEntries[0]?.outcome.id ||
-          !UUID.test(source.damageOutcomeId) ||
-          !hitPointMaximumReductionRecoveryTagsSchema.safeParse(outcome.recoveryTags).success
-        )
-          unsupported('D&D hit point maximum reduction must reduce by the damage the hit dealt.')
-        const node = hitPointMaximumReductionProposalNode({
-          id,
-          resultPath,
-          authorizedPath: pathCode,
-          sourceDamageNodeId: 'proposal-on_hit',
-          reduction: outcome
-        })
-        return { sourceEntryId: outcome.id, id, nodes: [node] }
-      }
-      if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {
-        if (!roll || outcome.scalingKind !== 'NONE' || outcome.bonuses?.length)
-          unsupported('D&D immediate follow-up save damage must be one unscaled roll.')
-        const multiplier = damageMultiplier(outcome)
-        const multiplied = multipliedDamage(`${id}-multiplied`, roll.subtotal, multiplier)
-        const node = pathGatedProposalNode({
-          id,
-          pathCode,
-          testNodeId: 'nested-save-test',
-          outcome: {
-            kind: 'ENTRY_DICE_DAMAGE',
-            diceConfig: outcome.dice,
-            damageTypeId: damageTypeIdentity(outcome.damageTypeId),
-            entryId: outcome.id,
-            multiplier
-          },
-          conditionImmuneFactKey: undefined,
-          amount: multiplied.amount
-        })
-        return { sourceEntryId: outcome.id, id, nodes: [...multiplied.nodes, node] }
-      }
-      const bounded = boundedOutcome(outcome, false)
-      const node =
-        bounded.kind === 'FORCED_MOVEMENT'
-          ? forcedMovementProposalNode({
-              id,
-              sourceEntryId: outcome.id,
-              resultPath,
-              authoredPath: pathCode,
-              outcome: bounded
-            })
-          : pathGatedProposalNode({
-              id,
-              pathCode,
-              testNodeId: 'nested-save-test',
-              outcome: bounded,
-              // Each of a band's conditions reads its own immunity fact, in authored order.
-              conditionImmuneFactKey: conditionImmuneFactKey(
-                pathCode,
-                band.slice(0, index + 1).filter((prior) => prior.effectKind === 'CONDITION').length
-              )
-            })
-      return { sourceEntryId: outcome.id, id, nodes: [node] }
-    })
-  )
-  const rider = save.failureMarginRider
-  if (
-    rider &&
-    (save.attempts.repeatOnFailure === true ||
-      repeat ||
-      save.onDurationComplete ||
-      !exactFailureMarginRider(rider))
-  )
-    unsupported(
-      'D&D failure-margin rider must add bounded conditions to a save that does not repeat.'
-    )
-  // The failed save's own conditions hold the path's first immunity facts.
-  const failureConditionCount = bands[0][1].filter(
-    (outcome) => outcome.effectKind === 'CONDITION'
-  ).length
-  return {
-    schemaVersion: 1,
-    id: action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'nested-save-d20',
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 }
-        }
-      },
-      dnd5eAddedDiceNode('nested-save-d20'),
-      {
-        id: 'nested-save-test',
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          naturalD20: {
-            kind: 'NODE_OUTPUT',
-            nodeId: 'nested-save-d20',
-            port: 'value'
-          },
-          addedTotal: {
-            kind: 'NODE_OUTPUT',
-            nodeId: 'nested-save-d20-added-dice',
-            port: 'value'
-          },
-          modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
-          threshold: { kind: 'LITERAL', value: dc },
-          contributorChecksum: {
-            kind: 'FACT',
-            factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          },
-          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
-        }
-      },
-      ...(roll?.nodes ?? []),
-      ...bandOutcomeNodes.flatMap(({ nodes }) => nodes),
-      ...(rider
-        ? [
-            {
-              id: NESTED_SAVE_MARGIN_NODE_ID,
-              operation: { key: compareThresholdRuleOperation.key, contractVersion: 1 },
-              inputs: {
-                value: { kind: 'NODE_OUTPUT' as const, nodeId: 'nested-save-test', port: 'total' },
-                // A total at or above this does not fail by the rider's margin.
-                threshold: { kind: 'LITERAL' as const, value: dc - rider.failedBy + 1 }
-              }
-            },
-            ...rider.outcomes.map((outcome, index) => ({
-              id: nestedSaveRiderConditionNodeId(index),
-              operation: {
-                key: DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
-                contractVersion: dnd5eTestMarginConditionProposalOperation.contractVersion
-              },
-              inputs: {
-                targetActorId: { kind: 'FACT' as const, factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-                resolvedPath: resultPath,
-                authoredPath: { kind: 'LITERAL' as const, value: 'ON_SAVE_FAIL' },
-                conditionId: { kind: 'LITERAL' as const, value: outcome.conditionId },
-                conditionImmune: {
-                  kind: 'FACT' as const,
-                  factKey:
-                    conditionImmuneFactKey('ON_SAVE_FAIL', failureConditionCount + index + 1) ??
-                    unsupported('D&D result path applies too many conditions.')
-                },
-                marginCleared: {
-                  kind: 'NODE_OUTPUT' as const,
-                  nodeId: NESTED_SAVE_MARGIN_NODE_ID,
-                  port: 'passed'
-                },
-                targetStateChecksum: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-                }
-              }
-            }))
-          ]
-        : [])
-    ],
-    outputs: {
-      nestedSaveAbilityDefinitionId: {
-        kind: 'LITERAL',
-        value: save.savingThrow.abilityDefinitionId
-      }
-    },
-    sourceEntryBindings: [
-      { sourceEntryId: resolved.saveEntry.entryId, nodeId: 'nested-save-test' },
-      ...bandOutcomeNodes.map(({ sourceEntryId, id }) => ({ sourceEntryId, nodeId: id })),
-      ...(rider?.outcomes.map((outcome, index) => ({
-        sourceEntryId: outcome.id,
-        nodeId: nestedSaveRiderConditionNodeId(index)
-      })) ?? [])
-    ]
-  }
-}
-
 function fixedOutcomeGraphDefinition(input: {
   action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
@@ -5140,10 +3806,7 @@ function fixedOutcomeGraphDefinition(input: {
   reducedToZeroByNodeId?: string
 }): RuleGraphDefinition {
   const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
-  const gates: Dnd5eAuthoredGates = {
-    ...(input.hitPointBand ? { hitPointBand: input.hitPointBand } : {}),
-    ...(input.reducedToZeroByNodeId ? { reducedToZeroByNodeId: input.reducedToZeroByNodeId } : {})
-  }
+  const gates = testPathGates(input.entry, input.outcome.kind, input)
   // The OUTCOME phase runs only on its selected path, so the push is authorized by construction.
   if (input.outcome.kind === 'FORCED_MOVEMENT') {
     uuid(input.entry.entryId, 'D&D forced movement identity')
@@ -5273,7 +3936,7 @@ function assertKnownTestResultPath(
       ? ['ON_HIT', 'ON_MISS', 'ON_CRIT']
       : kind === 'SAVE'
         ? ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-        : isContestOutcomeAction(action)
+        : isCheckOutcomeAction(action)
           ? ['ON_CHECK_SUCCESS']
           : []
   if (!allowedPaths.includes(selectedPath))
@@ -5493,7 +4156,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   selectedPath: SpecializedPath
   facts: Dnd5eEffectScalingFacts
 }): Dnd5eEffectActionTemplate | null {
-  if (!isContestOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
+  if (!isCheckOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
   assertKnownTestResultPath(input.action, input.selectedPath)
   if (
     (input.selectedPath === 'ON_HIT' || input.selectedPath === 'ON_CRIT') &&
@@ -5536,13 +4199,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       action: input.action,
       definitions: [...primaryDefinitions, immediateFollowUpSaveGraphDefinition(input.action)]
     })
-    const published = serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    })
+    const published = publishedGraph(definition)
     return {
       phase: 'OUTCOME',
       published,
@@ -5574,13 +4231,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       })
     })
     const definition = mergedOutcomeGraphDefinition({ action: input.action, definitions })
-    const published = serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    })
+    const published = publishedGraph(definition)
     return {
       phase: 'OUTCOME',
       published,
@@ -5612,6 +4263,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry)
+    // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
+    testPathGates(entry, outcome.kind)
     const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
     const gate = 'gate' in entry ? entry.gate : undefined
     // The gate's damage outcome is exempt from it; every other outcome of the block follows that damage.
@@ -5711,13 +4364,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       dice: input.facts.damageAddedDice ?? []
     })
   })
-  const published = serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  const published = publishedGraph(definition)
   return {
     phase: 'OUTCOME',
     published,
@@ -5929,7 +4576,10 @@ function dnd5eActiveEffectPlans(
   // created apart from the Concentration it outlasts, and takes the slot a failure rider would.
   if (
     sourceImmunity &&
-    (!plan || (sourceImmunity.appliesTo === 'SAVE_SUCCESS' ? plan.maintenance : plan.marginRider))
+    (!plan ||
+      (sourceImmunity.appliesTo === 'SAVE_SUCCESS'
+        ? plan.maintenance
+        : plan.marginRiders.length > 0))
   )
     unsupported('D&D source immunity needs a lasting effect it can ride.')
   const repeatCarrier = repeatCarrierPlan(action)
@@ -5939,7 +4589,7 @@ function dnd5eActiveEffectPlans(
     (!timedPlan?.modifierGrantContribution ||
       !timedPlan.maintenance ||
       !timedPlan.chosenItem ||
-      timedPlan.marginRider ||
+      timedPlan.marginRiders.length > 0 ||
       sourceImmunity)
   )
     unsupported('D&D repeat offer needs a maintained chosen-item grant it can ride.')
@@ -5972,18 +4622,16 @@ function dnd5eActiveEffectPlans(
             ? null
             : dnd5eOutcomeDefinition(testOutcomeKind).pathGatedOperationKey
           : outcome?.kind === 'DICE_HEAL'
-            ? outcome.temporary
-              ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-              : DND5E_HEAL_PROPOSAL_OPERATION_KEY
-            : outcome?.kind === 'HEAL'
-              ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
-              : outcome?.kind === 'TEMPORARY_HIT_POINTS'
-                ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-                : outcome?.kind === 'DAMAGE'
-                  ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-                  : outcome?.kind === 'CONCEAL'
-                    ? DND5E_CONCEAL_PROPOSAL_OPERATION_KEY
-                    : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+            ? dnd5eOutcomeDefinition(outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL')
+                .operationKey
+            : // A recurring plan rides one registered outcome; no other graph carries one.
+              !outcome ||
+                outcome.kind === 'DICE_DAMAGE' ||
+                outcome.kind === 'CONTEST_RELATIONSHIP' ||
+                outcome.kind === 'CHECK_OUTCOME' ||
+                outcome.kind === 'DIRECT_RELATIONSHIP'
+              ? null
+              : dnd5eOutcomeDefinition(outcome.kind).operationKey
   if (
     frozenGraph.definition.nodes.filter(
       (node) => node.id === plan.frozenGraphNodeId && node.operation.key === expectedOperation
@@ -6040,13 +4688,7 @@ function compileDnd5eEffectAction({
       ...rulingNodes.map(({ entryId, node }) => ({ sourceEntryId: entryId, nodeId: node.id }))
     ]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: withRulings.id,
-    gameSystemId: withRulings.gameSystemId,
-    definitionFamilyKey: withRulings.definitionFamilyKey,
-    checksum: checksumRuleDocument(withRulings),
-    definition: withRulings
-  })
+  return publishedGraph(withRulings)
 }
 
 /** The gates the action's one direct entry authors on its outcome, when it authors any. */
@@ -6072,7 +4714,7 @@ function compileEffectActionGraph(
     )
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
-  // Only a direct outcome honours a gate; every other plan refuses one rather than skip it.
+  // A direct or test-path outcome honours a gate; every other plan refuses one rather than skip it.
   const gates = directGates(action)
   const refuseGate = () => {
     if (gates !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
@@ -6091,7 +4733,6 @@ function compileEffectActionGraph(
   const recurringPlan = supportedRecurringPlan(action) ?? concealmentPlan(action)
   const plan = testPlan(action)
   if (plan) {
-    refuseGate()
     return bindMovementInterruptionOutput({
       action,
       published: compileTestDefinition(action, plan, recurringPlan)
@@ -6099,13 +4740,7 @@ function compileEffectActionGraph(
   }
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
-  if (
-    gates !== undefined &&
-    outcome.kind !== 'KILL' &&
-    outcome.kind !== 'CONDITION_APPLY' &&
-    outcome.kind !== 'HEAL'
-  )
-    unsupported('D&D hit-point gate belongs to a kill, condition or heal outcome.')
+  refuseUnboundGate(gates ?? {}, outcome.kind)
   if (outcome.kind === 'DICE_HEAL') {
     const entry = action.compiledEffect.entries[0]
     if (
@@ -6124,13 +4759,7 @@ function compileEffectActionGraph(
     })
     return bindMovementInterruptionOutput({
       action,
-      published: serverPublishedRuleDefinitionDtoSchema.parse({
-        id: definition.id,
-        gameSystemId: definition.gameSystemId,
-        definitionFamilyKey: definition.definitionFamilyKey,
-        checksum: checksumRuleDocument(definition),
-        definition
-      })
+      published: publishedGraph(definition)
     })
   }
   if (outcome.kind === 'DICE_DAMAGE') {
@@ -6147,13 +4776,7 @@ function compileEffectActionGraph(
     const definition = diceGraphDefinition({ action, entry, diceConfig: entry.outcome.dice })
     return bindMovementInterruptionOutput({
       action,
-      published: serverPublishedRuleDefinitionDtoSchema.parse({
-        id: definition.id,
-        gameSystemId: definition.gameSystemId,
-        definitionFamilyKey: definition.definitionFamilyKey,
-        checksum: checksumRuleDocument(definition),
-        definition
-      })
+      published: publishedGraph(definition)
     })
   }
   if (outcome.kind === 'CONTEST_RELATIONSHIP')
@@ -6166,14 +4789,8 @@ function compileEffectActionGraph(
     if (!plan) unsupported('D&D direct relationship action has no relationship.')
     return bindMovementInterruptionOutput({ action, published: plan.frozenGraph })
   }
-  if (outcome.kind === 'CONTEST_OUTCOME')
-    unsupported('D&D contest outcome requires its contest test phase.')
-  if (outcome.kind === 'DICE_SCALAR_REDUCTION')
-    unsupported('D&D direct dice scalar reduction requires an authored test phase.')
-  if (outcome.kind === 'FORCED_MOVEMENT')
-    unsupported('D&D forced movement requires an authored test phase.')
-  if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION')
-    unsupported('D&D hit point maximum reduction requires an authored test phase.')
+  if (outcome.kind === 'CHECK_OUTCOME')
+    unsupported('D&D check outcome requires its check test phase.')
   const outcomeDefinition = dnd5eOutcomeDefinition(outcome.kind)
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   // The save the target repeats (Power Word Stun) is pinned to the DC this cast settles.
@@ -6211,13 +4828,7 @@ function compileEffectActionGraph(
   }
   return bindMovementInterruptionOutput({
     action,
-    published: serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    })
+    published: publishedGraph(definition)
   })
 }
 
@@ -6515,22 +5126,34 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
   return outcomes
 }
 
+/**
+ * Transitional (RULES-2.T6g): the test-phase, outcome and lifetime pieces a zone composes, passed to
+ * `effectActionZones` until they move into modules of their own that it imports directly.
+ */
+const ZONE_COMPILER_PIECES = {
+  compileTestDefinition,
+  boundedTestOutcome,
+  specializedTestOutcome,
+  modifierGrantEntryPlan,
+  durationPublishedGraph,
+  maintenancePlan,
+  diceGraphDefinition,
+  withMovementInterruption,
+  publishedGraph
+}
+export type ZoneCompilerPieces = typeof ZONE_COMPILER_PIECES
+
 export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   compile: compileDnd5eEffectAction,
   incomingGateImmunityPlan,
-  compileZonePlacement: ({ action, label }) => {
-    const executable = executableAction(action)
-    const zone = passiveMeleeRetaliationZone(executable.compiledEffect, label, dnd5eAttackKind)
-    return zone
-      ? zoneComponentPlan(executable, zone, zone.components[0]!)
-      : (zoneChoicePlan(executable) ?? zonePlacementPlan(executable))
-  },
+  compileZonePlacement: ({ action, label }) =>
+    compileDnd5eZonePlacement(ZONE_COMPILER_PIECES, executableAction(action), label),
   interpretSpatial,
   compileExecutionPlan: ({ action, compilerSource }) => {
     const source = executableAction(dndSourceFromCompilerSource(compilerSource))
     if (
-      (!testPhaseKindOrNull(source) && !isContestOutcomeAction(source)) ||
+      (!testPhaseKindOrNull(source) && !isCheckOutcomeAction(source)) ||
       supportedRecurringPlan(source) ||
       (source.compiledEffect.entries.every(
         (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'

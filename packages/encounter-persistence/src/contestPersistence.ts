@@ -169,9 +169,9 @@ export async function persistEncounterContestPending(
         occurrenceId: stored.id,
         occurrenceVersion,
         request: snapshot.request,
-        // A defender that picks its check is asked for no single d20 (D152).
+        // A defender that picks its check, or a won outcome's dice, is asked for no single d20 (D152).
         pending:
-          participant === 'DEFENDER' && contestDefenderPicksCheck(contest)
+          !policy || (participant === 'DEFENDER' && contestDefenderPicksCheck(contest))
             ? null
             : { kind: 'D20_EVIDENCE', rollMode: policy.rollMode, keep: policy.keep }
       })
@@ -199,7 +199,8 @@ export async function persistEncounterContestCommit(
       : null
   const occurrenceVersion = occurrence ? occurrence.version + 1 : 0
   // A won basic action contest holds its target (Grapple) or runs its picked outcome (Shove, D105).
-  const pickedOutcome = input.conditionApplications.length > 0 || input.forcedMovements.length > 0
+  const pickedOutcome =
+    outputs?.stateTransition.kind === 'TARGET_OUTCOME' || input.forcedMovements.length > 0
   const settlesWin = input.createdEffect !== null || pickedOutcome
   if (
     execution.status !== 'COMPLETE' ||
@@ -301,7 +302,7 @@ export async function persistEncounterContestCommit(
     actionEconomy: outputs.actionEconomyTransition,
     attackAction: outputs.attackActionTransition ?? null,
     createdEffect: input.createdEffect,
-    conditionApplications: input.conditionApplications,
+    plannedStateTransition: outputs.stateTransition,
     forcedMovements: input.forcedMovements,
     campaign,
     applyMechanics: callbacks.applyMechanics,
@@ -313,38 +314,11 @@ export async function persistEncounterContestCommit(
   })
   if (checksumRuleDocument(settled.applicationOutputs) !== checksumRuleDocument(outputs))
     throw new Error('Live Session contest settlement mismatch.')
-  // A won Shove's push moves its target's token on the Scene in this commit (D157).
-  const settledMovements = input.forcedMovements.length
-    ? await callbacks.applyForcedMovements({
-        state,
-        sourceActorId: source.id,
-        commandId: root.commandId,
-        movements: input.forcedMovements
-      })
-    : { moves: [], landings: [] }
   const nextActors = settled.actors
   await deleteGrants(ctx, input.consumedGrants)
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
-    updatedAt: occurredAt
-  })
-  const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
-  const result = encounterCommandResultDtoSchema.parse({
-    projection,
-    roll: null,
-    occurrence: {
-      occurrenceId: execution.occurrenceId,
-      occurrenceVersion,
-      status: 'COMPLETE',
-      pending: null
-    }
-  })
-  const ruleResultChecksum = checksumRuleDocument(execution)
-  await ctx.db.patch(run._id, {
-    version: nextState.version,
-    stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
     updatedAt: occurredAt
   })
   const completed = encounterStoredRuleOccurrenceSchema.parse({
@@ -367,6 +341,46 @@ export async function persistEncounterContestCommit(
   const completedId =
     occurrence?._id ?? (await ctx.db.insert('encounterRuleOccurrences', completed))
   if (occurrence) await ctx.db.patch(completedId, changedFields(occurrence, completed))
+  // A won Shove's push moves its target's token on the Scene in this commit (D157), settling the
+  // zones it passes through (D170).
+  const settledMovements = input.forcedMovements.length
+    ? await callbacks.applyForcedMovements({
+        state,
+        sourceActorId: source.id,
+        commandId: root.commandId,
+        movements: input.forcedMovements,
+        occurrenceId: execution.occurrenceId,
+        occurredAt,
+        authorizedCharacterIds: new Set(
+          actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
+        ),
+        actors: nextActors,
+        rules: input.rules
+      })
+    : { moves: [], landings: [], actors: nextActors, rules: input.rules }
+  const projection = await projectNativeGm(
+    ctx,
+    nextState,
+    settledMovements.actors,
+    settledMovements.rules
+  )
+  const result = encounterCommandResultDtoSchema.parse({
+    projection,
+    roll: null,
+    occurrence: {
+      occurrenceId: execution.occurrenceId,
+      occurrenceVersion,
+      status: 'COMPLETE',
+      pending: null
+    }
+  })
+  const ruleResultChecksum = checksumRuleDocument(execution)
+  await ctx.db.patch(run._id, {
+    version: nextState.version,
+    stateJson: JSON.stringify(nextState),
+    stateChecksum: checksumCanonicalJson(nextState),
+    updatedAt: occurredAt
+  })
   await ctx.db.insert(
     'encounterRuleReceipts',
     encounterStoredRuleReceiptSchema.parse({

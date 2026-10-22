@@ -357,19 +357,21 @@ export function prepareNativeActionEffectsPlan<
     (immunity.appliesTo === 'EVERY_TARGET' || execution.d20?.resultPath === 'ON_SAVE_SUCCESS')
   )
   // A repeat carrier rides the recurring effect on either save result (it is none once the item is released).
-  const riderEffect =
-    immune ||
-    plan?.repeatCarrier ||
-    execution.applications.some(
-      (application) =>
-        application.kind === 'CONDITION_APPLY' &&
-        application.targetActorId === prepared.target.id &&
-        plan?.marginRider?.conditionContributions.some(
-          ({ conditionId }) => application.conditionId === conditionId
+  const riderEffects =
+    immune || plan?.repeatCarrier
+      ? effects.riderEffects
+      : effects.riderEffects.map((effect, index) =>
+          execution.applications.some(
+            (application) =>
+              application.kind === 'CONDITION_APPLY' &&
+              application.targetActorId === prepared.target.id &&
+              plan?.marginRiders[index]?.conditionContributions.some(
+                ({ conditionId }) => application.conditionId === conditionId
+              )
+          )
+            ? effect
+            : null
         )
-    )
-      ? effects.riderEffect
-      : null
   const { holdingZone } = input
   if (holdingZone && plan) throw new Error('A zone holds its condition alone.')
   const hold =
@@ -387,7 +389,7 @@ export function prepareNativeActionEffectsPlan<
     ...effects,
     recurringEffect:
       recurringEffect ?? (hold ? { definition: hold.definition, lifecycle: hold.lifecycle } : null),
-    riderEffect,
+    riderEffects,
     /** The target's item the outcome drops; absent when it drops none. */
     releasedItemInstanceId: released ? chosen?.item.itemInstanceId : undefined,
     /** The worn item the outcome corrodes; absent when it corrodes none. */

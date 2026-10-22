@@ -145,6 +145,53 @@ describe('contested-action application output', () => {
       expect(serverRuleExecutionApplicationOutputsDtoSchema.safeParse(value).success).toBe(false)
   })
 
+  describe('a won contest’s outcome on its target (D173)', () => {
+    const pushed = {
+      kind: 'TARGET_OUTCOME' as const,
+      mechanics: null,
+      forcedMovements: [{ direction: 'AWAY_FROM_SOURCE' as const, feet: 5, upTo: false }]
+    }
+
+    it('accepts one generic transition and refuses one that settles nothing', () => {
+      expect(
+        serverRuleExecutionApplicationOutputsDtoSchema.parse({
+          ...receipt(),
+          policy: null,
+          stateTransition: pushed
+        })
+      ).toMatchObject({ stateTransition: pushed })
+      const empty = serverRuleExecutionApplicationOutputsDtoSchema.safeParse({
+        ...receipt(),
+        policy: null,
+        stateTransition: { ...pushed, forcedMovements: [] }
+      })
+      expect(empty.error?.issues.map(({ message }) => message)).toContain(
+        'A contest outcome settles mechanics or a forced movement on its target.'
+      )
+    })
+
+    it.each([
+      ['CONDITIONS_APPLIED', { appliedConditionIds: [ids.condition] }],
+      ['FORCED_MOVEMENT', { direction: 'AWAY_FROM_SOURCE', feet: 5, upTo: false }]
+    ])(
+      'fails a stored receipt of the removed %s kind closed, with a named schema error',
+      (kind, fields) => {
+        const stored = { ...receipt(), policy: null, stateTransition: { kind, ...fields } }
+        expect(() => serverRuleExecutionApplicationOutputsDtoSchema.parse(stored)).toThrow(
+          expect.objectContaining({ name: '$ZodError' })
+        )
+        const { error } = serverRuleExecutionApplicationOutputsDtoSchema.safeParse(stored)
+        expect(error?.issues).toContainEqual(
+          expect.objectContaining({
+            code: 'invalid_union',
+            note: 'No matching discriminator',
+            path: ['stateTransition', 'kind']
+          })
+        )
+      }
+    )
+  })
+
   describe('conditions the initiator’s ended effects released (SPELLS-27.T2b)', () => {
     const release = (ordinal: number) => ({
       ordinal,

@@ -71,13 +71,23 @@ export async function removeCampaignScenes(ctx: MutationCtx, campaignId: string)
       .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
       .take(8)
   ])
-  for (const row of [...presentations, ...showings, ...scenes, ...definitions])
+  const loot = await ctx.db
+    .query('lootTables')
+    .withIndex('by_campaignId', (q) => q.eq('owner.campaignId', campaignId))
+    .take(8)
+  for (const row of [...presentations, ...showings, ...scenes, ...definitions, ...loot])
     await ctx.db.delete(row._id)
   for (const assetId of mapIds) {
     await refreshMapReferenceFlag(ctx, assetId)
     await scheduleDetachedMapCleanup(ctx, assetId)
   }
   return (
-    scenes.length + definitions.length + saves.length + presentations.length + showings.length === 0
+    scenes.length +
+      definitions.length +
+      saves.length +
+      presentations.length +
+      showings.length +
+      loot.length ===
+    0
   )
 }

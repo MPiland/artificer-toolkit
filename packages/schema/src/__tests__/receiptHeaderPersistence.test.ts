@@ -99,7 +99,12 @@ describe('receipt persistence headers', () => {
     }
     const checkRoot = {
       kind: 'CHECK' as const,
-      checkReceipt: { actorId, actionEconomy: null, checkOccurrenceId: null }
+      checkReceipt: {
+        actorId,
+        actionEconomy: null,
+        featureResourceConsumption: null,
+        checkOccurrenceId: null
+      }
     }
     const root = {
       ...runMetadata,

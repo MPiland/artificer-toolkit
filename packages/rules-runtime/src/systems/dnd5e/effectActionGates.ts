@@ -1,4 +1,5 @@
 import type { ResultBlockGateAuthored } from '@artificer-toolkit/shared/authored'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import {
   RULE_VALUE_KIND,
   type CompiledRuleGraph,
@@ -15,7 +16,8 @@ import {
 } from '../../hitPointTiers.js'
 import {
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
-  DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY
+  DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY,
+  unsupported
 } from './effectActionContracts.js'
 
 /** The authored gate fields of a direct entry: a hit-point gate and the damage types that suppress it. */
@@ -214,6 +216,44 @@ export const DND5E_GATE_INPUT_KINDS: Readonly<Record<string, RuleValueKind>> = O
 )
 
 /** Whether an entry authors any gate, and so compiles to a gated (version 2) proposal. */
+/**
+ * The gates a test path's outcome binds, as a direct outcome does: the entry's authored hit-point gate
+ * and damage-type suppression, which belong to a kill, condition or heal outcome, and the gates the
+ * compiler resolved: the band of the hit-point tier it belongs to and the damage node a reduced-to-0
+ * gate follows.
+ */
+export function testPathGates(
+  entry: CompiledEffectGroup['entries'][number],
+  outcomeKind: string,
+  {
+    hitPointBand,
+    reducedToZeroByNodeId
+  }: Pick<Dnd5eAuthoredGates, 'hitPointBand' | 'reducedToZeroByNodeId'> = {}
+): Dnd5eAuthoredGates {
+  const { gate, suppressedByDamageTypeIds }: Dnd5eAuthoredGates = 'outcome' in entry ? entry : {}
+  const authoredGate = gate && gate.kind !== 'REDUCED_TO_ZERO_BY' ? gate : undefined
+  if (authoredGate && hitPointBand)
+    unsupported('D&D hit-point tier outcome cannot author its own hit-point gate.')
+  const authored = {
+    ...(authoredGate ? { gate: authoredGate } : {}),
+    ...(suppressedByDamageTypeIds?.length ? { suppressedByDamageTypeIds } : {})
+  }
+  refuseUnboundGate(authored, outcomeKind)
+  return {
+    ...authored,
+    ...(hitPointBand ? { hitPointBand } : {}),
+    ...(reducedToZeroByNodeId ? { reducedToZeroByNodeId } : {})
+  }
+}
+
+const GATED_OUTCOME_KINDS: readonly string[] = ['KILL', 'CONDITION_APPLY', 'HEAL']
+
+/** A gate belongs to a kill, condition or heal outcome; any other outcome refuses one rather than skip it. */
+export function refuseUnboundGate(gates: Dnd5eAuthoredGates, outcomeKind: string): void {
+  if (isGated(gates) && !GATED_OUTCOME_KINDS.includes(outcomeKind))
+    unsupported('D&D hit-point gate belongs to a kill, condition or heal outcome.')
+}
+
 export function isGated(entry: Dnd5eAuthoredGates): boolean {
   return (
     entry.gate !== undefined ||

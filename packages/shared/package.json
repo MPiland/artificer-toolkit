@@ -104,6 +104,10 @@
       "types": "./dist/domains/vtt/scene.d.ts",
       "default": "./dist/domains/vtt/scene.js"
     },
+    "./vtt/lootTable": {
+      "types": "./dist/domains/vtt/lootTable.d.ts",
+      "default": "./dist/domains/vtt/lootTable.js"
+    },
     "./vtt/teleportAllowanceDestinationKind": {
       "types": "./dist/domains/vtt/teleportAllowanceDestinationKind.d.ts",
       "default": "./dist/domains/vtt/teleportAllowanceDestinationKind.js"

@@ -1,7 +1,3 @@
-import type {
-  EncounterRunActorState,
-  EncounterRunState
-} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { publishSceneGeometry } from '@artificer-toolkit/encounter-persistence/sceneGeometryPublication'
 import { publishSpatialPending } from '@artificer-toolkit/encounter-persistence/spatialPendingPublication'
 import { publishSpatialTerminal } from '@artificer-toolkit/encounter-persistence/spatialTerminalPublication'
@@ -13,24 +9,8 @@ import {
   readMovementResolution,
   assertGeometryReceiving
 } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
-import { endHolderStateGrants } from '@artificer-toolkit/encounter-persistence/concentrationEnd'
 import { persistMovementSettlements } from '@artificer-toolkit/encounter-persistence/movementSettlementPersistence'
-import { persistLiveMovementSpatial } from '@artificer-toolkit/encounter-persistence/liveMovementSpatialPersistence'
-import { persistLiveMovementReaction } from '@artificer-toolkit/encounter-persistence/liveMovementReactionPersistence'
-import {
-  persistLiveMovementConcentration,
-  persistLiveMovementConcentrationEnd
-} from '@artificer-toolkit/encounter-persistence/liveMovementConcentrationPersistence'
-import {
-  persistLiveMovementAreaDeparture,
-  persistLiveMovementMoveEnd
-} from '@artificer-toolkit/encounter-persistence/escapedEffectEndPersistence'
-import {
-  readLiveCharacterStreamVersion,
-  readLiveMovementTargetState
-} from '@artificer-toolkit/encounter-persistence/liveMovementTargetState'
 import { applyConcealmentPrune } from '@artificer-toolkit/encounter-persistence/concealmentPrune'
-import { applyLiveConcentrationCleanup } from '@artificer-toolkit/encounter-persistence/concentrationCleanupPersistence'
 import {
   postMovementDecisionSkipped,
   recordRuleOccurrenceVoid
@@ -60,13 +40,13 @@ import {
   stageRoomSceneGeometryFog
 } from './roomSceneGeometryPublication.js'
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
-import { readRoomSceneEntities, readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
+import { readRoomSceneEntities, readRoomSceneHeader } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
-import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { writeRoomSceneRow } from './roomSceneRecords.js'
+import { roomMovementSettlementCallbacks } from './roomMovementSettlementCallbacks.js'
 import { readRoomLiveMovementAdmission } from './roomSceneGeometryRead.js'
 
 /** The caller commits this complete Scene/Encounter write set with its room journal receipt. */
@@ -281,35 +261,16 @@ export async function executeRoomSceneGeometry(input: {
   for (const layer of plan.fogLayers) await stageRoomSceneGeometryFog(sceneInputs, save.id, layer)
   const current = await sceneCallbacks.readGeometrySave(save.id)
   const resolution = readMovementResolution(current.save)
-  const readCampaignCharacterState = async (id: string, characterId: string) => {
-    if (id !== campaignId || !characterIds.has(characterId))
-      throw new Error('Movement Character state is outside the captured scope.')
-    const part = await inputs.character(characterId, observed, transaction)
-    if (!part.inputs || part.inputs.campaign.id !== id || part.inputs.owner.id !== characterId)
-      throw new Error('Room movement Character state is unavailable.')
-    return { state: part.inputs.campaign.state }
-  }
-  const applyMechanics: Parameters<typeof persistLiveMovementSpatial>[2]['applyMechanics'] = (
-    batch
-  ) =>
-    applyRoomEncounterMechanicsBatch({
-      ctx,
-      store,
-      transaction,
-      inputs,
-      campaignId,
-      epoch,
-      observed,
-      batch
-    })
-  const concentrationCallbacks = {
-    applyCleanup: (cleanup: Parameters<typeof applyLiveConcentrationCleanup>[1]) =>
-      applyLiveConcentrationCleanup(ctx, cleanup),
-    currentCharacterStreamVersion: (state: EncounterRunState, id: string) =>
-      readLiveCharacterStreamVersion(ctx, state, id),
-    readTargetState: (state: EncounterRunState, actor: EncounterRunActorState, maximum: number) =>
-      readLiveMovementTargetState(ctx, state, actor, maximum, readCampaignCharacterState)
-  }
+  const settlementCallbacks = roomMovementSettlementCallbacks({
+    ctx,
+    store,
+    transaction,
+    inputs,
+    campaignId,
+    epoch,
+    observed,
+    characterIds
+  })
   let settled = false
   const settle = async () => {
     if (settled || plan.preparation.outcome.kind === 'UNINTERRUPTED')
@@ -326,27 +287,7 @@ export async function executeRoomSceneGeometry(input: {
         settlements: plan.settlements,
         userId
       },
-      {
-        persistSpatial: (step) =>
-          persistLiveMovementSpatial(ctx, step, {
-            applyMechanics,
-            readCampaignCharacterState
-          }),
-        persistReaction: (step) =>
-          persistLiveMovementReaction(ctx, step, {
-            applyMechanics,
-            readCampaignCharacterState,
-            readSceneTokens: async (sceneId) =>
-              (await readRoomSceneState(transaction, sceneId)).scene.tokens
-          }),
-        persistConcentration: (step) =>
-          persistLiveMovementConcentration(ctx, step, concentrationCallbacks),
-        persistConcentrationEnd: (step) =>
-          persistLiveMovementConcentrationEnd(ctx, step, concentrationCallbacks),
-        persistAreaDeparture: (step) => persistLiveMovementAreaDeparture(ctx, step),
-        persistMoveEnd: (step) => persistLiveMovementMoveEnd(ctx, step),
-        endHolderGrants: (step) => endHolderStateGrants(ctx, step)
-      }
+      settlementCallbacks
     )
   }
   const project: Parameters<typeof publishSpatialTerminal>[4]['project'] = (

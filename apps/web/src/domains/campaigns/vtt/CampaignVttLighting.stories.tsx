@@ -13,13 +13,13 @@ import {
 import { tabletopCurrentUserId, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRenderer'
 import {
-  countDarknessZones,
   describeDarknessZone,
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
   lightTintAlpha,
   resolveViewTokenId
 } from './vttSceneRenderer.model'
+import { countDarknessZones } from './vttDarknessZoneCounts.testUtils'
 import { validated } from '../../../test/validatedFixture'
 
 type Diagnostics = ReturnType<VttSceneRenderer['getDiagnostics']>

@@ -276,6 +276,7 @@ describe('native movement target facts', () => {
     const entryId = crypto.randomUUID()
     const definition: ActiveRuleEffectDefinitionDto = {
       schemaVersion: 2,
+      linkedEffectId: null,
       origin: {
         kind: 'CHARACTER',
         sourceAggregateId: fixture.character.id,

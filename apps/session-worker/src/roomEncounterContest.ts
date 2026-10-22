@@ -13,18 +13,17 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
 import { planNativeLiveContest, type planNativeLiveContestRolls } from './nativeContest.js'
-import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
+import type { MovementSettlementContext } from './roomMovementSettlementCallbacks.js'
+import { roomLiveCaptureReads } from './roomLiveCaptureReads.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomActionSceneInputs } from './roomActionSceneInputs.js'
-import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
-import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
 /** The sealed contest, item transition, action economy and receipts use the same native commit. */
 export async function executeRoomEncounterContest(input: {
-  ctx: Parameters<typeof persistEncounterContestCommit>[0]
+  ctx: Parameters<typeof persistEncounterContestCommit>[0] & MovementSettlementContext
   store: RoomEncounterStore
   transaction: RoomTransaction
   inputs: RoomInputs
@@ -38,25 +37,20 @@ export async function executeRoomEncounterContest(input: {
   const plan = await planNativeLiveContest(scope, input.command, {
     runtime: input.runtime,
     random: input.random,
-    captures: {
-      encounterRules: (request) =>
-        readRoomEncounterTurnCapture(
-          ctx,
-          inputs,
-          transaction,
-          request,
-          observed.filter((revision) => revision.scope !== 'CHARACTER'),
-          {
-            readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),
-            readSceneEntities: (page) => readRoomSceneEntities(transaction, page)
-          }
-        ),
-      prepareCharacter: (characterScope) =>
-        prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction)
-    }
+    captures: roomLiveCaptureReads({ ctx, store, transaction, inputs, observed })
   })
   if (plan.kind === 'REPLAY') return plan.result
-  return persistRoomEncounterContest({ ctx, store, transaction, inputs, scope, observed, plan })
+  return persistRoomEncounterContest({
+    ctx,
+    store,
+    transaction,
+    inputs,
+    scope,
+    observed,
+    runtime: input.runtime,
+    random: input.random,
+    plan
+  })
 }
 
 /**
@@ -64,12 +58,14 @@ export async function executeRoomEncounterContest(input: {
  * outcome. A Disarm and a basic action contest the ordinary action planner starts share it.
  */
 export async function persistRoomEncounterContest(input: {
-  ctx: Parameters<typeof persistEncounterContestCommit>[0]
+  ctx: Parameters<typeof persistEncounterContestCommit>[0] & MovementSettlementContext
   store: RoomEncounterStore
   transaction: RoomTransaction
   inputs: RoomInputs
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   observed: LiveSessionRulesRevisions
+  runtime: RulesRuntimeService
+  random(maximum: number): number
   plan: Awaited<ReturnType<typeof planNativeLiveContestRolls>>
 }) {
   const { ctx, store, transaction, inputs, scope, observed, plan } = input
@@ -104,7 +100,19 @@ export async function persistRoomEncounterContest(input: {
         batch
       }),
     applyForcedMovements: (movement) =>
-      applyRoomForcedMovements({ ctx, transaction, userId: scope.expectedUserId, movement })
+      applyRoomForcedMovements({
+        ctx,
+        transaction,
+        store,
+        inputs,
+        scope,
+        observed,
+        captures: roomLiveCaptureReads({ ctx, store, transaction, inputs, observed }),
+        runtime: input.runtime,
+        random: input.random,
+        userId: scope.expectedUserId,
+        movement
+      })
   }
   return plan.kind === 'PENDING'
     ? persistEncounterContestPending(ctx, { ...plan.input, revisions }, callbacks)

@@ -346,6 +346,13 @@ export const remove = mutation({
     if (definition.version !== input.expectedVersion)
       throw new Error('Scene definition changed before deletion.')
     await ctx.db.delete(row._id)
+    const loot = await ctx.db
+      .query('lootTables')
+      .withIndex('by_owner', (q) =>
+        q.eq('owner.kind', 'SCENE').eq('owner.sceneDefinitionId', definition.id)
+      )
+      .unique()
+    if (loot) await ctx.db.delete(loot._id)
     // D87: a Scene shown to players stops being shown when its definition is deleted.
     const showing = await ctx.db
       .query('campaignSceneShowings')

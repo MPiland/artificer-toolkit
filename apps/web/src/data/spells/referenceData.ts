@@ -1,4 +1,4 @@
-export type SpellReferenceOption = {
+type SpellReferenceOption = {
   value: string
   label: string
 }

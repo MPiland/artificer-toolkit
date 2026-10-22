@@ -23,23 +23,21 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import {
-  isEncounterBasicActionId,
-  readEncounterBasicActionEffect
-} from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
-import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { settleActionSourceSpend } from './actionSourceSpend.js'
+import { admitCheckActionSource } from './checkActionSourceAdmission.js'
 import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
+import type { ApplyEncounterForcedMovements } from './actionCommitRecords.js'
+import { isCheckActionSettlement, settleEncounterCheckAction } from './checkActionSettlement.js'
 import {
   isConcealmentCheckSettlement,
   settleEncounterConcealmentCheck
 } from './concealmentCheckSettlement.js'
-import { readRunActors, replaceRunActor } from './documents.js'
+import { readRunActors } from './documents.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
@@ -49,9 +47,11 @@ import { encounterReplayReceipt } from './replayReceipts.js'
 import type { EncounterCharacterWriteTransaction, EncounterWriteTransaction } from './ports.js'
 
 /**
- * Records the room's planned basic action (Q11): the allowance it spent, checked against the current
- * Run. A stabilizing action also records its check, waiting on the helper's d20 or settled by an
- * auto-roll, and deletes the one-roll grants that check used up. It evaluates no rules.
+ * Records the room's planned check action (Q11), made by a basic action or a Creature feature
+ * (D173): the allowance and feature charges it spent, checked against the current Run. It also
+ * records its check, waiting on the roller's d20 or settled by an auto-roll, and deletes the
+ * one-roll grants that check used up; a settled success re-applies its planned outcome and lands
+ * its pushes on the Scene. It evaluates no rules.
  */
 export async function persistEncounterBasicAction(
   ctx: EncounterWriteTransaction,
@@ -66,6 +66,7 @@ export async function persistEncounterBasicAction(
     applyMechanics(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
+    applyForcedMovements: ApplyEncounterForcedMovements
   }
 ): Promise<EncounterCommandResultDto> {
   const admission = await readBasicActionAdmission(ctx, input)
@@ -76,27 +77,22 @@ export async function persistEncounterBasicAction(
     throw new Error('Live Session basic action overrides were not acknowledged.')
   const actors = await readRunActors(ctx, state)
   await callbacks.validateReadFence(state, actors, input)
-  // The System's catalogue is its platform-published entries (user-authored Systems are deferred).
-  const currentDefinition = await callbacks.readDefinition(
-    input.definition.id,
-    input.expectedUserId
-  )
-  const entry = requireEncounterBasicActionDefinition(state, currentDefinition)
-  const { definition } = entry
-  const effect = readEncounterBasicActionEffect(entry, command.actionId)
   const targetActorId = actionTargetActorId(command.target)
   const actor = actors.find((candidate) => candidate.id === command.actorId)
   const ruleActors = actors.filter((candidate) => candidate.kind !== 'CHARACTER')
   if (
     !actor ||
-    effect?.invocation.triggerCode !== 'CHECK' ||
-    !isEncounterBasicActionId(actor.id, command.actionId) ||
-    definition.version !== input.definition.version ||
-    definition.checksum !== input.definition.checksum ||
     input.rules.actors.length !== ruleActors.length ||
     input.rules.actors.some((entry) => !ruleActors.some((rule) => rule.id === entry.actorId))
   )
     throw new Error('Live Session basic action scope mismatch.')
+  const admitted = await admitCheckActionSource(ctx, {
+    state,
+    actor,
+    commit: input,
+    readDefinition: callbacks.readDefinition
+  })
+  const { source } = admitted
   const { check } = input
   // A check action rolls its check unless its target was not dying (an acknowledged warning).
   if (check === null && !input.ruleOverrides.some((warning) => warning.code === 'TARGET_NOT_DYING'))
@@ -104,33 +100,60 @@ export async function persistEncounterBasicAction(
   if (check === null && input.consumedGrants.length > 0)
     throw new Error('Live Session basic action check scope mismatch.')
   const pendingContext = check?.kind === 'PENDING' ? check.snapshot.applicationContext : null
+  const authoredCheck = admitted.check
+  // Only a check action's outcome runs from a Creature feature; stabilizing and concealment do not.
+  if (
+    source.kind !== 'BASIC_ACTION' &&
+    (check?.kind === 'PENDING'
+      ? pendingContext?.kind !== 'ENCOUNTER_CHECK_ACTION'
+      : check === null || !isCheckActionSettlement(check.settlement))
+  )
+    throw new Error('Live Session check action source mismatch.')
   if (
     check?.kind === 'PENDING' &&
     ((pendingContext?.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' &&
-      pendingContext?.kind !== 'ENCOUNTER_CONCEALMENT_CHECK') ||
+      pendingContext?.kind !== 'ENCOUNTER_CONCEALMENT_CHECK' &&
+      pendingContext?.kind !== 'ENCOUNTER_CHECK_ACTION') ||
       pendingContext.commandId !== command.commandId ||
       pendingContext.commandFingerprint !== fingerprint ||
-      pendingContext.definition.id !== definition.id ||
-      pendingContext.definition.version !== definition.version ||
-      pendingContext.definition.checksum !== definition.checksum ||
+      (pendingContext.kind === 'ENCOUNTER_CHECK_ACTION'
+        ? checksumCanonicalJson(pendingContext.source) !== checksumCanonicalJson(source)
+        : source.kind !== 'BASIC_ACTION' ||
+          pendingContext.definition.id !== source.definition.id ||
+          pendingContext.definition.version !== source.definition.version ||
+          pendingContext.definition.checksum !== source.definition.checksum) ||
       (pendingContext.kind === 'ENCOUNTER_BASIC_ACTION_CHECK'
         ? pendingContext.helperActorId !== actor.id ||
           pendingContext.targetActorId !== targetActorId
-        : pendingContext.actorId !== actor.id ||
-          pendingContext.actionId !== command.actionId ||
-          targetActorId !== actor.id) ||
+        : pendingContext.kind === 'ENCOUNTER_CHECK_ACTION'
+          ? // The check action resumes from this command, so its pending copy must be this command.
+            pendingContext.actorId !== actor.id ||
+            pendingContext.targetActorId !== targetActorId ||
+            pendingContext.phase.kind !== 'CHECK' ||
+            checksumCanonicalJson(JSON.parse(pendingContext.commandJson)) !== fingerprint ||
+            pendingContext.check.dc !==
+              (authoredCheck.dc.kind === 'FIXED' ? authoredCheck.dc.value : null) ||
+            ![
+              ...authoredCheck.checks.skillIds,
+              ...authoredCheck.checks.abilityDefinitionIds
+            ].includes(pendingContext.check.checkDefinitionId)
+          : pendingContext.actorId !== actor.id ||
+            pendingContext.actionId !== command.actionId ||
+            targetActorId !== actor.id) ||
       check.snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
       check.snapshot.graph.source.gameSystemId !== state.gameSystemId)
   )
     throw new Error('Live Session pending basic action check mismatch.')
-  const spent = input.actionEconomy
-    ? consumeEncounterActionEconomy({
-        actor,
-        consumption: input.actionEconomy,
-        overridden: overridesActionEconomy(input.ruleOverrides)
-      })
-    : actor
-  await replaceRunActor(ctx, actor, spent)
+  const spent = await settleActionSourceSpend(ctx, {
+    encounterId: state.id,
+    source: actor,
+    spend: {
+      featureResourceConsumption: input.featureResourceConsumption,
+      actionEconomyTransition: input.actionEconomy,
+      attackActionTransition: undefined
+    },
+    economyOverridden: overridesActionEconomy(input.ruleOverrides)
+  })
   // A Help the check used is consumed with the action, so a pending check keeps its advantage.
   await deleteGrants(ctx, input.consumedGrants)
   let nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
@@ -151,7 +174,23 @@ export async function persistEncounterBasicAction(
       occurrenceVersion: 0
     }
     const { settlement } = check
-    if (isConcealmentCheckSettlement(settlement)) {
+    if (isCheckActionSettlement(settlement)) {
+      const { dc, checks } = authoredCheck
+      const settled = await settleEncounterCheckAction(ctx, {
+        ...settleInput,
+        settlement,
+        admitted: {
+          commandFingerprint: fingerprint,
+          actorId: actor.id,
+          targetActorId,
+          source,
+          checkDefinitionIds: [...checks.skillIds, ...checks.abilityDefinitionIds],
+          dc: dc.kind === 'FIXED' ? dc.value : null
+        },
+        applyMechanics: callbacks.applyMechanics
+      })
+      nextActors = settled.actors
+    } else if (isConcealmentCheckSettlement(settlement)) {
       const settled = await settleEncounterConcealmentCheck(ctx, { ...settleInput, settlement })
       nextActors = settled.actors
       endedEffects = settled.endedEffects
@@ -174,7 +213,31 @@ export async function persistEncounterBasicAction(
         occurredAt: input.occurredAt
       })
     : null
-  const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
+  // A won check's push moves its target's token on the Scene in this commit (D157), settling the
+  // zones it passes through (D170).
+  const won =
+    check?.kind === 'SETTLED' && isCheckActionSettlement(check.settlement) ? check.settlement : null
+  const settledMovements = won?.forcedMovements.length
+    ? await callbacks.applyForcedMovements({
+        state,
+        sourceActorId: actor.id,
+        commandId: command.commandId,
+        movements: won.forcedMovements,
+        occurrenceId: won.execution.occurrenceId,
+        occurredAt: input.occurredAt,
+        authorizedCharacterIds: new Set(
+          actors.flatMap((entry) => (entry.kind === 'CHARACTER' ? [entry.sourceId] : []))
+        ),
+        actors: nextActors,
+        rules: input.rules
+      })
+    : { moves: [], landings: [], actors: nextActors, rules: input.rules }
+  const projection = await projectNativeGm(
+    ctx,
+    nextState,
+    settledMovements.actors,
+    settledMovements.rules
+  )
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
@@ -218,12 +281,13 @@ export async function persistEncounterBasicAction(
       encounterId: run.id,
       commandId: command.commandId,
       commandType: 'RESOLVE_ACTION',
-      label: definition.label,
+      label: admitted.label,
       root: {
         kind: 'CHECK',
         checkReceipt: {
           actorId: actor.id,
           actionEconomy: input.actionEconomy,
+          featureResourceConsumption: input.featureResourceConsumption,
           checkOccurrenceId: storedOccurrence?.id ?? null
         }
       },
@@ -236,6 +300,8 @@ export async function persistEncounterBasicAction(
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
+      forcedMovements: settledMovements.moves,
+      forcedMovementLandings: settledMovements.landings,
       turnUses: null,
       commandFingerprint: fingerprint,
       actorUserId: input.expectedUserId,

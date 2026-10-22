@@ -29,7 +29,7 @@ import {
 } from '../node-map/resolvedNodeUtils'
 import { isRecord } from '../utils/valueGuards'
 
-export type AuthoringNavigationTargetKind = 'drawer-item' | 'overview' | 'step'
+type AuthoringNavigationTargetKind = 'drawer-item' | 'overview' | 'step'
 
 export type AuthoringNavigationTarget = {
   ancestors?: readonly Record<string, unknown>[]

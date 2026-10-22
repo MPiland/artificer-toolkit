@@ -4,6 +4,9 @@ import { postgresUuidSchema } from './postgresUuid.js'
 
 /** The most turns an authored Encounter active effect lasts: 24 hours of 6-second rounds (D156). */
 export const MAX_ACTIVE_EFFECT_TURNS = 14_400
+
+/** The effects beside an action's own that it creates on one target: a failed save's band of up to four conditions holds one effect each. */
+export const MAX_ACTION_RIDERS = 3
 /** A grant made on its anchor's own turn is stored one tick longer, so storage allows one more turn. */
 export const MAX_ACTIVE_EFFECT_STORED_TICKS = MAX_ACTIVE_EFFECT_TURNS + 1
 /** The uses an authored effect counts before it ends, at most 255 (Mirror Image duplicates). */
