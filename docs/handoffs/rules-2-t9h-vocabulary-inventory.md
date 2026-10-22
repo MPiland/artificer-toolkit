@@ -47,8 +47,8 @@ File list:
 | File | Use | Class | Target |
 | --- | --- | --- | --- |
 | `apps/web/src/forms/rendering/collectionPresentation.ts:8,338` | `speedOptions.find` to label a speed by id, code or label | b | label from the System reference data the page already loads through `apps/apis` |
-| `packages/rules-runtime/src/encounterFormChoice.ts:1,16` | `challengeRatings.findIndex` for CR order (Polymorph filter) | b | the function already takes `system.challengeRatings`; rank from the System record |
-| `packages/rules-runtime/src/systems/dnd5e/creatureRuleFacts.ts:6,92` | `challengeRatings.find(code)` to get `proficiencyBonus` after the id lookup in `document.challengeRatings` | b | dnd5e capability keyed by CR definition ID (see S1) |
+| `packages/rules-runtime/src/encounterFormChoice.ts:1,16` | `challengeRatings.findIndex` for CR order (Polymorph filter) | b | the function already takes `system.challengeRatings`; order by the entry's `rank` (ruling 1, S1) |
+| `packages/rules-runtime/src/systems/dnd5e/creatureRuleFacts.ts:6,92` | `challengeRatings.find(code)` to get `proficiencyBonus` after the id lookup in `document.challengeRatings` | b | read `proficiencyBonus` from the CR entry on the System record (ruling 1, S1) |
 | `packages/shared/src/__tests__/shared-correctness.test.ts:7,8,29-42` | asserts currency base values and `PassiveCode.INVESTIGATION` ability | b + c | delete with the lists; the same facts are asserted against `source-data` (see S1) |
 | `packages/source-data/src/srd/creatureStatBlocks.test.ts:1,48` | CR code to proficiency bonus map | b | read `SRD_CHALLENGE_RATINGS`/the capability table instead |
 
@@ -93,9 +93,9 @@ and `visibilityKind: 'INVISIBLE'` are likewise core enums.
 
 | Site | Code | Today | Target capability |
 | --- | --- | --- | --- |
-| `apps/web/src/forms/guided/GuidedSimpleEffectComposer.tsx:57,59` | `FIRE` damage, `POISONED` condition | default picker values via `system.<list>.find(code)` | dnd5e authoring defaults capability names the definition ids; web gets them from the System reference read through `apps/apis` |
-| `apps/web/src/domains/spells/guided/GuidedSpellAuthoring.tsx:75,77` | `FIRE`, `POISONED` | same | same capability |
-| `apps/web/src/domains/characters/sheet/status/ConditionsEditor.tsx:79` | `EXHAUSTION` | hides Exhaustion from the "Add condition" select | condition policy capability: the id of the leveled condition, flagged on the reference DTO |
+| `apps/web/src/forms/guided/GuidedSimpleEffectComposer.tsx:57,59` | `FIRE` damage, `POISONED` condition | default picker values via `system.<list>.find(code)` | `defaults` object on the System record names the definition ids (ruling 2); web reads it through `apps/apis` |
+| `apps/web/src/domains/spells/guided/GuidedSpellAuthoring.tsx:75,77` | `FIRE`, `POISONED` | same | same `defaults` object |
+| `apps/web/src/domains/characters/sheet/status/ConditionsEditor.tsx:79` | `EXHAUSTION` | hides Exhaustion from the "Add condition" select | a definition attribute on the condition entry (for example `levelled`); the select filters on the attribute, not the code (ruling 2) |
 | `packages/rules-runtime/src/encounterPlayerProjection.ts:82` | `INVISIBLE` condition | `invisibleConditionTypeIds(conditionTypes)` picks ids by code | capability (visibility conditions) returns the condition id |
 | `packages/rules-runtime/src/systems/dnd5e/characterMovementAndSenses.ts:174` | `WALK` | primary speed fallback by code (already inside `systems/dnd5e`) | name the Walking speed definition id |
 | `packages/rules-runtime/src/character/sheetProjection.ts:744` | `WALK`/`WALKING`/label match | neutral file guesses "is this walking" from code **and label** | System movement capability names the walking speed id; drop the label heuristic |
@@ -121,7 +121,7 @@ derived from sense `channel`/`illuminationAccess` properties, not from the sense
 | T9d | TODO | **core** | illumination codes stay codes; the System supplies rank, `suppressesLight` and render class (properties of a code, no ids) |
 | T9e | TODO | **vocabulary** | deletes the shared copy, CR order, ability literals, web defaults. Superseded by S1-S6 below; keep as the umbrella or retire it |
 | T9f | TODO | **vocabulary + core** | abilities to definition ids is vocabulary. "Sizes list" is core unless sizes get ids; the engine branches on size (grapple limits, space), so default core and ask only if sizes must be campaign-authorable |
-| T9g | TODO | **core** | `PACT` slot pools are "spell slot pools", named as core in the amendment. **Conflict:** the T9g note says D175 keeps `slotCost.poolCode` "a System vocabulary code"; read it as a System core code |
+| T9g | TODO | **core** | `PACT` slot pools are "spell slot pools", named as core in the amendment. Retag (orchestrator, 2026-10-22): `slotCost.poolCode` is a System core code, not a vocabulary code; change the T9g/D175 wording when registering |
 | T9h | TODO | n/a | this inventory |
 
 Retitle T9a, T9a2, T9b, T9c, T9d from "System vocabulary" to "System core codes" when registering.
@@ -159,8 +159,8 @@ Sizes: S under half a day, M about a day, L multi-day. All close RULES-2.7. WSJF
 | Id | Slice (user-visible behaviour or boundary proved) | Class | Size | Depends on |
 | --- | --- | --- | --- | --- |
 | **T9i** | Rename to core naming (section 6) incl. docs and `schemaBoundary.test.ts` path guard. Proof: existing registry, roll-mode and boundary tests green unchanged | core | M (mechanical, ~90 files) | none; land **before** T9a2 and T9c so they build on the new names |
-| **S1 = T9e1** | CR-driven rules read the System record: Polymorph form filter ranks CRs from the System record; creature proficiency bonus comes from a dnd5e capability keyed by CR definition ID (or `rank`/`xp` on the CR entry, see question 1); shared `vocabulary/` folder, its barrel line and `SystemAuthored`/`SystemVocabularyKey` deleted; `shared-correctness` and `creatureStatBlocks` tests re-pointed at `source-data`; dev reseed if the DTO gains fields. Proof: Polymorph and creature check journey tests, `source-data` audit asserts CR bonuses and currency ratios | vocabulary | M | none |
-| **S2 = T9e2** | Authoring defaults and Sheet condition list from the System: Fire/Poisoned defaults in the effect composer and spell authoring, Exhaustion exclusion in `ConditionsEditor`, speed label in `collectionPresentation`; a dnd5e capability names the definition ids and `apps/apis` exposes them on the System reference read. Proof: web component tests plus the authoring journey on real capability output | vocabulary (c) | M | S1 not required; touches different files |
+| **S1 = T9e1** | CR-driven rules read the System record: Polymorph form filter ranks CRs from the System record; creature proficiency bonus, `xp` and an explicit `rank` become fields on each CR entry on the System record (DTO, seed from source-data; no code keyed by CR id, ruling 1); currency `baseValue` and the passive's ability also move onto their record entries; shared `vocabulary/` folder, its barrel line and `SystemAuthored`/`SystemVocabularyKey` deleted; `shared-correctness` and `creatureStatBlocks` tests re-pointed at `source-data`; dev reseed (the DTO gains fields). Proof: Polymorph and creature check journey tests, `source-data` audit asserts CR bonuses and currency ratios | vocabulary | M | none |
+| **S2 = T9e2** | Authoring defaults and Sheet condition list from the System record: one `defaults` object on the record names the default damage type and condition ids (seeded from source-data, read by web through `apps/apis`); the condition entry gets a definition attribute (for example `levelled`) that `ConditionsEditor` filters on instead of `EXHAUSTION`; speed label in `collectionPresentation` from the System reference data. Proof: web component tests plus the authoring journey on real capability output | vocabulary | M | none; sequence with S1 (both change the System DTO and seed) |
 | **S3 = T9e3** | Player Encounter projection hides Invisible by capability: `invisibleConditionTypeIds` takes the id from a dnd5e visibility capability; no code string in neutral projection. Proof: `encounterPlayerProjection` test, Session Worker projection journey | vocabulary (c) | S | none |
 | **S4 = T9e4** | Walking speed by definition id in Sheet and movement: dnd5e names the Walking speed id; `sheetProjection.ts` drops the code and label heuristic; `characterMovementAndSenses.ts` uses the id. Proof: Sheet speed/movement tests, movement journey | vocabulary (c) | S | none |
 | **S5 = T9e5** | Imported equipment terms resolve through a dnd5e import adapter that names the GP, Walk, Stealth and Dwarven definition ids. Proof: `importedEquipmentTerms` and `importPreparation` tests | vocabulary (c) | S | none |
@@ -168,16 +168,21 @@ Sizes: S under half a day, M about a day, L multi-day. All close RULES-2.7. WSJF
 | T9f | as registered; add ability literals from section 4 (25 files) and mark sizes as core | vocabulary + core | L | S1 (so `AbilityCode`/CR reads are not mixed) |
 | T9g | as registered, with D175 wording read as core code | core | M | T9i |
 
-T9e stays as the umbrella of S1-S6, or retire it and register S1-S6 under their own ids. S1-S5 touch disjoint
-files and can run in parallel in separate worktrees; S1 and S2 may both change the System reference DTO or seed data
-depending on the answers to questions 1 and 2, so sequence those two if both choose "data on the record".
+T9e stays as the umbrella of S1-S6, or retire it and register S1-S6 under their own ids. S3-S5 touch disjoint files and can run in parallel in separate worktrees. S1 and S2 both change the System DTO and seed data, so sequence them.
 
-## 8. Questions for the user
+## 8. Orchestrator rulings (2026-10-22)
 
-1. **CR rank and proficiency bonus.** The System record's CR entries carry neither. Recommendation: an explicit
-   `rank` (neutral ordinal) on the record, and the proficiency-by-CR table as a dnd5e capability keyed by CR definition id,
-   because proficiency by CR is a D&D rule. The alternative, `xp` and `proficiencyBonus` as record fields, is simpler but puts a
-   D&D rule in the neutral DTO.
-2. **Defaults and policy flags on the reference DTO (S2).** Recommendation: a small `systemDefaults` object produced by the
-   dnd5e capability (default damage type, default condition, leveled condition id), not per-entry flags on every list.
-3. **Sizes (T9f):** core unless a campaign must add sizes. Default is core; no action needed unless the user disagrees.
+Vocabulary is authorable data (ADR 0038/0039), so both open questions resolve to System-record data, not dnd5e code.
+
+1. **Challenge rating.** `xp`, `proficiencyBonus` and an explicit `rank` (ordering) go on each CR entry on the System record,
+   seeded from source-data. No code capability keyed by CR id: a homebrew System changes XP and proficiency without code.
+   Currency `baseValue` and the ability a passive uses also move onto their record entries.
+2. **Authoring defaults.** One `defaults` object on the System record names definition ids (default damage type, default
+   condition, and so on), seeded from source-data; web reads it through `apps/apis`. It is not a capability. The Exhaustion
+   filter is a property of the condition, so the entry carries a definition attribute (for example `levelled`) and the UI
+   filters on it.
+3. **Sizes (T9f):** core unless a campaign must add sizes (default; no action needed).
+4. **T9g:** `slotCost.poolCode` is a System core code.
+
+Still capability-based per the amendment (the rulings do not cover them): S3 Invisible, S4 Walk speed, S5 import adapter. They
+may become record attributes too if the same reasoning is applied; flagged for the orchestrator.
