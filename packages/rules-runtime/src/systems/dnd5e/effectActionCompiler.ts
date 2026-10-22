@@ -182,6 +182,7 @@ import {
 import {
   DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION,
   dnd5eOutcomeDefinition,
+  dnd5eOutcomeTargetPreconditions,
   dnd5eTargetOnlyOutcome,
   type Dnd5eAuthoredOutcome
 } from './effectActionOutcomes.js'
@@ -3181,12 +3182,10 @@ function supported(
       return { kind: 'CONTEST_RELATIONSHIP' }
     }
   }
-  // Stabilize, conceal and detect settle on a fixed-DC or passive check itself; a contest's win,
-  // and any other success outcome, runs after the check test (D173).
+  // Conceal and detect settle on a fixed-DC or passive check itself; a contest's win, and any other
+  // success outcome, runs after the check test (D173).
   const settlesOnCheck =
-    outcome.effectKind === 'STABILIZE' ||
-    outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' ||
-    outcome.effectKind === 'DETECT_CONCEALED'
+    outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED'
   if (contestAction || (checkAction && !settlesOnCheck)) {
     const won = specializedTestOutcome(entry)
     if (
@@ -5183,6 +5182,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         riders.set(entry.optionalRider.riderId, entry.optionalRider.cost)
     return [...riders].map(([riderId, cost]) => ({ riderId, cost }))
   },
+  outcomeTargetPreconditions: ({ effectKinds }) => dnd5eOutcomeTargetPreconditions(effectKinds),
   compileTestTemplate: ({ compilerSource }) => {
     const test = compileDnd5eEffectActionTestTemplate({
       action: dndSourceFromCompilerSource(compilerSource)

@@ -8,6 +8,12 @@ import {
 type Bindings = Readonly<Record<string, RuleInputBinding>>
 
 /**
+ * A state the target must be in for an outcome to do anything (D173 Q1): a target that fails it raises
+ * the shared overridable warning at admission, before any roll.
+ */
+export type EffectOutcomeTargetPrecondition = 'DYING'
+
+/**
  * One outcome kind's proposal (ADR 0039 decision 1). Every phase that proposes the outcome (no test,
  * the selected outcome after a test, or a branch of an inline test) builds its node from this one
  * entry, so an outcome composes with any test phase without a per-kind ladder.
@@ -25,6 +31,7 @@ export type EffectOutcomeDefinition<Outcome, Context> = Readonly<{
   payloadOutputs: readonly string[]
   /** False when the outcome stores nothing on the target: an active effect or the room owns it. */
   changesTargetState: boolean
+  targetPrecondition?: EffectOutcomeTargetPrecondition
 }>
 
 /** Where a proposal runs: unconditionally, or only when its test resolves to the path it is authored on. */

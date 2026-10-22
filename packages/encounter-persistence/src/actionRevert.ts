@@ -18,11 +18,11 @@ import {
   type ConcentrationEndReason
 } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
-import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
-  withActorTemporaryHitPoints,
-  withCharacterTemporaryHitPoints
-} from '@artificer-toolkit/schema/shared/temporaryHitPoints'
+  ENDED_EFFECT_RELEASE_OPERATION_KEY,
+  isEndedEffectRelease
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { withCharacterTemporaryHitPoints } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
@@ -41,13 +41,11 @@ import {
 import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encounterConcealment'
 import { revertDamageTypesTaken } from '@artificer-toolkit/rules-runtime/encounterDamageTypesSinceTurnStart'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
   revertEncounterActorItemDraw,
   revertEncounterActorItemRelease
 } from '@artificer-toolkit/rules-runtime/encounterActorOptionalContestContext'
-import { creatureConditionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { updateSpellSlotUsage } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
@@ -57,6 +55,13 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { restoreConsumedGrants, restoreEndedMaintainedStates } from './consumedGrantPersistence.js'
 import { deletePlacedSpatialEffect } from './placedSpatialEffects.js'
 import { rejectDomain } from './domainRejections.js'
+import {
+  invertTargetMechanics,
+  returnInterceptionCharges,
+  revertUnavailable,
+  withHitPointsBefore,
+  type ActionBatch
+} from './targetMechanicsInverse.js'
 import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunActorWithRow, readRunState, replaceRunActor } from './documents.js'
@@ -86,10 +91,6 @@ function replacesMaintainedEffect(
   )
 }
 
-type ActionBatch = Extract<
-  ServerRuleExecutionApplicationOutputsDto,
-  { kind: 'CHARACTER_MECHANICS_BATCH' | 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }
->
 type AreaRoot = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'ENCOUNTER_AREA_ACTION' }>
 type CounteredRoot = Extract<
   ServerRuleExecutionApplicationOutputsDto,
@@ -129,6 +130,22 @@ function endedConditionReleases(applications: ActionBatch['applications']) {
   )
 }
 
+/** A Character inverse that restores nothing yet, fenced on the Sheet version the action left. */
+function characterInverseAt(expectedStreamVersion: number): CharacterInverse {
+  return {
+    hitPoints: null,
+    removedConditionIds: new Set(),
+    restoredConditionIds: new Set(),
+    resource: null,
+    unequipped: null,
+    drawn: null,
+    item: null,
+    degradation: null,
+    spells: [],
+    expectedStreamVersion
+  }
+}
+
 // Commands between the action and now; a longer tail cannot be only that action's children.
 const REVERT_SCAN_LIMIT = 16
 const RECEIPT_SCAN_LIMIT = REVERT_SCAN_LIMIT * 4
@@ -139,10 +156,6 @@ const CONCENTRATION_END_LIMIT: Record<ConcentrationEndReason, string> = {
   DEFEATED: 'lost Concentration to defeat',
   SPELLCASTING_LOCKED: 'lost Concentration to a spellcasting lock',
   CHOSEN: 'lost Concentration because its holder ended it'
-}
-
-function unavailable(message: string): never {
-  return rejectDomain('REVERT_UNAVAILABLE', message)
 }
 
 /** The command a rule-raised action was raised by, or null for an action a player took. */
@@ -210,10 +223,11 @@ export async function revertLastEncounterAction(
     .order('desc')
     .take(REVERT_SCAN_LIMIT)
   if (recent[0]?.version !== state.version)
-    unavailable('The Encounter changed after its last command; adjust manually.')
+    revertUnavailable('The Encounter changed after its last command; adjust manually.')
   const rootIndex = recent.findIndex((entry) => entry.commandType !== 'RESOLVE_RULE_OCCURRENCE')
   const root = recent[rootIndex]
-  if (root?.commandType === 'REVERT_LAST_ACTION') unavailable('The last action was already undone.')
+  if (root?.commandType === 'REVERT_LAST_ACTION')
+    revertUnavailable('The last action was already undone.')
   const scope = { run, state, campaign, input, fingerprint, userId }
   // Only the check's own answers follow its action: its d20, a d20 window's choice, its outcome dice.
   const requireCheckAnswerScan = (checkOccurrenceId: string | null) => {
@@ -236,7 +250,7 @@ export async function revertLastEncounterAction(
     })
     // A contested escape settles through the one contest path, which undo leaves to the GM.
     if (outputs.kind === 'CONTESTED_ACTION')
-      unavailable("Undo can't restore a contested escape; adjust manually.")
+      revertUnavailable("Undo can't restore a contested escape; adjust manually.")
     requireCheckAnswerScan(root.receipt.checkOccurrenceId)
     return revertEscape(ctx, { ...scope, root, outputs })
   }
@@ -253,7 +267,7 @@ export async function revertLastEncounterAction(
     return revertMoveHeldEffect(ctx, { ...scope, root })
   }
   if (root?.commandType !== 'RESOLVE_ACTION')
-    unavailable(
+    revertUnavailable(
       root
         ? 'Only an action can be undone, and something else happened after it.'
         : 'There is no action to undo.'
@@ -274,7 +288,7 @@ export async function revertLastEncounterAction(
     )
     const parent = recent[parentIndex]
     if (parent?.commandType !== 'RESOLVE_ACTION' || parent.root.kind !== 'RULE_OCCURRENCE')
-      unavailable('The action that raised this one changed after it; adjust manually.')
+      revertUnavailable('The action that raised this one changed after it; adjust manually.')
     groupRoots.push({
       root: parent,
       ruleOccurrenceId: parent.root.ruleOccurrenceId,
@@ -290,7 +304,7 @@ export async function revertLastEncounterAction(
     )
     .take(RECEIPT_SCAN_LIMIT)
   if (receipts.length === RECEIPT_SCAN_LIMIT)
-    unavailable('This action has too many follow-up results to undo; adjust manually.')
+    revertUnavailable('This action has too many follow-up results to undo; adjust manually.')
   // The raising command is the parent's own, or an answer that settled it (one receipt, no Run row).
   const raisingRoot = groupRoots[1]?.root
   if (
@@ -298,7 +312,7 @@ export async function revertLastEncounterAction(
     raisingRoot.commandId !== parentCommandId &&
     !receipts.some((receipt) => receipt.commandId === parentCommandId)
   )
-    unavailable('The action that raised this one changed after it; adjust manually.')
+    revertUnavailable('The action that raised this one changed after it; adjust manually.')
   const plans = groupRoots.map((group, index) =>
     planRevertRoot({
       ...group,
@@ -359,18 +373,7 @@ export async function revertLastEncounterAction(
           ...current,
           expectedStreamVersion: Math.max(current.expectedStreamVersion, streamVersion)
         }
-      : {
-          hitPoints: null,
-          removedConditionIds: new Set(),
-          restoredConditionIds: new Set(),
-          resource: null,
-          unequipped: null,
-          drawn: null,
-          item: null,
-          degradation: null,
-          spells: [],
-          expectedStreamVersion: streamVersion
-        }
+      : characterInverseAt(streamVersion)
     characterInverses.set(characterId, next)
     return next
   }
@@ -391,33 +394,12 @@ export async function revertLastEncounterAction(
     const restoreHitPoints = (
       actorId: string,
       transition: Pick<ActionBatch['targetTransition'], 'before' | 'after'>
-    ) => {
-      const actor = actorsById.get(actorId)!
-      if (actor.kind === 'CHARACTER') throw new Error('Character hit points are not Run state.')
-      if (
-        actor.currentHitPoints !== transition.after.currentHitPoints ||
-        actor.tempHitPoints !== transition.after.temporaryHitPoints ||
-        actor.maxHitPoints !== transition.after.maximumHitPoints
-      )
-        unavailable(`${actor.label}'s hit points changed after this action; adjust manually.`)
-      const next = encounterRunActorStateSchema.parse(
-        withActorTemporaryHitPoints(
-          {
-            ...actor,
-            currentHitPoints: transition.before.currentHitPoints,
-            maxHitPoints: transition.before.maximumHitPoints,
-            defeated: nextEncounterActorDefeated(actor, transition.before.currentHitPoints)
-          },
-          targetTemporaryHitPoints(transition.before)
-        )
-      )
-      actorsById.set(actorId, next)
-    }
+    ) => actorsById.set(actorId, withHitPointsBefore(actorsById.get(actorId)!, transition))
 
     // The zone contacts a forced movement settled came last, so they undo first.
     for (const { targetActorId, ...transition } of zoneDamage.toReversed()) {
       if (actorsById.get(targetActorId)?.kind === 'CHARACTER')
-        unavailable("Undo can't restore zone damage to a Character.")
+        revertUnavailable("Undo can't restore zone damage to a Character.")
       restoreHitPoints(targetActorId, transition)
     }
     // Cleaving children are undone first, in reverse order of application.
@@ -426,7 +408,7 @@ export async function revertLastEncounterAction(
       if (!cleaved || !damage.targetTransition)
         throw new Error('Stored Cleaving receipt is invalid.')
       if (cleaved.kind === 'CHARACTER')
-        unavailable("Undo can't restore Cleaving damage to a Character.")
+        revertUnavailable("Undo can't restore Cleaving damage to a Character.")
       restoreHitPoints(cleaved.id, damage.targetTransition)
     }
     const [firstRetaliation] = retaliation
@@ -467,7 +449,7 @@ export async function revertLastEncounterAction(
       }
       const conditions = readEncounterActorConditionState(actor.conditions ?? [])
       if (conditionIds.some((conditionId) => conditions.ids.includes(conditionId)))
-        unavailable(`${actor.label}'s conditions changed after this action; adjust manually.`)
+        revertUnavailable(`${actor.label}'s conditions changed after this action; adjust manually.`)
       updateActor(actor.id, {
         conditions: [
           ...conditions.values,
@@ -480,86 +462,41 @@ export async function revertLastEncounterAction(
     const invertTarget = async (action: ActionBatch) => {
       const target = actorsById.get(action.targetActorId)
       if (!target) throw new Error('Stored Encounter action actors are unavailable.')
-      const addedConditionIds = new Set(
-        action.applications.flatMap((application) =>
-          application.kind === 'CONDITION_APPLY' && application.applied
-            ? [application.conditionId]
-            : []
+      const characterBatch = action.kind === 'CHARACTER_MECHANICS_BATCH'
+      if (characterBatch !== (target.kind === 'CHARACTER'))
+        throw new Error(
+          characterBatch
+            ? 'Stored Character action target is invalid.'
+            : 'Stored Encounter actor target is invalid.'
         )
-      )
-      // A departure puts the target back unless the table already returned or removed it (D128).
-      if (
-        action.applications.some(
-          (application) => application.kind === 'DEPART' && application.applied
-        )
-      ) {
-        if (target.absence !== 'DEPARTED')
-          unavailable(
-            `${target.label} was returned to the Scene after this action; adjust manually.`
-          )
-        updateActor(target.id, { absence: null })
-      }
+      const inverted = invertTargetMechanics(state.gameSystemId, target, {
+        ...action,
+        targetCharacterStreamVersion: characterBatch ? action.targetCharacterStreamVersion : null
+      })
+      actorsById.set(target.id, inverted.actor)
       // A reaction the target used spent its slot and allowance and created its effect with this outcome.
       const reaction = action.reaction
-      if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
-        if (target.kind !== 'CHARACTER' || target.sourceId === null)
-          throw new Error('Stored Character action target is invalid.')
-        // A reapplied condition may have moved from Campaign context into the Sheet; that is not recorded.
-        if (
-          action.applications.some(
-            (application) => application.kind === 'CONDITION_APPLY' && !application.applied
-          )
-        )
-          unavailable("Undo can't restore a reapplied condition; adjust manually.")
-        // D63: dropping to 0 added the System's 0 hit point condition, and healing from 0 removed it.
-        const { before, after } = action.targetTransition
-        const { zeroHitPointsConditionDefinitionId: zeroHitPointsConditionId } =
-          creatureConditionCapabilityRegistry.require(state.gameSystemId)
-        const droppedToZero = before.currentHitPoints > 0 && after.currentHitPoints === 0
-        if (
-          zeroHitPointsConditionId !== null &&
-          before.currentHitPoints === 0 &&
-          after.currentHitPoints > 0 &&
-          before.conditionIds.includes(zeroHitPointsConditionId)
-        )
-          unavailable("Undo can't restore a removed condition; adjust manually.")
-        if (action.targetCharacterStreamVersion !== null) {
-          const inverse = characterInverse(target.sourceId, action.targetCharacterStreamVersion)
-          inverse.hitPoints = before
-          inverse.removedConditionIds = new Set([
-            ...addedConditionIds,
-            ...(zeroHitPointsConditionId !== null &&
-            droppedToZero &&
-            !before.conditionIds.includes(zeroHitPointsConditionId)
-              ? [zeroHitPointsConditionId]
-              : [])
-          ])
-          if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
-          if (action.targetItemUseStateTransition)
-            inverse.unequipped = action.targetItemUseStateTransition
-          inverse.degradation = action.targetItemDegradation
-        }
-      } else {
-        if (target.kind === 'CHARACTER')
-          throw new Error('Stored Encounter actor target is invalid.')
-        restoreHitPoints(target.id, action.targetTransition)
-        // An item the target dropped goes back in the hand it left.
-        const release = action.targetItemUseStateTransition
-        if (release) {
-          const held = revertEncounterActorItemRelease({
-            actor: actorsById.get(target.id)!,
-            transition: release
-          })
-          if (!held)
-            unavailable(`${target.label}'s equipment changed after this action; adjust manually.`)
-          updateActor(target.id, { snapshot: held.snapshot })
-        }
-        const conditions = readEncounterActorConditionState(target.conditions ?? [])
-        updateActor(target.id, {
-          conditions: conditions.values.filter(
-            (_, index) => !addedConditionIds.has(conditions.ids[index]!)
-          )
+      if (inverted.sheet && action.kind === 'CHARACTER_MECHANICS_BATCH') {
+        const inverse = characterInverse(inverted.sheet.characterId, inverted.sheet.streamVersion)
+        inverse.hitPoints = inverted.sheet.hitPoints
+        inverse.removedConditionIds = inverted.sheet.removedConditionIds
+        if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
+        if (action.targetItemUseStateTransition)
+          inverse.unequipped = action.targetItemUseStateTransition
+        inverse.degradation = action.targetItemDegradation
+      }
+      // An item a Creature target dropped goes back in the hand it left.
+      const release = characterBatch ? null : action.targetItemUseStateTransition
+      if (release) {
+        const held = revertEncounterActorItemRelease({
+          actor: actorsById.get(target.id)!,
+          transition: release
         })
+        if (!held)
+          revertUnavailable(
+            `${target.label}'s equipment changed after this action; adjust manually.`
+          )
+        updateActor(target.id, { snapshot: held.snapshot })
       }
       // A creature that ended its own effects (it cast, or was caught by its own area) gets them back.
       restoreReleasedConditions(
@@ -576,7 +513,9 @@ export async function revertLastEncounterAction(
           !owner ||
           featureChargeUsed(owner, targetFeature.ownerFeatureId) !== targetFeature.afterUsed
         )
-          unavailable("The target's feature charges changed after this action; adjust manually.")
+          revertUnavailable(
+            "The target's feature charges changed after this action; adjust manually."
+          )
         updateActor(owner.id, {
           resources: withFeatureChargeUsed(
             owner,
@@ -585,21 +524,10 @@ export async function revertLastEncounterAction(
           )
         })
       }
-      // A feature-held interception's charge goes back, last spend first.
-      for (const application of [...action.applications].reverse()) {
-        if (
-          (application.kind !== 'DAMAGE' && application.kind !== 'KILL_NEGATED') ||
-          !application.interceptionCharge
-        )
-          continue
-        const charge = application.interceptionCharge
-        const holder = actorsById.get(target.id)!
-        if (featureChargeUsed(holder, charge.ownerFeatureId) !== charge.afterUsed)
-          unavailable("The target's feature charges changed after this action; adjust manually.")
-        updateActor(holder.id, {
-          resources: withFeatureChargeUsed(holder, charge.ownerFeatureId, charge.beforeUsed)
-        })
-      }
+      actorsById.set(
+        target.id,
+        returnInterceptionCharges(actorsById.get(target.id)!, action.applications)
+      )
       const reactionEconomy = reaction?.actionEconomyTransition
       if (reactionEconomy) {
         const reactor = actorsById.get(target.id)!
@@ -607,7 +535,7 @@ export async function revertLastEncounterAction(
           encounterRuleUsageUsed(reactor, reactionEconomy.definitionId) !==
           reactionEconomy.afterUsed
         )
-          unavailable("The target's reactions changed after this action; adjust manually.")
+          revertUnavailable("The target's reactions changed after this action; adjust manually.")
         updateActor(reactor.id, {
           resources: withEncounterRuleUsageUsed(
             reactor,
@@ -687,7 +615,7 @@ export async function revertLastEncounterAction(
             })
           : revertEncounterActorItemDraw({ actor, transition: sourceDraw })
       if (!restored)
-        unavailable(`${source.label}'s equipment changed after this action; adjust manually.`)
+        revertUnavailable(`${source.label}'s equipment changed after this action; adjust manually.`)
       updateActor(sourceDraw.actorId, { snapshot: restored.snapshot })
     }
     // The source's one spend: its Character resource, item or stow, spell slot, feature charge and allowances.
@@ -725,14 +653,14 @@ export async function revertLastEncounterAction(
     const feature = spend.featureResourceConsumption
     if (feature) {
       const owner = actorsById.get(feature.ownerActorId)
-      if (!owner) unavailable(FEATURE_CHARGES_CHANGED)
+      if (!owner) revertUnavailable(FEATURE_CHARGES_CHANGED)
       updateActor(owner.id, { resources: returnSpentFeatureCharge(owner, feature).resources })
     }
     const economy = spend.actionEconomyTransition
     if (economy) {
       const owner = actorsById.get(source.id)!
       if (encounterRuleUsageUsed(owner, economy.definitionId) !== economy.afterUsed)
-        unavailable("The actor's action economy changed after this action; adjust manually.")
+        revertUnavailable("The actor's action economy changed after this action; adjust manually.")
       updateActor(owner.id, {
         resources: withEncounterRuleUsageUsed(owner, economy.definitionId, economy.beforeUsed)
       })
@@ -744,7 +672,7 @@ export async function revertLastEncounterAction(
         attackAction
       )
       if (!restored)
-        unavailable("The actor's Attack action changed after this action; adjust manually.")
+        revertUnavailable("The actor's Attack action changed after this action; adjust manually.")
       updateActor(source.id, { resources: restored.resources })
     }
     // Each mark this action armed or engaged goes back to what it was; an actor engaged earlier stays so.
@@ -781,7 +709,9 @@ export async function revertLastEncounterAction(
       )
       const reaction = spend.actionEconomyTransition
       if (encounterRuleUsageUsed(reactor, reaction.definitionId) !== reaction.afterUsed)
-        unavailable("The reacting creature's reactions changed after this action; adjust manually.")
+        revertUnavailable(
+          "The reacting creature's reactions changed after this action; adjust manually."
+        )
       updateActor(reactor.id, {
         resources: withEncounterRuleUsageUsed(reactor, reaction.definitionId, reaction.beforeUsed)
       })
@@ -807,7 +737,7 @@ export async function revertLastEncounterAction(
     // D139: the creatures the action pushed or pulled return, last move first; a token moved since refuses.
     if (root.forcedMovements.length) {
       if (!ctx.ports.restoreActionForcedMovements)
-        unavailable('This action moved creatures on the Scene; adjust manually.')
+        revertUnavailable('This action moved creatures on the Scene; adjust manually.')
       await ctx.ports.restoreActionForcedMovements({
         encounterId: state.id,
         commandId: root.commandId,
@@ -973,7 +903,7 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
     } else if (outputs.outcome === 'APPLIED') cleaving.push(outputs)
   }
   if ([...laterOccurrenceIds].some((occurrenceId) => !childOccurrenceIds.has(occurrenceId)))
-    unavailable('Another decision changed the Encounter after this action; adjust manually.')
+    revertUnavailable('Another decision changed the Encounter after this action; adjust manually.')
   if (!batch && !areaRoot && !lostRoot && !unsupported.size)
     throw new Error('Stored Encounter action receipt is missing.')
   // An area's creatures undo in reverse of the order they were applied; the root's sealed ids say which.
@@ -1037,7 +967,7 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
           : batch.sourceCharacterStreamVersion
     })
   if (unsupported.size || !spend)
-    unavailable(`Undo can't restore ${[...unsupported].join(', ')}; adjust manually.`)
+    revertUnavailable(`Undo can't restore ${[...unsupported].join(', ')}; adjust manually.`)
   return {
     root,
     batch,
@@ -1114,7 +1044,8 @@ async function commitRevert(
 
 /**
  * Undoes the Run's last CHECK action exactly from its receipt: its allowance use, the Creature
- * feature charges it spent and the grants its check used up.
+ * feature charges it spent, the grants its check used up and a won check's outcome on its target
+ * (D173). The roll stays on the record.
  */
 async function revertCheckAction(
   ctx: EncounterCharacterWriteTransaction,
@@ -1129,7 +1060,7 @@ async function revertCheckAction(
   const { state, root, checkReceipt: receipt } = input
   const actors = await readRunActors(ctx, state)
   const actor = actors.find((entry) => entry.id === receipt.actorId)
-  if (!actor) unavailable('The actor left the Encounter; adjust manually.')
+  if (!actor) revertUnavailable('The actor left the Encounter; adjust manually.')
   const restored = returnSpentFeatureCharge(
     returnSpentActionEconomy(actor, receipt.actionEconomy),
     receipt.featureResourceConsumption
@@ -1144,47 +1075,43 @@ async function revertCheckAction(
         occurrenceId: receipt.checkOccurrenceId
       })
     : null
-  // A failed check action changed only its roller; a success's outcome is left to the GM.
-  if (outputs?.kind === 'CHECK_ACTION' && outputs.stateTransition.kind !== 'NONE')
-    unavailable("Undo can't restore a check's outcome; adjust manually.")
   if (outputs?.kind === 'CONCEALMENT_CHECK')
     await revertConcealmentCheck(ctx, state, actors, outputs)
-  else if (outputs && outputs.kind !== 'BASIC_ACTION_CHECK' && outputs.kind !== 'CHECK_ACTION')
+  else if (outputs && outputs.kind !== 'CHECK_ACTION')
     throw new Error('Stored basic action check receipt is invalid.')
-  const stabilized =
-    outputs?.kind === 'BASIC_ACTION_CHECK' && outputs.targetTransition
-      ? {
-          targetCharacterId: outputs.targetCharacterId,
-          targetTransition: outputs.targetTransition
-        }
-      : null
-  // The roll stays on the record; only the dying target's death saves come back.
-  if (stabilized)
-    await restoreCharacter(ctx, {
-      characterId: stabilized.targetCharacterId,
-      inverse: {
-        hitPoints: stabilized.targetTransition.before,
-        removedConditionIds: new Set(),
-        restoredConditionIds: new Set(),
-        resource: null,
-        unequipped: null,
-        drawn: null,
-        item: null,
-        degradation: null,
-        spells: [],
-        expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
-      },
-      userId: input.userId,
-      updatedAt,
-      gameSystemId: state.gameSystemId
-    })
-  return commitRevert(ctx, {
-    ...input,
-    actors,
-    nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
-    updatedAt
-  })
+  const nextActors = actors.map((entry) => (entry.id === actor.id ? restored : entry))
+  const checkAction = outputs?.kind === 'CHECK_ACTION' ? outputs : null
+  const outcome =
+    checkAction?.stateTransition.kind === 'TARGET_OUTCOME' ? checkAction.stateTransition : null
+  if (outcome?.forcedMovements.length)
+    revertUnavailable("Undo can't move a pushed creature back; adjust manually.")
+  const mechanics = outcome?.mechanics
+  if (mechanics) {
+    if (mechanics.applications.some(isEndedEffectRelease))
+      revertUnavailable("Undo can't restore an effect this outcome ended; adjust manually.")
+    const index = nextActors.findIndex((entry) => entry.id === checkAction!.targetActorId)
+    if (index < 0) revertUnavailable('The target left the Encounter; adjust manually.')
+    const inverted = invertTargetMechanics(state.gameSystemId, nextActors[index]!, mechanics)
+    nextActors[index] = returnInterceptionCharges(inverted.actor, mechanics.applications)
+    if (inverted.sheet)
+      await restoreCharacter(ctx, {
+        characterId: inverted.sheet.characterId,
+        inverse: {
+          ...characterInverseAt(inverted.sheet.streamVersion),
+          hitPoints: inverted.sheet.hitPoints,
+          removedConditionIds: inverted.sheet.removedConditionIds
+        },
+        userId: input.userId,
+        updatedAt,
+        gameSystemId: state.gameSystemId
+      })
+  }
+  return commitRevert(ctx, { ...input, actors, nextActors, updatedAt })
 }
+
+/** Undo's refusal of a check receipt this build no longer reads. */
+export const RETIRED_CHECK_RECEIPT =
+  "Undo can't read this check's receipt, which this version no longer supports; adjust manually."
 
 const FEATURE_CHARGES_CHANGED =
   "The actor's feature charges changed after this action; adjust manually."
@@ -1203,7 +1130,7 @@ function returnSpentFeatureCharge(
   if (feature.ownerActorId !== actor.id)
     throw new Error('Stored feature charge receipt is invalid.')
   if (featureChargeUsed(actor, feature.ownerFeatureId) !== feature.afterUsed)
-    unavailable(FEATURE_CHARGES_CHANGED)
+    revertUnavailable(FEATURE_CHARGES_CHANGED)
   return encounterRunActorStateSchema.parse({
     ...actor,
     resources: withFeatureChargeUsed(actor, feature.ownerFeatureId, feature.beforeUsed)
@@ -1217,7 +1144,7 @@ function returnSpentActionEconomy(
 ): EncounterRunActorState {
   if (!economy) return actor
   if (encounterRuleUsageUsed(actor, economy.definitionId) !== economy.afterUsed)
-    unavailable("The actor's action economy changed after this action; adjust manually.")
+    revertUnavailable("The actor's action economy changed after this action; adjust manually.")
   return encounterRunActorStateSchema.parse({
     ...actor,
     resources: withEncounterRuleUsageUsed(actor, economy.definitionId, economy.beforeUsed)
@@ -1239,10 +1166,10 @@ async function revertEscape(
   const { receipt } = root
   if (outputs.kind !== 'ESCAPE_CHECK') throw new Error('Stored escape check receipt is invalid.')
   if (outputs.outcome === 'ESCAPED')
-    unavailable("Undo can't restore an escaped grapple; adjust manually.")
+    revertUnavailable("Undo can't restore an escaped grapple; adjust manually.")
   const actors = await readRunActors(ctx, state)
   const actor = actors.find((entry) => entry.id === receipt.actorId)
-  if (!actor) unavailable('The actor left the Encounter; adjust manually.')
+  if (!actor) revertUnavailable('The actor left the Encounter; adjust manually.')
   const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
   // The Help the check used goes back to its holder.
   await restoreConsumedGrants(ctx, receipt.consumedGrants)
@@ -1271,7 +1198,10 @@ async function readCheckReceiptOutputs(
     .take(RECEIPT_SCAN_LIMIT)
   const receipt = receipts.find((entry) => entry.occurrenceId === input.occurrenceId)
   if (!receipt) throw new Error('Stored check receipt is missing.')
-  const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+  const parsed = storedRuleExecutionResultDtoSchema.safeParse(JSON.parse(receipt.resultJson))
+  // A receipt of a retired shape (a bespoke First Aid check, D173) is refused, never approximated.
+  if (!parsed.success) revertUnavailable(RETIRED_CHECK_RECEIPT)
+  const result = parsed.data
   if (checksumRuleDocument(result) !== receipt.resultChecksum)
     throw new Error('Stored Encounter rule receipt mismatch.')
   if (result.status !== 'COMPLETE') throw new Error('Stored check receipt is invalid.')
@@ -1296,7 +1226,7 @@ async function revertConcealmentCheck(
       const owner = heldEffectOwner(state, actors, created.targetActorId)
       const effect = await store.findById(owner, created.activeEffectId)
       if (!effect || effect.version !== created.afterVersion)
-        unavailable('The concealment changed after this action; adjust manually.')
+        revertUnavailable('The concealment changed after this action; adjust manually.')
       await store.deleteCas({
         id: effect.id,
         owner,
@@ -1361,11 +1291,13 @@ async function revertCreatureRest(
   const restored = new Map<string, EncounterRunActorState>()
   for (const { actorId, resets } of root.receipt.actors) {
     const actor = actors.find((entry) => entry.id === actorId)
-    if (!actor) unavailable('A creature left the Encounter; adjust manually.')
+    if (!actor) revertUnavailable('A creature left the Encounter; adjust manually.')
     let resources: unknown = actor.resources
     for (const { key, beforeUsed } of resets) {
       if (featureChargeUsed({ resources }, key) !== 0)
-        unavailable(`${actor.label}'s feature charges changed after this rest; adjust manually.`)
+        revertUnavailable(
+          `${actor.label}'s feature charges changed after this rest; adjust manually.`
+        )
       resources = withFeatureChargeUsed({ resources }, key, beforeUsed)
     }
     restored.set(actorId, encounterRunActorStateSchema.parse({ ...actor, resources }))
@@ -1391,12 +1323,12 @@ async function revertMoveHeldEffect(
   const { receipt } = root
   const actors = await readRunActors(ctx, state)
   const actor = actors.find((entry) => entry.id === receipt.actorId)
-  if (!actor) unavailable('The actor left the Encounter; adjust manually.')
+  if (!actor) revertUnavailable('The actor left the Encounter; adjust manually.')
   const store = createActiveRuleEffectStore(ctx)
   const toOwner = heldEffectOwner(state, actors, receipt.toActorId)
   const moved = await store.findById(toOwner, receipt.effectId)
   if (!moved || moved.version !== receipt.afterVersion)
-    unavailable('The effect changed after it was moved; adjust manually.')
+    revertUnavailable('The effect changed after it was moved; adjust manually.')
   await store.deleteCas({
     id: moved.id,
     owner: toOwner,
@@ -1426,7 +1358,7 @@ function heldEffectOwner(
   holderActorId: string
 ) {
   const holder = actors.find((entry) => entry.id === holderActorId)
-  if (!holder) unavailable('The actor left the Encounter; adjust manually.')
+  if (!holder) revertUnavailable('The actor left the Encounter; adjust manually.')
   return turnEffectOwner(holder, state.id)
 }
 
@@ -1446,7 +1378,7 @@ async function restoreConcealmentObservers(
   const owner = heldEffectOwner(state, actors, input.holderActorId)
   const effect = await store.findById(owner, input.activeEffectId)
   if (!effect || effect.version !== input.afterVersion)
-    unavailable('The concealment changed after this action; adjust manually.')
+    revertUnavailable('The concealment changed after this action; adjust manually.')
   await store.updateLifecycleCas({
     id: effect.id,
     owner,
@@ -1470,7 +1402,7 @@ async function restoreCharacter(
   if (!row || row.status !== 'ACTIVE' || row.systemId !== input.gameSystemId)
     throw new Error('Encounter Character is unavailable.')
   if (row.play.streamVersion !== inverse.expectedStreamVersion)
-    unavailable(`${row.label}'s Sheet changed after this action; adjust manually.`)
+    revertUnavailable(`${row.label}'s Sheet changed after this action; adjust manually.`)
   const character = ctx.ports.readCharacterRecord(row)
   let state = character.state
   // The fenced stream version proves the Sheet is exactly what this action left.
@@ -1518,13 +1450,13 @@ async function restoreCharacter(
       )
       .find((equipment) => checksumRuleDocument(equipment) === beforeStateChecksum)
     if (!restored)
-      unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
+      revertUnavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
     state = { ...state, equipment: restored }
   }
   const drawn = inverse.drawn
   if (drawn?.movement === 'THROW') {
     if (checksumRuleDocument(state.equipment) !== drawn.afterStateChecksum)
-      unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
+      revertUnavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
     reequip(drawn.itemInstanceId, drawn.beforeStateChecksum)
   } else if (drawn) {
     const equipment = {
@@ -1535,7 +1467,7 @@ async function restoreCharacter(
       checksumRuleDocument(state.equipment) !== drawn.afterStateChecksum ||
       checksumRuleDocument(equipment) !== drawn.beforeStateChecksum
     )
-      unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
+      revertUnavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
     state = { ...state, equipment }
   }
   const unequipped = inverse.unequipped
@@ -1548,7 +1480,9 @@ async function restoreCharacter(
         resourceUsage: sheetState.resourceUsage.map((usage) => {
           if (createCharacterResourceOwnerKey(usage.owner) !== resource.poolId) return usage
           if (usage.used !== resource.afterUsed)
-            unavailable(`${row.label}'s resources changed after this action; adjust manually.`)
+            revertUnavailable(
+              `${row.label}'s resources changed after this action; adjust manually.`
+            )
           return {
             ...usage,
             used: resource.beforeUsed,
@@ -1567,7 +1501,7 @@ async function restoreCharacter(
       base.itemUsage.find((usage) => usage.itemInstanceId === item.itemInstanceId)?.used !==
       item.afterUsed
     )
-      unavailable(`${row.label}'s items changed after this action; adjust manually.`)
+      revertUnavailable(`${row.label}'s items changed after this action; adjust manually.`)
     restoredSheetState = {
       ...base,
       itemUsage: [
@@ -1588,7 +1522,7 @@ async function restoreCharacter(
         ?.penalty !== degradation.afterPenalty ||
       usedNow !== degradation.afterUsed
     )
-      unavailable(`${row.label}'s items changed after this action; adjust manually.`)
+      revertUnavailable(`${row.label}'s items changed after this action; adjust manually.`)
     restoredSheetState = {
       ...base,
       itemDegradation: [

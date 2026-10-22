@@ -37,8 +37,7 @@ export const ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID = '3b7e91c4-5a2d-4f08-8c6
 export function encounterD20WindowRollerActorId(
   context: EncounterD20WindowPendingContextDto
 ): string {
-  const { source } = context
-  return source.kind === 'CHECK_ACTION' ? source.context.actorId : source.context.helperActorId
+  return context.source.context.actorId
 }
 
 /** The check the window follows, as the roll card and decision name it. */

@@ -1,7 +1,4 @@
-import type {
-  ConcealmentCheckSettlement,
-  StabilizeCheckSettlement
-} from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import type { ConcealmentCheckSettlement } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
@@ -23,12 +20,6 @@ type ConcealmentCheckOutput = Extract<
   ServerRuleExecutionApplicationOutputsDto,
   { kind: 'CONCEALMENT_CHECK' }
 >
-
-/** Whether a settled basic action check is a concealment check (Hide, Search) and not a stabilizing one. */
-export const isConcealmentCheckSettlement = (
-  settlement: StabilizeCheckSettlement | ConcealmentCheckSettlement
-): settlement is ConcealmentCheckSettlement =>
-  settlement.context.kind === 'ENCOUNTER_CONCEALMENT_CHECK'
 
 /**
  * Settles a concealment check (Hide, Search). The room planned the result from the roller's total;

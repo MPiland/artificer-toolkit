@@ -7,13 +7,10 @@ import {
   type D20MinimumRollDto
 } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
-import { basicActionCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
-import {
-  encounterBasicActionCheckPendingContextDtoSchema,
-  type EncounterConcealmentCheckPendingContextDto,
-  type encounterEscapeCheckPendingContextDtoSchema
+import type {
+  EncounterConcealmentCheckPendingContextDto,
+  encounterEscapeCheckPendingContextDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
-import type { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
@@ -25,8 +22,6 @@ import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/sche
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { CharacterStabilizeOutcomeApplication } from './characterRuleActionSystemAdapter.js'
-import { isEncounterTargetDying } from './encounterActorDefeat.js'
 import {
   freezeD20Context,
   settleEncounterD20Answer,
@@ -40,93 +35,23 @@ import type { CharacterMovementFacts, MovementTarget } from './encounterMovement
 import { d20TestDefinitionCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
-type EncounterBasicActionCheckPendingContextDto = ReturnType<
-  typeof encounterBasicActionCheckPendingContextDtoSchema.parse
->
 type EncounterEscapeCheckPendingContextDto = ReturnType<
   typeof encounterEscapeCheckPendingContextDtoSchema.parse
 >
-type CharacterMechanicsTargetStateDto = ReturnType<
-  typeof characterMechanicsTargetStateDtoSchema.parse
->
-/** The frozen d20 check every single-roll check carries: First Aid, Escape and a counter's check. */
-type EncounterD20CheckContext = Pick<EncounterBasicActionCheckPendingContextDto, 'd20'> & {
-  check: Pick<EncounterBasicActionCheckPendingContextDto['check'], 'dc'>
+/** The frozen d20 check every single-roll check carries: a check action, Escape and a counter's check. */
+type EncounterD20CheckContext = Pick<EncounterEscapeCheckPendingContextDto, 'd20'> & {
+  check: Pick<EncounterEscapeCheckPendingContextDto['check'], 'dc'>
 }
 
-/** The mechanics application of a check that reached its DC: the target becomes stable. */
-export function encounterBasicActionStabilizeApplication(
-  targetActorId: string
-): CharacterStabilizeOutcomeApplication {
-  return {
-    sourceNodeId: 'stabilize',
-    sourceOperationKey: 'effect.stabilize',
-    authoredPath: null,
-    resolvedPath: null,
-    kind: 'STABILIZE',
-    targetActorId
-  }
-}
-
-export function encounterBasicActionCheckTrigger(
-  context: Pick<EncounterBasicActionCheckPendingContextDto, 'actionLabel' | 'check'>
-): Extract<EncounterRuleRollTriggerDto, { kind: 'BASIC_ACTION_CHECK' }> {
+export function encounterBasicActionCheckTrigger(context: {
+  actionLabel: string
+  check: { label: string; dc: number }
+}): Extract<EncounterRuleRollTriggerDto, { kind: 'BASIC_ACTION_CHECK' }> {
   return {
     kind: 'BASIC_ACTION_CHECK',
     actionLabel: context.actionLabel,
     checkLabel: context.check.label,
     dc: context.check.dc
-  }
-}
-
-/**
- * Freezes a stabilizing basic action's check from the helper's own facts: the System check
- * definition's modifier and contributors (conditions included, and any Help it holds). The check
- * uses up the helper's one-check grants. Returns null when the target is not dying, so no check is made. A custom helper has no
- * check facts and is refused.
- */
-export function prepareEncounterBasicActionCheck<
-  TCharacterFacts extends CharacterMovementFacts
->(input: {
-  gameSystemId: string
-  commandId: string
-  commandFingerprint: string
-  definition: { id: string; version: number; checksum: string; label: string }
-  system: SystemAuthoredDto
-  check: { checkKind: 'SKILL' | 'ABILITY'; checkDefinitionId: string; dc: number }
-  checkLabel: string
-  helper: MovementTarget<TCharacterFacts>
-  target: MovementTarget<TCharacterFacts>
-}): { context: EncounterBasicActionCheckPendingContextDto } | null {
-  const { helper, target } = input
-  if (helper.actor.kind === 'CUSTOM')
-    throw new EncounterValidationError('A custom actor has no check to make.')
-  if (!isEncounterTargetDying(target)) return null
-  if (!target.actor.sourceId) throw new EncounterValidationError('Choose a Character to stabilize.')
-  const { d20, consumedGrants } = freezeEncounterActorCheck({ ...input, actor: helper })
-  return {
-    context: encounterBasicActionCheckPendingContextDtoSchema.parse({
-      kind: 'ENCOUNTER_BASIC_ACTION_CHECK',
-      schemaVersion: 1,
-      commandId: input.commandId,
-      commandFingerprint: input.commandFingerprint,
-      definition: {
-        id: input.definition.id,
-        version: input.definition.version,
-        checksum: input.definition.checksum
-      },
-      actionLabel: input.definition.label,
-      helperActorId: helper.actor.id,
-      targetActorId: target.actor.id,
-      targetCharacterId: target.actor.sourceId,
-      check: {
-        checkDefinitionId: input.check.checkDefinitionId,
-        label: input.checkLabel,
-        dc: input.check.dc
-      },
-      d20,
-      consumedGrants
-    })
   }
 }
 
@@ -213,7 +138,6 @@ export async function startEncounterBasicActionCheck(input: {
 export function encounterBasicActionCheckPendingSnapshot(input: {
   continuation: ServerRuleExecutionContinuationDto
   context:
-    | EncounterBasicActionCheckPendingContextDto
     | EncounterEscapeCheckPendingContextDto
     | EncounterConcealmentCheckPendingContextDto
     | EncounterCheckActionPendingContextDto
@@ -334,7 +258,7 @@ export function evaluateRolledEncounterBasicActionCheck(
   }
 }
 
-/** Rolls the frozen check against its DC: the natural d20 plus the helper's modifier. */
+/** Rolls the frozen check against its DC: the natural d20 plus the roller's modifier. */
 export async function evaluateEncounterBasicActionCheck(
   input: Parameters<typeof rollEncounterCheck>[0] & { context: EncounterD20CheckContext }
 ) {
@@ -342,55 +266,6 @@ export async function evaluateEncounterBasicActionCheck(
     await rollEncounterCheck(input),
     input.context.check.dc
   )
-}
-
-/**
- * The stored result of a settled check. `transition` is the target's death-save state before and
- * after the stabilize, present only when the check stabilized a target that was still dying.
- */
-export function completeEncounterBasicActionCheckResult(input: {
-  context: EncounterBasicActionCheckPendingContextDto
-  continuation: ServerRuleExecutionContinuationDto
-  evaluated: Awaited<ReturnType<typeof evaluateEncounterBasicActionCheck>>
-  targetStillDying: boolean
-  transition: {
-    before: CharacterMechanicsTargetStateDto
-    after: CharacterMechanicsTargetStateDto
-    afterStreamVersion: number | null
-  } | null
-  occurrenceVersion: number
-  initialFactsChecksum: string
-}) {
-  const { context, continuation, evaluated, transition } = input
-  if (transition && transition.afterStreamVersion === null)
-    throw new EncounterValidationError('A stabilized target must be a Character with a stream.')
-  const applicationOutputs = basicActionCheckApplicationOutputDtoSchema.parse({
-    kind: 'BASIC_ACTION_CHECK',
-    schemaVersion: 1,
-    occurrenceId: continuation.occurrenceId,
-    commandId: context.commandId,
-    definition: context.definition,
-    helperActorId: context.helperActorId,
-    targetActorId: context.targetActorId,
-    targetCharacterId: context.targetCharacterId,
-    check: {
-      checkDefinitionId: context.check.checkDefinitionId,
-      dc: context.check.dc
-    },
-    d20: evaluated.d20,
-    outcome: !input.targetStillDying ? 'NOT_DYING' : evaluated.reachesDc ? 'STABILIZED' : 'FAILED',
-    targetTransition: transition
-  })
-  return {
-    result: storedCheckResult({
-      evaluated,
-      continuation,
-      occurrenceVersion: input.occurrenceVersion,
-      initialFactsChecksum: input.initialFactsChecksum,
-      applicationOutputs
-    }),
-    applicationOutputs
-  }
 }
 
 /** The stored COMPLETE result of a settled single-d20 check, around its application outputs. */
