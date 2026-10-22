@@ -364,6 +364,7 @@ function isActiveEffectPlanOutcome(
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       entry.pathCode === 'ON_SAVE_FAIL' &&
       timedConditionPlan(action) !== null) ||
+    (entry.outcome.effectKind === 'REMOVE_FROM_PLAY' && timedConditionPlan(action) !== null) ||
     (entry.outcome.effectKind === 'TELEPATHIC_LINK' &&
       entry.pathCode !== 'ON_USE' &&
       actorLinkPlan(action) !== null) ||
@@ -1188,16 +1189,23 @@ function timedImmediateConditionPlan(
 function timedConditionPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const entries = entriesBesideSourceImmunity(action)
+  // A manual ruling beside the held entries (Maze's escape) is the GM's, so the effect holds nothing for it.
+  const entries = entriesBesideSourceImmunity(action).filter(
+    (entry) => !('outcome' in entry && entry.outcome.effectKind === 'MANUAL_ADJUDICATION')
+  )
   const outcomeEntries = entries.filter((entry) => 'outcome' in entry)
   const conditionEntries = outcomeEntries.flatMap((entry) =>
     entry.outcome.effectKind === 'CONDITION' ? [{ entry, outcome: entry.outcome }] : []
   )
   const grantEntries = outcomeEntries.filter((entry) => entry.outcome.effectKind === 'APPLY_GRANT')
-  const lead = conditionEntries[0]
+  const removalEntries = outcomeEntries.flatMap((entry) =>
+    entry.outcome.effectKind === 'REMOVE_FROM_PLAY' ? [{ entry, outcome: entry.outcome }] : []
+  )
+  const lead = conditionEntries[0] ?? removalEntries[0]
   if (
     !lead ||
     grantEntries.length > 1 ||
+    removalEntries.length > 1 ||
     outcomeEntries.length !== entries.length ||
     // The held entries and any damage beside them are one authored result: same path, block,
     // duration and lifecycle.
@@ -1205,6 +1213,7 @@ function timedConditionPlan(
       (entry) =>
         (entry.outcome.effectKind !== 'CONDITION' &&
           entry.outcome.effectKind !== 'APPLY_GRANT' &&
+          entry.outcome.effectKind !== 'REMOVE_FROM_PLAY' &&
           entry.outcome.effectKind !== 'DAMAGE') ||
         entry.pathCode !== lead.entry.pathCode ||
         entry.resultBlockId !== lead.entry.resultBlockId ||
@@ -1286,12 +1295,17 @@ function timedConditionPlan(
     ...(grantContribution && {
       modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
     }),
+    ...(removalEntries[0] && {
+      playAbsenceContribution: { keepsTurn: removalEntries[0].outcome.keepsTurn }
+    }),
     lifecycle: {
       consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
       endOnEvents: [...new Set(endOnEvents)].sort(),
       endOnTriggers: canonicalEndTriggers(endOnTriggers)
     },
-    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
+    // A removal held with no condition (Etherealness) has no condition to remove at its end.
+    adapterFacts:
+      conditionEntries.length > 0 ? { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true } : {},
     perceptionContributions: [],
     maintenance,
     marginRiders: rider ? [marginRiderPlan(rider)] : []
@@ -2398,7 +2412,7 @@ type DirectOutcomeInput = Readonly<{
   action: Dnd5eCompiledEffectActionSource
   onList: boolean
   selfTeleport: { maxFeet: number; destinationKind: 'VISIBLE' | 'SPECIFIED_POINT' } | null
-  plans: Readonly<{ grant: boolean; link: boolean; form: boolean }>
+  plans: Readonly<{ grant: boolean; link: boolean; form: boolean; absence: boolean }>
 }>
 type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extract<
   Dnd5eAuthoredOutcome,
@@ -2482,6 +2496,8 @@ const DND5E_DIRECT_OUTCOMES: {
     plans.link ? { kind: 'ACTOR_LINK' } : unsupportedDirectOutcome(),
   MANIFEST: (_outcome, { plans }) =>
     plans.form ? { kind: 'CREATURE_FORM' } : unsupportedDirectOutcome(),
+  REMOVE_FROM_PLAY: (_outcome, { plans }) =>
+    plans.absence ? { kind: 'PLAY_ABSENCE' } : unsupportedDirectOutcome(),
   HEAL: (outcome, { action }) => {
     if (outcome.valueKind === 'DICE') {
       parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
@@ -2727,7 +2743,12 @@ function supported(
     action,
     onList: supportsChosenCreatures,
     selfTeleport,
-    plans: { grant: grantPlan !== null, link: linkPlan !== null, form: formPlan !== null }
+    plans: {
+      grant: grantPlan !== null,
+      link: linkPlan !== null,
+      form: formPlan !== null,
+      absence: conditionPlan?.playAbsenceContribution != null
+    }
   })
 }
 
@@ -5252,7 +5273,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (
       definition.stateContributions.some(
         ({ kind }) =>
-          kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM' || kind === 'SOURCE_IMMUNITY'
+          kind === 'ACTOR_LINK' ||
+          kind === 'CREATURE_FORM' ||
+          kind === 'PLAY_ABSENCE' ||
+          kind === 'SOURCE_IMMUNITY'
       )
     )
       return { applications: [], terminal: false, emptyApplicationAllowed: true }

@@ -111,11 +111,12 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
           tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
           fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
         })
-  const inAreaActors = inArea.map((actorId) => {
+  // An actor out of play keeps its token but is caught by nothing (D178).
+  const inAreaActors = inArea.flatMap((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
     if (!actor || !token) throw new Error('Encounter rules input binding mismatch.')
-    return { actor, token }
+    return actor.absence === null ? [{ actor, token }] : []
   })
   for (const { actor } of inAreaActors)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))

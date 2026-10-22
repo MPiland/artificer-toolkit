@@ -2833,6 +2833,13 @@ function registerOutcomeFields(
       )
     )
     .set(
+      'keepsTurn',
+      toggle(['keepsTurn'], 'Keeps Its Turn', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.REMOVE_FROM_PLAY),
+        hiddenBehavior: 'CLEAR'
+      })
+    )
+    .set(
       'maximumCreatures',
       number(['maximumCreatures'], 'Maximum Creatures', {
         constraints: { minimum: 1 },

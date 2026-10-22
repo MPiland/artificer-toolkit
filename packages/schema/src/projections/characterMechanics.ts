@@ -318,6 +318,10 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       ),
       null
     ),
+    playAbsenceContribution: z._default(
+      z.nullable(z.strictObject({ keepsTurn: z.boolean() })),
+      null
+    ),
     creatureFormContribution: z._default(
       z.nullable(
         z.strictObject({

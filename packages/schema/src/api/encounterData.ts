@@ -73,8 +73,14 @@ export const encounterActorDispositionDtoSchema = lazySchema(() =>
 )
 export type EncounterActorDispositionDto = z.infer<typeof encounterActorDispositionDtoSchema>
 
-/** Why an actor is out of the Run's play (D82, D128): taken out by the GM, or carried away by an effect. */
-export const encounterActorAbsenceDtoSchema = lazySchema(() => z.enum(['GM_REMOVED', 'DEPARTED']))
+/**
+ * Why an actor is out of the Run's play (D82, D128, D178): taken out by the GM, carried away by an
+ * effect for good (`DEPARTED`), or held out of play by an effect that returns it when it ends
+ * (`EFFECT`; `EFFECT_KEEPS_TURN` when initiative still gives it turns, Etherealness).
+ */
+export const encounterActorAbsenceDtoSchema = lazySchema(() =>
+  z.enum(['GM_REMOVED', 'DEPARTED', 'EFFECT', 'EFFECT_KEEPS_TURN'])
+)
 export type EncounterActorAbsenceDto = z.infer<typeof encounterActorAbsenceDtoSchema>
 
 export const MAX_ENCOUNTER_ACTOR_CONTROLLERS = 8

@@ -88,8 +88,8 @@ export function defeatedEncounterActorIds(
 }
 
 /**
- * The actors whose turns initiative skips: the defeated (D63, D96) and the absent (D82, D128). All
- * keep their place in the round.
+ * The actors whose turns initiative skips: the defeated (D63, D96) and the absent (D82, D128), but
+ * not one an effect holds out of play that keeps its turn (D178). All keep their place in the round.
  */
 export function skippedEncounterActorIds(
   actors: readonly ({ id: string; absence: EncounterActorAbsenceDto | null } & (
@@ -102,7 +102,7 @@ export function skippedEncounterActorIds(
     actors
       .filter(
         (actor) =>
-          actor.absence !== null ||
+          (actor.absence !== null && actor.absence !== 'EFFECT_KEEPS_TURN') ||
           (actor.kind === 'CHARACTER' ? deadCharacterIds.has(actor.sourceId) : actor.defeated)
       )
       .map((actor) => actor.id)

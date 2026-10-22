@@ -100,3 +100,11 @@ One authored effect graph checksum each for Banishment, Etherealness, Imprisonme
 ## Size
 
 5 as briefed for Banishment, Etherealness, Imprisonment, Maze (manual escape). Add 3 if Q3 requires the placement helper and Scene write, and 3 if Blink's turn-end gate must be built (recommended split to T2h2).
+
+## D178 ruling and implementation (SPELLS-4.T2h1, current)
+
+- Option A approved. Blink moved to T2h2 (generic turn-end d20 gate); Maze's escape check stays `MANUAL_ADJUDICATION` (T2h3, after T2f1).
+- Every absent actor (any `absence` value) is untargetable: refused by the single-target policy and skipped by area resolution. Amends D128.
+- Deviation from the packet: the `absence` enum gains `EFFECT` and `EFFECT_KEEPS_TURN` instead of an `absenceSourceEffectId`. The effect store recomputes absence from the `PLAY_ABSENCE` effects the holder still holds, so overlapping removals work and `GM_REMOVED`/`DEPARTED` are never touched.
+- Imprisonment has no mode pick in the SRD authoring, so it is the removal alone; the future-cast immunity marker is description-only.
+- Not built: the `RETURN_SPACE_OCCUPIED` GM-placement flag. No flag surface exists for effect-driven returns (the token never leaves the Scene), so it needs its own slice.

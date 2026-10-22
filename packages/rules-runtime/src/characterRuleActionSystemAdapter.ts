@@ -170,6 +170,11 @@ export interface CharacterRuleActionActiveEffectPlan {
     consumeOnFirstEvents: readonly GrantConsumeEvent[]
   }
   /**
+   * The target leaves play while the effect lasts (Banishment, Etherealness): untargetable, off the
+   * Scene, and skipped by initiative unless it keeps its turn.
+   */
+  playAbsenceContribution?: null | { keepsTurn: boolean }
+  /**
    * Each target holds a bond with every other target the action settled on (Telepathic Bond). The
    * members are added when the effects are created, from the creatures the cast reached.
    */
