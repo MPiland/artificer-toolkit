@@ -3859,6 +3859,19 @@
                 "size": 3,
                 "after": ["RULES-2.T6f"]
               }
+            },
+            {
+              "id": "RULES-2.T6g",
+              "text": "Compiler (split from T6f 2026-10-22): the test-phase, outcome dispatch and lifetime pieces (compileTestDefinition, boundedTestOutcome, specializedTestOutcome, diceGraphDefinition, modifierGrantEntryPlan, maintenance and duration plans) move into their own modules below the compiler; the transitional ZoneCompilerPieces injection is deleted and the zone module imports them directly. Golden unchanged; budgets drop.",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["RULES-2.T6f", "RULES-2.T6e2", "RULES-2.T6e3"]
+              }
             }
           ]
         }
@@ -16303,16 +16316,16 @@
             {
               "id": "RELIABILITY-9.T3b",
               "text": "Increment 2 of T3: unused exports and test-code casts removed, with the ratchet lowered so they cannot return.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-9.4"],
-              "activeWorkbook": "docs/handoffs/slice-reliability-9-t1.md",
               "wsjf": {
                 "bv": 1,
                 "tc": 1,
                 "rr": 3,
                 "size": 5,
                 "after": ["RELIABILITY-9.T3"]
-              }
+              },
+              "note": "Merged m322 (b19855ee5)."
             }
           ]
         },
