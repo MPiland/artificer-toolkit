@@ -15133,10 +15133,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 1,
+                "size": 5,
                 "after": ["SPELLS-33.T6e", "SPELLS-4.T2m1", "SPELLS-4.T2m1b2b"]
               },
-              "text": "Vampire Charm: repeat save when harmed by the source side through the SPELLS-4.T2m on-damage repeat timing (1 kind). Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "text": "Vampire Charm: a generic follow-up-save timing that repeats only on its repeatTriggers (no turn-end save), with the duration still counted down by the turn kernel (D176); Charm repeats its save when the source side harms it. Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md). No SRD_CREATURE_ATTACK_UNSUPPORTED entry depends on Charm; Vampire Bite stays a separate kind.",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {

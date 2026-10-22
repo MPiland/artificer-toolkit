@@ -499,6 +499,16 @@ MOVE-3 ships the small version: the GM places zones through the zone node map, t
 
 Raised by the user on 2026-10-14 during the hazards and traps design; post-launch.
 
+### Effects that end with their source
+
+Vampire Charm (D176) ships with its damage-triggered repeat save and its 24-hour duration. The remaining SRD clauses are description-only. Candidates:
+
+- an end trigger for when the source is destroyed or on another plane;
+- a source action that ends the effect;
+- a target filter for "a creature of a type that can see the source".
+
+Found by SPELLS-33.T6e2 on 2026-10-22; post-launch.
+
 ## Other future enhancements (parked)
 
 - Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.
