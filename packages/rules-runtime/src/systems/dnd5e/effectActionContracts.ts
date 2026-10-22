@@ -259,6 +259,22 @@ export function multipliedDamageAmount(amount: number, multiplier: number): numb
     )
   return value
 }
+/**
+ * The factor an authored damage outcome scales its total by: its `multiplier` (the monster
+ * vocabulary for half on a successful save) times its `amountKind` (the spell vocabulary: HALF is
+ * 0.5, DOUBLE is 2). Every compiled damage amount reads it, so both vocabularies compile alike.
+ */
+export function damageMultiplier(outcome: {
+  amountKind?: 'FULL' | 'HALF' | 'DOUBLE'
+  multiplier?: number
+}): number {
+  const kind = outcome.amountKind === 'HALF' ? 0.5 : outcome.amountKind === 'DOUBLE' ? 2 : 1
+  return (outcome.multiplier ?? 1) * kind
+}
+export function damageTypeIdentity(damageTypeId: string | undefined): string {
+  uuid(damageTypeId, 'D&D damage type identity')
+  return damageTypeId
+}
 /** One die size per damage roll, as a single dice term such as `1d6`. */
 export const COLLISION_DICE_CONFIG = /^[1-9]\d?d[1-9]\d{0,2}$/
 /** The collision as the proposal carries it: canonical JSON, or empty when the move has none. */
@@ -301,6 +317,12 @@ export function decodeForcedMovementCollision(
   return collision
 }
 export const NESTED_SAVE_MARGIN_NODE_ID = 'nested-save-margin'
+/** The op that opens a nested save band's result path to its outcomes only while the band's gate admits the target. */
+export const DND5E_NESTED_SAVE_GATE_OPERATION_KEY = 'dnd5e.nested-save-gate'
+export const nestedSaveGateNodeId = (pathCode: string) =>
+  `nested-save-gate-${pathCode.toLowerCase()}`
+/** The result path a closed gate hands its band: no authored path is satisfied by it. */
+export const NESTED_SAVE_GATE_CLOSED_PATH = 'GATE_CLOSED'
 export const nestedSaveRiderConditionNodeId = (index: number) =>
   index === 0 ? 'nested-save-rider-condition' : `nested-save-rider-condition-${index + 1}`
 /** The authored result path in a direct proposal node id: `[prefix]proposal-<path>[-condition]`. */

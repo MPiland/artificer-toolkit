@@ -917,6 +917,98 @@ describe('Legendary Action turn window', () => {
       }
     })
   })
+
+  it('offers and runs a free save option that spends the pool, as the SRD authors Wing Attack', async () => {
+    // The SRD Wing Attack keeps its FREE activation, Legendary charge cost and save, but targets one
+    // creature within 15 feet, since a turn cannot run its area yet.
+    const wingAttack = srdLegendaryActions.options?.find((option) =>
+      option.label.startsWith('Wing Attack')
+    )
+    const [effect] = wingAttack?.effects ?? []
+    if (!wingAttack || effect?.invocation.kind !== 'ACTION')
+      throw new Error('Expected the SRD Wing Attack action.')
+    const singleTargetWing = {
+      ...wingAttack,
+      effects: [
+        {
+          ...effect,
+          invocation: {
+            ...effect.invocation,
+            range: {
+              id: effect.invocation.range.id,
+              rangeKind: 'DISTANCE' as const,
+              amount: 15,
+              unit: 'FEET' as const
+            },
+            targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
+          }
+        }
+      ]
+    }
+    const wingDragon = srdCreatureActor({
+      id: DRAGON_ID,
+      creature: {
+        ...ancientRedDragon,
+        features: ancientRedDragon.features?.map((feature) =>
+          feature.id === srdLegendaryActions.id
+            ? { ...feature, options: [singleTargetWing] }
+            : feature
+        )
+      },
+      featureCharges: { [srdLegendaryActions.id]: 0 }
+    })
+    const actors = [wingDragon, wolfActor]
+    const { snapshot, context, tailAttack: option } = await pausedChoice(actors, wingAttack.label)
+    // Any creature may be its target, the dragon included (D99).
+    expect(option).toMatchObject({
+      targetActorIds: [DRAGON_ID, WOLF_ID],
+      featureCost: 2,
+      poolRemaining: 1
+    })
+    const save = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: snapshot,
+      resolution: { kind: 'LEGENDARY_OPTION', optionId: option.optionId, targetActorId: WOLF_ID }
+    })
+    if (save.kind !== 'PENDING' || save.snapshot.snapshotKind !== 'KERNEL_EVIDENCE')
+      throw new Error('Expected the Wolf’s save.')
+    expect(save.snapshot.applicationContext).toMatchObject({
+      rollerActorId: WOLF_ID,
+      d20Policy: { dc: 25 }
+    })
+    // A natural 1 fails: 2d6 + 10 bludgeoning rolls 1 and 2.
+    const done = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: save.snapshot,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: save.snapshot.request.requestId,
+        rawFaces: [1],
+        rollMode: 'NORMAL'
+      },
+      autoRollByActorId: { [DRAGON_ID]: true },
+      faces: [0, 1]
+    })
+    if (done.kind !== 'COMPLETE') throw new Error('The Wing Attack settles the window.')
+    expect(done.root.completedLegendaryActions?.[0]?.resolution).toMatchObject({
+      application: {
+        featureResourceConsumption: { cost: 2, beforeUsed: 0, afterUsed: 2 },
+        applications: [
+          {
+            kind: 'DAMAGE',
+            requestedAmount: 1 + 2 + 10,
+            damageTypeId: srdDamageTypeId('Bludgeoning')
+          }
+        ]
+      }
+    })
+    const settledDragon = done.actors.find((actor) => actor.id === DRAGON_ID)
+    if (!settledDragon) throw new Error('Expected the dragon.')
+    expect(featureChargeUsed(settledDragon, srdLegendaryActions.id)).toBe(2)
+  })
+
   it('checks each owner again before its window, after earlier windows this turn (D51)', async () => {
     // A first owner whose Legendary option runs a Tail that stuns on a hit, and the dragon after it.
     const tail = creatureFeature(ancientRedDragon, 'Tail')

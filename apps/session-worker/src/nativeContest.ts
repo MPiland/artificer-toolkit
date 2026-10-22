@@ -1,6 +1,4 @@
 import {
-  actionTargetActorId,
-  castChoiceOptionId,
   type EscapeRelationshipInputDto,
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
@@ -20,6 +18,7 @@ import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/sche
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
@@ -28,13 +27,10 @@ import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-r
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { encounterAttackD20Belief } from '@artificer-toolkit/rules-runtime/encounterAttackBelief'
-import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
   prepareEncounterBasicActionContest,
   prepareEncounterEscapeContest
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionContest'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
@@ -59,40 +55,32 @@ import {
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
-import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { resolveEncounterActionPhaseExecution } from '@artificer-toolkit/rules-runtime/encounterActionPhaseExecution'
-import type { CharacterRuleActionApplication } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import {
   contestDefenderPicksCheck,
   contestDefenderPolicy,
   executeEncounterOptionalContestAction
 } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
-import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { sightGovernedStageD20 } from '@artificer-toolkit/rules-runtime/encounterSightGovernedD20'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { requireEncounterD20Evidence } from './nativeD20Evidence.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
-import {
-  readNativeLiveAttackPerception,
-  readNativeLiveSourcesSeen
-} from './nativeAttackPerception.js'
-import {
-  captureActionEconomyDefinitions,
-  evaluateNativeLiveActionEconomy
-} from './nativeEncounterActionEconomy.js'
+import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
-  readNativeLiveActorsAndEffects,
-  readNativeLiveSpellPins
+  readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { createNativeActiveEffect, nativeEffectOwner } from './nativeEncounterSettlement.js'
-import { interpretForcedMovements } from './nativeEncounterActionInputs.js'
+import { prepareNativeLiveRootActionMechanics } from './nativeRootActionPreparation.js'
 import { spendNativeHolderActivation } from './nativeHolderActivation.js'
+import {
+  planNativeTargetMechanics,
+  planNativeTargetOutcome,
+  type NativeTargetOutcomeSource
+} from './nativeTargetOutcome.js'
 
 type ContestPreparation = {
   contest: ReturnType<typeof prepareEncounterDisarmContest>['contest']
@@ -159,129 +147,7 @@ function readContestPendingContext(
     : null
 }
 
-type ContestWin = {
-  prepared: PreparedContest
-  occurrenceId: string
-  commandId: string
-  occurredAt: string
-  userId: string
-}
-
-/** The one mechanics batch a won basic action contest applies to its target (D152). */
-function planNativeContestTargetMechanics(
-  input: ContestWin,
-  applications: readonly CharacterRuleActionApplication[]
-) {
-  const { prepared, occurrenceId, commandId, occurredAt } = input
-  const holder = prepared.movementTargets.get(prepared.target.id)
-  if (!holder) throw new Error('The contest target is unavailable.')
-  return planEncounterMechanicsBatch({
-    batch: {
-      encounterId: prepared.state.id,
-      targetActorId: holder.actor.id,
-      expectedEncounterVersion: prepared.state.version,
-      occurrenceId,
-      sourceCommandId: commandId,
-      commandId: deriveEncounterCharacterMechanicsEventCommandId({
-        occurrenceId,
-        sourceCommandId: commandId,
-        phase: 'DIRECT_ACTION_OUTCOME',
-        ordinal: 0,
-        targetCharacterId: holder.characterFacts?.active.id ?? holder.actor.id
-      }),
-      occurredAt,
-      applications: [...applications],
-      expectedCharacterStreamVersion: holder.characterFacts?.active.play.streamVersion ?? null,
-      effectiveMaximumHitPoints: holder.effectiveMaximumHitPoints,
-      damageInterceptions: holder.damageInterceptions,
-      effectiveScalarValues: holder.effectiveScalarValues,
-      forceVersionAdvance: false
-    },
-    actor: holder.actor,
-    userId: input.userId,
-    ...(holder.characterFacts ? { characterFacts: holder.characterFacts } : {})
-  })
-}
-
-/**
- * What a won basic action contest whose win is its picked outcome (Shove, D105) settles on its
- * target: the sealed ON_CHECK_SUCCESS graph run on the prepared facts, its conditions applied here
- * and in Convex, and its forced movements landed on the Scene in the commit (D157).
- */
-async function planNativeContestOutcome(
-  input: ContestWin & { execution: ContestRolls['execution']; runtime: RulesRuntimeService }
-) {
-  const { prepared, occurrenceId } = input
-  const { adapter, plan, binding } = prepared
-  // The compiler admits only a condition or a forced movement as a contest outcome, which no
-  // scaling fact specializes.
-  const outcome = resolveEncounterActionPhaseExecution({
-    plan,
-    phase: 'TEST',
-    execution: input.execution,
-    adapter,
-    facts: {},
-    testRollMode: 'NORMAL',
-    effectivePath: 'ON_CHECK_SUCCESS'
-  })
-  if (outcome.kind !== 'OUTCOME') throw new Error('The contest win outcome is unavailable.')
-  const { published } = outcome.outcome
-  const execution = await input.runtime.executeResolved({
-    command: {
-      definitionId: published.id,
-      occurrenceId,
-      facts: adapter.bindFacts({ ...binding, published }).facts
-    },
-    published
-  })
-  if (execution.status === 'PAUSED') throw new Error('A contest win outcome rolls no dice.')
-  const applications = adapter.interpret({
-    execution,
-    occurrenceId,
-    published,
-    targetActorId: binding.targetActorId,
-    currentHitPoints: binding.currentHitPoints,
-    temporaryHitPoints: binding.temporaryHitPoints,
-    maximumHitPoints: binding.maximumHitPoints,
-    defenses: binding.defenses,
-    conditionImmunityIds: binding.conditionImmunityIds
-  })
-  const conditionApplications = applications.flatMap((application) =>
-    application.kind === 'CONDITION_APPLY' ? [application] : []
-  )
-  if (conditionApplications.length !== applications.length)
-    throw new Error('A contest win outcome applies only conditions.')
-  const forcedMovements = interpretForcedMovements(prepared, {
-    execution,
-    occurrenceId,
-    published,
-    targetActorId: prepared.target.id
-  })
-  const [movement, ...more] = forcedMovements
-  if (more.length || (movement && conditionApplications.length))
-    throw new Error('A contest win outcome is one condition or one forced movement.')
-  const mechanics = planNativeContestTargetMechanics(input, conditionApplications)
-  return {
-    actor: mechanics.updatedActor,
-    conditionApplications,
-    forcedMovements,
-    stateTransition: movement
-      ? {
-          kind: 'FORCED_MOVEMENT' as const,
-          direction: movement.direction,
-          feet: movement.feet,
-          upTo: movement.upTo
-        }
-      : {
-          kind: 'CONDITIONS_APPLIED' as const,
-          appliedConditionIds: mechanics.receiptApplications.flatMap((application) =>
-            application.kind === 'CONDITION_APPLY' && application.applied
-              ? [application.conditionId]
-              : []
-          )
-        }
-  }
-}
+type ContestWin = NativeTargetOutcomeSource
 
 /**
  * The hold a won basic action contest (Grapple) creates on its target: the action's relationship
@@ -330,7 +196,7 @@ function planNativeContestHold(
     occurredAt
   })
   const applications = effects.relationshipConditionApplications
-  const mechanics = planNativeContestTargetMechanics(input, applications)
+  const mechanics = planNativeTargetMechanics(input, applications)
   const [createdEffect] = projectNativeActionEffectTransitions({
     state: null,
     recurring: record,
@@ -419,16 +285,17 @@ export async function planNativeLiveContest(
       revisions: reads.revisions
     })
   }
-  const targetActorId = actionTargetActorId(root.target)
   const intent = root.optionalCombatIntent
-  const actor = actors.find((entry) => entry.id === root.actorId)
-  const target = actors.find((entry) => entry.id === targetActorId)
-  if (!actor || !target) throw new Error('Contest actors are unavailable.')
-  const movementTargets = new Map(
-    await Promise.all(
-      [actor, target].map(async (entry) => [entry.id, await loadTarget(entry)] as const)
-    )
-  )
+  const { actor, target, movementTargets, sceneContext, definitions, prepared } =
+    await prepareNativeLiveRootActionMechanics({
+      root,
+      state,
+      system,
+      actors,
+      activeEffectsByActorId,
+      loadTarget,
+      capture
+    })
   const definition = intent
     ? requireEncounterDisarmDefinition({
         state,
@@ -437,89 +304,11 @@ export async function planNativeLiveContest(
         target,
         command: {
           ...root,
-          targetActorId,
+          targetActorId: target.id,
           definitionId: intent.definitionId
         }
       })
     : null
-  const scene = root.sceneContext
-    ? (
-        await capture({
-          kind: 'ACTION_SCENE',
-          command: {
-            actorId: root.actorId,
-            targetActorId,
-            sceneContext: root.sceneContext
-          }
-        })
-      ).context
-    : null
-  const sceneContext = scene
-    ? {
-        sceneId: scene.sceneId,
-        sceneVersion: scene.sceneVersion,
-        sourceToken: scene.sourceToken,
-        targetToken: scene.targetToken,
-        grid: resolveEncounterSceneGrid({
-          encounter: state,
-          sceneGrid: scene.sceneGrid
-        })
-      }
-    : null
-  const definitions = captureActionEconomyDefinitions(capture)
-  const prepared = await prepareEncounterActionMechanics({
-    state,
-    actor,
-    target,
-    actors,
-    actionId: root.actionId,
-    // A resumed contest runs as the outcome its root picked (Shove, D105).
-    choiceOptionId: castChoiceOptionId(root.target),
-    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-    overridable: false,
-    movementTargets,
-    sceneContext,
-    loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
-      readNativeLiveAttackPerception({
-        state,
-        system,
-        attacker: sourceFacts,
-        target: targetFacts,
-        roller,
-        sceneContext,
-        capture
-      }),
-    loadSourcesSeen: ({ holder, sourceActorIds }) =>
-      readNativeLiveSourcesSeen({
-        state,
-        system,
-        holder,
-        sourceActorIds,
-        actors,
-        loadTarget: async (entry) => movementTargets.get(entry.id) ?? loadTarget(entry),
-        sceneContext,
-        capture
-      }),
-    loadSource: async (input) =>
-      resolveEncounterActionSource({
-        ...input,
-        system,
-        spells: await readNativeLiveSpellPins(capture),
-        basicActions: await readEncounterBasicActionEntries({
-          actorId: input.actor.id,
-          actionId: input.actionId,
-          gameSystemId: input.gameSystemId,
-          definitions
-        })
-      }),
-    loadRelationshipFacts: async (input) =>
-      lockedRelationshipActionFacts({
-        actionEffectId: input.actionEffectId,
-        sourceActorId: input.sourceActorId,
-        targetActorId: input.targetActorId,
-        targets: { activeEffectsByActorId }
-      })
-  })
   const priorContest = priorContext ? { priorContest: priorContext.contest } : {}
   const contestInput = { state, actor, target, command: root, prepared, sceneContext, system }
   let preparation: ContestPreparation
@@ -721,13 +510,41 @@ export async function planNativeLiveContestRolls(input: {
     contest.origin.kind === 'OPTIONAL_COMBAT' ? (prepared?.attackSight ?? null) : null
   const pending = ready.snapshot
   const response = command.type === 'RESOLVE_RULE_OCCURRENCE' ? command : null
-  const resumed =
+  const answered =
     response && pending && priorContext
+      ? (() => {
+          const {
+            snapshotKind: _snapshotKind,
+            applicationContext: _applicationContext,
+            optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
+            phaseReceipts: _phaseReceipts,
+            deferredCleaving: _deferredCleaving,
+            ...continuation
+          } = pending
+          // An app roll settles with the faces Convex recorded for it, never client-supplied values.
+          return { continuation, answer: withEncounterAppRoll(response.resolution, ready.appRoll) }
+        })()
+      : null
+  // A won contest's outcome pauses on its own graph once both checks settled (D173).
+  const outcomeAnswered =
+    answered && priorContext?.contestPhase === 'OUTCOME'
+      ? (() => {
+          const { continuation, answer } = answered
+          if (
+            answer.kind !== 'ENTER_DICE' &&
+            answer.kind !== 'ENTER_INTEGER' &&
+            answer.kind !== 'SYSTEM_ROLL'
+          )
+            throw new EncounterValidationError('A contest outcome answers with its dice.')
+          return { continuation, answer }
+        })()
+      : null
+  const resumed =
+    answered && pending && priorContext && !outcomeAnswered
       ? (() => {
           const participant: 'INITIATOR' | 'DEFENDER' =
             pending.request.nodeId === contest.initiator.requestNodeId ? 'INITIATOR' : 'DEFENDER'
-          // An app roll settles with the faces Convex recorded for it, never client-supplied values.
-          const answer = withEncounterAppRoll(response.resolution, ready.appRoll)
+          const { continuation, answer } = answered
           // A defender offered several checks picks one and rolls it in one answer (D152).
           const picksCheck = participant === 'DEFENDER' && contestDefenderPicksCheck(contest)
           if (picksCheck !== (answer.kind === 'CONTEST_CHECK'))
@@ -740,14 +557,6 @@ export async function planNativeLiveContestRolls(input: {
             answer.kind === 'CONTEST_CHECK' ? answer.roll : answer,
             'A contest requires d20 evidence.'
           )
-          const {
-            snapshotKind: _snapshotKind,
-            applicationContext: _applicationContext,
-            optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
-            phaseReceipts: _phaseReceipts,
-            deferredCleaving: _deferredCleaving,
-            ...continuation
-          } = pending
           return {
             participant,
             continuation,
@@ -769,7 +578,8 @@ export async function planNativeLiveContestRolls(input: {
           }
         })()
       : null
-  if (response && !resumed) throw new Error('The contest answer is unavailable.')
+  if (response && !resumed && !outcomeAnswered)
+    throw new Error('The contest answer is unavailable.')
   const {
     checkDefinitionId: defenderCheckDefinitionId,
     label: _label,
@@ -811,6 +621,33 @@ export async function planNativeLiveContestRolls(input: {
       : {})
   })
   const planned = { ...scope, command, revisions: input.revisions }
+  // The contest waits on the roller's answer to `continuation`'s request, its rolls so far sealed.
+  const pendingContest = (
+    continuation: ServerRuleExecutionContinuationDto,
+    rolled: Pick<ContestPendingContext, 'rollerActorId' | 'contestPhase' | 'd20Belief' | 'heldD20'>
+  ) => ({
+    kind: 'PENDING' as const,
+    input: liveSessionEncounterContestPendingInputSchema.parse({
+      ...planned,
+      snapshot: serverRuleExecutionPendingSnapshotDtoSchema.parse({
+        ...continuation,
+        snapshotKind: 'KERNEL_EVIDENCE',
+        optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+        applicationContext: {
+          kind: 'ENCOUNTER_ACTION',
+          schemaVersion: 1,
+          commandJson: JSON.stringify(root),
+          commandFingerprint: ready.fingerprint,
+          initiatorUserId: ready.initiatorUserId,
+          currentnessChecksum: checksumRuleDocument({ actor, target, sceneContext, contest }),
+          d20Policy: null,
+          twoPhase: null,
+          contest,
+          ...rolled
+        }
+      })
+    })
+  })
   if (execution.kind === 'PENDING') {
     // The answered participant's settled faces stay with the contest, unless a held die waits for one more.
     if (resumed && !execution.held)
@@ -832,32 +669,13 @@ export async function planNativeLiveContestRolls(input: {
             believedSight: attackSight.believedSight
           })
         : null
-    return {
-      kind: 'PENDING' as const,
-      input: liveSessionEncounterContestPendingInputSchema.parse({
-        ...planned,
-        snapshot: serverRuleExecutionPendingSnapshotDtoSchema.parse({
-          ...execution.continuation,
-          snapshotKind: 'KERNEL_EVIDENCE',
-          optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
-          applicationContext: {
-            kind: 'ENCOUNTER_ACTION',
-            schemaVersion: 1,
-            commandJson: JSON.stringify(root),
-            commandFingerprint: ready.fingerprint,
-            initiatorUserId: ready.initiatorUserId,
-            rollerActorId:
-              execution.participant === 'INITIATOR' ? contest.initiator.actorId : defender.actorId,
-            currentnessChecksum: checksumRuleDocument({ actor, target, sceneContext, contest }),
-            d20Policy: null,
-            twoPhase: null,
-            contest,
-            ...(d20Belief ? { d20Belief } : {}),
-            ...(execution.held ? { heldD20: execution.held } : {})
-          }
-        })
-      })
-    }
+    return pendingContest(execution.continuation, {
+      contestPhase: 'CHECKS',
+      rollerActorId:
+        execution.participant === 'INITIATOR' ? contest.initiator.actorId : defender.actorId,
+      ...(d20Belief ? { d20Belief } : {}),
+      ...(execution.held ? { heldD20: execution.held } : {})
+    })
   }
   if (resumed)
     record(
@@ -865,7 +683,8 @@ export async function planNativeLiveContestRolls(input: {
       resumed.resolution.requestId,
       (resumed.participant === 'INITIATOR' ? execution.initiator : execution.defender).rawFaces
     )
-  else
+  // An answer to a won contest's outcome dice finds both checks already recorded.
+  else if (!outcomeAnswered)
     for (const [participant, roll] of [
       ['INITIATOR', execution.initiator],
       ['DEFENDER', execution.defender]
@@ -911,12 +730,22 @@ export async function planNativeLiveContestRolls(input: {
       : null
   const outcome =
     win && win.prepared.plan.kind === 'TEST_OUTCOME'
-      ? await planNativeContestOutcome({
+      ? await planNativeTargetOutcome({
           ...win,
           execution: execution.execution,
-          runtime: input.runtime
+          testRollMode: 'NORMAL',
+          runtime: input.runtime,
+          autoRoll: ready.autoRollByActorId[contest.initiator.actorId] === true,
+          answered: outcomeAnswered,
+          random: input.random
         })
       : null
+  // The initiator rolls the won outcome's dice in the action roll window (D173).
+  if (outcome?.kind === 'PENDING')
+    return pendingContest(outcome.continuation, {
+      contestPhase: 'OUTCOME',
+      rollerActorId: contest.initiator.actorId
+    })
   const settledTarget =
     success?.kind === 'CREATURE' ? success.actor : (hold?.actor ?? outcome?.actor ?? target)
   // A won escape frees its source from the holding effect and the conditions only it held.
@@ -1002,7 +831,6 @@ export async function planNativeLiveContestRolls(input: {
         }).ended
       ],
       createdEffect: hold?.record ?? null,
-      conditionApplications: outcome?.conditionApplications ?? [],
       forcedMovements: outcome?.forcedMovements ?? [],
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',

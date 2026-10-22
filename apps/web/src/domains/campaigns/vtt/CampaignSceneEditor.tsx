@@ -19,6 +19,7 @@ import {
   isFogTool,
   type CampaignVttToolDefinition
 } from './CampaignVttStage.model'
+import { CampaignLootEditor } from '../loot/CampaignLootEditor'
 import { CampaignSceneObjectInspector } from './CampaignSceneObjectInspector'
 import { SceneObjectCreator } from './SceneObjectCreator'
 import * as preparationStyles from './CampaignScenePreparation.css'
@@ -34,12 +35,14 @@ import {
 export function CampaignSceneEditor({
   campaignId,
   currentUserId,
+  gameSystemId,
   memberships,
   onDirtyChange,
   scene
 }: {
   campaignId: string
   currentUserId: string
+  gameSystemId: string
   memberships: CampaignDetailDto['memberships']
   onDirtyChange: (dirty: boolean) => void
   scene: SceneDefinitionDto
@@ -359,6 +362,11 @@ export function CampaignSceneEditor({
           onFocus={(point) => renderer.current?.focusPoint(point)}
         />
       </div>
+      <CampaignLootEditor
+        gameSystemId={gameSystemId}
+        owner={{ kind: 'SCENE', campaignId, sceneDefinitionId: scene.id }}
+        subject='Scene'
+      />
     </section>
   )
 }

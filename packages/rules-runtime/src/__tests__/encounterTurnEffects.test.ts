@@ -356,6 +356,41 @@ describe('prepareEncounterTurnEffects', () => {
     expect(executions[1]?.targetTransition.after.conditionIds).not.toContain(invisible)
   })
 
+  it('expires an effect with the one it is linked to (D172)', async () => {
+    const invisible = SRD_CONDITION_TYPES.find(({ code }) => code === 'INVISIBLE')!.id
+    const lastTick = await effect(1, { ticks: 1 })
+    const linked = await effect(2, {
+      ticks: 3,
+      currentEffects: [lastTick],
+      linkedEffectId: lastTick.id,
+      conditionOwnership: [{ conditionId: invisible, baselinePresent: false }]
+    })
+    const unseen = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN, conditionIds: [invisible] })
+
+    const result = await complete(
+      prepare({ actor: unseen, effects: [lastTick, linked], faces: [10, 10] })
+    )
+
+    const executions = result.plan?.executions ?? []
+    expect(executions.map(({ lifecycle }) => lifecycle.kind)).toEqual(['EXPIRE', 'EXPIRE'])
+  })
+
+  it('keeps an effect whose linked effect keeps counting down (D172)', async () => {
+    const ticking = await effect(1, { ticks: 3 })
+    const linked = await effect(2, {
+      ticks: 3,
+      currentEffects: [ticking],
+      linkedEffectId: ticking.id
+    })
+
+    const result = await complete(prepare({ effects: [ticking, linked], faces: [10, 10] }))
+
+    expect(result.plan?.executions.map(({ lifecycle }) => lifecycle.kind)).toEqual([
+      'UPDATE',
+      'UPDATE'
+    ])
+  })
+
   it('auto-rolls each failed save in createdOrdinal order and chains the damage through both effects', async () => {
     const [heavier, lighter] = await effectPair({ damage: 2 }, { damage: 1 })
     const run = prepare({ effects: [lighter, heavier], faces: [10, 4] })

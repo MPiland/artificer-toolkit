@@ -2,7 +2,11 @@ import type { z } from 'zod'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   encounterForcedMovementLandingSchema,
   encounterStoredRuleOccurrenceSchema,
@@ -62,7 +66,10 @@ export async function completeActionOccurrence(
 /**
  * Settles an action's forced movements on its Encounter's Scene in the commit's transaction (D139)
  * and returns the Scene moves it committed, in the order it made them, and where each creature it
- * moved ended up.
+ * moved ended up. A creature moved through or into a zone also settles that zone's contacts
+ * (D170), as a voluntary move would, under the action's occurrence: `state` is the Run before the
+ * action, which those writes are fenced on, and `actors` and `rules` are the Run's after the action
+ * and after those contacts.
  */
 export type EncounterForcedMovementLanding = z.infer<typeof encounterForcedMovementLandingSchema>
 
@@ -71,9 +78,16 @@ export type ApplyEncounterForcedMovements = (input: {
   sourceActorId: string
   commandId: string
   movements: readonly LiveSessionForcedMovement[]
+  occurrenceId: string
+  occurredAt: string
+  authorizedCharacterIds: ReadonlySet<string>
+  actors: EncounterRunActorState[]
+  rules: EncounterActorRuleOutput
 }) => Promise<{
   moves: { sceneId: string; sceneCommandId: string }[]
   landings: EncounterForcedMovementLanding[]
+  actors: EncounterRunActorState[]
+  rules: EncounterActorRuleOutput
 }>
 
 /**

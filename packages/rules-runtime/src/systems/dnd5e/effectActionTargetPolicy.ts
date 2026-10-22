@@ -5,6 +5,7 @@ import {
   hitPointPoolDiceOptions,
   hitPointPoolIsAuthored
 } from '../../encounterAreaAction.js'
+import { shapeExtent } from '../../shapeMeasurement.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionCompiler.js'
@@ -57,16 +58,7 @@ export function isSupportedArea(
     )
       return false
   }
-  const size =
-    shape.shapeKind === 'CUBE'
-      ? shape.edgeLength
-      : shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE' || shape.shapeKind === 'WALL'
-        ? shape.length
-        : shape.shapeKind === 'SPHERE' ||
-            shape.shapeKind === 'CYLINDER' ||
-            shape.shapeKind === 'CIRCLE'
-          ? shape.radius
-          : null
+  const size = shapeExtent(shape)
   return (
     size !== null &&
     size.scaling === undefined &&
@@ -78,6 +70,16 @@ export function isSupportedArea(
     ) &&
     !(shape.shapeKind === 'CYLINDER' && shape.height.scaling !== undefined)
   )
+}
+
+/** A Legendary Action option is free; the Feature charge it spends is its cost. */
+export function isChargedFreeActivation(
+  invocation: Extract<
+    Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
+    { activation: unknown }
+  >
+): boolean {
+  return invocation.activation.code === 'FREE' && invocation.resourceUse !== undefined
 }
 
 function isBoundedDice(value: string): boolean {
@@ -134,7 +136,11 @@ export function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSou
     (attackKind !== 'RANGED' || !Number.isSafeInteger(invocation.range.longAmount))
   )
     return false
-  if (invocation.activation.code === 'ACTION' || invocation.activation.code === 'BONUS_ACTION') {
+  if (
+    invocation.activation.code === 'ACTION' ||
+    invocation.activation.code === 'BONUS_ACTION' ||
+    isChargedFreeActivation(invocation)
+  ) {
     // A melee attack may reach 0 ft.: a swarm's "one target in the swarm's space".
     const minimumDistance = isDnd5eMeleeAttackKind(attackKind) ? 0 : 1
     return (

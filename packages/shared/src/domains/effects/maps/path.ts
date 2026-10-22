@@ -8,10 +8,6 @@ import type {
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
   ForcedMovementCollisionAuthored,
-  FollowUpSaveRepeatAttemptGateAuthored,
-  FollowUpSaveRepeatPerceptionAuthored,
-  FollowUpSaveRepeatRollInfluenceAuthored,
-  FollowUpSaveRepeatTriggerAuthored,
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
   ManifestCreatureFormAuthored,
@@ -107,6 +103,12 @@ import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP, HELD_ESCAPE_DC_NODE_MAP } fr
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
+import {
+  FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP,
+  FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
+  FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
+} from './followUpSaveRepeat.js'
+import { registerConditionOutcomeFields } from './conditionOutcomeFields.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
@@ -132,7 +134,7 @@ type NodeMapBuildApi<NLocal extends object> = Parameters<
 >[1] extends (api: infer TApi) => void
   ? TApi
   : never
-type OutcomeNodeMapApi = NodeMapBuildApi<OutcomeNode>
+export type OutcomeNodeMapApi = NodeMapBuildApi<OutcomeNode>
 type ScalarReductionNodeMapApi = NodeMapBuildApi<ScalarReductionAuthored>
 
 const PATH_SELECTION_KIND_OPTIONS = [
@@ -275,10 +277,6 @@ const scalarReductionAmount = buildNodeMap<ScalarReductionAuthored['amount']>()
 const actorRelationshipModule = buildNodeMap<ActorRelationshipModuleNode>()
 const actionEffectId = buildNodeMap<{ value: string }>()
 const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
-const followUpSaveRepeatRollInfluence = buildNodeMap<FollowUpSaveRepeatRollInfluenceAuthored>()
-const followUpSaveRepeatAttemptGate = buildNodeMap<FollowUpSaveRepeatAttemptGateAuthored>()
-const followUpSaveRepeatPerception = buildNodeMap<FollowUpSaveRepeatPerceptionAuthored>()
-const followUpSaveRepeatTrigger = buildNodeMap<FollowUpSaveRepeatTriggerAuthored>()
 /** The rider's conditions are edited as outcome rows; the schema admits only CONDITION outcomes. */
 type FollowUpSaveFailureMarginRiderNode = Omit<FailureMarginRiderAuthored, 'outcomes'> & {
   outcomes: OutcomeNode[]
@@ -1512,146 +1510,13 @@ const SCALAR_REDUCTION_AMOUNT_NODE_MAP = scalarReductionAmount.define(
   }
 )
 
-const FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP = followUpSaveRepeatPerception.define(
-  'followUpSaveRepeatPerception',
-  ({ map, nodes }) => {
-    const { selectSingle } = nodes
-    map
-      .set(
-        'kind',
-        selectSingle(['kind'], 'Condition', {
-          kind: 'INLINE_OPTIONS',
-          options: [{ code: 'PERCEPTION', label: 'Perception' }]
-        })
-      )
-      .set(
-        'observer',
-        selectSingle(['observer'], 'Observer', {
-          kind: 'INLINE_OPTIONS',
-          options: [{ code: 'TARGET', label: 'Target' }]
-        })
-      )
-      .set(
-        'subject',
-        selectSingle(['subject'], 'Subject', {
-          kind: 'INLINE_OPTIONS',
-          options: [{ code: 'SOURCE', label: 'Source' }]
-        })
-      )
-      .set(
-        'requirement',
-        selectSingle(['requirement'], 'Requirement', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'DETECT', label: 'Detect' },
-            { code: 'LOCATE', label: 'Locate' },
-            { code: 'PRECISE', label: 'Precisely Locate' },
-            { code: 'SEE', label: 'See' }
-          ]
-        })
-      )
-  }
-)
-
-const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfluence.define(
-  'followUpSaveRepeatRollInfluence',
-  ({ map, nodes }) => {
-    const { selectSingle, groupObject } = nodes
-    map
-      .set(
-        'influence',
-        selectSingle(['influence'], 'Influence', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ADVANTAGE', label: 'Advantage' },
-            { code: 'DISADVANTAGE', label: 'Disadvantage' }
-          ]
-        })
-      )
-      .set(
-        'when',
-        groupObject(['when'], 'When', () => FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-  }
-)
-
-const FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP = followUpSaveRepeatTrigger.define(
-  'followUpSaveRepeatTrigger',
-  ({ map, nodes, data }) => {
-    const { selectSingle, selectMulti } = nodes
-    const { table } = data
-    map
-      .set(
-        'kind',
-        selectSingle(['kind'], 'Repeats When', {
-          kind: 'INLINE_OPTIONS',
-          options: [{ code: 'DAMAGE_TAKEN', label: 'The holder takes damage' }]
-        })
-      )
-      .set(
-        'by',
-        selectSingle(['by'], 'Damage From', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ANYONE', label: 'Anyone' },
-            { code: 'SOURCE_SIDE', label: 'The effect source or its allies' }
-          ]
-        })
-      )
-      .set(
-        'damageTypeIds',
-        selectMulti(['damageTypeIds'], 'Damage Types (any when empty)', {
-          kind: 'DATA',
-          relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
-        })
-      )
-      .set(
-        'rollInfluence',
-        selectSingle(['rollInfluence'], 'Roll Influence', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ADVANTAGE', label: 'Advantage' },
-            { code: 'DISADVANTAGE', label: 'Disadvantage' }
-          ]
-        })
-      )
-  }
-)
-
-const FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP = followUpSaveRepeatAttemptGate.define(
-  'followUpSaveRepeatAttemptGate',
-  ({ map, nodes }) => {
-    const { selectSingle, groupObject } = nodes
-    map
-      .set(
-        'allow',
-        selectSingle(['allow'], 'Attempt', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'WHEN_MET', label: 'Only When Met' },
-            { code: 'WHEN_UNMET', label: 'Only When Unmet' }
-          ]
-        })
-      )
-      .set(
-        'when',
-        groupObject(['when'], 'When', () => FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-  }
-)
-
 const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_LIFECYCLE_NODE_MAP =
   followUpSaveFailureMarginRiderLifecycle.define(
     'followUpSaveFailureMarginRiderLifecycle',
     ({ map, nodes }) => {
-      const { groupArray } = nodes
       map.set(
         'endOnTriggers',
-        groupArray(['endOnTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
+        nodes.groupArray(['endOnTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
           presentation: 'inline'
         })
       )
@@ -1661,7 +1526,7 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_LIFECYCLE_NODE_MAP =
 const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP = followUpSaveFailureMarginRider.define(
   'followUpSaveFailureMarginRider',
   ({ map, nodes }) => {
-    const { number, groupArray, groupObject } = nodes
+    const { number, text, groupArray, groupObject } = nodes
     map
       .set(
         'failedBy',
@@ -1677,6 +1542,7 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP = followUpSaveFailureMarginRi
           requiredIf: true
         })
       )
+      .set('endsWithOutcomeId', text(['endsWithOutcomeId'], 'Ends With Condition Outcome ID'))
       .set(
         'lifecycle',
         groupObject(
@@ -2396,22 +2262,8 @@ function registerOutcomeFields(
         }
       )
     )
-    .set(
-      'recordsSource',
-      toggle(['recordsSource'], 'The Acting Creature Is Its Source', {
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.CONDITION)
-      })
-    )
-    .set(
-      'fleesSource',
-      toggle(['fleesSource'], 'The Holder Must Dash Away From Its Source', {
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.CONDITION),
-          local.field(['recordsSource']).eq(true)
-        ]),
-        hiddenBehavior: 'CLEAR'
-      })
-    )
+  registerConditionOutcomeFields(map, nodes, cond, logic)
+  map
     .set(
       'grants',
       groupObject(['grants'], 'Grants', () => APPLY_GRANTS_NODE_MAP, {
@@ -3430,7 +3282,7 @@ const FOLLOW_UP_SAVE_ATTEMPTS_NODE_MAP: NodeMap<FollowUpSaveAttemptsNode> =
 const FOLLOW_UP_SAVE_BRANCH_NODE_MAP: NodeMap<FollowUpSaveBranchNode> = followUpSaveBranch.define(
   'followUpSaveBranch',
   ({ map, nodes, cond }) => {
-    const { selectSingle, toggle, groupArray } = nodes
+    const { selectSingle, toggle, groupArray, groupObject } = nodes
     const local = cond.local()
 
     map
@@ -3460,6 +3312,13 @@ const FOLLOW_UP_SAVE_BRANCH_NODE_MAP: NodeMap<FollowUpSaveBranchNode> = followUp
             showIf: local.field(['kind']).eq('OUTCOMES')
           }
         )
+      )
+      .set(
+        'gate',
+        groupObject(['gate'], 'Gate', () => RESULT_BLOCK_GATE_NODE_MAP, {
+          presentation: 'inline',
+          showIf: local.field(['kind']).eq('OUTCOMES')
+        })
       )
       .set(
         'outcomes',

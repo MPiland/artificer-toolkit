@@ -19,6 +19,8 @@ import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   type ServerKernelRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import type { EncounterCheckActionPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionCheckAction'
+import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
@@ -101,16 +103,7 @@ export function prepareEncounterBasicActionCheck<
     throw new EncounterValidationError('A custom actor has no check to make.')
   if (!isEncounterTargetDying(target)) return null
   if (!target.actor.sourceId) throw new EncounterValidationError('Choose a Character to stabilize.')
-  const facts = actorContestFacts({
-    actorId: helper.actor.id,
-    checkKind: input.check.checkKind,
-    checkDefinitionId: input.check.checkDefinitionId,
-    gameSystemId: input.gameSystemId,
-    system: input.system,
-    targets: new Map([[helper.actor.id, helper]])
-  })
-  if (facts.modifier === null)
-    throw new EncounterValidationError('This actor has no total for the check.')
+  const { d20, consumedGrants } = freezeEncounterActorCheck({ ...input, actor: helper })
   return {
     context: encounterBasicActionCheckPendingContextDtoSchema.parse({
       kind: 'ENCOUNTER_BASIC_ACTION_CHECK',
@@ -131,28 +124,50 @@ export function prepareEncounterBasicActionCheck<
         label: input.checkLabel,
         dc: input.check.dc
       },
-      d20: freezeD20Context({
-        gameSystemId: input.gameSystemId,
-        ...facts,
-        modifier: facts.modifier
-      }),
-      consumedGrants: discoverEncounterEventHooks({
-        effects: helper.activeEffects,
-        events: [
-          {
-            kind: 'TEST',
-            test: 'CHECK',
-            ability: {
-              code: checkAbilityCode(
-                input.system,
-                input.check.checkKind,
-                input.check.checkDefinitionId
-              )
-            }
-          }
-        ]
-      }).ended
+      d20,
+      consumedGrants
     })
+  }
+}
+
+/**
+ * Freezes an actor's one authored check from their own facts: the System check definition's
+ * modifier and contributors (conditions included, and any Help they hold), and the one-check
+ * grants the check uses up. A custom actor has no check facts and is refused.
+ */
+export function freezeEncounterActorCheck<TCharacterFacts extends CharacterMovementFacts>(input: {
+  gameSystemId: string
+  system: SystemAuthoredDto
+  check: { checkKind: 'SKILL' | 'ABILITY'; checkDefinitionId: string }
+  actor: MovementTarget<TCharacterFacts>
+}) {
+  const { actor, check } = input
+  if (actor.actor.kind === 'CUSTOM')
+    throw new EncounterValidationError('A custom actor has no check to make.')
+  const facts = actorContestFacts({
+    actorId: actor.actor.id,
+    checkKind: check.checkKind,
+    checkDefinitionId: check.checkDefinitionId,
+    gameSystemId: input.gameSystemId,
+    system: input.system,
+    targets: new Map([[actor.actor.id, actor]])
+  })
+  if (facts.modifier === null)
+    throw new EncounterValidationError('This actor has no total for the check.')
+  return {
+    d20: freezeD20Context({ gameSystemId: input.gameSystemId, ...facts, modifier: facts.modifier }),
+    consumedGrants: discoverEncounterEventHooks({
+      effects: actor.activeEffects,
+      events: [
+        {
+          kind: 'TEST',
+          test: 'CHECK',
+          ability: {
+            code: checkAbilityCode(input.system, check.checkKind, check.checkDefinitionId)
+          }
+        }
+      ]
+    }).ended
   }
 }
 
@@ -165,16 +180,21 @@ function requireD20Request(continuation: ServerRuleExecutionContinuationDto) {
     throw new EncounterValidationError('The basic action check requested unsupported evidence.')
 }
 
-/** Starts the System's check graph, which asks for the d20 and, when the check rolls any, its added dice. */
+/**
+ * Starts a check graph, which asks for the d20 and, when the check rolls any, its added dice: the
+ * System's basic action check, or an action's compiled check test (D173).
+ */
 export async function startEncounterBasicActionCheck(input: {
   runtime: RulesRuntimeService
   gameSystemId: string
   occurrenceId: string
   /** The frozen check's added dice; absent when it rolls none. */
   addedDice?: readonly D20AddedDieDto[]
+  /** The action's compiled check test; absent for the System's basic action check. */
+  published?: ServerPublishedRuleDefinitionDto
 }): Promise<ServerRuleExecutionContinuationDto> {
   const system = d20TestDefinitionCapabilityRegistry.require(input.gameSystemId)
-  const published = system.basicActionCheckDefinition()
+  const published = input.published ?? system.basicActionCheckDefinition()
   const started = await input.runtime.executeResolved({
     command: {
       definitionId: published.id,
@@ -196,6 +216,7 @@ export function encounterBasicActionCheckPendingSnapshot(input: {
     | EncounterBasicActionCheckPendingContextDto
     | EncounterEscapeCheckPendingContextDto
     | EncounterConcealmentCheckPendingContextDto
+    | EncounterCheckActionPendingContextDto
   optionalCombatSnapshotChecksum: string | null
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({

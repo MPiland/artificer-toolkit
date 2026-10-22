@@ -37,6 +37,7 @@ import * as encounterStyles from './encounter.css'
 import { EncounterActorControlFields } from './EncounterActorControlFields'
 import { EncounterEnemyStatBlock } from './EncounterEnemyStatBlock'
 import { healthDisplayLevelLabels, healthDisplayLevelOptions } from '../healthDisplay'
+import { CampaignLootEditor } from '../loot/CampaignLootEditor'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
 
 const draftFieldLabels = {
@@ -355,6 +356,18 @@ export function EncounterActorCard({
             onChange={(event) => draft.setValue('notes', event.currentTarget.value)}
             onBlur={() => commitEnemyState()}
           />
+          {campaign.role === 'OWNER' ? (
+            <CampaignLootEditor
+              gameSystemId={campaign.gameSystemId}
+              owner={{
+                kind: 'ENCOUNTER_ACTOR',
+                campaignId: campaign.id,
+                encounterId,
+                actorId: actor.id
+              }}
+              subject='Creature'
+            />
+          ) : null}
         </>
       ) : null}
       <Modal

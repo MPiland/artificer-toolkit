@@ -42,7 +42,7 @@ export const GuidedSpellAuthoring = withForm({
   }) {
     const [fallbackEffectIds] = useState(createGuidedEffectIds)
     const effects = useSelector(form.store, (state) => readSpellEffects(state.values))
-    const rehydrated = effects?.[0] ? rehydrateGuidedSpell(effects[0], fallbackEffectIds) : null
+    const rehydrated = rehydrateGuidedSpell(effects, fallbackEffectIds)
     const baseEffect = rehydrated?.effect ?? null
     const canonicalDraft = rehydrated?.draft ?? null
     const [localDraft, setLocalDraft] = useState<GuidedSpellDraft | null>(null)

@@ -2,6 +2,7 @@ import type {
   ConditionAuthored,
   OutcomeAuthored,
   PathLifecycleAuthored,
+  ResultBlockGateAuthored,
   SavingThrowAuthored
 } from '#authored'
 import {
@@ -22,6 +23,8 @@ export type FailureMarginRiderAuthored = {
   id: string
   failedBy: number
   outcomes: ConditionAuthored[]
+  /** The failure band's condition outcome whose ending ends these conditions too (D172). */
+  endsWithOutcomeId?: string
   lifecycle: {
     endOnTriggers?: PathLifecycleAuthored['endOnTriggers']
   }
@@ -69,6 +72,8 @@ export type FollowUpSaveBranchAuthored =
       kind: 'OUTCOMES'
       endCurrent: boolean
       resultKind: 'SINGLE' | 'SEQUENCE'
+      /** An immediate save's branch checks it on the target before its outcomes, as a result block's gate does. */
+      gate?: ResultBlockGateAuthored
       outcomes: OutcomeAuthored[]
     }
 

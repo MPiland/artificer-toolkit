@@ -341,7 +341,8 @@ function actionComplete(input: {
   }
 }
 
-function requireActionContinuation(input: {
+/** Refuses a stored continuation that no longer matches its occurrence, graph or bound facts. */
+export function requireActionContinuation(input: {
   continuation: ServerRuleExecutionContinuationDto
   occurrenceId: string
   published: ServerPublishedRuleDefinitionDto

@@ -13,7 +13,7 @@ export const STARTING_EQUIPMENT_MODE = {
 
 export type StartingEquipmentGroup = StartingEquipmentDto['sets'][number]['groups'][number]
 type StartingEquipmentOption = StartingEquipmentGroup['options'][number]
-export type StartingEquipmentItem = StartingEquipmentOption['items'][number]
+type StartingEquipmentItem = StartingEquipmentOption['items'][number]
 type StartingEquipmentMode = keyof typeof STARTING_EQUIPMENT_MODE
 export type StartingGold = NonNullable<CharacterBuilderStartingEquipmentViewDto['startingGold']>
 export type ChosenStartingEquipmentItem = StartingEquipmentItem & {

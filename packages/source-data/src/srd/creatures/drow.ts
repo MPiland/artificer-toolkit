@@ -257,6 +257,7 @@ export const drow: CreatureAuthored = {
                     failureMarginRider: {
                       id: S.actionId(88, 225),
                       failedBy: 5,
+                      endsWithOutcomeId: S.actionId(88, 222),
                       outcomes: [
                         {
                           id: S.actionId(88, 226),

@@ -127,7 +127,8 @@ export async function readPendingRunDecision(
   if (
     context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ||
     context.kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||
-    context.kind === 'ENCOUNTER_ESCAPE_CHECK'
+    context.kind === 'ENCOUNTER_ESCAPE_CHECK' ||
+    context.kind === 'ENCOUNTER_CHECK_ACTION'
   )
     return controlledActorIds.has(
       context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ? context.helperActorId : context.actorId

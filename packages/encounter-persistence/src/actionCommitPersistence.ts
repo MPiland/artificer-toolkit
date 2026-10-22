@@ -487,7 +487,23 @@ export async function persistEncounterActionCommit(
     userId,
     authorizedCharacterIds: characterIds
   })
-  const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
+  // A push or pull moves its target's token on the Scene in this commit (D139), settling the
+  // zones it passes through (D170).
+  const settledMovements = input.forcedMovements.length
+    ? await callbacks.applyForcedMovements({
+        state,
+        sourceActorId: source.id,
+        commandId: command.commandId,
+        movements: input.forcedMovements,
+        occurrenceId: execution.occurrenceId,
+        occurredAt: input.occurredAt,
+        authorizedCharacterIds: characterIds,
+        actors: nextActors,
+        rules: input.rules
+      })
+    : { moves: [], landings: [], actors: nextActors, rules: input.rules }
+  nextActors = settledMovements.actors
+  const projection = await projectNativeGm(ctx, nextState, nextActors, settledMovements.rules)
   // Each d20 the action rolled gets a chat card: an attack is the source's, a save the target's.
   await recordActionRollCards(ctx, {
     campaign,
@@ -556,15 +572,6 @@ export async function persistEncounterActionCommit(
     command.systemTrigger?.trigger === 'START_OF_TURN'
       ? await clearHolderDamageTypes(ctx, { state, actorId: source.id })
       : null
-  // A push or pull moves its target's token on the Scene in this commit (D139).
-  const settledMovements = input.forcedMovements.length
-    ? await callbacks.applyForcedMovements({
-        state,
-        sourceActorId: source.id,
-        commandId: command.commandId,
-        movements: input.forcedMovements
-      })
-    : { moves: [], landings: [] }
   await recordActionRoot(ctx, {
     run,
     state,

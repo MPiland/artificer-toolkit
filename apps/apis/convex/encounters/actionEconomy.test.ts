@@ -259,6 +259,7 @@ describe('native action economy', () => {
         owner: { kind: 'ENCOUNTER_ACTOR', encounterId: base.run.id, targetActorId: source.id },
         definition: {
           schemaVersion: 2,
+          linkedEffectId: null,
           origin: {
             kind: 'ENCOUNTER',
             sourceAggregateId: base.run.id,

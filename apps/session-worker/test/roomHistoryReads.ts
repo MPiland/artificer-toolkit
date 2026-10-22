@@ -104,7 +104,8 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
         ? projectNativeConcentrationPending(occurrence, snapshot)
         : kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ||
             kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||
-            kind === 'ENCOUNTER_ESCAPE_CHECK'
+            kind === 'ENCOUNTER_ESCAPE_CHECK' ||
+            kind === 'ENCOUNTER_CHECK_ACTION'
           ? projectNativeBasicActionCheckPending(occurrence, snapshot)
           : kind === 'ENCOUNTER_D20_WINDOW'
             ? projectNativeD20WindowPending(occurrence, snapshot)

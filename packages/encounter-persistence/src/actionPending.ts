@@ -442,7 +442,8 @@ export function projectNativeActionPending(
       (pause?.kind === 'CAST_REACTION' ? pause.payload.check?.d20 : undefined) ??
       (pause?.kind === 'INCOMING_GATE' ? pause.payload.d20 : undefined) ??
       null)
-  if (context.contest && (!d20Policy || snapshot.request.min !== 1 || snapshot.request.max !== 20))
+  // A won contest's outcome asks its initiator for dice, outside the contest's d20 nodes (D173).
+  if (d20Policy && context.contest && (snapshot.request.min !== 1 || snapshot.request.max !== 20))
     throw new Error('Stored Disarm evidence request is invalid.')
   // The roller rolls the test's added dice with the d20 that settles it (D156); contest checks
   // carry none yet.

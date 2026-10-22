@@ -2233,6 +2233,33 @@ describe('a save cast that owns a bundle of modifiers, repeated at the end of ea
   })
 })
 
+describe('a timed grant authored as a sequence of one outcome', () => {
+  it('compiles Haste to its minute of grants, extra action and lethargy under Concentration, as a single result would', () => {
+    const plan = compiledCast(spell('Haste'))?.activeEffectPlan
+    expect(plan).toMatchObject({
+      initialRemaining: 10,
+      modifierGrantContribution: {
+        modifiers: [
+          { valueDomainCode: 'SPEED', modifierKind: 'MULTIPLY' },
+          { valueDomainCode: 'ARMOR_CLASS', modifierKind: 'BONUS' },
+          { valueDomainCode: 'SAVING_THROW_MODIFIER', modifierKind: 'ADVANTAGE' }
+        ],
+        grantedActions: [{ activation: 'FREE', usesPerTurn: 1, weaponAttack: true }],
+        onEnd: {
+          turns: 1,
+          modifiers: [
+            { valueDomainCode: 'SPEED', modifierKind: 'MULTIPLY' },
+            { valueDomainCode: 'ACTION_COUNT', modifierKind: 'SET_VALUE' },
+            { valueDomainCode: 'BONUS_ACTION_COUNT', modifierKind: 'SET_VALUE' },
+            { valueDomainCode: 'REACTION_COUNT', modifierKind: 'SET_VALUE' }
+          ]
+        }
+      }
+    })
+    expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
+  })
+})
+
 describe('a cast that departs its travelers beside a GM ruling (SPELLS-4.T2a5, D156)', () => {
   it('departs Teleport’s caster and up to eight chosen creatures with the destination ruling riding the commit, and no effect to hold', () => {
     const compiled = compiledCast(spell('Teleport'))

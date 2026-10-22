@@ -44,6 +44,7 @@ export function escapeGrappleEffectDefinition(input: {
   const entryId = fixtureId(1)
   return {
     schemaVersion: 2,
+    linkedEffectId: null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,

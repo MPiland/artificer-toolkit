@@ -112,29 +112,42 @@ checksum and reseeds development data in the same change, because published grap
 these checksums. Regenerate with `vitest run -u` on that test only. Passive Creature traits compiled by other
 adapter methods (zones, damage grants) are not covered.
 
-### Effect-action compiler module map (current, RULES-2.T6b)
+### Effect-action compiler module map (current, RULES-2.T6f)
 
 `systems/dnd5e/effectActionCompiler.ts` compiles an authored Effect and holds the adapter. Its operation registry and
 its runtime interpretation (the code that re-checks a committed graph's evidence and returns the applications) live in
 sibling modules. Imports run one way, down this list; no module imports the compiler, and none re-exports another's
 names.
 
-| Module                           | Owns                                                                                                                                                                                                           |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, forced-movement collision encoding, node-id helpers                                                                   |
-| `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                                                                                           |
-| `effectActionOutcomes`           | `DND5E_EFFECT_OUTCOMES`: one outcome definition per `Outcome` kind (see the outcomes registry below), and the key sets interpretation derives from it                                                          |
-| `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                                                                             |
-| `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                             |
-| `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                |
-| `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`) |
+| Module                           | Owns                                                                                                                                                                                                              |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, forced-movement collision encoding, node-id helpers                                                                      |
+| `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                                                                                              |
+| `effectActionOutcomes`           | `DND5E_EFFECT_OUTCOMES`: one outcome definition per `Outcome` kind (see the outcomes registry below), and the key sets interpretation derives from it                                                             |
+| `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                                                                                |
+| `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                                |
+| `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                   |
+| `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`)    |
+| `effectActionZones`              | `compileDnd5eZonePlacement`: every zone rule (D140, D142–D146, D153–D156) and the zone plan it assembles: a cast's zone pick, a placed or source zone, its bands, held condition, occupant bonus and placer grant |
+
+Transitional (RULES-2.T6f, until RULES-2.T6g): a zone composes the test-phase, outcome and lifetime pieces that still live
+in the compiler (`compileTestDefinition`, the bounded and specialized test outcomes, `modifierGrantEntryPlan`,
+`durationPublishedGraph`, `maintenancePlan`, `diceGraphDefinition`, `withMovementInterruption`, `publishedGraph`). The
+compiler builds one `ZONE_COMPILER_PIECES` record of those functions and passes it to `compileDnd5eZonePlacement`; the
+zones module imports only the record's type (`ZoneCompilerPieces`, `typeof` the record), so no module imports the
+compiler at run time. RULES-2.T6g moves those pieces into modules of their own, which zones then import directly, and
+the record goes away.
+
+The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy
+and zones read: `shapeExtent` (the measurement that sizes each shape kind) and `scaledShapeMeasurements` (which of a
+shape's measurements scale, and by what). Which sizes may scale stays System policy.
 
 The scaling facts are validated at that one boundary: a level the contract carries is a positive safe integer, class
 levels are a validated map, and the roll mode is always present. Downstream compiler code reads them without re-checking.
 A parsed dice configuration is one bounded term plus its flat modifier, so callers never re-check the term's bounds; only
 a critical hit's doubled count is re-bounded.
 
-All seven are D&D 2014 policy (their keys, messages and facts name D&D), so they stay under `systems/dnd5e`. The
+All eight are D&D 2014 policy (their keys, messages and facts name D&D), so they stay under `systems/dnd5e`. The
 first neutral piece is the outcomes registry below; the interpretation dispatcher is a later RULES-2 step once the
 compiler stops naming D&D facts. Each file stays under the 1,500-line budget, and the golden above gates every move.
 
@@ -184,6 +197,16 @@ the failed band's. Interpretation verifies each nested proposal against its path
 (`dnd5ePathGatedProposalOperations`) and settles it as its direct operation with the nested paths kept. A halved roll
 of 1 proposes 0 damage.
 
+**A gated nested-save band (current, SPELLS-33.T4i3d).** A band of an immediate, one-time, non-repeating follow-up save
+may carry the one gate table's gates (`TARGET_HIT_POINTS_AT_MOST`, `REDUCED_TO_ZERO_BY`); the schema refuses a gate on any
+other save. `effectActionNestedSave.ts` owns the nested-save graph. A gated band adds a `nested-save-gate-<band>` node
+(`dnd5e.nested-save-gate`, PURE) that takes `nested-save-test`'s `resultPath` plus the gate-table inputs and republishes
+`resultPath` only when `gatesAdmit` holds, otherwise `GATE_CLOSED`, which no authored path satisfies. The band's outcomes
+bind `resolvedPath` to that output, and `interpretDirect` re-executes the gate node and checks `gateEvidenceIsValid`.
+A `KILL` is admitted in a band only when the band is gated; `REDUCED_TO_ZERO_BY` names the band's first damage outcome,
+which is dealt ungated, and holds the outcomes after it. Forced movement, HP-maximum reduction and a failure-margin
+rider are unsupported on a gated band. The save is still rolled for targets outside an HP band, with no effect.
+
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
 `ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the
 damage, heal, condition and hit-point-tier `KILL` outcomes. `dnd5eTargetOnlyOutcome` is the one home for that set, so
@@ -193,6 +216,27 @@ the compiler's direct and test admissions cannot drift. The commit-side readers 
 test that resolved to another path commits nothing. Under a test, two outcomes stay refused for their own rule: a self
 teleport, which takes its reach from a self-targeted action's range, and `CANCEL_TRIGGERING_EVENT`, which belongs to a
 spell-cast reaction and a spell-cast reaction is never a test activation.
+
+**Direct outcome dispatch (current, RULES-2.T6e).** `supported()` checks the action's shape once, then hands the
+authored outcome to `DND5E_DIRECT_OUTCOMES`: one entry per authored outcome kind, with no ladder around it. A kind with
+no entry is not a direct outcome. An entry receives the resolved inputs (`onList`, `selfTeleport`, whether a grant, link
+or form plan exists). A chosen-creatures list runs the action's one graph on each creature, so it carries any outcome
+that lands on its target (RULES-2.T6e2: condition, kill, stabilize and manual adjudication too); `offList` refuses the
+outcomes that act on the actor or the triggering event (a Dash's added speed, a teleport allowance, conceal, detect,
+cancel). Every compiled graph is published through one helper, `publishedGraph`. Two
+admissions changed:
+
+- A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
+  `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
+  check and the single-target range policy. So a charged free save option (Wing Attack's authored shape) compiles under
+  its save.
+- A direct entry authored as a sequence of one outcome (Haste) resolves as a single result does. Only a `CHOICE` group
+  is refused there. The recurring-plan sites still require `SINGLE`, because no SRD record authors a recurring sequence
+  of one.
+- A test path's fixed outcome binds the result block's hit-point gate and damage-type suppression as a direct outcome
+  does (RULES-2.T6e2, `testPathGates`). The gate belongs to a kill, condition or heal outcome
+  (`refuseUnboundGate`, shared with the direct path); an outcome that binds none (dice, a hit-point maximum
+  reduction), or a gate beside hit-point tiers, is refused rather than skipped.
 
 ## Ownership and publication
 
@@ -888,7 +932,7 @@ A zone's own component may author `perDistanceMoved` (D156, SPELLS-4.T1h): place
 placement's `distanceStep` in Scene distance units, and `collectSpatialMovementCandidates` raises one `ENTER` candidate
 per whole step the footprint travels inside, measured by the Scene grid and carrying its `step` ordinal, so the loop runs
 the frozen entry once per step. A finished spatial execution that drops a voluntary mover to 0 Hit Points stops the move
-at its contact (`spatialExecutionStopsMovement`).
+at its contact (`spatialExecutionStopsMovement`); a forced move stops there too (D170).
 The multiplier slows only a mover the zone catches (SPELLS-20 T4d, refining D154's "every mover"): `zoneMovementSegmentMultiplier` (shared/vtt) skips a mover that `spatialEffectAffects` spares (designated unaffected, or a defeated Creature's suppressed passive zone) and the token a `TOKEN` zone is anchored to, so Spirit Guardians never slows its caster while a wall the caster placed does. The room's movement charge (`encounterMovementPublication`) and the tabletop's drag-route label (`formatSceneRoute`) both price a walk through it, the label from `movementCostZones` on the Encounter session state (`readSessionMovementCostZones`: visible zones, token zones only when the viewer's projection lists the source, designations filtered to listed actors). A zone whose only component prices movement (Entangle's difficult terrain, D156) compiles from its appear save (`zonePlacementPlan`).
 A zone may author more than one component (D154 amendment): the first covers the zone's shape, and each later one
 authors `region: { kind: 'SIDE_BAND', distance }` and compiles to `zonePlacement.regionComponents` (at most one
@@ -1398,11 +1442,42 @@ softly enforced, never blocked. SRD Fear authors it.
 timed conditions may author `failureMarginRider { id, failedBy, outcomes, lifecycle { endOnTriggers } }`:
 one more condition applied when the save fails by `failedBy` or more. The compiler adds a
 `nested-save-margin` threshold node (`dc - failedBy + 1`) and a margin-gated condition proposal, and the
-plan carries `marginRider` (required, nullable) with its own `rider-condition-duration` node. The
+plan carries `marginRiders` (required list, at most `MAX_ACTION_RIDERS` = 3), each with its own `rider-condition-duration` node (the first keeps that name, later ones `-2`, `-3`). The
 encounter planner then creates a second active effect, the rider's, with the parent's duration and the
 rider's own end triggers, so waking (`DAMAGE_TAKEN`, `ACTION_USED_ON_HOLDER`) ends it and leaves the
-parent condition. A receipt may therefore carry two active-effect transitions. The rider is not linked to
-the parent: ending the parent early leaves the rider for the GM to end. A follow-up save takes a rider, and so does the fixed `ON_SAVE_FAIL` result of a direct saving-throw action (SPELLS-33.T7b, D156): `failureMarginRider` on the result block ("fails by 5 or more, also paralyzed"). The TEST total is not in the OUTCOME graph, so the specializer derives `saveFailedBy` (DC minus total) from the TEST outputs (`testOutputs` on `specializeOutcomeTemplate`) and appends one result group per rider outcome only when the margin is met. `marginRiderPlan` builds the rider's second active effect for both the follow-up and the direct-save plans, and the rider applies only when one of its conditions lands. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author the follow-up form; the Mummy and Mummy Lord Dreadful Glare author the direct-save form with SOURCE_IMMUNITY. Limitation: that immunity is per source, so a save against one mummy does not make the target immune to other mummies (SRD text covers all mummies).
+parent condition. A receipt may therefore carry the recurring effect and up to `MAX_ACTION_RIDERS` rider transitions. A margin rider may name the parent condition it lasts only while with `endsWithOutcomeId` (SPELLS-33.T4i3f, D172, below);
+without it the rider is not linked. A follow-up save takes a rider, and so does the fixed `ON_SAVE_FAIL` result of a direct saving-throw action (SPELLS-33.T7b, D156): `failureMarginRider` on the result block ("fails by 5 or more, also paralyzed"). The TEST total is not in the OUTCOME graph, so the specializer derives `saveFailedBy` (DC minus total) from the TEST outputs (`testOutputs` on `specializeOutcomeTemplate`) and appends one result group per rider outcome only when the margin is met. `marginRiderPlan` builds the rider's second active effect for both the follow-up and the direct-save plans, and the rider applies only when one of its conditions lands. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author the follow-up form; the Mummy and Mummy Lord Dreadful Glare author the direct-save form with SOURCE_IMMUNITY. Limitation: that immunity is per source, so a save against one mummy does not make the target immune to other mummies (SRD text covers all mummies).
+
+**Timed conditions in a band (current, SPELLS-33.T4i3e, D172; supersedes D149's no-link note for this form).** A
+gated or plain failure band of an immediate `FOLLOW_UP_SAVE` may time its `CONDITION` outcomes: each carries
+its own `duration`, and one may carry `endsWithOutcomeId` naming a sibling condition of the same band that it
+lasts only while; a condition the band leaves untimed applies as always. `timedBandConditions` (`systems/dnd5e/effectActionBandConditions.ts`) validates the band and
+the compiler plans the first timed condition that ends with no other as the recurring effect and every other
+timed condition as an entry of `marginRiders` with its own `initialRemaining`, ordered so each follows the one
+it ends with (SPELLS-33.T4i3g: any number up to the `MAX_CONDITIONS_PER_PATH` bound, as a chain, a fan-out or
+both). A rider's `endsWith` is `'PRIMARY'` or the index of an earlier rider. Compile refuses by name a timing
+outside the failure band, a link without a duration, a self-link, a link to anything but a timed sibling
+condition of the band, and conditions that end with each other (a cycle). Roots create the riders through one
+function, `createLinkedRiders` (`encounterActionEffectPlans.ts`), which sets the required-nullable
+`linkedEffectId` of each stored definition to the effect it ends with: the recurring effect created beside
+it, or an earlier rider (`riderEffects` stays index-aligned with the plan, a rider not applied is null) (the worker settlement,
+area, legendary and movement-reaction roots; a test reads each root to prove it). Ending an effect ends the
+effects linked to it, transitively, in the same transaction and receipt: `discoverEncounterEventHooks` adds
+them to `ended` (`withLinkedDependents`, `activeEffectLinks.ts`), so every event-hook end seam (damage taken,
+action used on the holder, attack hit, the end of a hold, a spent saving throw, regained hit points) releases
+both conditions, and undo restores the ended records as it does any ended effect. The turn kernel expires a
+linked effect at its own boundary once the effect it links to expired or was ended by damage; effects run in
+`createdOrdinal` order, so the primary runs first. Sheet ends (holder or GM ends of a grant) never link, so they
+need no cascade. Out of scope (future-enhancements): a cure or a GM condition edit that removes the primary
+condition does not end the rider. The SRD Giant Centipede authors poisoned for 1 hour and paralyzed while
+poisoned this way.
+
+**Linked margin rider (current, SPELLS-33.T4i3f, D172).** `failureMarginRider.endsWithOutcomeId` names the one
+condition outcome of the rider's own failed immediate save; `marginRiderPlan(rider, primaryOutcomeId)` sets
+`endsWith: 'PRIMARY'` and refuses by name any other target, and any link where there is no such condition (the
+direct-save form). Roots create it through `createLinkedRiders` as above, so the same cascade ends the sleep with
+the poison. The SRD Drow, Pseudodragon and Sprite riders author the link; their effect-compile golden lines are
+the three entries that changed. The node map registers the field on the rider (`followUpSaveFailureMarginRider`).
 
 **Initiative restores (current, SPELLS-31.T5o).** A PASSIVE effect with `triggerCode: ROLL_INITIATIVE` (path code
 `PASSIVE`) and a `RESTORE_RESOURCE { chargeId, floor, whenAtOrBelow }` outcome raises a feature charge when its
@@ -1598,7 +1673,7 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `landForcedMovements` builds the per-mover landing report: feet travelled, `stoppedBy` (`NONE`, `OBJECT` or the struck
   creature's actor ID) and the rolled ray. A mover stops in the last free square before a creature; movers land farthest
   first, each against the Scene after the earlier landings. The report rides the commit (`forcedMovementLandings`) and
-  is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
+  is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. A landing path that touches a Scene effect is settled one mover at a time through `persistMovementContacts` (the voluntary movement seam: `prepareRoomForcedMovementContacts` plans it with `collectSpatialMovementCandidates` for `FORCED`, with the room's seeded dice for every creature, D170): entry and per-step zone damage, Concentration checks and a 0 Hit Point stop that ends the path where the creature drops and becomes its landing. The landing records the zones' hit-point changes in `zoneDamage` (and `zoneUndoRefused` when they did more) so a GM undo restores their damage with the Scene move; the undo is refused ("the zones a forced movement set off") for a spent one-shot zone, a Concentration break or a non-damage application, and for a Character target's zone damage. The walk is unrelated to the T6k1
   passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
   collision's mover damage (T6k2b3, D159) settles in the area commit: each mover that travelled 10 ft or more takes
   `floor(feet/10)` times the authored dice as an unsaved damage action of the pusher (`collisionDamageCapability`), one
@@ -2303,8 +2378,13 @@ token moves by the mover's displacement in the same Scene move, spends no moveme
 attack, and the mover's path ignores it as an obstacle. The drag doubles the mover's cost on top of the D154
 maximum (difficult terrain costs ×4) unless every held creature is two or more sizes smaller; an unknown size
 counts as not smaller. A mover stopped mid-path drags only the walked part. The room refuses a drag
-(`MOVEMENT_BLOCKED`, "Release the grapple first.") whose dragged path is blocked, ends on an occupied place, or
-enters, leaves or crosses a Scene effect (SPELLS-4.T1j).
+(`MOVEMENT_BLOCKED`, "Release the grapple first.") whose dragged path is blocked or ends on an occupied place.
+The Scene effects a drag crosses are not refused (D170, SPELLS-4.T1k): `evaluateEncounterSpatialMovementRuleBatch` takes
+`draggedTokenIds` and, beside the mover's candidates, collects each dragged token's `FORCED` candidates along the mover's path
+translated to its own place, merged in `compareSpatialMovementCandidates` order. They settle in the mover's one spatial pass
+(same dice, pending prompts, Concentration checks, receipts under the move's command and projection), so a dragged creature's
+0 hit points or STOP interruption stops the whole drag at that contact, and the Scene undo refuses the move because it recorded
+receipts. The list is recomputed from the live holds on every segment and resume, so no snapshot field carries it.
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's
@@ -2351,16 +2431,45 @@ still free another creature. Undo follows the escape rule: a failure returns the
 **Unsupported:** a `CONTEST` DC with `CREATURE_WITHIN_REACH` is not offered to a rescuer (the contest path is the
 held creature against its holder); `encounterRescues.test.ts` proves the omission.
 
-**Contest outcomes (D105, ATTACK-7.6).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is a
-condition or a forced movement (`isContestOutcomeAction`; Shove) compiles to `TEST_OUTCOME`: the test is the
-contest graph, the outcome the specialized `ON_CHECK_SUCCESS` path. An outcome authored as a CHOICE is picked with
+**Contest outcomes (D105, ATTACK-7.6, D173).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is
+any outcome the test-outcome specializer admits (`isCheckOutcomeAction`; Shove, or a homebrew contest whose win deals
+damage) compiles to `TEST_OUTCOME`: the test is the contest graph, the outcome the specialized `ON_CHECK_SUCCESS` path. An outcome authored as a CHOICE is picked with
 the attempt through `target.choiceOptionId`; `prepareEncounterActionSource` narrows a capability source (basic
 action, Creature) to the picked option (`pickedCastChoiceEffect`), and the basic-action choices offer the options.
-On a win the room runs the outcome graph (`planNativeContestOutcome`), applies its conditions to the target in the
-one direct-outcome batch, and settles `CONDITIONS_APPLIED` or `FORCED_MOVEMENT` on the `CONTESTED_ACTION` output.
-`settleContestOutcome` applies the room-planned conditions in Convex, and the commit lands a push through
-`applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
+On a win the room runs the outcome graph through the shared planner (`planNativeTargetOutcome`, `nativeTargetOutcome.ts`). Its dice roll in the action roll window: an
+initiator who auto-rolls has them rolled at once, otherwise the occurrence pauses on an `ACTION_OUTCOME_EVIDENCE`
+prompt for the initiator, stored as the outcome continuation beside both contest rolls, and the answer resumes it.
+Every application goes through `planEncounterMechanicsBatch` and settles one generic `TARGET_OUTCOME` transition
+(`mechanics`: the target's `targetTransition` and receipt `applications`, or null; `forcedMovements`) on the
+`CONTESTED_ACTION` output. The shared settler `settleTargetOutcome` (`targetOutcomeSettlement.ts`) re-applies the
+receipt applications in Convex and refuses a checksum mismatch, and the commit lands a push through `applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
 contest outcome whose push owes a destination pick fails closed.
+
+**Check outcomes (D173, RULES-2.T6e3b1a).** A CHECK action with a `FIXED` dc whose `ON_CHECK_SUCCESS` outcome is not a
+check-settled kind (STABILIZE, CONCEAL_FROM_OBSERVERS, DETECT_CONCEALED) compiles to `TEST_OUTCOME` the same way, with
+the d20 check graph (`createDnd5eCheckDefinition`) as its test. The room freezes the actor's check, rolls it, and on a
+success runs the same `planNativeTargetOutcome` (its test roll mode is the check's). It commits one `CHECK_ACTION`
+output (`check`, `d20`, `outcome` SUCCESS or FAILURE, and a `TARGET_OUTCOME` or `NONE` `stateTransition`) in a
+`CheckActionSettlement`, and Convex settles it through `settleEncounterCheckAction`, which re-applies a success through
+`settleTargetOutcome` and lands its pushes like an action's. A roller whose preference does not roll for them, or who
+holds after-roll check dice, gets a pending `ENCOUNTER_CHECK_ACTION` occurrence (RULES-2.T6e3b1b) in its `CHECK` phase,
+which carries the root command (`commandJson`). Their d20 opens a d20 window (`CHECK_ACTION` source) on held dice or
+settles the check; a success re-prepares the action from the root command on the room's current inputs
+(`prepareNativeLiveRootActionMechanics`) and runs its outcome, which pauses in the `OUTCOME` phase on its dice
+(`ACTION_OUTCOME_EVIDENCE`) unless the roller's preference rolls them. The room plans each answer
+(`planNativeLiveCheckActionResponse`); Convex records a pause through `persistEncounterCheckActionPause` and the settled
+check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Undo returns a failed
+check's economy, feature charges and grants and refuses a success's outcome.
+
+**Creature feature checks (D173, RULES-2.T6e3b1c).** A Creature feature authored with a `FIXED`-dc CHECK runs the same
+check action; a contest, a concealment check or a stabilizing check stays a basic action's (`checkActionSource` refuses
+the rest `SOURCE_REQUIREMENTS_NOT_MET`). The check context, the `CHECK_ACTION` output and the commit input name their
+`source`, `BASIC_ACTION` (the catalogue entry's id, version and checksum) or `CREATURE_FEATURE` (`ownerFeatureId`,
+`effectId`, `compiledEffectChecksum`). The room spends the feature's charges with the action
+(`nativeSourceFeatureResourceReceipt`), and the commit carries the `featureResourceConsumption` receipt. Convex
+re-resolves the feature from the actor's snapshot (`admitCheckActionSource`), admits the receipt only at the authored
+cost or, under an acknowledged `RESOURCE_UNAVAILABLE`, the charges that remained, and spends it through
+`settleActionSourceSpend`, the creature action cost path. The check receipt keeps the charge receipt for undo.
 
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no

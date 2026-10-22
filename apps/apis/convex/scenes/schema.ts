@@ -6,6 +6,7 @@ import {
   sceneStoredFogChunkSchema,
   sceneStoredFogLayerSchema
 } from '@artificer-toolkit/schema/projections/sceneFogPersistence'
+import { storedLootSchema } from '@artificer-toolkit/schema/projections/lootPersistence'
 import {
   sceneStoredLiveStateSchema,
   sceneStoredLiveEntitySchema
@@ -20,6 +21,10 @@ import {
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 
 export const sceneTables = {
+  lootTables: defineTable(zodToConvexFields(storedLootSchema.shape))
+    .index('by_scene', ['owner.kind', 'owner.sceneDefinitionId'])
+    .index('by_actor', ['owner.kind', 'owner.encounterId', 'owner.actorId'])
+    .index('by_campaignId', ['owner.campaignId']),
   sceneVisionRevisions: defineTable(zodToConvexFields(sceneVisionRevisionSchema.shape)).index(
     'by_scope_id',
     ['scope', 'id']

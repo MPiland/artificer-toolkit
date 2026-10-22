@@ -22,6 +22,7 @@ import { type MutationCtx } from '../_generated/server'
 import { internalMutation, mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
+import { findLootRow } from '../loot/ownerRows'
 import { assertCampaignContentAllowed } from '../campaigns/contentUsage'
 import {
   refreshMapReferenceFlag,
@@ -346,6 +347,12 @@ export const remove = mutation({
     if (definition.version !== input.expectedVersion)
       throw new Error('Scene definition changed before deletion.')
     await ctx.db.delete(row._id)
+    const loot = await findLootRow(ctx, {
+      kind: 'SCENE',
+      campaignId: definition.campaignId,
+      sceneDefinitionId: definition.id
+    })
+    if (loot) await ctx.db.delete(loot._id)
     // D87: a Scene shown to players stops being shown when its definition is deleted.
     const showing = await ctx.db
       .query('campaignSceneShowings')

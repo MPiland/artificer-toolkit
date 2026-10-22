@@ -2,6 +2,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { withLinkedDependents } from '../activeEffectLinks.js'
 import { listActiveEffectGrants } from '../character/activeEffectGrantTotals.js'
 import { encounterActorRelationship } from '../encounterActionTargetPolicy.js'
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
@@ -318,16 +319,18 @@ export function discoverEncounterEventHooks<
   events: readonly Event[]
   grantSubscriptions?: readonly Grant[]
 }) {
-  const ended: Effect[] = []
+  const endedByEvent: Effect[] = []
   const repeatSaves: { effect: Effect; trigger: ActiveEffectRepeatTrigger }[] = []
   for (const effect of input.effects ?? []) {
     const hooks: readonly EncounterEffectHook[] = effectHooks(effect)
     const met = (hook: EncounterEffectHook) =>
       input.events.some((event) => subscriptionMet(effect, hook.subscription, event))
-    if (hooks.some((hook) => hook.hook === 'END' && met(hook))) ended.push(effect)
+    if (hooks.some((hook) => hook.hook === 'END' && met(hook))) endedByEvent.push(effect)
     const repeat = hooks.find((hook) => hook.hook === 'REPEAT_SAVE' && met(hook))
     if (repeat?.hook === 'REPEAT_SAVE') repeatSaves.push({ effect, trigger: repeat.trigger })
   }
+  // An effect linked to an ended one ends with it (D172).
+  const ended = withLinkedDependents(endedByEvent, input.effects ?? [])
   const damageTypeIds = input.events.flatMap((event) =>
     event.kind === 'DAMAGED' && event.phase === 'AFTER' ? event.damageTypeIds : []
   )

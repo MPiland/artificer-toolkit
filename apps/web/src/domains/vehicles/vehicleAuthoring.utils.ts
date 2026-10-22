@@ -1,12 +1,10 @@
-import type { DetailDto } from '@artificer-toolkit/schema/shared'
-import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type {
   VehicleAuthoringInputDto,
   VehicleAuthoredDto
 } from '@artificer-toolkit/schema/subjects/vehicle'
 import { VEHICLE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 
-export type VehiclePropertyFormValue = {
+type VehiclePropertyFormValue = {
   value: string
 }
 
@@ -29,24 +27,6 @@ export function createEmptyVehicle({ systemId }: CreateEmptyVehicleInput): Vehic
     category: VEHICLE_CATEGORY_CODE.LAND,
     properties: [],
     features: []
-  }
-}
-
-export function createEmptyDetail(order: number): DetailDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order
-  }
-}
-
-export function createEmptyFeature(order: number): FeatureDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order
   }
 }
 

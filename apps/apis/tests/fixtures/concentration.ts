@@ -229,6 +229,7 @@ export async function seedConcentration(fixture: {
     const authoredEffectId = crypto.randomUUID()
     const definition = {
       schemaVersion: 2,
+      linkedEffectId: null,
       origin: {
         kind: 'ENCOUNTER' as const,
         sourceAggregateId: fixture.run.id,

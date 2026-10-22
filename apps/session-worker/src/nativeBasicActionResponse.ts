@@ -1,11 +1,12 @@
 import {
   readBasicActionCheckSnapshot,
+  readCheckActionSnapshot,
   readD20WindowSnapshot
 } from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   liveSessionEncounterBasicActionResponseCommitInputSchema,
-  liveSessionEncounterD20WindowOpenCommitInputSchema
+  liveSessionEncounterCheckPauseCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import {
   liveSessionEncounterRulesInputSchema,
@@ -33,6 +34,7 @@ import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/en
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { planNativeLiveCheckActionResponse } from './nativeCheckActionResponse.js'
 import { settleNativeConcealmentCheck } from './nativeConcealmentCheck.js'
 import { bindEncounterD20Evidence } from './nativeD20Evidence.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
@@ -76,15 +78,6 @@ export async function planNativeLiveBasicActionResponse(
   const ready = admission.ready
   if (!ready || ready.command.type !== 'RESOLVE_RULE_OCCURRENCE' || !ready.snapshot)
     throw new Error('The basic action check is unavailable.')
-  // A d20 window holds the roll its roller already made; the check it follows is frozen inside it.
-  const pendingWindow = readD20WindowSnapshot(ready.snapshot)
-  const { context, continuation, snapshot } = pendingWindow
-    ? {
-        context: pendingWindow.context.source.context,
-        continuation: pendingWindow.continuation,
-        snapshot: pendingWindow.snapshot
-      }
-    : readBasicActionCheckSnapshot(ready.snapshot)
   const { state, system } = await capture({ kind: 'INPUTS' })
   if (state.id !== initial.encounterId || state.version !== initial.expectedVersion)
     throw new Error('Basic action check Run inputs changed during capture.')
@@ -92,6 +85,32 @@ export async function planNativeLiveBasicActionResponse(
     state,
     capture
   })
+  const checkAction = readCheckActionSnapshot(ready.snapshot)
+  if (checkAction)
+    return planNativeLiveCheckActionResponse({
+      scope,
+      initial,
+      reads,
+      ready,
+      command: ready.command,
+      pending: checkAction,
+      state,
+      system,
+      actors,
+      activeEffectsByActorId,
+      executionOptions
+    })
+  // A d20 window holds the roll its roller already made; the check it follows is frozen inside it.
+  const pendingWindow = readD20WindowSnapshot(ready.snapshot)
+  const windowSource = pendingWindow?.context.source
+  const { context, continuation, snapshot } =
+    pendingWindow && windowSource?.kind === 'BASIC_ACTION_CHECK'
+      ? {
+          context: windowSource.context,
+          continuation: pendingWindow.continuation,
+          snapshot: pendingWindow.snapshot
+        }
+      : readBasicActionCheckSnapshot(ready.snapshot)
   if (context.kind === 'ENCOUNTER_CONCEALMENT_CHECK') {
     const roller = actors.find((entry) => entry.id === context.actorId)
     if (!roller) throw new Error('Basic action check actors are unavailable.')
@@ -243,7 +262,7 @@ export async function planNativeLiveBasicActionResponse(
     const windowFacts = buildEncounterActorRuleFacts({ actors })
     return {
       kind: 'WINDOW_OPEN' as const,
-      input: liveSessionEncounterD20WindowOpenCommitInputSchema.parse({
+      input: liveSessionEncounterCheckPauseCommitInputSchema.parse({
         ...scope,
         command: ready.command,
         revisions: reads.revisions(),
