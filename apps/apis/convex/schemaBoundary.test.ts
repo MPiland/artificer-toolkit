@@ -137,12 +137,28 @@ it('keeps authoring source reads independent of the play execution registry and 
     metafile: true,
     logLevel: 'silent'
   })
-  const playImports = Object.keys(bundle.metafile!.inputs).filter((path) =>
-    /\/packages\/(rules-runtime\/|schema\/(src|dist)\/(shared\/rulesExecution|api\/characterSheet))/.test(
-      `/${path.replaceAll('\\', '/')}`
-    )
+  const inputs = Object.keys(bundle.metafile!.inputs).map(
+    (path) => `/${path.replaceAll('\\', '/')}`
+  )
+  const playImports = inputs.filter((path) =>
+    /\/packages\/schema\/(src|dist)\/(shared\/rulesExecution|api\/characterSheet)/.test(path)
   )
   expect(playImports).toEqual([])
+  // Authoring reads System vocabulary through the pure `systemVocabulary` subpath (D176) and
+  // nothing else in rules-runtime; a new import in that closure must be added here on purpose.
+  const rulesRuntimeClosure = inputs
+    .filter((path) => path.includes('/packages/rules-runtime/'))
+    .map((path) =>
+      path.replace(/^.*\/packages\/rules-runtime\/(src|dist)\//, '').replace(/\.(ts|js)$/, '')
+    )
+    .sort()
+  expect(rulesRuntimeClosure).toEqual([
+    'systemCapabilityRegistry',
+    'systemVocabulary',
+    'systemVocabularyCapability',
+    'systems/dnd5e/identity',
+    'systems/dnd5e/vocabulary'
+  ])
 })
 
 it.each(['./characters/documents.ts', './content/deletion.ts'])(

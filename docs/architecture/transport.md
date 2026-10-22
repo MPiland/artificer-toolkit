@@ -194,6 +194,7 @@ without making authoring load the capability query's full play execution registr
 The platform Rules registry remains the single source of installed capabilities/operations.
 `convex/schemaBoundary.test.ts` checks the real authoring entry point's dependency graph; public
 System query contracts and authorization are unchanged by this module separation.
+The one `rules-runtime` exception is the pure `systemVocabulary` subpath (System-supplied option lists, D176 draft); the test asserts the bundle's `rules-runtime` closure equals exactly its five files.
 
 Character receipt readers import `schema/api/characterHistory`, whose entry/page contracts depend
 only on shared pagination and Sheet value schemas. The bounded Character read input is owned by

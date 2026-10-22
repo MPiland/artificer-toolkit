@@ -1,4 +1,4 @@
-import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/systemVocabulary'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntimeSourceContract.js'
 import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'

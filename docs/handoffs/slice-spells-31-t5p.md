@@ -10,6 +10,8 @@ Ledger task `SPELLS-31.T5p` (closes AC SPELLS-31.1; unblocks `SPELLS-33.T5afp`).
 2. Primeval Awareness is Sheet-only. Spending the slot is the whole mechanic (the generic `USE_SPELL_SLOT` command); sensing stays description. Its closed rule is deleted with no replacement runtime.
 3. Expanded Spell List uses `access: 'CAST' | 'CLASS_LIST_ONLY'` plus `classListIds`. `CLASS_LIST_ONLY` without `classListIds` is refused at compile time (`SPELL_GRANT_CLASS_LIST_MISSING`; `_UNUSED` when lists are named without list-only; `_SHAPE` when no spells are named). One merge function (`spellClassListAdditions.ts`); the Builder owns the merged list for prepare and known choices and the Sheet only reads it.
 
+**D176 (draft, SPELLS-31.T5p).** Authoring may read System vocabulary through the pure `@artificer-toolkit/rules-runtime/systemVocabulary` subpath (the registry and the System vocabularies, nothing from the compiler, executor or planning code). The play execution registry stays out of the authoring bundle: `schemaBoundary.test.ts` rejects every other `rules-runtime` file and asserts the bundle's rules-runtime closure equals the five pure files reachable from that subpath, so any further import fails the test.
+
 Deleted kinds: `CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST`, `CLASS_RANGER_PRIMEVAL_AWARENESS`, `CLASS_FIEND_EXPANDED_SPELL_LIST`.
 
 ## Red proof (before the option existed)

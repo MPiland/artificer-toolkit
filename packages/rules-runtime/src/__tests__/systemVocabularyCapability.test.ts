@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { rollModeCapabilityRegistry, systemVocabularyRegistry } from '../platformPolicyModules.js'
+import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
+import { systemVocabularyRegistry } from '../systemVocabulary.js'
 import { createSystemVocabularyRegistry } from '../systemVocabularyCapability.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { dnd5eVocabularyCapabilityAdapter } from '../systems/dnd5e/vocabulary.js'
