@@ -90,6 +90,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Nested save skipped by a branch gate (SPELLS-33.T4i3d):** a gated nested-save band rolls the save even for targets the gate excludes (e.g. a target over the HP band), then discards the outcome. Rolling the save only for in-band targets would need the gate evaluated before the d20 node; no SRD content is affected.
+
 - **Haste's lethargy timing (SPELLS-4.T2l-a):** the follow-on grant lasts one end of the holder's turn. A Haste that ends during its holder's own turn (Concentration dropped mid-turn) lets the lethargy end at the end of that same turn, instead of the holder's next. The rules text is "until after its next turn"; it is rare, and the GM can end the lethargy by hand. Related, latent: a follow-on created during the outgoing boundary's turn effects could tick once before `persistEncounterGrantTicks`; `documents.ts` deletes a form-holding effect row directly, bypassing the `onEnd` seam; only the first `MODIFIER_GRANT` contribution's `onEnd` is read. No SRD effect triggers any of these today.
 
 - **Assisted Concentration prompts during forced movement (D170, SPELLS-4.T1j):** zone dice and the Concentration saves they cause during a push or pull are system-rolled. That is the same mid-commit rule as D153. A manual-roll player gets no prompt for them.

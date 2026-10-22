@@ -2,6 +2,7 @@ import type {
   ConditionAuthored,
   OutcomeAuthored,
   PathLifecycleAuthored,
+  ResultBlockGateAuthored,
   SavingThrowAuthored
 } from '#authored'
 import {
@@ -69,6 +70,8 @@ export type FollowUpSaveBranchAuthored =
       kind: 'OUTCOMES'
       endCurrent: boolean
       resultKind: 'SINGLE' | 'SEQUENCE'
+      /** An immediate save's branch checks it on the target before its outcomes, as a result block's gate does. */
+      gate?: ResultBlockGateAuthored
       outcomes: OutcomeAuthored[]
     }
 

@@ -301,6 +301,12 @@ export function decodeForcedMovementCollision(
   return collision
 }
 export const NESTED_SAVE_MARGIN_NODE_ID = 'nested-save-margin'
+/** The op that opens a nested save band's result path to its outcomes only while the band's gate admits the target. */
+export const DND5E_NESTED_SAVE_GATE_OPERATION_KEY = 'dnd5e.nested-save-gate'
+export const nestedSaveGateNodeId = (pathCode: string) =>
+  `nested-save-gate-${pathCode.toLowerCase()}`
+/** The result path a closed gate hands its band: no authored path is satisfied by it. */
+export const NESTED_SAVE_GATE_CLOSED_PATH = 'GATE_CLOSED'
 export const nestedSaveRiderConditionNodeId = (index: number) =>
   index === 0 ? 'nested-save-rider-condition' : `nested-save-rider-condition-${index + 1}`
 /** The authored result path in a direct proposal node id: `[prefix]proposal-<path>[-condition]`. */

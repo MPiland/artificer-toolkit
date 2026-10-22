@@ -32,6 +32,7 @@ import {
   dnd5eTeleportAllowanceProposalOperation,
   dnd5eTemporaryHitPointsProposalOperation,
   dnd5eMovementInterruptionAuthorizationOperation,
+  dnd5eNestedSaveGateOperation,
   dnd5ePathGatedProposalOperations
 } from './effectActionOperationRegistry.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind, isDnd5eSpellAttackKind } from './attackKind.js'
@@ -90,6 +91,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eConditionDurationOperation,
     dnd5eAttackTestOperation,
     dnd5eSaveTestOperation,
+    dnd5eNestedSaveGateOperation,
     dnd5eMovementInterruptionAuthorizationOperation,
     ...dnd5ePathGatedProposalOperations
   ] satisfies readonly RuleOperationContract[]
