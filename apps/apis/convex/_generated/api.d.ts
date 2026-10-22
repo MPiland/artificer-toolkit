@@ -137798,6 +137798,9 @@ export declare const internal: {
               spell_effects?: Array<
                 Record<string, string | number | boolean | null>
               >;
+              spell_slot_pools?: Array<
+                Record<string, string | number | boolean | null>
+              >;
               spells?: Array<Record<string, string | number | boolean | null>>;
             };
           };
@@ -137868,6 +137871,7 @@ export declare const internal: {
             skills?: string;
             speeds?: string;
             spell_effects?: string;
+            spell_slot_pools?: string;
             spells?: string;
           };
           subjectId: string;

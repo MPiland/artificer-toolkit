@@ -1100,7 +1100,18 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `TARGETED_SELF` being chosen by a cast of a listed spell (any, unlisted). The holder's reactions are listed by
   `encounterReactors.ts` (a Creature's feature actions, a Character's actions and castable spells), and whether one is
   affordable is decided when the Worker prepares it. A `MOVEMENT` reaction meets no event here: the movement path
-  discovers it from the reach a mover passes (`encounterMovementReaction*`); zone interactions join in T5d.
+  discovers it from the reach a mover passes (`encounterMovementReaction*`).
+  Given `zones` (RULES-2.T5d), it returns the zones a creature's contact event sets off, in the order given. A zone's
+  persisted `triggerModes`, `turnTriggers` and `retaliatesMeleeHits` are its subscription: `ZONE_MOVEMENT` (`ENTER`,
+  `EXIT` or `CROSS`) meets a zone with that trigger mode, `ZONE_TURN` (`START_OF_TURN`, `END_OF_TURN`,
+  `START_OF_SOURCE_TURN`) a zone with that turn trigger, and `ZONE_SOURCE_MELEE_HIT` a retaliating zone. The System's
+  vocabulary compiles the authored `interactionKinds` into that subscription (`zoneSubscription`; 5e:
+  `ENTER_SPACE`, `LEAVE_SPACE`, `MOVE_ACROSS`, `ENTER_OR_PASS_THROUGH`, `START_TURN_IN_SPACE`, `END_TURN_IN_SPACE`,
+  `START_OF_SOURCE_TURN`, `MELEE_HIT_ON_SOURCE`); a held condition that ends on leaving the area adds `EXIT` in the 5e
+  zone compiler. The shared Scene collectors (`collectSpatial*Candidates`) report contact facts only, whatever a zone
+  subscribes to; `encounterZoneContacts.ts` (`zoneMovementContacts`, `zoneTurnContacts`,
+  `zoneMeleeRetaliationContacts`) composes them with discovery, and every raise site (movement settlement and its
+  held-condition release distances, forced movement in the Worker, turn-boundary zones, melee retaliation) calls it.
   Given the holder's `damageInterceptions` and `incomingGates`, it returns the intercepts the events meet before they
   resolve, in the order given (spend order); an intercept's authored payload is its subscription. A damage interception
   (`DAMAGE_INTERCEPTION`, Death Ward) meets a `BEFORE` `DAMAGED` taking its holder from above 0 hit points to 0, and a
@@ -1143,7 +1154,8 @@ facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decid
 still raised from its seven damage-commit roots (Worker rules, area rules, Legendary action, turn effect state, spatial
 damage ends, movement reaction effects, turn resources), since funnelling them into one damage-commit root is an
 envelope change outside T5. The `BEFORE`-phase `DAMAGED` and `KILLED` are raised where a batch plans and folds its
-damage, and `HARMFUL_ACTION_AIMED` where the incoming gate is decided. Zone interaction kinds (T5d) join the same table later.
+damage, and `HARMFUL_ACTION_AIMED` where the incoming gate is decided. Zone contact events are raised per contact
+where the Scene geometry reports it (`encounterZoneContacts.ts`).
 
 ### Legendary Resistance on single-target saves (current, D104)
 
@@ -1824,6 +1836,16 @@ graph rolls that many dice (a heal's dice count is structural, unlike a damage u
 outcome graph from the bound `dnd5e.spell-cast-level` fact). The selector takes rows keyed by a minimum value of
 a bound level fact, so a class-level key reuses it. A heal that targets several chosen creatures (Mass Cure
 Wounds, Mass Healing Word, Prayer of Healing) is offered with the list target above. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
+
+A spell grant may also name the slot pool that pays its cast (`slotCost.poolCode`, a System-supplied code such as
+`PACT`, listed by the dnd5e vocabulary as `spellSlotPool` and checked against it by `characterSpellRuleFacts`; SPELLS-31.T5p, D175). The candidate then carries `slotPoolCode`, the decision ladder
+requires a slot of that pool (`SPELL_SLOT_REMAINING`, `SPELL_SLOT_EXHAUSTED`, `NO_ELIGIBLE_SPELL_SLOT`) in addition
+to the grant's own pool (`RESOURCE_EXHAUSTED`), and the cast spends both: the slot through the ordinary
+`spellConsumption.slotKey`, the pool through `resourceBinding`. A grant with `access: CLASS_LIST_ONLY` and
+`classListIds` gives no access; `spellClassListAdditions.ts` is the one merge that adds its spells to those class
+lists for the Sheet's preparation catalog and the Builder's merged catalog (the Builder owns the merged list for
+prepare and known choices; the Sheet only reads it). The compiler refuses `CLASS_LIST_ONLY` without `classListIds`.
+Primeval Awareness has no runtime: the generic `USE_SPELL_SLOT` Sheet command spends the slot and the sensing is description.
 
 The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
 onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact

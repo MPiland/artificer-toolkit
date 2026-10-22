@@ -2,7 +2,8 @@ import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
 
 const VOCABULARY_NOUNS = {
   rollInfluence: 'roll-mode influence',
-  rollMode: 'roll mode'
+  rollMode: 'roll mode',
+  spellSlotPool: 'spell slot pool'
 } as const
 
 /** A list a System supplies in place of a fixed wire enum (ADR 0039 decision 5). */

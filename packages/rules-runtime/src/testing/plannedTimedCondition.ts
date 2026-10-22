@@ -139,7 +139,8 @@ export function plannedTimedCondition(input: {
       castMode: 'SPELL_SLOT',
       castLevel: spell.level,
       baseEntry: true,
-      resourceOwnerKey: null
+      resourceOwnerKey: null,
+      slotPoolCode: null
     },
     decision: {
       status: 'AVAILABLE',
