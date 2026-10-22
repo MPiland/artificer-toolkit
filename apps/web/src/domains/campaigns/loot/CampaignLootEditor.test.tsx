@@ -7,7 +7,7 @@ import { LOOT_RANGE_REFUSAL } from '@artificer-toolkit/shared/vtt/lootTable'
 import { getLoot, saveLoot } from '#app/data/campaigns/loot'
 import { queryKeys } from '#app/lib/queryKeys'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
-import { CampaignSceneLootEditor } from './CampaignSceneLootEditor'
+import { CampaignLootEditor } from './CampaignLootEditor'
 
 const campaignId = '11111111-1111-4111-8111-111111111111'
 const sceneId = '22222222-2222-4222-8222-222222222222'
@@ -62,9 +62,7 @@ function renderEditor() {
       queryFn: async () => stored
     })
   )
-  renderWithAppProviders(
-    <CampaignSceneLootEditor campaignId={campaignId} gameSystemId='system' sceneId={sceneId} />
-  )
+  renderWithAppProviders(<CampaignLootEditor gameSystemId='system' owner={owner} subject='Scene' />)
 }
 
 it('reopens saved tables, refuses an overlapping range, and saves the corrected table', async () => {
