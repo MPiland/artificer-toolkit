@@ -7,8 +7,7 @@ import {
   SCALING_OPTIONS,
   SCALING_SOURCE_OPTIONS,
   SPELL_GRANT_ACCESS_OPTIONS,
-  SPELL_GRANT_ATTRIBUTE_OPTIONS,
-  SPELL_SLOT_POOL_OPTIONS
+  SPELL_GRANT_ATTRIBUTE_OPTIONS
 } from '#core'
 import { CHARGE_NODE_MAP } from '../../shared/maps/charge.js'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
@@ -44,13 +43,16 @@ const PER_TARGET_LOCKOUT_NODE_MAP = perTargetLockout.define(
 
 const slotCost = buildNodeMap<NonNullable<SpellGrantAuthored['slotCost']>>()
 
-const SLOT_COST_NODE_MAP = slotCost.define('slotCost', ({ map, nodes }) => {
+const SLOT_COST_NODE_MAP = slotCost.define('slotCost', ({ map, nodes, data }) => {
   map.set(
     'poolCode',
     nodes.selectSingle(
       ['poolCode'],
       'Spell Slot Pool',
-      { kind: 'INLINE_OPTIONS', options: SPELL_SLOT_POOL_OPTIONS },
+      {
+        kind: 'DATA',
+        relationship: data.table('spell_slot_pools', { selectColumns: ['code', 'label'] })
+      },
       { requiredIf: true }
     )
   )

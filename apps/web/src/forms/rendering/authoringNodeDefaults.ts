@@ -1,7 +1,6 @@
 import type { EffectDto, TargetingDto } from '@artificer-toolkit/schema/effects'
 import type { RangeDto } from '@artificer-toolkit/schema/shared/range'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
-import { SPELL_SLOT_POOL } from '@artificer-toolkit/shared/core'
 import type {
   NodeRuntimeArrayGroupNodeDto,
   NodeRuntimeObjectGroupNodeDto
@@ -630,7 +629,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
     case 'perTargetLockout':
       return { until: 'SOURCE_LONG_REST' }
     case 'slotCost':
-      return { poolCode: SPELL_SLOT_POOL.PACT }
+      return { poolCode: '' }
     case 'proficiencyGrant':
       return createProficiencyGrant(order)
     case 'raceAncestry':

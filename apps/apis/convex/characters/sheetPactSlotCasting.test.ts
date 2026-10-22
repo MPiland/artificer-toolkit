@@ -9,7 +9,6 @@ import type {
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
 import { findResourceByOwner } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
-import { SPELL_SLOT_POOL } from '@artificer-toolkit/shared/core'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -53,7 +52,7 @@ async function fixture() {
               authoringModeKind: 'SELECTED',
               spellIds: [magicMissile.id],
               attributes: ['LIMITED_USE'],
-              slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
+              slotCost: { poolCode: 'PACT' },
               charges: {
                 id: crypto.randomUUID(),
                 resetKind: 'LONG_REST',
@@ -93,7 +92,7 @@ async function fixture() {
 }
 
 const pactSlot = (sheet: CharacterSheetResponseDto) =>
-  sheet.spells.slots.find((slot) => slot.slotKey === SPELL_SLOT_POOL.PACT)
+  sheet.spells.slots.find((slot) => slot.slotKey === 'PACT')
 
 describe('casting an invocation spell from a Pact Magic slot (SPELLS-31.1)', () => {
   it('spends one pool use and the pact slot together, then refuses once the slot is spent', async () => {
@@ -102,7 +101,7 @@ describe('casting an invocation spell from a Pact Magic slot (SPELLS-31.1)', () 
     const entry = sheet.spells.activeGroups
       .flatMap((group) => group.entries)
       .find((candidate) => candidate.sourceId === invocationSource.id)!
-    expect(entry).toMatchObject({ available: true, cast: { slotKey: SPELL_SLOT_POOL.PACT } })
+    expect(entry).toMatchObject({ available: true, cast: { slotKey: 'PACT' } })
 
     const cast = (expectedVersion: number, slotKey: string | undefined) =>
       owner.caller.mutation(execute, {
@@ -118,7 +117,7 @@ describe('casting an invocation spell from a Pact Magic slot (SPELLS-31.1)', () 
       })
 
     await expect(cast(1, undefined)).rejects.toThrow(/rule-approved cast/i)
-    await cast(1, SPELL_SLOT_POOL.PACT)
+    await cast(1, 'PACT')
     const after = await read()
     expect(pactSlot(after)).toMatchObject({ used: 1 })
     expect(after.resources.items.find((resource) => resource.id === poolId)).toMatchObject({
@@ -126,7 +125,7 @@ describe('casting an invocation spell from a Pact Magic slot (SPELLS-31.1)', () 
       remaining: 1
     })
 
-    await expect(cast(2, SPELL_SLOT_POOL.PACT)).rejects.toThrow(/exhausted|rule-approved cast/i)
+    await expect(cast(2, 'PACT')).rejects.toThrow(/exhausted|rule-approved cast/i)
     const refused = await read()
     expect(pactSlot(refused)).toMatchObject({ used: 1 })
     expect(refused.resources.items.find((resource) => resource.id === poolId)).toMatchObject({

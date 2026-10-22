@@ -35,6 +35,7 @@
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.tests.json --noEmit"
   },
   "dependencies": {
+    "@artificer-toolkit/rules-runtime": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
     "@artificer-toolkit/source-data": "workspace:^",

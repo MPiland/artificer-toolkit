@@ -6,7 +6,7 @@ Ledger task `SPELLS-31.T5p` (closes AC SPELLS-31.1; unblocks `SPELLS-33.T5afp`).
 
 **D175 (SPELLS-31.T5p).** Spell slot costs and class spell lists are generic options on `SPELL_GRANT`:
 
-1. `slotCost: { poolCode }` names the slot pool that also pays the cast, by System code (`SPELL_SLOT_POOL.PACT`), never a literal or a platform enum. The six Warlock pact invocations author it beside their existing `LIMITED_USE` charge.
+1. `slotCost: { poolCode }` names the slot pool that also pays the cast, by System-supplied code (`systemVocabularyCodeSchema`, the `attackRollMode` pattern), never a platform enum. The dnd5e vocabulary lists the `spellSlotPool` kind (`PACT`, "Pact Magic"); the Builder node's options come from it through the `spell_slot_pools` source table, and the rules-runtime fact seam refuses an unknown code (`The Game System does not define the spell slot pool "<code>"`). Neutral files keep their existing `'PACT'` literals until the orchestrator registers their move into the System. The six Warlock pact invocations author it beside their existing `LIMITED_USE` charge.
 2. Primeval Awareness is Sheet-only. Spending the slot is the whole mechanic (the generic `USE_SPELL_SLOT` command); sensing stays description. Its closed rule is deleted with no replacement runtime.
 3. Expanded Spell List uses `access: 'CAST' | 'CLASS_LIST_ONLY'` plus `classListIds`. `CLASS_LIST_ONLY` without `classListIds` is refused at compile time (`SPELL_GRANT_CLASS_LIST_MISSING`; `_UNUSED` when lists are named without list-only; `_SHAPE` when no spells are named). One merge function (`spellClassListAdditions.ts`); the Builder owns the merged list for prepare and known choices and the Sheet only reads it.
 

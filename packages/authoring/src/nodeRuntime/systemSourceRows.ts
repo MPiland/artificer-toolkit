@@ -1,3 +1,4 @@
+import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntimeSourceContract.js'
 import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
@@ -23,6 +24,18 @@ export function systemVocabularyRows(
     skills: system.skills,
     speeds: system.speeds
   }
+}
+
+/** The vocabulary lists a System supplies in code (rules-runtime), served as resolver source tables. */
+function systemSuppliedRows(
+  systemId: string,
+  table: NodeRuntimeSourceTable
+): readonly NodeRuntimeQueryRow[] | undefined {
+  if (table === 'spell_slot_pools')
+    return systemVocabularyRegistry
+      .entries(systemId, 'spellSlotPool')
+      .map(({ code, label }) => ({ code, label }))
+  return undefined
 }
 
 /** Authored-root rows in the order every option list shows them. */
@@ -63,7 +76,9 @@ export function createNodeRuntimeSourceReader({
         ? await (definitions ??= readReusableDefinitions().then((rows) =>
             sortAuthoredSourceRows(rows.map(({ id, label }) => ({ id, label })))
           ))
-        : (vocabulary[table] ?? (await readAuthoredRows(table)))
+        : (vocabulary[table] ??
+          systemSuppliedRows(system.id, table) ??
+          (await readAuthoredRows(table)))
     // The shared executor applies the validated predicate; this reader only supplies trusted facts.
     return rows.map((row) =>
       Object.fromEntries(columns.map((column) => [column, row[column] ?? null]))

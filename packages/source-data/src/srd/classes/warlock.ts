@@ -24,7 +24,6 @@ import {
   SPELLCASTING_ATTRIBUTE,
   SPELL_ATTRIBUTE,
   SPELL_GRANT_ATTRIBUTE,
-  SPELL_SLOT_POOL,
   STARTING_EQUIPMENT_KIND,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
@@ -925,7 +924,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.BANE],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
-                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
+                slotCost: { poolCode: 'PACT' },
                 charges: {
                   id: classRowId(W, 0x51, 1),
                   limitKind: 'FIXED_AMOUNT',
@@ -1090,7 +1089,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.CONFUSION],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
-                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
+                slotCost: { poolCode: 'PACT' },
                 charges: {
                   id: classRowId(W, 0x51, 2),
                   limitKind: 'FIXED_AMOUNT',
@@ -1374,7 +1373,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.CONJURE_ELEMENTAL],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
-                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
+                slotCost: { poolCode: 'PACT' },
                 charges: {
                   id: classRowId(W, 0x51, 3),
                   limitKind: 'FIXED_AMOUNT',
@@ -1431,7 +1430,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.SLOW],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
-                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
+                slotCost: { poolCode: 'PACT' },
                 charges: {
                   id: classRowId(W, 0x51, 4),
                   limitKind: 'FIXED_AMOUNT',
@@ -1590,7 +1589,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.POLYMORPH],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
-                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
+                slotCost: { poolCode: 'PACT' },
                 charges: {
                   id: classRowId(W, 0x51, 5),
                   limitKind: 'FIXED_AMOUNT',
@@ -1647,7 +1646,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.BESTOW_CURSE],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
-                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
+                slotCost: { poolCode: 'PACT' },
                 charges: {
                   id: classRowId(W, 0x51, 6),
                   limitKind: 'FIXED_AMOUNT',

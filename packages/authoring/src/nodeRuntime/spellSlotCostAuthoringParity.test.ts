@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
-import { SPELL_GRANT_ACCESS, SPELL_SLOT_POOL } from '@artificer-toolkit/shared/core'
+import { SPELL_GRANT_ACCESS } from '@artificer-toolkit/shared/core'
 import { ranger } from '@artificer-toolkit/source-data/srd/classes/ranger.js'
 import { theFiend } from '@artificer-toolkit/source-data/srd/classes/the-fiend.js'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
@@ -106,10 +106,19 @@ describe('spell slot costs and class spell lists through the class node map (SPE
   it('authors the pact cost on the System pool code and the list grant as list-only', () => {
     for (const label of PACT_INVOCATIONS)
       expect(find(warlock.features, label)!.grants!.spells![0]!.slotCost).toEqual({
-        poolCode: SPELL_SLOT_POOL.PACT
+        poolCode: 'PACT'
       })
     expect(find(theFiend.features, 'Expanded Spell List')!.grants!.spells![0]!.access).toBe(
       SPELL_GRANT_ACCESS.CLASS_LIST_ONLY
     )
+  })
+
+  it('offers the System slot pools and clears a pool code the System does not define', async () => {
+    const authored = structuredClone(warlock)
+    const grant = find(authored.features, PACT_INVOCATIONS[0]!)!.grants!.spells![0]!
+    grant.slotCost = { poolCode: 'ARCANE_BOON' }
+    const result = await normalize(authored)
+    expect(result.clearedPaths.length).toBeGreaterThan(0)
+    expect(JSON.stringify(result.values)).not.toContain('ARCANE_BOON')
   })
 })

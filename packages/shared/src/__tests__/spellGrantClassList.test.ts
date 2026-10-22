@@ -5,8 +5,7 @@ import {
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
   SCALING,
-  SPELL_GRANT_ACCESS,
-  SPELL_SLOT_POOL
+  SPELL_GRANT_ACCESS
 } from '#core'
 import { compileSpellGrant, compileSpellGrantResult } from '#compilers'
 
@@ -47,7 +46,7 @@ describe('spell grant class lists and slot pools', () => {
       scalingKind: SCALING.NONE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       spellIds: ['bane'],
-      slotCost: { poolCode: SPELL_SLOT_POOL.PACT }
+      slotCost: { poolCode: 'PACT' }
     })
     expect(compiled.slotCost).toEqual({ poolCode: 'PACT' })
   })

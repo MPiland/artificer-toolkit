@@ -1815,8 +1815,8 @@ outcome graph from the bound `dnd5e.spell-cast-level` fact). The selector takes 
 a bound level fact, so a class-level key reuses it. A heal that targets several chosen creatures (Mass Cure
 Wounds, Mass Healing Word, Prayer of Healing) is offered with the list target above. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
 
-A spell grant may also name the slot pool that pays its cast (`slotCost.poolCode`, a System code such as
-`SPELL_SLOT_POOL.PACT`; SPELLS-31.T5p, D175). The candidate then carries `slotPoolCode`, the decision ladder
+A spell grant may also name the slot pool that pays its cast (`slotCost.poolCode`, a System-supplied code such as
+`PACT`, listed by the dnd5e vocabulary as `spellSlotPool` and checked against it by `characterSpellRuleFacts`; SPELLS-31.T5p, D175). The candidate then carries `slotPoolCode`, the decision ladder
 requires a slot of that pool (`SPELL_SLOT_REMAINING`, `SPELL_SLOT_EXHAUSTED`, `NO_ELIGIBLE_SPELL_SLOT`) in addition
 to the grant's own pool (`RESOURCE_EXHAUSTED`), and the cast spends both: the slot through the ordinary
 `spellConsumption.slotKey`, the pool through `resourceBinding`. A grant with `access: CLASS_LIST_ONLY` and

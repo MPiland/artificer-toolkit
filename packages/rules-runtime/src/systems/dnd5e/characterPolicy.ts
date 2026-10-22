@@ -1,4 +1,3 @@
-import { SPELL_SLOT_POOL } from '@artificer-toolkit/shared/core'
 import {
   characterRulePolicyInputSchema,
   characterRulePolicyOutputSchema,
@@ -82,7 +81,7 @@ export function evaluateDnd5e2014CharacterPolicy(
         ? []
         : [
             {
-              slotKey: SPELL_SLOT_POOL.PACT,
+              slotKey: 'PACT',
               label: 'PACT',
               level: spellSlots.pactMagic.level,
               max: spellSlots.pactMagic.slots,

@@ -11,10 +11,17 @@ export const DND5E_ROLL_MODES = [
   ...DND5E_ROLL_INFLUENCES
 ] as const
 
+/** The slot pools a spell grant's `slotCost` may name, beside the slot of the cast's own level. */
+export const DND5E_SPELL_SLOT_POOLS = [{ code: 'PACT', label: 'Pact Magic' }] as const
+
 export type Dnd5eRollInfluence = (typeof DND5E_ROLL_INFLUENCES)[number]['code']
 export type Dnd5eRollMode = (typeof DND5E_ROLL_MODES)[number]['code']
 
 export const dnd5eVocabularyCapabilityAdapter: SystemVocabularyCapabilityAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
-  lists: { rollInfluence: DND5E_ROLL_INFLUENCES, rollMode: DND5E_ROLL_MODES }
+  lists: {
+    rollInfluence: DND5E_ROLL_INFLUENCES,
+    rollMode: DND5E_ROLL_MODES,
+    spellSlotPool: DND5E_SPELL_SLOT_POOLS
+  }
 }

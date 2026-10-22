@@ -1,4 +1,3 @@
-import { SPELL_SLOT_POOL } from '@artificer-toolkit/shared/core'
 import type {
   CharacterActionCandidate,
   CharacterActionRuleEntryPoint
@@ -54,7 +53,7 @@ export function readSpellCastSlot(
   spellSlots: SpellPolicyOutput['spellSlots'],
   slotKey: string
 ): { level: number; used: number } | null {
-  if (slotKey === SPELL_SLOT_POOL.PACT)
+  if (slotKey === 'PACT')
     return (
       spellSlots.pactMagic && {
         level: spellSlots.pactMagic.level,

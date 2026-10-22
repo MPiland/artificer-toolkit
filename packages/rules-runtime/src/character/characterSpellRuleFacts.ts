@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { CharacterProvenance } from '@artificer-toolkit/shared/subjects/authored'
 
+import { systemVocabularyRegistry } from '../platformPolicyModules.js'
 import { getCharacterGrantFoldSelectedOptionIds } from './characterGrantFoldSourceFacts.js'
 
 export type CharacterSpellAccessCandidate =
@@ -226,7 +227,13 @@ function appendGrantCandidates(params: {
         charge: chargeDescriptor(grant),
         allowedCreatureTypeIds: grant.allowedCreatureTypeIds ?? [],
         perTargetLockout: grant.perTargetLockout !== undefined,
-        slotPoolCode: grant.slotCost?.poolCode ?? null
+        slotPoolCode: grant.slotCost
+          ? systemVocabularyRegistry.requireCode(
+              snapshot.systemId,
+              'spellSlotPool',
+              grant.slotCost.poolCode
+            ).code
+          : null
       })
     }
   }

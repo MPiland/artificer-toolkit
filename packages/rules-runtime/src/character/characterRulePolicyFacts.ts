@@ -1,4 +1,3 @@
-import { SPELL_SLOT_POOL } from '@artificer-toolkit/shared/core'
 import {
   characterRulePolicyInputSchema,
   type CharacterRulePolicyInput
@@ -134,8 +133,7 @@ export function composeCharacterRulePolicyFacts(
     }),
     spellcastingClasses: buildCharacterSpellSlotRuleFacts(snapshot, registry),
     spellSlotUsageFacts: (character.state.spellSlots ?? []).map((slot) => {
-      if (slot.slotKey === SPELL_SLOT_POOL.PACT)
-        return { kind: 'PACT' as const, rawUsed: slot.used }
+      if (slot.slotKey === 'PACT') return { kind: 'PACT' as const, rawUsed: slot.used }
       const match = /^STANDARD:([1-9])$/.exec(slot.slotKey)
       if (!match) throw new Error(`Unsupported spell slot usage key: ${slot.slotKey}`)
       return { kind: 'STANDARD' as const, spellLevel: Number(match[1]), rawUsed: slot.used }
