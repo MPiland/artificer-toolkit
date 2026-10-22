@@ -1,6 +1,6 @@
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 
-export type AuthoringRouteParams = Record<string, string>
+type AuthoringRouteParams = Record<string, string>
 
 export type AuthoringRouteParamBuilder = (
   publicId: string,
@@ -31,11 +31,11 @@ export type AuthoringRouter = {
   invalidate: () => Promise<unknown> | void
 }
 
-export type AuthoringMutation<TInput, TOutput> = {
+type AuthoringMutation<TInput, TOutput> = {
   mutateAsync: (input: TInput) => Promise<TOutput>
 }
 
-export type AuthoringVoidMutation<TOutput = unknown> = {
+type AuthoringVoidMutation<TOutput = unknown> = {
   mutateAsync: () => Promise<TOutput>
 }
 

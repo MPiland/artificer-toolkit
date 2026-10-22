@@ -25,7 +25,7 @@ export function supportsWebGL() {
 /** A roll the card can show; a rule-settled roll also carries the check that explains its dice. */
 export type DicePresentationRoll = RollResultDto & { ruleCheck?: RollRuleCheckDto }
 
-export type D20ModeAdjustmentDto = Extract<RollRuleCheckDto, { kind: 'D20_MODE_ADJUSTED' }>
+type D20ModeAdjustmentDto = Extract<RollRuleCheckDto, { kind: 'D20_MODE_ADJUSTED' }>
 
 /** The mode-change card animation: the ✕ draws, then the added die rolls in (DESIGN.md Motion). */
 export const MODE_CHANGE_ANIMATION_MS = 520

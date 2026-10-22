@@ -1,7 +1,7 @@
 import { splitAbsoluteMinute } from '@artificer-toolkit/rules-runtime/campaignClock'
 import type { ActiveGrantListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 
-export const HIDDEN_GRANT_SOURCE_LABEL = 'Hidden source'
+const HIDDEN_GRANT_SOURCE_LABEL = 'Hidden source'
 
 export function activeGrantLabel(grant: ActiveGrantListingDto): string {
   return grant.label ?? HIDDEN_GRANT_SOURCE_LABEL

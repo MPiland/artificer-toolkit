@@ -157,7 +157,7 @@ export interface VttAreaAim {
  * `maximum` long, or a ring around its center whose outer radius is at most `maximum` and more than
  * `thickness`.
  */
-export interface VttDrawnAreaSize {
+interface VttDrawnAreaSize {
   kind: 'WALL' | 'RING'
   maximum: number
   thickness: number
@@ -925,7 +925,7 @@ export function clampPolygonToRadius(
   })
 }
 
-export interface VttDarknessZoneStyle {
+interface VttDarknessZoneStyle {
   /** Dotted arcane outline of magical darkness. */
   illuminationOutline: { dash: number; gap: number; width: number } | null
   /** Non-colour obscurement cue: dashed for light, solid and heavier for heavy. */
@@ -1032,31 +1032,6 @@ export function describeSceneLighting(
     visionLabels.length > 0 ? `Vision: ${visionLabels.join(', ')}` : null
   ].filter((part): part is string => part !== null)
   return parts.length > 0 ? `Lighting. ${parts.join('. ')}.` : null
-}
-
-export interface VttDarknessZoneCounts {
-  dim: number
-  heavyObscured: number
-  lightObscured: number
-  magical: number
-  ordinary: number
-  unspecified: number
-}
-
-/** Counts zones by illumination and obscurement; a zone without illumination is "unspecified". */
-export function countDarknessZones(
-  zones: readonly Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement'>[]
-): VttDarknessZoneCounts {
-  const count = (predicate: (zone: (typeof zones)[number]) => boolean) =>
-    zones.filter(predicate).length
-  return {
-    dim: count((zone) => zone.mechanicalIllumination === 'DIM'),
-    heavyObscured: count((zone) => zone.mechanicalObscurement === 'HEAVY'),
-    lightObscured: count((zone) => zone.mechanicalObscurement === 'LIGHT'),
-    magical: count((zone) => zone.mechanicalIllumination === 'MAGICAL_DARKNESS'),
-    ordinary: count((zone) => zone.mechanicalIllumination === 'ORDINARY_DARKNESS'),
-    unspecified: count((zone) => zone.mechanicalIllumination === null)
-  }
 }
 
 function pointsEqual(left: ScenePoint, right: ScenePoint): boolean {

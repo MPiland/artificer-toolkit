@@ -101,8 +101,6 @@ export const platformNavigation: AppShellNavGroup[] = [
   }
 ]
 
-export const storybookNavigation: AppShellNavGroup[] = [...platformNavigation]
-
 export function isNavItemActive(item: AppShellNavItem, currentPath: string) {
   if (!item.href) {
     return false

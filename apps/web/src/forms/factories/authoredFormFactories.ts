@@ -109,7 +109,7 @@ type AuthoredFormSystemCreateData = {
   systems: readonly { id: string }[]
 }
 
-export type AuthoredFormEditResponse<TAuthored extends object> = {
+type AuthoredFormEditResponse<TAuthored extends object> = {
   item?: TAuthored | null
   permissions?: {
     canCopy: boolean

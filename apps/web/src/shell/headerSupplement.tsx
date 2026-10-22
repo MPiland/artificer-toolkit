@@ -5,7 +5,7 @@ interface ShellHeaderSupplementContextValue {
   setHeaderSupplement: (supplement: ShellHeaderSupplement | null) => void
 }
 
-export interface ShellAuthoringChrome {
+interface ShellAuthoringChrome {
   accountLabel?: string
   isNavigationOpen: boolean
   mobileActions?: ReactNode

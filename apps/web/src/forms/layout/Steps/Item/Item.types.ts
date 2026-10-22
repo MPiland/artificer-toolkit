@@ -13,7 +13,7 @@ export type ItemIcon =
 
 export type ItemStatus = 'complete' | 'dirty' | 'warning' | 'error' | 'incomplete' | 'empty'
 
-export type ItemTone = 'default' | 'muted'
+type ItemTone = 'default' | 'muted'
 
 export type ItemProps = {
   children?: readonly ItemProps[]

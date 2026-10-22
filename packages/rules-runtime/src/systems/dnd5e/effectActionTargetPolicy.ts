@@ -80,6 +80,16 @@ export function isSupportedArea(
   )
 }
 
+/** A Legendary Action option is free; the Feature charge it spends is its cost. */
+export function isChargedFreeActivation(
+  invocation: Extract<
+    Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
+    { activation: unknown }
+  >
+): boolean {
+  return invocation.activation.code === 'FREE' && invocation.resourceUse !== undefined
+}
+
 function isBoundedDice(value: string): boolean {
   try {
     parseBoundedDiceConfiguration(value)
@@ -134,7 +144,11 @@ export function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSou
     (attackKind !== 'RANGED' || !Number.isSafeInteger(invocation.range.longAmount))
   )
     return false
-  if (invocation.activation.code === 'ACTION' || invocation.activation.code === 'BONUS_ACTION') {
+  if (
+    invocation.activation.code === 'ACTION' ||
+    invocation.activation.code === 'BONUS_ACTION' ||
+    isChargedFreeActivation(invocation)
+  ) {
     // A melee attack may reach 0 ft.: a swarm's "one target in the swarm's space".
     const minimumDistance = isDnd5eMeleeAttackKind(attackKind) ? 0 : 1
     return (

@@ -39,7 +39,7 @@ export function GuidedSimpleEffectComposer({
   system
 }: GuidedSimpleEffectComposerProps) {
   const [fallbackIds] = useState(createGuidedEffectIds)
-  const rehydrated = effects[0] ? rehydrateGuidedSpell(effects[0], fallbackIds) : null
+  const rehydrated = rehydrateGuidedSpell(effects, fallbackIds)
   const [draft, setDraft] = useState<GuidedSpellDraft | null>(rehydrated?.draft ?? null)
   const [pendingChoice, setPendingChoice] = useState<OutcomeChoice | null>(null)
   const hasUnsupportedEffects = effects.length > 0 && !rehydrated

@@ -4,7 +4,7 @@ import type {
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 
-export type LiveSceneObjectSection = 'ANNOTATION' | 'BARRIER' | 'DARKNESS' | 'LIGHT' | 'TOKEN'
+type LiveSceneObjectSection = 'ANNOTATION' | 'BARRIER' | 'DARKNESS' | 'LIGHT' | 'TOKEN'
 
 export interface LiveSceneObjectSelection {
   id: string

@@ -10,6 +10,7 @@ import {
   beginSceneDefinitionInputSchema,
   sceneDefinitionSaveProgressSchema
 } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
+import { lootDocumentSchema } from '@artificer-toolkit/schema/api/lootTables'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { queryKeys } from '#app/lib/queryKeys'
 import { CampaignSceneEditor } from './CampaignSceneEditor'
@@ -107,6 +108,21 @@ const meta = {
         }
       )
     })
+    Object.defineProperty(client, 'query', {
+      value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference]) => {
+        if (getFunctionName(reference) !== getFunctionName(api.loot.tables.get))
+          throw new Error(`Unexpected Scene Editor query: ${getFunctionName(reference)}`)
+        return lootDocumentSchema.parse({
+          owner: {
+            kind: 'SCENE',
+            campaignId: tabletopCampaignId,
+            sceneDefinitionId: tabletopSceneDefinition.id
+          },
+          tables: [],
+          version: 0
+        })
+      })
+    })
     mocked(useConvex).mockReturnValue(client)
     mocked(useAction).mockImplementation((reference) => {
       if (getFunctionName(reference) !== getFunctionName(api.media.vttMapActions.getDelivery))
@@ -124,6 +140,7 @@ export const ConfiguredScene: Story = {
   args: {
     campaignId: tabletopCampaignId,
     currentUserId: tabletopCurrentUserId,
+    gameSystemId: '11111111-1111-4111-8111-111111111111',
     memberships: [
       {
         acceptedAt: '2026-08-01T12:00:00.000Z',
