@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
 import { createSystemVocabularyRegistry } from '../systemVocabularyCapability.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
-import { systemVocabularyRegistry } from '../systemVocabularyModules.js'
+import { systemVocabularyRegistry } from '../platformSystemVocabulary.js'
 import { dnd5eVocabularyCapabilityAdapter } from '../systems/dnd5e/vocabulary.js'
 
 const UNKNOWN_SYSTEM_ID = '00000000-0000-4000-8000-0000000000ff'

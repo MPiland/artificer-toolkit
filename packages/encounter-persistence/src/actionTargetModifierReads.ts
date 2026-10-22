@@ -1,7 +1,7 @@
 import { CharacterRuleActionTargetDefenseUnavailableError } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import { resolveEncounterBelievedAttackPerception } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import { playerSeesActor } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
-import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/systemVocabularyModules'
+import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/platformSystemVocabulary'
 import {
   encounterActionTargetModifiersDtoSchema,
   type EncounterActionTargetModifiersDto,
