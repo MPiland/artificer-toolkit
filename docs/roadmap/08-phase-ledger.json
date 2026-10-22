@@ -4162,7 +4162,8 @@
               },
               "text": "Rename System-specific core code naming: systemVocabularyRegistry becomes systemCoreCodeRegistry, platformSystemVocabulary becomes platformSystemCoreCodes, and the other names the inventory maps (about 90 files, mechanical). SystemVocabularySnapshot and other true vocabulary names keep \"vocabulary\".",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39852380115"
             },
             {
               "id": "RULES-2.T9j",
