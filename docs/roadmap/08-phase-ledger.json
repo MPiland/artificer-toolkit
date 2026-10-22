@@ -1643,10 +1643,10 @@
         {
           "id": "PLATFORM-25",
           "title": "CI fixes mechanical failures and merges approved slices itself",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": ["User request 2026-10-18 (cycle-time gains)"],
           "journeyTests": ["scripts/mergeSlice.test.mjs"],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "wsjf": {
             "bv": 3,
             "tc": 5,
@@ -1681,16 +1681,20 @@
             },
             {
               "id": "PLATFORM-25.4",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["scripts/mergeSlice.test.mjs", "docs/architecture/ci-validation.md"],
               "origin": ["User request 2026-10-22 (merge queue waits)"],
               "note": "Approved by the user 2026-10-22. Found when the T9b merge-slice runs 39798992843, 39802995621 and 39805154563 refused with \"No Tests or Live backend run appeared\", although the runs they dispatched existed within a second.",
               "text": "merge-slice waits on the Tests and Live runs it dispatched by their run ids, and doesn't look them up again by commit, so a lag in GitHub's commit-filtered run listing can't refuse a green batch."
             },
             {
               "id": "PLATFORM-25.3",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "scripts/mergeSlice.test.mjs",
+                ".github/workflows/merge-slice.yml",
+                "docs/architecture/ci-validation.md"
+              ],
               "origin": ["User request 2026-10-22 (merge queue waits)"],
               "note": "Approved by the user 2026-10-22 (\"worth batching if the slices are close to being ready\").",
               "text": "One merge-slice dispatch can name several approved ci/<slice> branches with their tips. Each tip must be green and unchanged. They merge in order into one ci/merge-m<N> batch commit, Tests and Live run there once, and on green the phase branch moves once. A conflict, a moved tip or a red run refuses the whole batch, names the slice at fault and pushes nothing to the phase branch. A single slice behaves exactly as it does today."
@@ -1739,7 +1743,7 @@
             },
             {
               "id": "PLATFORM-25.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-25.4"],
               "wsjf": {
                 "bv": 3,
@@ -1748,11 +1752,12 @@
                 "size": 2,
                 "after": []
               },
-              "text": "scripts/mergeSlice.mjs keeps the run ids of the Tests and Live runs it dispatches (from gh workflow run or the dispatch response) and polls those runs directly, with no APPEAR_MS refusal for a dispatched run. It has a unit test that fails first against the faked gh. The CI validation guide is updated."
+              "text": "scripts/mergeSlice.mjs keeps the run ids of the Tests and Live runs it dispatches (from gh workflow run or the dispatch response) and polls those runs directly, with no APPEAR_MS refusal for a dispatched run. It has a unit test that fails first against the faked gh. The CI validation guide is updated.",
+              "note": "Merged by hand in m340 (changes merge-slice.yml)."
             },
             {
               "id": "PLATFORM-25.T5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-25.3"],
               "wsjf": {
                 "bv": 3,
@@ -1761,7 +1766,8 @@
                 "size": 3,
                 "after": ["PLATFORM-25.T4"]
               },
-              "text": "merge-slice.yml and scripts/mergeSlice.mjs accept a list of branch@sha pairs (single pair unchanged) and build one batch commit. On refusal they name the slice at fault, and push nothing to the phase branch. Unit tests cover a three-slice batch, a conflict, a moved tip, a red run and the single-slice path. The guide and the AGENTS.md dispatch line are updated. It changes .github/workflows, so the orchestrator merges it by hand."
+              "text": "merge-slice.yml and scripts/mergeSlice.mjs accept a list of branch@sha pairs (single pair unchanged) and build one batch commit. On refusal they name the slice at fault, and push nothing to the phase branch. Unit tests cover a three-slice batch, a conflict, a moved tip, a red run and the single-slice path. The guide and the AGENTS.md dispatch line are updated. It changes .github/workflows, so the orchestrator merges it by hand.",
+              "note": "Merged by hand in m340; first live batch m341 (RULES-2.T9b + SCENE-4.T3) went green."
             }
           ]
         }
@@ -3515,7 +3521,7 @@
             },
             {
               "id": "RULES-2.T9b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3524,7 +3530,8 @@
                 "size": 5,
                 "after": ["RULES-2.T9a"]
               },
-              "text": "System vocabulary (split 2026-10-21): authored influence: grant modifierKind ADVANTAGE/DISADVANTAGE/NEGATE_ADVANTAGE becomes ROLL_INFLUENCE plus a System code (followUpSave, activeRuleEffects, actorRelationship, facet rollMode); SRD data migrated, reseed, golden flips enumerated."
+              "text": "System vocabulary (split 2026-10-21): authored influence: grant modifierKind ADVANTAGE/DISADVANTAGE/NEGATE_ADVANTAGE becomes ROLL_INFLUENCE plus a System code (followUpSave, activeRuleEffects, actorRelationship, facet rollMode); SRD data migrated, reseed, golden flips enumerated.",
+              "note": "Merged in m341."
             },
             {
               "id": "RULES-2.T9c",
@@ -5850,23 +5857,31 @@
         {
           "id": "SCENE-4",
           "title": "GM loot tables on Scenes and Encounter creatures",
-          "status": "TODO",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "note": "Registered 2026-10-10; rescoped by the product owner 2026-10-21. A loot table is a GM reference with exclusive roll ranges; the app never resolves a check against it. Not authored on creatures: a creature’s gear stays stats and gameplay. Giving an item to a Character from the table is in future-enhancements.",
           "acs": [
             {
               "text": "A GM authors loot tables on a Scene and on a creature placed in an Encounter. Each table has a name, an optional check from the System’s skills, and exclusive roll ranges that may not overlap. Each range lists real catalog items (SRD or homebrew) with quantities, coins in the System’s denominations, and an optional note. Tables save and reopen, and overlapping ranges are refused with a named message.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/loot/tables.test.ts",
+                "apps/apis/convex/loot/encounterActorLoot.test.ts",
+                "packages/shared/src/__tests__/vtt-loot-table.test.ts"
+              ],
               "origin": [],
               "id": "SCENE-4.1"
             },
             {
               "text": "In a live Session, the GM’s Loot panel lists the current Scene’s tables and the tables of defeated creatures, whose tokens show a loot marker. The GM enters a roll result and the matching range is highlighted. Players see none of it, and nothing is resolved or granted automatically.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/loot/CampaignLiveLootPanel.test.tsx",
+                "apps/web/src/domains/campaigns/loot/CampaignLiveLootPanel.model.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.loot.test.tsx"
+              ],
               "origin": [],
               "id": "SCENE-4.2"
             }
@@ -5908,7 +5923,7 @@
             {
               "id": "SCENE-4.T3",
               "text": "GM-only live Loot panel: current Scene tables and defeated creatures’ tables (token loot marker); the GM enters a result and the matching range highlights; players receive nothing.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SCENE-4.2"],
               "wsjf": {
                 "bv": 5,
@@ -5917,7 +5932,7 @@
                 "size": 3,
                 "after": ["SCENE-4.T2"]
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Merged in m341."
             }
           ]
         },
