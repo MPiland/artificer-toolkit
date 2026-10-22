@@ -53,11 +53,8 @@ export function GuidedSimpleEffectComposer({
     }
 
     const nextDraft = createGuidedSpellDraft(choice, {
-      damageTypeId:
-        system.damageTypes.find((item) => item.code === 'FIRE')?.id ?? system.damageTypes[0]?.id,
-      conditionTypeId:
-        system.conditionTypes.find((item) => item.code === 'POISONED')?.id ??
-        system.conditionTypes[0]?.id
+      damageTypeId: system.defaults?.damageTypeId ?? system.damageTypes[0]?.id,
+      conditionTypeId: system.defaults?.conditionTypeId ?? system.conditionTypes[0]?.id
     })
     const base = rehydrated?.effect ?? createDefaultEffect(1)
     const ids = rehydrated?.ids ?? createGuidedEffectIds()

@@ -867,7 +867,8 @@ export function projectCharacterSheetBundle(
     id: condition.id,
     code: condition.code,
     label: condition.label,
-    ...(condition.description ? { description: condition.description } : {})
+    ...(condition.description ? { description: condition.description } : {}),
+    ...(condition.levelled ? { levelled: true } : {})
   }))
   const equipmentById = new Map(
     resolution.registry.equipment.map((equipment) => [equipment.id, equipment])

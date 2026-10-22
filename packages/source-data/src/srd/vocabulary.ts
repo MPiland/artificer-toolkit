@@ -96,6 +96,7 @@ export const SRD_CONDITION_TYPES = [
   {
     id: vocabId(D.conditionType, 4),
     code: 'EXHAUSTION',
+    levelled: true,
     label: 'Exhaustion',
     description:
       'Some special abilities and environmental hazards cause a special condition called exhaustion.'
@@ -1330,6 +1331,12 @@ export const SRD_CREATURE_TYPES = [
 
 // ─── Full system record ───────────────────────────────────────────────────────
 
+function srdIdByCode(entries: readonly { id: string; code: string }[], code: string): string {
+  const entry = entries.find((item) => item.code === code)
+  if (!entry) throw new Error(`SRD definition ${code} is missing.`)
+  return entry.id
+}
+
 export const srdSystemRecord: SystemSeedRecord = {
   schemaVersion: 4,
   id: SRD_SYSTEM_ID,
@@ -1354,5 +1361,10 @@ export const srdSystemRecord: SystemSeedRecord = {
   senses: SRD_SENSES,
   skills: SRD_SKILLS,
   speeds: SRD_SPEEDS,
-  terrains: SRD_TERRAINS
+  terrains: SRD_TERRAINS,
+  defaults: {
+    damageTypeId: srdIdByCode(SRD_DAMAGE_TYPES, 'FIRE'),
+    conditionTypeId: srdIdByCode(SRD_CONDITION_TYPES, 'POISONED'),
+    movementTypeId: srdIdByCode(SRD_SPEEDS, 'WALK')
+  }
 }

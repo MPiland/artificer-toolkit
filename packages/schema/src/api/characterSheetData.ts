@@ -650,7 +650,8 @@ export const characterSheetReferenceDtoSchema = lazySchema(() =>
     ),
     conditionOptions: z.array(
       z.extend(characterSheetOptionDtoSchema, {
-        code: stringSchema.check(z.trim()).check(z.minLength(1))
+        code: stringSchema.check(z.trim()).check(z.minLength(1)),
+        levelled: z.optional(booleanSchema)
       })
     ),
     equipmentOptions: z.array(
