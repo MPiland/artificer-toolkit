@@ -3974,6 +3974,20 @@
                 "after": ["RULES-2.T6e3b1b"]
               },
               "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+            },
+            {
+              "id": "RULES-2.T9g",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["RULES-2.T9b", "SPELLS-31.T5p"]
+              },
+              "text": "Pact Magic leaves the neutral character pipeline. The 'PACT' slot-key literals in sheetRest.ts (short-rest reset), characterSpellCastActions.ts, characterOnHitCosts.ts, characterRulePolicyFacts.ts and sheetProjection.ts become System slot-pool capabilities supplied by dnd5e: the pool's code, its label and its reset-on-rest kind. Neutral files read the pools through the gameSystemId registry. The Sheet journey and rest tests stay green.",
+              "note": "Found in the SPELLS-31.T5p review (2026-10-22): these literals predate the slice; D175 keeps the new slotCost.poolCode a System vocabulary code."
             }
           ]
         }
