@@ -1,4 +1,6 @@
 import { Accordion, Text } from '@mantine/core'
+import { characterProficiencyLevelDtoSchema } from '@artificer-toolkit/schema/api/characterSheet'
+import { abilityCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import type {
   CharacterSheetPanelDto,
   CharacterSheetPanelTargetDto
@@ -154,8 +156,10 @@ export function CharacterSheetAbilityPanels({
                   onClear={() =>
                     onRemoveAdjustment(panel.proficiencyEditor.adjustmentId, 'SAVING_THROW')
                   }
-                  onCommit={(commit) =>
-                    submitCommand({
+                  onCommit={async (commit) => {
+                    const level = characterProficiencyLevelDtoSchema.safeParse(commit.value)
+                    if (!level.success) return false
+                    return submitCommand({
                       type: 'UPSERT_SHEET_ADJUSTMENT',
                       expectedVersion,
                       adjustment: {
@@ -163,10 +167,10 @@ export function CharacterSheetAbilityPanels({
                         family: 'SAVING_THROW',
                         ability: panel.ability,
                         field: 'PROFICIENCY_OVERRIDE',
-                        value: String(commit.value) as 'NONE' | 'HALF' | 'FULL' | 'DOUBLE'
+                        value: level.data
                       }
                     })
-                  }
+                  }}
                 />
               </Accordion.Panel>
             </Accordion.Item>
@@ -209,8 +213,10 @@ export function CharacterSheetAbilityPanels({
                   key={getSheetEditorKey(panel.proficiencyEditor)}
                   pending={pending}
                   onClear={() => onRemoveAdjustment(panel.proficiencyEditor.adjustmentId, 'SKILL')}
-                  onCommit={(commit) =>
-                    submitCommand({
+                  onCommit={async (commit) => {
+                    const level = characterProficiencyLevelDtoSchema.safeParse(commit.value)
+                    if (!level.success) return false
+                    return submitCommand({
                       type: 'UPSERT_SHEET_ADJUSTMENT',
                       expectedVersion,
                       adjustment: {
@@ -218,18 +224,20 @@ export function CharacterSheetAbilityPanels({
                         family: 'SKILL',
                         skillId: panel.skillId,
                         field: 'PROFICIENCY_OVERRIDE',
-                        value: String(commit.value) as 'NONE' | 'HALF' | 'FULL' | 'DOUBLE'
+                        value: level.data
                       }
                     })
-                  }
+                  }}
                 />
                 <CharacterSheetAdjustmentEditor
                   editor={panel.abilityEditor}
                   key={getSheetEditorKey(panel.abilityEditor)}
                   pending={pending}
                   onClear={() => onRemoveAdjustment(panel.abilityEditor.adjustmentId, 'SKILL')}
-                  onCommit={(commit) =>
-                    submitCommand({
+                  onCommit={async (commit) => {
+                    const ability = abilityCodeSchema.safeParse(commit.value)
+                    if (!ability.success) return false
+                    return submitCommand({
                       type: 'UPSERT_SHEET_ADJUSTMENT',
                       expectedVersion,
                       adjustment: {
@@ -237,16 +245,10 @@ export function CharacterSheetAbilityPanels({
                         family: 'SKILL',
                         skillId: panel.skillId,
                         field: 'GOVERNING_ABILITY_OVERRIDE',
-                        value: String(commit.value) as
-                          | 'CHARISMA'
-                          | 'CONSTITUTION'
-                          | 'DEXTERITY'
-                          | 'INTELLIGENCE'
-                          | 'STRENGTH'
-                          | 'WISDOM'
+                        value: ability.data
                       }
                     })
-                  }
+                  }}
                 />
               </Accordion.Panel>
             </Accordion.Item>

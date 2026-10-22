@@ -1,4 +1,5 @@
 import { Accordion, Button, Group, List, SegmentedControl, Stack, Text } from '@mantine/core'
+import { findOption } from '../forms/utils/valueGuards'
 import {
   getDefaultImportCustomContentChoice,
   getImportCustomContentKey,
@@ -87,7 +88,10 @@ export function ImportContentOutcomeSections({
                       ]}
                       size='xs'
                       value={choice}
-                      onChange={(value) => onChoiceChange(key, value as ImportCustomContentChoice)}
+                      onChange={(value) => {
+                        const nextChoice = findOption(['ACTIVE', 'DRAFT'], value)
+                        if (nextChoice) onChoiceChange(key, nextChoice)
+                      }}
                     />
                   </Group>
                 )

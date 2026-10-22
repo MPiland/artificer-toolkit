@@ -1,5 +1,6 @@
 import { SegmentedControl, Switch } from '@mantine/core'
 import clsx from 'clsx'
+import { findOption } from '../forms/utils/valueGuards'
 import { DICE_SHADOW_QUALITIES, type DicePresentationPreferences } from './dicePreferences'
 import * as styles from './settings.css'
 
@@ -57,12 +58,10 @@ export function DiceSettingsControls({
           }))}
           disabled={!value.animate3d}
           value={value.shadowQuality}
-          onChange={(shadowQuality) =>
-            onChange({
-              ...value,
-              shadowQuality: shadowQuality as DicePresentationPreferences['shadowQuality']
-            })
-          }
+          onChange={(shadowQuality) => {
+            const nextQuality = findOption(DICE_SHADOW_QUALITIES, shadowQuality)
+            if (nextQuality) onChange({ ...value, shadowQuality: nextQuality })
+          }}
         />
       </div>
     </div>

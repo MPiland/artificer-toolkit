@@ -8,6 +8,7 @@ import { useQuery } from 'convex/react'
 import { useState } from 'react'
 import { useLoadAllPages } from '#app/data/useLoadAllPages'
 import * as sharedStyles from '../campaigns.css'
+import { isRecord } from '#app/forms/utils/valueGuards'
 
 const inventoryEventLabels: Record<string, string> = {
   CUSTODY_TRANSFER: 'Inventory transferred',
@@ -80,12 +81,7 @@ function InventoryAuditPage({
         ) : null}
         {events.map((event) => {
           const actor = campaign.memberships.find((member) => member.userId === event.actorUserId)
-          const payload: Record<string, unknown> =
-            typeof event.payload === 'object' &&
-            event.payload !== null &&
-            !Array.isArray(event.payload)
-              ? (event.payload as Record<string, unknown>)
-              : {}
+          const payload: Record<string, unknown> = isRecord(event.payload) ? event.payload : {}
           const before = payload.beforeQuantity ?? payload.beforeAmount
           const after =
             payload.afterQuantity ??

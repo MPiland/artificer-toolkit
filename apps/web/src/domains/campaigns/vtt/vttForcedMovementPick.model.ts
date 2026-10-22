@@ -84,8 +84,8 @@ export function forcedMovementDestinationAfterKey(
   focused: ScenePoint,
   key: string
 ): ScenePoint | null {
-  if (!Object.hasOwn(arrowSteps, key)) return null
-  const step = arrowSteps[key as keyof typeof arrowSteps]
+  const step = Object.entries(arrowSteps).find(([name]) => name === key)?.[1]
+  if (!step) return null
   const along = (point: ScenePoint) =>
     (point.x - focused.x) * step.x + (point.y - focused.y) * step.y
   const across = (point: ScenePoint) =>

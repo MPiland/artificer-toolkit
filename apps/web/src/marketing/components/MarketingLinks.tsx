@@ -1,7 +1,14 @@
 import type { ComponentPropsWithoutRef, MouseEvent, ReactNode } from 'react'
+import { findOption } from '../../forms/utils/valueGuards'
 import { scrollToMarketingHash } from './marketing.utils'
 
-type MarketingRouteHref = '/' | '/sign-in' | '/sign-up'
+const marketingRoutes = ['/', '/sign-in', '/sign-up'] as const
+
+type MarketingRouteHref = (typeof marketingRoutes)[number]
+
+function isHashHref(href: string): href is `#${string}` {
+  return href.startsWith('#')
+}
 
 type MarketingHashLinkProps = Omit<ComponentPropsWithoutRef<'a'>, 'href'> & {
   href: `#${string}`
@@ -48,16 +55,25 @@ export function MarketingNavLink({
   className,
   children
 }: Pick<ComponentPropsWithoutRef<'a'>, 'className' | 'children'> & { href: string }) {
-  if (href.startsWith('#')) {
+  if (isHashHref(href)) {
     return (
-      <MarketingHashLink className={className} href={href as `#${string}`}>
+      <MarketingHashLink className={className} href={href}>
         {children}
       </MarketingHashLink>
     )
   }
 
+  const route = findOption(marketingRoutes, href)
+  if (!route) {
+    return (
+      <a className={className} href={href}>
+        {children}
+      </a>
+    )
+  }
+
   return (
-    <MarketingRouteLink className={className} to={href as MarketingRouteHref}>
+    <MarketingRouteLink className={className} to={route}>
       {children}
     </MarketingRouteLink>
   )

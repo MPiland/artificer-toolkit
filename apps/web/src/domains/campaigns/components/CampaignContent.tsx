@@ -103,7 +103,9 @@ export function CampaignContent({
               label='Content type'
               value={subjectKind}
               onChange={(value) => {
-                setSubjectKind(value as AuthoredSubjectKindDto | null)
+                setSubjectKind(
+                  campaignContentTypeOptions.find((option) => option.value === value)?.value ?? null
+                )
                 setSubjectId(null)
               }}
             />

@@ -1,3 +1,4 @@
+import { findOption } from '../../forms/utils/valueGuards'
 import { Alert, Badge, Button, Group, Loader, Tabs, Text, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -208,9 +209,8 @@ function SocialListingEditor({
           className={styles.managementTabs}
           value={section}
           onChange={(value) => {
-            if (socialListingManagementSections.includes(value as SocialListingManagementSection)) {
-              onSectionChange(value as SocialListingManagementSection)
-            }
+            const nextSection = findOption(socialListingManagementSections, value)
+            if (nextSection) onSectionChange(nextSection)
           }}
         >
           <Tabs.List aria-label='Listing management views'>

@@ -12,6 +12,7 @@ import { api } from '@artificer-toolkit/apis/convex/api'
 import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
 import type { AppRouterContext } from './routerContext'
+import { isRecord } from '#app/forms/utils/valueGuards'
 
 function getCspNonce() {
   if (typeof document !== 'undefined') {
@@ -20,7 +21,8 @@ function getCspNonce() {
   }
 
   try {
-    return (getGlobalStartContext() as { nonce?: string } | undefined)?.nonce
+    const context: unknown = getGlobalStartContext()
+    return isRecord(context) && typeof context.nonce === 'string' ? context.nonce : undefined
   } catch {
     return undefined
   }

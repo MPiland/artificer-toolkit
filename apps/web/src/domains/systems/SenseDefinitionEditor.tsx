@@ -1,5 +1,29 @@
 import { Checkbox, MultiSelect, Select, SimpleGrid } from '@mantine/core'
 import type { SenseReusableDefinitionDocumentDto } from '@artificer-toolkit/schema/shared/combatPerception'
+import { filterOptions, findOption } from '../../forms/utils/valueGuards'
+
+type SenseCapability = SenseReusableDefinitionDocumentDto['capabilities'][number]
+
+const channels: SenseCapability['channel'][] = ['VISUAL', 'AUDITORY', 'VIBRATION', 'NONVISUAL']
+const accessGrades: SenseCapability['accessGrade'][] = ['DETECTED', 'LOCATED', 'PRECISE']
+const satisfiedRequirements: SenseCapability['satisfies'] = ['DETECT', 'LOCATE', 'PRECISE', 'SEE']
+const illuminationAccesses: SenseCapability['illuminationAccess'][] = [
+  'BRIGHT_ONLY',
+  'DIM',
+  'ORDINARY_DARKNESS',
+  'MAGICAL_DARKNESS',
+  'IGNORE'
+]
+const obscurementAccesses: SenseCapability['obscurementAccess'][] = [
+  'NONE',
+  'LIGHT',
+  'HEAVY',
+  'IGNORE'
+]
+const physicalConstraints: SenseCapability['physicalConstraints'] = [
+  'LINE_OF_EFFECT',
+  'SHARED_SURFACE'
+]
 
 export function SenseDefinitionEditor({
   document,
@@ -21,56 +45,60 @@ export function SenseDefinitionEditor({
     <SimpleGrid cols={{ base: 1, sm: 2 }}>
       <Select
         disabled={disabled}
-        data={['VISUAL', 'AUDITORY', 'VIBRATION', 'NONVISUAL']}
+        data={channels}
         label='Channel'
         value={capability.channel}
         onChange={(value) => {
-          if (value) update({ channel: value as typeof capability.channel })
+          const channel = findOption(channels, value)
+          if (channel) update({ channel })
         }}
       />
       <Select
         disabled={disabled}
-        data={['DETECTED', 'LOCATED', 'PRECISE']}
+        data={accessGrades}
         label='Access grade'
         value={capability.accessGrade}
         onChange={(value) => {
-          if (value) update({ accessGrade: value as typeof capability.accessGrade })
+          const accessGrade = findOption(accessGrades, value)
+          if (accessGrade) update({ accessGrade })
         }}
       />
       <MultiSelect
         disabled={disabled}
-        data={['DETECT', 'LOCATE', 'PRECISE', 'SEE']}
+        data={satisfiedRequirements}
         label='Requirements satisfied'
         value={capability.satisfies}
-        onChange={(satisfies) => update({ satisfies: satisfies as typeof capability.satisfies })}
+        onChange={(satisfies) =>
+          update({ satisfies: filterOptions(satisfiedRequirements, satisfies) })
+        }
       />
       <Select
         disabled={disabled}
-        data={['BRIGHT_ONLY', 'DIM', 'ORDINARY_DARKNESS', 'MAGICAL_DARKNESS', 'IGNORE']}
+        data={illuminationAccesses}
         label='Illumination access'
         value={capability.illuminationAccess}
         onChange={(value) => {
-          if (value) update({ illuminationAccess: value as typeof capability.illuminationAccess })
+          const illuminationAccess = findOption(illuminationAccesses, value)
+          if (illuminationAccess) update({ illuminationAccess })
         }}
       />
       <Select
         disabled={disabled}
-        data={['NONE', 'LIGHT', 'HEAVY', 'IGNORE']}
+        data={obscurementAccesses}
         label='Obscurement access'
         value={capability.obscurementAccess}
         onChange={(value) => {
-          if (value) update({ obscurementAccess: value as typeof capability.obscurementAccess })
+          const obscurementAccess = findOption(obscurementAccesses, value)
+          if (obscurementAccess) update({ obscurementAccess })
         }}
       />
       <MultiSelect
         disabled={disabled}
-        data={['LINE_OF_EFFECT', 'SHARED_SURFACE']}
+        data={physicalConstraints}
         label='Physical constraints'
         value={capability.physicalConstraints}
-        onChange={(physicalConstraints) =>
-          update({
-            physicalConstraints: physicalConstraints as typeof capability.physicalConstraints
-          })
+        onChange={(constraints) =>
+          update({ physicalConstraints: filterOptions(physicalConstraints, constraints) })
         }
       />
       <Checkbox

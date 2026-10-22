@@ -12,7 +12,6 @@ import {
 } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import { effectDtoSchema, type EffectDto } from '@artificer-toolkit/schema/effects'
-import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { parseStandaloneDiceConfiguration } from '@artificer-toolkit/shared/rolls'
 import { createDefaultEffect } from '../rendering/authoringNodeDefaults'
 import { mapGuidedSpellEffect } from './guidedSimpleEffect.mapping'
@@ -60,7 +59,7 @@ export function GuidedSimpleEffectComposer({
         system.conditionTypes.find((item) => item.code === 'POISONED')?.id ??
         system.conditionTypes[0]?.id
     })
-    const base = (rehydrated?.effect ?? createDefaultEffect(1)) as EffectAuthored
+    const base = rehydrated?.effect ?? createDefaultEffect(1)
     const ids = rehydrated?.ids ?? createGuidedEffectIds()
     setDraft(nextDraft)
     onChange([effectDtoSchema.parse(mapGuidedSpellEffect(nextDraft, base, ids))])
@@ -83,7 +82,8 @@ export function GuidedSimpleEffectComposer({
     const next = { ...draft, [key]: value }
     setDraft(next)
     if ((key === 'damageDice' || key === 'healingDice') && !isValidDice(String(value))) return
-    const base = (rehydrated?.effect ?? effects[0] ?? createDefaultEffect(1)) as EffectAuthored
+    const base =
+      rehydrated?.effect ?? effectDtoSchema.safeParse(effects[0]).data ?? createDefaultEffect(1)
     onChange([
       effectDtoSchema.parse(mapGuidedSpellEffect(next, base, rehydrated?.ids ?? fallbackIds))
     ])

@@ -142,7 +142,9 @@ export function CharacterSheetExtras({
             placeholder='Choose an extra kind'
             value={kind}
             onChange={(value) => {
-              setKind(value as ExtraKind | null)
+              setKind(
+                sheet.extras.kindOptions.find((option) => option.code === value)?.code ?? null
+              )
               setSourceId(null)
               setSourceQuery('')
               setOriginKind(null)
@@ -181,7 +183,9 @@ export function CharacterSheetExtras({
               placeholder='Choose an origin'
               value={originKind}
               onChange={(value) => {
-                setOriginKind(value as OriginKind | null)
+                setOriginKind(
+                  sheet.extras.originOptions.find((option) => option.code === value)?.code ?? null
+                )
                 setSubmitError(null)
               }}
             />

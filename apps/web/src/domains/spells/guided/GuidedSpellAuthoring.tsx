@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useSelector } from '@tanstack/react-form'
 import { Alert, Button, Group, Stack, Text } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
-import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { parseStandaloneDiceConfiguration } from '@artificer-toolkit/shared/rolls'
 import { withForm } from '#forms/app-form/AppForm'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
@@ -79,11 +78,7 @@ export const GuidedSpellAuthoring = withForm({
           system.conditionTypes[0]?.id
       })
       const nextEffectIds = createGuidedEffectIds()
-      const nextEffect = mapGuidedSpellEffect(
-        nextDraft,
-        createDefaultEffect(1) as EffectAuthored,
-        nextEffectIds
-      )
+      const nextEffect = mapGuidedSpellEffect(nextDraft, createDefaultEffect(1), nextEffectIds)
       form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['effects']), [nextEffect])
       setLocalDraft(nextDraft)
       setPendingIntent(null)

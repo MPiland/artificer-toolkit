@@ -1,3 +1,4 @@
+import { isRecord } from '#app/forms/utils/valueGuards'
 import type { CharacterFormValues } from '../core/characterBuilder.types'
 import { omitEmptyStartingEquipment } from '../steps/equipment/startingEquipment'
 
@@ -170,8 +171,8 @@ function getSourceKind(source: unknown): string | undefined {
 }
 
 function getSourceString(source: unknown, key: string): string | undefined {
-  if (!source || typeof source !== 'object' || !(key in source)) return undefined
-  const value = source[key as keyof typeof source]
+  if (!isRecord(source)) return undefined
+  const value = source[key]
 
   return typeof value === 'string' ? value : undefined
 }

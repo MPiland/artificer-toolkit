@@ -10,6 +10,7 @@ import {
   activeGrantTimeLeft
 } from '../../../components/activeGrants/activeGrantDisplay'
 import type { VttStatusCategory, VttTokenPresentation } from './vttSceneRenderer.model'
+import { isRecord } from '#app/forms/utils/valueGuards'
 
 const healthColours = {
   BLOODIED: 0xe8590c,
@@ -173,8 +174,8 @@ function actorConditionStatuses(conditions: unknown): VttTokenPresentation['stat
     if (typeof condition === 'string' && condition.trim()) {
       return [statusFromValues(`condition:${index}`, 'CONDITION', condition)]
     }
-    if (!condition || typeof condition !== 'object' || Array.isArray(condition)) return []
-    const record = condition as Record<string, unknown>
+    if (!isRecord(condition)) return []
+    const record = condition
     const label = firstString(record.label, record.name, record.code)
     if (!label) return []
     const id = firstString(record.id, record.conditionTypeId) ?? `condition:${index}`

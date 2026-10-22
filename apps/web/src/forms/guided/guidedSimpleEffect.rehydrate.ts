@@ -106,11 +106,10 @@ export function canUseGuidedSpellAuthoring(effects: readonly unknown[] | undefin
 function readGuidedSpellEffect(effects: readonly unknown[] | undefined): EffectAuthored | null {
   if (!effects || effects.length !== 1) return null
 
-  const value = effects[0]
-  if (!effectDtoSchema.safeParse(value).success) return null
+  const parsed = effectDtoSchema.safeParse(effects[0])
+  if (!parsed.success) return null
 
-  const effect = value as EffectAuthored
-  return isGuidedSpellEffect(effect) ? effect : null
+  return isGuidedSpellEffect(parsed.data) ? parsed.data : null
 }
 
 function isGuidedSpellEffect(effect: EffectAuthored): boolean {
