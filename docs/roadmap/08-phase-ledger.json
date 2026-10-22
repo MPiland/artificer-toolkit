@@ -645,6 +645,22 @@
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the PLATFORM-13.T9 merge review. Low-likelihood residuals (spawn-error rejection, --fresh name-only guard, README digest prose) deferred to future-enhancements.md \"Deferred edge cases\"."
+            },
+            {
+              "id": "PLATFORM-13.13",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-22 (validation lock queue)"],
+              "note": "AC confirmed by the user 2026-10-22.",
+              "text": "A slice session runs any single test file locally without building a package or taking a shared lock: tests resolve workspace packages from source. Typechecking runs only in CI, and AGENTS.md retires the local typecheck lane."
+            },
+            {
+              "id": "PLATFORM-13.14",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-22 (validation lock queue)"],
+              "note": "AC confirmed by the user 2026-10-22.",
+              "text": "A validation lane is never blocked by a lock whose owner process has died: the next waiter reclaims it, and a lock held by a live process is never taken."
             }
           ],
           "wsjf": {
@@ -885,6 +901,32 @@
               },
               "text": "Flake: Convex heldSheetPlay.test.ts › \"keeps Builder edits committing in Convex and reloads them into the next room command\" failed with UNAVAILABLE \"The table is busy right now\" (batch ci/merge-m132, Tests 39163115178; passed on rerun). Find whether the fixture races the room lock or the product retries wrongly, fix the cause, and prove it with a repeated run; no timeout or retry added to the test. Also the Worker nativeMovementPlanning \"refuses a voluntary move that ends inside the hostile creature\" flake: its console.error spy catches a stray room alarm log (seen on ci/spells-4-t2t twice); fix the leak at its source, not the spy.",
               "note": "Merged m147 (1a07eb060)."
+            },
+            {
+              "id": "PLATFORM-13.T18",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.13"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 3,
+                "after": []
+              },
+              "text": "Workspace packages export a source condition pointing at src, and every Vitest config resolves it, so a local run needs no dist build (generated files such as the SRD manifest handled). CI keeps passing on every suite. Remove the typecheck lane and -BuildFor from withValidationLock.ps1 and the docs (AGENTS.md, ci-validation.md)."
+            },
+            {
+              "id": "PLATFORM-13.T19",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.14"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 5,
+                "size": 1,
+                "after": []
+              },
+              "text": "withValidationLock.ps1 writes the owner PID and process start time into each lock; a waiter reclaims a lock whose owner is gone or whose start time differs (PID reuse). A test plants a dead-owner lock and a live-owner lock. AGENTS.md drops the report-do-not-delete rule for dead owners."
             }
           ]
         },
@@ -4121,6 +4163,20 @@
               },
               "text": "Boundary guard test: no production file outside source-data holds an SRD vocabulary list or compares a vocabulary code literal.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
+            },
+            {
+              "id": "RULES-2.T9p",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 1,
+                "after": ["RULES-2.T9i"]
+              },
+              "text": "Neutral character files (characterOnHitCosts, characterRulePolicyFacts, characterSpellCastActions, sheetProjection, sheetRest) compare the 'PACT' slot key. The slot pools, with their label and short-rest recovery, come from the dnd5e System's core codes through the capability registry; neutral code holds no pool literal.",
+              "note": "Found in the SPELLS-31.T5p review (D175), 2026-10-22."
             }
           ]
         }
@@ -13565,7 +13621,7 @@
             },
             {
               "id": "SPELLS-31.T5p",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -13575,7 +13631,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "New option (ruling at start): spell slot costs and class spell lists; the six pact-slot invocations, Primeval Awareness, Expanded Spell List. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Merged in m344; D175 recorded."
             },
             {
               "id": "SPELLS-31.T5q",
