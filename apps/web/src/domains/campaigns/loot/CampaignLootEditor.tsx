@@ -8,26 +8,25 @@ import { getLoot, saveLoot } from '#app/data/campaigns/loot'
 import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
 import { queryKeys } from '#app/lib/queryKeys'
 import { AppSelect } from '#ui/primitives/Select'
-import { CampaignSceneLootRange } from './CampaignSceneLootRange'
+import { CampaignLootRange } from './CampaignLootRange'
 import {
   createLootRange,
   createLootTable,
   describeLootDraftRefusal
-} from './CampaignSceneLootEditor.model'
+} from './CampaignLootEditor.model'
 
-/** GM-only reference tables for a Scene; nothing here is rolled, revealed or granted. */
-export function CampaignSceneLootEditor({
-  campaignId,
+/** GM-only reference tables for a Scene or an Encounter creature; nothing here is rolled, revealed or granted. */
+export function CampaignLootEditor({
   gameSystemId,
-  sceneId
+  owner,
+  subject
 }: {
-  campaignId: string
   gameSystemId: string
-  sceneId: string
+  owner: LootOwner
+  subject: 'Scene' | 'Creature'
 }) {
   const convex = useConvex()
   const queryClient = useQueryClient()
-  const owner: LootOwner = { kind: 'SCENE', campaignId, sceneDefinitionId: sceneId }
   const loot = useQuery(getLoot(owner, convex))
   const system = useConvexQuery(convexApi.content.systems.get, { id: gameSystemId })
   const items = useContentCatalogue('EQUIPMENT', { systemId: gameSystemId })
@@ -71,7 +70,7 @@ export function CampaignSceneLootEditor({
     change(tables.map((table) => (table.id === id ? next : table)))
 
   return (
-    <section aria-label='Scene loot tables'>
+    <section aria-label={`${subject} loot tables`}>
       <Stack gap='sm' p='md'>
         <Group justify='space-between'>
           <div>
@@ -120,7 +119,7 @@ export function CampaignSceneLootEditor({
         {save.error ? <Alert color='red'>{save.error.message}</Alert> : null}
         {tables.length === 0 && loot.data ? (
           <Text c='dimmed' size='sm'>
-            No loot tables on this Scene yet.
+            No loot tables on this {subject.toLowerCase()} yet.
           </Text>
         ) : null}
         {tables.map((table, tableIndex) => (
@@ -166,7 +165,7 @@ export function CampaignSceneLootEditor({
                 </Button>
               </Group>
               {table.ranges.map((range, rangeIndex) => (
-                <CampaignSceneLootRange
+                <CampaignLootRange
                   coinOptions={coinOptions}
                   disabled={save.isPending}
                   itemOptions={itemOptions}

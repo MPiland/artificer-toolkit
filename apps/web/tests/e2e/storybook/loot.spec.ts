@@ -1,13 +1,20 @@
 import { expect, test, type Page } from '@playwright/test'
 import { LOOT_RANGE_REFUSAL } from '@artificer-toolkit/shared/vtt/lootTable'
 
-test.describe('Scene loot tables', () => {
-  test('authors a table with an item and coins, reloads it, and refuses an overlapping range', async ({
+const owners = [
+  { storyId: 'domains-campaigns-loot-editor--scene', subject: 'Scene' },
+  { storyId: 'domains-campaigns-loot-editor--encounter-creature', subject: 'creature' }
+]
+
+for (const { storyId, subject } of owners)
+  test(`authors a ${subject} table with an item and coins, reloads it, and refuses an overlapping range`, async ({
     page
   }) => {
     test.setTimeout(60_000)
-    await openStory(page, 'domains-campaigns-vtt-scene-loot-editor--empty')
-    await expect(page.getByText('No loot tables on this Scene yet.')).toBeVisible()
+    await openStory(page, storyId)
+    await expect(
+      page.getByText(`No loot tables on this ${subject.toLowerCase()} yet.`)
+    ).toBeVisible()
 
     await page.getByRole('button', { name: 'Add loot table' }).click()
     await page.getByRole('textbox', { name: 'Table name' }).fill('Guard room')
@@ -32,7 +39,6 @@ test.describe('Scene loot tables', () => {
     await expect(page.getByRole('alert')).toContainText(LOOT_RANGE_REFUSAL.OVERLAP)
     await expect(page.getByRole('button', { name: 'Save loot' })).toBeDisabled()
   })
-})
 
 async function openStory(page: Page, storyId: string) {
   await page.goto('/iframe.html?id=' + storyId + '&viewMode=story')
