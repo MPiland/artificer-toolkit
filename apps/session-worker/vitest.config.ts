@@ -1,9 +1,12 @@
 import { cloudflareTest } from '@cloudflare/vitest-plugin'
 import { defineConfig } from 'vitest/config'
 
+import { sourceResolve } from '../../scripts/vitestSource.mjs'
+
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 
 export default defineConfig({
+  ...sourceResolve,
   plugins: [
     cloudflareTest({
       main: './test/nativeWorker.ts',

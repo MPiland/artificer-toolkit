@@ -7,70 +7,87 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./api": {
+      "source": "./src/api/index.ts",
       "types": "./dist/api/index.d.ts",
       "default": "./dist/api/index.js"
     },
     "./api/*": {
+      "source": "./src/api/*.ts",
       "types": "./dist/api/*.d.ts",
       "default": "./dist/api/*.js"
     },
     "./effects": {
+      "source": "./src/effects/index.ts",
       "types": "./dist/effects/index.d.ts",
       "default": "./dist/effects/index.js"
     },
     "./effects/*": {
+      "source": "./src/effects/*.ts",
       "types": "./dist/effects/*.d.ts",
       "default": "./dist/effects/*.js"
     },
     "./features": {
+      "source": "./src/features/index.ts",
       "types": "./dist/features/index.d.ts",
       "default": "./dist/features/index.js"
     },
     "./features/*": {
+      "source": "./src/features/*.ts",
       "types": "./dist/features/*.d.ts",
       "default": "./dist/features/*.js"
     },
     "./grants": {
+      "source": "./src/grants/index.ts",
       "types": "./dist/grants/index.d.ts",
       "default": "./dist/grants/index.js"
     },
     "./grants/*": {
+      "source": "./src/grants/*.ts",
       "types": "./dist/grants/*.d.ts",
       "default": "./dist/grants/*.js"
     },
     "./shared": {
+      "source": "./src/shared/index.ts",
       "types": "./dist/shared/index.d.ts",
       "default": "./dist/shared/index.js"
     },
     "./shared/*": {
+      "source": "./src/shared/*.ts",
       "types": "./dist/shared/*.d.ts",
       "default": "./dist/shared/*.js"
     },
     "./subjects": {
+      "source": "./src/subjects/index.ts",
       "types": "./dist/subjects/index.d.ts",
       "default": "./dist/subjects/index.js"
     },
     "./subjects/*": {
+      "source": "./src/subjects/*.ts",
       "types": "./dist/subjects/*.d.ts",
       "default": "./dist/subjects/*.js"
     },
     "./vocabulary": {
+      "source": "./src/vocabulary/index.ts",
       "types": "./dist/vocabulary/index.d.ts",
       "default": "./dist/vocabulary/index.js"
     },
     "./vocabulary/*": {
+      "source": "./src/vocabulary/*.ts",
       "types": "./dist/vocabulary/*.d.ts",
       "default": "./dist/vocabulary/*.js"
     },
     "./projections": {
+      "source": "./src/projections/index.ts",
       "types": "./dist/projections/index.d.ts",
       "default": "./dist/projections/index.js"
     },
     "./projections/*": {
+      "source": "./src/projections/*.ts",
       "types": "./dist/projections/*.d.ts",
       "default": "./dist/projections/*.js"
     }
