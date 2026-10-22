@@ -197,6 +197,16 @@ the failed band's. Interpretation verifies each nested proposal against its path
 (`dnd5ePathGatedProposalOperations`) and settles it as its direct operation with the nested paths kept. A halved roll
 of 1 proposes 0 damage.
 
+**A gated nested-save band (current, SPELLS-33.T4i3d).** A band of an immediate, one-time, non-repeating follow-up save
+may carry the one gate table's gates (`TARGET_HIT_POINTS_AT_MOST`, `REDUCED_TO_ZERO_BY`); the schema refuses a gate on any
+other save. `effectActionNestedSave.ts` owns the nested-save graph. A gated band adds a `nested-save-gate-<band>` node
+(`dnd5e.nested-save-gate`, PURE) that takes `nested-save-test`'s `resultPath` plus the gate-table inputs and republishes
+`resultPath` only when `gatesAdmit` holds, otherwise `GATE_CLOSED`, which no authored path satisfies. The band's outcomes
+bind `resolvedPath` to that output, and `interpretDirect` re-executes the gate node and checks `gateEvidenceIsValid`.
+A `KILL` is admitted in a band only when the band is gated; `REDUCED_TO_ZERO_BY` names the band's first damage outcome,
+which is dealt ungated, and holds the outcomes after it. Forced movement, HP-maximum reduction and a failure-margin
+rider are unsupported on a gated band. The save is still rolled for targets outside an HP band, with no effect.
+
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
 `ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the
 damage, heal, condition and hit-point-tier `KILL` outcomes. `dnd5eTargetOnlyOutcome` is the one home for that set, so

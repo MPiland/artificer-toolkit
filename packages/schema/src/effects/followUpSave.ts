@@ -6,6 +6,7 @@ import { combatPerceptionRequirementDtoSchema } from '../shared/combatPerception
 import { damageTypeFilterDtoSchema, pathLifecycleEndTriggersDtoSchema } from '../shared/reaction.js'
 import { pathLifecycleEndTriggerBySchema } from '../shared/enums.js'
 import { conditionDtoSchema } from './condition.js'
+import { resultBlockGateDtoSchema } from './resultBlockGate.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -49,6 +50,7 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
       kind: z.literal('OUTCOMES'),
       endCurrent: z.boolean(),
       resultKind: z.enum(['SINGLE', 'SEQUENCE']),
+      gate: z.optional(resultBlockGateDtoSchema),
       outcomes: authoredNestedCollectionSchema(outcomeDtoSchema)
     })
   ])
@@ -154,6 +156,30 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
             message:
               'A repeat attempt gate requires a repeated save first made at the end of the target turn.'
           })
+        }
+        // A branch gate is read by the save's own graph at once, so only a one-time immediate save
+        // that never repeats can carry one.
+        const gatesAtOnce =
+          value.timing === 'IMMEDIATE' &&
+          value.attempts.kind === 'ONCE' &&
+          value.attempts.repeatOnFailure !== true
+        for (const [branch, name] of [
+          [value.onSuccess, 'onSuccess'],
+          [value.onFailure, 'onFailure'],
+          [value.onDurationComplete, 'onDurationComplete']
+        ] as const) {
+          if (
+            branch?.kind === 'OUTCOMES' &&
+            branch.gate !== undefined &&
+            !(gatesAtOnce && name !== 'onDurationComplete')
+          ) {
+            context.addIssue({
+              code: 'custom',
+              path: [name, 'gate'],
+              message:
+                'A branch gate requires an immediate one-time saving throw that does not repeat.'
+            })
+          }
         }
         // A turn reads one perception result, so one save gates or influences its repeat, not both.
         if (value.repeatAttemptGate !== undefined && value.repeatRollInfluence !== undefined) {
