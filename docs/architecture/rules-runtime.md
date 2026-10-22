@@ -2584,7 +2584,21 @@ one `FOLLOW_UP_SAVE`): each lead is a `conditionContributions` entry and its own
 (`nodePrefix` and `conditionOrdinal`, as in `timedConditionPlan`), and the plan's
 `dnd5e.active-effect-repeat-save-condition-ids` fact is the comma-joined list that the terminal tick removes in
 order. A grant lead or an escalation takes a single condition lead only. The follow-up's `repeatTriggers` (advantage
-on a damage-triggered repeat) are stored on the plan's lifecycle; the Funnel hook that consumes them is T2m1b2.
+on a damage-triggered repeat) are stored on the plan's lifecycle and read by the damage-save chain below.
+
+**Damage-save reader contract (D167, SPELLS-4.T2m1b2b).** Committed damage owes its damaged holders a chain of
+saves: Concentration checks and effect repeat saves, in one canonical order (`compareDamageSaveApplications`),
+raised inside the damaging command and answered by the holder's controllers. Two functions derive the effect half
+and are the only readers of `repeatTriggers`: `effectRepeatTrigger` (does this damage meet this effect's trigger)
+and `effectRepeatSaveApplications` (the saves a finalized damage envelope owes: one per damaged, undefeated holder
+effect; an effect the damaging command placed never repeats against its own damage). A damage source opts in on
+both sides with the same inputs: the room passes `repeatSaves: { damagerActorId }` to `planNativeLiveConcentration`,
+and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
+rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is
+the caster), Cleaving (the cleaving creature), and turn effects with Legendary Actions (no damager, so only `ANYONE`
+triggers match). T2m3 and SPELLS-33.T6e2/T4m add triggers or effects by changing these readers, never by adding a
+source-specific path. Movement (zone contact) damage settles through `MovementConcentrationSettlement`, a separate
+per-step stack, and is not in the chain yet.
 
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it
 (Guardian Naga Spit Poison) and one whose failure applies a condition and then a once-only `TARGET_TURN_END`

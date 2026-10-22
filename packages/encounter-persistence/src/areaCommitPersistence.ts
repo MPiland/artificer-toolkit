@@ -77,6 +77,7 @@ import type {
   bindEncounterConcentrationApplications,
   persistEncounterConcentrationChildren
 } from './concentrationChildrenPersistence.js'
+import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import { readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
@@ -880,7 +881,14 @@ export async function persistEncounterAreaCommit(
     parentOccurrenceId: areaOccurrenceId,
     parentCommandFingerprint: fingerprint,
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(damage),
-    remaining: await callbacks.bindConcentrationApplications(nextState, damage),
+    remaining: await bindEncounterDamageSaveChain(ctx, {
+      concentration: await callbacks.bindConcentrationApplications(nextState, damage),
+      state: nextState,
+      actors: nextActors,
+      applications: damage,
+      parentOccurrenceId: areaOccurrenceId,
+      damagerActorId: command.actorId
+    }),
     correlationId: areaOccurrenceId,
     userId,
     authorizedCharacterIds: characterIds,
