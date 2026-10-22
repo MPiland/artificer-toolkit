@@ -124185,6 +124185,7 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            componentsLabel?: string;
             damageLabel?: string;
             grip: {
               attackKey: string;
@@ -125938,6 +125939,7 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            componentsLabel?: string;
             damageLabel?: string;
             grip: {
               attackKey: string;
