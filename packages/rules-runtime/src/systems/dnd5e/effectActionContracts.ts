@@ -259,6 +259,22 @@ export function multipliedDamageAmount(amount: number, multiplier: number): numb
     )
   return value
 }
+/**
+ * The factor an authored damage outcome scales its total by: its `multiplier` (the monster
+ * vocabulary for half on a successful save) times its `amountKind` (the spell vocabulary: HALF is
+ * 0.5, DOUBLE is 2). Every compiled damage amount reads it, so both vocabularies compile alike.
+ */
+export function damageMultiplier(outcome: {
+  amountKind?: 'FULL' | 'HALF' | 'DOUBLE'
+  multiplier?: number
+}): number {
+  const kind = outcome.amountKind === 'HALF' ? 0.5 : outcome.amountKind === 'DOUBLE' ? 2 : 1
+  return (outcome.multiplier ?? 1) * kind
+}
+export function damageTypeIdentity(damageTypeId: string | undefined): string {
+  uuid(damageTypeId, 'D&D damage type identity')
+  return damageTypeId
+}
 /** One die size per damage roll, as a single dice term such as `1d6`. */
 export const COLLISION_DICE_CONFIG = /^[1-9]\d?d[1-9]\d{0,2}$/
 /** The collision as the proposal carries it: canonical JSON, or empty when the move has none. */

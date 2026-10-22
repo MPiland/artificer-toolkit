@@ -5,6 +5,7 @@ import {
   hitPointPoolDiceOptions,
   hitPointPoolIsAuthored
 } from '../../encounterAreaAction.js'
+import { shapeExtent } from '../../shapeMeasurement.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionCompiler.js'
@@ -57,16 +58,7 @@ export function isSupportedArea(
     )
       return false
   }
-  const size =
-    shape.shapeKind === 'CUBE'
-      ? shape.edgeLength
-      : shape.shapeKind === 'CONE' || shape.shapeKind === 'LINE' || shape.shapeKind === 'WALL'
-        ? shape.length
-        : shape.shapeKind === 'SPHERE' ||
-            shape.shapeKind === 'CYLINDER' ||
-            shape.shapeKind === 'CIRCLE'
-          ? shape.radius
-          : null
+  const size = shapeExtent(shape)
   return (
     size !== null &&
     size.scaling === undefined &&
