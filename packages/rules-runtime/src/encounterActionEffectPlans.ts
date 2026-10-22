@@ -25,6 +25,10 @@ import type {
   CharacterRuleActionActiveEffectPlan
 } from './characterRuleActionSystemAdapter.js'
 
+type RiderEndsWith = NonNullable<
+  CharacterRuleActionActiveEffectPlan['marginRiders'][number]['endsWith']
+>
+
 export class EncounterActionEffectPlanError extends Error {}
 
 /**
@@ -75,8 +79,8 @@ export function compileEffectGraph(
 export type EffectPlan = {
   definition: ReturnType<typeof activeRuleEffectDefinitionDtoSchema.parse>
   lifecycle: ReturnType<typeof activeRuleEffectLifecycleDtoSchema.parse>
-  /** Set on a rider that ends with the recurring effect that created it (D172); `linkedEffectId` is set at creation. */
-  linksToPrimary?: true
+  /** Set on a rider that ends with another effect of its action (D172); `linkedEffectId` is set at creation. */
+  endsWith?: RiderEndsWith
 }
 
 /** Builds immutable effect definitions from one already-completed Encounter action. */
@@ -138,12 +142,13 @@ export function prepareEncounterActionEffectPlans(input: {
   stateEffect: EffectPlan | null
   recurringEffect: EffectPlan | null
   /**
-   * The second effect the action adds beside the recurring effect: a failure-margin rider's
-   * conditions, created only when the save failed by the margin (which the caller reads from the
-   * rider's applied conditions), or a source immunity (a successful save's, or a grant's lockout on
-   * every target). Two never meet.
+   * The effects the action adds beside the recurring effect, one per planned rider and in its
+   * order: a failure-margin rider's or a timed band condition's conditions, each created only when
+   * its conditions were applied (which the caller reads from them), or the one source immunity (a
+   * successful save's, or a grant's lockout on every target). A rider not created is null, so
+   * `endsWith` indices stay valid. Immunity and riders never meet.
    */
-  riderEffect: EffectPlan | null
+  riderEffects: (EffectPlan | null)[]
   relationshipConditionApplications: readonly Extract<
     CharacterRuleActionApplication,
     { kind: 'CONDITION_APPLY' }
@@ -152,36 +157,35 @@ export function prepareEncounterActionEffectPlans(input: {
   const stateEffect = prepareTargetStateEffect(input)
   const recurringEffect = prepareRecurringActiveEffect(input)
   const plan = input.activeEffectPlan
-  const rider = plan?.marginRider ?? null
-  // The rider shares the effect's duration graph under its own entry, and ends on its own triggers.
+  // A rider shares the effect's duration graph under its own entry, and ends on its own triggers.
   const immunity = plan?.sourceImmunity ?? null
-  const riderEffect =
+  const riderEffects =
     immunity &&
     (immunity.appliesTo === 'EVERY_TARGET' || input.d20?.resultPath === 'ON_SAVE_SUCCESS')
-      ? prepareSourceImmunityEffect(input)
+      ? [prepareSourceImmunityEffect(input)]
       : plan?.repeatCarrier
-        ? prepareRepeatCarrierEffect(input)
-        : plan && rider
-          ? withPrimaryLink(
-              prepareRecurringActiveEffect({
-                ...input,
-                activeEffectPlan: {
-                  ...plan,
-                  compiledEntryId: rider.compiledEntryId,
-                  frozenGraphNodeId: rider.frozenGraphNodeId,
-                  conditionContributions: rider.conditionContributions,
-                  initialRemaining: rider.initialRemaining ?? plan.initialRemaining,
-                  lifecycle: {
-                    consumeOnFirstEvents: [],
-                    endOnEvents: [],
-                    endOnTriggers: rider.lifecycle.endOnTriggers
-                  },
-                  marginRider: null
-                }
-              }),
-              rider.linksToPrimary
-            )
-          : null
+        ? [prepareRepeatCarrierEffect(input)]
+        : (plan?.marginRiders ?? []).map((rider) => {
+            const effect = prepareRecurringActiveEffect({
+              ...input,
+              activeEffectPlan: {
+                ...plan!,
+                compiledEntryId: rider.compiledEntryId,
+                frozenGraphNodeId: rider.frozenGraphNodeId,
+                conditionContributions: rider.conditionContributions,
+                initialRemaining: rider.initialRemaining ?? plan!.initialRemaining,
+                lifecycle: {
+                  consumeOnFirstEvents: [],
+                  endOnEvents: [],
+                  endOnTriggers: rider.lifecycle.endOnTriggers
+                },
+                marginRiders: []
+              }
+            })
+            return effect && rider.endsWith !== null
+              ? { ...effect, endsWith: rider.endsWith }
+              : effect
+          })
   const relationshipApplications =
     recurringEffect && input.activeEffectPlan?.actorRelationshipContribution
       ? relationshipConditionApplications({
@@ -193,28 +197,41 @@ export function prepareEncounterActionEffectPlans(input: {
   return {
     stateEffect,
     recurringEffect,
-    riderEffect,
+    riderEffects,
     relationshipConditionApplications: relationshipApplications
   }
 }
 
-/**
- * The rider's plan once the recurring effect it ends with exists (D172): it names that effect, so
- * whatever ends it ends the rider in the same transaction. Every root that creates both effects
- * from one action calls this before creating the rider; a rider with no recurring effect to follow
- * (its target holds none) is created unlinked and lasts its own duration.
- */
-export function linkedRiderPlan(
-  rider: EffectPlan | null,
-  recurring: { readonly id: string } | null
-): EffectPlan | null {
-  if (!rider?.linksToPrimary || !recurring) return rider
-  const { linksToPrimary: _linked, ...plan } = rider
-  return { ...plan, definition: { ...plan.definition, linkedEffectId: recurring.id } }
-}
+/** A rider's seed in a deterministic effect id: the first keeps the bare name every action has used. */
+export const riderEffectKey = (index: number) => (index === 0 ? 'RIDER' : `RIDER${index + 1}`)
 
-function withPrimaryLink(effect: EffectPlan | null, linksToPrimary: boolean) {
-  return effect && linksToPrimary ? { ...effect, linksToPrimary: true as const } : effect
+/**
+ * Creates a plan's riders in order, each naming (D172) the effect it ends with: the recurring
+ * effect, or an earlier rider. Whatever ends that effect ends the rider in the same transaction.
+ * Every root that creates an action's effects calls this, so the link is made one way. A rider whose
+ * target was not created (its target holds none) is created unlinked and lasts its own duration.
+ */
+export function createLinkedRiders<TRecord extends { readonly id: string }>(
+  riders: readonly (EffectPlan | null)[],
+  recurring: { readonly id: string } | null,
+  create: (plan: EffectPlan | null, index: number) => TRecord | null
+): (TRecord | null)[] {
+  const created: (TRecord | null)[] = []
+  for (const [index, rider] of riders.entries()) {
+    if (rider?.endsWith === undefined) {
+      created.push(create(rider, index))
+      continue
+    }
+    const { endsWith, ...plan } = rider
+    const target = endsWith === 'PRIMARY' ? recurring : (created[endsWith] ?? null)
+    created.push(
+      create(
+        target ? { ...plan, definition: { ...plan.definition, linkedEffectId: target.id } } : plan,
+        index
+      )
+    )
+  }
+  return created
 }
 
 /**
@@ -716,7 +733,7 @@ function prepareRepeatCarrierEffect(
       initialRemaining: null,
       recurrenceStage: 'NONE',
       lifecycle: undefined,
-      marginRider: null,
+      marginRiders: [],
       repeatCarrier: null
     }
   })

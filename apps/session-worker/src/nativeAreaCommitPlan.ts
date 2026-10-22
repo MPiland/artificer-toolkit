@@ -14,7 +14,7 @@ import {
   prepareNativeIncomingDamageGrantTriggers
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
-import { linkedRiderPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
+import { createLinkedRiders } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import {
   buildEncounterJoinedMaintenanceTransition,
   buildEncounterMaintenanceTransition
@@ -224,13 +224,16 @@ export async function planAreaOutcomes(args: {
         ...effectInput,
         maintainedEffectStateId: joined?.id
       })
-    const riderPlan = linkedRiderPlan(effects.riderEffect, recurringEffect)
-    const riderEffect =
-      riderPlan &&
-      createNativeActiveEffect(riderPlan, {
-        ...effectInput,
-        maintainedEffectStateId: effects.riderMaintained ? joined?.id : undefined
-      })
+    const riderEffects = createLinkedRiders(
+      effects.riderEffects,
+      recurringEffect,
+      (plan) =>
+        plan &&
+        createNativeActiveEffect(plan, {
+          ...effectInput,
+          maintainedEffectStateId: effects.riderMaintained ? joined?.id : undefined
+        })
+    )
     const firstEntry = kept.findIndex((entry) => entry.actor.id === actor.id) === index
     // The effect of a reaction the creature used on being chosen lands with its first outcome.
     const reaction = firstEntry ? reactionEffects?.get(actor.id) : undefined
@@ -243,14 +246,14 @@ export async function planAreaOutcomes(args: {
     const created = [
       stateEffect,
       recurringEffect,
-      riderEffect,
+      ...riderEffects,
       reactionRecord,
       ...grantRecords
     ].flatMap((effect) => (effect ? [effect] : []))
     const effectTransitions = projectNativeActionEffectTransitions({
       state: stateEffect,
       recurring: recurringEffect,
-      rider: riderEffect,
+      riders: riderEffects,
       targetActorId: actor.id
     })
     const createdDependentEffectIds = effectTransitions.activeEffectTransitions.map(

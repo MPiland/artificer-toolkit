@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
-import { linkedRiderPlan } from '../encounterActionEffectPlans.js'
+import { createLinkedRiders } from '../encounterActionEffectPlans.js'
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
-import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import {
+  creatureFeature,
+  srdCondition,
+  srdCreatureActor,
+  testUuid
+} from '../testing/dnd5eSrdEncounter.js'
 import {
   prepareCreatureAction,
   settleCreatureAction,
@@ -68,19 +73,23 @@ describe('the Giant Centipede’s venom (SPELLS-33 T4i3c)', () => {
 
   it('holds the poison for an hour and the paralysis only while that poison lasts (D172)', async () => {
     const { effects } = await bite(SAVE_FAILS, 20)
-    const { recurringEffect, riderEffect } = effects
+    const { recurringEffect, riderEffects } = effects
+    const [riderEffect] = riderEffects
     if (!recurringEffect || !riderEffect)
       throw new Error('The venom planned no poison or paralysis.')
     expect(recurringEffect.definition.linkedEffectId).toBeNull()
-    expect(riderEffect.linksToPrimary).toBe(true)
-    expect(linkedRiderPlan(riderEffect, { id: testUuid(0x2604) })?.definition.linkedEffectId).toBe(
-      testUuid(0x2604)
-    )
+    expect(riderEffect.endsWith).toBe('PRIMARY')
+    const created = (plans: typeof riderEffects, recurring: { id: string } | null) =>
+      createLinkedRiders(
+        plans,
+        recurring,
+        (plan) => plan && { id: testUuid(0x2605), definition: plan.definition }
+      )[0]?.definition
+    const poison = { id: testUuid(0x2604) }
+    expect(created(riderEffects, poison)?.linkedEffectId).toBe(poison.id)
     // A rider with no poison to follow, and a plan that links to nothing, keep their own lifetime.
-    expect(linkedRiderPlan(riderEffect, null)?.definition.linkedEffectId).toBeNull()
-    expect(
-      linkedRiderPlan(recurringEffect, { id: testUuid(0x2604) })?.definition.linkedEffectId
-    ).toBeNull()
+    expect(created(riderEffects, null)?.linkedEffectId).toBeNull()
+    expect(created([recurringEffect], poison)?.linkedEffectId).toBeNull()
     for (const effect of [recurringEffect, riderEffect]) {
       expect(effect.definition.recurrence).toMatchObject({
         expiration: { kind: 'TICKS', initialRemaining: 600 }
@@ -95,7 +104,7 @@ describe('the Giant Centipede’s venom (SPELLS-33 T4i3c)', () => {
     ] as const) {
       const { effects } = await bite(saveFace, hitPoints)
       expect(effects.recurringEffect).toBeNull()
-      expect(effects.riderEffect).toBeNull()
+      expect(effects.riderEffects.filter(Boolean)).toEqual([])
     }
   })
 
@@ -152,7 +161,7 @@ describe('the Giant Centipede’s venom (SPELLS-33 T4i3c)', () => {
     expect(result.effects.recurringEffect?.definition.recurrence).toMatchObject({
       expiration: { initialRemaining: 600 }
     })
-    expect(result.effects.riderEffect).toBeNull()
+    expect(result.effects.riderEffects.filter(Boolean)).toEqual([])
   })
 
   // Parity (ADR 0038): the same venom written out in core options alone plays like the SRD data.
@@ -236,5 +245,93 @@ describe('the Giant Centipede’s venom (SPELLS-33 T4i3c)', () => {
         kinds(await bite(saveFace, hitPoints))
       )
     }
+  })
+
+  // SPELLS-33 T4i3g: a band of more than two timed conditions compiles, each beyond the first a rider.
+  describe('a band of four timed conditions', () => {
+    const blindedId = testUuid(0x2621)
+    const frightenedId = testUuid(0x2622)
+    const hour = (id: string) => ({ id, durationKind: 'HOUR' as const, amount: 1 })
+    const extra = (id: string, name: string, endsWithOutcomeId: string, durationId: string) => ({
+      id,
+      effectKind: 'CONDITION' as const,
+      conditionId: srdCondition(name),
+      duration: hour(durationId),
+      endsWithOutcomeId
+    })
+    // Blinded ends with the paralysis, which ends with the poison; frightened ends with the poison.
+    const crowded: CreatureAuthored = {
+      ...CENTIPEDE,
+      features: CENTIPEDE.features?.map((feature) =>
+        feature.label !== 'Bite'
+          ? feature
+          : {
+              ...feature,
+              effects: feature.effects?.map((effect) => ({
+                ...effect,
+                paths: effect.paths.map((path) =>
+                  path.selectionKind !== 'FIXED'
+                    ? path
+                    : {
+                        ...path,
+                        resultBlock: {
+                          ...path.resultBlock,
+                          outcomes: path.resultBlock.outcomes.map((outcome) => {
+                            if (
+                              outcome.effectKind !== 'FOLLOW_UP_SAVE' ||
+                              outcome.onFailure.kind !== 'OUTCOMES'
+                            )
+                              return outcome
+                            const [damage, stabilize, poison, paralysis] =
+                              outcome.onFailure.outcomes
+                            if (!damage || !stabilize || !poison || !paralysis)
+                              throw new Error('The venom band changed shape.')
+                            return {
+                              ...outcome,
+                              onFailure: {
+                                ...outcome.onFailure,
+                                outcomes: [
+                                  damage,
+                                  stabilize,
+                                  poison,
+                                  paralysis,
+                                  extra(blindedId, 'Blinded', paralysis.id, testUuid(0x2623)),
+                                  extra(frightenedId, 'Frightened', poison.id, testUuid(0x2624))
+                                ]
+                              }
+                            }
+                          })
+                        }
+                      }
+                )
+              }))
+            }
+      )
+    }
+
+    it('applies every condition and creates a rider for each beyond the first', async () => {
+      const result = await bite(SAVE_FAILS, 20, crowded)
+      expect(kinds(result).filter((kind) => kind === 'CONDITION_APPLY')).toHaveLength(4)
+      const { recurringEffect, riderEffects } = result.effects
+      expect(recurringEffect?.definition.linkedEffectId).toBeNull()
+      expect(riderEffects.map((effect) => effect?.endsWith)).toEqual(['PRIMARY', 'PRIMARY', 0])
+      expect(riderEffects).toHaveLength(3)
+    })
+
+    it('links each rider to the effect it ends with, an earlier rider included', async () => {
+      const { effects } = await bite(SAVE_FAILS, 20, crowded)
+      const ids = [testUuid(0x2630), testUuid(0x2631), testUuid(0x2632)]
+      const poison = { id: testUuid(0x2633) }
+      const created = createLinkedRiders(
+        effects.riderEffects,
+        poison,
+        (plan, index) => plan && { id: ids[index]!, definition: plan.definition }
+      )
+      expect(created.map((record) => record?.definition.linkedEffectId)).toEqual([
+        poison.id,
+        poison.id,
+        ids[0]
+      ])
+    })
   })
 })

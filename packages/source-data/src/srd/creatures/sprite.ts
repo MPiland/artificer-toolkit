@@ -199,6 +199,7 @@ export const sprite: CreatureAuthored = {
                     failureMarginRider: {
                       id: S.actionId(260, 222),
                       failedBy: 5,
+                      endsWithOutcomeId: S.actionId(260, 220),
                       outcomes: [
                         {
                           id: S.actionId(260, 223),

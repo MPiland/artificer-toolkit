@@ -1090,7 +1090,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Ending:** when a linked-to effect ends, its dependents end in the same transaction and the same receipt. Undo and replay restore them together.
   - **As scoped (2026-10-22):** a pure `withLinkedDependents` closure applies this at the existing early-end seams: turn-effect terminal, damage and event ends, the Sheet end and rest. No path today ends a condition effect early through a cure or a GM condition edit, so those wait until one exists (future-enhancements). The rider creation roots set `linkedEffectId` through one shared creation path.
   - **Compile refusals:** a link to an outcome that is not a sibling CONDITION in the same band, a self-link and a cycle each fail closed with a named error.
-  - **Follow-up:** the D149 Drow rider adopts the link (SPELLS-33.T4i3f). Its deferred edge case closes when that ships.
+  - **Follow-up:** the D149 Drow rider adopts the link (SPELLS-33.T4i3f). Shipped as SPELLS-33.T4i3f: `failureMarginRider.endsWithOutcomeId` (the rider may name only its save's one condition); the Drow, Pseudodragon and Sprite riders link, so the D149 deferred edge case is closed for every seam that ends the poison through the linked-end cascade.
+  - **Shipped as SPELLS-33.T4i3g:** the single `marginRider` is a `marginRiders` list (at most `MAX_ACTION_RIDERS` = 3), so a band of up to four timed conditions compiles as a chain, a fan-out or both; a rider's `endsWith` is `'PRIMARY'` or an earlier rider's index, and the roots link them through `createLinkedRiders`.
   - **Rejected:** per-condition end triggers inside one effect (D149), and an independent 1-hour paralysis that outlives an early cure.
 
 ## Approved implementation decisions

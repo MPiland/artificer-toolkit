@@ -3,11 +3,13 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/author
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
+import { createLinkedRiders } from '../encounterActionEffectPlans.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import {
   actionUsedOnHolderEndedEffects,
   targetEndedEffects
 } from '../encounterEndedEffectRelease.js'
+import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import {
   ENCOUNTER_ID,
@@ -86,7 +88,7 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
         expiration: { kind: 'TICKS', initialRemaining: turns }
       })
       // The sleep is its own effect: it lasts as long as the poison, or until it is woken.
-      expect(asleep.effects.riderEffect?.definition).toMatchObject({
+      expect(asleep.effects.riderEffects[0]?.definition).toMatchObject({
         recurrence: {
           endOnTriggers: WAKE_TRIGGERS,
           expiration: { kind: 'TICKS', initialRemaining: turns }
@@ -99,9 +101,108 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
       const poisoned = await attackOgre(attacker, feature, [...hit, marginFace + 1])
       expect(poisoned.conditionIds).toEqual([POISONED])
       expect(poisoned.effects.recurringEffect).not.toBeNull()
-      expect(poisoned.effects.riderEffect).toBeNull()
+      expect(poisoned.effects.riderEffects.filter(Boolean)).toEqual([])
     }
   )
+
+  it.each(ATTACKS)(
+    '$creature’s sleep lasts only while its poison does (D172)',
+    async ({ creature, feature, hit, marginFace }) => {
+      const { effects } = await attackOgre(srdByLabel(SRD.creatures, creature), feature, [
+        ...hit,
+        marginFace
+      ])
+      const { recurringEffect, riderEffects } = effects
+      if (!recurringEffect || !riderEffects[0]) throw new Error(`${creature} planned no sleep.`)
+      expect(riderEffects[0].endsWith).toBe('PRIMARY')
+      expect(recurringEffect).not.toHaveProperty('endsWith')
+      const poison = { id: testUuid(0x2208) }
+      const created = (recurring: typeof poison | null) =>
+        createLinkedRiders(
+          riderEffects,
+          recurring,
+          (plan) => plan && { id: testUuid(0x2209), definition: plan.definition }
+        )[0]?.definition
+      expect(created(poison)?.linkedEffectId).toBe(poison.id)
+      expect(created(null)?.linkedEffectId).toBeNull()
+    }
+  )
+
+  it('ends the sleep with the poison and the poison not with the sleep', () => {
+    const owner = {
+      kind: 'ENCOUNTER_ACTOR' as const,
+      encounterId: ENCOUNTER_ID,
+      targetActorId: TARGET_ID
+    }
+    const poison = activeEffect({
+      id: testUuid(0x2209),
+      owner,
+      createdOrdinal: 1,
+      endOnEvents: ['ON_ATTACK_ROLL'],
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: POISONED, baselinePresent: false }
+      ]
+    })
+    const sleep = activeEffect({
+      id: testUuid(0x220a),
+      owner,
+      createdOrdinal: 2,
+      linkedEffectId: poison.id,
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: UNCONSCIOUS, baselinePresent: false }
+      ]
+    })
+    const attack = [
+      { kind: 'ACTION' as const, attackRoll: true, spellCast: false, againstEnemy: false }
+    ]
+    expect(
+      discoverEncounterEventHooks({ effects: [poison, sleep], events: attack }).ended.map(
+        ({ id }) => id
+      )
+    ).toEqual([poison.id, sleep.id])
+    expect(discoverEncounterEventHooks({ effects: [sleep], events: attack }).ended).toEqual([])
+  })
+
+  it('refuses a rider that ends with anything but its save’s one condition', async () => {
+    const drow = srdByLabel(SRD.creatures, 'Drow')
+    const linkedTo = (endsWithOutcomeId: string): CreatureAuthored => ({
+      ...drow,
+      features: drow.features?.map((feature) =>
+        feature.label !== 'Hand Crossbow'
+          ? feature
+          : {
+              ...feature,
+              effects: feature.effects?.map((effect) => ({
+                ...effect,
+                paths: effect.paths.map((path) =>
+                  path.selectionKind !== 'FIXED'
+                    ? path
+                    : {
+                        ...path,
+                        resultBlock: {
+                          ...path.resultBlock,
+                          outcomes: path.resultBlock.outcomes.map((outcome) =>
+                            outcome.effectKind === 'FOLLOW_UP_SAVE' && outcome.failureMarginRider
+                              ? {
+                                  ...outcome,
+                                  failureMarginRider: {
+                                    ...outcome.failureMarginRider,
+                                    endsWithOutcomeId
+                                  }
+                                }
+                              : outcome
+                          )
+                        }
+                      }
+                )
+              }))
+            }
+      )
+    })
+    await expect(
+      attackOgre(linkedTo(testUuid(0x220b)), 'Hand Crossbow', [9, 0, 4])
+    ).rejects.toThrow(/no discovered action/)
+  })
 
   it('ends the sleep on damage or a Rouse while the poison stays', async () => {
     const { effects } = await attackOgre(
@@ -109,7 +210,10 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
       'Sting',
       [9, 0, 2]
     )
-    const { recurringEffect, riderEffect } = effects
+    const {
+      recurringEffect,
+      riderEffects: [riderEffect]
+    } = effects
     if (!recurringEffect || !riderEffect) throw new Error('The sting planned no poison or sleep.')
     const owner = {
       kind: 'ENCOUNTER_ACTOR' as const,
@@ -208,6 +312,7 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
                                   failureMarginRider: {
                                     id: testUuid(0x2210),
                                     failedBy: 5,
+                                    endsWithOutcomeId: testUuid(0x2213),
                                     outcomes: [
                                       {
                                         id: testUuid(0x2211),
@@ -236,11 +341,12 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
     }
     const played = async (creature: CreatureAuthored, saveFace: number) => {
       const { conditionIds, effects } = await attackOgre(creature, 'Shortbow', [9, saveFace])
-      const rider = effects.riderEffect?.definition
+      const rider = effects.riderEffects[0]?.definition
       return {
         conditionIds: [...conditionIds].sort(),
         rider: rider
           ? {
+              linkedTo: effects.riderEffects[0]?.endsWith,
               recurrence: rider.recurrence,
               stateContributions: 'stateContributions' in rider ? rider.stateContributions : null
             }
