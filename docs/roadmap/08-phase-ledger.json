@@ -3971,7 +3971,7 @@
             {
               "id": "RULES-2.T6e3b2",
               "text": "First Aid on the generic check flow (D173): parity against the existing First Aid, basic-action check and death-save cases; the BASIC_ACTION_CHECK output, STABILIZED/FAILED/NOT_DYING enum, StabilizeCheckSettlement, bespoke settlement/response persistence and actionRevert branch removed; undo through the generic receipt, restoring a successful check outcome (b1a refuses that undo) so First Aid stays undoable; a stored old receipt fails closed by name; the not-dying gate generalized as a data-declared outcome precondition warned before the roll (D173 Q1).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 2,
@@ -3980,7 +3980,7 @@
                 "size": 3,
                 "after": ["RULES-2.T6e3b1b"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "note": "Merged in m342."
             },
             {
               "id": "RULES-2.T9g",
