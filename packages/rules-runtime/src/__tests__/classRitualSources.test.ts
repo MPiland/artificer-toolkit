@@ -5,11 +5,11 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 
 import { assembleClassRitualSources } from '../character/classRitualSources.js'
 
-const SPELLS = [
+const SPELLS: Parameters<typeof assembleClassRitualSources>[2] = [
   { id: 'rite', attributes: [SPELL_ATTRIBUTE.RITUAL] },
   { id: 'bolt', attributes: [SPELL_ATTRIBUTE.CONCENTRATION] },
   { id: 'plain' }
-] as const
+]
 
 function characterWith(spells: { learned: string[]; prepared: string[] }) {
   return { state: { classes: [{ classId: 'cls', spells }] } } as unknown as CharacterAuthored
