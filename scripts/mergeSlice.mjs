@@ -2,7 +2,7 @@
 // docs/architecture/ci-validation.md#approved-merges). Everything it pushes is a plain push, so a branch
 // that moved meanwhile rejects it; it never force-pushes and never pushes main.
 //   node scripts/mergeSlice.mjs --branch ci/<slice> --sha <tip> --title "<title>"
-//     [--target <phase branch>] [--batch-prefix ci/merge-m]
+//     (or --slices "ci/<a>@<tip>,ci/<b>@<tip>" for one batch) [--target <phase branch>] [--batch-prefix ci/merge-m]
 // Fast path: when the phase branch changed nothing outside docs/ since the slice's merge base, the slice
 // merges --no-ff onto the phase tip, the merge must differ from the slice tree in docs/ only (not at all
 // when the slice contains the phase tip), and after the phase push the merge commit goes to
@@ -62,6 +62,19 @@ export function runsVerdict(runs, workflows = Object.keys(WORKFLOWS)) {
 // Tests select nothing outside the source roots, and no test reads docs/, so a docs-only phase move
 // cannot change what a green run proved.
 export const docsOnly = (paths) => paths.every((path) => path.startsWith('docs/'))
+
+// One dispatch names `--slices "ci/a@<sha>,ci/b@<sha>"` (comma or whitespace separated); a lone
+// --branch/--sha pair is the single-slice form.
+export function parseSlices({ branch = '', sha = '', slices = '' }) {
+  const listed = slices.split(/[\s,]+/).filter(Boolean)
+  if (listed.length === 0) return [{ branch, sha }]
+  if (branch || sha) throw new MergeRefused('Name either branch and sha or slices, not both.')
+  return listed.map((pair) => {
+    const [name = '', tip = '', ...rest] = pair.split('@')
+    if (!tip || rest.length > 0) throw new MergeRefused(`${pair} is not <branch>@<sha>.`)
+    return { branch: name, sha: tip }
+  })
+}
 
 export function validateInputs({ branch, sha, title, target, batchPrefix }) {
   if (
@@ -212,48 +225,9 @@ function nextBatchNumber(tools, batchPrefix) {
   )
 }
 
-export async function mergeSlice({ branch, sha, title, target, batchPrefix }, tools = realTools) {
-  validateInputs({ branch, sha, title, target, batchPrefix })
-  if (remoteSha(tools, branch) !== sha)
-    throw new MergeRefused(`${branch} is not at ${sha}; the tip moved.`)
-  await waitForGreen(tools, sha, branch)
-
-  git(
-    tools,
-    'fetch',
-    '--quiet',
-    'origin',
-    sha,
-    `+refs/heads/${target}:refs/remotes/origin/${target}`
-  )
-  const phaseTip = git(tools, 'rev-parse', `origin/${target}`)
-  const mergeBase = git(tools, 'merge-base', sha, phaseTip)
-  const phaseChanges = lines(git(tools, 'diff', '--name-only', '--no-renames', mergeBase, phaseTip))
-  const number = nextBatchNumber(tools, batchPrefix)
-  const batch = `${batchPrefix}${number}`
-  const message = `${title.trim()} (m${number})`
-
-  if (docsOnly(phaseChanges)) {
-    git(tools, 'checkout', '--quiet', '--detach', phaseTip)
-    const merge = commitMerge(tools, sha, message)
-    const outsideSlice = lines(git(tools, 'diff', '--name-only', '--no-renames', sha, merge))
-    if (!docsOnly(outsideSlice))
-      throw new MergeRefused(
-        `The merge differs from the slice tree outside docs/: ${outsideSlice.join(', ')}.`
-      )
-    push(tools, merge, target)
-    push(tools, merge, batch)
-    for (const name of Object.keys(WORKFLOWS)) dispatchRun(tools, batch, name)
-    return tools.log(
-      `Fast path: ${branch} merged into ${target} as ${merge}; full-run backstop on ${batch}.`
-    )
-  }
-
-  git(tools, 'checkout', '--quiet', '--detach', sha)
-  const merge = commitMerge(tools, phaseTip, message)
-  push(tools, merge, batch)
-  await waitForGreen(tools, merge, batch)
-
+// The batch is green: the phase branch fast-forwards to it, or takes one more --no-ff merge when it
+// moved meanwhile by docs/ only.
+function landBatch(tools, { merge, batch, phaseTip, target, number }) {
   git(tools, 'fetch', '--quiet', 'origin', `+refs/heads/${target}:refs/remotes/origin/${target}`)
   const phaseNow = git(tools, 'rev-parse', `origin/${target}`)
   if (phaseNow === phaseTip) {
@@ -268,6 +242,89 @@ export async function mergeSlice({ branch, sha, title, target, batchPrefix }, to
   tools.log(`Batch ${batch} green; merged into ${target} as ${docsMerge} over its docs-only move.`)
 }
 
+// `slices` is a list of { branch, sha }; a lone `branch` and `sha` is the single-slice form. Every tip
+// must be unchanged and green on its own runs first. Several slices merge in order onto the phase tip
+// into one batch commit that Tests and Live run on once; any refusal pushes nothing to the phase branch.
+export async function mergeSlice(
+  { branch, sha, slices = parseSlices({ branch, sha }), title, target, batchPrefix },
+  tools = realTools
+) {
+  const names = slices.map((slice) => slice.branch)
+  if (new Set(names).size !== names.length)
+    throw new MergeRefused(`A slice is named twice: ${names.join(', ')}.`)
+  for (const slice of slices) validateInputs({ ...slice, title, target, batchPrefix })
+  for (const slice of slices)
+    if (remoteSha(tools, slice.branch) !== slice.sha)
+      throw new MergeRefused(`${slice.branch} is not at ${slice.sha}; the tip moved.`)
+  for (const slice of slices) {
+    try {
+      await waitForGreen(tools, slice.sha, slice.branch)
+    } catch (error) {
+      if (error instanceof MergeRefused)
+        throw new MergeRefused(`${slice.branch}: ${error.message}`, { cause: error })
+      throw error
+    }
+  }
+
+  git(
+    tools,
+    'fetch',
+    '--quiet',
+    'origin',
+    ...slices.map((slice) => slice.sha),
+    `+refs/heads/${target}:refs/remotes/origin/${target}`
+  )
+  const phaseTip = git(tools, 'rev-parse', `origin/${target}`)
+  const number = nextBatchNumber(tools, batchPrefix)
+  const batchBranch = `${batchPrefix}${number}`
+  const message = `${title.trim()} (m${number})`
+
+  if (slices.length > 1) {
+    git(tools, 'checkout', '--quiet', '--detach', phaseTip)
+    for (const slice of slices) {
+      try {
+        commitMerge(tools, slice.sha, message)
+      } catch (error) {
+        if (error instanceof MergeRefused) {
+          git(tools, 'merge', '--abort')
+          throw new MergeRefused(`${slice.branch}: ${error.message}`, { cause: error })
+        }
+        throw error
+      }
+    }
+    const merge = git(tools, 'rev-parse', 'HEAD')
+    push(tools, merge, batchBranch)
+    await waitForGreen(tools, merge, batchBranch)
+    return landBatch(tools, { merge, batch: batchBranch, phaseTip, target, number })
+  }
+
+  const [{ branch: only, sha: tip }] = slices
+  const mergeBase = git(tools, 'merge-base', tip, phaseTip)
+  const phaseChanges = lines(git(tools, 'diff', '--name-only', '--no-renames', mergeBase, phaseTip))
+
+  if (docsOnly(phaseChanges)) {
+    git(tools, 'checkout', '--quiet', '--detach', phaseTip)
+    const merge = commitMerge(tools, tip, message)
+    const outsideSlice = lines(git(tools, 'diff', '--name-only', '--no-renames', tip, merge))
+    if (!docsOnly(outsideSlice))
+      throw new MergeRefused(
+        `The merge differs from the slice tree outside docs/: ${outsideSlice.join(', ')}.`
+      )
+    push(tools, merge, target)
+    push(tools, merge, batchBranch)
+    for (const name of Object.keys(WORKFLOWS)) dispatchRun(tools, batchBranch, name)
+    return tools.log(
+      `Fast path: ${only} merged into ${target} as ${merge}; full-run backstop on ${batchBranch}.`
+    )
+  }
+
+  git(tools, 'checkout', '--quiet', '--detach', tip)
+  const merge = commitMerge(tools, phaseTip, message)
+  push(tools, merge, batchBranch)
+  await waitForGreen(tools, merge, batchBranch)
+  landBatch(tools, { merge, batch: batchBranch, phaseTip, target, number })
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2)
   const option = (name, fallback) => {
@@ -275,13 +332,17 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     return index >= 0 ? (args[index + 1] ?? '') : fallback
   }
   process.chdir(resolve(import.meta.dirname, '..'))
-  mergeSlice({
-    branch: option('--branch', ''),
-    sha: option('--sha', ''),
-    title: option('--title', ''),
-    target: option('--target', 'codex/phase-08-2-convex-cutover'),
-    batchPrefix: option('--batch-prefix', 'ci/merge-m')
-  }).catch((error) => {
+  ;(async () =>
+    mergeSlice({
+      slices: parseSlices({
+        branch: option('--branch', ''),
+        sha: option('--sha', ''),
+        slices: option('--slices', '')
+      }),
+      title: option('--title', ''),
+      target: option('--target', 'codex/phase-08-2-convex-cutover'),
+      batchPrefix: option('--batch-prefix', 'ci/merge-m')
+    }))().catch((error) => {
     console.error(
       error instanceof MergeRefused ? `Refused, nothing more pushed: ${error.message}` : error
     )

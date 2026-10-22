@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   docsOnly,
   mergeSlice,
+  parseSlices,
   MergeRefused,
   nextMergeNumber,
   runsVerdict,
@@ -206,7 +207,11 @@ describe('mergeSlice waiting on dispatched runs', () => {
         workflowName: state.name,
         createdAt: new Date(state.at).toISOString(),
         status: done ? 'completed' : 'in_progress',
-        conclusion: done ? conclusion : ''
+        conclusion: done
+          ? typeof conclusion === 'function'
+            ? conclusion(state.ref)
+            : conclusion
+          : ''
       }
     }
     const gh = (args) => {
@@ -215,7 +220,7 @@ describe('mergeSlice waiting on dispatched runs', () => {
       if (args[0] === 'workflow') {
         const id = String(nextId++)
         const name = Object.entries(WORKFLOWS).find(([, file]) => file === args[2])[0]
-        runs.set(id, { name, at: clock, polls: 0 })
+        runs.set(id, { name, at: clock, polls: 0, ref: args[args.indexOf('--ref') + 1] })
         return printUrl ? `https://github.com/o/r/actions/runs/${id}` : ''
       }
       if (args[0] === 'run' && args[1] === 'view') return JSON.stringify(view(args[2]))
@@ -271,5 +276,125 @@ describe('mergeSlice waiting on dispatched runs', () => {
     const { work, tip } = repo()
     const { tools } = platform(work, { finishAfterPolls: Infinity })
     await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/did not finish/)
+  })
+
+  describe('batching several slices', () => {
+    // Adds ci/slice-<name> off the phase branch with one file; reusing a file name forces a conflict.
+    const addSlice = (work, name, file, content) => {
+      sh(work, 'switch', '-q', '-c', `ci/slice-${name}`, `origin/${PHASE}`)
+      writeFileSync(join(work, file), content)
+      sh(work, 'add', '.')
+      sh(work, 'commit', '-m', `slice ${name}`)
+      sh(work, 'push', '-q', 'origin', `ci/slice-${name}`)
+      return { branch: `ci/slice-${name}`, sha: sh(work, 'rev-parse', 'HEAD') }
+    }
+    const batchInput = (slices) => ({
+      slices,
+      title: 'Merge batch',
+      target: PHASE,
+      batchPrefix: 'ci/merge-m'
+    })
+    const three = () => {
+      const { work, origin } = repo()
+      const slices = [
+        addSlice(work, 'b', 'b.txt', 'b'),
+        addSlice(work, 'c', 'c.txt', 'c'),
+        addSlice(work, 'd', 'd.txt', 'd')
+      ]
+      return { work, origin, slices, before: sh(origin, 'rev-parse', PHASE) }
+    }
+
+    it('merges three slices in order into one batch commit and moves the phase branch once', async () => {
+      const { work, origin, slices, before } = three()
+      const { tools, calls } = platform(work)
+      await mergeSlice(batchInput(slices), tools)
+      const phase = sh(origin, 'rev-parse', PHASE)
+      expect(phase).toBe(sh(origin, 'rev-parse', 'ci/merge-m1'))
+      expect(sh(origin, 'ls-tree', '--name-only', phase).split('\n')).toEqual(
+        expect.arrayContaining(['b.txt', 'c.txt', 'd.txt'])
+      )
+      const merged = sh(origin, 'log', '--first-parent', '--format=%P', `${before}..${phase}`)
+        .split('\n')
+        .map((parents) => parents.split(' ')[1])
+      expect(merged).toEqual(slices.map((slice) => slice.sha).reverse())
+      // Tests and Live run once on the batch commit.
+      expect(calls.filter((call) => call.includes('--ref ci/merge-m1'))).toHaveLength(2)
+    })
+
+    it('refuses the whole batch on a conflict, naming the slice and pushing nothing', async () => {
+      const { work, origin, slices, before } = three()
+      slices.push(addSlice(work, 'e', 'b.txt', 'conflicting'))
+      const { tools } = platform(work)
+      await expect(mergeSlice(batchInput(slices), tools)).rejects.toThrow(
+        /ci\/slice-e: .*conflicts/
+      )
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+      expect(sh(origin, 'branch', '--list', 'ci/merge-m*')).toBe('')
+    })
+
+    it('refuses the whole batch when a tip moved, naming the slice', async () => {
+      const { work, origin, slices, before } = three()
+      sh(work, 'switch', '-q', slices[1].branch)
+      writeFileSync(join(work, 'late.txt'), 'late')
+      sh(work, 'add', '.')
+      sh(work, 'commit', '-m', 'late')
+      sh(work, 'push', '-q', 'origin', slices[1].branch)
+      const { tools } = platform(work)
+      await expect(mergeSlice(batchInput(slices), tools)).rejects.toThrow(/ci\/slice-c is not at/)
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+    })
+
+    it('refuses the whole batch when one slice is red, naming it and pushing nothing', async () => {
+      const { work, origin, slices, before } = three()
+      const { tools } = platform(work, {
+        conclusion: (ref) => (ref === 'ci/slice-d' ? 'failure' : 'success')
+      })
+      await expect(mergeSlice(batchInput(slices), tools)).rejects.toThrow(/ci\/slice-d: Not green/)
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+      expect(sh(origin, 'branch', '--list', 'ci/merge-m*')).toBe('')
+    })
+
+    it('leaves the phase branch alone when the batch commit goes red', async () => {
+      const { work, origin, slices, before } = three()
+      const { tools } = platform(work, {
+        conclusion: (ref) => (ref.startsWith('ci/merge-m') ? 'failure' : 'success')
+      })
+      await expect(mergeSlice(batchInput(slices), tools)).rejects.toThrow(/Not green/)
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+    })
+
+    it('refuses a slice named twice', async () => {
+      const { work, slices } = three()
+      const { tools } = platform(work)
+      await expect(mergeSlice(batchInput([slices[0], slices[0]]), tools)).rejects.toThrow(
+        /named twice/
+      )
+    })
+  })
+
+  describe('parseSlices', () => {
+    const tip = 'a'.repeat(40)
+
+    it('keeps a lone branch and sha as one slice', () => {
+      expect(parseSlices({ branch: 'ci/a', sha: tip })).toEqual([{ branch: 'ci/a', sha: tip }])
+    })
+
+    it('splits branch@sha pairs on commas and whitespace, in order', () => {
+      const slices = parseSlices({ slices: `ci/a@${tip}, ci/b@${tip}\nci/c@${tip}` })
+      expect(slices.map((slice) => slice.branch)).toEqual(['ci/a', 'ci/b', 'ci/c'])
+    })
+
+    it.each([
+      ['a bare branch', 'ci/a'],
+      ['a pair with two @', `ci/a@${tip}@x`]
+    ])('refuses %s', (_, slices) => {
+      expect(() => parseSlices({ slices })).toThrow(MergeRefused)
+    })
+
+    it('refuses both forms at once', () => {
+      expect(() => parseSlices({ branch: 'ci/a', sha: tip, slices: `ci/b@${tip}` })).toThrow(
+        MergeRefused
+      )
+    })
   })
 })
