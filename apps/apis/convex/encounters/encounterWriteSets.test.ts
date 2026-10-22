@@ -105,6 +105,7 @@ function countingReads<Database extends object>(db: Database) {
       if (typeof document === 'object' && document !== null && '_id' in document) {
         counter.documents++
         counter.bytes += bytes({ ...document, _creationTime: MEASURED_CREATION_TIME })
+        console.log('TMPREAD', bytes(document), Object.keys(document).slice(0, 6).join(','))
       }
   }
   const wrap = <Target extends object>(target: Target): Target =>
