@@ -23,20 +23,19 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import {
+  overridesActionEconomy,
+  TARGET_PRECONDITION_WARNING_CODES
+} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { settleActionSourceSpend } from './actionSourceSpend.js'
 import { admitCheckActionSource } from './checkActionSourceAdmission.js'
 import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
-import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
 import type { ApplyEncounterForcedMovements } from './actionCommitRecords.js'
 import { isCheckActionSettlement, settleEncounterCheckAction } from './checkActionSettlement.js'
-import {
-  isConcealmentCheckSettlement,
-  settleEncounterConcealmentCheck
-} from './concealmentCheckSettlement.js'
+import { settleEncounterConcealmentCheck } from './concealmentCheckSettlement.js'
 import { readRunActors } from './documents.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -94,14 +93,17 @@ export async function persistEncounterBasicAction(
   })
   const { source } = admitted
   const { check } = input
-  // A check action rolls its check unless its target was not dying (an acknowledged warning).
-  if (check === null && !input.ruleOverrides.some((warning) => warning.code === 'TARGET_NOT_DYING'))
+  // A check action rolls its check unless it proceeded over its target's unmet outcome precondition.
+  if (
+    check === null &&
+    !input.ruleOverrides.some((warning) => TARGET_PRECONDITION_WARNING_CODES.has(warning.code))
+  )
     throw new Error('Live Session basic action check scope mismatch.')
   if (check === null && input.consumedGrants.length > 0)
     throw new Error('Live Session basic action check scope mismatch.')
   const pendingContext = check?.kind === 'PENDING' ? check.snapshot.applicationContext : null
   const authoredCheck = admitted.check
-  // Only a check action's outcome runs from a Creature feature; stabilizing and concealment do not.
+  // Only a check action's outcome runs from a Creature feature; concealment does not.
   if (
     source.kind !== 'BASIC_ACTION' &&
     (check?.kind === 'PENDING'
@@ -111,8 +113,7 @@ export async function persistEncounterBasicAction(
     throw new Error('Live Session check action source mismatch.')
   if (
     check?.kind === 'PENDING' &&
-    ((pendingContext?.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' &&
-      pendingContext?.kind !== 'ENCOUNTER_CONCEALMENT_CHECK' &&
+    ((pendingContext?.kind !== 'ENCOUNTER_CONCEALMENT_CHECK' &&
       pendingContext?.kind !== 'ENCOUNTER_CHECK_ACTION') ||
       pendingContext.commandId !== command.commandId ||
       pendingContext.commandFingerprint !== fingerprint ||
@@ -122,24 +123,21 @@ export async function persistEncounterBasicAction(
           pendingContext.definition.id !== source.definition.id ||
           pendingContext.definition.version !== source.definition.version ||
           pendingContext.definition.checksum !== source.definition.checksum) ||
-      (pendingContext.kind === 'ENCOUNTER_BASIC_ACTION_CHECK'
-        ? pendingContext.helperActorId !== actor.id ||
-          pendingContext.targetActorId !== targetActorId
-        : pendingContext.kind === 'ENCOUNTER_CHECK_ACTION'
-          ? // The check action resumes from this command, so its pending copy must be this command.
-            pendingContext.actorId !== actor.id ||
-            pendingContext.targetActorId !== targetActorId ||
-            pendingContext.phase.kind !== 'CHECK' ||
-            checksumCanonicalJson(JSON.parse(pendingContext.commandJson)) !== fingerprint ||
-            pendingContext.check.dc !==
-              (authoredCheck.dc.kind === 'FIXED' ? authoredCheck.dc.value : null) ||
-            ![
-              ...authoredCheck.checks.skillIds,
-              ...authoredCheck.checks.abilityDefinitionIds
-            ].includes(pendingContext.check.checkDefinitionId)
-          : pendingContext.actorId !== actor.id ||
-            pendingContext.actionId !== command.actionId ||
-            targetActorId !== actor.id) ||
+      (pendingContext.kind === 'ENCOUNTER_CHECK_ACTION'
+        ? // The check action resumes from this command, so its pending copy must be this command.
+          pendingContext.actorId !== actor.id ||
+          pendingContext.targetActorId !== targetActorId ||
+          pendingContext.phase.kind !== 'CHECK' ||
+          checksumCanonicalJson(JSON.parse(pendingContext.commandJson)) !== fingerprint ||
+          pendingContext.check.dc !==
+            (authoredCheck.dc.kind === 'FIXED' ? authoredCheck.dc.value : null) ||
+          ![
+            ...authoredCheck.checks.skillIds,
+            ...authoredCheck.checks.abilityDefinitionIds
+          ].includes(pendingContext.check.checkDefinitionId)
+        : pendingContext.actorId !== actor.id ||
+          pendingContext.actionId !== command.actionId ||
+          targetActorId !== actor.id) ||
       check.snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
       check.snapshot.graph.source.gameSystemId !== state.gameSystemId)
   )
@@ -190,17 +188,10 @@ export async function persistEncounterBasicAction(
         applyMechanics: callbacks.applyMechanics
       })
       nextActors = settled.actors
-    } else if (isConcealmentCheckSettlement(settlement)) {
+    } else {
       const settled = await settleEncounterConcealmentCheck(ctx, { ...settleInput, settlement })
       nextActors = settled.actors
       endedEffects = settled.endedEffects
-    } else {
-      const settled = await settleEncounterBasicActionCheck(ctx, {
-        ...settleInput,
-        settlement,
-        applyMechanics: callbacks.applyMechanics
-      })
-      nextActors = settled.actors
     }
   }
   const storedOccurrence = check

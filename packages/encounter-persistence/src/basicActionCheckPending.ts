@@ -40,18 +40,12 @@ function readKernelCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto
     : null
 }
 
-/**
- * The frozen check and the paused graph a pending basic action check waits on: a stabilizing
- * check (First Aid) or a concealment check (Hide, Search).
- */
+/** The frozen check and the paused graph a pending concealment check (Hide, Search) waits on. */
 export function readBasicActionCheckSnapshot(
   snapshot: ServerRuleExecutionPendingSnapshotDto | null
 ) {
   const pending = readKernelCheckSnapshot(snapshot)
-  if (
-    pending?.context.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' &&
-    pending?.context.kind !== 'ENCOUNTER_CONCEALMENT_CHECK'
-  )
+  if (pending?.context.kind !== 'ENCOUNTER_CONCEALMENT_CHECK')
     throw new Error('The basic action check occurrence is unavailable.')
   return {
     snapshot: pending.snapshot,
@@ -201,8 +195,7 @@ function projectD20Evidence(
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
     encounterVersion: occurrence.expectedEncounterVersion,
-    rollerActorId:
-      context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' ? context.helperActorId : context.actorId,
+    rollerActorId: context.actorId,
     trigger:
       context.kind === 'ENCOUNTER_CONCEALMENT_CHECK'
         ? encounterConcealmentCheckTrigger(context)

@@ -21,25 +21,23 @@ import { nativeSourceFeatureResourceReceipt } from '@artificer-toolkit/rules-run
 import type { NativeEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { withFeatureChargeUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import {
+  overridesActionEconomy,
+  TARGET_PRECONDITION_WARNING_CODES
+} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
-  completeEncounterBasicActionCheckResult,
   encounterBasicActionCheckPendingSnapshot,
-  encounterBasicActionStabilizeApplication,
   evaluateEncounterBasicActionCheck,
   freezeEncounterActorCheck,
-  prepareEncounterBasicActionCheck,
   startEncounterBasicActionCheck,
   storedCheckResult
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { encounterHeldCheckDice } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
-import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -99,7 +97,7 @@ export function authoredCheckOf(capability: NativeCheckActionSource['capability'
   }
 }
 
-/** A check only a basic action makes (stabilizing, concealment) reads its catalogue entry. */
+/** A check only a basic action makes (concealment) reads its catalogue entry. */
 export function basicCheckCapability(source: NativeCheckActionSource) {
   if (source.kind !== 'BASIC_ACTION')
     throw new EncounterValidationError('Only a basic action makes this check.')
@@ -207,137 +205,14 @@ export function nativeLiveCheckCommitInput(
 }
 
 /**
- * Plans a fixed-DC CHECK action: the actor makes its one authored check against the authored DC,
- * and the outcome runs only when the check reaches it. First Aid's stabilize settles on the check;
- * any other outcome runs after it on its own graph. The check pends
- * on the actor's d20, or settles here when the roller's preference rolls for them (ADR 0034
- * decision 3).
- */
-export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInput) {
-  if (input.prepared.plan.kind === 'TEST_OUTCOME') return planNativeLiveCheckOutcomeAction(input)
-  const { command, state, actor, target } = input
-  const capability = basicCheckCapability(input.source)
-  const { checkKind, checkDefinitionId, dc } = authoredCheckOf(capability)
-  if (dc.kind !== 'FIXED')
-    throw new EncounterValidationError('The selected action makes no fixed-DC check.')
-  const prepared = prepareEncounterBasicActionCheck({
-    gameSystemId: state.gameSystemId,
-    commandId: command.commandId,
-    commandFingerprint: input.fingerprint,
-    definition: {
-      id: capability.definitionId,
-      version: capability.definitionVersion,
-      checksum: capability.definitionChecksum,
-      label: capability.label
-    },
-    system: input.system,
-    check: { checkKind, checkDefinitionId, dc: dc.value },
-    checkLabel: encounterBasicActionCheckLabel(input.system, checkDefinitionId),
-    helper: actor,
-    target
-  })
-  let check: LiveSessionEncounterBasicActionCommitInput['check'] = null
-  if (prepared) {
-    const occurrenceId = crypto.randomUUID()
-    const { context } = prepared
-    const continuation = await startEncounterBasicActionCheck({
-      runtime: input.runtime,
-      gameSystemId: state.gameSystemId,
-      occurrenceId,
-      addedDice: context.d20.addedDice
-    })
-    // A roller holding after-roll dice decides on their own roll, so it pends for their d20 window.
-    const autoRoll =
-      encounterHeldCheckDice(input.system, input.actorEffects, checkDefinitionId).length > 0
-        ? null
-        : input.autoRoll
-    if (!autoRoll)
-      check = {
-        kind: 'PENDING',
-        snapshot: encounterBasicActionCheckPendingSnapshot({
-          continuation,
-          context,
-          optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
-        })
-      }
-    else {
-      const evaluated = await evaluateEncounterBasicActionCheck({
-        gameSystemId: state.gameSystemId,
-        runtime: input.runtime,
-        context,
-        continuation,
-        answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
-        rollD20: () => autoRoll(20) + 1,
-        random: autoRoll,
-        expectedOccurrenceId: occurrenceId
-      })
-      const stabilized = evaluated.reachesDc
-        ? planEncounterMechanicsBatch({
-            batch: {
-              encounterId: state.id,
-              targetActorId: target.actor.id,
-              expectedEncounterVersion: state.version,
-              occurrenceId,
-              sourceCommandId: command.commandId,
-              commandId: deriveEncounterCharacterMechanicsEventCommandId({
-                occurrenceId,
-                sourceCommandId: command.commandId,
-                phase: 'BASIC_ACTION_CHECK',
-                ordinal: 0,
-                targetCharacterId: context.targetCharacterId
-              }),
-              occurredAt: new Date().toISOString(),
-              applications: [encounterBasicActionStabilizeApplication(context.targetActorId)],
-              expectedCharacterStreamVersion:
-                target.characterFacts?.active.play.streamVersion ?? null,
-              effectiveMaximumHitPoints: target.effectiveMaximumHitPoints,
-              damageInterceptions: target.damageInterceptions,
-              effectiveScalarValues: target.effectiveScalarValues,
-              forceVersionAdvance: false
-            },
-            actor: target.actor,
-            userId: input.scope.expectedUserId,
-            ...(target.characterFacts ? { characterFacts: target.characterFacts } : {})
-          })
-        : null
-      const { result } = completeEncounterBasicActionCheckResult({
-        context,
-        continuation,
-        evaluated,
-        targetStillDying: true,
-        transition: stabilized
-          ? {
-              before: stabilized.targetTransition.before,
-              after: stabilized.targetTransition.after,
-              afterStreamVersion: stabilized.characterStreamVersion
-            }
-          : null,
-        occurrenceVersion: 0,
-        initialFactsChecksum: checksumRuleDocument(continuation.facts)
-      })
-      check = {
-        kind: 'SETTLED',
-        settlement: { context, execution: result, appRollId: null }
-      }
-    }
-  }
-  return {
-    kind: 'CHECK' as const,
-    input: nativeLiveCheckCommitInput(input, {
-      check,
-      consumedGrants: prepared?.context.consumedGrants ?? []
-    })
-  }
-}
-
-/**
  * Plans a fixed-DC CHECK action whose success runs its authored outcome on its target (D173): the
  * actor's frozen check rolls against the authored DC, and a success runs the action's sealed
  * ON_CHECK_SUCCESS graph, the same outcome a won contest runs. The check pends on the roller's d20
  * unless their preference rolls for them and they hold no after-roll dice; its answer runs the
- * outcome then (`planNativeLiveCheckActionResponse`).
+ * outcome then (`planNativeLiveCheckActionResponse`). An action that proceeds over its target's
+ * unmet outcome precondition (First Aid on a creature that is not dying) rolls nothing (D173 Q1).
  */
-async function planNativeLiveCheckOutcomeAction(input: NativeLiveCheckActionInput) {
+export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInput) {
   const { source, command, state, actor, target, prepared } = input
   const { checkKind, checkDefinitionId, dc } = authoredCheckOf(source.capability)
   if (dc.kind !== 'FIXED' || prepared.plan.kind !== 'TEST_OUTCOME')
@@ -352,6 +227,12 @@ async function planNativeLiveCheckOutcomeAction(input: NativeLiveCheckActionInpu
     check: { checkKind, checkDefinitionId },
     actor
   })
+  // An actor with no check is refused first, whatever the target.
+  if (input.overrides.some(({ code }) => TARGET_PRECONDITION_WARNING_CODES.has(code)))
+    return {
+      kind: 'CHECK' as const,
+      input: nativeLiveCheckCommitInput(input, { check: null, consumedGrants: [] })
+    }
   const context = encounterCheckActionContextDtoSchema.parse({
     kind: 'ENCOUNTER_CHECK_ACTION',
     schemaVersion: 1,

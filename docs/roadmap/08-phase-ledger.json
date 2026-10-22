@@ -3515,7 +3515,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["RULES-2.T9a"]
+                "after": ["RULES-2.T9a", "RULES-2.T9i"]
               },
               "text": "System vocabulary (split from T9a, 2026-10-21): the shared dice evaluator takes keep; roll evidence gains a required keep and stores mode only for System-governed d20 rolls; manual-roll and Campaign-roll ingress rollMode enums become System codes; dice and evidence labels (web, encounter-persistence) from the vocabulary capability; reseed."
             },
@@ -3542,7 +3542,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["RULES-2.T9a"]
+                "after": ["RULES-2.T9a", "RULES-2.T9i"]
               },
               "text": "System vocabulary (split 2026-10-21): lifecycle consume/end codes and the ATTACK_ROLL and SPELL_CAST traits become System codes with the eventVocabulary table as their one source; neutral structural trigger shapes stay in the schema."
             },
@@ -3555,7 +3555,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 3,
-                "after": ["RULES-2.T9a"]
+                "after": ["RULES-2.T9a", "RULES-2.T9i"]
               },
               "text": "System vocabulary (split 2026-10-21): illumination: codes stay, the System supplies rank, suppressesLight and render class; sceneCombatPerception and vttSceneRenderer read the properties."
             },
@@ -3971,7 +3971,7 @@
             {
               "id": "RULES-2.T6e3b2",
               "text": "First Aid on the generic check flow (D173): parity against the existing First Aid, basic-action check and death-save cases; the BASIC_ACTION_CHECK output, STABILIZED/FAILED/NOT_DYING enum, StabilizeCheckSettlement, bespoke settlement/response persistence and actionRevert branch removed; undo through the generic receipt, restoring a successful check outcome (b1a refuses that undo) so First Aid stays undoable; a stored old receipt fails closed by name; the not-dying gate generalized as a data-declared outcome precondition warned before the roll (D173 Q1).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 2,
@@ -3980,7 +3980,7 @@
                 "size": 3,
                 "after": ["RULES-2.T6e3b1b"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "note": "Merged in m342."
             },
             {
               "id": "RULES-2.T9g",
@@ -3991,14 +3991,14 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["RULES-2.T9b", "SPELLS-31.T5p"]
+                "after": ["RULES-2.T9b", "SPELLS-31.T5p", "RULES-2.T9i"]
               },
               "text": "Pact Magic leaves the neutral character pipeline. The 'PACT' slot-key literals in sheetRest.ts (short-rest reset), characterSpellCastActions.ts, characterOnHitCosts.ts, characterRulePolicyFacts.ts and sheetProjection.ts become System slot-pool capabilities supplied by dnd5e: the pool's code, its label and its reset-on-rest kind. Neutral files read the pools through the gameSystemId registry. The Sheet journey and rest tests stay green.",
-              "note": "Found in the SPELLS-31.T5p review (2026-10-22): these literals predate the slice; D175 keeps the new slotCost.poolCode a System vocabulary code."
+              "note": "Found in the SPELLS-31.T5p review (2026-10-22): these literals predate the slice; D175 keeps the new slotCost.poolCode a System vocabulary code. Per the ADR 0039 amendment, slotCost.poolCode is a System core code, not vocabulary."
             },
             {
               "id": "RULES-2.T9h",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4008,7 +4008,7 @@
                 "after": []
               },
               "text": "Vocabulary vs core inventory (ADR 0039 amendment 2026-10-22). Classify every use of the hard-coded lists and codes in packages/shared/src/domains/vocabulary (about 180 files across rules-runtime, Convex, the Session Worker, encounter-persistence, authoring and web) as: a type-only use that becomes a plain System code, a list read that moves to the System record, or a branch on a specific entry that becomes a System capability naming its definition ID. Tag each open T9 task as vocabulary or core, rename the systemVocabularyRegistry and its pure entry point to core naming, and propose the migration tasks with sizes. Docs and ledger proposal only; no production change.",
-              "note": "User decision 2026-10-22: vocabulary (ID-backed, authorable later) has one home, the System record seeded from packages/source-data; shared holds none."
+              "note": "User decision 2026-10-22: vocabulary (ID-backed, authorable later) has one home, the System record seeded from packages/source-data; shared holds none. Merged in m343; found 5 importing files, not ~180."
             },
             {
               "id": "RULES-2.T6h",
@@ -4023,6 +4023,104 @@
               },
               "text": "The effect-action compiler accepts several direct results in one action, in authored order (for example END_EFFECTS followed by APPLY_GRANT, with or without the grant's own duration). Today any second direct result is refused with \"D&D Effect action must have one fixed direct result without lifecycle overrides\", which is not a genuine rule. A test that fails first compiles and executes the two-result action, and the golden harness explains each changed checksum.",
               "note": "Found by SPELLS-4.T2f on 2026-10-22: the refusal is the same with and without the grant lifecycle, so the limit is the result count."
+            },
+            {
+              "id": "RULES-2.T9i",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["SPELLS-31.T5p"]
+              },
+              "text": "Rename System-specific core code naming: systemVocabularyRegistry becomes systemCoreCodeRegistry, platformSystemVocabulary becomes platformSystemCoreCodes, and the other names the inventory maps (about 90 files, mechanical). SystemVocabularySnapshot and other true vocabulary names keep \"vocabulary\".",
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
+            },
+            {
+              "id": "RULES-2.T9j",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": []
+              },
+              "text": "Challenge rating, currency and passives read from the System record: xp, proficiencyBonus and rank on each CR entry, baseValue on currency, the passive ability on its entry, all seeded from source-data. creatureRuleFacts, encounterFormChoice and collectionPresentation read the record; delete packages/shared/src/domains/vocabulary.",
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
+            },
+            {
+              "id": "RULES-2.T9k",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["RULES-2.T9j"]
+              },
+              "text": "One defaults object on the System record naming definition IDs (default damage type, condition and movement type), seeded from source-data and read by web through apis; the Exhaustion filter in ConditionsEditor filters on a levelled condition attribute instead of the code.",
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
+            },
+            {
+              "id": "RULES-2.T9l",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 1,
+                "after": ["RULES-2.T9k"]
+              },
+              "text": "Invisible by condition attribute: an unseen attribute on the condition entry drives encounterPlayerProjection; no code compares the Invisible code.",
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
+            },
+            {
+              "id": "RULES-2.T9m",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 1,
+                "after": ["RULES-2.T9k"]
+              },
+              "text": "Walk speed by default: characterMovementAndSenses and sheetProjection read the default movement type from the System record defaults instead of the WALK code.",
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
+            },
+            {
+              "id": "RULES-2.T9n",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 1,
+                "after": []
+              },
+              "text": "SRD import adapter (importedEquipmentTerms) maps GP, Walk, Stealth and Dwarven to their source-data definition IDs instead of code constants; it stays in the importer.",
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
+            },
+            {
+              "id": "RULES-2.T9o",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 1,
+                "after": ["RULES-2.T9j", "RULES-2.T9k", "RULES-2.T9l", "RULES-2.T9m", "RULES-2.T9n"]
+              },
+              "text": "Boundary guard test: no production file outside source-data holds an SRD vocabulary list or compares a vocabulary code literal.",
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
             }
           ]
         }

@@ -95,9 +95,26 @@ function compile(effect: EffectAuthored) {
   return dnd5eCharacterRuleActionSystemAdapter.compile({ action: srdAction(effect) })
 }
 
+/** A check action's success, specialized from its compiled test and outcome plan (D173). */
+function checkSuccess(effect: EffectAuthored) {
+  const adapter = dnd5eCharacterRuleActionSystemAdapter
+  const action = srdAction(effect)
+  const compilerSource = buildCompiledActionCompilerSource(action)
+  const compiled = adapter.compileExecutionPlan?.({ action, compilerSource })
+  if (compiled?.kind !== 'TEST_OUTCOME') throw new Error('The check is not a test and its outcome.')
+  expect(compiled.outcomes.map(({ pathCode }) => pathCode)).toEqual(['ON_CHECK_SUCCESS'])
+  return adapter.specializeOutcomeTemplate?.({
+    compilerSource,
+    testTemplate: compiled.test,
+    selectedPath: 'ON_CHECK_SUCCESS',
+    facts: {},
+    testRollMode: 'NORMAL'
+  })?.published
+}
+
 describe('the CHECK action test compiles through the dnd5e adapter', () => {
-  it('compiles First Aid, authored as a Medicine check against DC 10, to the stabilize proposal', () => {
-    expect(operationKeys(compile(firstAidEffect()))).toContain(
+  it('compiles First Aid, authored as a Medicine check against DC 10, to a check whose success is the stabilize proposal', () => {
+    expect(operationKeys(checkSuccess(firstAidEffect()))).toContain(
       DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
     )
   })
@@ -108,7 +125,7 @@ describe('the CHECK action test compiles through the dnd5e adapter', () => {
       { skillIds: [], abilityDefinitionIds: [STRENGTH_ID] }
     ])
       expect(
-        operationKeys(compile(withCheck({ checks, dc: { kind: 'FIXED', value: 15 } })))
+        operationKeys(checkSuccess(withCheck({ checks, dc: { kind: 'FIXED', value: 15 } })))
       ).toContain(DND5E_STABILIZE_PROPOSAL_OPERATION_KEY)
   })
 

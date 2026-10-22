@@ -8,7 +8,6 @@ import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
   type EncounterConcealmentCheckPendingContextDto,
-  encounterBasicActionCheckPendingContextDtoSchema,
   encounterConcealmentCheckPendingContextDtoSchema,
   encounterEscapeCheckPendingContextDtoSchema
 } from '../shared/ruleExecutionDirectActionPendingContexts.js'
@@ -52,18 +51,6 @@ const d20WindowSpendSchema = lazySchema(() =>
   z.strictObject({ spentEffect: z.nullable(activeRuleEffectRecordSchema) })
 )
 
-/** A settled stabilizing check (First Aid): the frozen check, its stored result and the app roll it used. */
-const stabilizeCheckSettlementSchema = lazySchema(() =>
-  z.strictObject({
-    context: encounterBasicActionCheckPendingContextDtoSchema,
-    execution: storedRuleExecutionResultDtoSchema,
-    /** The recorded app roll the d20 settled with, whose card exists; null for an entered or auto-rolled die. */
-    appRollId: z.nullable(postgresUuidSchema),
-    /** Present when the check settles a d20 window. */
-    window: z.optional(d20WindowSpendSchema)
-  })
-)
-
 /**
  * A settled concealment check (Hide, Search): the frozen check, its stored result, the app roll it
  * used and the concealment a successful Hide stores on its roller.
@@ -88,7 +75,7 @@ const concealmentCheckSettlementSchema: z.ZodMiniType<ConcealmentCheckSettlement
 /**
  * A settled fixed-DC check action whose success runs an authored outcome (D173): the frozen check,
  * its stored result, the app roll it used and the pushes a success lands on the Scene (D157).
- * `window` is present when the d20 settled through a d20 window, as on a stabilizing check.
+ * `window` is present when the d20 settled through a d20 window.
  */
 export type CheckActionSettlement = {
   context: EncounterCheckActionContextDto
@@ -109,18 +96,14 @@ const checkActionSettlementSchema: z.ZodMiniType<CheckActionSettlement> = lazySc
 )
 
 const basicActionCheckSettlementSchema = lazySchema(() =>
-  z.union([
-    stabilizeCheckSettlementSchema,
-    concealmentCheckSettlementSchema,
-    checkActionSettlementSchema
-  ])
+  z.union([concealmentCheckSettlementSchema, checkActionSettlementSchema])
 )
 
 /**
  * A room-planned basic action (Q11). Convex checks it against the current Run and records it: the
  * allowance use, the effects added to the actor and a movement bonus for the current turn. It never
- * evaluates the action's rules. A stabilizing action also carries its check: waiting on the helper's
- * d20, or settled by an auto-roll.
+ * evaluates the action's rules. Its check waits on the roller's d20 or is settled by an auto-roll;
+ * it is null when the action proceeded over its target's unmet outcome precondition (D173 Q1).
  */
 export const liveSessionEncounterBasicActionCommitInputSchema = lazySchema(() =>
   z.extend(basicActionScope, {
@@ -287,7 +270,6 @@ export type LiveSessionEncounterReleaseRelationshipCommitInput = z.infer<
 export type LiveSessionEncounterEscapeResponseCommitInput = z.infer<
   typeof liveSessionEncounterEscapeResponseCommitInputSchema
 >
-export type StabilizeCheckSettlement = z.infer<typeof stabilizeCheckSettlementSchema>
 export type LiveSessionEncounterBasicActionCommitInput = z.infer<
   typeof liveSessionEncounterBasicActionCommitInputSchema
 >
