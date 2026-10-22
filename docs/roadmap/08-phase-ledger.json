@@ -3388,7 +3388,7 @@
             },
             {
               "id": "RULES-2.T6e",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3398,7 +3398,7 @@
                 "after": ["RULES-2.T6d2"]
               },
               "text": "Compiler: table-driven dispatch; remove combination refusals that are not genuine rules.",
-              "note": "2026-10-21: legendary discovery leaves out options its compiler does not plan (SPELLS-33.T4i1d); the Vampire legendary Unarmed Strike (damage-or-grapple) must be offered again once this lands, with a room proof."
+              "note": "Merged m321 (3e11bf774). G1 and G2 shipped; G3-G7 split to RULES-2.T6e2, T6e3 and SPELLS-33.T4i1f."
             },
             {
               "id": "RULES-2.T6f",
@@ -3411,7 +3411,8 @@
                 "size": 8,
                 "after": ["RULES-2.T6e"]
               },
-              "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e."
+              "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e.",
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             },
             {
               "id": "RULES-2.T7",
@@ -3843,7 +3844,7 @@
                 "tc": 1,
                 "rr": 3,
                 "size": 2,
-                "after": ["RULES-2.T6e"]
+                "after": ["RULES-2.T6f"]
               }
             },
             {
@@ -3856,7 +3857,7 @@
                 "tc": 1,
                 "rr": 3,
                 "size": 3,
-                "after": ["RULES-2.T6e"]
+                "after": ["RULES-2.T6f"]
               }
             }
           ]
@@ -14705,7 +14706,8 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["RULES-2.T6e"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "status": "TODO",
