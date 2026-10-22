@@ -4186,6 +4186,20 @@
               "mergedAt": "2026-10-22T19:34:15Z"
             },
             {
+              "id": "RULES-2.T9q",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 5,
+                "after": []
+              },
+              "text": "Encounter reads leave the System document (D180): the encounter read-budget measure pins _creationTime to a fixed-length stand-in so it is deterministic; the Encounter projection sends condition definition IDs only and web labels them from the System vocabulary; presentEncounterRun no longer reads the System document. The 100-actor read passes its unchanged ceiling.",
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+            },
+            {
               "id": "RULES-2.T9k",
               "status": "TODO",
               "closes": ["RULES-2.7"],
@@ -4194,7 +4208,7 @@
                 "tc": 5,
                 "rr": 8,
                 "size": 3,
-                "after": ["RULES-2.T9j"]
+                "after": ["RULES-2.T9j", "RULES-2.T9q"]
               },
               "text": "One defaults object on the System record naming definition IDs (default damage type, condition and movement type), seeded from source-data and read by web through apis; the Exhaustion filter in ConditionsEditor filters on a levelled condition attribute instead of the code.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
