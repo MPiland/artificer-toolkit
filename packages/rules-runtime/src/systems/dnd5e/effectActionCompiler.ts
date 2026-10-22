@@ -2405,9 +2405,8 @@ type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extrac
   { effectKind: Kind }
 >
 
-function unsupportedDirectOutcome(): never {
-  return unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
-}
+const unsupportedDirectOutcome: () => never = () =>
+  unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
 // A list runs the action's one graph on each chosen creature, so it carries any outcome that lands
 // on its target. An outcome that acts on the actor (a Dash, a self teleport, a concealment) or on the
 // event a reaction answered has no creature to repeat on; an outcome no cast can run keeps the reason
@@ -2475,6 +2474,8 @@ const DND5E_DIRECT_OUTCOMES: {
   DETECT_CONCEALED: (_outcome, input) => offList({ kind: 'DETECT_CONCEALED' }, input),
   // The reaction cancels the event it answered: nothing is stored on its target, the cast.
   CANCEL_TRIGGERING_EVENT: (_outcome, input) => offList({ kind: 'CANCEL_TRIGGERING_EVENT' }, input),
+  // The commit ends the held effects its plan selects; nothing is stored on the target here.
+  END_EFFECTS: (_outcome, input) => offList({ kind: 'END_EFFECTS' }, input),
   APPLY_GRANT: (_outcome, { plans }) =>
     plans.grant ? { kind: 'MODIFIER_GRANT' } : unsupportedDirectOutcome(),
   TELEPATHIC_LINK: (_outcome, { plans }) =>

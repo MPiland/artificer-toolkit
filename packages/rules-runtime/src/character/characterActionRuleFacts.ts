@@ -417,6 +417,9 @@ export function normalizeCharacterActionMechanicFacts(
       pathCode: entry.pathCode,
       effectKind: outcome.effectKind,
       ...(outcome.effectKind === 'MOVEMENT_RULE' ? { ruleKind: outcome.ruleKind } : {}),
+      ...(outcome.effectKind === 'END_EFFECTS'
+        ? { endEffects: { scope: outcome.scope, conditionIds: [...outcome.conditionIds] } }
+        : {}),
       label: nullableLabel(entry.label) ?? nullableLabel('label' in outcome ? outcome.label : null)
     })
   }

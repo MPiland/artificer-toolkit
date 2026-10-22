@@ -30,6 +30,7 @@ export const EFFECT_KIND = {
   CANCEL_TRIGGERING_EVENT: 'CANCEL_TRIGGERING_EVENT',
   SOURCE_IMMUNITY: 'SOURCE_IMMUNITY',
   RELEASE_CHOSEN_ITEM: 'RELEASE_CHOSEN_ITEM',
+  END_EFFECTS: 'END_EFFECTS',
   DEGRADE_EQUIPMENT: 'DEGRADE_EQUIPMENT',
   CLOSED_RULE: 'CLOSED_RULE',
   MANUAL_ADJUDICATION: 'MANUAL_ADJUDICATION'
@@ -188,6 +189,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Release Chosen Item',
     description:
       'The target lets go of the path’s chosen item when it is releasable (held, not worn).'
+  },
+  [EFFECT_KIND.END_EFFECTS]: {
+    code: EFFECT_KIND.END_EFFECTS,
+    label: 'End Effects',
+    description:
+      'Ends the effects held on the target that grant a named condition: all of them, or the one the caster picks. Conditions only they held end with them.'
   },
   [EFFECT_KIND.DEGRADE_EQUIPMENT]: {
     code: EFFECT_KIND.DEGRADE_EQUIPMENT,

@@ -344,7 +344,8 @@ export async function settleAreaCommit(args: {
     },
     capture: input.capture,
     runtime: input.runtime,
-    random: input.random
+    random: input.random,
+    repeatSaves: { damagerActorId: caster.id }
   })
   const nextFacts = buildEncounterActorRuleFacts({
     actors: concentration.actors

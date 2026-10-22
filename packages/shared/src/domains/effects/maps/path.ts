@@ -107,7 +107,7 @@ import {
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
-import { registerConditionOutcomeFields } from './conditionOutcomeFields.js'
+import { registerOutcomeKindFields } from './outcomeKindFields.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
@@ -2251,7 +2251,7 @@ function registerOutcomeFields(
         }
       )
     )
-  registerConditionOutcomeFields(map, nodes, cond, logic)
+  registerOutcomeKindFields(map, nodes, cond, logic, data)
   map
     .set(
       'grants',

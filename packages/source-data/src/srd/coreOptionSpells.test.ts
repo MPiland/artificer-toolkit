@@ -43,7 +43,18 @@ describe.each([
       'APPLY_GRANT'
     ]
   },
-  { label: 'True Strike', ruleKind: 'TRUE_STRIKE', effectKinds: ['APPLY_GRANT'] }
+  { label: 'True Strike', ruleKind: 'TRUE_STRIKE', effectKinds: ['APPLY_GRANT'] },
+  { label: 'Lesser Restoration', ruleKind: 'LESSER_RESTORATION', effectKinds: ['END_EFFECTS'] },
+  {
+    label: 'Greater Restoration',
+    ruleKind: 'GREATER_RESTORATION',
+    effectKinds: ['END_EFFECTS', 'MANUAL_ADJUDICATION']
+  },
+  {
+    label: 'Protection from Poison',
+    ruleKind: 'PROTECTION_FROM_POISON',
+    effectKinds: ['END_EFFECTS', 'MANUAL_ADJUDICATION']
+  }
 ])('SRD $label (D156 T2a3, T2k1)', ({ label, ruleKind, effectKinds }) => {
   const spell = srdSpells.find((entry) => entry.label === label)
   if (!spell) throw new Error(`SRD spell "${label}" is missing.`)

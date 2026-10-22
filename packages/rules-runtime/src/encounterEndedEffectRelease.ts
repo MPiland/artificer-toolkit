@@ -7,6 +7,7 @@ import type {
   CharacterEndedEffectReleaseApplication,
   CharacterRuleActionApplication
 } from './characterRuleActionSystemAdapter.js'
+import { withLinkedDependents } from './activeEffectLinks.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { prepareRecurringActiveEffect } from './encounterActionEffectPlans.js'
@@ -264,6 +265,86 @@ export function actionUsedOnHolderEndedEffects(input: {
             }
           ]
         }).ended
+  return {
+    endedEffects,
+    releases: endedEffectReleases({
+      holderActorId: input.holderActorId,
+      held: input.held,
+      ended: endedEffects
+    })
+  }
+}
+
+type EndEffectsSelectors = readonly { kind: 'CONDITION'; conditionIds: readonly string[] }[]
+
+/** The held effects an END_EFFECTS outcome could end: those owning a condition a selector names. */
+export function endEffectsCandidates(
+  held: readonly ActiveRuleEffectRecord[],
+  selectors: EndEffectsSelectors
+) {
+  const named = new Set(selectors.flatMap(({ conditionIds }) => conditionIds))
+  return held.filter(({ definition }) =>
+    definition.stateContributions.some(
+      (contribution) =>
+        contribution.kind === 'CONDITION_OWNERSHIP' && named.has(contribution.conditionId)
+    )
+  )
+}
+
+/**
+ * The effect a `ONE_CHOSEN` cast ends: the sole candidate when exactly one matches, else the
+ * caster's pick when it is a candidate. `NONE` means nothing matches (the overridable warning);
+ * `UNCHOSEN` means several match and the cast named no legal one.
+ */
+export function endEffectsChoice(
+  candidates: readonly ActiveRuleEffectRecord[],
+  chosenEffectId: string | undefined
+): { kind: 'CHOSEN'; effectId: string } | { kind: 'NONE' } | { kind: 'UNCHOSEN' } {
+  if (candidates.length === 0) return { kind: 'NONE' }
+  if (candidates.length === 1) return { kind: 'CHOSEN', effectId: candidates[0].id }
+  const picked = candidates.find(({ id }) => id === chosenEffectId)
+  return picked ? { kind: 'CHOSEN', effectId: picked.id } : { kind: 'UNCHOSEN' }
+}
+
+/**
+ * What an END_EFFECTS action offers its caster against the target's held effects: the selectors it
+ * ends by, the legal list, and the pick a `ONE_CHOSEN` cast resolves to. Nothing is offered for an
+ * action that ends no effects.
+ */
+export function offerEndEffects(input: {
+  endEffects: { scope: 'ALL' | 'ONE_CHOSEN'; conditionIds: readonly string[] } | undefined
+  held: readonly ActiveRuleEffectRecord[]
+  chosenEffectId: string | undefined
+}) {
+  const selectors: EndEffectsSelectors = [
+    { kind: 'CONDITION', conditionIds: input.endEffects?.conditionIds ?? [] }
+  ]
+  const candidates = input.endEffects ? endEffectsCandidates(input.held, selectors) : []
+  const pick =
+    input.endEffects?.scope === 'ONE_CHOSEN'
+      ? endEffectsChoice(candidates, input.chosenEffectId)
+      : null
+  return { selectors, candidates, pick }
+}
+
+/**
+ * What an authored END_EFFECTS outcome ends on its target: the held effects owning a condition a
+ * selector names (all of them, or only the chosen one), the effects linked to those (D172), and
+ * the conditions only they held. The holder's own mechanics batch applies the releases in the same
+ * transaction as the effects' deletion.
+ */
+export function selectedEndedEffects(input: {
+  holderActorId: string
+  held: readonly ActiveRuleEffectRecord[]
+  selectors: EndEffectsSelectors
+  scope: 'ALL' | 'ONE_CHOSEN'
+  /** The effect the cast picked; only `ONE_CHOSEN` reads it. */
+  chosenEffectId?: string
+}) {
+  const matching = endEffectsCandidates(input.held, input.selectors)
+  const selected =
+    input.scope === 'ALL' ? matching : matching.filter(({ id }) => id === input.chosenEffectId)
+  const endedEffects = withLinkedDependents(selected, input.held)
   return {
     endedEffects,
     releases: endedEffectReleases({

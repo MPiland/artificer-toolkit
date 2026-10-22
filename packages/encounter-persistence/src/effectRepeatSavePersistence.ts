@@ -1,7 +1,11 @@
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { effectRepeatSaveApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { NativeEffectRepeatSaveContext } from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
-import type { ConcentrationDamageApplicationDto } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
+import {
+  compareDamageSaveApplications,
+  type ConcentrationDamageApplicationDto,
+  type DamageSaveApplicationDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { effectRepeatSaveApplications } from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -104,4 +108,21 @@ export async function bindEncounterEffectRepeatSaves(
     dispositions: new Map(input.actors.map(({ id, disposition }) => [id, disposition])),
     holders
   })
+}
+
+/**
+ * The one damage-save chain a damaging command owes (D167): the Concentration checks its caller
+ * bound plus the effect repeat saves its finalized damage meets, in canonical order. Every damage
+ * source persists through this, so each derives the chain the room planned.
+ */
+export async function bindEncounterDamageSaveChain(
+  ctx: EncounterCharacterWriteTransaction,
+  input: Parameters<typeof bindEncounterEffectRepeatSaves>[1] & {
+    concentration: readonly DamageSaveApplicationDto[]
+  }
+) {
+  const { concentration, ...repeat } = input
+  return [...concentration, ...(await bindEncounterEffectRepeatSaves(ctx, repeat))].sort(
+    compareDamageSaveApplications
+  )
 }
