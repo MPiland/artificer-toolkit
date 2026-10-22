@@ -31,6 +31,7 @@ import { prepareNativeCharacterActionState } from '../character/characterNativeA
 import { activeEffectEndsOnRest } from '../character/sheetRest.js'
 import {
   buildCharacterSpellCastActions,
+  RITUAL_CAST_REFUSAL,
   readSpellCastSlot
 } from '../character/characterSpellCastActions.js'
 import { spellCastActionId } from '../spellCastCandidates.js'
@@ -531,8 +532,22 @@ describe('the cast choices an Encounter offers a Character', () => {
     expect(spellCastActionId(long.candidateId)).not.toBe(spellCastActionId(`${long.candidateId}.`))
   })
 
-  it('does not offer a ritual', () => {
-    expect(build([candidate(FIREBALL, 3, { castMode: 'RITUAL' })]).candidates).toEqual([])
+  it('does not offer a ritual, and lists it with the reason an Encounter refuses it (D171)', () => {
+    const ritual = candidate(FIREBALL, 3, { castMode: 'RITUAL' })
+    const built = build([ritual])
+    expect(built.candidates).toEqual([])
+    expect(built.unavailable).toEqual([
+      {
+        id: spellCastActionId(ritual.candidateId),
+        label: 'Fireball (3rd level)',
+        reason: RITUAL_CAST_REFUSAL
+      }
+    ])
+  })
+
+  it('lists only the rituals the Sheet lists as castable', () => {
+    const ritual = candidate(FIREBALL, 3, { castMode: 'RITUAL' })
+    expect(build([ritual], { castableCandidateIds: new Set() }).unavailable).toEqual([])
   })
 
   it('does not offer a cast the Sheet does not list as castable', () => {

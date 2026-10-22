@@ -18,6 +18,7 @@ export type CompiledSpell = {
   level: number
   attributes?: SpellAttribute[]
   components?: SpellComponent[]
+  materialDescription?: string
   classIds: string[]
   magicSchoolId: string
   effects?: CompiledEffectGroup[]
@@ -40,6 +41,7 @@ export function compileSpell(authored: SpellAuthored): CompiledSpell {
     classIds: authored.classIds,
     attributes: authored.attributes,
     components: authored.components,
+    materialDescription: authored.materialDescription,
     magicSchoolId: authored.magicSchoolId,
     effects,
     castingTime: authored.castingTime

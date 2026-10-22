@@ -588,7 +588,7 @@ ring no wider than its thickness (`AREA_TOO_SMALL`). A policy this path cannot r
 drawn by dragging from one end (or the center) to the other end (or the edge), clamped to its maximum
 (`drawnAreaAim`). The room still decides who is caught.
 
-### A list of chosen creatures (current, SPELLS-8.T12, D118)
+### A list of chosen creatures (current, SPELLS-8.T14, D118)
 
 An action whose targeting is `CHOSEN_CREATURES` with an authored `maxTargets` (Mass Healing Word, Prayer of
 Healing, Mass Cure Wounds, Magic Missile, Acid Splash, Chain Lightning, Scorching Ray, Eldritch Blast), or with no cap
@@ -1840,7 +1840,9 @@ target, the area root for a point area, once). `REVERT_LAST_ACTION` restores the
 function, and only while the Character's Sheet stream is unchanged since the cast (a later Sheet write makes
 the undo unavailable, like any Character state change). A Concentration spell starts Concentration through
 `prepareEncounterActionMaintenance` (D99), so the undo restore rules there apply. Components, hands and
-silence have no Sheet rule yet, so an Encounter applies none either.
+silence have no Sheet rule yet, so an Encounter applies none either. Each cast choice shows the spell's
+components read from its compiled data (`componentsLabel`, from `spellComponentsLabel`: "V, S, M (a pearl worth at least 100 gp)"); they are display only and never enforced (D171, SPELLS-8.T10).
+A spell the Character may cast only as a ritual (a `RITUAL` spell grant the Sheet lists as castable) is not a cast action: it is listed in `unavailableActions` with `RITUAL_CAST_REFUSAL` (a ritual takes ten minutes longer than the spell's casting time, so an Encounter, which always has an initiative round, never casts one), and choosing it is refused by that name with no slot spent (D171, SPELLS-8.T11). The Sheet casts it out of play and spends no slot. Class-level ritual casting (`SPELLCASTING_ATTRIBUTE.RITUAL_CASTER`) has no Sheet cast path yet (SPELLS-8.T14), so it is neither offered nor listed.
 
 ### Ending a held effect and its `onEnd` grant (current, SPELLS-4.T2l-a)
 

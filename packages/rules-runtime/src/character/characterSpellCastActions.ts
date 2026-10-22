@@ -43,6 +43,10 @@ export type CharacterSpellCastActions = {
   compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
   /** The magic school of each spell the casts name, which a target's school immunity is checked against. */
   magicSchoolIdBySpellId: ReadonlyMap<string, string>
+  /** The components each cast names, shown on its choice and never enforced (D171). */
+  componentsLabelBySpellId: ReadonlyMap<string, string>
+  /** The spells the Character may cast only as a ritual, listed with why an Encounter refuses them (D171). */
+  unavailable: readonly { id: string; label: string; reason: string }[]
 }
 
 /** The slot a policy slot key names, with the uses the Character has already spent from it. */
@@ -96,6 +100,10 @@ export function listCastableSpellCandidateIds(input: {
   }
   return candidateIds
 }
+
+/** Why a ritual is not cast in an Encounter: it takes ten minutes longer (SRD 5.1) than the spell's casting time. */
+export const RITUAL_CAST_REFUSAL =
+  'A ritual takes 10 minutes longer to cast, so it cannot be cast in an Encounter; cast it from the Character Sheet.'
 
 /**
  * Whether an Encounter offers this cast: only a decision that is AVAILABLE, never a ritual (a ritual
@@ -162,6 +170,7 @@ export function buildCharacterSpellCastActions(input: {
   candidates: CharacterActionCandidate[]
   entryPoints: CharacterActionRuleEntryPoint[]
   decisions: ActionDecision[]
+  unavailable: CharacterSpellCastActions['unavailable'][number][]
 } {
   const { policyOutput } = input
   const decisionsByCandidateId = new Map(
@@ -174,8 +183,20 @@ export function buildCharacterSpellCastActions(input: {
   const candidates: CharacterActionCandidate[] = []
   const entryPoints: CharacterActionRuleEntryPoint[] = []
   const decisions: ActionDecision[] = []
+  const unavailable: CharacterSpellCastActions['unavailable'][number][] = []
   for (const cast of input.spellCastCandidates) {
     const spell = input.spellsById?.get(cast.spellId)
+    if (
+      spell &&
+      cast.castMode === 'RITUAL' &&
+      decisionsByCandidateId.get(cast.candidateId)?.status === 'AVAILABLE' &&
+      input.castableCandidateIds.has(cast.candidateId)
+    )
+      unavailable.push({
+        id: spellCastActionId(cast.candidateId),
+        label: spellCastLabel(spell, cast),
+        reason: RITUAL_CAST_REFUSAL
+      })
     if (
       !spell ||
       !isCastOffered(cast, decisionsByCandidateId.get(cast.candidateId), input.castableCandidateIds)
@@ -260,5 +281,5 @@ export function buildCharacterSpellCastActions(input: {
       })
     }
   }
-  return { candidates, entryPoints, decisions }
+  return { candidates, entryPoints, decisions, unavailable }
 }

@@ -1643,10 +1643,10 @@
         {
           "id": "PLATFORM-25",
           "title": "CI fixes mechanical failures and merges approved slices itself",
-          "status": "DONE",
+          "status": "IN_PROGRESS",
           "origin": ["User request 2026-10-18 (cycle-time gains)"],
           "journeyTests": ["scripts/mergeSlice.test.mjs"],
-          "journeyStatus": "verified",
+          "journeyStatus": "partial",
           "wsjf": {
             "bv": 3,
             "tc": 5,
@@ -1678,6 +1678,22 @@
               "origin": ["User request 2026-10-18 (cycle-time gains)"],
               "note": "AC confirmed by the user 2026-10-18. The orchestrator still reviews every slice for band-aids and weakened assertions before approving.",
               "text": "After the orchestrator approves a reviewed slice tip (a workflow dispatch naming the ci/<slice> branch and tip SHA), a workflow checks that Tests and Live are green on that exact tip and merges it into the phase branch: the fast path (--no-ff, tree check, then the ci/merge-m<N> backstop run) when the tip contains the phase tip, otherwise a ci/merge-m<N> batch run that pushes to the phase branch only when green. A conflict, a red run or a moved tip fails with nothing pushed."
+            },
+            {
+              "id": "PLATFORM-25.4",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-22 (merge queue waits)"],
+              "note": "Approved by the user 2026-10-22. Found when the T9b merge-slice runs 39798992843, 39802995621 and 39805154563 refused with \"No Tests or Live backend run appeared\", although the runs they dispatched existed within a second.",
+              "text": "merge-slice waits on the Tests and Live runs it dispatched by their run ids, and doesn't look them up again by commit, so a lag in GitHub's commit-filtered run listing can't refuse a green batch."
+            },
+            {
+              "id": "PLATFORM-25.3",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["User request 2026-10-22 (merge queue waits)"],
+              "note": "Approved by the user 2026-10-22 (\"worth batching if the slices are close to being ready\").",
+              "text": "One merge-slice dispatch can name several approved ci/<slice> branches with their tips. Each tip must be green and unchanged. They merge in order into one ci/merge-m<N> batch commit, Tests and Live run there once, and on green the phase branch moves once. A conflict, a moved tip or a red run refuses the whole batch, names the slice at fault and pushes nothing to the phase branch. A single slice behaves exactly as it does today."
             }
           ],
           "tasks": [
@@ -1720,6 +1736,32 @@
               },
               "text": "merge-slice ignores a cancelled duplicate run when the same workflow has a later or concurrent non-cancelled run on the tip (runsVerdict in scripts/mergeSlice.mjs), with a unit test that fails first.",
               "note": "Found 2026-10-21: m-R2T4a refused on f4888465b because duplicate Tests/Live runs that were cancelled sorted ahead of the green ones. Worked around by re-running the cancelled runs. Merged m288 (17b6cfd55)."
+            },
+            {
+              "id": "PLATFORM-25.T4",
+              "status": "TODO",
+              "closes": ["PLATFORM-25.4"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "scripts/mergeSlice.mjs keeps the run ids of the Tests and Live runs it dispatches (from gh workflow run or the dispatch response) and polls those runs directly, with no APPEAR_MS refusal for a dispatched run. It has a unit test that fails first against the faked gh. The CI validation guide is updated."
+            },
+            {
+              "id": "PLATFORM-25.T5",
+              "status": "TODO",
+              "closes": ["PLATFORM-25.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 3,
+                "size": 3,
+                "after": ["PLATFORM-25.T4"]
+              },
+              "text": "merge-slice.yml and scripts/mergeSlice.mjs accept a list of branch@sha pairs (single pair unchanged) and build one batch commit. On refusal they name the slice at fault, and push nothing to the phase branch. Unit tests cover a three-slice batch, a conflict, a moved tip, a red run and the single-slice path. The guide and the AGENTS.md dispatch line are updated. It changes .github/workflows, so the orchestrator merges it by hand."
             }
           ]
         }
@@ -3301,7 +3343,8 @@
                 "size": 3,
                 "after": ["RULES-2.T5a", "RULES-2.T6f"]
               },
-              "text": "Generic event hooks (split 2026-10-21): zone interactions (enter, leave, start and end of turn in a zone) through the event table."
+              "text": "Generic event hooks (split 2026-10-21): zone interactions (enter, leave, start and end of turn in a zone) through the event table.",
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "id": "RULES-2.T6a",
@@ -5837,7 +5880,7 @@
             {
               "id": "SCENE-4.T2",
               "text": "Encounter creature placement loot tables, reusing the T1 contract and editor; saved, reopened and refused on overlap. Closes SCENE-4.1 with T1.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SCENE-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -5846,7 +5889,7 @@
                 "size": 2,
                 "after": ["SCENE-4.T1"]
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Merged m334 (f7eccae56)."
             },
             {
               "id": "SCENE-4.T3",
@@ -5859,7 +5902,8 @@
                 "rr": 1,
                 "size": 3,
                 "after": ["SCENE-4.T2"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             }
           ]
         },
@@ -9608,7 +9652,34 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Ending active effects or conditions by type, level or check. Converts DISPEL_MAGIC, LESSER_RESTORATION, GREATER_RESTORATION, REMOVE_CURSE, PROTECTION_FROM_POISON, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B; ruled D174): END_EFFECTS ends held effects or conditions by condition id or System-vocabulary tag, ALL or a cast-time pick. Converts LESSER_RESTORATION, GREATER_RESTORATION, REMOVE_CURSE, PROTECTION_FROM_POISON, with parity proofs; each kind deleted. Dispel Magic moved to T2f1 (2026-10-22).",
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+            },
+            {
+              "id": "SPELLS-4.T2f1",
+              "text": "Dispel Magic (D174, split from T2f 2026-10-22): SPELL_LEVEL selector with stored originLevel, a levelCheck with the TARGET_EFFECT_LEVEL DC kind, and the check flow widened to spell sources and ordered per-candidate checks in one action through the single d20 settlement. Converts DISPEL_MAGIC on a creature or object target with a parity proof and room journey; kind deleted.",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2f", "RULES-2.T6e3b2"]
+              }
+            },
+            {
+              "id": "SPELLS-4.T2f2",
+              "text": "Dispel Magic on a placed zone (D174, 2026-10-22): a magical zone within range is a dispel candidate by its originLevel, ended through the existing zone removal path with its linked dependents; room journey.",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2f1"]
+              }
             },
             {
               "status": "TODO",
@@ -10798,7 +10869,7 @@
             {
               "id": "SPELLS-8.T10",
               "text": "Spell components are checked and shown when casting in an Encounter.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -10807,12 +10878,12 @@
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
+              "note": "Merged m335 (6fc91988e)."
             },
             {
               "id": "SPELLS-8.T11",
               "text": "Ritual casting in an Encounter follows the ritual rules (no slot, ritual casting time).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 2,
@@ -10821,7 +10892,7 @@
                 "size": 2,
                 "after": ["SPELLS-8.T1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
+              "note": "Merged m335 (6fc91988e)."
             },
             {
               "id": "SPELLS-8.T12",
@@ -10860,7 +10931,8 @@
                 "rr": 1,
                 "size": 3,
                 "after": ["SPELLS-8.T11"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
             }
           ]
         },
@@ -13346,7 +13418,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): spell slot costs and class spell lists; the six pact-slot invocations, Primeval Awareness, Expanded Spell List. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): spell slot costs and class spell lists; the six pact-slot invocations, Primeval Awareness, Expanded Spell List. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "id": "SPELLS-31.T5q",
