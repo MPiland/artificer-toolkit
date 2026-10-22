@@ -10140,7 +10140,7 @@
             },
             {
               "id": "SPELLS-4.T2m1b2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10149,8 +10149,22 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2m1b2a", "RULES-2.T3a", "RULES-2.T6d1"]
               },
-              "text": "Damage repeat save for the remaining damage sources (area one per holder, turn effects, cleaving, movement, legendary); the shared damage-save reader contract for T2m3 and SPELLS-33.T6e2/T4m; parity proof, area journey and HIDEOUS_LAUGHTER remnant check (D167).",
+              "text": "Damage repeat save for the remaining damage sources (area one per holder, turn effects, cleaving, legendary); the shared damage-save reader contract for T2m3 and SPELLS-33.T6e2/T4m; area journey and HIDEOUS_LAUGHTER remnant check (D167). Movement (zone contact) damage moved to SPELLS-4.T2m1b2c.",
               "note": "Split from T2m1b2 2026-10-20 (D167 amendment). Held 2026-10-20 behind RULES-2.T3a and T6d (one d20 settlement, one repeat-save model)."
+            },
+            {
+              "id": "SPELLS-4.T2m1b2c",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2m1b2b"]
+              },
+              "text": "Damage repeat save for movement damage (zone contact, forced-movement and spatial continuation): joins the damage-save chain through bindEncounterDamageSaveChain, or the MovementConcentrationSettlement per-step stack grows an EFFECT_REPEAT_SAVE source. Journey: a Hideous Laughter holder takes zone damage on its move.",
+              "note": "Split from T2m1b2b (2026-10-22): movement settles each step through its own Concentration stack, not planNativeLiveConcentration."
             },
             {
               "id": "SPELLS-4.T2m1d",
