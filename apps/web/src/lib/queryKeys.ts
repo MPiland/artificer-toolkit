@@ -44,6 +44,8 @@ export const queryKeys = {
     scenes: (campaignId: string) => ['campaigns', campaignId, 'scenes'] as const,
     sceneDefinition: (campaignId: string, sceneId: string | null) =>
       ['campaigns', campaignId, 'scenes', 'definition', sceneId] as const,
+    sceneLoot: (campaignId: string, sceneId: string) =>
+      ['campaigns', campaignId, 'scenes', 'loot', sceneId] as const,
     liveScenes: (campaignId: string) => ['campaigns', campaignId, 'scenes', 'live'] as const,
     session: (campaignId: string, sessionNumber: number) =>
       ['campaigns', campaignId, 'sessions', sessionNumber] as const,

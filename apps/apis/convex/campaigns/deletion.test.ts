@@ -435,6 +435,17 @@ describe('native Campaign deletion', () => {
         }
       })
       await base.t.run(async (ctx) => {
+        for (const [campaignId, sceneId] of [
+          [base.campaign.id, baseScene.sceneId],
+          [unrelated.id, otherScene.sceneId]
+        ] as const)
+          await ctx.db.insert('sceneLootTables', {
+            campaignId,
+            sceneId,
+            version: 1,
+            tables: [],
+            updatedAt: new Date().toISOString()
+          })
         await ctx.db.insert('campaignSceneShowings', {
           campaignId: base.campaign.id,
           sceneId: baseScene.sceneId,
@@ -471,6 +482,7 @@ describe('native Campaign deletion', () => {
         'sceneFogChunks',
         'campaignScenePresentations',
         'campaignSceneShowings',
+        'sceneLootTables',
         'campaignContentUsage'
       ]) {
         expect(after.tables[name], name).toEqual(

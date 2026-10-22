@@ -27,6 +27,7 @@ export function CampaignSessionPrepareView({
       <CampaignScenePreparation
         campaignId={campaign.id}
         currentUserId={currentUserId}
+        gameSystemId={campaign.gameSystemId}
         memberships={campaign.memberships}
       />
       <section className={styles.sessionUtilityPanel} aria-label='Schedule and RSVP'>

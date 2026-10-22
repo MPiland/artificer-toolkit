@@ -133199,6 +133199,77 @@ export declare const api: {
         }
       >;
     };
+    lootTables: {
+      get: FunctionReference<
+        "query",
+        "public",
+        { campaignId: string; sceneId: string },
+        {
+          campaignId: string;
+          sceneId: string;
+          tables: Array<{
+            id: string;
+            name: string;
+            ranges: Array<{
+              entries: Array<
+                | { itemId: string; kind: "ITEM"; quantity: number }
+                | { amount: number; denominationId: string; kind: "COIN" }
+              >;
+              id: string;
+              max: number | null;
+              min: number;
+              note?: string;
+            }>;
+            skillId?: string;
+          }>;
+          version: number;
+        }
+      >;
+      save: FunctionReference<
+        "mutation",
+        "public",
+        {
+          campaignId: string;
+          expectedVersion: number;
+          sceneId: string;
+          tables: Array<{
+            id: string;
+            name: string;
+            ranges: Array<{
+              entries: Array<
+                | { itemId: string; kind: "ITEM"; quantity: number }
+                | { amount: number; denominationId: string; kind: "COIN" }
+              >;
+              id: string;
+              max: number | null;
+              min: number;
+              note?: string;
+            }>;
+            skillId?: string;
+          }>;
+        },
+        {
+          campaignId: string;
+          sceneId: string;
+          tables: Array<{
+            id: string;
+            name: string;
+            ranges: Array<{
+              entries: Array<
+                | { itemId: string; kind: "ITEM"; quantity: number }
+                | { amount: number; denominationId: string; kind: "COIN" }
+              >;
+              id: string;
+              max: number | null;
+              min: number;
+              note?: string;
+            }>;
+            skillId?: string;
+          }>;
+          version: number;
+        }
+      >;
+    };
     presentations: {
       get: FunctionReference<
         "query",
