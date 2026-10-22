@@ -1726,7 +1726,8 @@ target, the area root for a point area, once). `REVERT_LAST_ACTION` restores the
 function, and only while the Character's Sheet stream is unchanged since the cast (a later Sheet write makes
 the undo unavailable, like any Character state change). A Concentration spell starts Concentration through
 `prepareEncounterActionMaintenance` (D99), so the undo restore rules there apply. Components, hands and
-silence have no Sheet rule yet, so an Encounter applies none either.
+silence have no Sheet rule yet, so an Encounter applies none either. Each cast choice shows the spell's
+components read from its compiled data (`componentsLabel`, from `spellComponentsLabel`: "V, S, M (a pearl worth at least 100 gp)"); they are display only and never enforced (D171, SPELLS-8.T10).
 
 ### Ending a held effect and its `onEnd` grant (current, SPELLS-4.T2l-a)
 

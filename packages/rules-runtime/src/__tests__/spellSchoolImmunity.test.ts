@@ -97,7 +97,8 @@ describe('SPELL_SCHOOL_IMMUNITY (SPELLS-33.T6m1)', () => {
         candidates: [],
         decisions: [],
         compiledActionEntryPoints: [],
-        magicSchoolIdBySpellId: new Map([[spellId, schoolId(schoolCode)]])
+        magicSchoolIdBySpellId: new Map([[spellId, schoolId(schoolCode)]]),
+        componentsLabelBySpellId: new Map()
       }
     })
     const holder = creatureTarget(installedSrdCreature(gynosphinx))

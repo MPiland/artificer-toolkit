@@ -1241,6 +1241,38 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
   })
 })
 
+describe('CampaignTabletopActionDrawer spell components (D171)', () => {
+  const rite = validatedChoice({
+    ...actions[0]!,
+    id: 'spell-rite:cast',
+    label: 'Rite',
+    sourceLabel: 'Spell',
+    attackBonus: undefined,
+    componentsLabel: 'V, S, M (a pearl worth at least 100 gp)'
+  })
+  const bare = validatedChoice({
+    ...rite,
+    id: 'spell-bare:cast',
+    label: 'Bare',
+    componentsLabel: undefined
+  })
+
+  it('shows the components of the chosen cast and nothing for a cast that names none', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), { choices: [rite, bare] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(
+      await screen.findByText('Components: V, S, M (a pearl worth at least 100 gp)')
+    ).toBeVisible()
+
+    await user.click(screen.getByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}')
+    expect(screen.queryByText(/Components:/)).not.toBeInTheDocument()
+  })
+})
+
 describe('CampaignTabletopActionDrawer area origin (D103)', () => {
   const fireballArea = {
     kind: 'RADIUS' as const,

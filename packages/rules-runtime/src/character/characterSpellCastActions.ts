@@ -42,6 +42,8 @@ export type CharacterSpellCastActions = {
   compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
   /** The magic school of each spell the casts name, which a target's school immunity is checked against. */
   magicSchoolIdBySpellId: ReadonlyMap<string, string>
+  /** The components each cast names, shown on its choice and never enforced (D171). */
+  componentsLabelBySpellId: ReadonlyMap<string, string>
 }
 
 /** The slot a policy slot key names, with the uses the Character has already spent from it. */

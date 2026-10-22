@@ -142,6 +142,8 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
       ])
     ),
     rangeLabel: z.optional(labelSchema),
+    /** A spell cast's components as its data names them ("V, S, M (a pearl)"); shown, never enforced (D171). */
+    componentsLabel: z.optional(labelSchema),
     attackBonus: z.optional(z.number().check(z.int())),
     damageLabel: z.optional(labelSchema),
     /**

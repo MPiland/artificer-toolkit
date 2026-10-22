@@ -708,6 +708,32 @@ describe('Character spell casting in an Encounter', () => {
     ])
   }, 60000)
 
+  it('shows each cast choice its spell components and enforces none of them (D171)', async () => {
+    const rite = healSpell('Rite', (spell) => {
+      spell.components = ['VERBAL', 'SOMATIC', 'MATERIAL']
+      spell.materialDescription = 'a pearl worth at least 100 gp'
+    })
+    const whisper = healSpell('Whisper', (spell) => {
+      spell.components = ['VERBAL']
+      spell.materialDescription = undefined
+    })
+    const fixture = await setup({ known: [rite, whisper] })
+    const choices = await spellChoices(fixture, 0)
+    const componentsOf = (label: string) =>
+      choices.find((choice) => choice.label === label)?.componentsLabel
+    expect(componentsOf('Rite (1st level)')).toBe('V, S, M (a pearl worth at least 100 gp)')
+    expect(componentsOf('Whisper (1st level)')).toBe('V')
+
+    // The material component is neither carried nor checked: the cast resolves and spends its slot.
+    const cast = await executeInRoom(fixture.player.caller, {
+      command: castCommand(fixture, await choiceId(fixture, 'Rite (1st level)', 0), 0)
+    })
+    expect(cast.occurrence?.status).toBe('COMPLETE')
+    expect((await storedCharacter(fixture)).record.state.spellSlots).toEqual([
+      { slotKey: 'STANDARD:1', used: 1 }
+    ])
+  }, 60000)
+
   it('spends the slot with the outcome in one Character version and GM undo restores both', async () => {
     const mend = healSpell('Mend', (spell) => fixHeal(spell, 1))
     const fixture = await setup({ known: [mend] })

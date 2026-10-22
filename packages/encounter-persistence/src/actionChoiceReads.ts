@@ -328,6 +328,10 @@ export async function readEncounterActionChoices(
           candidate.mechanicFacts.invocation.activation
             ? activationCodeSchema.parse(candidate.mechanicFacts.invocation.activation.code)
             : undefined
+        const componentsLabel =
+          candidate?.mechanicsOwner.kind === 'SPELL'
+            ? spellCast.componentsLabelBySpellId.get(candidate.mechanicsOwner.id)
+            : undefined
         return {
           id: action.id,
           // A cast is titled with its level; every other action with the Sheet's own label.
@@ -337,6 +341,7 @@ export async function readEncounterActionChoices(
           ...(action.sourceLabel ? { sourceLabel: action.sourceLabel } : {}),
           ...encounterActionChoiceRange(targetPolicy, action.mechanic?.rangeLabel),
           ...(itemOrCastActivation ? { actionCost: itemOrCastActivation } : {}),
+          ...(componentsLabel ? { componentsLabel } : {}),
           ...(action.mechanic?.attackBonus === undefined
             ? {}
             : { attackBonus: action.mechanic.attackBonus }),
