@@ -10827,7 +10827,7 @@
             {
               "id": "SPELLS-8.T10",
               "text": "Spell components are checked and shown when casting in an Encounter.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 3,
@@ -10836,12 +10836,12 @@
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
+              "note": "Merged m335 (6fc91988e)."
             },
             {
               "id": "SPELLS-8.T11",
               "text": "Ritual casting in an Encounter follows the ritual rules (no slot, ritual casting time).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 2,
@@ -10850,7 +10850,7 @@
                 "size": 2,
                 "after": ["SPELLS-8.T1"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
+              "note": "Merged m335 (6fc91988e)."
             },
             {
               "id": "SPELLS-8.T12",
@@ -10889,7 +10889,8 @@
                 "rr": 1,
                 "size": 3,
                 "after": ["SPELLS-8.T11"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
             }
           ]
         },
