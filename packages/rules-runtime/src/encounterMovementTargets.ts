@@ -6,7 +6,11 @@ import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCo
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
-import { heldBatchInputs, type HeldDamageInterception } from './encounterDamageInterception.js'
+import {
+  featureHeldDamageInterceptions,
+  heldBatchInputs,
+  type HeldDamageInterception
+} from './encounterDamageInterception.js'
 import {
   buildCharacterSpellCastActions,
   type CharacterSpellCastActions,
@@ -48,7 +52,7 @@ import {
   reconcileEncounterActorRuleOutput,
   requireEncounterActorRuleResult
 } from './encounterActorRuleOutput.js'
-import { snapshotCreatureTypeId } from './encounterActorState.js'
+import { snapshotCreatureTypeId, snapshotFeatureDefinitions } from './encounterActorState.js'
 import { characterFormStatBlock, snapshotStatBlock } from './encounterProjection.js'
 import type { TargetBoundActiveRuleEffectExecutionInput } from './targetBoundActiveRuleEffectExecutor.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
@@ -545,6 +549,7 @@ export function buildMovementTarget<
   )
   const conditions = readEncounterActorConditionState(actor.conditions ?? [])
   const creatureStatBlock = snapshotStatBlock(actor)
+  const featureDefinitions = snapshotFeatureDefinitions(actor)
   return {
     actor,
     activeEffects,
@@ -559,7 +564,19 @@ export function buildMovementTarget<
       deathSaves: null
     },
     initialConditionRows: conditions.values,
-    ...heldBatchInputs({ baseMaximumHitPoints: actor.maxHitPoints, effects: activeEffects }),
+    ...heldBatchInputs({
+      baseMaximumHitPoints: actor.maxHitPoints,
+      effects: activeEffects,
+      featureInterceptions: featureHeldDamageInterceptions({
+        modifiers: creatureFacts?.modifiers ?? [],
+        featureResources: actorRule.featureResources.map(({ featureId, maximum, used }) => ({
+          featureId,
+          maximum,
+          used,
+          chargeId: featureDefinitions.find(({ id }) => id === featureId)?.charges?.id ?? null
+        }))
+      })
+    }),
     baseScalarValues,
     effectiveScalarValues,
     baseRulePolicyOutput: null,

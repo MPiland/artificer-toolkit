@@ -758,6 +758,7 @@ describe('D&D 5e saving throws and defenses', () => {
     ).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
 
     const [dangerSense, ...others] = encounterSourceSightSaveGrants({
+      gameSystemId: DND5E_SYSTEM_ID,
       holderActorId: 'barbarian',
       effects: [],
       grantFold: character.output.grantFold
@@ -831,6 +832,7 @@ describe('D&D 5e saving throws and defenses', () => {
     }
     const sourceSightGrants = (character: ReturnType<typeof evaluateSrdCharacter>) =>
       encounterSourceSightSaveGrants({
+        gameSystemId: DND5E_SYSTEM_ID,
         holderActorId: 'holder',
         effects: [],
         grantFold: character.output.grantFold

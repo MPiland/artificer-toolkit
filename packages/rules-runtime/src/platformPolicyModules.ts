@@ -1,6 +1,7 @@
 import type { AbilityScoreCapabilityAdapter } from './abilityScoreCapability.js'
 import type { ActionEconomyCapabilityAdapter } from './actionEconomyCapabilityRegistry.js'
 import type { CharacterActionCapabilityAdapter } from './characterActionCapabilityDiscovery.js'
+import type { CharacterProgressionCapabilityAdapter } from './characterProgressionCapability.js'
 import type { CombatPerceptionCapabilityAdapter } from './combatPerceptionCapabilityRegistry.js'
 import type { CreatureConditionCapabilityAdapter } from './creatureConditionCapability.js'
 import type { EventVocabularyCapabilityAdapter } from './events/encounterEventTable.js'
@@ -14,6 +15,7 @@ import { dnd5eCharacterActionCapabilityAdapter } from './systems/dnd5e/character
 import { dnd5eMaintenanceLinkCapabilityAdapter } from './systems/dnd5e/concentrationPolicy.js'
 import { dnd5eCombatPerceptionCapabilityAdapter } from './systems/dnd5e/combatPerception.js'
 import { dnd5eEventVocabularyCapabilityAdapter } from './systems/dnd5e/eventVocabulary.js'
+import { dnd5eCharacterProgressionCapabilityAdapter } from './systems/dnd5e/hitPointRules.js'
 import { dnd5eCreatureConditionCapabilityAdapter } from './systems/dnd5e/identity.js'
 import { dnd5ePolicyModuleRegistration } from './systems/dnd5e/policyModuleRegistration.js'
 import { dnd5eRollModeCapabilityAdapter } from './systems/dnd5e/rollModePolicy.js'
@@ -38,6 +40,11 @@ export const actionEconomyCapabilityRegistry =
 export const abilityScoreCapabilityRegistry =
   createSystemCapabilityRegistry<AbilityScoreCapabilityAdapter>('ability-score', [
     dnd5eAbilityScoreCapabilityAdapter
+  ])
+
+export const characterProgressionCapabilityRegistry =
+  createSystemCapabilityRegistry<CharacterProgressionCapabilityAdapter>('character-progression', [
+    dnd5eCharacterProgressionCapabilityAdapter
   ])
 
 export const creatureConditionCapabilityRegistry =

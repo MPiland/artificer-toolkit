@@ -305,12 +305,16 @@ neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
+Creature form keeps; the web Creature detail, Encounter enemy stat block and Builder hit points read the
+modifier through it), `characterProgressionCapabilityRegistry` (`characterProgressionCapability.ts`: hit die
+size and average, the hit points a level adds and the proficiency bonus, read by the Builder hit point step
+and Class detail) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
 `characterActionCapabilityRegistry` (the Sheet's Character action discovery,
 `discoverCharacterActionCapabilities`).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
-`platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`; `armorClassCapabilityRegistry`
-for a Creature's loadout armor class and the shield a two-handed grip stows;
+`platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`, which also reads a declared
+initiative's roll mode back from its graph facts for the roll card; `armorClassCapabilityRegistry`
+for a Creature's loadout armor class (Convex Creature detail reads it too) and the shield a two-handed grip stows;
 `d20TestDefinitionCapabilityRegistry` for the basic action check and death save graphs and their
 added-dice facts, where a System without death saves omits `deathSaveDefinition`;
 `contestCheckCapabilityRegistry` for the two-participant contest graph and its modifier fact keys;
@@ -320,10 +324,13 @@ Cleaving choice; `attackProfileCapabilityRegistry` for an attack's kind and modi
 traits a holder's grants or a Character's action give it, its critical rules and roll contributors,
 the damage defenses it meets, the itemless restrictions a feature attack reduces and what its compiled
 effect reads and spends; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
-Character-wide, which movement passage and opportunity-attack immunity read;
+Character-wide, which movement passage and opportunity-attack immunity read, and whether a saving-throw
+grant holds only while the saver sees the effect's source (`encounterActiveGrants`);
 `characterRuleActionSystemAdapterRegistry` for compiling, binding and interpreting rule actions and
-frozen active effects, where entry-point compilation and perception use `find` because a System
-without it plays its entries manually; `encounterFeatureActionCapabilityRegistry` for feature action
+frozen active effects and the success immunity a passed ward leaves on its holder (`encounterWardImmunity`), where entry-point
+compilation and perception use `find` because a System without it plays its entries manually;
+`executionOutcomeCapabilityRegistry` for reading a committed execution's trace back: whether it cancels
+the triggering event, adds speed to a move, or allows a teleport and how far; `encounterFeatureActionCapabilityRegistry` for feature action
 discovery and effect binding (`encounterFeatureActionCapabilityDiscovery.ts`);
 `legendaryActionEligibilityCapabilityRegistry` and `movementReactionEligibilityCapabilityRegistry`
 for eligibility and the capability definitions it requires; `sceneGridPolicyCapabilityRegistry`, an
@@ -339,7 +346,10 @@ contest's graph through `contestCheckCapabilityRegistry` from the Run's `gameSys
 the browser (ADR 0036 S6, `apps/web/src/lib/rulesRuntimeBoundary.test.ts`). Ability id↔code stays System vocabulary data (`system.abilities`).
 Neutral modules reach System behaviour only through these registries; the `systems/*` import
 allowlist (`scripts/systemsImportAllowlist.json`) only shrinks and, since RULES-2.T11e, also fences
-Encounter persistence, the Worker, Convex and web; the composition roots above are exempt by name
+Encounter persistence, the Worker, Convex and web; since RULES-2.T11g3 it lists no importer, so only
+the composition roots reach `systems/*` (active grants read the action-economy capability's
+`allowanceDefinitionIdByCountDomain`, which an active zero-count grant suppresses);
+the composition roots above are exempt by name
 ([CI validation](ci-validation.md)).
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
@@ -1026,10 +1036,18 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   filter added to the subscription reaches both. The `BEFORE` `DAMAGED` event carries the whole blow (`damageTaken`,
   `damageTypeId`, `critical`), and a damage interception may filter on it (SPELLS-33.T4i2a): `excludes` (damage types
   and critical hits it does not meet) and `maxDamageTaken`. Its optional `save` (ability, DC `base` plus the damage
-  taken when `plusDamageTaken`) is spent only on a pass: each save takes the next of the batch's
-  `interceptionSaveRolls` (`{ rawDie, addedTotal }`, caller-supplied like `deathSave`), a failure lets the blow meet
-  the next interception, and a missing die is an `EncounterValidationError`. The DAMAGE receipt records every save
-  asked as `interceptionSaves`; the fold recomputes them and refuses a mismatch. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
+  taken when `plusDamageTaken`) is spent only on a pass, with the die on the interception itself (`saveRoll`,
+  `{ rawDie, addedTotal }`): the Worker rolls it once per target before any blow lands (`withInterceptionSaveRolls`,
+  the holder's saving throw and roll mode; a room commit replays the recorded one with
+  `withRecordedInterceptionSaveRolls`). A failure lets the blow meet the next interception, and a missing die is an
+  `EncounterValidationError`. The DAMAGE receipt records every save asked as `interceptionSaves`; the fold recomputes
+  them and refuses a mismatch. A Creature's feature holds interceptions too (SPELLS-33.T4i2b): its passive
+  `DAMAGE_INTERCEPTION` feature grants fold through the creature grant fold and `featureHeldDamageInterceptions` lists
+  them beside the effect-held ones (`buildMovementTarget`). A feature with a limited-use charge (Wereboar Relentless)
+  is held only while the charge has one left; the intercepted blow spends it (`interceptionCharge` on the DAMAGE or
+  KILL_NEGATED application, recomputed by the fold), `withInterceptionChargesSpent` writes it on the plan's actor,
+  rest recovery resets it through `planCreatureRest`, and `actionRevert` restores it. A feature with no charge (Undead
+  Fortitude) is held every time. Known limits: a condition that fails the save outright and added save dice are not read. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
   meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
   passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
   `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.

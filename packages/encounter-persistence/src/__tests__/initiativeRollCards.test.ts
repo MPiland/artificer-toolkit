@@ -6,6 +6,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { keepOneOfTwoRuleOperation } from '@artificer-toolkit/shared/rules'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { dnd5eDeclaredInitiativeRollFacts } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
 import { persistEncounterInitiativeRollCards } from '../initiativeRollCards.js'
 
@@ -89,7 +90,7 @@ async function persist(root: TurnCoordinatorRootDto) {
     }
   } as unknown as Parameters<typeof persistEncounterInitiativeRollCards>[0]
   await persistEncounterInitiativeRollCards(ctx, {
-    state: { id: 'run', gameSystemId: 'system' } as EncounterRunState,
+    state: { id: 'run', gameSystemId: DND5E_SYSTEM_ID } as EncounterRunState,
     campaign: { id: 'campaign', ownerUserId: OWNER_ID } as Parameters<
       typeof persistEncounterInitiativeRollCards
     >[1]['campaign'],

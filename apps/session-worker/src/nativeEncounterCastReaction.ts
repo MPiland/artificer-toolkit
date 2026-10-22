@@ -71,7 +71,7 @@ import {
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
-import { executionCancelsTriggeringEvent } from '@artificer-toolkit/rules-runtime/systems/dnd5e/cancelTriggeringEvent'
+import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { planNativeLostSourceAction } from './nativeEncounterLostAction.js'
@@ -564,7 +564,12 @@ export async function advanceNativeCastReactions(input: {
         choice: standing.choiceExecution,
         check: standing.check,
         counterExecution: (
-          await applyNativeCastReaction({ reaction: found, runtime, occurrenceId })
+          await applyNativeCastReaction({
+            reaction: found,
+            runtime,
+            occurrenceId,
+            gameSystemId: input.gameSystemId
+          })
         ).execution,
         failedCounters: [...failedCounters, ...chain.slice(1)]
       }
@@ -896,6 +901,7 @@ export async function applyNativeCastReaction(input: {
   reaction: NativeCastReaction
   runtime: RulesRuntimeService
   occurrenceId: string
+  gameSystemId: string
 }) {
   const { prepared } = input.reaction
   const execution = await advanceNativeActionGraphs({
@@ -908,7 +914,12 @@ export async function applyNativeCastReaction(input: {
     binding: prepared.binding,
     afterTest: async () => undefined
   })
-  if (execution.kind !== 'COMPLETE' || !executionCancelsTriggeringEvent(execution.execution))
+  if (
+    execution.kind !== 'COMPLETE' ||
+    !executionOutcomeCapabilityRegistry
+      .require(input.gameSystemId)
+      .cancelsTriggeringEvent(execution.execution)
+  )
     throw unsupportedReaction('A reaction to a cast must cancel it without rolls.')
   return execution
 }

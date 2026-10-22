@@ -85,10 +85,14 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ## Post-launch
 
+- **Costly and consumed material components (D171):** authored `materialCost` and `consumed` fields on spells, checked against the caster's inventory and deducted on cast, for example Revivify's 300 gp diamond. Today the material description is shown only.
+- **Give loot from a table (SCENE-4):** a "Give to…" action on a loot table entry moves the catalog item, or the coins, into a Character's inventory.
+
 ### Deferred edge cases (watch for in real use)
 
 - **Haste's lethargy timing (SPELLS-4.T2l-a):** the follow-on grant lasts one end of the holder's turn. A Haste that ends during its holder's own turn (Concentration dropped mid-turn) lets the lethargy end at the end of that same turn, instead of the holder's next. The rules text is "until after its next turn"; it is rare, and the GM can end the lethargy by hand. Related, latent: a follow-on created during the outgoing boundary's turn effects could tick once before `persistEncounterGrantTicks`; `documents.ts` deletes a form-holding effect row directly, bypassing the `onEnd` seam; only the first `MODIFIER_GRANT` contribution's `onEnd` is read. No SRD effect triggers any of these today.
 
+- **Assisted Concentration prompts during forced movement (D170, SPELLS-4.T1j):** zone dice and the Concentration saves they cause during a push or pull are system-rolled. That is the same mid-commit rule as D153. A manual-roll player gets no prompt for them.
 - **Roll influence on on-hit repeat saves (RULES-2.T6d1):** a plain on-hit follow-up repeat save ignores the authored `repeatRollInfluence`, as it did before the lifetime refactor. No SRD content authors one; homebrew that does gets a plain roll.
 - **Vampire sunlight and running water (SPELLS-33.T4i1):** Vampire and Vampire Spawn Regeneration stop in sunlight, and the Vampire's also on running water. There is no light or terrain model for either, so the trait will heal regardless. The GM withholds the heal by hand.
 - **Initiative-roll restores outside the start roll (SPELLS-31.T5o):** a Reinforcement that rolls initiative mid-Run gets no `ROLL_INITIATIVE` restore, and creature-feature and equipment `ROLL_INITIATIVE` passives are inert (only Character features restore). A restore sharing a turn commit with concentration cleanup is untested; a code read finds at worst an extra stream-version increment or a visible version rejection, never a silent wrong write. The GM adjusts the pool by hand.

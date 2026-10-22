@@ -134,24 +134,25 @@ export async function withEncounterHolderDefense<T extends MovementTarget>(input
   readTurnMovedFeet: () => Promise<number>
 }): Promise<T> {
   const { target } = input
-  if (!hasHolderDefenseGrants(target)) return target
+  if (!hasHolderDefenseGrants(input.gameSystemId, target)) return target
   return withHolderDefenseGrants(input.gameSystemId, target, await encounterHolderState(input))
 }
 
-function sourceSightSaveGrants(target: MovementTarget) {
+function sourceSightSaveGrants(gameSystemId: string, target: MovementTarget) {
   return encounterSourceSightSaveGrants({
+    gameSystemId,
     holderActorId: target.actor.id,
     effects: target.activeEffects,
     grantFold: target.effectiveRulePolicyOutput?.grantFold ?? null
   })
 }
 
-function hasHolderDefenseGrants(target: MovementTarget): boolean {
+function hasHolderDefenseGrants(gameSystemId: string, target: MovementTarget): boolean {
   return (
     hasEncounterDefensiveGrants(target.activeEffects) ||
     hasFeatureAttacksAgainstGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
     hasFeatureHolderStateSkillGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
-    sourceSightSaveGrants(target).length > 0
+    sourceSightSaveGrants(gameSystemId, target).length > 0
   )
 }
 
@@ -161,7 +162,7 @@ export function withHolderDefenseGrants<T extends MovementTarget>(
   target: T,
   holderState: EncounterHolderState
 ): T {
-  const sourceSightSaves = sourceSightSaveGrants(target)
+  const sourceSightSaves = sourceSightSaveGrants(gameSystemId, target)
   const savingThrowDefinitions = target.targetDerivedFacts.savingThrowDefinitions
   return {
     ...target,

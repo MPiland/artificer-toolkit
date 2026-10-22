@@ -53,7 +53,6 @@ import {
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { sourceImmunityEffect } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
-import { incomingGateImmunityPlan } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   actionEndedEffects,
@@ -188,6 +187,7 @@ import {
   evaluateInstalledEncounterActors,
   isInstalledMeleeAttackTrigger
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { passedWardImmunityPlan } from '@artificer-toolkit/rules-runtime/encounterWardImmunity'
 import { isMeleeRetaliationHit } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
@@ -211,7 +211,7 @@ export async function planNativeLiveEncounterAction(
     | RemoveAreaTargetInputDto,
   executionOptions: {
     runtime: RulesRuntimeService
-    random?: (maximum: number) => number
+    random(maximum: number): number
     captures: LiveCaptureReads
     /**
      * The pick an action's forced movements owe their source next on the Encounter's Scene (D157):
@@ -381,7 +381,7 @@ export async function planNativeLiveEncounterAction(
       state,
       actor,
       activeEffectsByActorId: effectsByActorId,
-      captures: executionOptions.captures
+      ...executionOptions
     })
     revisions = mergeNativeRulesRevisions(revisions, preparedTarget.revisions)
     return preparedTarget.target
@@ -1458,17 +1458,10 @@ export async function planNativeLiveEncounterAction(
         basicActionDefinitionId: encounterBasicActionDefinitionId(command.actionId)
       })
     : null
-  // A creature that passed a ward carrying a success immunity (Nature's Sanctuary) leaves that immunity on
-  // the ward's holder with this action, so it is not asked for the save again.
-  const passedWard = gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null
-  const gateImmunity = passedWard?.payload.successImmunity
-    ? incomingGateImmunityPlan({
-        wardId: passedWard.wardId,
-        duration: passedWard.payload.successImmunity.duration
-      })
-    : null
-  if (passedWard?.payload.successImmunity && !gateImmunity)
-    throw new Error('The ward success immunity has no countable duration.')
+  const gateImmunity = passedWardImmunityPlan({
+    gameSystemId: state.gameSystemId,
+    ward: gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null
+  })
   const gateImmunityGrant = gateImmunity
     ? {
         id: crypto.randomUUID(),

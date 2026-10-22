@@ -20,6 +20,7 @@ import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runt
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { applyEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
+import { withInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { readNativeLiveMaintenanceSlot } from './nativeEncounterMaintenance.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
@@ -78,19 +79,23 @@ export async function prepareNativeLiveTurnCompletion(input: {
     if (!actor) throw new Error('Turn concentration actor is unavailable.')
     projectedTargets.set(
       actorId,
-      applyEncounterConditionMechanics({
-        target: {
-          ...buildMovementTarget({
-            actor,
-            activeEffects: activeEffectsByActorId.get(actorId) ?? [],
-            characterFacts: target.characterFacts,
-            campaignId: state.campaignId,
-            gameSystemId: state.gameSystemId,
-            includeReactionSources: target.characterReactionSource !== undefined
-          }),
-          conditionDefinitions: target.conditionDefinitions
-        },
-        gameSystemId: state.gameSystemId
+      withInterceptionSaveRolls({
+        gameSystemId: state.gameSystemId,
+        target: applyEncounterConditionMechanics({
+          target: {
+            ...buildMovementTarget({
+              actor,
+              activeEffects: activeEffectsByActorId.get(actorId) ?? [],
+              characterFacts: target.characterFacts,
+              campaignId: state.campaignId,
+              gameSystemId: state.gameSystemId,
+              includeReactionSources: target.characterReactionSource !== undefined
+            }),
+            conditionDefinitions: target.conditionDefinitions
+          },
+          gameSystemId: state.gameSystemId
+        }),
+        random: input.random
       })
     )
   }

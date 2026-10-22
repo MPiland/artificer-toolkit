@@ -8,7 +8,7 @@ import {
   type AuthoredDetailFact
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { abilityModifier } from '@artificer-toolkit/rules-runtime/systems/dnd5e/abilityModifier'
+import { abilityScoreCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
 
 type CreatureFeature = NonNullable<CreatureAuthoredDto['features']>[number]
@@ -33,6 +33,7 @@ export function buildCreatureDetailModel(
 ) {
   const legendaryActionFeature = creature.features.find(isLegendaryActionFeature)
   const featureBuckets = getCreatureFeatureBuckets(creature.features, legendaryActionFeature)
+  const { abilityModifier } = abilityScoreCapabilityRegistry.require(creature.systemId)
 
   return {
     actionItems: featureBuckets.actions,
@@ -97,7 +98,7 @@ export function buildCreatureDetailModel(
 
         return {
           abbreviation: formatAbilityAbbreviation(ability),
-          modifier: formatAbilityModifier(score),
+          modifier: formatAbilityModifier(abilityModifier(score)),
           score: formatNumber(score)
         }
       }),
@@ -301,7 +302,6 @@ function formatAbilityAbbreviation(ability: (typeof abilityOrder)[number]): stri
   }
 }
 
-function formatAbilityModifier(score: number): string {
-  const modifier = abilityModifier(score)
+function formatAbilityModifier(modifier: number): string {
   return modifier >= 0 ? `+${modifier}` : String(modifier)
 }

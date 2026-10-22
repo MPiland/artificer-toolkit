@@ -34,26 +34,15 @@ import { normalizeCharacterGrantRestrictions } from './character/characterGrantF
 import { effectEventScope, type EffectEventScope } from './events/encounterEventHooks.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
+import { modifierScopeCapabilityRegistry } from './platformEncounterPolicy.js'
 import {
   abilityScoreCapabilityRegistry,
+  actionEconomyCapabilityRegistry,
   rollModeCapabilityRegistry
 } from './platformPolicyModules.js'
-import {
-  DND5E_ABILITY_DEFINITION_ID_BY_CODE,
-  DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
-  DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
-  DND5E_REACTION_ALLOWANCE_DEFINITION_ID
-} from './systems/dnd5e/identity.js'
-import { dnd5eSaveRequiresSourceSight } from './systems/dnd5e/modifierApplicability.js'
 
 // Namespaces the per-instance identity of an active grant's suppression contribution.
 const grantSuppressionNamespace = '5b0c4e0a-7a52-4d2b-9a0e-3c1f6d8b2e47'
-
-const allowanceByCountDomain: Partial<Record<ValueDomainCode, string>> = {
-  ACTION_COUNT: DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
-  BONUS_ACTION_COUNT: DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
-  REACTION_COUNT: DND5E_REACTION_ALLOWANCE_DEFINITION_ID
-}
 
 /**
  * The capabilities a holder's active grants switch off: an `ACTION_COUNT`, `BONUS_ACTION_COUNT` or
@@ -64,11 +53,14 @@ const allowanceByCountDomain: Partial<Record<ValueDomainCode, string>> = {
  * the availability resolver.
  */
 export function encounterActiveGrantCapabilitySuppressions(
+  gameSystemId: string,
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ) {
+  const { allowanceDefinitionIdByCountDomain } =
+    actionEconomyCapabilityRegistry.require(gameSystemId)
   return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
-      const allowanceId = allowanceByCountDomain[modifier.valueDomainCode]
+      const allowanceId = allowanceDefinitionIdByCountDomain[modifier.valueDomainCode]
       return allowanceId !== undefined &&
         modifier.modifierKind === 'SET_VALUE' &&
         modifier.payload !== undefined &&
@@ -160,6 +152,8 @@ export function withCreatureActiveGrantSaves(
     }
   >()
   const plain = new Map<string, EncounterRelationshipD20Contributor[]>()
+  const { abilityDefinitionIdByCode } = abilityScoreCapabilityRegistry.require(gameSystemId)
+  const scope = modifierScopeCapabilityRegistry.require(gameSystemId)
   const grants = [
     ...listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
       modifiers.map((modifier) => ({
@@ -183,7 +177,7 @@ export function withCreatureActiveGrantSaves(
   ]
   for (const { modifier, restrictions, contributor: contributorOf } of grants) {
     const { domain } = modifier
-    const abilityDefinitionId = DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(domain.ability)]
+    const abilityDefinitionId = abilityDefinitionIdByCode[String(domain.ability)]
     const { conditionTypeId } = domain
     if (
       (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
@@ -201,7 +195,7 @@ export function withCreatureActiveGrantSaves(
     } else if (
       domain.ruleDefinitionId === undefined &&
       !hasHolderStateRestriction(restrictions) &&
-      !dnd5eSaveRequiresSourceSight(modifier)
+      !scope.saveRequiresSourceSight(modifier)
     ) {
       plain.set(abilityDefinitionId, [...(plain.get(abilityDefinitionId) ?? []), contributor])
     }
@@ -547,16 +541,17 @@ export function withHolderStateGrantSaves(
   holderState: EncounterHolderState
 ): unknown[] {
   const byAbility = new Map<string, EncounterRelationshipD20Contributor[]>()
+  const { abilityDefinitionIdByCode } = abilityScoreCapabilityRegistry.require(gameSystemId)
+  const scope = modifierScopeCapabilityRegistry.require(gameSystemId)
   for (const { effectId, modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
-      const abilityDefinitionId =
-        DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(modifier.domain.ability)]
+      const abilityDefinitionId = abilityDefinitionIdByCode[String(modifier.domain.ability)]
       if (
         (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
         modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
         abilityDefinitionId === undefined ||
         modifier.scope !== 'GLOBAL' ||
-        dnd5eSaveRequiresSourceSight(modifier) ||
+        scope.saveRequiresSourceSight(modifier) ||
         !hasHolderStateRestriction(modifier.restrictions) ||
         !holderStateRestrictionsHold(modifier.restrictions, holderState)
       )
@@ -607,20 +602,22 @@ export type EncounterSourceSightSave = {
  * already carry its Active Effects); a Creature from its Active Effects.
  */
 export function encounterSourceSightSaveGrants(input: {
+  gameSystemId: string
   holderActorId: string
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
   grantFold: Pick<CharacterGrantFoldOutput, 'modifiers' | 'modifierGroups'> | null
 }): (EncounterSourceSightSave & { restrictions: ModifierRestrictions })[] {
   const { grantFold } = input
+  const { abilityDefinitionIdByCode } = abilityScoreCapabilityRegistry.require(input.gameSystemId)
+  const scope = modifierScopeCapabilityRegistry.require(input.gameSystemId)
   if (grantFold)
     return grantFold.modifierGroups.flatMap(({ contributions }) =>
       contributions.flatMap(({ acceptedModifierIndex, grantId }) => {
         const modifier = grantFold.modifiers[acceptedModifierIndex]!
-        const abilityDefinitionId =
-          DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(modifier.domain.ability)]
+        const abilityDefinitionId = abilityDefinitionIdByCode[String(modifier.domain.ability)]
         return (modifier.modifierKind === 'ADVANTAGE' ||
           modifier.modifierKind === 'DISADVANTAGE') &&
-          dnd5eSaveRequiresSourceSight(modifier) &&
+          scope.saveRequiresSourceSight(modifier) &&
           abilityDefinitionId !== undefined
           ? [
               {
@@ -643,10 +640,9 @@ export function encounterSourceSightSaveGrants(input: {
     )
   return listActiveEffectGrants(input.effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
-      const abilityDefinitionId =
-        DND5E_ABILITY_DEFINITION_ID_BY_CODE[String(modifier.domain.ability)]
+      const abilityDefinitionId = abilityDefinitionIdByCode[String(modifier.domain.ability)]
       return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
-        dnd5eSaveRequiresSourceSight(modifier) &&
+        scope.saveRequiresSourceSight(modifier) &&
         modifier.scope === 'GLOBAL' &&
         abilityDefinitionId !== undefined
         ? [

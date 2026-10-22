@@ -47,7 +47,7 @@ export async function planNativeLiveCleavingResponse(
   response: ResolveRuleOccurrenceInputDto,
   executionOptions: {
     runtime: RulesRuntimeService
-    random?: (maximum: number) => number
+    random(maximum: number): number
     captures: LiveCaptureReads
   }
 ) {
@@ -95,7 +95,7 @@ export async function planNativeLiveCleavingResponse(
       state,
       actor,
       activeEffectsByActorId,
-      captures: executionOptions.captures
+      ...executionOptions
     })
     reads.observe(prepared.revisions)
     loaded.set(actor.id, prepared.target)
