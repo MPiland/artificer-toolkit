@@ -24,6 +24,7 @@ function roll(actorId: string, requestNodeId: 'initiator_d20' | 'target_d20', se
     actorId,
     requestNodeId,
     rollMode: 'NORMAL' as const,
+    keep: 'FIRST' as const,
     rawFaces: [selected],
     selectedNatural: selected,
     contributors,

@@ -943,6 +943,18 @@
                 "rr": 5,
                 "size": 2
               }
+            },
+            {
+              "id": "PLATFORM-14.T2",
+              "text": "Bug (found 2026-10-22 by RELIABILITY-9.T3b): the RaceEditRoute story \"Dragonborn Ancestry Feature Branch\" fails in the Storybook browser project (\"Unable to find the authoring rail expander\"), on the phase branch before T3b too. CI does not run the Storybook project, so nothing caught it. Fix the story or the rail regression it exposes, with the story as the red proof.",
+              "status": "TODO",
+              "closes": ["PLATFORM-14.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 3,
+                "size": 1
+              }
             }
           ]
         },
@@ -3376,7 +3388,7 @@
             },
             {
               "id": "RULES-2.T6e",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3386,7 +3398,7 @@
                 "after": ["RULES-2.T6d2"]
               },
               "text": "Compiler: table-driven dispatch; remove combination refusals that are not genuine rules.",
-              "note": "2026-10-21: legendary discovery leaves out options its compiler does not plan (SPELLS-33.T4i1d); the Vampire legendary Unarmed Strike (damage-or-grapple) must be offered again once this lands, with a room proof."
+              "note": "Merged m321 (3e11bf774). G1 and G2 shipped; G3-G7 split to RULES-2.T6e2, T6e3 and SPELLS-33.T4i1f."
             },
             {
               "id": "RULES-2.T6f",
@@ -3399,7 +3411,8 @@
                 "size": 8,
                 "after": ["RULES-2.T6e"]
               },
-              "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e."
+              "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e.",
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             },
             {
               "id": "RULES-2.T7",
@@ -3431,7 +3444,7 @@
             },
             {
               "id": "RULES-2.T9a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3440,8 +3453,8 @@
                 "size": 3,
                 "after": ["RULES-2.T5a", "RULES-2.T7"]
               },
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
-              "text": "System vocabulary (split 2026-10-21): one neutral systemVocabulary capability with a dnd5e adapter; rule-execution d20 DTOs (policy, pending contexts, applications, held d20, mode adjustment) gain a required neutral keep (FIRST/HIGHER/LOWER) the schema checks faces against; rollMode becomes a System code checked against keep through the adapter at the one validation seam; passive score and caption labels behind the System; dev data reset."
+              "text": "System vocabulary (split 2026-10-21): one neutral systemVocabulary capability with a dnd5e adapter; rule-execution d20 DTOs (policy, pending contexts, applications, held d20, mode adjustment) gain a required neutral keep (FIRST/HIGHER/LOWER) the schema checks faces against; rollMode becomes a System code checked against keep through the adapter at the one validation seam; passive score and caption labels behind the System; dev data reset.",
+              "note": "Merged m318 (e7b954f37)."
             },
             {
               "id": "RULES-2.T9a2",
@@ -3820,6 +3833,32 @@
               },
               "text": "Delete definition schemaVersion 1 (ruled at T5a review, 2026-10-21; pre-launch, no compatibility): migrate every v1 definition and seed to the current version in the same change and remove the v1 read paths.",
               "note": "Merged m311 (60b0c993b)."
+            },
+            {
+              "status": "TODO",
+              "id": "RULES-2.T6e2",
+              "text": "Compiler (split from T6e 2026-10-22, G3/G7): verify against the executor the chosen-creatures gate refusing condition, kill or target-only outcomes on a list, and the HP gate under a test path; remove each refusal that is not a genuine rule or reclassify it, with enumerated golden flips.",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 2,
+                "after": ["RULES-2.T6f"]
+              }
+            },
+            {
+              "status": "TODO",
+              "id": "RULES-2.T6e3",
+              "text": "Compiler (split from T6e 2026-10-22, G4/G5): contest and non-contest checks admit registry outcomes (damage and the rest) like save tests; proved by an authored-parity test, since no SRD effect uses them.",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": ["RULES-2.T6f"]
+              }
             }
           ]
         }
@@ -5713,7 +5752,7 @@
             {
               "id": "SCENE-4.T1",
               "text": "Scene loot tables: shared contract (name, optional System check, exclusive ranges, entries of catalog item + quantity, System coins, note), overlap refusal in shared code, Scene editor section; saved, reopened and refused when ranges overlap.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SCENE-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -5721,7 +5760,7 @@
                 "rr": 1,
                 "size": 3
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Merged m320 (68233e889). No Scene copy path exists, so nothing to copy."
             },
             {
               "id": "SCENE-4.T2",
@@ -5734,7 +5773,8 @@
                 "rr": 1,
                 "size": 2,
                 "after": ["SCENE-4.T1"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "id": "SCENE-4.T3",
@@ -9250,7 +9290,7 @@
             },
             {
               "id": "SPELLS-4.T1j",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 5,
@@ -9259,7 +9299,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1h", "ATTACK-7.T7"]
               },
-              "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18. Also settles dragged paths (ATTACK-7.T7 refuses a drag through a Scene effect until then; D105 drag ruling, 2026-10-18)."
+              "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18. Also settles dragged paths (ATTACK-7.T7 refuses a drag through a Scene effect until then; D105 drag ruling, 2026-10-18).",
+              "note": "Merged m319 (e1e628691)."
             },
             {
               "status": "DONE",
@@ -10733,6 +10774,19 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["SPELLS-8.T5"]
+              }
+            },
+            {
+              "id": "SPELLS-8.T14",
+              "text": "Class ritual casting on the Sheet (D171): a class whose System data carries RITUAL_CASTER lists its eligible spells (spellbook or prepared, from data, no class names) in the Sheet RITUAL cast mode, with no slot and ritual casting time; the Encounter refusal points to it.",
+              "status": "TODO",
+              "closes": ["SPELLS-8.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 3,
+                "after": ["SPELLS-8.T11"]
               }
             }
           ]
@@ -14651,6 +14705,20 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
+                "after": ["RULES-2.T6e"]
+              },
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-33.T4i1f",
+              "text": "Legendary discovery compiles through compileCastChoicePlans (split from RULES-2.T6e 2026-10-22, G6): a legendary action option carries its cast-choice pick through the room, so Vampire Unarmed Strike is offered as a legendary action.",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
                 "after": ["RULES-2.T6e"]
               }
             }

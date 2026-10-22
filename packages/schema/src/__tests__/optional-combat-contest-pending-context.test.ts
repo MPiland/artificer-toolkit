@@ -79,6 +79,7 @@ function context() {
       actorId: ids.sourceActor,
       requestNodeId: 'initiator_d20',
       rollMode: 'NORMAL' as const,
+      keep: 'FIRST' as const,
       contributors,
       contributorChecksum: checksumRuleDocument(contributors),
       modifier: 4
@@ -91,6 +92,7 @@ function context() {
           checkDefinitionId: ids.check,
           label: 'Strength (Athletics)',
           rollMode: 'NORMAL' as const,
+          keep: 'FIRST' as const,
           contributors,
           contributorChecksum: checksumRuleDocument(contributors),
           modifier: 2

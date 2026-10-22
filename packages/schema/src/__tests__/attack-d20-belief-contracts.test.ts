@@ -38,6 +38,7 @@ const evidenceBase = (contributors: (typeof advantage)[]) => ({
 describe('d20 evidence mode adjustment', () => {
   const adjustment = {
     rolledMode: 'ADVANTAGE' as const,
+    rolledKeep: 'HIGHER' as const,
     rolledFaces: [3, 17],
     addedFaces: [] as number[],
     cancelledRollIndexes: [1],
@@ -48,6 +49,7 @@ describe('d20 evidence mode adjustment', () => {
   const cancelled = {
     ...evidenceBase([]),
     rollMode: 'NORMAL' as const,
+    keep: 'FIRST' as const,
     rawFaces: [3],
     selectedNatural: 3,
     total: 7,
@@ -60,12 +62,14 @@ describe('d20 evidence mode adjustment', () => {
       serverRuleExecutionD20EvidenceDtoSchema.safeParse({
         ...cancelled,
         rollMode: 'ADVANTAGE',
+        keep: 'HIGHER',
         rawFaces: [8, 14],
         selectedNatural: 14,
         total: 18,
         modeAdjustment: {
           ...adjustment,
           rolledMode: 'NORMAL',
+          rolledKeep: 'FIRST',
           rolledFaces: [8],
           addedFaces: [14],
           cancelledRollIndexes: [],
@@ -77,6 +81,7 @@ describe('d20 evidence mode adjustment', () => {
       serverRuleExecutionD20EvidenceDtoSchema.safeParse({
         ...cancelled,
         rollMode: 'DISADVANTAGE',
+        keep: 'LOWER',
         rawFaces: [3, 17],
         selectedNatural: 3,
         total: 7,
@@ -110,6 +115,7 @@ describe('d20 evidence saving-throw ability (SPELLS-4.T2c2b)', () => {
   const save = {
     ...evidenceBase([]),
     rollMode: 'NORMAL' as const,
+    keep: 'FIRST' as const,
     rawFaces: [9],
     selectedNatural: 9,
     total: 13,
@@ -170,6 +176,11 @@ describe('pending d20 request with a held d20', () => {
       min: 1 as const,
       max: 20 as const,
       rollMode: 'NORMAL' as const,
+      keep: 'FIRST' as const,
+      rollModes: [
+        { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
+        { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' }
+      ],
       derivedRollModeReasons: []
     },
     allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'] as const
@@ -185,7 +196,7 @@ describe('pending d20 request with a held d20', () => {
     ).toBe(true)
     expect(pendingEncounterRuleOccurrenceSummaryDtoSchema.safeParse(pending).success).toBe(true)
     for (const invalid of [
-      { ...pending.request, rollMode: 'ADVANTAGE', heldD20 },
+      { ...pending.request, rollMode: 'ADVANTAGE', keep: 'HIGHER', heldD20 },
       { ...pending.request, heldD20: { ...heldD20, faces: [21] } },
       { ...pending.request, heldD20: { ...heldD20, faces: [4, 5] } },
       { ...pending.request, heldD20: { ...heldD20, caption: 'x'.repeat(161) } }
@@ -202,6 +213,7 @@ describe('encounter action pending context: belief and held d20', () => {
   const policy = {
     requestNodeId: 'attack',
     rollMode: 'NORMAL' as const,
+    keep: 'FIRST' as const,
     contributors: [],
     contributorChecksum: checksumRuleDocument([]),
     modifier: 4,
@@ -209,6 +221,7 @@ describe('encounter action pending context: belief and held d20', () => {
   }
   const belief = {
     rollMode: 'ADVANTAGE' as const,
+    keep: 'HIGHER' as const,
     contributors,
     contributorChecksum: checksumRuleDocument(contributors)
   }
@@ -239,9 +252,23 @@ describe('encounter action pending context: belief and held d20', () => {
     ).toBe(true)
   })
 
-  it('rejects a belief that disagrees with itself and a held d20 without a policy', () => {
+  it('parses any code-shaped belief mode and refuses a malformed one; the System decides meaning', () => {
+    expect(
+      encounterActionPendingContextDtoSchema.safeParse({
+        ...context,
+        d20Belief: { ...belief, rollMode: 'NORMAL' }
+      }).success
+    ).toBe(true)
+    expect(
+      encounterActionPendingContextDtoSchema.safeParse({
+        ...context,
+        d20Belief: { ...belief, rollMode: 'normal' }
+      }).success
+    ).toBe(false)
+  })
+
+  it('rejects a belief with a wrong checksum and a held d20 without a policy', () => {
     for (const invalid of [
-      { ...context, d20Belief: { ...belief, rollMode: 'NORMAL' } },
       { ...context, d20Belief: { ...belief, contributorChecksum: 'c'.repeat(64) } },
       { ...context, d20Policy: null, heldD20 },
       { ...context, heldD20: { ...heldD20, faces: [12, 3] } }

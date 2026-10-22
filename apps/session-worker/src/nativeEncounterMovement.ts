@@ -1,40 +1,10 @@
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
-import {
-  encounterRunActorStateSchema,
-  type EncounterRunActorState
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import {
-  liveSessionMovementSettlementSchema,
-  type LiveSessionMovementSettlement
-} from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
-import { moveEndHolds } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { spatialEffectTransition } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementEffects'
-import {
-  heldUntilLeavingZoneId,
-  leavingAreaHolds
-} from '@artificer-toolkit/rules-runtime/encounterSpatialHeldCondition'
-import {
-  encounterActorsAfterEscape,
-  encounterEscapeEndedConditionIds
-} from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
-import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
-import {
-  bindEncounterActorRuleOutputToFacts,
-  reconcileEncounterActorRuleOutput
-} from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
-import {
-  prepareEncounterMovementContinuation,
-  type MovementContinuationInput
-} from '@artificer-toolkit/rules-runtime/encounterMovementContinuation'
-import {
-  prepareEncounterSpatialMovement,
-  projectPreparedSpatialMovementReceipt,
-  type PreparedSpatialMovementPlan
-} from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPreparation'
+import { type LiveSessionMovementSettlement } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
+import { prepareEncounterMovementContinuation } from '@artificer-toolkit/rules-runtime/encounterMovementContinuation'
+import { type PreparedSpatialMovementPlan } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPreparation'
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
 import {
   resolveEncounterAttackPerception,
@@ -75,7 +45,6 @@ import {
   encounterConditionSources
 } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
-import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   discoverEncounterMovementPassage,
@@ -85,42 +54,26 @@ import {
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
-import type { MovementConcentrationSettlement } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
 import { measureNativeEnemyProximity } from './nativeAttackEnemyProximity.js'
 import { readNativeLiveHasNotTakenTurn, readNativeLiveTurnUses } from './nativeTurnUses.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
-import {
-  prepareNativeLiveMovementConcentration,
-  readNativeLiveMovementConcentrationState
-} from './nativeEncounterMovementConcentration.js'
+import { prepareNativeLiveMovementConcentration } from './nativeEncounterMovementConcentration.js'
 import {
   prepareNativeLiveActionMaintenance,
   readNativeLiveMaintenanceCharacter,
   type NativeLiveMovementMaintenanceProjection
 } from './nativeEncounterMaintenance.js'
-import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
-
-type CharacterFacts = PreparedLiveCharacterSheet
-type CharacterRow = Parameters<typeof readNativeLiveMaintenanceCharacter>[0]
-type ContinuationInput = MovementContinuationInput<
-  CharacterFacts,
-  NativeLiveMovementMaintenanceProjection
->
-type NativeLiveMovementSettlement =
-  | { kind: 'SPATIAL'; plan: PreparedSpatialMovementPlan<CharacterFacts> }
-  | { kind: 'REACTION'; plan: MovementReactionSettlementInput<CharacterFacts, CharacterRow> }
-  | { kind: 'CONCENTRATION'; plan: MovementConcentrationSettlement }
-  | {
-      kind: 'PASSAGE'
-      plan: {
-        actor: EncounterRunActorState
-        consumption: EncounterActionEconomyConsumption
-        consumedGrants: ActiveRuleEffectRecord[]
-      }
-    }
+import {
+  nativeMovementSettlementInputs,
+  nativeSpatialStepCallbacks,
+  type CharacterFacts,
+  type CharacterRow,
+  type ContinuationInput,
+  type NativeLiveMovementSettlement
+} from './nativeSpatialContinuation.js'
 
 /** Prepares an initial move or sealed response in the DO; ordered plans perform no writes. */
 export async function prepareNativeLiveMovement(
@@ -451,95 +404,10 @@ export async function prepareNativeLiveMovement(
           throw error
         }
       },
-      evaluateSpatial: (spatial, targets, stageTerminalSettlement) =>
-        prepareEncounterSpatialMovement({
-          input: {
-            ...spatial,
-            carefully,
-            leavingAreaHolds: leavingAreaHolds(targets.values()),
-            moveEndHolds: moveEndHolds(targets.values())
-          },
-          state,
-          actors: captured.actors,
-          userId,
-          runtime: state.automationMode === 'MANUAL' ? undefined : runtime,
-          random,
-          spatialScope: {
-            list: async () => spatialEffects,
-            get: async (id) => spatialEffects.find((effect) => effect.id === id) ?? null
-          },
-          loadTargets: async (actorIds) =>
-            new Map(
-              actorIds.map((id) => {
-                const target = targets.get(id)
-                if (
-                  !target ||
-                  target.actor.id !== id ||
-                  target.actor.encounterId !== state.id ||
-                  target.actor.systemId !== state.gameSystemId ||
-                  !state.actorIds.includes(id)
-                )
-                  throw new Error('Projected spatial target does not match the Run.')
-                return [id, target] as const
-              })
-            ),
-          determineConcentrationActorIds:
-            state.automationMode === 'MANUAL'
-              ? undefined
-              : async (actorIds, selected) => {
-                  const active = await Promise.all(
-                    actorIds.map(async (targetActorId) =>
-                      (await readNativeLiveMovementConcentrationState({
-                        state,
-                        targetActorId,
-                        targets: selected,
-                        projection: spatial.maintenanceProjection,
-                        capture
-                      }))
-                        ? targetActorId
-                        : null
-                    )
-                  )
-                  return new Set(active.filter((id): id is string => id !== null))
-                },
-          settleTerminal: async (plan) => {
-            if (plan.executions.length) {
-              for (const { plan: settlement } of plan.mechanicsPlan.settlements)
-                finalActors.set(settlement.updatedActor.id, settlement.updatedActor)
-              stageTerminalSettlement(plan)
-            }
-            return projectPreparedSpatialMovementReceipt(plan)
-          }
-        }),
-      spatialSettlement: (plan) => {
-        for (const { plan: settlement } of plan.mechanicsPlan.settlements)
-          finalActors.set(settlement.updatedActor.id, settlement.updatedActor)
-        return { kind: 'SPATIAL', plan }
-      },
-      prepareConcentration: async ({ executionOrdinal, ...args }) => {
-        const prepared = await prepareNativeLiveMovementConcentration({
-          ...args,
-          state,
-          userId,
-          autoRoll,
-          occurrenceId: step.occurrenceId,
-          sourceCommandId: step.executionCommandId,
-          occurredAt: step.occurredAt,
-          source: { kind: 'SPATIAL', executionOrdinal },
-          capture,
-          runtime,
-          random
-        })
-        for (const target of prepared.targets.values())
-          finalActors.set(target.actor.id, target.actor)
-        return {
-          ...prepared,
-          settlements: prepared.settlements.map((plan) => ({
-            kind: 'CONCENTRATION' as const,
-            plan
-          }))
-        }
-      },
+      ...nativeSpatialStepCallbacks(
+        { state, userId, autoRoll, carefully, captured, random, finalActors },
+        step
+      ),
       preparePassage: async (args) => {
         try {
           return await prepareEncounterMovementPassageBoundary(
@@ -857,91 +725,13 @@ export async function prepareNativeLiveMovement(
           : evaluated.outcome
     }
   }
-  const settlementInputs = planned.settlements.map((settlement): LiveSessionMovementSettlement => {
-    if (settlement.kind === 'CONCENTRATION')
-      return liveSessionMovementSettlementSchema.parse({
-        kind: settlement.plan.kind === 'END' ? 'CONCENTRATION_END' : 'CONCENTRATION',
-        execution: settlement.plan.execution
-      })
-    if (settlement.kind === 'REACTION') {
-      const recorded = reactionSettlements.get(settlement.plan)
-      if (!recorded) throw new Error('Prepared movement reaction settlement is missing.')
-      return liveSessionMovementSettlementSchema.parse(recorded)
-    }
-    if (settlement.kind === 'PASSAGE')
-      return liveSessionMovementSettlementSchema.parse({
-        kind: 'PASSAGE',
-        actorId: settlement.plan.actor.id,
-        consumption: settlement.plan.consumption,
-        consumedGrants: settlement.plan.consumedGrants
-      })
-    return liveSessionMovementSettlementSchema.parse({
-      kind: 'SPATIAL',
-      executions: settlement.plan.executions,
-      transitions: [
-        ...new Set(settlement.plan.executions.map((entry) => entry.candidate.candidate.effectId))
-      ]
-        .sort()
-        .map((effectId) => {
-          const effect = settlement.plan.effects.get(effectId)
-          if (!effect) throw new Error('Prepared movement spatial effect is missing.')
-          return { effectId, transition: spatialEffectTransition(effect) }
-        })
-    })
+  const { settlementInputs, rules } = nativeMovementSettlementInputs({
+    state,
+    actors: captured.actors,
+    targets: captured.targets,
+    finalActors,
+    planned,
+    reactionSettlements
   })
-  // A creature that left a zone holding it until it leaves, or that moved while holding an effect
-  // until it moved, is released after every other contact.
-  const outcome = planned.outcome.kind === 'TERMINAL' ? planned.outcome : null
-  const releases = [
-    ...(outcome?.areaDepartures ?? []).map((departure) => ({
-      kind: 'AREA_DEPARTURE' as const,
-      key: { departure },
-      holderActorId: departure.holderActorId,
-      isHeld: (effect: ActiveRuleEffectRecord) =>
-        heldUntilLeavingZoneId(effect) === departure.zoneEffectId
-    })),
-    ...(outcome?.moveEnds ?? []).map((moveEnd) => ({
-      kind: 'MOVE_END' as const,
-      key: { moveEnd },
-      holderActorId: moveEnd.holderActorId,
-      isHeld: (effect: ActiveRuleEffectRecord) => effect.id === moveEnd.effectId
-    }))
-  ]
-  for (const release of releases) {
-    const holderEffects = captured.targets.get(release.holderActorId)?.activeEffects
-    const endedEffect = holderEffects?.find(release.isHeld)
-    if (!holderEffects || !endedEffect) throw new Error('Movement release holder is missing.')
-    settlementInputs.push(
-      liveSessionMovementSettlementSchema.parse({
-        kind: release.kind,
-        ...release.key,
-        endedEffect,
-        removedConditionIds: encounterEscapeEndedConditionIds(holderEffects, endedEffect.id)
-      })
-    )
-    for (const actor of encounterActorsAfterEscape({
-      encounterId: state.id,
-      actors: captured.actors.map((entry) => finalActors.get(entry.id)!),
-      holderId: release.holderActorId,
-      holderEffects,
-      activeEffectId: endedEffect.id
-    }))
-      finalActors.set(actor.id, actor)
-  }
-  const ruleFacts =
-    planned.outcome.kind === 'TERMINAL' || settlementInputs.length
-      ? buildEncounterActorRuleFacts({
-          actors: captured.actors.map((actor) => finalActors.get(actor.id)!)
-        })
-      : null
-  const rules = ruleFacts
-    ? bindEncounterActorRuleOutputToFacts(
-        reconcileEncounterActorRuleOutput(
-          evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: ruleFacts }),
-          ruleFacts
-        ),
-        ruleFacts
-      )
-    : null
   return { ...captured, ...planned, settlementInputs, rules }
 }

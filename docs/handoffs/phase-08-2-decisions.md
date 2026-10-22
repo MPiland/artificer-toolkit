@@ -1064,7 +1064,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 * **D169** (2026-10-21) Roll-mode choice in entered dice is System-supplied (RULES-2.T9a, ADR 0039). Orchestrator ruling.
   - **Server derives keep:** `ENTER_DICE` no longer carries `keep`. At ingress the server derives it from the chosen `rollMode` through the System's roll-mode capability. It refuses a mode the request did not offer, and a face count that does not match keep, each with a named message. Evidence stores the derived keep.
-  - **Request offers the modes:** the pending dice request carries `rollModes: [{ code, label }]`, projected from the System vocabulary for that request's System, as a shared `packages/schema` contract. The web picker renders only those and holds no mode table.
+  - **Request offers the modes:** the pending dice request carries `rollModes: [{ code, label, keep }]` (`offeredRollModeSchema`; as built in m318, the web reads keep only to guide dice entry and the server still derives it), projected from the System vocabulary for that request's System, as a shared `packages/schema` contract. The web picker renders only those and holds no mode table.
   - **Rejected:** a client-set `keep` (contradicts deriving keep once in the adapter) and a web-local D&D mode table (breaks System neutrality).
 
 * **D170** (2026-10-21) Forced movement through and into zones settles at the commit seam (SPELLS-4.T1j). Orchestrator ruling, following D153's dice rule.

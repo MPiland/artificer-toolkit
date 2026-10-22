@@ -12,7 +12,9 @@ import {
   type EncounterAttackD20Belief,
   type EncounterPreparedAttackSight
 } from './encounterAttackBelief.js'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import { EncounterValidationError } from './encounterErrors.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 import {
   resolveEncounterD20Answer,
   type EncounterD20RollMode,
@@ -87,6 +89,7 @@ function heldD20Completion(resolution: EncounterEvidenceAnswer, rollD20: () => n
  * it, or one more die is asked of the roller while they hold a single die.
  */
 export function settleSightGovernedD20(input: {
+  gameSystemId: string
   appliedMode: EncounterD20RollMode
   sightGoverned: SightGovernedD20
   resolution: EncounterEvidenceAnswer
@@ -97,14 +100,23 @@ export function settleSightGovernedD20(input: {
       value: number
       faces: number[]
       rollMode: EncounterD20RollMode
+      keep: RollModeKeep
       modeAdjustment?: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
     }
   | { kind: 'NEEDS_EXTRA_D20'; heldFace: number } {
-  const { appliedMode, sightGoverned, resolution, rollD20 } = input
+  const { gameSystemId, appliedMode, sightGoverned, resolution, rollD20 } = input
   const { held } = sightGoverned
+  const keepOf = (rollMode: EncounterD20RollMode) =>
+    rollModeCapabilityRegistry.rollModeKeep({ gameSystemId, rollMode })
+  const appliedKeep = keepOf(appliedMode)
   const rolled = held
-    ? { faces: [...held.faces], rollMode: held.rolledMode }
-    : resolveEncounterD20Answer({ derivedRollMode: appliedMode, answer: resolution, rollD20 })
+    ? { faces: [...held.faces], rollMode: held.rolledMode, keep: keepOf(held.rolledMode) }
+    : resolveEncounterD20Answer({
+        gameSystemId,
+        derived: { rollMode: appliedMode, keep: appliedKeep },
+        answer: resolution,
+        rollD20
+      })
   // The app rolls a missing die for an app roll or an auto-roll; entered dice supply their own.
   const completion = held ? heldD20Completion(resolution, rollD20) : null
   const settled = reconcileEncounterD20Faces({
@@ -121,10 +133,12 @@ export function settleSightGovernedD20(input: {
     value: settled.natural,
     faces: settled.faces,
     rollMode: appliedMode,
+    keep: appliedKeep,
     ...(settled.adjustment
       ? {
           modeAdjustment: {
             rolledMode: settled.adjustment.rolledMode,
+            rolledKeep: rolled.keep,
             rolledFaces: [...settled.adjustment.rolledFaces],
             addedFaces: [...settled.adjustment.addedFaces],
             cancelledRollIndexes: [...settled.adjustment.cancelledRollIndexes],

@@ -205,6 +205,7 @@ describe('movement reaction persisted choice contracts', () => {
           d20Policy: {
             requestNodeId: 'choice',
             rollMode: 'NORMAL',
+            keep: 'FIRST',
             contributors: [],
             contributorChecksum: checksumRuleDocument([]),
             modifier: 0,
@@ -224,6 +225,7 @@ describe('movement reaction persisted choice contracts', () => {
           d20Policy: {
             requestNodeId: 'choice',
             rollMode: 'NORMAL',
+            keep: 'FIRST',
             contributors: [],
             contributorChecksum: checksumRuleDocument([]),
             modifier: 0,

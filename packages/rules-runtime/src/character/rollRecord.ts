@@ -16,7 +16,7 @@ export function createRollRecord(input: {
   system: { id: string; rulesetCode: string; rulesetVersion: string }
   resolved: {
     expression: string
-    rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    rollMode: string
     source: RollSourceDto
   }
   /** Dice the roll adds beside its d20, rolled after advantage keeps one (D156). */

@@ -188,6 +188,7 @@ describe('the SRD Power Word Stun (a hit-point gate, a condition and a repeated 
         requestId: paused.continuation.request.requestId,
         rawFaces: [face],
         rollMode: 'NORMAL',
+        keep: 'FIRST',
         addedDice: []
       }
     })

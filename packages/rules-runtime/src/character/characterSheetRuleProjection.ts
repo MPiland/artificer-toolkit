@@ -19,7 +19,7 @@ import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import type { CharacterClassState } from '@artificer-toolkit/shared/subjects/authored'
 
 /** Sheet-facing presentation data rehydrated from one validated Character rule-policy result. */
-type CharacterRuleRollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+type CharacterRuleRollMode = string
 
 export interface CharacterRuleRollModes {
   initiative: CharacterRuleRollMode

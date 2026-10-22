@@ -278,6 +278,7 @@ describe('native actor maintained-effect cleanup', () => {
           savingThrowAbilityDefinitionId: crypto.randomUUID(),
           modifier: 1,
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           contributors: [],
           contributorChecksum: checksum
         },

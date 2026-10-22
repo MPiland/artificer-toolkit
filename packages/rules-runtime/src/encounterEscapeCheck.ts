@@ -272,7 +272,11 @@ export function prepareEncounterEscapeCheck<TCharacterFacts extends CharacterMov
       dc: escape.dc,
       label: encounterBasicActionCheckLabel(input.system, input.checkDefinitionId)
     },
-    d20: freezeD20Context({ ...facts, modifier: facts.modifier }),
+    d20: freezeD20Context({
+      gameSystemId: input.gameSystemId,
+      ...facts,
+      modifier: facts.modifier
+    }),
     consumedGrants: discoverEncounterEventHooks({
       effects: holder.activeEffects,
       events: [

@@ -140,6 +140,7 @@ export function incomingGateOffer(input: {
     checkDefinitionId: savingThrow.abilityDefinitionId,
     dc,
     d20: freezeD20Context({
+      gameSystemId: input.gameSystemId,
       rollMode: row.rollMode,
       contributors: row.contributors,
       modifier: row.modifier,

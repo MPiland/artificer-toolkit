@@ -225,6 +225,7 @@ export function plannedModifierGrant(input: {
       ? {
           requestId: testUuid(0xc312),
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           derivedRollMode: 'NORMAL',
           rawFaces: [15],
           selectedNatural: 15,

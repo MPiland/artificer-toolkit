@@ -93,7 +93,7 @@ import type { EnemyProximity } from '../../encounterEnemyProximity.js'
 import type { MoveToward } from '../../encounterMoveToward.js'
 import { attackRestrictionsMet, oncePerTurnUsageKey } from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-import { resolveDnd5eRollMode } from './rollModePolicy.js'
+import { DND5E_KEEP_BY_ROLL_MODE, resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
   DND5E_POISONED_CONDITION_DEFINITION_ID
@@ -123,7 +123,6 @@ import {
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
-  DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
@@ -224,7 +223,11 @@ import {
   interpretSpatial
 } from './effectActionInterpretation.js'
 import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
-import { isSupportedArea, isSupportedTestTargetPolicy } from './effectActionTargetPolicy.js'
+import {
+  isChargedFreeActivation,
+  isSupportedArea,
+  isSupportedTestTargetPolicy
+} from './effectActionTargetPolicy.js'
 import {
   boundedDiceTerm,
   dnd5eEffectScalingFacts,
@@ -246,6 +249,16 @@ const DND5E_ORDINARY_SIGHT_CAPABILITY = {
   physicalConstraints: ['LINE_OF_EFFECT'] as const
 }
 const DND5E_ORDINARY_SIGHT_CHECKSUM = checksumRuleDocument(DND5E_ORDINARY_SIGHT_CAPABILITY)
+/** The published DTO of a graph this compiler built: its identity, checksum and definition. */
+function publishedGraph(definition: RuleGraphDefinition) {
+  return serverPublishedRuleDefinitionDtoSchema.parse({
+    id: definition.id,
+    gameSystemId: definition.gameSystemId,
+    definitionFamilyKey: definition.definitionFamilyKey,
+    checksum: checksumRuleDocument(definition),
+    definition
+  })
+}
 function activeEffectGraphNodeId(compiledEntryId: string): string {
   return `active_effect_${compiledEntryId}`
 }
@@ -447,7 +460,7 @@ function isSupportedTestActivation(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
-  if (invocation.activation.code === 'FREE') return false
+  if (invocation.activation.code === 'FREE') return isChargedFreeActivation(invocation)
   if (invocation.activation.amount !== 1) return false
   if (invocation.activation.code === 'ACTION') return true
   // A save is a bonus action only as a repeat offer's charge (Heat Metal's repeated damage, D166).
@@ -748,13 +761,7 @@ function sequentialCompositionPlan(
     authoredEffectId: action.effectId,
     compiledEntryId: recurring.resultBlockId,
     frozenGraphNodeId: nodeId,
-    frozenGraph: serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    }),
+    frozenGraph: publishedGraph(definition),
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: stage,
     initialRemaining: turns,
@@ -957,13 +964,7 @@ function relationshipStateGraph(input: {
     },
     sourceEntryBindings: [{ sourceEntryId: input.relationship.id, nodeId: 'relationship-state' }]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 function relationshipRecurrenceGraph(input: {
@@ -1098,13 +1099,7 @@ function relationshipRecurrenceGraph(input: {
     ]
   }
   void input.modules
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 /**
@@ -2624,13 +2619,7 @@ function durationPublishedGraph(input: {
         : [])
     ]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 /**
@@ -3207,13 +3196,7 @@ function unsavedZonePlacementPlan(
     ...placement,
     entry: {
       ...entryPlan,
-      frozenGraph: serverPublishedRuleDefinitionDtoSchema.parse({
-        id: definition.id,
-        gameSystemId: definition.gameSystemId,
-        definitionFamilyKey: definition.definitionFamilyKey,
-        checksum: checksumRuleDocument(definition),
-        definition
-      })
+      frozenGraph: publishedGraph(definition)
     },
     grant: null,
     maintenance: maintenancePlan(action, row)
@@ -3507,13 +3490,7 @@ function repeatFollowUpSavePublishedGraph(input: {
       }
     ]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 /**
@@ -3911,17 +3888,145 @@ function executableAction(action: Dnd5eCompiledEffectActionSource) {
   return rulingSequence(action)?.executable ?? action
 }
 
+/** An outcome no test decides, as one proposal node, a dice graph or the action's relationship graph proposes it. */
+type Dnd5eDirectOutcome =
+  | Exclude<
+      SpecializedOutcome,
+      { kind: 'DICE_SCALAR_REDUCTION' | 'HIT_POINT_MAXIMUM_REDUCTION' | 'FORCED_MOVEMENT' }
+    >
+  | { kind: 'DIRECT_RELATIONSHIP' }
+/** What a direct outcome reads from its action once `supported` has resolved its targets and plans. */
+type DirectOutcomeInput = Readonly<{
+  action: Dnd5eCompiledEffectActionSource
+  onList: boolean
+  selfTeleport: { maxFeet: number; destinationKind: 'VISIBLE' | 'SPECIFIED_POINT' } | null
+  plans: Readonly<{ grant: boolean; link: boolean; form: boolean }>
+}>
+type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extract<
+  Dnd5eAuthoredOutcome,
+  { effectKind: Kind }
+>
+
+function unsupportedDirectOutcome(): never {
+  return unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
+}
+// A list runs only a hit-point, departure, grant, link or creature form outcome, but an outcome no
+// cast can run keeps the reason a single target gets, so the list is refused only once it is read.
+function offList<Plan extends Dnd5eDirectOutcome>(plan: Plan, input: DirectOutcomeInput): Plan {
+  if (input.onList)
+    unsupported(
+      'D&D chosen-creature action outcome must be a heal, damage, teleport, grant, link or creature form.'
+    )
+  return plan
+}
+// Each chosen creature departs on its own, so a departure runs on a list too.
+function targetOnlyDirectOutcome(outcome: Dnd5eAuthoredOutcome, input: DirectOutcomeInput) {
+  const targetOnly = dnd5eTargetOnlyOutcome(outcome) ?? unsupportedDirectOutcome()
+  return targetOnly.kind === 'DEPART' ? targetOnly : offList(targetOnly, input)
+}
+function positiveFixedAmount(outcome: AuthoredOutcomeOf<'HEAL' | 'DAMAGE'>): number {
+  if (
+    outcome.valueKind !== 'FIXED' ||
+    outcome.scalingKind !== 'NONE' ||
+    outcome.bonuses?.length ||
+    !Number.isSafeInteger(outcome.amount) ||
+    outcome.amount <= 0
+  )
+    unsupported(
+      'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.'
+    )
+  return outcome.amount
+}
+
+/**
+ * The one dispatch from an authored outcome kind to the direct outcome it compiles to (ADR 0039
+ * decision 1). A kind with no entry is not a direct outcome.
+ */
+const DND5E_DIRECT_OUTCOMES: {
+  [Kind in Dnd5eAuthoredOutcome['effectKind']]?: (
+    outcome: AuthoredOutcomeOf<Kind>,
+    input: DirectOutcomeInput
+  ) => Dnd5eDirectOutcome
+} = {
+  // The action holds its target by its relationship alone (Engulf): the relationship's own graph
+  // is the action's, and its active-effect plan stores the hold.
+  ACTOR_RELATIONSHIP: (_outcome, { action, onList }) => {
+    if (onList) unsupported('D&D chosen-creature action outcome cannot be a relationship.')
+    relationshipPlan(action)
+    return { kind: 'DIRECT_RELATIONSHIP' }
+  },
+  CONDITION: (outcome, input) => {
+    uuid(outcome.conditionId, 'D&D condition definition identity')
+    if (!(input.action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
+      unsupported('D&D Effect action condition is not in the pinned System vocabulary.')
+    return offList({ kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }, input)
+  },
+  KILL: (_outcome, input) => offList({ kind: 'KILL' }, input),
+  STABILIZE: targetOnlyDirectOutcome,
+  MANUAL_ADJUDICATION: targetOnlyDirectOutcome,
+  MOVEMENT_RULE: targetOnlyDirectOutcome,
+  TELEPORT: (outcome, input) => {
+    if (dnd5eTargetOnlyOutcome(outcome)) return targetOnlyDirectOutcome(outcome, input)
+    // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
+    // following TELEPORT move spends, bounded by the spell's range.
+    if (!input.selfTeleport) unsupportedDirectOutcome()
+    return offList({ kind: 'TELEPORT_ALLOWANCE', ...input.selfTeleport }, input)
+  },
+  CONCEAL_FROM_OBSERVERS: (_outcome, input) => offList({ kind: 'CONCEAL' }, input),
+  DETECT_CONCEALED: (_outcome, input) => offList({ kind: 'DETECT_CONCEALED' }, input),
+  // The reaction cancels the event it answered: nothing is stored on its target, the cast.
+  CANCEL_TRIGGERING_EVENT: (_outcome, input) => offList({ kind: 'CANCEL_TRIGGERING_EVENT' }, input),
+  APPLY_GRANT: (_outcome, { plans }) =>
+    plans.grant ? { kind: 'MODIFIER_GRANT' } : unsupportedDirectOutcome(),
+  TELEPATHIC_LINK: (_outcome, { plans }) =>
+    plans.link ? { kind: 'ACTOR_LINK' } : unsupportedDirectOutcome(),
+  MANIFEST: (_outcome, { plans }) =>
+    plans.form ? { kind: 'CREATURE_FORM' } : unsupportedDirectOutcome(),
+  HEAL: (outcome, { action }) => {
+    if (outcome.valueKind === 'DICE') {
+      parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
+      validateHealBonuses(outcome.bonuses)
+      return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
+    }
+    const amount = positiveFixedAmount(outcome)
+    return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
+  },
+  DAMAGE: (outcome) => {
+    // Dice damage with no attack or save to decide it (Magic Missile's dart): one roll of the
+    // authored dice, which a bonus or a scaling row would have to be bound to facts to read.
+    if (outcome.valueKind === 'DICE') {
+      if (outcome.scalingKind !== 'NONE' || outcome.bonuses?.length || outcome.halfHitPointsDice)
+        unsupported('D&D direct dice damage must be one unscaled roll with no bonuses.')
+      parseBoundedDiceConfiguration(outcome.dice)
+      uuid(outcome.damageTypeId, 'D&D damage type identity')
+      return { kind: 'DICE_DAMAGE', damageTypeId: outcome.damageTypeId }
+    }
+    const amount = positiveFixedAmount(outcome)
+    uuid(outcome.damageTypeId, 'D&D damage type identity')
+    return {
+      kind: 'DAMAGE',
+      amount: multipliedDamageAmount(amount, damageMultiplier(outcome)),
+      damageTypeId: outcome.damageTypeId
+    }
+  }
+}
+
+function specializedDirectOutcome<Kind extends Dnd5eAuthoredOutcome['effectKind']>(
+  kind: Kind,
+  outcome: AuthoredOutcomeOf<Kind>,
+  input: DirectOutcomeInput
+): Dnd5eDirectOutcome {
+  const specialize = DND5E_DIRECT_OUTCOMES[kind]
+  return specialize ? specialize(outcome, input) : unsupportedDirectOutcome()
+}
+
 // A contest whose win holds the target under the action's relationship (Grapple, D152) compiles
 // to the contest graph alone; its relationship is the action's active-effect plan. A contest whose
 // win applies a condition or moves its target (Shove, D105) tests by the contest graph and
 // specializes its win as the ON_CHECK_SUCCESS outcome.
 function supported(
   action: Dnd5eCompiledEffectActionSource
-):
-  | SpecializedOutcome
-  | { kind: 'CONTEST_RELATIONSHIP' }
-  | { kind: 'CONTEST_OUTCOME' }
-  | { kind: 'DIRECT_RELATIONSHIP' } {
+): Dnd5eDirectOutcome | { kind: 'CONTEST_RELATIONSHIP' } | { kind: 'CONTEST_OUTCOME' } {
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
@@ -3994,11 +4099,10 @@ function supported(
     invocation.targeting?.selectionKind === 'AREA_CONTENTS' &&
     hitPointPoolIsAuthored(invocation.targeting) &&
     isSupportedArea(invocation)
-  // A Legendary Action option is free; the Feature charge it spends is its cost.
   const supportedActivation =
     invocation.kind === 'ACTION' &&
     (invocation.activation.code === 'FREE'
-      ? invocation.resourceUse !== undefined
+      ? isChargedFreeActivation(invocation)
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION' ||
           // A reaction to being attacked, to taking damage, to being chosen as a target or to a spell
@@ -4029,7 +4133,8 @@ function supported(
     effect.entries.length !== (repeatPlan ? 2 : 1) ||
     !entry ||
     entry.resolutionKind !== 'DIRECT' ||
-    (entry.groupKind !== 'SINGLE' && !repeatPlan) ||
+    // A sequence of one outcome (Haste) resolves as a single result does.
+    (entry.groupKind === 'CHOICE' && !repeatPlan) ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
     (entry.maintenanceDefinitionId &&
       !repeatPlan &&
@@ -4080,15 +4185,6 @@ function supported(
     outcome.effectKind !== 'DETECT_CONCEALED'
   )
     unsupported('D&D check action outcome is not supported yet.')
-  // A list runs only a hit-point, teleport, grant, link or creature form outcome, but an outcome no cast can run keeps the
-  // reason a single target gets, so each other plan below is refused here rather than up front.
-  const notOnAList = <Plan extends SpecializedOutcome>(plan: Plan): Plan => {
-    if (supportsChosenCreatures)
-      unsupported(
-        'D&D chosen-creature action outcome must be a heal, damage, teleport, grant, link or creature form.'
-      )
-    return plan
-  }
   if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
@@ -4139,73 +4235,12 @@ function supported(
       unsupported('D&D contest check action condition is not in the pinned System vocabulary.')
     return { kind: 'CONTEST_OUTCOME' }
   }
-  // The action holds its target by its relationship alone (Engulf): the relationship's own graph
-  // is the action's, and its active-effect plan stores the hold.
-  if (outcome.effectKind === 'ACTOR_RELATIONSHIP') {
-    if (supportsChosenCreatures)
-      unsupported('D&D chosen-creature action outcome cannot be a relationship.')
-    relationshipPlan(action)
-    return { kind: 'DIRECT_RELATIONSHIP' }
-  }
-  if (outcome.effectKind === 'CONDITION') {
-    uuid(outcome.conditionId, 'D&D condition definition identity')
-    if (!(action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
-      unsupported('D&D Effect action condition is not in the pinned System vocabulary.')
-    return notOnAList({ kind: 'CONDITION_APPLY', conditionId: outcome.conditionId })
-  }
-  if (outcome.effectKind === 'KILL') return notOnAList({ kind: 'KILL' })
-  // Each chosen creature departs on its own, so a departure runs on a list too.
-  const targetOnly = dnd5eTargetOnlyOutcome(outcome)
-  if (targetOnly) return targetOnly.kind === 'DEPART' ? targetOnly : notOnAList(targetOnly)
-  // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
-  // following TELEPORT move spends, bounded by the spell's range.
-  if (outcome.effectKind === 'TELEPORT' && selfTeleport)
-    return notOnAList({ kind: 'TELEPORT_ALLOWANCE', ...selfTeleport })
-  if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return notOnAList({ kind: 'CONCEAL' })
-  if (outcome.effectKind === 'DETECT_CONCEALED') return notOnAList({ kind: 'DETECT_CONCEALED' })
-  // The reaction cancels the event it answered: nothing is stored on its target, the cast.
-  if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT')
-    return notOnAList({ kind: 'CANCEL_TRIGGERING_EVENT' })
-  if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
-  if (outcome.effectKind === 'TELEPATHIC_LINK' && linkPlan) return { kind: 'ACTOR_LINK' }
-  if (outcome.effectKind === 'MANIFEST' && formPlan) return { kind: 'CREATURE_FORM' }
-  if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
-    unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
-  if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
-    parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
-    validateHealBonuses(outcome.bonuses)
-    return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
-  }
-  // Dice damage with no attack or save to decide it (Magic Missile's dart): one roll of the authored
-  // dice, which a bonus or a scaling row would have to be bound to facts to read.
-  if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {
-    if (outcome.scalingKind !== 'NONE' || outcome.bonuses?.length || outcome.halfHitPointsDice)
-      unsupported('D&D direct dice damage must be one unscaled roll with no bonuses.')
-    parseBoundedDiceConfiguration(outcome.dice)
-    uuid(outcome.damageTypeId, 'D&D damage type identity')
-    return { kind: 'DICE_DAMAGE', damageTypeId: outcome.damageTypeId }
-  }
-  if (
-    outcome.valueKind !== 'FIXED' ||
-    outcome.scalingKind !== 'NONE' ||
-    outcome.bonuses?.length ||
-    !Number.isSafeInteger(outcome.amount) ||
-    outcome.amount <= 0
-  )
-    unsupported(
-      'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.'
-    )
-  if (outcome.effectKind === 'HEAL')
-    return {
-      kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL',
-      amount: outcome.amount
-    }
-  uuid(outcome.damageTypeId, 'D&D damage type identity')
-  return {
-    kind: 'DAMAGE',
-    amount: multipliedDamageAmount(outcome.amount, damageMultiplier(outcome)),
-    damageTypeId: outcome.damageTypeId
-  }
+  return specializedDirectOutcome(outcome.effectKind, outcome, {
+    action,
+    onList: supportsChosenCreatures,
+    selfTeleport,
+    plans: { grant: grantPlan !== null, link: linkPlan !== null, form: formPlan !== null }
+  })
 }
 
 /** A result path's outcome inside a test graph: proposed only when the test resolves to that path. */
@@ -4393,13 +4428,7 @@ function compileTestDefinition(
         }
       : {})
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKind {
@@ -4583,13 +4612,7 @@ function compileDnd5eEffectActionTestTemplate({
       }
     }
   }
-  const base = serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  const base = publishedGraph(definition)
   const published = bindMovementInterruptionTestOutput({ action, published: base, kind })
   return { phase: 'TEST', published, templateChecksum: published.checksum }
 }
@@ -5536,13 +5559,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       action: input.action,
       definitions: [...primaryDefinitions, immediateFollowUpSaveGraphDefinition(input.action)]
     })
-    const published = serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    })
+    const published = publishedGraph(definition)
     return {
       phase: 'OUTCOME',
       published,
@@ -5574,13 +5591,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       })
     })
     const definition = mergedOutcomeGraphDefinition({ action: input.action, definitions })
-    const published = serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    })
+    const published = publishedGraph(definition)
     return {
       phase: 'OUTCOME',
       published,
@@ -5711,13 +5722,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       dice: input.facts.damageAddedDice ?? []
     })
   })
-  const published = serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  const published = publishedGraph(definition)
   return {
     phase: 'OUTCOME',
     published,
@@ -5972,18 +5977,16 @@ function dnd5eActiveEffectPlans(
             ? null
             : dnd5eOutcomeDefinition(testOutcomeKind).pathGatedOperationKey
           : outcome?.kind === 'DICE_HEAL'
-            ? outcome.temporary
-              ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-              : DND5E_HEAL_PROPOSAL_OPERATION_KEY
-            : outcome?.kind === 'HEAL'
-              ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
-              : outcome?.kind === 'TEMPORARY_HIT_POINTS'
-                ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
-                : outcome?.kind === 'DAMAGE'
-                  ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-                  : outcome?.kind === 'CONCEAL'
-                    ? DND5E_CONCEAL_PROPOSAL_OPERATION_KEY
-                    : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+            ? dnd5eOutcomeDefinition(outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL')
+                .operationKey
+            : // A recurring plan rides one registered outcome; no other graph carries one.
+              !outcome ||
+                outcome.kind === 'DICE_DAMAGE' ||
+                outcome.kind === 'CONTEST_RELATIONSHIP' ||
+                outcome.kind === 'CONTEST_OUTCOME' ||
+                outcome.kind === 'DIRECT_RELATIONSHIP'
+              ? null
+              : dnd5eOutcomeDefinition(outcome.kind).operationKey
   if (
     frozenGraph.definition.nodes.filter(
       (node) => node.id === plan.frozenGraphNodeId && node.operation.key === expectedOperation
@@ -6040,13 +6043,7 @@ function compileDnd5eEffectAction({
       ...rulingNodes.map(({ entryId, node }) => ({ sourceEntryId: entryId, nodeId: node.id }))
     ]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: withRulings.id,
-    gameSystemId: withRulings.gameSystemId,
-    definitionFamilyKey: withRulings.definitionFamilyKey,
-    checksum: checksumRuleDocument(withRulings),
-    definition: withRulings
-  })
+  return publishedGraph(withRulings)
 }
 
 /** The gates the action's one direct entry authors on its outcome, when it authors any. */
@@ -6124,13 +6121,7 @@ function compileEffectActionGraph(
     })
     return bindMovementInterruptionOutput({
       action,
-      published: serverPublishedRuleDefinitionDtoSchema.parse({
-        id: definition.id,
-        gameSystemId: definition.gameSystemId,
-        definitionFamilyKey: definition.definitionFamilyKey,
-        checksum: checksumRuleDocument(definition),
-        definition
-      })
+      published: publishedGraph(definition)
     })
   }
   if (outcome.kind === 'DICE_DAMAGE') {
@@ -6147,13 +6138,7 @@ function compileEffectActionGraph(
     const definition = diceGraphDefinition({ action, entry, diceConfig: entry.outcome.dice })
     return bindMovementInterruptionOutput({
       action,
-      published: serverPublishedRuleDefinitionDtoSchema.parse({
-        id: definition.id,
-        gameSystemId: definition.gameSystemId,
-        definitionFamilyKey: definition.definitionFamilyKey,
-        checksum: checksumRuleDocument(definition),
-        definition
-      })
+      published: publishedGraph(definition)
     })
   }
   if (outcome.kind === 'CONTEST_RELATIONSHIP')
@@ -6168,12 +6153,6 @@ function compileEffectActionGraph(
   }
   if (outcome.kind === 'CONTEST_OUTCOME')
     unsupported('D&D contest outcome requires its contest test phase.')
-  if (outcome.kind === 'DICE_SCALAR_REDUCTION')
-    unsupported('D&D direct dice scalar reduction requires an authored test phase.')
-  if (outcome.kind === 'FORCED_MOVEMENT')
-    unsupported('D&D forced movement requires an authored test phase.')
-  if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION')
-    unsupported('D&D hit point maximum reduction requires an authored test phase.')
   const outcomeDefinition = dnd5eOutcomeDefinition(outcome.kind)
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   // The save the target repeats (Power Word Stun) is pinned to the DC this cast settles.
@@ -6211,13 +6190,7 @@ function compileEffectActionGraph(
   }
   return bindMovementInterruptionOutput({
     action,
-    published: serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    })
+    published: publishedGraph(definition)
   })
 }
 
@@ -6962,6 +6935,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           )
         },
         d20RollMode: matches[0]!.rollMode,
+        d20Keep: DND5E_KEEP_BY_ROLL_MODE[matches[0]!.rollMode],
         d20Roller: 'TARGET',
         d20Audit: {
           contributors,
@@ -7009,19 +6983,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           sourceDerivedFacts.attackAdvantageNegated !== true || influence !== 'ADVANTAGE'
       )
       allContributors.sort(compareCanonicalD20Contributors)
-      const hasAdvantage = allContributors.some(
-        (contributor) => contributor.influence === 'ADVANTAGE'
-      )
-      const hasDisadvantage = allContributors.some(
-        (contributor) => contributor.influence === 'DISADVANTAGE'
-      )
-      const rollMode = hasAdvantage
-        ? hasDisadvantage
-          ? 'NORMAL'
-          : 'ADVANTAGE'
-        : hasDisadvantage
-          ? 'DISADVANTAGE'
-          : 'NORMAL'
+      const { rollMode } = resolveDnd5eRollMode(allContributors)
       const contributorChecksum = checksumRuleDocument(allContributors)
       const enemyProximity = sourceDerivedFacts.attackEnemyProximity as EnemyProximity | undefined
       const moveToward = sourceDerivedFacts.attackMoveToward as MoveToward | undefined
@@ -7058,6 +7020,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             : 'NONE'
         },
         d20RollMode: rollMode,
+        d20Keep: DND5E_KEEP_BY_ROLL_MODE[rollMode],
         d20Roller: 'SOURCE',
         d20Audit: {
           contributors: allContributors,
@@ -7120,6 +7083,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           )
         },
         d20RollMode: rollMode,
+        d20Keep: DND5E_KEEP_BY_ROLL_MODE[rollMode],
         d20Roller: 'TARGET',
         d20Audit: {
           contributors,
@@ -7331,7 +7295,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       facts,
       evidencePolicy: {
         requestNodeId,
-        rollMode: resolveDnd5eRollMode(contributors).rollMode,
+        ...resolveDnd5eRollMode(contributors),
         contributors: [...contributors],
         contributorChecksum,
         modifier: matches[0]!.modifier,

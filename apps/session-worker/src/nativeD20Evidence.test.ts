@@ -7,7 +7,8 @@ const rollId = 'abababab-abab-4bab-8bab-abababababab'
 const appRoll = {
   rollId,
   faces: [14],
-  rollMode: 'NORMAL' as const
+  rollMode: 'NORMAL' as const,
+  keep: 'FIRST' as const
 }
 const systemRoll = { kind: 'SYSTEM_ROLL' as const, requestId: 'request-1', rollId }
 

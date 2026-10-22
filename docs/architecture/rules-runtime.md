@@ -194,6 +194,21 @@ test that resolved to another path commits nothing. Under a test, two outcomes s
 teleport, which takes its reach from a self-targeted action's range, and `CANCEL_TRIGGERING_EVENT`, which belongs to a
 spell-cast reaction and a spell-cast reaction is never a test activation.
 
+**Direct outcome dispatch (current, RULES-2.T6e).** `supported()` checks the action's shape once, then hands the
+authored outcome to `DND5E_DIRECT_OUTCOMES`: one entry per authored outcome kind, with no ladder around it. A kind with
+no entry is not a direct outcome. An entry receives the resolved inputs (`onList`, `selfTeleport`, whether a grant, link
+or form plan exists), and `offList` keeps the rule that a chosen-creatures list runs only hit-point, departure, grant,
+link and creature-form outcomes. Every compiled graph is published through one helper, `publishedGraph`. Two
+admissions changed:
+
+- A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
+  `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
+  check and the single-target range policy. So a charged free save option (Wing Attack's authored shape) compiles under
+  its save.
+- A direct entry authored as a sequence of one outcome (Haste) resolves as a single result does. Only a `CHOICE` group
+  is refused there. The recurring-plan sites still require `SINGLE`, because no SRD record authors a recurring sequence
+  of one.
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014. Reusable mechanics remain
@@ -292,7 +307,27 @@ contributors })` (`rollModeCapabilityRegistry.ts`, installed in `platformPolicyM
 closed on a System with no roll-mode policy, an influence code the System does not define, and a
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
-`resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
+`resolveDnd5eRollMode` directly.
+**System vocabulary (RULES-2.T9a, current).** Policy vocabulary is System code strings, not UUID rows:
+the wire types a code as `systemVocabularyCodeSchema` (`schema/shared/systemVocabularyCode.ts`, shape
+only), and the one seam that decides membership is `systemVocabularyRegistry.requireCode(gameSystemId,
+kind, code)` (`systemVocabularyCapability.ts`, installed in `platformPolicyModules.ts`; the D&D lists in
+`systems/dnd5e/vocabulary.ts`). Lists today: `rollInfluence`, `rollMode`, each code with its display
+label. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
+settlement) validates through it; capability registries call it before an adapter sees a code. A
+rule-execution d20 DTO carries `keep` beside its `rollMode`, and `keep` is derived once, by the
+adapter's `keepFor` through `rollModeCapabilityRegistry.resolveRollMode` or `rollModeKeep`, when the
+roll is made; runtime read sites verify a stored or supplied `{ rollMode, keep }` with `requireKeep` or by
+re-resolving its contributors. The client never sends `keep`: `ENTER_DICE` carries `rollMode` and `rawFaces`
+only, and `resolveEncounterD20Answer` derives `keep` from the mode at ingress and stores it on the
+evidence. It refuses a `rollMode` outside the request's offered `rollModes` ("The roll mode ... is not
+offered for this request.") and a face count that differs from the faces `keep` keeps ("The face count
+must match the faces the roll mode keeps."). A pending d20 request (`D20_EVIDENCE`, and `CONTEST_CHECK` at
+its top level) carries `rollModes`, the `{ code, label, keep }` entries of `rollModeCapabilityRegistry.
+offeredRollModes(gameSystemId)` (the System's `rollMode` vocabulary plus the adapter's `keepFor`); the
+web roll picker renders only those entries and keeps no mode table of its own. The D&D passive score (10 plus the modifier, ±5) is the adapter's `passiveScore`.
+**Transitional (until RULES-2.T9a2):** the shared dice evaluator, roll evidence `mode`, manual and
+Campaign roll input, the held d20 and the `D20_MODE_ADJUSTED` record still use the D&D mode codes.
 **System capability registries (RULES-2.T11a–g, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the
@@ -868,7 +903,7 @@ A zone's own component may author `perDistanceMoved` (D156, SPELLS-4.T1h): place
 placement's `distanceStep` in Scene distance units, and `collectSpatialMovementCandidates` raises one `ENTER` candidate
 per whole step the footprint travels inside, measured by the Scene grid and carrying its `step` ordinal, so the loop runs
 the frozen entry once per step. A finished spatial execution that drops a voluntary mover to 0 Hit Points stops the move
-at its contact (`spatialExecutionStopsMovement`).
+at its contact (`spatialExecutionStopsMovement`); a forced move stops there too (D170).
 The multiplier slows only a mover the zone catches (SPELLS-20 T4d, refining D154's "every mover"): `zoneMovementSegmentMultiplier` (shared/vtt) skips a mover that `spatialEffectAffects` spares (designated unaffected, or a defeated Creature's suppressed passive zone) and the token a `TOKEN` zone is anchored to, so Spirit Guardians never slows its caster while a wall the caster placed does. The room's movement charge (`encounterMovementPublication`) and the tabletop's drag-route label (`formatSceneRoute`) both price a walk through it, the label from `movementCostZones` on the Encounter session state (`readSessionMovementCostZones`: visible zones, token zones only when the viewer's projection lists the source, designations filtered to listed actors). A zone whose only component prices movement (Entangle's difficult terrain, D156) compiles from its appear save (`zonePlacementPlan`).
 A zone may author more than one component (D154 amendment): the first covers the zone's shape, and each later one
 authors `region: { kind: 'SIDE_BAND', distance }` and compiles to `zonePlacement.regionComponents` (at most one
@@ -1578,7 +1613,7 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `landForcedMovements` builds the per-mover landing report: feet travelled, `stoppedBy` (`NONE`, `OBJECT` or the struck
   creature's actor ID) and the rolled ray. A mover stops in the last free square before a creature; movers land farthest
   first, each against the Scene after the earlier landings. The report rides the commit (`forcedMovementLandings`) and
-  is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
+  is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. A landing path that touches a Scene effect is settled one mover at a time through `persistMovementContacts` (the voluntary movement seam: `prepareRoomForcedMovementContacts` plans it with `collectSpatialMovementCandidates` for `FORCED`, with the room's seeded dice for every creature, D170): entry and per-step zone damage, Concentration checks and a 0 Hit Point stop that ends the path where the creature drops and becomes its landing. The landing records the zones' hit-point changes in `zoneDamage` (and `zoneUndoRefused` when they did more) so a GM undo restores their damage with the Scene move; the undo is refused ("the zones a forced movement set off") for a spent one-shot zone, a Concentration break or a non-damage application, and for a Character target's zone damage. The walk is unrelated to the T6k1
   passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
   collision's mover damage (T6k2b3, D159) settles in the area commit: each mover that travelled 10 ft or more takes
   `floor(feet/10)` times the authored dice as an unsaved damage action of the pusher (`collisionDamageCapability`), one
@@ -2282,7 +2317,7 @@ attack, and the mover's path ignores it as an obstacle. The drag doubles the mov
 maximum (difficult terrain costs ×4) unless every held creature is two or more sizes smaller; an unknown size
 counts as not smaller. A mover stopped mid-path drags only the walked part. The room refuses a drag
 (`MOVEMENT_BLOCKED`, "Release the grapple first.") whose dragged path is blocked, ends on an occupied place, or
-enters, leaves or crosses a Scene effect (SPELLS-4.T1j).
+enters, leaves or crosses a Scene effect (a dragged path through a zone is a follow-up seam; a forced push through one is settled, D170).
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's
