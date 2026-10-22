@@ -34,16 +34,15 @@ import {
   assertRoomEncounterRulesRevisions
 } from './roomEncounterTurns.js'
 import { persistRoomEncounterContest } from './roomEncounterContest.js'
-import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
+import type { MovementSettlementContext } from './roomMovementSettlementCallbacks.js'
+import { roomLiveCaptureReads } from './roomLiveCaptureReads.js'
 import { readRoomBoundSceneTokens } from './roomRelationshipEnds.js'
-import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
-import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
 type RoomBasicActionInput = {
-  ctx: EncounterWriteTransaction
+  ctx: EncounterWriteTransaction & MovementSettlementContext
   store: RoomEncounterStore
   transaction: RoomTransaction
   inputs: RoomInputs
@@ -58,22 +57,7 @@ function basicActionExecution(input: RoomBasicActionInput) {
   return {
     runtime: input.runtime,
     random: input.random,
-    captures: {
-      encounterRules: (request: Parameters<typeof readRoomEncounterTurnCapture>[3]) =>
-        readRoomEncounterTurnCapture(
-          ctx,
-          inputs,
-          transaction,
-          request,
-          observed.filter((revision) => revision.scope !== 'CHARACTER'),
-          {
-            readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),
-            readSceneEntities: (page) => readRoomSceneEntities(transaction, page)
-          }
-        ),
-      prepareCharacter: (characterScope: Parameters<typeof prepareRoomLiveCharacterSheet>[2]) =>
-        prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction)
-    }
+    captures: roomLiveCaptureReads({ ctx, store, transaction, inputs, observed })
   }
 }
 

@@ -859,7 +859,7 @@ A zone's own component may author `perDistanceMoved` (D156, SPELLS-4.T1h): place
 placement's `distanceStep` in Scene distance units, and `collectSpatialMovementCandidates` raises one `ENTER` candidate
 per whole step the footprint travels inside, measured by the Scene grid and carrying its `step` ordinal, so the loop runs
 the frozen entry once per step. A finished spatial execution that drops a voluntary mover to 0 Hit Points stops the move
-at its contact (`spatialExecutionStopsMovement`).
+at its contact (`spatialExecutionStopsMovement`); a forced move stops there too (D170).
 The multiplier slows only a mover the zone catches (SPELLS-20 T4d, refining D154's "every mover"): `zoneMovementSegmentMultiplier` (shared/vtt) skips a mover that `spatialEffectAffects` spares (designated unaffected, or a defeated Creature's suppressed passive zone) and the token a `TOKEN` zone is anchored to, so Spirit Guardians never slows its caster while a wall the caster placed does. The room's movement charge (`encounterMovementPublication`) and the tabletop's drag-route label (`formatSceneRoute`) both price a walk through it, the label from `movementCostZones` on the Encounter session state (`readSessionMovementCostZones`: visible zones, token zones only when the viewer's projection lists the source, designations filtered to listed actors). A zone whose only component prices movement (Entangle's difficult terrain, D156) compiles from its appear save (`zonePlacementPlan`).
 A zone may author more than one component (D154 amendment): the first covers the zone's shape, and each later one
 authors `region: { kind: 'SIDE_BAND', distance }` and compiles to `zonePlacement.regionComponents` (at most one
@@ -1569,7 +1569,7 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `landForcedMovements` builds the per-mover landing report: feet travelled, `stoppedBy` (`NONE`, `OBJECT` or the struck
   creature's actor ID) and the rolled ray. A mover stops in the last free square before a creature; movers land farthest
   first, each against the Scene after the earlier landings. The report rides the commit (`forcedMovementLandings`) and
-  is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. The walk is unrelated to the T6k1
+  is recorded on the `RESOLVE_ACTION` command beside the Scene moves undo reverts. A landing path that touches a Scene effect is settled one mover at a time through `persistMovementContacts` (the voluntary movement seam: `prepareRoomForcedMovementContacts` plans it with `collectSpatialMovementCandidates` for `FORCED`, with the room's seeded dice for every creature, D170): entry and per-step zone damage, Concentration checks and a 0 Hit Point stop that ends the path where the creature drops and becomes its landing. The landing records the settled zones in `zoneExecutions` so a GM undo restores their damage with the Scene move; the undo is refused ("the zones a forced movement set off") for a spent one-shot zone, a Concentration break or a non-damage application, and for a Character target's zone damage. The walk is unrelated to the T6k1
   passage walker, which validates a mover's own path through hostile footprints rather than a forced line. The
   collision's mover damage (T6k2b3, D159) settles in the area commit: each mover that travelled 10 ft or more takes
   `floor(feet/10)` times the authored dice as an unsaved damage action of the pusher (`collisionDamageCapability`), one
@@ -2273,7 +2273,7 @@ attack, and the mover's path ignores it as an obstacle. The drag doubles the mov
 maximum (difficult terrain costs ×4) unless every held creature is two or more sizes smaller; an unknown size
 counts as not smaller. A mover stopped mid-path drags only the walked part. The room refuses a drag
 (`MOVEMENT_BLOCKED`, "Release the grapple first.") whose dragged path is blocked, ends on an occupied place, or
-enters, leaves or crosses a Scene effect (SPELLS-4.T1j).
+enters, leaves or crosses a Scene effect (a dragged path through a zone is a follow-up seam; a forced push through one is settled, D170).
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's

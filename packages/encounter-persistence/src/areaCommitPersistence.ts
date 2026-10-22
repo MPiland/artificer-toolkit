@@ -891,7 +891,27 @@ export async function persistEncounterAreaCommit(
     endedGrants: input.endedGrants,
     pendingConcentration: input.pendingConcentration
   })
-  const projection = await projectNativeGm(ctx, nextState, settledChildren.actors, input.rules)
+  // Each creature the area pushes or pulls moves on the Scene in this commit (D139), settling the
+  // zones it passes through (D170).
+  const settledMovements = input.forcedMovements.length
+    ? await callbacks.applyForcedMovements({
+        state,
+        sourceActorId: command.actorId,
+        commandId: command.commandId,
+        movements: input.forcedMovements,
+        occurrenceId: areaOccurrenceId,
+        occurredAt: input.occurredAt,
+        authorizedCharacterIds: characterIds,
+        actors: settledChildren.actors,
+        rules: input.rules
+      })
+    : { moves: [], landings: [], actors: settledChildren.actors, rules: input.rules }
+  const projection = await projectNativeGm(
+    ctx,
+    nextState,
+    settledMovements.actors,
+    settledMovements.rules
+  )
   // Each creature's save is its own card; the area's one damage roll is carded once, with the first,
   // unless every entry rolled its own.
   const answers = await actionSystemRollAnswers(ctx, {
@@ -945,15 +965,6 @@ export async function persistEncounterAreaCommit(
       pending: null
     }
   })
-  // Each creature the area pushes or pulls moves on the Scene in this commit (D139).
-  const settledMovements = input.forcedMovements.length
-    ? await callbacks.applyForcedMovements({
-        state,
-        sourceActorId: command.actorId,
-        commandId: command.commandId,
-        movements: input.forcedMovements
-      })
-    : { moves: [], landings: [] }
   await recordActionRoot(ctx, {
     run,
     state,

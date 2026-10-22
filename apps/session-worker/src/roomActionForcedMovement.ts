@@ -2,10 +2,13 @@ import type {
   ApplyEncounterForcedMovements,
   EncounterForcedMovementLanding
 } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
-import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { persistMovementContacts } from '@artificer-toolkit/encounter-persistence/movementSettlementPersistence'
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
+import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
+import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
@@ -22,7 +25,14 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import type { ForcedMovementPreview } from './nativeAreaPreparation.js'
-import type { RoomTransaction } from './roomEncounterStore.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
+import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
+import type { RoomInputs } from './roomInputs.js'
+import { prepareRoomForcedMovementContacts } from './roomForcedMovementContacts.js'
+import {
+  roomMovementSettlementCallbacks,
+  type MovementSettlementContext
+} from './roomMovementSettlementCallbacks.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
 
@@ -236,16 +246,25 @@ export async function readRoomForcedMovementPick(input: {
  * to where `landForcedMovements` lands it; every pick must already be made. Each move is a FORCED
  * Scene token move, so it provokes no reaction and spends no movement; its Scene command names the
  * action as its origin, so only the action's undo reverts it. A creature that does not move writes
- * no move.
+ * no move. A creature that crosses a Scene effect settles its contacts, damage and Concentration
+ * saves included, in the same commit through the spatial candidate execution a voluntary move uses
+ * (D170); one that drops to 0 HP stops where it drops, and the creatures after it land afresh.
  */
 export async function applyRoomForcedMovements(input: {
-  ctx: EncounterReadContext
+  ctx: MovementSettlementContext
   transaction: RoomTransaction
+  store: RoomEncounterStore
+  inputs: RoomInputs
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>
+  observed: LiveSessionRulesRevisions
+  captures: LiveCaptureReads
+  runtime: RulesRuntimeService
+  random(maximum: number): number
   userId: string
   movement: Parameters<ApplyEncounterForcedMovements>[0]
 }): ReturnType<ApplyEncounterForcedMovements> {
-  const { ctx, transaction } = input
-  const { state, sourceActorId, commandId, movements } = input.movement
+  const { ctx, transaction, scope } = input
+  const { state, sourceActorId, commandId, movements, occurrenceId, occurredAt } = input.movement
   const { sceneId, sourceTokenId, actorIdByTokenId, tokenIdByActorId } =
     await readForcedMovementTokens(
       ctx,
@@ -258,47 +277,75 @@ export async function applyRoomForcedMovements(input: {
   const { presentationVersion } = liveSessionCheckpointSceneSourceSchema.parse(
     JSON.parse(sourceRecord.json)
   )
-  const effects = toSpatialInstances(
-    (
-      await ctx.db
-        .query('encounterSpatialRuleEffects')
-        .withIndex('by_encounterId_sceneId_createdOrdinal_id', (q) =>
-          q.eq('encounterId', state.id).eq('sceneId', sceneId)
-        )
-        .take(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
-    ).map(readSpatialEffect),
-    await readRunActors(ctx, state)
-  )
-  const { landings, owed } = landForcedMovements(
-    (await readRoomSceneState(transaction, sceneId)).scene,
-    sourceTokenId,
-    tokenIdByActorId,
-    actorIdByTokenId,
-    movements
-  )
-  if (owed)
-    throw new Error('A forced movement with several destinations needs its source to pick one.')
+  let { actors, rules } = input.movement
   const moves: Awaited<ReturnType<ApplyEncounterForcedMovements>>['moves'] = []
-  for (const { tokenId, destination } of landings) {
+  const reports: EncounterForcedMovementLanding[] = []
+  let remaining = movements
+  while (remaining.length) {
     const { scene, baseOrdinals } = await readRoomSceneState(transaction, sceneId)
+    const { landings, owed } = landForcedMovements(
+      scene,
+      sourceTokenId,
+      tokenIdByActorId,
+      actorIdByTokenId,
+      remaining
+    )
+    if (owed)
+      throw new Error('A forced movement with several destinations needs its source to pick one.')
+    const { movement, tokenId, destination, report } = landings[0]!
+    remaining = remaining.filter((entry) => entry !== movement)
     const token = tokenOf(scene, tokenId)
-    if (destination.x === token.position.x && destination.y === token.position.y) continue
-    const path = [token.position, destination]
-    if (
+    if (destination.x === token.position.x && destination.y === token.position.y) {
+      reports.push(report)
+      continue
+    }
+    const route = [token.position, destination]
+    const effects = toSpatialInstances(
+      (
+        await ctx.db
+          .query('encounterSpatialRuleEffects')
+          .withIndex('by_encounterId_sceneId_createdOrdinal_id', (q) =>
+            q.eq('encounterId', state.id).eq('sceneId', sceneId)
+          )
+          .take(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
+      ).map(readSpatialEffect),
+      actors
+    )
+    const touchesEffect =
+      state.automationMode !== 'MANUAL' &&
       collectSpatialMovementCandidates({
         actorIdByTokenId,
         effects,
         movementKind: 'FORCED',
-        path,
+        path: route,
         grid: scene.grid,
         tokens: scene.tokens,
         movingTokenId: token.id,
         zoneApplications: state.zoneApplications,
         turnSequence: state.turnSequence
-      }).length
-    )
-      throw new Error('A forced movement through a Scene effect is not available yet.')
+      }).length > 0
     const sceneCommandId = crypto.randomUUID()
+    const contacts = touchesEffect
+      ? await prepareRoomForcedMovementContacts({
+          scope,
+          captures: input.captures,
+          runtime: input.runtime,
+          random: input.random,
+          state,
+          actors,
+          scene,
+          tokenId: token.id,
+          path: route,
+          actorIdByTokenId,
+          commandId: sceneCommandId,
+          occurrenceId,
+          occurredAt,
+          userId: input.userId
+        })
+      : null
+    const settled = contacts?.outcome.kind === 'TERMINAL' ? contacts : null
+    const path = settled ? settled.segment.path : route
+    const landed = path.at(-1)!
     persistRoomSceneCommand({
       transaction,
       header: readRoomScene(transaction, sceneId).header,
@@ -318,7 +365,7 @@ export async function applyRoomForcedMovements(input: {
       actorUserId: input.userId,
       result: {
         commandId: sceneCommandId,
-        delta: { kind: 'TOKEN_MOVED', tokenId: token.id, position: destination },
+        delta: { kind: 'TOKEN_MOVED', tokenId: token.id, position: landed },
         occurrence: null,
         replayed: false,
         sceneId,
@@ -330,6 +377,47 @@ export async function applyRoomForcedMovements(input: {
       actionOrigin: { encounterId: state.id, commandId }
     })
     moves.push({ sceneId, sceneCommandId })
+    if (settled) {
+      const persisted = await persistMovementContacts(
+        ctx,
+        {
+          state,
+          actors,
+          authorizedCharacterIds: input.movement.authorizedCharacterIds,
+          move: { sceneId, commandId: sceneCommandId, resolution: null },
+          preparation: { occurrenceId, occurredAt, outcome: settled.outcome },
+          settlements: settled.settlements,
+          userId: input.userId
+        },
+        roomMovementSettlementCallbacks({
+          ctx,
+          store: input.store,
+          transaction,
+          inputs: input.inputs,
+          campaignId: scope.campaignId,
+          epoch: scope.authorityEpoch,
+          observed: input.observed,
+          characterIds: input.movement.authorizedCharacterIds
+        })
+      )
+      actors = persisted.actors
+      rules = settled.rules ?? rules
+    }
+    const stopped = landed.x !== destination.x || landed.y !== destination.y
+    reports.push({
+      ...report,
+      ...(stopped
+        ? {
+            feet: convertSceneDistance(
+              measureSceneDistance(scene.grid, token.position, landed),
+              scene.grid.unit,
+              'FEET'
+            ),
+            stoppedBy: 'NONE' as const
+          }
+        : {}),
+      ...(settled?.settlements.length ? { zoneExecutions: settled.settlements } : {})
+    })
   }
-  return { moves, landings: landings.map(({ report }) => report) }
+  return { moves, landings: reports, actors, rules }
 }

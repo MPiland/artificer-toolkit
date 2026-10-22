@@ -236,7 +236,8 @@ export function spatialExecutionOutcome(input: {
 /**
  * Whether a finished spatial execution ends the move at its contact: its graph interrupts the
  * movement, or it drops a creature moving of its own accord to 0 Hit Points, which can move no
- * further (D156). A forced move carries a creature on regardless.
+ * further (D156). A forced move stops at the contact that drops its creature to 0 Hit Points too
+ * (D170); a teleport arrives regardless.
  */
 export function spatialExecutionStopsMovement(
   recorded: {
@@ -249,7 +250,7 @@ export function spatialExecutionStopsMovement(
   if (recorded.execution.movementInterruption?.kind === 'STOP') return true
   const { before, after } = recorded.targetTransition
   return (
-    movementKind === 'VOLUNTARY' &&
+    (movementKind === 'VOLUNTARY' || movementKind === 'FORCED') &&
     !recorded.candidate.candidate.sourceMoved &&
     before.currentHitPoints > 0 &&
     after.currentHitPoints === 0

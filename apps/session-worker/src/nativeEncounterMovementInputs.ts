@@ -38,6 +38,7 @@ import {
   type CampaignSceneState,
   type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -85,6 +86,96 @@ async function teleportAllowanceToSpend(input: {
   if (selection.allowed) return selection.castCommandId
   if (selection.reason === 'NO_ALLOWANCE') rejectDomain('TELEPORT_UNAVAILABLE')
   return rejectDomain('MOVEMENT_BLOCKED', TELEPORT_REFUSALS[selection.reason])
+}
+
+/** Reads the definitions a command names through its authorized capture, bound to its system. */
+export function nativeLiveDefinitions(
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => Promise<LiveSessionEncounterRulesResponse>,
+  state: Pick<EncounterRunState, 'gameSystemId'>
+) {
+  return {
+    requireCurrent: async (definitionId: string) => {
+      const response = await capture({ kind: 'DEFINITION', definitionId })
+      if (
+        response.kind !== 'DEFINITION' ||
+        !response.definition ||
+        response.definition.id !== definitionId ||
+        response.definition.gameSystemId !== state.gameSystemId
+      )
+        throw new Error('Movement definition is unavailable.')
+      return response.definition
+    }
+  }
+}
+
+/** The runtime executing a definition its policy names, read through the command's definitions. */
+export function capturedNativeRuntime(
+  runtime: RulesRuntimeService,
+  definitions: ReturnType<typeof nativeLiveDefinitions>
+): RulesRuntimeService {
+  return {
+    ...runtime,
+    execute: async (candidate) => {
+      const command = serverRuleExecutionInputDtoSchema.parse(candidate)
+      const current = await definitions.requireCurrent(command.definitionId)
+      return runtime.executeResolved({
+        command,
+        published: serverPublishedRuleDefinitionDtoSchema.parse({
+          id: current.id,
+          gameSystemId: current.gameSystemId,
+          definitionFamilyKey: current.definitionFamilyKey,
+          checksum: current.checksum,
+          definition: current.document
+        })
+      })
+    }
+  }
+}
+
+/** Every spatial effect on the Scene, paged through the command's capture. */
+export async function readNativeLiveSpatialEffects(
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => Promise<LiveSessionEncounterRulesResponse>,
+  scene: Pick<CampaignSceneState, 'id' | 'version'>,
+  encounterId: string
+) {
+  const spatialEffects: EncounterSpatialRuleEffectRecord[] = []
+  let afterEffectId: string | null = null
+  for (;;) {
+    const page = await capture({
+      kind: 'SCENE_SPATIAL_EFFECTS',
+      sceneId: scene.id,
+      expectedSceneVersion: scene.version,
+      afterEffectId
+    })
+    if (
+      page.kind !== 'SCENE_SPATIAL_EFFECTS' ||
+      page.sceneId !== scene.id ||
+      page.sceneVersion !== scene.version
+    )
+      throw new Error('Movement spatial effect scope mismatch.')
+    let lastId: string | null = afterEffectId
+    for (const effect of page.effects) {
+      if (
+        (lastId !== null && effect.id <= lastId) ||
+        effect.sceneId !== scene.id ||
+        effect.encounterId !== encounterId
+      )
+        throw new Error('Movement spatial effect identity mismatch.')
+      spatialEffects.push(effect)
+      lastId = effect.id
+    }
+    if (spatialEffects.length > MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
+      throw new Error('Movement spatial effects exceed the supported bound.')
+    if (page.continueAfter === null) break
+    if (page.effects.length !== 4 || page.continueAfter !== lastId || lastId === afterEffectId)
+      throw new Error('Movement spatial effect cursor mismatch.')
+    afterEffectId = page.continueAfter
+  }
+  return spatialEffects
 }
 
 /**
@@ -285,71 +376,11 @@ export async function readNativeLiveMovementInputs(input: {
     if (failure) throw new Error(failure)
   }
   const targets = new Map(state.automationMode === 'MANUAL' ? [] : preparedTargets)
-  const definitions = {
-    requireCurrent: async (definitionId: string) => {
-      const response = await capture({ kind: 'DEFINITION', definitionId })
-      if (
-        response.kind !== 'DEFINITION' ||
-        !response.definition ||
-        response.definition.id !== definitionId ||
-        response.definition.gameSystemId !== state.gameSystemId
-      )
-        throw new Error('Movement definition is unavailable.')
-      return response.definition
-    }
-  }
+  const definitions = nativeLiveDefinitions(capture, state)
   // A policy that names its definition (reaction eligibility) reads it through this command's
   // authorized capture; the room runtime has no definition source of its own.
-  const capturedRuntime: RulesRuntimeService = {
-    ...runtime,
-    execute: async (candidate) => {
-      const command = serverRuleExecutionInputDtoSchema.parse(candidate)
-      const current = await definitions.requireCurrent(command.definitionId)
-      return runtime.executeResolved({
-        command,
-        published: serverPublishedRuleDefinitionDtoSchema.parse({
-          id: current.id,
-          gameSystemId: current.gameSystemId,
-          definitionFamilyKey: current.definitionFamilyKey,
-          checksum: current.checksum,
-          definition: current.document
-        })
-      })
-    }
-  }
-  const spatialEffects: EncounterSpatialRuleEffectRecord[] = []
-  let afterEffectId: string | null = null
-  for (;;) {
-    const page = await capture({
-      kind: 'SCENE_SPATIAL_EFFECTS',
-      sceneId: scene.id,
-      expectedSceneVersion: scene.version,
-      afterEffectId
-    })
-    if (
-      page.kind !== 'SCENE_SPATIAL_EFFECTS' ||
-      page.sceneId !== scene.id ||
-      page.sceneVersion !== scene.version
-    )
-      throw new Error('Movement spatial effect scope mismatch.')
-    let lastId: string | null = afterEffectId
-    for (const effect of page.effects) {
-      if (
-        (lastId !== null && effect.id <= lastId) ||
-        effect.sceneId !== scene.id ||
-        effect.encounterId !== state.id
-      )
-        throw new Error('Movement spatial effect identity mismatch.')
-      spatialEffects.push(effect)
-      lastId = effect.id
-    }
-    if (spatialEffects.length > MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
-      throw new Error('Movement spatial effects exceed the supported bound.')
-    if (page.continueAfter === null) break
-    if (page.effects.length !== 4 || page.continueAfter !== lastId || lastId === afterEffectId)
-      throw new Error('Movement spatial effect cursor mismatch.')
-    afterEffectId = page.continueAfter
-  }
+  const capturedRuntime = capturedNativeRuntime(runtime, definitions)
+  const spatialEffects = await readNativeLiveSpatialEffects(capture, scene, state.id)
   // A grappler's voluntary move drags the creatures its own holds bind (D105). A new move checks
   // each dragged creature's whole translated path; every segment re-reads who is held.
   const planned =

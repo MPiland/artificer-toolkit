@@ -134,8 +134,30 @@ function retainedContactChildren<T extends object & ContactChildren>(
   return { ends, checks }
 }
 
+type MovementSettlementCallbacks = {
+  persistSpatial: (
+    input: Parameters<typeof persistLiveMovementSpatial>[1]
+  ) => ReturnType<typeof persistLiveMovementSpatial>
+  persistReaction: (
+    input: Parameters<typeof persistLiveMovementReaction>[1]
+  ) => ReturnType<typeof persistLiveMovementReaction>
+  persistConcentration: (
+    input: Parameters<typeof persistLiveMovementConcentration>[1]
+  ) => ReturnType<typeof persistLiveMovementConcentration>
+  persistConcentrationEnd: (
+    input: Parameters<typeof persistLiveMovementConcentrationEnd>[1]
+  ) => ReturnType<typeof persistLiveMovementConcentrationEnd>
+  persistAreaDeparture: (
+    input: Parameters<typeof persistLiveMovementAreaDeparture>[1]
+  ) => ReturnType<typeof persistLiveMovementAreaDeparture>
+  persistMoveEnd: (
+    input: Parameters<typeof persistLiveMovementMoveEnd>[1]
+  ) => ReturnType<typeof persistLiveMovementMoveEnd>
+  endHolderGrants: (input: Parameters<typeof endHolderStateGrants>[1]) => Promise<void>
+}
+
 /** Settles retained movement contacts and their children in the parent's transaction. */
-export async function persistMovementSettlements(
+export function persistMovementSettlements(
   ctx: EncounterPersistenceTransaction,
   input: {
     state: EncounterRunState
@@ -146,32 +168,49 @@ export async function persistMovementSettlements(
     settlements: LiveSessionMovementSettlement[]
     userId: string
   },
-  callbacks: {
-    persistSpatial: (
-      input: Parameters<typeof persistLiveMovementSpatial>[1]
-    ) => ReturnType<typeof persistLiveMovementSpatial>
-    persistReaction: (
-      input: Parameters<typeof persistLiveMovementReaction>[1]
-    ) => ReturnType<typeof persistLiveMovementReaction>
-    persistConcentration: (
-      input: Parameters<typeof persistLiveMovementConcentration>[1]
-    ) => ReturnType<typeof persistLiveMovementConcentration>
-    persistConcentrationEnd: (
-      input: Parameters<typeof persistLiveMovementConcentrationEnd>[1]
-    ) => ReturnType<typeof persistLiveMovementConcentrationEnd>
-    persistAreaDeparture: (
-      input: Parameters<typeof persistLiveMovementAreaDeparture>[1]
-    ) => ReturnType<typeof persistLiveMovementAreaDeparture>
-    persistMoveEnd: (
-      input: Parameters<typeof persistLiveMovementMoveEnd>[1]
-    ) => ReturnType<typeof persistLiveMovementMoveEnd>
-    endHolderGrants: (input: Parameters<typeof endHolderStateGrants>[1]) => Promise<void>
-  }
+  callbacks: MovementSettlementCallbacks
 ) {
-  const { save, preparation, userId } = input
+  const { save, ...rest } = input
+  return persistMovementContacts(
+    ctx,
+    {
+      ...rest,
+      move: {
+        sceneId: save.sceneId,
+        commandId: save.commandId,
+        resolution: readMovementResolution(save)
+      }
+    },
+    callbacks
+  )
+}
+
+/**
+ * Settles the contacts of one move: the voluntary move a saved geometry command carries, whose
+ * `resolution` is the response it answers, or a forced one an action carries (`resolution` null),
+ * which settles in that action's own commit (D170).
+ */
+export async function persistMovementContacts(
+  ctx: EncounterPersistenceTransaction,
+  input: {
+    state: EncounterRunState
+    actors: EncounterRunActorState[]
+    authorizedCharacterIds: ReadonlySet<string>
+    move: {
+      sceneId: string
+      commandId: string
+      resolution: ReturnType<typeof readMovementResolution>
+    }
+    preparation: Pick<SceneSpatialPreparation, 'occurrenceId' | 'occurredAt' | 'outcome'>
+    settlements: LiveSessionMovementSettlement[]
+    userId: string
+  },
+  callbacks: MovementSettlementCallbacks
+) {
+  const { move: save, preparation, userId } = input
+  const { resolution } = save
   if (preparation.outcome.kind === 'UNINTERRUPTED')
     throw new Error('Live movement settlement is unavailable.')
-  const resolution = readMovementResolution(save)
   const priorOutcome: MovementOutcome | null = resolution
     ? { kind: 'PENDING', pendingSnapshot: resolution.snapshot, movementIntent: null }
     : null
@@ -453,6 +492,7 @@ export async function persistMovementSettlements(
       })
   return {
     mechanicsChanged,
+    actors,
     characterTransitions: movementCommandCharacterAggregateVersions(transitions).map((span) => ({
       characterId: span.aggregateId,
       beforeStreamVersion: span.beforeVersion,

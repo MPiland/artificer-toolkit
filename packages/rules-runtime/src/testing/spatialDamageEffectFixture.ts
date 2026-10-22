@@ -68,6 +68,12 @@ export async function buildSpatialDamageEffect(input: {
   }
   /** Makes a Scene-fixed effect a hidden, unrevealed field that allows passage at half speed. */
   hiddenHalfSpeedField?: boolean
+  /** The kinds of movement that trigger the effect; a voluntary move alone unless it says more. */
+  movementKinds?: ('VOLUNTARY' | 'FORCED' | 'TELEPORT')[]
+  /** What triggers the effect; crossing the circle alone unless it says more. */
+  triggerModes?: ('ENTER' | 'EXIT' | 'CROSS')[]
+  /** Whether a Scene-fixed effect is spent by its first trigger; one-shot unless it says otherwise. */
+  activation?: 'ONE_SHOT' | 'REPEATABLE'
 }) {
   const fire = SRD_DAMAGE_TYPES.find((type) => type.code === 'FIRE')
   if (!fire) throw new Error('The SRD fire damage type is missing.')
@@ -242,8 +248,8 @@ export async function buildSpatialDamageEffect(input: {
           frame: 'TOKEN_LOCAL' as const,
           shape: { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: input.radius }
         },
-        triggerModes: ['CROSS' as const],
-        movementKinds: ['VOLUNTARY' as const],
+        triggerModes: input.triggerModes ?? ['CROSS' as const],
+        movementKinds: input.movementKinds ?? ['VOLUNTARY' as const],
         activation: moving.activation,
         visibility: moving.hidden ? ('HIDDEN' as const) : ('PUBLIC' as const),
         revealOnTrigger: moving.hidden
@@ -256,9 +262,9 @@ export async function buildSpatialDamageEffect(input: {
           frame: 'SCENE_ABSOLUTE' as const,
           shape: { kind: 'CIRCLE' as const, center: input.center, radius: input.radius }
         },
-        triggerModes: ['CROSS' as const],
-        movementKinds: ['VOLUNTARY' as const],
-        activation: 'ONE_SHOT' as const,
+        triggerModes: input.triggerModes ?? ['CROSS' as const],
+        movementKinds: input.movementKinds ?? ['VOLUNTARY' as const],
+        activation: input.activation ?? ('ONE_SHOT' as const),
         visibility: hiddenField ? ('HIDDEN' as const) : ('PUBLIC' as const),
         revealOnTrigger: false,
         ...(hiddenField && { bypassAtHalfSpeed: true })
