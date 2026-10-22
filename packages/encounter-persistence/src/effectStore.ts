@@ -395,7 +395,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
     await syncPlayAbsence(ctx, {
       owner,
       sourceEncounterId: effect.sourceEncounterId,
-      effects: await listOwner(ctx, owner)
+      effects: (await listOwner(ctx, owner)).map(({ definition }) => definition)
     })
   }
 
