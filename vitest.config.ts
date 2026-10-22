@@ -3,10 +3,14 @@ import { fileURLToPath } from 'node:url'
 
 import { defineConfig } from 'vitest/config'
 
+import { inlineWorkspacePackages, sourceResolve } from './scripts/vitestSource.mjs'
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  ssr: sourceResolve.ssr,
   resolve: {
+    ...sourceResolve.resolve,
     preserveSymlinks: true,
     alias: {
       '@artificer-toolkit/rules-runtime': resolve(__dirname, 'packages/rules-runtime/src'),
@@ -21,6 +25,7 @@ export default defineConfig({
     allowOnly: false,
     environment: 'node',
     pool: 'threads',
+    server: { deps: { inline: inlineWorkspacePackages } },
     include: [
       'packages/design-system/src/__tests__/**/*.test.ts',
       'packages/emails/src/__tests__/**/*.test.ts?(x)',

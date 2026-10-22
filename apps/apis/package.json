@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "generate:srd:manifest": "yarn --cwd ../.. exec tsx apps/apis/scripts/generateSrdManifest.ts",
+    "generate:srd:manifest": "yarn --cwd ../.. exec tsx --conditions source apps/apis/scripts/generateSrdManifest.ts",
     "dev:convex": "yarn generate:srd:manifest && convex dev",
     "codegen:convex": "convex codegen",
     "codegen:auth": "auth generate --config better-auth.config.ts --output convex/betterAuth/schema.ts --yes",

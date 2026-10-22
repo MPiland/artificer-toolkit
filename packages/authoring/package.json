@@ -5,26 +5,32 @@
   "type": "module",
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./nodeRuntime": {
+      "source": "./src/nodeRuntime/index.ts",
       "types": "./dist/nodeRuntime/index.d.ts",
       "default": "./dist/nodeRuntime/index.js"
     },
     "./nodeRuntime/authoredSourceFacts": {
+      "source": "./src/nodeRuntime/authoredSourceFacts.ts",
       "types": "./dist/nodeRuntime/authoredSourceFacts.d.ts",
       "default": "./dist/nodeRuntime/authoredSourceFacts.js"
     },
     "./nodeRuntime/srdSourceReader": {
+      "source": "./src/nodeRuntime/srdSourceReader.ts",
       "types": "./dist/nodeRuntime/srdSourceReader.d.ts",
       "default": "./dist/nodeRuntime/srdSourceReader.js"
     },
     "./imports": {
+      "source": "./src/imports/index.ts",
       "types": "./dist/imports/index.d.ts",
       "default": "./dist/imports/index.js"
     },
     "./reusableDefinitions": {
+      "source": "./src/reusableDefinitions/index.ts",
       "types": "./dist/reusableDefinitions/index.d.ts",
       "default": "./dist/reusableDefinitions/index.js"
     }
