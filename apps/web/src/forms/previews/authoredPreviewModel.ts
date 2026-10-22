@@ -10,6 +10,7 @@ import type {
   PreviewListItem,
   PreviewSection
 } from './authoredPreview.types'
+import { isRecord } from '#forms/utils/valueGuards'
 
 type RuntimeRecord = Record<string, unknown>
 type VocabularyKey = Exclude<
@@ -805,7 +806,7 @@ function readNumber(value: unknown): number | undefined {
 }
 
 function toRecord(value: unknown): RuntimeRecord | null {
-  return typeof value === 'object' && value !== null ? (value as RuntimeRecord) : null
+  return isRecord(value) ? value : null
 }
 
 function collectRecords(value: unknown): RuntimeRecord[] {

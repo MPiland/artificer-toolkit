@@ -10,6 +10,8 @@ import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
+import { toFeatures } from '#forms/guided/guidedValues'
+import { isRecord } from '#forms/utils/valueGuards'
 
 type GuidedCreatureAuthoringProps = {
   onAdvanced: (() => void) | undefined
@@ -238,13 +240,13 @@ function optionFor(item: { id: string; label: string }) {
 }
 
 function readCreatureValues(values: object) {
-  const record = values as Record<string, unknown>
+  const record: Record<string, unknown> = isRecord(values) ? values : {}
   const count = (key: string) => (Array.isArray(record[key]) ? record[key].length : 0)
   return {
     advancedCount: count('details') + count('proficiencies'),
     naturalArmorBonus:
       typeof record.naturalArmorBonus === 'number' ? record.naturalArmorBonus : undefined,
-    features: Array.isArray(record.features) ? (record.features as FeatureDto[]) : [],
+    features: toFeatures(record.features),
     hitPoints: typeof record.hitPoints === 'number' ? record.hitPoints : undefined,
     label: typeof record.label === 'string' ? record.label.trim() : ''
   }

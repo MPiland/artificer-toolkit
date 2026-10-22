@@ -3,6 +3,7 @@ import type {
   CharacterEditAuthoringData
 } from '#app/routes/-routeLoaderData'
 import type { CharacterBuilderRouteMode } from '#forms/layout/authoredFormRouteContext'
+import { isRecord } from '#app/forms/utils/valueGuards'
 import type { CharacterFormValues } from '../core/characterBuilder.types'
 import { toCharacterFormValues } from '../shared/formNormalization'
 
@@ -39,8 +40,17 @@ export function createCharacterBuilderAuthoringSession({
   return mode === 'create' ? createCharacterCreateSession(data) : createCharacterEditSession(data)
 }
 
+function isCharacterCreateAuthoringData(data: unknown): data is CharacterCreateAuthoringData {
+  return isRecord(data) && Array.isArray(data.systems)
+}
+
+function isCharacterEditAuthoringData(data: unknown): data is CharacterEditAuthoringData {
+  return isRecord(data) && typeof data.characterId === 'string' && 'activeCharacter' in data
+}
+
 function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringSession {
-  const loaderData = data as CharacterCreateAuthoringData
+  if (!isCharacterCreateAuthoringData(data)) throw new Error('Character create data is invalid.')
+  const loaderData = data
   const systemId = loaderData.systems[0]?.id
 
   return {
@@ -61,7 +71,8 @@ function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringS
 }
 
 function createCharacterEditSession(data: unknown): CharacterBuilderAuthoringSession {
-  const loaderData = data as CharacterEditAuthoringData
+  if (!isCharacterEditAuthoringData(data)) throw new Error('Character edit data is invalid.')
+  const loaderData = data
   const { activeCharacter, draft } = loaderData
   const character = draft?.payload.character ?? activeCharacter
 

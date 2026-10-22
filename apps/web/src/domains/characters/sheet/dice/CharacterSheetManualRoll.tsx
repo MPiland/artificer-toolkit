@@ -12,6 +12,7 @@ import {
 import { Dices, Plus, RotateCcw, Settings, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import clsx from 'clsx'
+import { findOption } from '#app/forms/utils/valueGuards'
 import { DiceSettingsControls } from '#app/settings/DiceSettingsControls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import { CharacterSheetRollDestination } from './CharacterSheetRollDestination'
@@ -20,7 +21,9 @@ import { toManualRollRequest } from './dice.utils'
 import { useCharacterSheetRoll } from './rollContext'
 import * as diceStyles from './dice.css'
 
-const dieOptions = [4, 6, 8, 10, 12, 20, 100].map((die) => ({
+const dieSides = [4, 6, 8, 10, 12, 20, 100] as const
+
+const dieOptions = dieSides.map((die) => ({
   label: `d${die}`,
   value: String(die)
 }))
@@ -122,7 +125,10 @@ export function CharacterSheetManualRoll({ className }: { className?: string }) 
                   setRows((current) =>
                     current.map((candidate) =>
                       candidate.id === row.id
-                        ? { ...candidate, die: Number(value) as ManualDieRow['die'] }
+                        ? {
+                            ...candidate,
+                            die: findOption(dieSides, Number(value)) ?? candidate.die
+                          }
                         : candidate
                     )
                   )
@@ -212,7 +218,9 @@ export function CharacterSheetManualRoll({ className }: { className?: string }) 
             ]}
             size='xs'
             value={rollMode}
-            onChange={(value) => setRollMode(value as 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE')}
+            onChange={(value) =>
+              setRollMode(findOption(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'], value) ?? rollMode)
+            }
           />
           <div className={diceStyles.manualActionButtons}>
             <Button

@@ -6,6 +6,7 @@ import {
   type ContentSnapshotPart
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { ContentSnapshotLocation } from './manifestObjects'
+import { findOption } from '#app/forms/utils/valueGuards'
 
 /** Cache Storage holding verified snapshot objects; cleared whole at sign-out (privateContent.ts). */
 export const CONTENT_SNAPSHOT_CACHE_NAME = 'artificer-content-snapshots-v1'
@@ -131,8 +132,7 @@ export function createContentSnapshotStore(options: {
       if (!cache) return
       for (const request of await cache.keys()) {
         const [part, sha256] = new URL(request.url).pathname.slice(CACHE_KEY_PATH.length).split('/')
-        if (parts.includes(part as ContentSnapshotPart) && !sha256s.has(sha256!))
-          await cache.delete(request)
+        if (findOption(parts, part) && !sha256s.has(sha256!)) await cache.delete(request)
       }
     }
   }

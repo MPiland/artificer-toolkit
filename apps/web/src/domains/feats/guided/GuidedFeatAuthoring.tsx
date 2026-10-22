@@ -15,6 +15,8 @@ import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComp
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
+import { readField } from '#forms/guided/guidedValues'
+import { findOption, isRecord } from '#forms/utils/valueGuards'
 
 const STEPS = ['Basics', 'Core outcome', 'Features', 'Review'] as const
 const TITLES = [
@@ -221,17 +223,17 @@ function FeatOutcomeEditor({
           />
           <Select
             label='Reset timing'
-            data={[
-              { value: 'SHORT_REST', label: 'Short rest' },
-              { value: 'LONG_REST', label: 'Long rest' },
-              { value: 'DAWN', label: 'Dawn' }
-            ]}
+            data={RESET_OPTIONS}
             value={charges.resetKind}
             onChange={(value) =>
               onChargesChange({
                 ...charges,
-                resetKind: (value ?? 'LONG_REST') as ChargeDto['resetKind']
-              } as ChargeDto)
+                resetKind:
+                  findOption(
+                    RESET_OPTIONS.map((option) => option.value),
+                    value
+                  ) ?? 'LONG_REST'
+              })
             }
           />
         </div>
@@ -245,6 +247,12 @@ function FeatOutcomeEditor({
     </Stack>
   )
 }
+
+const RESET_OPTIONS = [
+  { value: 'SHORT_REST', label: 'Short rest' },
+  { value: 'LONG_REST', label: 'Long rest' },
+  { value: 'DAWN', label: 'Dawn' }
+] as const
 
 function createCharge(): ChargeDto {
   return {
@@ -269,12 +277,12 @@ function isSimpleCharge(
 }
 
 function readString(values: object, key: string): string {
-  const value = (values as Record<string, unknown>)[key]
+  const value = readField(values, key)
   return typeof value === 'string' ? value : ''
 }
 
 function readDetails(values: object): DetailDto[] {
-  const value = (values as Record<string, unknown>).details
+  const value = readField(values, 'details')
   return Array.isArray(value)
     ? value.filter(
         (item): item is DetailDto =>
@@ -284,7 +292,7 @@ function readDetails(values: object): DetailDto[] {
 }
 
 function readFeatures(values: object): FeatureDto[] {
-  const value = (values as Record<string, unknown>).features
+  const value = readField(values, 'features')
   return Array.isArray(value)
     ? value.filter(
         (item): item is FeatureDto =>
@@ -294,19 +302,19 @@ function readFeatures(values: object): FeatureDto[] {
 }
 
 function readEffects(values: object): unknown[] {
-  const value = (values as Record<string, unknown>).effects
+  const value = readField(values, 'effects')
   return Array.isArray(value) ? value : []
 }
 
 function readCharge(values: object): ChargeDto | undefined {
-  const value = (values as Record<string, unknown>).charges
-  return typeof value === 'object' && value !== null && 'id' in value && 'resetKind' in value
-    ? (value as ChargeDto)
+  const value = readField(values, 'charges')
+  return isRecord(value) && 'id' in value && 'resetKind' in value
+    ? { ...createCharge(), ...value }
     : undefined
 }
 
 function readGrants(values: object): boolean {
-  const value = (values as Record<string, unknown>).grants
+  const value = readField(values, 'grants')
   return (
     typeof value === 'object' &&
     value !== null &&

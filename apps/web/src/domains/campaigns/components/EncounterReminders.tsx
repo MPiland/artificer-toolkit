@@ -14,9 +14,18 @@ import {
 import { IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import { findOption } from '../../../forms/utils/valueGuards'
 import * as sharedStyles from '../campaigns.css'
 import * as encounterStyles from './encounter.css'
 import type { EncounterCommandPayload } from './encounterWorkspace.types'
+
+const reminderTimings = [
+  'ROUND_START',
+  'ROUND_END',
+  'ROUND_NUMBER',
+  'TURN_START',
+  'TURN_END'
+] as const
 
 export function EncounterReminders({
   disabled,
@@ -136,7 +145,7 @@ export function EncounterReminders({
               ]}
               label='When'
               value={timing}
-              onChange={(value) => value && setTiming(value as typeof timing)}
+              onChange={(value) => setTiming(findOption(reminderTimings, value) ?? timing)}
             />
             {timing === 'ROUND_NUMBER' ? (
               <NumberInput
