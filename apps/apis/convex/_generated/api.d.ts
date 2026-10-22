@@ -131784,6 +131784,43 @@ export declare const api: {
           version: number;
         }
       >;
+      live: FunctionReference<
+        "query",
+        "public",
+        {
+          campaignId: string;
+          encounterId: string | null;
+          sceneDefinitionId: string;
+        },
+        {
+          documents: Array<{
+            owner:
+              | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+              | {
+                  actorId: string;
+                  campaignId: string;
+                  encounterId: string;
+                  kind: "ENCOUNTER_ACTOR";
+                };
+            tables: Array<{
+              id: string;
+              name: string;
+              ranges: Array<{
+                entries: Array<
+                  | { itemId: string; kind: "ITEM"; quantity: number }
+                  | { amount: number; denominationId: string; kind: "COIN" }
+                >;
+                id: string;
+                max: number | null;
+                min: number;
+                note?: string;
+              }>;
+              skillId?: string;
+            }>;
+            version: number;
+          }>;
+        }
+      >;
       save: FunctionReference<
         "mutation",
         "public",
