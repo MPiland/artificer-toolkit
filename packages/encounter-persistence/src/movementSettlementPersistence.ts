@@ -500,3 +500,31 @@ export async function persistMovementContacts(
     }))
   }
 }
+
+/**
+ * What a GM revert needs of the zone contacts a forced move settled (D170): the hit points they
+ * changed, or a refusal when they also set off anything beyond damage (a Concentration check, a
+ * spent zone, a condition), which a revert cannot put back.
+ */
+export function forcedMovementZoneRecord(settlements: readonly LiveSessionMovementSettlement[]) {
+  const executions = settlements.flatMap((settlement) =>
+    settlement.kind === 'SPATIAL' ? settlement.executions : []
+  )
+  const refused =
+    settlements.some(
+      (settlement) =>
+        settlement.kind !== 'SPATIAL' ||
+        settlement.transitions.some(({ transition }) => transition.kind !== 'UNCHANGED')
+    ) ||
+    executions.some(({ applications }) =>
+      applications.some((application) => application.kind !== 'DAMAGE')
+    )
+  return {
+    zoneDamage: executions.map(({ candidate, targetTransition }) => ({
+      targetActorId: candidate.candidate.targetActorId,
+      before: targetTransition.before,
+      after: targetTransition.after
+    })),
+    ...(refused ? { zoneUndoRefused: true as const } : {})
+  }
+}

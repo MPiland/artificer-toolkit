@@ -2,7 +2,10 @@ import type {
   ApplyEncounterForcedMovements,
   EncounterForcedMovementLanding
 } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
-import { persistMovementContacts } from '@artificer-toolkit/encounter-persistence/movementSettlementPersistence'
+import {
+  forcedMovementZoneRecord,
+  persistMovementContacts
+} from '@artificer-toolkit/encounter-persistence/movementSettlementPersistence'
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
@@ -416,7 +419,7 @@ export async function applyRoomForcedMovements(input: {
             stoppedBy: 'NONE' as const
           }
         : {}),
-      ...(settled?.settlements.length ? { zoneExecutions: settled.settlements } : {})
+      ...(settled?.settlements.length ? forcedMovementZoneRecord(settled.settlements) : {})
     })
   }
   return { moves, landings: reports, actors, rules }
