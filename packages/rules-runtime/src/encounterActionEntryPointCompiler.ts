@@ -148,13 +148,17 @@ export function buildCompiledActionCompilerSource(
 
 /**
  * The execution plan an authored Effect action runs (a Creature's feature action or an authored
- * basic action); Legendary discovery pins the same plan. Throws
+ * basic action); Legendary discovery pins the same plan. An action that authors a cast pick (D148)
+ * compiles per option, and a no-prompt flow runs its first option's plan. Throws
  * `CharacterRuleActionUnsupportedCompilationError` when the System cannot execute its shape.
  */
 export function compileEncounterFeatureActionPlan(
   adapter: CharacterRuleActionSystemAdapter,
   capability: EffectActionCapabilityDescriptor
 ): CharacterRuleActionExecutionPlan {
+  if (castChoiceOptions(capability.compiledEffect))
+    return compileCastChoicePlans(adapter, capability, buildCompiledActionTargetPolicy(capability))
+      .executionPlan
   return (
     adapter.compileExecutionPlan?.({
       action: capability,

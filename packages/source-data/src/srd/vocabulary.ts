@@ -177,11 +177,13 @@ export const SRD_CONDITION_TYPES = [
 
 // ─── Currencies ───────────────────────────────────────────────────────────────
 
+export const SRD_GOLD_CURRENCY_ID = vocabId(D.currency, 4)
+
 export const SRD_CURRENCIES = [
   { id: vocabId(D.currency, 1), code: 'CP', baseValue: 1, label: 'Copper Piece', short: 'cp' },
   { id: vocabId(D.currency, 2), code: 'SP', baseValue: 10, label: 'Silver Piece', short: 'sp' },
   { id: vocabId(D.currency, 3), code: 'EP', baseValue: 50, label: 'Electrum Piece', short: 'ep' },
-  { id: vocabId(D.currency, 4), code: 'GP', baseValue: 100, label: 'Gold Piece', short: 'gp' },
+  { id: SRD_GOLD_CURRENCY_ID, code: 'GP', baseValue: 100, label: 'Gold Piece', short: 'gp' },
   { id: vocabId(D.currency, 5), code: 'PP', baseValue: 1000, label: 'Platinum Piece', short: 'pp' }
 ]
 
@@ -665,6 +667,7 @@ const SRD_INVESTIGATION_SKILL_ID = vocabId(D.skill, 9)
 export const SRD_MEDICINE_SKILL_ID = vocabId(D.skill, 10)
 export const SRD_PERCEPTION_SKILL_ID = vocabId(D.skill, 12)
 export const SRD_STEALTH_SKILL_ID = vocabId(D.skill, 17)
+export const SRD_WALK_SPEED_ID = vocabId(D.speed, 1)
 
 export const SRD_SKILLS = [
   {
@@ -848,7 +851,7 @@ const SRD_PASSIVES = [
 
 export const SRD_SPEEDS = [
   {
-    id: vocabId(D.speed, 1),
+    id: SRD_WALK_SPEED_ID,
     code: 'WALK',
     label: 'Walking Speed',
     description: 'Base movement speed on foot.'

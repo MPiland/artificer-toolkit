@@ -79,7 +79,8 @@ export function listCastableSpellCandidateIds(input: {
     input.character,
     getSheetSpellIdsByClass(output, facts),
     getPreparationCapableClassIds(output),
-    projectCharacterSpellAccess(input.ruleEvaluation)
+    projectCharacterSpellAccess(input.ruleEvaluation),
+    input.ruleEvaluation.snapshot.classRitualSources ?? []
   )
   const ownedSlotLevels = getOwnedSpellSlotLevels(output.spellSlots)
   const castLevelReaderSpellIds = getCastLevelReaderSpellIds(output.spellReferenceMechanics)
@@ -193,7 +194,7 @@ export function buildCharacterSpellCastActions(input: {
     )
       unavailable.push({
         id: spellCastActionId(cast.candidateId),
-        label: spellCastLabel(spell, cast),
+        label: `${spellCastLabel(spell, cast)} (ritual)`,
         reason: RITUAL_CAST_REFUSAL
       })
     if (

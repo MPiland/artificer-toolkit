@@ -1,7 +1,9 @@
+import { runInDurableObject } from 'cloudflare:test'
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, fireballWolf } from './actionRoomFixture.js'
 import { answerAllSaves } from './areaRoomReads.js'
@@ -53,6 +55,30 @@ async function advance(room: Awaited<ReturnType<typeof regeneratingRoom>>) {
     expectedVersion: await room.version()
   })
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  // A Vampire's turn end offers its Legendary Actions; the holder declines each window.
+  for (;;) {
+    const window = await runInDurableObject(room.room.base.stub, async (_instance, context) => {
+      const store = new RoomEncounterStore(context.storage)
+      return {
+        encounterVersion: store.documents('encounterRuns')[0]!.version,
+        occurrence: store
+          .documents('encounterRuleOccurrences')
+          .find((candidate) => candidate.state === 'PENDING')
+      }
+    })
+    if (!window.occurrence) return
+    const declined = await room.send({
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: window.encounterVersion,
+      correlationId: null,
+      occurrenceId: window.occurrence.id,
+      expectedOccurrenceVersion: window.occurrence.version,
+      resolution: { kind: 'DECLINE' }
+    })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+  }
 }
 
 /** The caster's area hits the holder, who fails its save and takes 1 damage. */
