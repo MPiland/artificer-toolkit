@@ -53,7 +53,7 @@ function registryWithPool(poolCode: string): CharacterAssemblyRegistry {
 describe('spell slot pool vocabulary', () => {
   it('lists the System pools the dnd5e System defines', () => {
     expect(systemCoreCodeRegistry.entries(DND5E_SYSTEM_ID, 'spellSlotPool')).toEqual([
-      { code: 'PACT', label: 'Pact Magic' }
+      { code: 'PACT', label: 'Pact Magic', recoversOnShortRest: true }
     ])
   })
 
