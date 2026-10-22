@@ -137,6 +137,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             cancelTriggeringEventDtoSchema,
             sourceImmunityDtoSchema,
             releaseChosenItemDtoSchema,
+            endEffectsDtoSchema,
             degradeEquipmentDtoSchema
           ]
     )
