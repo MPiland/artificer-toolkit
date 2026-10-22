@@ -4159,7 +4159,8 @@ function supported(
     effect.entries.length !== (repeatPlan ? 2 : 1) ||
     !entry ||
     entry.resolutionKind !== 'DIRECT' ||
-    (entry.groupKind !== 'SINGLE' && !repeatPlan) ||
+    // A sequence of one outcome (Haste) resolves as a single result does.
+    (entry.groupKind === 'CHOICE' && !repeatPlan) ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
     (entry.maintenanceDefinitionId &&
       !repeatPlan &&
