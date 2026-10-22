@@ -776,10 +776,9 @@ export async function planNativeLiveContestRolls(input: {
           return { continuation, answer: withEncounterAppRoll(response.resolution, ready.appRoll) }
         })()
       : null
-  // A won contest's outcome pauses on its own graph once both checks settled (D173); it can share
-  // the contest's definition id, so its checksum tells the two apart.
+  // A won contest's outcome pauses on its own graph once both checks settled (D173).
   const outcomeAnswered =
-    answered && answered.continuation.graph.source.checksum !== preparation.published.checksum
+    answered && priorContext?.contestPhase === 'OUTCOME'
       ? (() => {
           const { continuation, answer } = answered
           if (
@@ -876,7 +875,7 @@ export async function planNativeLiveContestRolls(input: {
   // The contest waits on the roller's answer to `continuation`'s request, its rolls so far sealed.
   const pendingContest = (
     continuation: ServerRuleExecutionContinuationDto,
-    rolled: Pick<ContestPendingContext, 'rollerActorId' | 'd20Belief' | 'heldD20'>
+    rolled: Pick<ContestPendingContext, 'rollerActorId' | 'contestPhase' | 'd20Belief' | 'heldD20'>
   ) => ({
     kind: 'PENDING' as const,
     input: liveSessionEncounterContestPendingInputSchema.parse({
@@ -922,6 +921,7 @@ export async function planNativeLiveContestRolls(input: {
           })
         : null
     return pendingContest(execution.continuation, {
+      contestPhase: 'CHECKS',
       rollerActorId:
         execution.participant === 'INITIATOR' ? contest.initiator.actorId : defender.actorId,
       ...(d20Belief ? { d20Belief } : {}),
@@ -992,7 +992,10 @@ export async function planNativeLiveContestRolls(input: {
       : null
   // The initiator rolls the won outcome's dice in the action roll window (D173).
   if (outcome?.kind === 'PENDING')
-    return pendingContest(outcome.continuation, { rollerActorId: contest.initiator.actorId })
+    return pendingContest(outcome.continuation, {
+      contestPhase: 'OUTCOME',
+      rollerActorId: contest.initiator.actorId
+    })
   const settledTarget =
     success?.kind === 'CREATURE' ? success.actor : (hold?.actor ?? outcome?.actor ?? target)
   // A won escape frees its source from the holding effect and the conditions only it held.

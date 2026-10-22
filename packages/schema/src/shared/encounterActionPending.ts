@@ -60,6 +60,8 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       twoPhase: z.nullable(directActionTwoPhaseDtoSchema),
       /** Disarm keeps the original action owner while each contest participant responds. */
       contest: z.optional(z.lazy(() => serverContestCheckPendingContextDtoSchema)),
+      /** Whether a contest's request is one of its two checks or a won outcome's dice (D173). */
+      contestPhase: z.optional(z.enum(['CHECKS', 'OUTCOME'])),
       /** The mode the roller's own facts imply, shown at the roll prompt (ATTACK-10.1). */
       d20Belief: z.optional(serverRuleExecutionD20BeliefDtoSchema),
       /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
@@ -84,6 +86,12 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((value, context) => {
+        if (!value.contest !== !value.contestPhase)
+          context.addIssue({
+            code: 'custom',
+            path: ['contestPhase'],
+            message: 'Only a pending contest names its phase.'
+          })
         const { pause } = value
         if (pause) {
           const issue = (message: string) =>

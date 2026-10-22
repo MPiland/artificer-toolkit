@@ -41,12 +41,13 @@ export async function readNativeContestPending(
     snapshot.phaseReceipts !== undefined
   )
     throw new Error('Stored action contest context is invalid.')
+  const onContestGraph =
+    snapshot.graph.source.definitionId === contest.contestGraph.definitionId &&
+    snapshot.graph.source.checksum === contest.contestGraph.checksum
   // A won basic action contest's outcome waits on its initiator's dice, both checks rolled (D173).
-  if (
-    snapshot.graph.source.definitionId !== contest.contestGraph.definitionId ||
-    snapshot.graph.source.checksum !== contest.contestGraph.checksum
-  ) {
+  if (context.contestPhase === 'OUTCOME') {
     if (
+      onContestGraph ||
       origin?.kind !== 'BASIC_ACTION' ||
       contest.rollEvidence.initiator === null ||
       contest.rollEvidence.defender === null
@@ -60,7 +61,7 @@ export async function readNativeContestPending(
       rollerActorId: contest.initiator.actorId
     }
   }
-  if (snapshot.request.min !== 1 || snapshot.request.max !== 20)
+  if (!onContestGraph || snapshot.request.min !== 1 || snapshot.request.max !== 20)
     throw new Error('Stored action contest context is invalid.')
   const participant =
     snapshot.request.nodeId === 'initiator_d20'
