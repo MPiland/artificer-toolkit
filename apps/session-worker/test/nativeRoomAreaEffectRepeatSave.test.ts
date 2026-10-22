@@ -90,6 +90,7 @@ describe('an area that damages two holders of Hideous Laughter (D167)', () => {
       const decision = await room.pendingDecision()
       if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a repeat save.')
       const { rollerActorId, request } = decision.pending
+      if (rollerActorId === null) throw new Error('Expected a holder to roll the repeat save.')
       answered.push(rollerActorId)
       const resolved = await room.resolve(decision, {
         kind: 'ENTER_DICE',
