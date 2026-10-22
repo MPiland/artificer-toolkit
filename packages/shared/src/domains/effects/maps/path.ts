@@ -109,6 +109,7 @@ import {
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
 import { registerConditionOutcomeFields } from './conditionOutcomeFields.js'
+import { registerEndEffectsOutcomeFields } from './endEffectsOutcomeFields.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
@@ -2264,36 +2265,8 @@ function registerOutcomeFields(
       )
     )
   registerConditionOutcomeFields(map, nodes, cond, logic)
+  registerEndEffectsOutcomeFields(map, nodes, cond, data)
   map
-    .set(
-      'endEffectsScope',
-      selectSingle(
-        ['scope'],
-        'Ends',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ALL', label: 'Every Matching Effect' },
-            { code: 'ONE_CHOSEN', label: 'One Effect the Caster Picks' }
-          ]
-        },
-        { requiredIf: true, showIf: local.field(['effectKind']).eq(EFFECT_KIND.END_EFFECTS) }
-      )
-    )
-    .set(
-      'endEffectsConditionIds',
-      selectMulti(
-        ['conditionIds'],
-        'Ends Effects Granting',
-        {
-          kind: 'DATA',
-          relationship: table('condition_types', {
-            selectColumns: ['id', 'label', 'description']
-          })
-        },
-        { requiredIf: true, showIf: local.field(['effectKind']).eq(EFFECT_KIND.END_EFFECTS) }
-      )
-    )
     .set(
       'grants',
       groupObject(['grants'], 'Grants', () => APPLY_GRANTS_NODE_MAP, {

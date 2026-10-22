@@ -20,11 +20,11 @@ Convert `DISPEL_MAGIC`, `LESSER_RESTORATION`, `GREATER_RESTORATION`, `REMOVE_CUR
 
 Selectors (a discriminated union, all generic):
 
-| Selector | Matches a held effect when |
-| --- | --- |
+| Selector                       | Matches a held effect when                                                                                                                                                                         |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CONDITION { conditionIds[] }` | its `CONDITION_OWNERSHIP` state contribution names one of the ids (Lesser Restoration blinded/deafened/paralyzed/poisoned, Protection from Poison poisoned, Greater Restoration charmed/petrified) |
-| `TAG { tags[] }` | its definition `tags` include one (`CURSE`, `DISEASE`, `CHARM` ...) |
-| `SPELL_LEVEL { max }` | its definition `originLevel` (slot level it was created at) is at most `max`; `max` may be `SLOT_LEVEL` (Dispel Magic's higher-level auto-end) |
+| `TAG { tags[] }`               | its definition `tags` include one (`CURSE`, `DISEASE`, `CHARM` ...)                                                                                                                                |
+| `SPELL_LEVEL { max }`          | its definition `originLevel` (slot level it was created at) is at most `max`; `max` may be `SLOT_LEVEL` (Dispel Magic's higher-level auto-end)                                                     |
 
 New stored definition data (required-nullable/sorted-unique, stored plans migrate in the same change, dev data reseeded, as D172 did): `tags: string[]` (authored on the result block `lifecycle.tags`) and `originLevel: number | null`. Tags are authored vocabulary, never spell names. Bestow Curse and the Drow/other disease riders gain `tags` in the same slice only where a converted spell needs the match.
 
@@ -46,12 +46,12 @@ Lesser Restoration ("one disease or one condition"), Greater Restoration, Protec
 
 ### 5. Conversions
 
-| Kind | Authored as |
-| --- | --- |
-| DISPEL_MAGIC | `END_EFFECTS { selectors: [SPELL_LEVEL max SLOT_LEVEL...], levelCheck }` on a creature/object target |
-| REMOVE_CURSE | `END_EFFECTS { selectors: [TAG CURSE], scope: ALL }` |
-| LESSER_RESTORATION | `END_EFFECTS { selectors: [TAG DISEASE, CONDITION blinded/deafened/paralyzed/poisoned], scope: ONE_CHOSEN }` |
-| GREATER_RESTORATION | `END_EFFECTS { selectors: [CONDITION charmed/petrified, TAG CURSE], scope: ONE_CHOSEN }`; see open questions for the exhaustion, ability and hit-point-maximum clauses |
+| Kind                   | Authored as                                                                                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DISPEL_MAGIC           | `END_EFFECTS { selectors: [SPELL_LEVEL max SLOT_LEVEL...], levelCheck }` on a creature/object target                                                                                                                      |
+| REMOVE_CURSE           | `END_EFFECTS { selectors: [TAG CURSE], scope: ALL }`                                                                                                                                                                      |
+| LESSER_RESTORATION     | `END_EFFECTS { selectors: [TAG DISEASE, CONDITION blinded/deafened/paralyzed/poisoned], scope: ONE_CHOSEN }`                                                                                                              |
+| GREATER_RESTORATION    | `END_EFFECTS { selectors: [CONDITION charmed/petrified, TAG CURSE], scope: ONE_CHOSEN }`; see open questions for the exhaustion, ability and hit-point-maximum clauses                                                    |
 | PROTECTION_FROM_POISON | `END_EFFECTS { CONDITION poisoned, ONE_CHOSEN }` plus the existing `APPLY_GRANT` for save advantage and poison resistance (verify both exist as authored grants; otherwise they are a gap to report, not to special-case) |
 
 ## Acceptance criteria (proposed, for confirmation)
@@ -94,7 +94,7 @@ Graph checksums of exactly these SRD authored effects change (`CLOSED_RULE` beco
 
 ### D174 decisions-entry draft (for the orchestrator to copy at merge)
 
-* **D174** (2026-10-22) Ending effects and conditions by type, level or check (SPELLS-4.T2f, AC 4.1; [slice-spells-4-t2f.md](slice-spells-4-t2f.md)). Orchestrator ruling under D156.
+- **D174** (2026-10-22) Ending effects and conditions by type, level or check (SPELLS-4.T2f, AC 4.1; [slice-spells-4-t2f.md](slice-spells-4-t2f.md)). Orchestrator ruling under D156.
   - **Option:** a generic `END_EFFECTS` outcome with selectors `CONDITION {conditionIds}`, `TAG {tags}` and `SPELL_LEVEL {max}` (an effect with no `originLevel` never matches), scope `ALL` or `ONE_CHOSEN`, and an optional per-candidate level check. It ends held effects through the D172 `withLinkedDependents`, `endedEffectReleases` and `deleteCas` `ENDED` seam in one transaction and receipt, so it closes D172's "a cure does not end a condition early" deferral for authored cures. Stored definitions gain `tags` (System vocabulary codes) and `originLevel`.
   - **Dispel Magic:** one ordered check per candidate above the automatic threshold, against `TARGET_EFFECT_LEVEL` (authored base plus the candidate's `originLevel`), through the single d20 settlement and the T6e3b check flow.
   - **ONE_CHOSEN:** a cast-time pick carried on the cast command like a target pick, with a server-derived legal list, an automatic pick for a single match and the D173 overridable warning for none. No new pause kind.

@@ -14,6 +14,7 @@ import {
   moveEndHolds,
   endEffectsCandidates,
   endEffectsChoice,
+  offerEndEffects,
   selectedEndedEffects,
   targetEndedEffects,
   withOwnedTemporaryHitPoints
@@ -845,9 +846,9 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
     const first = owning(FIRST_ID, { [POISONED]: false })
     const second = owning(SECOND_ID, { [POISONED]: false })
     const base = { held: [first, second], scope: 'ONE_CHOSEN' as const, conditionIds: [POISONED] }
-    expect(
-      select({ ...base, chosenEffectId: SECOND_ID }).endedEffects.map(({ id }) => id)
-    ).toEqual([SECOND_ID])
+    expect(select({ ...base, chosenEffectId: SECOND_ID }).endedEffects.map(({ id }) => id)).toEqual(
+      [SECOND_ID]
+    )
     expect(select({ ...base, chosenEffectId: THIRD_ID }).endedEffects).toEqual([])
   })
 
@@ -863,6 +864,21 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
     expect(endEffectsChoice(many, undefined)).toEqual({ kind: 'UNCHOSEN' })
     expect(endEffectsChoice(many, THIRD_ID)).toEqual({ kind: 'UNCHOSEN' })
     expect(endEffectsChoice(many, SECOND_ID)).toEqual({ kind: 'CHOSEN', effectId: SECOND_ID })
+  })
+
+  it('offers nothing for an action that ends no effects, and a pick only under ONE_CHOSEN', () => {
+    const held = [owning(FIRST_ID, { [POISONED]: false }), owning(SECOND_ID, { [POISONED]: false })]
+    expect(
+      offerEndEffects({ endEffects: undefined, held, chosenEffectId: FIRST_ID })
+    ).toMatchObject({ candidates: [], pick: null })
+    const all = { scope: 'ALL' as const, conditionIds: [POISONED] }
+    const offeredAll = offerEndEffects({ endEffects: all, held, chosenEffectId: undefined })
+    expect(offeredAll.candidates).toHaveLength(2)
+    expect(offeredAll.pick).toBeNull()
+    const oneChosen = { scope: 'ONE_CHOSEN' as const, conditionIds: [POISONED] }
+    expect(
+      offerEndEffects({ endEffects: oneChosen, held, chosenEffectId: SECOND_ID }).pick
+    ).toEqual({ kind: 'CHOSEN', effectId: SECOND_ID })
   })
 
   it('ends the effects linked to a selected effect in the same result', () => {

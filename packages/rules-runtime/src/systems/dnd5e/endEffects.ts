@@ -13,7 +13,9 @@ export function executionEndsEffects(execution: {
   }
 }): boolean {
   return (
-    dnd5eResolvedProposalTrace(execution.evidence.trace, DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY) !==
-    undefined
+    dnd5eResolvedProposalTrace(
+      execution.evidence.trace,
+      DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY
+    ) !== undefined
   )
 }

@@ -299,14 +299,32 @@ export function endEffectsCandidates(
 export function endEffectsChoice(
   candidates: readonly ActiveRuleEffectRecord[],
   chosenEffectId: string | undefined
-):
-  | { kind: 'CHOSEN'; effectId: string }
-  | { kind: 'NONE' }
-  | { kind: 'UNCHOSEN' } {
+): { kind: 'CHOSEN'; effectId: string } | { kind: 'NONE' } | { kind: 'UNCHOSEN' } {
   if (candidates.length === 0) return { kind: 'NONE' }
   if (candidates.length === 1) return { kind: 'CHOSEN', effectId: candidates[0].id }
   const picked = candidates.find(({ id }) => id === chosenEffectId)
   return picked ? { kind: 'CHOSEN', effectId: picked.id } : { kind: 'UNCHOSEN' }
+}
+
+/**
+ * What an END_EFFECTS action offers its caster against the target's held effects: the selectors it
+ * ends by, the legal list, and the pick a `ONE_CHOSEN` cast resolves to. Nothing is offered for an
+ * action that ends no effects.
+ */
+export function offerEndEffects(input: {
+  endEffects: { scope: 'ALL' | 'ONE_CHOSEN'; conditionIds: readonly string[] } | undefined
+  held: readonly ActiveRuleEffectRecord[]
+  chosenEffectId: string | undefined
+}) {
+  const selectors: EndEffectsSelectors = [
+    { kind: 'CONDITION', conditionIds: input.endEffects?.conditionIds ?? [] }
+  ]
+  const candidates = input.endEffects ? endEffectsCandidates(input.held, selectors) : []
+  const pick =
+    input.endEffects?.scope === 'ONE_CHOSEN'
+      ? endEffectsChoice(candidates, input.chosenEffectId)
+      : null
+  return { selectors, candidates, pick }
 }
 
 /**

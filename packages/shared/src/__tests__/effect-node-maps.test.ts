@@ -105,9 +105,9 @@ describe('effect node maps', () => {
       throw new Error('Expected both end-effects fields to be conditional')
 
     for (const { showIf } of [scope, conditionIds]) {
-      expect(
-        evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.END_EFFECTS } })
-      ).toBe(true)
+      expect(evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.END_EFFECTS } })).toBe(
+        true
+      )
       expect(
         evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.RESTORE_RESOURCE } })
       ).toBe(false)
