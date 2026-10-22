@@ -1,13 +1,34 @@
-import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/systemVocabulary'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntimeSourceContract.js'
 import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
 
+/**
+ * The code-owned policy vocabulary of the System (rules-runtime `systemVocabularyRegistry`). The
+ * caller supplies it, so this package never depends on rules-runtime.
+ */
+export type NodeRuntimePolicyVocabulary = Readonly<
+  Record<
+    'rollInfluence' | 'rollMode' | 'spellSlotPool',
+    readonly { code: string; label: string; description?: string }[]
+  >
+>
+
+const policyRows = (entries: NodeRuntimePolicyVocabulary['rollMode']) =>
+  entries.map(({ code, label, description }) => ({
+    id: code,
+    label,
+    description: description ?? null
+  }))
+
 /** The System vocabulary behind each resolver source table that the System, not a root, owns. */
 export function systemVocabularyRows(
-  system: SystemAuthoredDto
+  system: SystemAuthoredDto,
+  policyVocabulary: NodeRuntimePolicyVocabulary
 ): Readonly<Record<string, readonly NodeRuntimeQueryRow[]>> {
   return {
+    roll_influences: policyRows(policyVocabulary.rollInfluence),
+    roll_modes: policyRows(policyVocabulary.rollMode),
+    spell_slot_pools: policyRows(policyVocabulary.spellSlotPool),
     ability_definitions: 'abilities' in system ? system.abilities : [],
     alignments: system.alignments,
     challenge_ratings: system.challengeRatings,
@@ -24,18 +45,6 @@ export function systemVocabularyRows(
     skills: system.skills,
     speeds: system.speeds
   }
-}
-
-/** The vocabulary lists a System supplies in code (rules-runtime), served as resolver source tables. */
-function systemSuppliedRows(
-  systemId: string,
-  table: NodeRuntimeSourceTable
-): readonly NodeRuntimeQueryRow[] | undefined {
-  if (table === 'spell_slot_pools')
-    return systemVocabularyRegistry
-      .entries(systemId, 'spellSlotPool')
-      .map(({ code, label }) => ({ code, label }))
-  return undefined
 }
 
 /** Authored-root rows in the order every option list shows them. */
@@ -56,16 +65,18 @@ export function sortAuthoredSourceRows(rows: NodeRuntimeQueryRow[]): NodeRuntime
 export function createNodeRuntimeSourceReader({
   readAuthoredRows,
   readReusableDefinitions,
-  system
+  system,
+  policyVocabulary
 }: {
   readAuthoredRows: (
     table: NodeRuntimeSourceTable
   ) => readonly NodeRuntimeQueryRow[] | Promise<readonly NodeRuntimeQueryRow[]>
   readReusableDefinitions: () => Promise<readonly { id: string; label: string }[]>
   system: SystemAuthoredDto
+  policyVocabulary: NodeRuntimePolicyVocabulary
 }): NodeRuntimeSourceReader {
   const systemId = system.id.toLowerCase()
-  const vocabulary = systemVocabularyRows(system)
+  const vocabulary = systemVocabularyRows(system, policyVocabulary)
   // Nested feature maps share this read for the life of one reader.
   let definitions: Promise<NodeRuntimeQueryRow[]> | undefined
 
@@ -76,9 +87,7 @@ export function createNodeRuntimeSourceReader({
         ? await (definitions ??= readReusableDefinitions().then((rows) =>
             sortAuthoredSourceRows(rows.map(({ id, label }) => ({ id, label })))
           ))
-        : (vocabulary[table] ??
-          systemSuppliedRows(system.id, table) ??
-          (await readAuthoredRows(table)))
+        : (vocabulary[table] ?? (await readAuthoredRows(table)))
     // The shared executor applies the validated predicate; this reader only supplies trusted facts.
     return rows.map((row) =>
       Object.fromEntries(columns.map((column) => [column, row[column] ?? null]))

@@ -145,6 +145,7 @@ async function storedGrants(base: PlayerControlFixture, actorId: string) {
         modifiers: {
           valueDomainCode: string
           modifierKind: string
+          payload?: unknown
           domain: unknown
           restrictions: { conditions: { kind: string }[] }[]
         }[]
@@ -157,6 +158,7 @@ async function storedGrants(base: PlayerControlFixture, actorId: string) {
         modifiers: contribution.modifiers.map((modifier) => ({
           valueDomainCode: modifier.valueDomainCode,
           modifierKind: modifier.modifierKind,
+          ...(modifier.payload === undefined ? {} : { payload: modifier.payload }),
           domain: modifier.domain,
           conditions: modifier.restrictions.map((group) =>
             group.conditions.map((condition) => condition.kind)
@@ -193,13 +195,15 @@ const dodgeGrant = {
       modifiers: [
         ...['MELEE', 'RANGED', 'SPELL', 'UNARMED'].map((attackDomain) => ({
           valueDomainCode: 'ATTACKS_AGAINST',
-          modifierKind: 'DISADVANTAGE',
+          modifierKind: 'ROLL_INFLUENCE',
+          payload: { influence: 'DISADVANTAGE' },
           domain: { attackDomain, requiresHolderSeesAttacker: true },
           conditions: dodgeConditions
         })),
         {
           valueDomainCode: 'SAVING_THROW_MODIFIER',
-          modifierKind: 'ADVANTAGE',
+          modifierKind: 'ROLL_INFLUENCE',
+          payload: { influence: 'ADVANTAGE' },
           domain: { ability: 'DEXTERITY' },
           conditions: dodgeConditions
         }

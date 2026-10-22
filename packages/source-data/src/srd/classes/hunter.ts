@@ -184,7 +184,8 @@ export const hunterConclave: ClassAuthored = {
                 requiresHolderSeesAttacker: false,
                 attackOccasion: ATTACK_OCCASION_CODE.OPPORTUNITY
               },
-              modifierKind: MODIFIER_KIND.DISADVANTAGE,
+              modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+              payload: { influence: 'DISADVANTAGE' },
               scope: MODIFIER_SCOPE_KIND.GLOBAL,
               selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
               order: index
@@ -225,7 +226,8 @@ export const hunterConclave: ClassAuthored = {
                 ability,
                 conditionTypeId: conditionTypeId('FRIGHTENED')
               },
-              modifierKind: MODIFIER_KIND.ADVANTAGE,
+              modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+              payload: { influence: 'ADVANTAGE' },
               scope: MODIFIER_SCOPE_KIND.GLOBAL,
               selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
               order: index

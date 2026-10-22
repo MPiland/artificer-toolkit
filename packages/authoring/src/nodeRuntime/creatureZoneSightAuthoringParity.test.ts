@@ -7,6 +7,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-33.T6e: the SRD Chain Devil's Unnerving Mask is a passive zone that frightens a creature
@@ -16,7 +17,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * one-way sight and another DC.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 function normalize(creature: CreatureAuthored) {
   return normalizeNodeRuntimeValues(reader, {

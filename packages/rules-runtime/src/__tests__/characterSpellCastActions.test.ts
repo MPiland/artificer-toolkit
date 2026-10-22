@@ -6,7 +6,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { ManifestComponentAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
-import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
+import {
+  SPELLCASTING_ABILITY_REFERENCE,
+  modifierRollInfluence
+} from '@artificer-toolkit/shared/core'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { quarterstaff } from '@artificer-toolkit/source-data/srd/equipment/quarterstaff.js'
@@ -1159,7 +1162,8 @@ const advantageOn = (id: number, ability: string) => ({
         grantKind: 'MODIFIER_GRANT',
         valueDomainCode: 'ABILITY_CHECK',
         domain: { ability },
-        modifierKind: 'ADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
         scope: 'GLOBAL',
         selectionKind: 'GRANTED',
         order: 1
@@ -1379,7 +1383,8 @@ describe('effect-owned temporary hit points and sequential effects (SPELLS-4.T2t
           modifiers: [
             {
               valueDomainCode: 'ABILITY_CHECK',
-              modifierKind: 'ADVANTAGE',
+              modifierKind: 'ROLL_INFLUENCE',
+              payload: { influence: 'ADVANTAGE' },
               domain: { ability: code }
             }
           ]
@@ -2107,14 +2112,16 @@ describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)',
       modifierGrantContribution: { consumeOnFirstEvents: ['ON_ATTACKED'] }
     })
     expect(
-      plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, modifierKind }) => ({
-        valueDomainCode,
-        modifierKind
+      plan?.modifierGrantContribution?.modifiers.map((modifier) => ({
+        valueDomainCode: modifier.valueDomainCode,
+        modifierKind: modifier.modifierKind,
+        payload: { influence: modifierRollInfluence(modifier) }
       }))
     ).toEqual(
       Array.from({ length: 4 }, () => ({
         valueDomainCode: 'ATTACKS_AGAINST',
-        modifierKind: 'ADVANTAGE'
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' }
       }))
     )
   })
@@ -2329,7 +2336,11 @@ describe('a timed grant authored as a sequence of one outcome', () => {
         modifiers: [
           { valueDomainCode: 'SPEED', modifierKind: 'MULTIPLY' },
           { valueDomainCode: 'ARMOR_CLASS', modifierKind: 'BONUS' },
-          { valueDomainCode: 'SAVING_THROW_MODIFIER', modifierKind: 'ADVANTAGE' }
+          {
+            valueDomainCode: 'SAVING_THROW_MODIFIER',
+            modifierKind: 'ROLL_INFLUENCE',
+            payload: { influence: 'ADVANTAGE' }
+          }
         ],
         grantedActions: [{ activation: 'FREE', usesPerTurn: 1, weaponAttack: true }],
         onEnd: {
@@ -2471,12 +2482,20 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
     // Owed on either save result, so no authored path narrows it.
     expect(compiled?.activeEffectPlan?.adapterFacts).toEqual({})
     expect(
-      compiled?.activeEffectPlan?.modifierGrantContribution?.modifiers.map(
-        ({ valueDomainCode, modifierKind, scope }) => [valueDomainCode, modifierKind, scope]
-      )
+      compiled?.activeEffectPlan?.modifierGrantContribution?.modifiers.map((modifier) => [
+        modifier.valueDomainCode,
+        modifier.modifierKind,
+        modifierRollInfluence(modifier),
+        modifier.scope
+      ])
     ).toEqual([
-      ...Array.from({ length: 4 }, () => ['ATTACK_ROLL', 'DISADVANTAGE', 'GLOBAL']),
-      ['ABILITY_CHECK', 'DISADVANTAGE', 'GLOBAL']
+      ...Array.from({ length: 4 }, () => [
+        'ATTACK_ROLL',
+        'ROLL_INFLUENCE',
+        'DISADVANTAGE',
+        'GLOBAL'
+      ]),
+      ['ABILITY_CHECK', 'ROLL_INFLUENCE', 'DISADVANTAGE', 'GLOBAL']
     ])
   })
 
@@ -2567,7 +2586,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
     for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
       expect(modifier).toMatchObject({
         valueDomainCode: 'ATTACKS_AGAINST',
-        modifierKind: 'DISADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'DISADVANTAGE' },
         domain: {
           requiresHolderSeesAttacker: false,
           exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID]
@@ -2585,7 +2605,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
         modifiers: [
           {
             valueDomainCode: 'SKILL_MODIFIER',
-            modifierKind: 'DISADVANTAGE',
+            modifierKind: 'ROLL_INFLUENCE',
+            payload: { influence: 'DISADVANTAGE' },
             domain: { skillId: SRD_PERCEPTION_SKILL_ID }
           }
         ]
@@ -2610,7 +2631,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
     for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
       expect(modifier).toMatchObject({
         valueDomainCode: 'ATTACKS_AGAINST',
-        modifierKind: 'ADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
         domain: { requiresHolderSeesAttacker: false }
       })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)

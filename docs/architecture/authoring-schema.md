@@ -96,7 +96,9 @@ Maps live in `packages/shared/src/domains/{subjects,features,grants,effects,shar
 executor, registry, and trusted source manifest. It depends on `schema` and `shared`, never the
 database or a client framework. Keeping this package separate avoids a `shared` → `schema` cycle.
 `NodeRuntimeSourceReader` supplies trusted rows for a closed source key, columns, predicate, and
-System UUID; it is not a client-provided query or a new rules language.
+System UUID; it is not a client-provided query or a new rules language. Code-owned policy vocabulary
+(`roll_influences`, `roll_modes`) comes in through the source reader: callers pass the System's lists to
+`createNodeRuntimeSourceReader`, so this package still depends only on `schema` and `shared`.
 
 `resolveNodeRuntime(sourceReader, request)`:
 
@@ -127,7 +129,7 @@ Placed zones (SPELLS-17, [ADR 0038](../adr/0038-rules-authored-from-core-options
 
 Relationship execution is in `relationshipExecutor.ts`; it evaluates table/column plans, local values, parent/ancestor references, filters, and stream transformations. The shared `schema/api/nodeRuntimeSources` contract owns the exact table-to-column pairs reachable from the 11 active roots, re-exported by `nodeRuntimeSourceManifest.ts`. Its parity test derives shipped `DATA` descriptors and fails if a schema adds or removes a source without updating the adapter boundary. Trust is pairwise—a column allowed for one table is not allowed for every table. Add new relationship behavior here rather than embedding ad-hoc queries in a route.
 
-System-supplied vocabulary options (SPELLS-31.T5p, D175): a node whose codes belong to the Game System, not the platform (the spell slot pool `slotCost.poolCode`), reads a `DATA` source table that `createNodeRuntimeSourceReader` answers from the rules-runtime `systemVocabularyRegistry` (`spell_slot_pools`) instead of authored rows. `packages/authoring` therefore depends on `packages/rules-runtime`; `rules-runtime` does not depend on `authoring`, so the edge is one-way.
+System-supplied vocabulary options (SPELLS-31.T5p, D175): a node whose codes belong to the Game System, not the platform (the spell slot pool `slotCost.poolCode`), reads a `DATA` source table (`spell_slot_pools`) that `systemVocabularyRows` serves from the `policyVocabulary` the caller injects (`apps/apis/convex/authoring/systemSources.ts`, from the rules-runtime vocabulary registry). `packages/authoring` does not depend on `rules-runtime`.
 
 ## Frontend contract
 

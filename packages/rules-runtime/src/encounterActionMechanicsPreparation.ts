@@ -668,13 +668,18 @@ export async function prepareEncounterActionMechanics<
     attackerLabel: actor.label,
     targetLabel: target.label
   }
-  // A held grant that negates advantage (Elusive) takes it from the attack whatever its source,
-  // the attacker's own grants and flanking included, so the compiler drops it from the final roll.
-  const attackAdvantageNegated =
-    attackKind !== null &&
-    attacksAgainst.some(
-      (entry) => entry.contributor === null && attackAgainstHolds(entry, perception?.actual ?? null)
-    )
+  // A held grant that suppresses an influence (Elusive's advantage) takes it from the attack
+  // whatever its source, the attacker's own grants and flanking included, so the compiler drops it
+  // from the final roll.
+  const attackSuppressedInfluences =
+    attackKind === null
+      ? []
+      : attacksAgainst.flatMap((entry) =>
+          entry.suppressedInfluence !== null &&
+          attackAgainstHolds(entry, perception?.actual ?? null)
+            ? [entry.suppressedInfluence]
+            : []
+        )
   const conditionAttack = {
     melee: attackKind === 'MELEE' || attackKind === 'UNARMED' || attackKind === 'MELEE_SPELL',
     sceneContext: input.sceneContext ?? null
@@ -749,7 +754,7 @@ export async function prepareEncounterActionMechanics<
         ...(enemyProximity ? { attackEnemyProximity: enemyProximity } : {}),
         ...(moveToward ? { attackMoveToward: moveToward } : {}),
         ...(turnUses ? { attackTurnUses: turnUses } : {}),
-        ...(attackAdvantageNegated ? { attackAdvantageNegated } : {}),
+        ...(attackSuppressedInfluences.length > 0 ? { attackSuppressedInfluences } : {}),
         attackAddedDice: encounterAttackAddedDice(
           sourceFacts.activeEffects,
           source.kind === 'CHARACTER_ACTION'

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   LOOT_RANGE_REFUSAL,
+  findLootRangeForRoll,
   findLootRangeRefusal,
   formatLootRange
 } from '../domains/vtt/lootTable.js'
@@ -93,5 +94,27 @@ describe('formatLootRange', () => {
     expect(formatLootRange({ min: 4, max: 4 })).toBe('4')
     expect(formatLootRange({ min: 4, max: 9 })).toBe('4–9')
     expect(formatLootRange({ min: 20, max: null })).toBe('20+')
+  })
+})
+
+describe('findLootRangeForRoll', () => {
+  const ranges = [
+    { id: 'low', min: 1, max: 10 },
+    { id: 'single', min: 12, max: 12 },
+    { id: 'open', min: 18, max: null }
+  ]
+
+  it('finds the range holding the roll, at either end and in an open top range', () => {
+    expect(findLootRangeForRoll(ranges, 1)?.id).toBe('low')
+    expect(findLootRangeForRoll(ranges, 10)?.id).toBe('low')
+    expect(findLootRangeForRoll(ranges, 12)?.id).toBe('single')
+    expect(findLootRangeForRoll(ranges, 18)?.id).toBe('open')
+    expect(findLootRangeForRoll(ranges, 400)?.id).toBe('open')
+  })
+
+  it('finds nothing for a roll in a gap or below every range', () => {
+    expect(findLootRangeForRoll(ranges, 0)).toBeUndefined()
+    expect(findLootRangeForRoll(ranges, 11)).toBeUndefined()
+    expect(findLootRangeForRoll(ranges, 17)).toBeUndefined()
   })
 })

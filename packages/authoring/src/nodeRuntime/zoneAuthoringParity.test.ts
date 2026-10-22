@@ -7,8 +7,10 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createNodeRuntimeSourceReader } from './systemSourceRows.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 const reader = createNodeRuntimeSourceReader({
+  policyVocabulary: dnd5eVocabularyCapabilityAdapter.lists,
   system: srdSystemRecord,
   readAuthoredRows: () => [],
   readReusableDefinitions: async () => []

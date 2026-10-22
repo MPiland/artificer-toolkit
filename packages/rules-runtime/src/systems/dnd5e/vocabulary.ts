@@ -2,12 +2,12 @@ import type { SystemVocabularyCapabilityAdapter } from '../../systemVocabularyCa
 import { DND5E_SYSTEM_ID } from './identity.js'
 
 export const DND5E_ROLL_INFLUENCES = [
-  { code: 'ADVANTAGE', label: 'Advantage' },
-  { code: 'DISADVANTAGE', label: 'Disadvantage' }
+  { code: 'ADVANTAGE', label: 'Advantage', description: 'Roll two d20s and use the higher.' },
+  { code: 'DISADVANTAGE', label: 'Disadvantage', description: 'Roll two d20s and use the lower.' }
 ] as const
 
 export const DND5E_ROLL_MODES = [
-  { code: 'NORMAL', label: 'Normal' },
+  { code: 'NORMAL', label: 'Normal', description: 'Roll one d20.' },
   ...DND5E_ROLL_INFLUENCES
 ] as const
 

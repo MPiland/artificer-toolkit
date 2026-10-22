@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { CharacterProvenance } from '@artificer-toolkit/shared/subjects/authored'
 
-import { systemVocabularyRegistry } from '../systemVocabulary.js'
+import { systemVocabularyRegistry } from '../platformSystemVocabulary.js'
 import { getCharacterGrantFoldSelectedOptionIds } from './characterGrantFoldSourceFacts.js'
 
 export type CharacterSpellAccessCandidate =

@@ -35,13 +35,13 @@
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.tests.json --noEmit"
   },
   "dependencies": {
-    "@artificer-toolkit/rules-runtime": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
     "@artificer-toolkit/source-data": "workspace:^",
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@artificer-toolkit/rules-runtime": "workspace:^",
     "typescript": "^7.0.2"
   }
 }

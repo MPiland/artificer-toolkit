@@ -4,7 +4,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 import { abilityCodeSchema } from '@artificer-toolkit/schema/shared/enums'
-import type { AttackDomainCode } from '@artificer-toolkit/shared/core'
+import { modifierRollInfluence, type AttackDomainCode } from '@artificer-toolkit/shared/core'
 import {
   compareCanonicalD20Contributors,
   rollModeContributorSourceOfMechanicSource
@@ -52,9 +52,9 @@ function dnd5eRollContributors(
           ? undefined
           : policy.grantFold.modifiers[contribution.acceptedModifierIndex]
       if (modifier === undefined) throw new Error('Character roll modifier provenance is missing.')
-      const influence = modifier.modifierKind
+      const influence = modifierRollInfluence(modifier)
       if (
-        (influence !== 'ADVANTAGE' && influence !== 'DISADVANTAGE') ||
+        influence === null ||
         dnd5eSaveRequiresSourceSight(modifier) ||
         dnd5eAttackRequiresEffectSource(modifier) ||
         !dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)

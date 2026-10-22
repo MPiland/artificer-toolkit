@@ -128,37 +128,56 @@ it('evaluates the complete database schema without environment-variable access',
   for (const [, name] of indexNames) expect(name).toMatch(/^[A-Za-z][A-Za-z0-9_]{0,63}$/)
 })
 
-it('keeps authoring source reads independent of the play execution registry and schemas', () => {
+/** The System vocabulary seam's closure: the only rules-runtime files authoring may load. */
+const SYSTEM_VOCABULARY_SEAM = [
+  'platformSystemVocabulary.js',
+  'systemVocabularyCapability.js',
+  'systemCapabilityRegistry.js',
+  'systems/dnd5e/vocabulary.js',
+  'systems/dnd5e/identity.js'
+].map((file) => `/packages/rules-runtime/dist/${file}`)
+
+/** Rules-runtime and play-schema files a bundle loads outside the System vocabulary seam. */
+function playImportsOf(entry: { entryPoints: string[] } | { stdin: { contents: string } }) {
   const bundle = buildSync({
-    entryPoints: [fileURLToPath(new URL('./authoring/nodeRuntime.ts', import.meta.url))],
+    ...('stdin' in entry
+      ? { stdin: { ...entry.stdin, resolveDir: fileURLToPath(new URL('.', import.meta.url)) } }
+      : entry),
     bundle: true,
     platform: 'browser',
     write: false,
     metafile: true,
     logLevel: 'silent'
   })
-  const inputs = Object.keys(bundle.metafile!.inputs).map(
-    (path) => `/${path.replaceAll('\\', '/')}`
-  )
-  const playImports = inputs.filter((path) =>
-    /\/packages\/schema\/(src|dist)\/(shared\/rulesExecution|api\/characterSheet)/.test(path)
-  )
-  expect(playImports).toEqual([])
-  // Authoring reads System vocabulary through the pure `systemVocabulary` subpath (D176) and
-  // nothing else in rules-runtime; a new import in that closure must be added here on purpose.
-  const rulesRuntimeClosure = inputs
-    .filter((path) => path.includes('/packages/rules-runtime/'))
-    .map((path) =>
-      path.replace(/^.*\/packages\/rules-runtime\/(src|dist)\//, '').replace(/\.(ts|js)$/, '')
+  return Object.keys(bundle.metafile!.inputs)
+    .map((path) => `/${path.replaceAll('\\', '/')}`)
+    .filter(
+      (path) =>
+        /\/packages\/(rules-runtime\/|schema\/(src|dist)\/(shared\/rulesExecution|api\/characterSheet))/.test(
+          path
+        ) && !SYSTEM_VOCABULARY_SEAM.some((file) => path.endsWith(file))
     )
-    .sort()
-  expect(rulesRuntimeClosure).toEqual([
-    'systemCapabilityRegistry',
-    'systemVocabulary',
-    'systemVocabularyCapability',
-    'systems/dnd5e/identity',
-    'systems/dnd5e/vocabulary'
-  ])
+}
+
+it('keeps authoring source reads independent of the play execution registry and schemas', () => {
+  expect(
+    playImportsOf({
+      entryPoints: [fileURLToPath(new URL('./authoring/nodeRuntime.ts', import.meta.url))]
+    })
+  ).toEqual([])
+})
+
+it('refuses a play module loaded beside the System vocabulary seam', () => {
+  const playImports = playImportsOf({
+    stdin: {
+      contents: [
+        "export * from '@artificer-toolkit/rules-runtime/platformSystemVocabulary'",
+        "export * from '@artificer-toolkit/rules-runtime/platformPolicyModules'"
+      ].join('\n')
+    }
+  })
+  expect(playImports).toContain('/packages/rules-runtime/dist/platformPolicyModules.js')
+  expect(playImports.some((path) => path.endsWith('/platformSystemVocabulary.js'))).toBe(false)
 })
 
 it.each(['./characters/documents.ts', './content/deletion.ts'])(

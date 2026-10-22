@@ -557,7 +557,7 @@ describe('grant and facet schema parsing', () => {
     ).toThrow()
   })
 
-  it('parses attack roll advantage modifiers without payloads', () => {
+  it('parses attack roll influence modifiers with their System influence code', () => {
     const parsed = modifierGrantDtoSchema.parse({
       grantKind: 'MODIFIER_GRANT',
       id: 'heavy-weapon-disadvantage',
@@ -567,15 +567,32 @@ describe('grant and facet schema parsing', () => {
       domain: {
         attackDomain: 'MELEE'
       },
-      modifierKind: 'DISADVANTAGE',
+      modifierKind: 'ROLL_INFLUENCE',
+      payload: { influence: 'DISADVANTAGE' },
       scope: 'SOURCE'
     })
 
     expect(parsed.valueDomainCode).toBe('ATTACK_ROLL')
-    expect(parsed.modifierKind).toBe('DISADVANTAGE')
+    expect(parsed.modifierKind).toBe('ROLL_INFLUENCE')
+    expect(parsed.payload).toEqual({ influence: 'DISADVANTAGE' })
   })
 
-  it('parses ability-check and skill-check roll modes without payloads', () => {
+  it('refuses a roll influence modifier without an influence code', () => {
+    expect(
+      modifierGrantDtoSchema.safeParse({
+        grantKind: 'MODIFIER_GRANT',
+        id: 'heavy-weapon-disadvantage',
+        order: 1,
+        selectionKind: 'GRANTED',
+        valueDomainCode: 'ATTACK_ROLL',
+        domain: { attackDomain: 'MELEE' },
+        modifierKind: 'ROLL_INFLUENCE',
+        scope: 'SOURCE'
+      }).success
+    ).toBe(false)
+  })
+
+  it('parses ability-check and skill-check roll influences', () => {
     expect(
       modifierGrantDtoSchema.parse({
         grantKind: 'MODIFIER_GRANT',
@@ -584,7 +601,8 @@ describe('grant and facet schema parsing', () => {
         selectionKind: 'GRANTED',
         valueDomainCode: 'ABILITY_CHECK',
         domain: {},
-        modifierKind: 'ADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
         scope: 'GLOBAL'
       }).valueDomainCode
     ).toBe('ABILITY_CHECK')
@@ -597,10 +615,11 @@ describe('grant and facet schema parsing', () => {
         selectionKind: 'GRANTED',
         valueDomainCode: 'SKILL_MODIFIER',
         domain: { skillId: 'skill-athletics' },
-        modifierKind: 'DISADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'DISADVANTAGE' },
         scope: 'GLOBAL'
-      }).modifierKind
-    ).toBe('DISADVANTAGE')
+      }).payload
+    ).toEqual({ influence: 'DISADVANTAGE' })
   })
 
   it('scopes saving throw modifiers to a reusable rule definition', () => {
@@ -614,7 +633,8 @@ describe('grant and facet schema parsing', () => {
         ability: 'CONSTITUTION',
         ruleDefinitionId: '00000000-0000-4000-8000-0000000000c3'
       },
-      modifierKind: 'ADVANTAGE',
+      modifierKind: 'ROLL_INFLUENCE',
+      payload: { influence: 'ADVANTAGE' },
       scope: 'GLOBAL'
     } as const
 

@@ -20,7 +20,7 @@ import { dnd5eCreatureConditionCapabilityAdapter } from './systems/dnd5e/identit
 import { dnd5ePolicyModuleRegistration } from './systems/dnd5e/policyModuleRegistration.js'
 import { dnd5eRollModeCapabilityAdapter } from './systems/dnd5e/rollModePolicy.js'
 import { dnd5eSavingThrowCapabilityAdapter } from './systems/dnd5e/savingThrowPolicy.js'
-import { systemVocabularyRegistry } from './systemVocabulary.js'
+import { systemVocabularyRegistry } from './platformSystemVocabulary.js'
 
 const installedRuntimeModules = [dnd5ePolicyModuleRegistration] as const
 

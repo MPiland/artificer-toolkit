@@ -532,9 +532,9 @@ describe('encounter action rule warning gate', () => {
         kind: 'UNACKNOWLEDGED',
         warnings: [tooLarge, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
       })
-      expect(
-        gate({ actorSize: 'MEDIUM', targetSize: 'HUGE' }, ['TARGET_TOO_LARGE'])
-      ).toMatchObject({ kind: 'ACCEPTED', overrides: expect.arrayContaining([tooLarge]) })
+      expect(gate({ actorSize: 'MEDIUM', targetSize: 'HUGE' }, ['TARGET_TOO_LARGE'])).toMatchObject(
+        { kind: 'ACCEPTED', overrides: expect.arrayContaining([tooLarge]) }
+      )
     })
 
     it('raises nothing when either size is unknown', () => {

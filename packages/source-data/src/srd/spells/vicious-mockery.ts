@@ -143,7 +143,8 @@ export const viciousMockery: SpellAuthored = {
                       grantKind: GRANT_KIND.MODIFIER_GRANT,
                       valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
                       domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                      payload: { influence: 'DISADVANTAGE' },
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       order: 1
@@ -153,7 +154,8 @@ export const viciousMockery: SpellAuthored = {
                       grantKind: GRANT_KIND.MODIFIER_GRANT,
                       valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
                       domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
-                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                      payload: { influence: 'DISADVANTAGE' },
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       order: 2
@@ -163,7 +165,8 @@ export const viciousMockery: SpellAuthored = {
                       grantKind: GRANT_KIND.MODIFIER_GRANT,
                       valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
                       domain: { attackDomain: ATTACK_DOMAIN_CODE.SPELL },
-                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                      payload: { influence: 'DISADVANTAGE' },
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       order: 3
@@ -173,7 +176,8 @@ export const viciousMockery: SpellAuthored = {
                       grantKind: GRANT_KIND.MODIFIER_GRANT,
                       valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
                       domain: { attackDomain: ATTACK_DOMAIN_CODE.UNARMED },
-                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                      payload: { influence: 'DISADVANTAGE' },
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       order: 4

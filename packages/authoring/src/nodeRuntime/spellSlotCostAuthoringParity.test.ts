@@ -11,6 +11,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-31.T5p (D175): the six Warlock pact-slot invocations, the Fiend's Expanded Spell List and
@@ -18,7 +19,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * passes the class node map exactly as authored, with no closed rule, as does a homebrew variant.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 const COLD_START_MS = 30_000
 
 function normalize(values: ClassAuthored) {

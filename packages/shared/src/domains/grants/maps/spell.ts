@@ -51,7 +51,9 @@ const SLOT_COST_NODE_MAP = slotCost.define('slotCost', ({ map, nodes, data }) =>
       'Spell Slot Pool',
       {
         kind: 'DATA',
-        relationship: data.table('spell_slot_pools', { selectColumns: ['code', 'label'] })
+        relationship: data.table('spell_slot_pools', {
+          selectColumns: ['id', 'label', 'description']
+        })
       },
       { requiredIf: true }
     )

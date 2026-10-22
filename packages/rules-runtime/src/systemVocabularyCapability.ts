@@ -12,6 +12,7 @@ export type SystemVocabularyKind = keyof typeof VOCABULARY_NOUNS
 export interface SystemVocabularyEntry {
   code: string
   label: string
+  description?: string
 }
 
 /** A System's vocabulary lists: each code unique within its list, labels for display only. */

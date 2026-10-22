@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 
 import { buildCharacterSpellRuleFacts } from '../character/characterSpellRuleFacts.js'
-import { systemVocabularyRegistry } from '../systemVocabulary.js'
+import { systemVocabularyRegistry } from '../platformSystemVocabulary.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import {
   SRD,
