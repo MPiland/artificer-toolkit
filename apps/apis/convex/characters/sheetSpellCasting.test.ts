@@ -137,6 +137,8 @@ async function fixture(attribute: keyof typeof CAST_MODE = 'LIMITED_USE') {
   const spell = sheet.spells.spells.find((entry) => entry.id === magicMissile.id)!
   const classSource = spell.sources!.find((source) => source.source.sourceKind === 'CLASS')!
   const chargedSource = spell.sources!.find((source) => source.castMode === CAST_MODE[attribute])!
+  // Only a ritual is paid from no pool.
+  if (attribute !== 'RITUAL') expect(chargedSource.resourceOwner).toBeDefined()
   const chargedResourceId = chargedSource.resourceOwner
     ? findResourceByOwner(sheet.resources.items, chargedSource.resourceOwner)!.id
     : undefined
