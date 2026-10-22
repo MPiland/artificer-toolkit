@@ -9,13 +9,15 @@ import {
   contentSnapshotCatalogueManifestDtoSchema,
   contentSnapshotListObjectSchema
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import { encounterBlueprintDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import {
+  encounterBlueprintDtoSchema,
+  type EncounterGmProjectionDto
+} from '@artificer-toolkit/schema/api/encounters'
 import { CREATURE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import { getContentCatalogueManifest } from '#app/data/contentSnapshots/queries'
 import { contentCatalogueQueryKey } from '#app/data/contentSnapshots/useContentCatalogue'
 import { getCampaignEncounters, getEncounter } from '#app/data/encounters/queries'
-import { summarizeEncounterProjection } from '#app/data/encounters/summaries'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { CampaignEncounterBuilderPage } from './CampaignEncounterBuilderPage'
 import { CampaignEncounters } from './components/CampaignEncounters'
@@ -24,6 +26,16 @@ import {
   tabletopCurrentUserId,
   tabletopGmEncounter
 } from './vtt/CampaignTabletop.stories.fixtures'
+
+const summarizeEncounterProjection = (projection: EncounterGmProjectionDto) => ({
+  id: projection.id,
+  name: projection.name,
+  status: projection.status,
+  round: projection.round,
+  actorCount: projection.actors.length,
+  updatedAt: projection.updatedAt,
+  version: projection.version
+})
 
 const campaign = createTabletopCampaign('OWNER')
 const blueprintId = '99999999-9999-4999-8999-999999999903'

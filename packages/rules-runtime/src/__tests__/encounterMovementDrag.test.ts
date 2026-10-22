@@ -1,5 +1,4 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { SpatialEffectInstance } from '@artificer-toolkit/shared/vtt'
 import { describe, expect, it } from 'vitest'
 
 import { encounterMovementDrag } from '../encounterMovementDrag.js'
@@ -54,29 +53,6 @@ function holds(sourceActorId: string, modules: RelationshipModule[], held = HELD
   ])
 }
 
-/** A fixed square zone spanning x 400 to 500 across the row. */
-const zone = (overrides: Partial<SpatialEffectInstance> = {}): SpatialEffectInstance => ({
-  effectId: testUuid(0xd740),
-  sourceActorId: OTHER.actorId,
-  sourceTokenId: null,
-  anchorKind: 'FIXED',
-  geometry: {
-    frame: 'SCENE_ABSOLUTE',
-    shape: {
-      kind: 'POLYGON',
-      points: [
-        { x: 400, y: 0 },
-        { x: 500, y: 0 },
-        { x: 500, y: 100 },
-        { x: 400, y: 100 }
-      ]
-    }
-  },
-  triggerModes: ['ENTER'],
-  movementKinds: ['VOLUNTARY'],
-  ...overrides
-})
-
 // The mover stands at x 150 with the creature it holds beside it at x 50.
 const scene: Parameters<typeof encounterMovementDrag>[0]['scene'] = {
   map: { assetId: testUuid(0xd760), width: 1000, height: 100, tileManifestAssetId: null },
@@ -108,7 +84,6 @@ function drag(
     actorIdByTokenId,
     activeEffectsByActorId: holds(MOVER.actorId, [occupiesHand, dragged]),
     sizeOf: (actorId) => sizes[actorId] ?? null,
-    effects: [],
     path: walk(250),
     ...input
   })
@@ -178,26 +153,11 @@ describe('a grappler drags the creatures it holds (ATTACK-7.T7, D105)', () => {
     expect(drag({ path: walk(850) }).kind).toBe('REFUSED')
   })
 
-  it('refuses a drag through a Scene effect that can catch the dragged creature', () => {
-    // The held creature, 100 behind, walks 50 to 350 and stays clear of the zone at 400 to 500.
-    expect(drag({ effects: [zone()], path: walk(450) }).kind).toBe('DRAG')
-    // Walking 50 to 450, its footprint enters the zone.
-    expect(drag({ effects: [zone()], path: walk(550) }).kind).toBe('REFUSED')
-    // A zone that never catches the dragged creature does not refuse.
-    expect(
-      drag({ effects: [zone({ unaffectedActorIds: [HELD.actorId] })], path: walk(550) }).kind
-    ).toBe('DRAG')
-    // An aura carried by the mover keeps its place relative to the dragged creature.
-    const aura = zone({
-      anchorKind: 'TOKEN',
-      sourceTokenId: MOVER.tokenId,
-      geometry: {
-        frame: 'TOKEN_LOCAL',
-        shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 150 }
-      }
-    })
-    expect(drag({ effects: [aura], path: walk(550) }).kind).toBe('DRAG')
+  it('does not refuse a drag for the Scene effects on its way: they settle in the spatial pass (SPELLS-4.T1k)', () => {
+    // The held creature, 100 behind, walks 50 to 450 across a zone at 400 to 500 in the Scene.
+    expect(drag({ path: walk(550) }).kind).toBe('DRAG')
   })
+
   it('prices a mixed-size pair of holds together: one creature that is not small enough doubles the move', () => {
     const both = new Map([
       ...holds(MOVER.actorId, [occupiesHand, dragged]),

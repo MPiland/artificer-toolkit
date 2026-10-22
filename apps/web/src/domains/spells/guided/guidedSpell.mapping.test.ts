@@ -6,7 +6,7 @@ import {
   createGuidedSpellDraft,
   type GuidedEffectIds
 } from '#forms/guided/guidedSimpleEffect.types'
-import { canUseGuidedSpellAuthoring } from '#forms/guided/guidedSimpleEffect.rehydrate'
+import { rehydrateGuidedSpell } from '#forms/guided/guidedSimpleEffect.rehydrate'
 
 const ids: GuidedEffectIds = {
   outcomeId: 'outcome-1',
@@ -84,56 +84,63 @@ describe('guided spell effect mapping', () => {
     if (!path || path.selectionKind !== 'FIXED') throw new Error('Expected a fixed path.')
 
     expect(path.resultBlock).not.toHaveProperty('duration')
-    expect(canUseGuidedSpellAuthoring([damageEffect])).toBe(true)
+    expect(rehydrateGuidedSpell([damageEffect], ids)).not.toBeNull()
   })
 
   it('rejects mechanics that Guided cannot represent without flattening', () => {
     const draft = createGuidedSpellDraft('DAMAGE', { damageTypeId: 'fire' })
     const effect = mapGuidedSpellEffect(draft, createDefaultEffect(1) as EffectAuthored, ids)
 
-    expect(canUseGuidedSpellAuthoring([effect])).toBe(true)
+    expect(rehydrateGuidedSpell([effect], ids)).not.toBeNull()
     expect(
-      canUseGuidedSpellAuthoring([
-        { ...effect, paths: [...effect.paths, structuredClone(effect.paths[0]!)] }
-      ])
-    ).toBe(false)
+      rehydrateGuidedSpell(
+        [{ ...effect, paths: [...effect.paths, structuredClone(effect.paths[0]!)] }],
+        ids
+      )
+    ).toBeNull()
     expect(
-      canUseGuidedSpellAuthoring([
-        {
-          ...effect,
-          paths: effect.paths.map((path) => ({ ...path, pathCode: 'ON_HIT' }))
-        }
-      ])
-    ).toBe(false)
+      rehydrateGuidedSpell(
+        [
+          {
+            ...effect,
+            paths: effect.paths.map((path) => ({ ...path, pathCode: 'ON_HIT' }))
+          }
+        ],
+        ids
+      )
+    ).toBeNull()
     if (effect.invocation.range.rangeKind !== 'DISTANCE') {
       throw new Error('Expected a distance range.')
     }
     expect(
-      canUseGuidedSpellAuthoring([
-        {
-          ...effect,
-          invocation: {
-            ...effect.invocation,
-            range: {
-              ...effect.invocation.range,
-              scaling: {
-                scalingKind: 'BREAKPOINTS',
-                scalingSource: 'SPELL_CAST_LEVEL',
-                breakpoints: [
-                  {
-                    id: 'range-breakpoint-1',
-                    level: 2,
-                    order: 1,
-                    value: { amount: 120, unit: 'FEET' }
-                  }
-                ]
+      rehydrateGuidedSpell(
+        [
+          {
+            ...effect,
+            invocation: {
+              ...effect.invocation,
+              range: {
+                ...effect.invocation.range,
+                scaling: {
+                  scalingKind: 'BREAKPOINTS',
+                  scalingSource: 'SPELL_CAST_LEVEL',
+                  breakpoints: [
+                    {
+                      id: 'range-breakpoint-1',
+                      level: 2,
+                      order: 1,
+                      value: { amount: 120, unit: 'FEET' }
+                    }
+                  ]
+                }
               }
             }
           }
-        }
-      ])
-    ).toBe(false)
-    expect(canUseGuidedSpellAuthoring([effect, structuredClone(effect)])).toBe(false)
+        ],
+        ids
+      )
+    ).toBeNull()
+    expect(rehydrateGuidedSpell([effect, structuredClone(effect)], ids)).toBeNull()
   })
 
   it('rejects incomplete Advanced mechanics instead of normalizing them', () => {
@@ -145,42 +152,51 @@ describe('guided spell effect mapping', () => {
     }
 
     expect(
-      canUseGuidedSpellAuthoring([
-        {
-          ...effect,
-          invocation: {
-            ...effect.invocation,
-            savingThrow: {
-              id: effect.invocation.savingThrow.id,
-              dcMethod: effect.invocation.savingThrow.dcMethod
+      rehydrateGuidedSpell(
+        [
+          {
+            ...effect,
+            invocation: {
+              ...effect.invocation,
+              savingThrow: {
+                id: effect.invocation.savingThrow.id,
+                dcMethod: effect.invocation.savingThrow.dcMethod
+              }
             }
           }
-        }
-      ])
-    ).toBe(false)
+        ],
+        ids
+      )
+    ).toBeNull()
     expect(
-      canUseGuidedSpellAuthoring([
-        {
-          ...effect,
-          invocation: {
-            ...effect.invocation,
-            range: {
-              id: effect.invocation.range.id,
-              rangeKind: 'DISTANCE',
-              unit: 'FEET'
+      rehydrateGuidedSpell(
+        [
+          {
+            ...effect,
+            invocation: {
+              ...effect.invocation,
+              range: {
+                id: effect.invocation.range.id,
+                rangeKind: 'DISTANCE',
+                unit: 'FEET'
+              }
             }
           }
-        }
-      ])
-    ).toBe(false)
+        ],
+        ids
+      )
+    ).toBeNull()
     expect(
-      canUseGuidedSpellAuthoring([
-        mapGuidedSpellEffect(
-          createGuidedSpellDraft('DAMAGE', { damageTypeId: '' }),
-          createDefaultEffect(1) as EffectAuthored,
-          ids
-        )
-      ])
-    ).toBe(false)
+      rehydrateGuidedSpell(
+        [
+          mapGuidedSpellEffect(
+            createGuidedSpellDraft('DAMAGE', { damageTypeId: '' }),
+            createDefaultEffect(1) as EffectAuthored,
+            ids
+          )
+        ],
+        ids
+      )
+    ).toBeNull()
   })
 })

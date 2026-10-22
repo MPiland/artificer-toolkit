@@ -19,19 +19,19 @@ export interface AuthResult {
   message?: string
 }
 
-export type SignInInput = AuthSignInInput
+type SignInInput = AuthSignInInput
 
-export type SignUpInput = AuthSignUpInput
+type SignUpInput = AuthSignUpInput
 
-export interface RequestPasswordResetInput {
+interface RequestPasswordResetInput {
   email: string
 }
 
-export type ResetPasswordInput = AuthPasswordResetInput
+type ResetPasswordInput = AuthPasswordResetInput
 
-export type VerifyPasswordRecoveryInput = AuthPasswordRecoveryVerificationInput
+type VerifyPasswordRecoveryInput = AuthPasswordRecoveryVerificationInput
 
-export type CompleteInvitationInput = AuthInvitationRedeemInput
+type CompleteInvitationInput = AuthInvitationRedeemInput
 
 export interface AuthClient {
   completeInvitation(input: CompleteInvitationInput): Promise<AuthResult>

@@ -1,4 +1,4 @@
-export type ReferenceOption = {
+type ReferenceOption = {
   value: string
   label: string
 }

@@ -20,7 +20,7 @@ import {
   resolveArrayAuthoringMeta,
   resolveObjectAuthoringMeta
 } from '@artificer-toolkit/shared/utils'
-import { hasAuthoringDefaultKind } from './authoringNodeDefaultRegistry'
+import { hasAuthoringDefaultKind } from './authoringNodeDefaultRegistry.testUtils'
 
 type RuntimeInputNode = { kind: 'INPUT' }
 

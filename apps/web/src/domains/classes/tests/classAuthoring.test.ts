@@ -1,12 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { z } from 'zod/mini'
-import { proficiencyGrantDtoSchema } from '@artificer-toolkit/schema/grants'
 import {
   createEmptyClass,
-  createEmptyDetail,
-  createEmptyFeature,
   createEmptyMulticlass,
-  createEmptyProficiency,
   normalizeClassForSubmit,
   resolveCreateClassSystemId
 } from '../classAuthoring.utils'
@@ -14,10 +9,6 @@ import {
 const generatedId = '00000000-0000-4000-8000-000000000001'
 
 describe('class authoring utilities', () => {
-  it('creates an empty proficiency grant that satisfies the grant contract', () => {
-    expect(z.safeParse(proficiencyGrantDtoSchema, createEmptyProficiency(0)).success).toBe(true)
-  })
-
   it('creates draft-safe empty classes without forcing a category', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
@@ -85,8 +76,6 @@ describe('class authoring utilities', () => {
   it('creates nested row defaults for common class groups', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
-    expect(createEmptyDetail(1)).toMatchObject({ id: generatedId, order: 1 })
-    expect(createEmptyFeature(2)).toMatchObject({ id: generatedId, order: 2 })
     expect(createEmptyMulticlass()).toMatchObject({
       id: generatedId,
       requirementGroups: { groups: [] }

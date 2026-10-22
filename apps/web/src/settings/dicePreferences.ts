@@ -3,7 +3,7 @@ import { findOption, isRecord } from '../forms/utils/valueGuards'
 
 export const DICE_SHADOW_QUALITIES = ['LOW', 'MEDIUM', 'HIGH'] as const
 
-export type DiceShadowQuality = (typeof DICE_SHADOW_QUALITIES)[number]
+type DiceShadowQuality = (typeof DICE_SHADOW_QUALITIES)[number]
 
 export interface DicePresentationPreferences {
   animate3d: boolean

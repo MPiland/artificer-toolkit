@@ -126,7 +126,7 @@ export async function prepareRoomForcedMovementContacts(input: {
           userId,
           autoRoll,
           carefully: undefined,
-          captured: { actors, capture, spatialEffects, runtime },
+          captured: { actors, capture, drag: null, spatialEffects, runtime },
           random,
           finalActors
         },

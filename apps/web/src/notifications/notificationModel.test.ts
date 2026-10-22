@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  notificationBellLabel,
-  notificationHistoryLimit,
-  toNotificationViewModel
-} from './notificationModel'
+import { notificationBellLabel, toNotificationViewModel } from './notificationModel'
 
 const sourcePublicId = '00000000-0000-4000-8000-000000000001'
 const listingPublicId = '00000000-0000-4000-8000-000000000002'
@@ -88,9 +84,8 @@ describe('toNotificationViewModel', () => {
 })
 
 describe('notification feed presentation', () => {
-  it('uses a new-item badge and a 25-item history window', () => {
+  it('uses a new-item badge', () => {
     expect(notificationBellLabel(3)).toBe('Notifications, 3 new')
-    expect(notificationHistoryLimit).toBe(25)
   })
 })
 

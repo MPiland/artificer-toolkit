@@ -1,6 +1,4 @@
 import {
-  createEmptyDetail,
-  createEmptyFeature,
   createEmptyVehicle,
   normalizeVehicleForSubmit,
   resolveCreateVehicleSystemId,
@@ -44,11 +42,6 @@ describe('vehicle authoring utils', () => {
     expect(toVehicleFormValues(ownedVehicleResponseFixture.item).properties).toEqual([
       { value: 'fast' }
     ])
-  })
-
-  it('creates nested group defaults', () => {
-    expect(createEmptyDetail(2)).toMatchObject({ label: '', order: 2 })
-    expect(createEmptyFeature(3)).toMatchObject({ label: '', order: 3 })
   })
 
   it('requires a real system for create mode', () => {

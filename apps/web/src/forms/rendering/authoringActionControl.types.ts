@@ -4,7 +4,7 @@ import type {
   NodeRuntimeObjectActionDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 
-export type AuthoringAction = NodeRuntimeCollectionActionDto | NodeRuntimeObjectActionDto
+type AuthoringAction = NodeRuntimeCollectionActionDto | NodeRuntimeObjectActionDto
 
 export type AuthoringActionControlProps = {
   action: AuthoringAction

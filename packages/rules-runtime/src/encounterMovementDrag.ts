@@ -1,13 +1,9 @@
 import { sizeRank } from '@artificer-toolkit/shared/core'
 import {
-  effectiveSpatialGeometry,
   sceneTokenFootprintsOverlap,
   sceneTokenMovementFailure,
-  spatialEffectAffects,
-  spatialSegmentShareInside,
   type CampaignSceneState,
-  type ScenePoint,
-  type SpatialEffectInstance
+  type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
 import {
   encounterSourceRelationships,
@@ -43,9 +39,9 @@ const translated = (path: readonly ScenePoint[], offset: ScenePoint) =>
  * `TARGET_DRAGGED` holds bind, one level deep. The move costs double unless every dragged creature
  * is two or more sizes smaller than the mover; an unknown size counts as not smaller. `path`, when
  * given, is checked for each dragged token translated by its offset from the mover: a path that
- * leaves the map, crosses a barrier, ends overlapping a token that stays put, or touches a Scene
- * effect that can catch the dragged creature is refused (release the grapple first). An effect
- * anchored on a token that moves with the drag keeps its place relative to the dragged creature.
+ * leaves the map, crosses a barrier, or ends overlapping a token that stays put is refused
+ * (release the grapple first). Scene effects the drag crosses settle on the dragged creature in
+ * the mover's spatial pass (D170), not here.
  */
 export function encounterMovementDrag(input: {
   scene: Pick<CampaignSceneState, 'map' | 'tokens' | 'barriers' | 'doorStates'>
@@ -53,7 +49,6 @@ export function encounterMovementDrag(input: {
   actorIdByTokenId: ReadonlyMap<string, string>
   activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId
   sizeOf(actorId: string): string | null
-  effects: readonly SpatialEffectInstance[]
   path: readonly ScenePoint[] | null
 }): { kind: 'DRAG'; tokens: EncounterDraggedToken[]; doublesCost: boolean } | { kind: 'REFUSED' } {
   const { scene, mover } = input
@@ -79,7 +74,7 @@ export function encounterMovementDrag(input: {
   const tokenById = new Map(scene.tokens.map((token) => [token.id, token]))
   const moverToken = tokenById.get(mover.tokenId)
   if (!moverToken) return { kind: 'REFUSED' }
-  const refused = tokens.some(({ tokenId, actorId }) => {
+  const refused = tokens.some(({ tokenId }) => {
     const token = tokenById.get(tokenId)
     if (!token) return true
     const dragged = translated(path, {
@@ -89,33 +84,9 @@ export function encounterMovementDrag(input: {
     const end = dragged.at(-1)!
     if (sceneTokenMovementFailure(scene, tokenId, end, dragged, 'VOLUNTARY')) return true
     const arrived: SceneToken = { ...token, position: end }
-    if (
-      scene.tokens.some(
-        (other) => !movingTokenIds.has(other.id) && sceneTokenFootprintsOverlap(arrived, other)
-      )
+    return scene.tokens.some(
+      (other) => !movingTokenIds.has(other.id) && sceneTokenFootprintsOverlap(arrived, other)
     )
-      return true
-    const catching = input.effects.filter(
-      (effect) =>
-        spatialEffectAffects(effect, actorId) &&
-        !(
-          effect.anchorKind === 'TOKEN' &&
-          effect.sourceTokenId !== null &&
-          movingTokenIds.has(effect.sourceTokenId)
-        )
-    )
-    const geometries = catching.flatMap((effect) => {
-      const geometry = effectiveSpatialGeometry(effect, scene.tokens)
-      return geometry ? [geometry] : []
-    })
-    // An effect whose area cannot be read fails closed.
-    if (geometries.length !== catching.length) return true
-    return dragged
-      .slice(1)
-      .some(
-        (to, index) =>
-          spatialSegmentShareInside({ geometries, token, from: dragged[index]!, to }) > 0
-      )
   })
   return refused ? { kind: 'REFUSED' } : { kind: 'DRAG', tokens, doublesCost }
 }

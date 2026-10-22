@@ -27,7 +27,6 @@ import {
   encounterActorMovementProvokesNoOpportunityAttacks,
   encounterMovementPassageFacts
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
-import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
 import { creatureTokenLights } from '@artificer-toolkit/rules-runtime/creatureLight'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -395,7 +394,6 @@ export async function readNativeLiveMovementInputs(input: {
             const target = targets.get(actorId)
             return target ? encounterActorEffectiveSize(target) : null
           },
-          effects: toSpatialInstances(spatialEffects, actors),
           path: save.movementResolution ? null : command.path
         })
   if (planned?.kind === 'REFUSED') rejectDomain('MOVEMENT_BLOCKED', 'Release the grapple first.')
