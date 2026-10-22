@@ -1100,7 +1100,18 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `TARGETED_SELF` being chosen by a cast of a listed spell (any, unlisted). The holder's reactions are listed by
   `encounterReactors.ts` (a Creature's feature actions, a Character's actions and castable spells), and whether one is
   affordable is decided when the Worker prepares it. A `MOVEMENT` reaction meets no event here: the movement path
-  discovers it from the reach a mover passes (`encounterMovementReaction*`); zone interactions join in T5d.
+  discovers it from the reach a mover passes (`encounterMovementReaction*`).
+  Given `zones` (RULES-2.T5d), it returns the zones a creature's contact event sets off, in the order given. A zone's
+  persisted `triggerModes`, `turnTriggers` and `retaliatesMeleeHits` are its subscription: `ZONE_MOVEMENT` (`ENTER`,
+  `EXIT` or `CROSS`) meets a zone with that trigger mode, `ZONE_TURN` (`START_OF_TURN`, `END_OF_TURN`,
+  `START_OF_SOURCE_TURN`) a zone with that turn trigger, and `ZONE_SOURCE_MELEE_HIT` a retaliating zone. The System's
+  vocabulary compiles the authored `interactionKinds` into that subscription (`zoneSubscription`; 5e:
+  `ENTER_SPACE`, `LEAVE_SPACE`, `MOVE_ACROSS`, `ENTER_OR_PASS_THROUGH`, `START_TURN_IN_SPACE`, `END_TURN_IN_SPACE`,
+  `START_OF_SOURCE_TURN`, `MELEE_HIT_ON_SOURCE`); a held condition that ends on leaving the area adds `EXIT` in the 5e
+  zone compiler. The shared Scene collectors (`collectSpatial*Candidates`) report contact facts only, whatever a zone
+  subscribes to; `encounterZoneContacts.ts` (`zoneMovementContacts`, `zoneTurnContacts`,
+  `zoneMeleeRetaliationContacts`) composes them with discovery, and every raise site (movement settlement and its
+  held-condition release distances, forced movement in the Worker, turn-boundary zones, melee retaliation) calls it.
   Given the holder's `damageInterceptions` and `incomingGates`, it returns the intercepts the events meet before they
   resolve, in the order given (spend order); an intercept's authored payload is its subscription. A damage interception
   (`DAMAGE_INTERCEPTION`, Death Ward) meets a `BEFORE` `DAMAGED` taking its holder from above 0 hit points to 0, and a
@@ -1143,7 +1154,8 @@ facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decid
 still raised from its seven damage-commit roots (Worker rules, area rules, Legendary action, turn effect state, spatial
 damage ends, movement reaction effects, turn resources), since funnelling them into one damage-commit root is an
 envelope change outside T5. The `BEFORE`-phase `DAMAGED` and `KILLED` are raised where a batch plans and folds its
-damage, and `HARMFUL_ACTION_AIMED` where the incoming gate is decided. Zone interaction kinds (T5d) join the same table later.
+damage, and `HARMFUL_ACTION_AIMED` where the incoming gate is decided. Zone contact events are raised per contact
+where the Scene geometry reports it (`encounterZoneContacts.ts`).
 
 ### Legendary Resistance on single-target saves (current, D104)
 
