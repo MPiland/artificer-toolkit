@@ -3,7 +3,7 @@ import {
   createNodeRuntimeSourceReader,
   type NodeRuntimeSourceReader
 } from '@artificer-toolkit/authoring/nodeRuntime'
-import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/systemVocabularyModules'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type { QueryCtx } from '../_generated/server'
 import { readSystem } from '../content/systemDocuments'

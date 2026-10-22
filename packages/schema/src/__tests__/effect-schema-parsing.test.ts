@@ -987,7 +987,8 @@ describe('effect schema parsing', () => {
     )
     expect(followUpSave({ repeatTriggers: [] })).toBe(false)
     expect(followUpSave({ repeatTriggers: [{ ...trigger, kind: 'HOLDER_ACTION' }] })).toBe(false)
-    expect(followUpSave({ repeatTriggers: [{ ...trigger, rollInfluence: 'MAYBE' }] })).toBe(false)
+    // The schema checks a System code's shape; the System's rollInfluence list decides membership.
+    expect(followUpSave({ repeatTriggers: [{ ...trigger, rollInfluence: 'maybe' }] })).toBe(false)
     expect(followUpSave({ attempts: { kind: 'ONCE' } })).toBe(false)
   })
 

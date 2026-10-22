@@ -18,7 +18,8 @@ import {
   mergeCanonicalD20Contributors,
   type EncounterRelationshipD20Contributor
 } from './encounterRelationshipActionFacts.js'
-import { rollModeCapabilityRegistry, systemVocabularyRegistry } from './platformPolicyModules.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
+import { systemVocabularyRegistry } from './systemVocabularyModules.js'
 
 type D20Policy = Pick<
   ServerRuleExecutionD20PolicyDto,

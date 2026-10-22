@@ -47,7 +47,7 @@ export const FEATURE_ROLL_DEFINITION_NODE_MAP = rollDefinition.define(
         'rollMode',
         selectSingle(['rollMode'], 'Roll Mode', {
           kind: 'DATA',
-          relationship: table('roll_modes', { selectColumns: ['id', 'label'] })
+          relationship: table('roll_modes', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set('chargeCost', number(['chargeCost'], 'Charge Cost'))

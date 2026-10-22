@@ -135,6 +135,9 @@ type NodeMapBuildApi<NLocal extends object> = Parameters<
 type OutcomeNodeMapApi = NodeMapBuildApi<OutcomeNode>
 type ScalarReductionNodeMapApi = NodeMapBuildApi<ScalarReductionAuthored>
 
+/** The columns a select drawn from a System code list shows. */
+const CODE_LIST_COLUMNS = ['id', 'label', 'description'] as const
+
 const PATH_SELECTION_KIND_OPTIONS = [
   {
     code: 'FIXED',
@@ -1563,7 +1566,7 @@ const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfl
         'influence',
         selectSingle(['influence'], 'Influence', {
           kind: 'DATA',
-          relationship: table('roll_influences', { selectColumns: ['id', 'label'] })
+          relationship: table('roll_influences', { selectColumns: CODE_LIST_COLUMNS })
         })
       )
       .set(
@@ -1609,7 +1612,7 @@ const FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP = followUpSaveRepeatTrigger.define(
         'rollInfluence',
         selectSingle(['rollInfluence'], 'Roll Influence', {
           kind: 'DATA',
-          relationship: table('roll_influences', { selectColumns: ['id', 'label'] })
+          relationship: table('roll_influences', { selectColumns: CODE_LIST_COLUMNS })
         })
       )
   }
@@ -1744,7 +1747,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
           'Influence',
           {
             kind: 'DATA',
-            relationship: table('roll_influences', { selectColumns: ['id', 'label'] })
+            relationship: table('roll_influences', { selectColumns: CODE_LIST_COLUMNS })
           },
           { showIf: local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE') }
         )
@@ -1832,7 +1835,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         selectSingle(
           ['whenResolvedAttackD20Mode'],
           'When Attack Mode Is',
-          { kind: 'DATA', relationship: table('roll_modes', { selectColumns: ['id', 'label'] }) },
+          { kind: 'DATA', relationship: table('roll_modes', { selectColumns: CODE_LIST_COLUMNS }) },
           { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
         )
       )

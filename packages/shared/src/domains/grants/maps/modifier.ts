@@ -600,7 +600,9 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           'Roll Influence',
           {
             kind: 'DATA',
-            relationship: table('roll_influences', { selectColumns: ['id', 'label'] })
+            relationship: table('roll_influences', {
+              selectColumns: ['id', 'label', 'description']
+            })
           },
           {
             showIf: or([

@@ -192,7 +192,10 @@ Internal System document readers import `convex/content/systemDocuments.ts`, not
 `content/systems.ts` query module. Checksum/identity validation and indexed reads stay shared,
 without making authoring load the capability query's full play execution registry and schemas.
 The platform Rules registry remains the single source of installed capabilities/operations.
-`convex/schemaBoundary.test.ts` checks the real authoring entry point's dependency graph; public
+Authoring takes the System's policy vocabulary from `@artificer-toolkit/rules-runtime/systemVocabularyModules`
+alone, whose closure loads no play execution.
+`convex/schemaBoundary.test.ts` checks the real authoring entry point's dependency graph, allowing only that
+seam's listed files from rules-runtime; public
 System query contracts and authorization are unchanged by this module separation.
 
 Character receipt readers import `schema/api/characterHistory`, whose entry/page contracts depend

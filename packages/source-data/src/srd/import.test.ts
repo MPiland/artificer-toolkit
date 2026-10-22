@@ -122,8 +122,8 @@ describe('canonical Convex import preparation', () => {
       (modifier) => modifier.valueDomainCode === 'ATTACKS_AGAINST'
     )
     // Every attack kind has disadvantage, and only when the holder can see the attacker.
-    expect(attacksAgainst.map((modifier) => modifier.modifierKind)).toEqual(
-      Array(4).fill('DISADVANTAGE')
+    expect(attacksAgainst.map(({ modifierKind, payload }) => ({ modifierKind, payload }))).toEqual(
+      Array(4).fill({ modifierKind: 'ROLL_INFLUENCE', payload: { influence: 'DISADVANTAGE' } })
     )
     expect(attacksAgainst.map((modifier) => modifier.domain)).toEqual(
       Object.values(ATTACK_DOMAIN_CODE).map((attackDomain) => ({
@@ -135,9 +135,9 @@ describe('canonical Convex import preparation', () => {
     const saves = dodgeModifiers.filter(
       (modifier) => modifier.valueDomainCode === 'SAVING_THROW_MODIFIER'
     )
-    expect(saves.map((modifier) => [modifier.modifierKind, modifier.domain])).toEqual([
-      ['ADVANTAGE', { ability: ABILITY_CODE.DEXTERITY }]
-    ])
+    expect(
+      saves.map(({ modifierKind, payload, domain }) => [modifierKind, payload, domain])
+    ).toEqual([['ROLL_INFLUENCE', { influence: 'ADVANTAGE' }, { ability: ABILITY_CODE.DEXTERITY }]])
     for (const modifier of dodgeModifiers)
       // One group per holder kind, since each facet context gates on its subject (D152).
       expect(
@@ -170,8 +170,11 @@ describe('canonical Convex import preparation', () => {
       ...Object.values(ATTACK_DOMAIN_CODE).map((attackDomain) => ['ATTACK_ROLL', { attackDomain }]),
       ['ABILITY_CHECK', {}]
     ])
-    expect(helpModifiers.map((modifier) => modifier.modifierKind)).toEqual(
-      Array(helpModifiers.length).fill('ADVANTAGE')
+    expect(helpModifiers.map(({ modifierKind, payload }) => ({ modifierKind, payload }))).toEqual(
+      Array(helpModifiers.length).fill({
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' }
+      })
     )
     expect(helpBlocks.map((block) => block.lifecycle)).toEqual([
       {

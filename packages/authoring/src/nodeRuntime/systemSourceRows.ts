@@ -7,11 +7,18 @@ import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
  * caller supplies it, so this package never depends on rules-runtime.
  */
 export type NodeRuntimePolicyVocabulary = Readonly<
-  Record<'rollInfluence' | 'rollMode', readonly { code: string; label: string }[]>
+  Record<
+    'rollInfluence' | 'rollMode',
+    readonly { code: string; label: string; description?: string }[]
+  >
 >
 
-const policyRows = (entries: readonly { code: string; label: string }[]) =>
-  entries.map(({ code, label }) => ({ id: code, label }))
+const policyRows = (entries: NodeRuntimePolicyVocabulary['rollMode']) =>
+  entries.map(({ code, label, description }) => ({
+    id: code,
+    label,
+    description: description ?? null
+  }))
 
 /** The System vocabulary behind each resolver source table that the System, not a root, owns. */
 export function systemVocabularyRows(

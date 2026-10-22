@@ -26,7 +26,11 @@ function fighterEvaluating(input: {
   const base = creatureActor({ id: FIGHTER_ID, label: 'Fighter', features: [] })
   const actor = encounterRunActorStateSchema.parse({
     ...base,
-    resources: withEncounterRuleUsageUsed(base, SRD_ACTION_ALLOWANCE_DEFINITION_ID, input.actionsUsed)
+    resources: withEncounterRuleUsageUsed(
+      base,
+      SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+      input.actionsUsed
+    )
   })
   const { state, movementTargets } = creatureEncounter([actor])
   const target = movementTargets.get(actor.id)

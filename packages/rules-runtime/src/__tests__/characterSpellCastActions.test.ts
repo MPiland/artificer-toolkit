@@ -6,7 +6,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { ManifestComponentAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
-import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
+import {
+  SPELLCASTING_ABILITY_REFERENCE,
+  modifierRollInfluence
+} from '@artificer-toolkit/shared/core'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { quarterstaff } from '@artificer-toolkit/source-data/srd/equipment/quarterstaff.js'
@@ -2007,9 +2010,10 @@ describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)',
       modifierGrantContribution: { consumeOnFirstEvents: ['ON_ATTACKED'] }
     })
     expect(
-      plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, modifierKind }) => ({
-        valueDomainCode,
-        modifierKind
+      plan?.modifierGrantContribution?.modifiers.map((modifier) => ({
+        valueDomainCode: modifier.valueDomainCode,
+        modifierKind: modifier.modifierKind,
+        payload: { influence: modifierRollInfluence(modifier) }
       }))
     ).toEqual(
       Array.from({ length: 4 }, () => ({
@@ -2345,12 +2349,20 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
     // Owed on either save result, so no authored path narrows it.
     expect(compiled?.activeEffectPlan?.adapterFacts).toEqual({})
     expect(
-      compiled?.activeEffectPlan?.modifierGrantContribution?.modifiers.map(
-        ({ valueDomainCode, modifierKind, scope }) => [valueDomainCode, modifierKind, scope]
-      )
+      compiled?.activeEffectPlan?.modifierGrantContribution?.modifiers.map((modifier) => [
+        modifier.valueDomainCode,
+        modifier.modifierKind,
+        modifierRollInfluence(modifier),
+        modifier.scope
+      ])
     ).toEqual([
-      ...Array.from({ length: 4 }, () => ['ATTACK_ROLL', 'DISADVANTAGE', 'GLOBAL']),
-      ['ABILITY_CHECK', 'DISADVANTAGE', 'GLOBAL']
+      ...Array.from({ length: 4 }, () => [
+        'ATTACK_ROLL',
+        'ROLL_INFLUENCE',
+        'DISADVANTAGE',
+        'GLOBAL'
+      ]),
+      ['ABILITY_CHECK', 'ROLL_INFLUENCE', 'DISADVANTAGE', 'GLOBAL']
     ])
   })
 

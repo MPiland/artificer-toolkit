@@ -1099,6 +1099,7 @@ function createFacetPredicateNodeMap(
 
     const { selectSingle, selectMulti, number, toggle } = nodes
     const { chain, mapValues, table, condition } = data
+    const attackActivation = local.field(['predicateCode']).eq('ATTACK_ACTIVATION')
     const attackRollMode = local.field(['predicateCode']).eq('ATTACK_ROLL_MODE')
 
     const predicateOptions = NODE_SUBJECT_OPTIONS.map((s) => ({
@@ -1839,11 +1840,7 @@ function createFacetPredicateNodeMap(
           ['activation'],
           'Attack Activation',
           { kind: 'INLINE_OPTIONS', options: ACTIVATION_OPTIONS },
-          {
-            order: 3,
-            showIf: local.field(['predicateCode']).eq('ATTACK_ACTIVATION'),
-            requiredIf: local.field(['predicateCode']).eq('ATTACK_ACTIVATION')
-          }
+          { order: 3, showIf: attackActivation, requiredIf: attackActivation }
         )
       )
       .set(
@@ -1851,7 +1848,10 @@ function createFacetPredicateNodeMap(
         selectSingle(
           ['rollMode'],
           'Attack Roll Mode',
-          { kind: 'DATA', relationship: table('roll_modes', { selectColumns: ['id', 'label'] }) },
+          {
+            kind: 'DATA',
+            relationship: table('roll_modes', { selectColumns: ['id', 'label', 'description'] })
+          },
           { order: 3, showIf: attackRollMode, requiredIf: attackRollMode }
         )
       )
