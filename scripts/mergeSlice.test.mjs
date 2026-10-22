@@ -191,12 +191,19 @@ describe('mergeSlice waiting on dispatched runs', () => {
   // as in the three refused merges; dispatched runs are only reachable by id or a branch listing.
   const platform = (
     work,
-    { printUrl = true, conclusion = 'success', finishAfterPolls = 2 } = {}
+    {
+      printUrl = true,
+      conclusion = 'success',
+      finishAfterPolls = 2,
+      commitRuns = [],
+      emptyCommitListings = Infinity
+    } = {}
   ) => {
     const calls = []
     const runs = new Map()
     let clock = 0
     let nextId = 1000
+    let commitListings = 0
     const view = (id) => {
       const state = runs.get(id)
       state.polls += 1
@@ -211,7 +218,10 @@ describe('mergeSlice waiting on dispatched runs', () => {
     }
     const gh = (args) => {
       calls.push(args.join(' '))
-      if (args[0] === 'run' && args[1] === 'list' && args[2] === '--commit') return '[]'
+      if (args[0] === 'run' && args[1] === 'list' && args[2] === '--commit') {
+        commitListings += 1
+        return JSON.stringify(commitListings > emptyCommitListings ? commitRuns : [])
+      }
       if (args[0] === 'workflow') {
         const id = String(nextId++)
         const name = Object.entries(WORKFLOWS).find(([, file]) => file === args[2])[0]
@@ -250,6 +260,25 @@ describe('mergeSlice waiting on dispatched runs', () => {
     expect(calls.some((call) => call.startsWith('run view 1000'))).toBe(true)
     expect(sh(origin, 'rev-parse', PHASE)).not.toBe(sh(origin, 'rev-parse', 'ci/slice-a'))
     expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
+  })
+
+  it('treats an empty commit listing as unknown and does not dispatch runs that exist', async () => {
+    const { work, tip } = repo()
+    const green = (workflowName, databaseId) => ({
+      workflowName,
+      databaseId,
+      status: 'completed',
+      conclusion: 'success',
+      createdAt: '2026-10-22T10:00:00Z'
+    })
+    const { tools, calls } = platform(work, {
+      emptyCommitListings: 1,
+      commitRuns: [green('Tests', 1), green('Live backend', 2)]
+    })
+    await mergeSlice(input(tip), tools)
+    expect(
+      calls.filter((call) => call.startsWith('workflow run') && call.includes('ci/slice-a'))
+    ).toEqual([])
   })
 
   it('finds a dispatched run by branch listing when gh prints no run URL', async () => {
