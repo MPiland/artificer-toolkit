@@ -19,6 +19,8 @@ const POLL_MS = 60_000
 // Overall wait for one set of runs; the workflow's own timeout is 120 minutes.
 const WAIT_MS = 90 * 60_000
 const DISPATCH_SKEW_MS = 60_000
+const LISTING_TRIES = 4
+const LISTING_RETRY_MS = 5_000
 
 export class MergeRefused extends Error {}
 
@@ -126,8 +128,18 @@ const remoteSha = (tools, branch) =>
 
 const RUN_FIELDS = 'databaseId,workflowName,status,conclusion,createdAt'
 
-const runsOn = (tools, sha) =>
-  JSON.parse(gh(tools, 'run', 'list', '--commit', sha, '--limit', '50', '--json', RUN_FIELDS))
+// GitHub's filtered run listings (`--commit`, `--branch`) intermittently return nothing for runs that
+// exist (3 of 10 back-to-back calls in a measurement), so an empty listing is unknown, not missing:
+// it is retried, and only a listing that stays empty counts as empty.
+async function listRuns(tools, ...args) {
+  for (let attempt = 1; ; attempt += 1) {
+    const listed = JSON.parse(gh(tools, 'run', 'list', ...args, '--json', RUN_FIELDS))
+    if (listed.length > 0 || attempt === LISTING_TRIES) return listed
+    await tools.sleep(LISTING_RETRY_MS)
+  }
+}
+
+const runsOn = (tools, sha) => listRuns(tools, '--commit', sha, '--limit', '50')
 
 // `gh workflow run` prints the created run's URL when GitHub returns it. Without a URL, the run is
 // found by a branch-and-workflow listing (not the commit filter, which lagged past 5 minutes) among
@@ -139,23 +151,17 @@ const dispatchRun = (tools, branch, name) => {
   return { startedAt, id: output.match(/\/actions\/runs\/(\d+)/)?.[1] ?? null }
 }
 
-const findDispatchedId = (tools, branch, name, startedAt) => {
-  const listed = JSON.parse(
-    gh(
-      tools,
-      'run',
-      'list',
-      '--workflow',
-      WORKFLOWS[name],
-      '--branch',
-      branch,
-      '--event',
-      'workflow_dispatch',
-      '--limit',
-      '20',
-      '--json',
-      RUN_FIELDS
-    )
+async function findDispatchedId(tools, branch, name, startedAt) {
+  const listed = await listRuns(
+    tools,
+    '--workflow',
+    WORKFLOWS[name],
+    '--branch',
+    branch,
+    '--event',
+    'workflow_dispatch',
+    '--limit',
+    '20'
   )
   // GitHub timestamps have second resolution and the runner's clock may differ slightly.
   const created = listed
@@ -173,11 +179,11 @@ async function waitForGreen(tools, sha, branch) {
   const deadline = tools.now() + WAIT_MS
   for (;;) {
     for (const [name, entry] of dispatched)
-      entry.id ??= findDispatchedId(tools, branch, name, entry.startedAt)
+      entry.id ??= await findDispatchedId(tools, branch, name, entry.startedAt)
     const dispatchedRuns = [...dispatched.values()]
       .filter((entry) => entry.id)
       .map((entry) => JSON.parse(gh(tools, 'run', 'view', entry.id, '--json', RUN_FIELDS)))
-    const listedRuns = runsOn(tools, sha).filter((run) => !dispatched.has(run.workflowName))
+    const listedRuns = (await runsOn(tools, sha)).filter((run) => !dispatched.has(run.workflowName))
     const verdict = runsVerdict([...listedRuns, ...dispatchedRuns])
     if (verdict.state === 'green') return tools.log(`Green on ${sha}: ${verdict.detail}.`)
     if (verdict.state === 'red') throw new MergeRefused(`Not green on ${sha}: ${verdict.detail}.`)
