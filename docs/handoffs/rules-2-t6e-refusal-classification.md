@@ -166,3 +166,15 @@ to 5675 code lines (measured after merging m326).
 - Proof: `testPathHitPointGate.test.ts` fails a DC 13 save at 10 and 11 hit points under a gate of 10: the condition
   lands only at 10. A gated dice damage outcome is refused.
 - Golden: no flip. No SRD test path authors a gate.
+
+## SPELLS-33.T4i1f: G6
+
+`compileEncounterFeatureActionPlan` now compiles an action that authors a cast pick (D148) through
+`compileCastChoicePlans` and returns its first option's execution plan, the no-prompt default
+(`firstOptionByDefault`). Legendary discovery pins that plan, so a Legendary Action option whose action offers a pick is
+offered and runs its first option; Creature discovery's separate pick branch collapsed into the same call.
+
+- Proof: `encounterLegendaryAction.test.ts`, "offers the Vampire Unarmed Strike..." and "runs the first option of the
+  Vampire Unarmed Strike pick...". Both failed before the change.
+- Golden: two flips. Vampire Spawn Claws and Vampire Unarmed Strike change from REFUSED ("paths must be unique direct
+  outcomes") to `TEST_OUTCOME`.
