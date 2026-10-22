@@ -53,6 +53,23 @@ describe('the rule a filtered creature form must meet (D130, SPELLS-28.1)', () =
     )
   })
 
+  it('orders challenge ratings by the System record rank, not by code', () => {
+    const reversed = {
+      ...srdSystemRecord,
+      challengeRatings: srdSystemRecord.challengeRatings.map((entry) => ({
+        ...entry,
+        rank: -entry.rank
+      }))
+    }
+    const result = creatureFormFilterRefusal({
+      filter: beastToTarget,
+      form: { snapshot: snapshotOf(giantSpider) },
+      target: wolfTarget,
+      system: reversed
+    })
+    expect(result).toBeNull()
+  })
+
   it('refuses a creature of another type', () => {
     expect(refusal(beastToTarget, skeleton, wolfTarget)).toBe(
       'That creature is not a type this action allows.'

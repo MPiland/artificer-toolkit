@@ -2,6 +2,8 @@ import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creature
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { describe, expect, it } from 'vitest'
 
+import { compileDnd5eCreatureRuleFacts } from '../systems/dnd5e/creatureRuleFacts.js'
+import { SRD_VOCABULARY } from '../testing/dnd5eSrdEncounter.js'
 import { creatureActor, srdAbilityId } from './encounterCreatureAction.js'
 
 describe('Creature save proficiency facts', () => {
@@ -29,5 +31,43 @@ describe('Creature save proficiency facts', () => {
       statBlock: wolf
     }).snapshot as { ruleFacts: { saveProficiencyBonuses?: Record<string, number> } }
     expect(ruleFacts.saveProficiencyBonuses).toEqual({})
+  })
+})
+
+const withProficiencyBonus = (proficiencyBonus: number) => ({
+  ...SRD_VOCABULARY,
+  document: {
+    ...SRD_VOCABULARY.document,
+    challengeRatings: SRD_VOCABULARY.document.challengeRatings.map((entry) => ({
+      ...entry,
+      proficiencyBonus
+    }))
+  }
+})
+
+describe('Creature rule facts read the System challenge rating', () => {
+  it('takes the proficiency bonus from the challenge rating entry on the System record', () => {
+    const facts = (bonus: number) =>
+      compileDnd5eCreatureRuleFacts({ creature: wolf, vocabulary: withProficiencyBonus(bonus) })
+    const base = facts(2).checkTotals ?? {}
+    const raised = facts(5).checkTotals ?? {}
+
+    const proficientCheckIds = Object.keys(base).filter((id) => raised[id] !== base[id])
+    expect(proficientCheckIds.length).toBeGreaterThan(0)
+    for (const id of proficientCheckIds) {
+      expect(raised[id]! - base[id]!).toBe(3)
+    }
+  })
+
+  it('refuses a challenge rating the System record does not define', () => {
+    expect(() =>
+      compileDnd5eCreatureRuleFacts({
+        creature: wolf,
+        vocabulary: {
+          ...SRD_VOCABULARY,
+          document: { ...SRD_VOCABULARY.document, challengeRatings: [] }
+        }
+      })
+    ).toThrow('Creature challenge rating is unavailable for D&D proficiency.')
   })
 })

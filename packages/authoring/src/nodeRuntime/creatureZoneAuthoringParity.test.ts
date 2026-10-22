@@ -77,6 +77,21 @@ describe('a creature’s passive zone through the creature node map (ADR 0038)',
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
   })
+
+  it('keeps a zone acting on entering, leaving and each turn boundary inside (RULES-2.T5d)', async () => {
+    const authored = variant()
+    const component = fireAura(authored).zone.components?.[0]
+    if (!component) throw new Error('The aura must author a component.')
+    component.interactionKinds = [
+      'ENTER_SPACE',
+      'START_TURN_IN_SPACE',
+      'END_TURN_IN_SPACE',
+      'LEAVE_SPACE'
+    ]
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+  })
 })
 
 /**

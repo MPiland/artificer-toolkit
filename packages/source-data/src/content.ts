@@ -81,6 +81,17 @@ export interface SystemCheckSeedRecord extends VocabularySeedRecord {
 
 interface SystemPassiveSeedRecord extends VocabularySeedRecord {
   skillDefinitionId: string | null
+  abilityDefinitionId: string
+}
+
+interface SystemChallengeRatingSeedRecord extends VocabularySeedRecord {
+  xp: number
+  proficiencyBonus: number
+  rank: number
+}
+
+interface SystemCurrencySeedRecord extends VocabularySeedRecord {
+  baseValue: number
 }
 
 export interface SystemSeedRecord {
@@ -91,10 +102,10 @@ export interface SystemSeedRecord {
   rulesetCode: string
   rulesetVersion: string
   alignments: VocabularySeedRecord[]
-  challengeRatings: VocabularySeedRecord[]
+  challengeRatings: SystemChallengeRatingSeedRecord[]
   conditionTypes: VocabularySeedRecord[]
   creatureTypes: VocabularySeedRecord[]
-  currencies: VocabularySeedRecord[]
+  currencies: SystemCurrencySeedRecord[]
   damageTypes: VocabularySeedRecord[]
   heritages: VocabularySeedRecord[]
   languages: VocabularySeedRecord[]

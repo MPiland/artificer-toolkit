@@ -122,22 +122,22 @@ names.
 
 | Module                           | Owns                                                                                                                                                                                                              |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, forced-movement collision encoding, node-id helpers                                                                      |
+| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, `Dnd5eCompiledEffectActionSource`, forced-movement collision encoding, node-id helpers                                   |
 | `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                                                                                              |
 | `effectActionOutcomes`           | `DND5E_EFFECT_OUTCOMES`: one outcome definition per `Outcome` kind (see the outcomes registry below), and the key sets interpretation derives from it                                                             |
 | `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                                                                                |
 | `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                                |
 | `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                   |
 | `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`)    |
+| `effectActionPublishedGraph`     | `publishedGraph`: the published DTO (identity, checksum, definition) of a graph the compiler built                                                                                                                |
+| `effectActionLifetime`           | `maintenancePlan` (the source actor's Concentration or named maintained effect), `durationPublishedGraph` (the graph a timed plan's duration publishes) and the grant consume and end trigger events              |
+| `effectActionModifierGrants`     | `modifierGrantEntryPlan`: a modifier grant entry's active-effect plan, with its cast-level amounts, lifetime and maintenance                                                                                      |
+| `effectActionTestOutcomes`       | `boundedTestOutcome`, `specializedTestOutcome` and the dice damage and heal bonus validation a test path's outcome needs                                                                                          |
+| `effectActionTestPhase`          | `compileTestDefinition` (the attack or save test graph and its result paths), `withMovementInterruption` and the `TestPlan` it reads                                                                              |
+| `effectActionDiceGraph`          | `diceGraphDefinition`: the rolled dice damage or heal graph of an outcome                                                                                                                                         |
 | `effectActionZones`              | `compileDnd5eZonePlacement`: every zone rule (D140, D142–D146, D153–D156) and the zone plan it assembles: a cast's zone pick, a placed or source zone, its bands, held condition, occupant bonus and placer grant |
 
-Transitional (RULES-2.T6f, until RULES-2.T6g): a zone composes the test-phase, outcome and lifetime pieces that still live
-in the compiler (`compileTestDefinition`, the bounded and specialized test outcomes, `modifierGrantEntryPlan`,
-`durationPublishedGraph`, `maintenancePlan`, `diceGraphDefinition`, `withMovementInterruption`, `publishedGraph`). The
-compiler builds one `ZONE_COMPILER_PIECES` record of those functions and passes it to `compileDnd5eZonePlacement`; the
-zones module imports only the record's type (`ZoneCompilerPieces`, `typeof` the record), so no module imports the
-compiler at run time. RULES-2.T6g moves those pieces into modules of their own, which zones then import directly, and
-the record goes away.
+The zones module imports the test-phase, outcome and lifetime modules above directly, as the compiler does.
 
 The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy
 and zones read: `shapeExtent` (the measurement that sizes each shape kind) and `scaledShapeMeasurements` (which of a
@@ -1100,7 +1100,18 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `TARGETED_SELF` being chosen by a cast of a listed spell (any, unlisted). The holder's reactions are listed by
   `encounterReactors.ts` (a Creature's feature actions, a Character's actions and castable spells), and whether one is
   affordable is decided when the Worker prepares it. A `MOVEMENT` reaction meets no event here: the movement path
-  discovers it from the reach a mover passes (`encounterMovementReaction*`); zone interactions join in T5d.
+  discovers it from the reach a mover passes (`encounterMovementReaction*`).
+  Given `zones` (RULES-2.T5d), it returns the zones a creature's contact event sets off, in the order given. A zone's
+  persisted `triggerModes`, `turnTriggers` and `retaliatesMeleeHits` are its subscription: `ZONE_MOVEMENT` (`ENTER`,
+  `EXIT` or `CROSS`) meets a zone with that trigger mode, `ZONE_TURN` (`START_OF_TURN`, `END_OF_TURN`,
+  `START_OF_SOURCE_TURN`) a zone with that turn trigger, and `ZONE_SOURCE_MELEE_HIT` a retaliating zone. The System's
+  vocabulary compiles the authored `interactionKinds` into that subscription (`zoneSubscription`; 5e:
+  `ENTER_SPACE`, `LEAVE_SPACE`, `MOVE_ACROSS`, `ENTER_OR_PASS_THROUGH`, `START_TURN_IN_SPACE`, `END_TURN_IN_SPACE`,
+  `START_OF_SOURCE_TURN`, `MELEE_HIT_ON_SOURCE`); a held condition that ends on leaving the area adds `EXIT` in the 5e
+  zone compiler. The shared Scene collectors (`collectSpatial*Candidates`) report contact facts only, whatever a zone
+  subscribes to; `encounterZoneContacts.ts` (`zoneMovementContacts`, `zoneTurnContacts`,
+  `zoneMeleeRetaliationContacts`) composes them with discovery, and every raise site (movement settlement and its
+  held-condition release distances, forced movement in the Worker, turn-boundary zones, melee retaliation) calls it.
   Given the holder's `damageInterceptions` and `incomingGates`, it returns the intercepts the events meet before they
   resolve, in the order given (spend order); an intercept's authored payload is its subscription. A damage interception
   (`DAMAGE_INTERCEPTION`, Death Ward) meets a `BEFORE` `DAMAGED` taking its holder from above 0 hit points to 0, and a
@@ -1143,7 +1154,8 @@ facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decid
 still raised from its seven damage-commit roots (Worker rules, area rules, Legendary action, turn effect state, spatial
 damage ends, movement reaction effects, turn resources), since funnelling them into one damage-commit root is an
 envelope change outside T5. The `BEFORE`-phase `DAMAGED` and `KILLED` are raised where a batch plans and folds its
-damage, and `HARMFUL_ACTION_AIMED` where the incoming gate is decided. Zone interaction kinds (T5d) join the same table later.
+damage, and `HARMFUL_ACTION_AIMED` where the incoming gate is decided. Zone contact events are raised per contact
+where the Scene geometry reports it (`encounterZoneContacts.ts`).
 
 ### Legendary Resistance on single-target saves (current, D104)
 

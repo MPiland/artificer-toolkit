@@ -17,7 +17,10 @@ Only the oldest live tickets, one per slot, may take a lock, so each lane runs i
 ticket whose waiting process has exited is pruned. The batch runs in a child pwsh under a timeout
 with $ErrorActionPreference = 'Stop' and $PSNativeCommandUseErrorActionPreference = $true, so it
 stops at its first failing command unless it opts out by setting $ErrorActionPreference itself.
-The runner removes its own lock and ticket even on failure or timeout. The batch script must not
+The runner removes its own lock and ticket even on failure or timeout. Each lock records its owner's
+pid and process start time (scripts/validationLockOwner.ps1); a waiter reclaims, and logs that it did, a
+lock whose owner process is gone or whose pid now has a different start time, and never takes a lock
+whose owner is alive. The batch script must not
 take a lock itself. Locks and queues live beside this script, so worktree sessions call the main
 checkout's copy; the batch runs in the caller's current directory.
 
@@ -34,7 +37,8 @@ param(
   [ValidateRange(0, 240)] [int] $TimeoutMinutes = 0
 )
 $ErrorActionPreference = 'Stop'
-$validation = Join-Path (Split-Path -Parent $PSScriptRoot) 'local-validation'
+. (Join-Path $PSScriptRoot 'validationLockOwner.ps1')
+$validation =Join-Path (Split-Path -Parent $PSScriptRoot) 'local-validation'
 # One Turbo cache for the main checkout and every worktree. Entries are keyed by file contents, so a
 # workspace one session built is a cache hit for every other session at the same code.
 $env:TURBO_CACHE_DIR = Join-Path (Split-Path -Parent $PSScriptRoot) '.turbo/cache'
@@ -64,7 +68,7 @@ $staleWarned = $false
 try {
   while (-not $held) {
     $live = @(Get-ChildItem -LiteralPath $queue -File | Sort-Object Name | Where-Object {
-        $alive = $null -ne (Get-Process -Id ([int]$_.Name.Split('-')[1]) -ErrorAction SilentlyContinue)
+        $alive = Test-OwnerAlive ([int]$_.Name.Split('-')[1])
         if (-not $alive) { Remove-Item -LiteralPath $_.FullName -ErrorAction SilentlyContinue }
         $alive
       } | Select-Object -First $locks.Count)
@@ -72,17 +76,14 @@ try {
     $freeMB = $os.FreePhysicalMemory / 1KB
     if ($live.FullName -contains $ticket -and $freeMB -ge $minimumMB) {
       foreach ($candidate in $locks) {
-        try {
-          New-Item -ItemType File $candidate -ErrorAction Stop | Out-Null
-          Set-Content -LiteralPath $candidate -Value "$Name pid $PID since $(Get-Date -Format s)"
+        if (Enter-ValidationLock $candidate $Name) {
           $held = $candidate
           break
-        } catch {
-          $ageMinutes = ((Get-Date) - (Get-Item -LiteralPath $candidate -ErrorAction SilentlyContinue).LastWriteTime).TotalMinutes
-          if (-not $staleWarned -and $ageMinutes -gt $staleMinutes) {
-            Write-Warning "$candidate is $([int]$ageMinutes) minutes old. Report it; do not delete it."
-            $staleWarned = $true
-          }
+        }
+        $ageMinutes = ((Get-Date) - (Get-Item -LiteralPath $candidate -ErrorAction SilentlyContinue).LastWriteTime).TotalMinutes
+        if (-not $staleWarned -and $ageMinutes -gt $staleMinutes) {
+          Write-Warning "$candidate is $([int]$ageMinutes) minutes old and its owner is alive. Report it; do not delete it."
+          $staleWarned = $true
         }
       }
     }

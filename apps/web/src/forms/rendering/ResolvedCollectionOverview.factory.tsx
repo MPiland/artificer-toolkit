@@ -49,6 +49,7 @@ import {
   ManualCollectionOrderingProvider,
   ManualCollectionOrderingRow
 } from './ManualCollectionOrdering'
+import { getResolvedAuthoringScope } from '../authoring-schema/resolvedAuthoringScope'
 import { isRecord } from '../utils/valueGuards'
 import { toCollectionDomId } from './collectionPresentation'
 
@@ -133,7 +134,16 @@ export function createResolvedCollectionOverview<TValues extends object>(default
           fieldMeta: form.state.fieldMeta,
           rowIndex: drawerTarget.drawerRowIndex
         })
-        const label = getCollectionRowLabel(node, row, drawerTarget.drawerRowIndex)
+        const label = getCollectionRowLabel(
+          node,
+          row,
+          drawerTarget.drawerRowIndex,
+          getResolvedAuthoringScope(
+            model,
+            node.childMapId,
+            `${collectionFieldName}[${drawerTarget.drawerRowIndex}]`
+          )
+        )
         const opener = document.getElementById(
           `authoring-target-${toCollectionDomId(drawerTarget.id)}`
         )
@@ -168,7 +178,16 @@ export function createResolvedCollectionOverview<TValues extends object>(default
               groupEditor?.fieldName === collectionFieldName ? groupEditor : undefined
             const orderingItems = rows.map((row, index) => ({
               id: getCollectionItemIdentity(row, index, ordering),
-              label: getCollectionRowLabel(node, row, index)
+              label: getCollectionRowLabel(
+                node,
+                row,
+                index,
+                getResolvedAuthoringScope(
+                  model,
+                  node.childMapId,
+                  `${collectionFieldName}[${index}]`
+                )
+              )
             }))
             const showsHeading = !hideHeading && Boolean(collection.heading)
             const usesRowsOnlyPresentation = hideHeading

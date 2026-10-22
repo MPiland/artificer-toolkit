@@ -4,10 +4,7 @@ import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shar
 import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  collectSpatialMeleeRetaliationCandidates,
-  type SpatialTokenFootprint
-} from '@artificer-toolkit/shared/vtt'
+import type { SpatialTokenFootprint } from '@artificer-toolkit/shared/vtt'
 
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
@@ -24,6 +21,7 @@ import {
   type SpatialTargetState
 } from './encounterSpatialCandidateExecution.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
+import { zoneMeleeRetaliationContacts } from './encounterZoneContacts.js'
 import { isInstalledMeleeAttackTrigger } from './platformRulesRuntime.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from './targetBoundActiveRuleEffectExecutor.js'
@@ -80,7 +78,7 @@ export function selectMeleeRetaliationContacts(input: {
   effects: readonly EncounterSpatialRuleEffectRecord[]
 }) {
   const tokens = [input.attacker, input.hit]
-  const contacts = collectSpatialMeleeRetaliationCandidates({
+  const contacts = zoneMeleeRetaliationContacts({
     actorIdByTokenId: new Map(tokens.map(({ tokenId, actorId }) => [tokenId, actorId])),
     effects: toSpatialInstances(input.effects, input.actors),
     attackerTokenId: input.attacker.tokenId,

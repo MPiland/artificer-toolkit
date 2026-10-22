@@ -80,6 +80,7 @@ describe('concealment rules', () => {
       id: SRD_PASSIVE_PERCEPTION_ID,
       code: 'PASSIVE_PERCEPTION',
       label: 'Passive Perception',
+      abilityDefinitionId: srdSystemRecord.abilities[0]!.id,
       skillDefinitionId
     })
     expect(
