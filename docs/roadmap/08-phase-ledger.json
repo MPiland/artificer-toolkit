@@ -3836,7 +3836,7 @@
               "note": "Merged m311 (60b0c993b)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "RULES-2.T6e2",
               "text": "Compiler (split from T6e 2026-10-22, G3/G7): verify against the executor the chosen-creatures gate refusing condition, kill or target-only outcomes on a list, and the HP gate under a test path; remove each refusal that is not a genuine rule or reclassify it, with enumerated golden flips.",
               "closes": ["RULES-2.6"],
@@ -3847,7 +3847,7 @@
                 "size": 2,
                 "after": ["RULES-2.T6f"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "note": "Merged m327 (dc0889001)."
             },
             {
               "status": "TODO",
@@ -3860,7 +3860,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["RULES-2.T6f"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             },
             {
               "id": "RULES-2.T6g",
