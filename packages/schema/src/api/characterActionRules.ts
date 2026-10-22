@@ -231,6 +231,28 @@ const actionHealBonusSchema = lazySchema(() =>
   ])
 )
 
+/** An outcome the action resolves that has no dedicated fact; the resolved mechanics repeat the fact's shape. */
+const actionEffectFactSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('EFFECT'),
+    pathCode: identitySchema,
+    effectKind: identitySchema,
+    /** A movement rule's kind, so a consumer can tell Dash (`ADD_SPEED_TO_MOVEMENT`) apart. */
+    ruleKind: z.optional(identitySchema),
+    /** What an END_EFFECTS outcome ends: held effects naming these conditions. */
+    endEffects: z.optional(
+      z.strictObject({
+        scope: z.enum(['ALL', 'ONE_CHOSEN']),
+        conditionIds: z
+          .array(canonicalConditionDefinitionIdSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(100))
+      })
+    ),
+    label: z.nullable(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)))
+  })
+)
+
 const actionHealFactSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('HEAL'),
@@ -323,26 +345,7 @@ const characterActionMechanicFactSchema = lazySchema(() =>
             pathCode: identitySchema,
             conditionId: canonicalConditionDefinitionIdSchema
           }),
-          z.strictObject({
-            kind: z.literal('EFFECT'),
-            pathCode: identitySchema,
-            effectKind: identitySchema,
-            /** A movement rule's kind, so a consumer can tell Dash (`ADD_SPEED_TO_MOVEMENT`) apart. */
-            ruleKind: z.optional(identitySchema),
-            /** What an END_EFFECTS outcome ends: held effects naming these conditions. */
-            endEffects: z.optional(
-              z.strictObject({
-                scope: z.enum(['ALL', 'ONE_CHOSEN']),
-                conditionIds: z
-                  .array(canonicalConditionDefinitionIdSchema)
-                  .check(z.minLength(1))
-                  .check(z.maxLength(100))
-              })
-            ),
-            label: z.nullable(
-              stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
-            )
-          })
+          actionEffectFactSchema
         ])
       )
       .check(z.maxLength(1_000))
@@ -448,14 +451,7 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
             pathCode: identitySchema,
             conditionId: identitySchema
           }),
-          z.strictObject({
-            kind: z.literal('EFFECT'),
-            pathCode: identitySchema,
-            effectKind: identitySchema,
-            label: z.nullable(
-              stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
-            )
-          })
+          actionEffectFactSchema
         ])
       )
       .check(z.maxLength(1_000))
