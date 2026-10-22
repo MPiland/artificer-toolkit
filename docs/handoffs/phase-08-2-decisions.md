@@ -1128,6 +1128,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Scope:** Wind Walk's "nonmagical weapons" is bludgeoning, piercing and slashing damage from attacks without the `MAGICAL` trait, through `bypassedBy`. Being possessed (no condition exists) and Dispel Evil and Good's dismissal stay description-only; the dismissal needs the plane model in D178's future enhancement. Purity of Spirit converts with Protection from Evil and Good.
   - **Split:** T2j1 ships the qualifier, effect defenses, Protection from Evil and Good with Purity of Spirit, Stoneskin and Wind Walk. T2j2 ships Holy Aura's rider and Dispel Evil and Good.
   - **Rejected:** per-domain qualifier fields (the Nature's Ward copy drifts), a wrapper grant domain (a new plan shape), and per-spell code.
+* **D180** (2026-10-22) Encounter reads leave the System document (RULES-2.T9q, AC RULES-2.7). Orchestrator ruling.
+  - **Finding (T9k):** the encounter read budget measured `_creationTime` floats whose printed length varies, so the 100-actor read passed by luck. Measured deterministically, the phase tip is already about 600–800 B over its 230,400 B ceiling. The System document (about 32.7 KB) is read by every projection only so that `presentEncounterRun` can label actor conditions.
+  - **Ruling:** the read measure pins `_creationTime` to a fixed-length stand-in. The Encounter projection sends condition definition IDs only, and web labels them from the System vocabulary it already holds (ADR 0039: labels come from the vocabulary capability). The ceiling is not raised.
+  - **Order:** T9q lands before RULES-2.T9k, which then merges its defaults object under the restored budget.
+  - **Rejected:** raising the ceiling (weakens the budget assertion), storing labels with each actor condition (stored-shape change and a second copy of System data), and a label cache.
 
 ## Approved implementation decisions
 
