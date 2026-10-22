@@ -78,7 +78,7 @@ type ContinuationCallbacks = Parameters<
 
 type Captured = Pick<
   Awaited<ReturnType<typeof readNativeLiveMovementInputs>>,
-  'actors' | 'capture' | 'spatialEffects' | 'runtime'
+  'actors' | 'capture' | 'drag' | 'spatialEffects' | 'runtime'
 >
 
 /**
@@ -99,13 +99,14 @@ export function nativeSpatialStepCallbacks(
   step: Pick<ContinuationInput, 'occurrenceId' | 'executionCommandId' | 'occurredAt'>
 ): Pick<ContinuationCallbacks, 'evaluateSpatial' | 'spatialSettlement' | 'prepareConcentration'> {
   const { state, userId, autoRoll, carefully, captured, random, finalActors } = context
-  const { actors, capture, spatialEffects, runtime } = captured
+  const { actors, capture, drag, spatialEffects, runtime } = captured
   return {
     evaluateSpatial: (spatial, targets, stageTerminalSettlement) =>
       prepareEncounterSpatialMovement({
         input: {
           ...spatial,
           carefully,
+          draggedTokenIds: drag?.tokens.map(({ tokenId }) => tokenId),
           leavingAreaHolds: leavingAreaHolds(targets.values()),
           moveEndHolds: moveEndHolds(targets.values())
         },

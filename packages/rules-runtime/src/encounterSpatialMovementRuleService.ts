@@ -17,6 +17,7 @@ import type { MovementReactionTimelineDto } from '@artificer-toolkit/schema/shar
 import type { SceneGrid, SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import {
   collectSpatialMovementCandidates,
+  compareSpatialMovementCandidates,
   effectiveSpatialGeometry,
   spatialGeometryOverlapsTokenFootprint,
   type ScenePoint,
@@ -242,6 +243,11 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
    * contact, so it asks for no save. Every call for one move supplies its saved command's choice.
    */
   carefully?: boolean
+  /**
+   * The tokens the mover drags (D105). Each walks the mover's path from its own place as a FORCED
+   * move, so the zones it crosses settle on it in this same pass (D170).
+   */
+  draggedTokenIds?: readonly string[]
   beforeTerminalApply?: () => Promise<void>
   /** Stages, but does not apply, every spatial candidate through this contact. */
   interruptAfterPathDistance?: number
@@ -336,19 +342,43 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   )
     throw new EncounterConflictError('The spatial movement Scene is stale.')
   const snapshotEffects = await input.spatialScope.snapshot()
+  const pathStart = root.originalPath[0]!
+  const walks = [
+    { tokenId: root.tokenId, movementKind: root.movementKind, path: root.originalPath },
+    ...(input.draggedTokenIds ?? []).flatMap((tokenId) => {
+      const token = input.sceneTokens.find(({ id }) => id === tokenId)
+      return token
+        ? [
+            {
+              tokenId,
+              movementKind: 'FORCED' as const,
+              path: root.originalPath.map((point) => ({
+                x: point.x + token.position.x - pathStart.x,
+                y: point.y + token.position.y - pathStart.y
+              }))
+            }
+          ]
+        : []
+    })
+  ]
   const collect = (effects: readonly EncounterSpatialRuleEffectRecord[]) =>
-    collectSpatialMovementCandidates({
-      actorIdByTokenId: input.actorIdByTokenId,
-      effects: toSpatialInstances(effects, input.encounter.actors),
-      movementKind: root.movementKind,
-      path: root.originalPath,
-      grid: input.sceneGrid,
-      tokens: input.sceneTokens,
-      movingTokenId: root.tokenId,
-      carefully: input.carefully,
-      zoneApplications: input.encounter.zoneApplications,
-      turnSequence: input.encounter.turnSequence
-    }).filter((candidate) => !releasesOnExit(candidate))
+    walks
+      .flatMap((walk) =>
+        collectSpatialMovementCandidates({
+          actorIdByTokenId: input.actorIdByTokenId,
+          effects: toSpatialInstances(effects, input.encounter.actors),
+          movementKind: walk.movementKind,
+          path: walk.path,
+          grid: input.sceneGrid,
+          tokens: input.sceneTokens,
+          movingTokenId: walk.tokenId,
+          carefully: input.carefully,
+          zoneApplications: input.encounter.zoneApplications,
+          turnSequence: input.encounter.turnSequence
+        })
+      )
+      .sort(compareSpatialMovementCandidates)
+      .filter((candidate) => !releasesOnExit(candidate))
   // Leaving a zone that holds a condition until then runs no graph: it ends what the zone held.
   const releasingZoneIds = new Set(
     snapshotEffects

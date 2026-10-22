@@ -1496,6 +1496,20 @@ export function collectTokenFootprintPathCrossings(input: {
     )
 }
 
+/** The order a move settles its candidates in: along the path, then by a stable identity. */
+export function compareSpatialMovementCandidates(
+  left: SpatialMovementCandidate,
+  right: SpatialMovementCandidate
+): number {
+  return (
+    left.pathDistance - right.pathDistance ||
+    compareText(left.effectId, right.effectId) ||
+    compareText(left.targetActorId, right.targetActorId) ||
+    compareText(left.trigger, right.trigger) ||
+    (left.step ?? 0) - (right.step ?? 0)
+  )
+}
+
 /**
  * Collect deterministic full-footprint contact facts. It does not decide
  * eligibility, execute an effect, or mutate scene state.
@@ -1605,26 +1619,17 @@ export function collectSpatialMovementCandidates(input: {
   const limits = new Map(
     input.effects.map((effect) => [effect.effectId, effect.maxApplicationsPerTurn])
   )
-  return [...unique.values()]
-    .sort(
-      (left, right) =>
-        left.pathDistance - right.pathDistance ||
-        compareText(left.effectId, right.effectId) ||
-        compareText(left.targetActorId, right.targetActorId) ||
-        compareText(left.trigger, right.trigger) ||
-        (left.step ?? 0) - (right.step ?? 0)
+  return [...unique.values()].sort(compareSpatialMovementCandidates).filter((candidate) => {
+    const limit = limits.get(candidate.effectId)
+    return (
+      limit === undefined ||
+      zoneApplicationsSpent(
+        input.zoneApplications,
+        input.turnSequence,
+        zoneApplicationKey(candidate.effectId, candidate.targetActorId)
+      ) < limit
     )
-    .filter((candidate) => {
-      const limit = limits.get(candidate.effectId)
-      return (
-        limit === undefined ||
-        zoneApplicationsSpent(
-          input.zoneApplications,
-          input.turnSequence,
-          zoneApplicationKey(candidate.effectId, candidate.targetActorId)
-        ) < limit
-      )
-    })
+  })
 }
 
 export interface SpatialTurnCandidate {
