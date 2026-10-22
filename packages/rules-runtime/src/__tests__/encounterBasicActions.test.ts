@@ -162,6 +162,7 @@ function target(
     defenses: [],
     qualifiedDefenses: [],
     conditionImmunityIds: [],
+    sourceConditionImmunities: [],
     spellSchoolImmunityIds: [],
     characterCurrentness: null,
     attackAgainstContributors: [],

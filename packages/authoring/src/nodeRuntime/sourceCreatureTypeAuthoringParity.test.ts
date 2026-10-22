@@ -15,6 +15,7 @@ import {
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
+import { sourceCreatureTypeRestriction } from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
 import { oathOfDevotion } from '@artificer-toolkit/source-data/srd/classes/oath-of-devotion.js'
 import {
   conditionTypeId,
@@ -46,21 +47,14 @@ function wardingAgainst(creatureTypeIds: readonly string[]): FeatureAuthored {
     id: HOMEBREW_ID,
     label: 'Warded',
     grants: {
-      modifiers: purity.grants.modifiers.map((modifier) => ({
+      modifiers: purity.grants.modifiers.map((modifier, index) => ({
         ...structuredClone(modifier),
-        restrictions: {
-          ...structuredClone(modifier.restrictions!),
-          groups: modifier.restrictions!.groups.map((group) => ({
-            ...group,
-            contexts: group.contexts.map((context) => ({
-              ...context,
-              conditions: context.conditions.map((condition) => ({
-                ...condition,
-                creatureTypeIds: [...creatureTypeIds]
-              }))
-            }))
-          }))
-        }
+        restrictions: sourceCreatureTypeRestriction(
+          (entry) =>
+            `7e57a000-0000-4000-8000-${(0x100 + index * 0x10 + entry).toString(16).padStart(12, '0')}`,
+          'INCLUDE',
+          creatureTypeIds
+        )
       }))
     }
   }
