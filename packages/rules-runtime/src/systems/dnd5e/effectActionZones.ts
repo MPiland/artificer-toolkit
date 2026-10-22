@@ -303,7 +303,7 @@ function occupantBonusZonePlacementPlan(
               minimum: bonus.minimum ?? null
             }
     },
-    ...lastingZoneEntry(action, zone)
+    ...lastingZoneEntry(pieces, action, zone)
   }
 }
 
@@ -406,7 +406,7 @@ function zoneComponentPlan(
       : {}),
     ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
   }
-  if (!behavior) return { ...placement, ...lastingZoneEntry(action, zone) }
+  if (!behavior) return { ...placement, ...lastingZoneEntry(pieces, action, zone) }
   const { invocation, entries } = behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
   const zoneSave =
