@@ -3915,7 +3915,8 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["RULES-2.T6e3b1b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             },
             {
               "id": "RULES-2.T6e3b2",
@@ -3928,8 +3929,7 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["RULES-2.T6e3b1b"]
-              },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              }
             }
           ]
         }
