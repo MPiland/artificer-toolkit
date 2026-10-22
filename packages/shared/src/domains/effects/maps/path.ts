@@ -1307,6 +1307,7 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
             { code: 'ENTER_OR_PASS_THROUGH', label: 'Enter or Pass Through' },
             { code: 'MOVE_ACROSS', label: 'Move Across' },
             { code: 'ENTER_SPACE', label: 'Enter Space' },
+            { code: 'LEAVE_SPACE', label: 'Leave Space' },
             { code: 'START_TURN_IN_SPACE', label: 'Start Turn in Space' },
             { code: 'END_TURN_IN_SPACE', label: 'End Turn in Space' },
             { code: 'START_OF_SOURCE_TURN', label: 'Start of Source Turn' },
