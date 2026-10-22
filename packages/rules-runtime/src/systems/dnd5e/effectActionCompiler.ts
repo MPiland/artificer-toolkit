@@ -91,6 +91,7 @@ import {
   DEFAULT_CRITICAL_HIT_THRESHOLD
 } from '@artificer-toolkit/schema/shared/attackCriticalRules'
 import { createDnd5eContestGraph } from './optionalCombatContestGraph.js'
+import { createDnd5eCheckDefinition } from './encounterLifecyclePolicy.js'
 import {
   resolveDnd5eFlankingContributor,
   resolveDnd5eFlankingParticipantCapabilityDefinitionIds
@@ -365,13 +366,14 @@ interface TestPlan {
   conditions?: ReadonlyMap<string, { outcome: Outcome; entryId: string }>
 }
 
-/** A contest whose win runs its ON_CHECK_SUCCESS outcome after the contest test (Shove, D105). */
-function isContestOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean {
-  const { invocation } = action.compiledEffect
+/**
+ * A check whose success runs its ON_CHECK_SUCCESS outcome after the check test: a contest's win
+ * (Shove, D105) or a fixed-DC check's success (D173).
+ */
+function isCheckOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean {
   return (
-    invocation.triggerCode === 'CHECK' &&
-    invocation.check.dc.kind === 'CONTEST' &&
-    supported(action).kind === 'CONTEST_OUTCOME'
+    action.compiledEffect.invocation.triggerCode === 'CHECK' &&
+    supported(action).kind === 'CHECK_OUTCOME'
   )
 }
 
@@ -2995,7 +2997,7 @@ function specializedDirectOutcome<Kind extends Dnd5eAuthoredOutcome['effectKind'
 // specializes its win as the ON_CHECK_SUCCESS outcome.
 function supported(
   action: Dnd5eCompiledEffectActionSource
-): Dnd5eDirectOutcome | { kind: 'CONTEST_RELATIONSHIP' } | { kind: 'CONTEST_OUTCOME' } {
+): Dnd5eDirectOutcome | { kind: 'CONTEST_RELATIONSHIP' } | { kind: 'CHECK_OUTCOME' } {
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const grantPlan = modifierGrantPlan(action)
@@ -3137,14 +3139,6 @@ function supported(
   if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
     unsupported('D&D hit-point pool area outcome must be a timed condition.')
   if (
-    checkAction &&
-    !contestAction &&
-    outcome.effectKind !== 'STABILIZE' &&
-    outcome.effectKind !== 'CONCEAL_FROM_OBSERVERS' &&
-    outcome.effectKind !== 'DETECT_CONCEALED'
-  )
-    unsupported('D&D check action outcome is not supported yet.')
-  if (
     !checkAction &&
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
   )
@@ -3186,13 +3180,21 @@ function supported(
       relationshipPlan(action)
       return { kind: 'CONTEST_RELATIONSHIP' }
     }
+  }
+  // Stabilize, conceal and detect settle on a fixed-DC or passive check itself; a contest's win,
+  // and any other success outcome, runs after the check test (D173).
+  const settlesOnCheck =
+    outcome.effectKind === 'STABILIZE' ||
+    outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' ||
+    outcome.effectKind === 'DETECT_CONCEALED'
+  if (contestAction || (checkAction && !settlesOnCheck)) {
     const won = specializedTestOutcome(entry)
     if (
       won.kind === 'CONDITION_APPLY' &&
       !(action.conditionDefinitionIds ?? []).includes(won.conditionId)
     )
-      unsupported('D&D contest check action condition is not in the pinned System vocabulary.')
-    return { kind: 'CONTEST_OUTCOME' }
+      unsupported('D&D check action condition is not in the pinned System vocabulary.')
+    return { kind: 'CHECK_OUTCOME' }
   }
   return specializedDirectOutcome(outcome.effectKind, outcome, {
     action,
@@ -3476,8 +3478,11 @@ function compileDnd5eEffectActionTestTemplate({
       'D&D Effect action entry point does not match its exact Effect.'
     )
   }
-  if (isContestOutcomeAction(action)) {
-    const published = createDnd5eContestGraph(action.effectId)
+  if (isCheckOutcomeAction(action)) {
+    const { invocation } = action.compiledEffect
+    const contest = invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'CONTEST'
+    const graph = contest ? createDnd5eContestGraph : createDnd5eCheckDefinition
+    const published = graph(action.effectId)
     return { phase: 'TEST', published, templateChecksum: published.checksum }
   }
   const kind = supportedTestPhaseKind(action)
@@ -3931,7 +3936,7 @@ function assertKnownTestResultPath(
       ? ['ON_HIT', 'ON_MISS', 'ON_CRIT']
       : kind === 'SAVE'
         ? ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-        : isContestOutcomeAction(action)
+        : isCheckOutcomeAction(action)
           ? ['ON_CHECK_SUCCESS']
           : []
   if (!allowedPaths.includes(selectedPath))
@@ -4151,7 +4156,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   selectedPath: SpecializedPath
   facts: Dnd5eEffectScalingFacts
 }): Dnd5eEffectActionTemplate | null {
-  if (!isContestOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
+  if (!isCheckOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
   assertKnownTestResultPath(input.action, input.selectedPath)
   if (
     (input.selectedPath === 'ON_HIT' || input.selectedPath === 'ON_CRIT') &&
@@ -4623,7 +4628,7 @@ function dnd5eActiveEffectPlans(
               !outcome ||
                 outcome.kind === 'DICE_DAMAGE' ||
                 outcome.kind === 'CONTEST_RELATIONSHIP' ||
-                outcome.kind === 'CONTEST_OUTCOME' ||
+                outcome.kind === 'CHECK_OUTCOME' ||
                 outcome.kind === 'DIRECT_RELATIONSHIP'
               ? null
               : dnd5eOutcomeDefinition(outcome.kind).operationKey
@@ -4784,8 +4789,8 @@ function compileEffectActionGraph(
     if (!plan) unsupported('D&D direct relationship action has no relationship.')
     return bindMovementInterruptionOutput({ action, published: plan.frozenGraph })
   }
-  if (outcome.kind === 'CONTEST_OUTCOME')
-    unsupported('D&D contest outcome requires its contest test phase.')
+  if (outcome.kind === 'CHECK_OUTCOME')
+    unsupported('D&D check outcome requires its check test phase.')
   const outcomeDefinition = dnd5eOutcomeDefinition(outcome.kind)
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   // The save the target repeats (Power Word Stun) is pinned to the DC this cast settles.
@@ -5148,7 +5153,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   compileExecutionPlan: ({ action, compilerSource }) => {
     const source = executableAction(dndSourceFromCompilerSource(compilerSource))
     if (
-      (!testPhaseKindOrNull(source) && !isContestOutcomeAction(source)) ||
+      (!testPhaseKindOrNull(source) && !isCheckOutcomeAction(source)) ||
       supportedRecurringPlan(source) ||
       (source.compiledEffect.entries.every(
         (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'

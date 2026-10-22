@@ -401,6 +401,8 @@ export const targetOutcomeTransitionDtoSchema = lazySchema(() =>
     )
 )
 
+export type TargetOutcomeTransitionDto = z.infer<typeof targetOutcomeTransitionDtoSchema>
+
 /**
  * What the acting source's own state changed with its action, apart from the target's outcome: the
  * conditions an effect that ended on the event held alone and that effect's temporary hit points

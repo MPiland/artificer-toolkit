@@ -165,6 +165,7 @@ import { discoverNativeLegendaryResistance } from './nativeAreaRevalidation.js'
 import { type ForcedMovementPick } from './nativeAreaPreparation.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
+  basicActionCheckSource,
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
   interpretForcedMovements,
@@ -794,13 +795,10 @@ export async function planNativeLiveEncounterAction(
     })
   const actionEconomy = economy?.consumption ?? null
   if (mechanicFacts.invocation.triggerCode === 'CHECK') {
-    // Only an authored basic action runs on the check test; a feature or Character action
-    // authored with it would otherwise run its outcome with no check.
+    const { capability } = basicActionCheckSource(prepared.source)
     const actor = movementTargets.get(prepared.actor.id)
     const target = movementTargets.get(prepared.target.id)
-    if (prepared.source.kind !== 'BASIC_ACTION' || responseCommand || !actor || !target)
-      throw new Error('Only a basic action can make a check.')
-    const { capability } = prepared.source
+    if (responseCommand || !actor || !target) throw new Error('A check action is unavailable.')
     // A check its target contests (Grapple) rolls both participants' d20s as one contest (D152).
     if (authoredCheckOf(capability).dc.kind === 'CONTEST') {
       const contestInput = {
@@ -863,6 +861,7 @@ export async function planNativeLiveEncounterAction(
       command,
       fingerprint,
       capability,
+      prepared,
       state,
       system,
       actors,
@@ -1658,9 +1657,7 @@ export async function planNativeLiveEncounterAction(
     random: executionOptions.random,
     repeatSaves: { damagerActorId: command.actorId }
   })
-  const nextFacts = buildEncounterActorRuleFacts({
-    actors: concentration.actors
-  })
+  const nextFacts = buildEncounterActorRuleFacts({ actors: concentration.actors })
   const nextRules = reconcileEncounterActorRuleOutput(
     evaluateInstalledEncounterActors({
       gameSystemId: state.gameSystemId,

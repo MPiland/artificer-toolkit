@@ -297,9 +297,14 @@ export function createDnd5eDeathSaveDefinition() {
  * facts, so the graph carries only the dice.
  */
 export function createDnd5eBasicActionCheckDefinition() {
+  return createDnd5eCheckDefinition(DND5E_BASIC_ACTION_CHECK_GRAPH_DEFINITION_ID)
+}
+
+/** The same one-d20 check under `definitionId`: an authored check action's test (D173). */
+export function createDnd5eCheckDefinition(definitionId: string) {
   return published({
     schemaVersion: 1,
-    id: DND5E_BASIC_ACTION_CHECK_GRAPH_DEFINITION_ID,
+    id: definitionId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
     nodes: [

@@ -35,6 +35,8 @@ import { deleteGrants, receiptConsumedGrants } from './consumedGrantPersistence.
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
+import type { ApplyEncounterForcedMovements } from './actionCommitRecords.js'
+import { isCheckActionSettlement, settleEncounterCheckAction } from './checkActionSettlement.js'
 import {
   isConcealmentCheckSettlement,
   settleEncounterConcealmentCheck
@@ -50,8 +52,9 @@ import type { EncounterCharacterWriteTransaction, EncounterWriteTransaction } fr
 
 /**
  * Records the room's planned basic action (Q11): the allowance it spent, checked against the current
- * Run. A stabilizing action also records its check, waiting on the helper's d20 or settled by an
- * auto-roll, and deletes the one-roll grants that check used up. It evaluates no rules.
+ * Run. A check action also records its check, waiting on the roller's d20 or settled by an
+ * auto-roll, and deletes the one-roll grants that check used up; a settled success re-applies its
+ * planned outcome and lands its pushes on the Scene (D173). It evaluates no rules.
  */
 export async function persistEncounterBasicAction(
   ctx: EncounterWriteTransaction,
@@ -66,6 +69,7 @@ export async function persistEncounterBasicAction(
     applyMechanics(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
+    applyForcedMovements: ApplyEncounterForcedMovements
   }
 ): Promise<EncounterCommandResultDto> {
   const admission = await readBasicActionAdmission(ctx, input)
@@ -151,7 +155,27 @@ export async function persistEncounterBasicAction(
       occurrenceVersion: 0
     }
     const { settlement } = check
-    if (isConcealmentCheckSettlement(settlement)) {
+    if (isCheckActionSettlement(settlement)) {
+      const { dc, checks } = effect.invocation.check
+      const settled = await settleEncounterCheckAction(ctx, {
+        ...settleInput,
+        settlement,
+        admitted: {
+          commandFingerprint: fingerprint,
+          actorId: actor.id,
+          targetActorId,
+          definition: {
+            id: definition.id,
+            version: definition.version,
+            checksum: definition.checksum
+          },
+          checkDefinitionIds: [...checks.skillIds, ...checks.abilityDefinitionIds],
+          dc: dc.kind === 'FIXED' ? dc.value : null
+        },
+        applyMechanics: callbacks.applyMechanics
+      })
+      nextActors = settled.actors
+    } else if (isConcealmentCheckSettlement(settlement)) {
       const settled = await settleEncounterConcealmentCheck(ctx, { ...settleInput, settlement })
       nextActors = settled.actors
       endedEffects = settled.endedEffects
@@ -174,7 +198,31 @@ export async function persistEncounterBasicAction(
         occurredAt: input.occurredAt
       })
     : null
-  const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
+  // A won check's push moves its target's token on the Scene in this commit (D157), settling the
+  // zones it passes through (D170).
+  const won =
+    check?.kind === 'SETTLED' && isCheckActionSettlement(check.settlement) ? check.settlement : null
+  const settledMovements = won?.forcedMovements.length
+    ? await callbacks.applyForcedMovements({
+        state,
+        sourceActorId: actor.id,
+        commandId: command.commandId,
+        movements: won.forcedMovements,
+        occurrenceId: won.execution.occurrenceId,
+        occurredAt: input.occurredAt,
+        authorizedCharacterIds: new Set(
+          actors.flatMap((entry) => (entry.kind === 'CHARACTER' ? [entry.sourceId] : []))
+        ),
+        actors: nextActors,
+        rules: input.rules
+      })
+    : { moves: [], landings: [], actors: nextActors, rules: input.rules }
+  const projection = await projectNativeGm(
+    ctx,
+    nextState,
+    settledMovements.actors,
+    settledMovements.rules
+  )
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
@@ -236,6 +284,8 @@ export async function persistEncounterBasicAction(
       addedConcentrationCasterId: null,
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
+      forcedMovements: settledMovements.moves,
+      forcedMovementLandings: settledMovements.landings,
       turnUses: null,
       commandFingerprint: fingerprint,
       actorUserId: input.expectedUserId,

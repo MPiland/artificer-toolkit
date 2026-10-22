@@ -1142,9 +1142,12 @@ async function revertCheckAction(
         occurrenceId: receipt.checkOccurrenceId
       })
     : null
+  // A failed check action changed only its roller; a success's outcome is left to the GM.
+  if (outputs?.kind === 'CHECK_ACTION' && outputs.stateTransition.kind !== 'NONE')
+    unavailable("Undo can't restore a check's outcome; adjust manually.")
   if (outputs?.kind === 'CONCEALMENT_CHECK')
     await revertConcealmentCheck(ctx, state, actors, outputs)
-  else if (outputs && outputs.kind !== 'BASIC_ACTION_CHECK')
+  else if (outputs && outputs.kind !== 'BASIC_ACTION_CHECK' && outputs.kind !== 'CHECK_ACTION')
     throw new Error('Stored basic action check receipt is invalid.')
   const stabilized =
     outputs?.kind === 'BASIC_ACTION_CHECK' && outputs.targetTransition

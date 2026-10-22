@@ -29,6 +29,7 @@ import { planNativeLiveEscapeResponse } from './nativeEscapeActionResponse.js'
 import { planNativeLiveMoveHeldEffect } from './nativeMoveHeldEffectAction.js'
 import { planNativeLiveReleaseRelationship } from './nativeReleaseRelationshipAction.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
+import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
 import {
   assertRoomEncounterReadFence,
   assertRoomEncounterRulesRevisions
@@ -108,6 +109,20 @@ export async function persistRoomEncounterCheckAction(
           epoch: scope.authorityEpoch,
           observed,
           batch
+        }),
+      applyForcedMovements: (movement) =>
+        applyRoomForcedMovements({
+          ctx,
+          transaction,
+          store,
+          inputs,
+          scope,
+          observed,
+          captures: roomLiveCaptureReads({ ctx, store, transaction, inputs, observed }),
+          runtime: input.runtime,
+          random: input.random,
+          userId: scope.expectedUserId,
+          movement
         })
     }
   )
