@@ -49,15 +49,13 @@ describe('Creature rule facts read the System challenge rating', () => {
   it('takes the proficiency bonus from the challenge rating entry on the System record', () => {
     const facts = (bonus: number) =>
       compileDnd5eCreatureRuleFacts({ creature: wolf, vocabulary: withProficiencyBonus(bonus) })
-    const base = facts(2)
-    const raised = facts(5)
+    const base = facts(2).checkTotals ?? {}
+    const raised = facts(5).checkTotals ?? {}
 
-    const proficientCheckIds = Object.keys(base.checkTotals).filter(
-      (id) => raised.checkTotals[id] !== base.checkTotals[id]
-    )
+    const proficientCheckIds = Object.keys(base).filter((id) => raised[id] !== base[id])
     expect(proficientCheckIds.length).toBeGreaterThan(0)
     for (const id of proficientCheckIds) {
-      expect(raised.checkTotals[id]! - base.checkTotals[id]!).toBe(3)
+      expect(raised[id]! - base[id]!).toBe(3)
     }
   })
 
