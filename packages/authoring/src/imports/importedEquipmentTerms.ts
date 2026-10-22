@@ -19,17 +19,18 @@ import {
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared/authored'
 import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
+import {
+  SRD_DWARVEN_HERITAGE_ID,
+  SRD_GOLD_CURRENCY_ID,
+  SRD_STEALTH_SKILL_ID,
+  SRD_WALK_SPEED_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { ExternalCustomContent } from './importParsers.js'
 import {
   resolveImportedVocabularyEntry,
   type ImportedVocabularyEntry
 } from './importedWeaponAttack.js'
-
-const GOLD_CURRENCY_CODE = 'GP'
-const WALK_SPEED_CODE = 'WALK'
-const STEALTH_SKILL_CODE = 'STEALTH'
-const DWARVEN_HERITAGE_CODE = 'DWARVEN'
 
 type EquipmentTermsSource = Pick<
   ExternalCustomContent,
@@ -52,8 +53,9 @@ export interface ImportedEquipmentVocabulary {
   heritages: readonly ImportedVocabularyEntry[]
 }
 
-function findByCode(vocabulary: readonly ImportedVocabularyEntry[], code: string) {
-  return vocabulary.find((entry) => entry.code === code)
+/** The SRD's source-data definition ids are the terms the SRD armor and price rules name. */
+function findById(vocabulary: readonly ImportedVocabularyEntry[], id: string) {
+  return vocabulary.find((entry) => entry.id === id)
 }
 
 /**
@@ -68,13 +70,13 @@ function armorRuleGrants(
 ): ModifierGrantAuthored[] {
   const grants: ModifierGrantAuthored[] = []
   if (stealthDisadvantage) {
-    const stealth = findByCode(vocabulary.skills, STEALTH_SKILL_CODE)
+    const stealth = findById(vocabulary.skills, SRD_STEALTH_SKILL_ID)
     if (stealth) grants.push(stealthDisadvantageModifier(childId, stealth.id))
     else skipped.push('its Stealth disadvantage (the System has no Stealth skill)')
   }
   if (strengthRequirement !== undefined) {
-    const walk = findByCode(vocabulary.speeds, WALK_SPEED_CODE)
-    const dwarven = findByCode(vocabulary.heritages, DWARVEN_HERITAGE_CODE)
+    const walk = findById(vocabulary.speeds, SRD_WALK_SPEED_ID)
+    const dwarven = findById(vocabulary.heritages, SRD_DWARVEN_HERITAGE_ID)
     if (walk && dwarven)
       grants.push(
         heavyArmorStrengthModifier(
@@ -172,7 +174,7 @@ export function applyImportedEquipmentTerms(
   const rarity = custom.rarityName
     ? resolveImportedVocabularyEntry(vocabulary.rarities, custom.rarityName)
     : undefined
-  const gold = findByCode(vocabulary.currencies, GOLD_CURRENCY_CODE)
+  const gold = findById(vocabulary.currencies, SRD_GOLD_CURRENCY_ID)
   return {
     payload: {
       ...custom.payload,
