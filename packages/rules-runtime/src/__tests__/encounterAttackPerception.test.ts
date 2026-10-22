@@ -132,7 +132,8 @@ describe('encounter attack perception: contributors', () => {
           {
             requiresHolderSeesAttacker: false,
             exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID],
-            contributor: dodge
+            contributor: dodge,
+            suppressedInfluence: null
           }
         ]
       }).map((contributor) => contributor.sourceId)
@@ -150,7 +151,8 @@ describe('encounter attack perception: contributors', () => {
           {
             requiresHolderSeesAttacker: true,
             exemptAttackerSenseDefinitionIds: [],
-            contributor: dodge
+            contributor: dodge,
+            suppressedInfluence: null
           }
         ]
       }).map((contributor) => contributor.sourceId)
