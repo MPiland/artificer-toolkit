@@ -101,3 +101,13 @@ Graph checksums of exactly these SRD authored effects change (`CLOSED_RULE` beco
   - **Greater Restoration:** CONDITION and TAG clauses now; reductions that are held effects take tags; exhaustion reduces through an existing condition-level option or becomes a follow-up; attunement stays description-only.
   - **Out of scope:** dispel on zones and objects (SPELLS-4.T2f2).
   - **Rejected:** one effect per Dispel cast; a REDUCTION selector; a new END_EFFECT_CHOICE pause kind; free-string tags.
+
+## Scope change (option B, 2026-10-22, orchestrator)
+
+The T6e3b check flow holds one check per action and only for a basic action or a Creature feature with a fixed DC (`checkActionSource`), so Dispel Magic cannot run on it as ruled.
+
+- **T2f keeps** Lesser Restoration, Greater Restoration, Remove Curse and Protection from Poison: `END_EFFECTS` with `CONDITION` and `TAG` selectors and the cast-time pick. No roll. The room journey is Lesser Restoration's pick. Add `TAG` once T9b merges (merge the phase tip then).
+- **SPELLS-4.T2f1** takes all of Dispel Magic: `SPELL_LEVEL`, `originLevel`, `levelCheck`, `TARGET_EFFECT_LEVEL`, and widening the check flow to spell sources and ordered per-candidate checks. It waits on RULES-2.T6e3b2. `DISPEL_MAGIC` stays a closed rule kind until then.
+- **SPELLS-4.T2f2** (dispel on zones and objects) follows T2f1.
+- Sections above that name Dispel Magic, `SPELL_LEVEL`, `originLevel`, `levelCheck` or `TARGET_EFFECT_LEVEL` describe T2f1, not this slice. AC 3 and the Dispel room journey and golden flip move to T2f1; the T2f golden flips are the four remaining spells.
+- D174 draft: the entry stands, with Dispel Magic's check, `SPELL_LEVEL`/`originLevel` and the check-flow widening attributed to SPELLS-4.T2f1 (it waits on RULES-2.T6e3b2), and `DISPEL_MAGIC` kept as a kind until then.
