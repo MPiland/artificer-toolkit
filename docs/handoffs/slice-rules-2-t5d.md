@@ -63,3 +63,4 @@ None expected: compile output of every SRD record is unchanged, and no SRD recor
 
 - 2026-10-21: branched `slice/rules-2-t5d` from `codex/phase-08-2-convex-cutover` (71b17fec5). Design note and rulings R1–R3.
 - 2026-10-22: implementation, tests, docs ([rules-runtime.md](../architecture/rules-runtime.md) "Event hooks").
+- 2026-10-22: the `LEAVE_SPACE` option put `effects/maps/path.ts` one line over its size cap. By ruling (a), the summon option lists became literal lists keyed by their enum constants, with the same labels and order. Merged the phase tip with T9b (m341), and the cap is now the measured 4018. On `404c32928`, Tests 39818681414 and Live 39818685397 are green. Red proof: RED for the worker journey, the parity, event-hook, compilation and `vtt-spatial` contact-fact tests. `encounterZoneContacts.test.ts` is RED-IMPORT, because the moved tests keep behavior that already existed and now run through the new module.
