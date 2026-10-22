@@ -4033,7 +4033,7 @@
             {
               "id": "RULES-2.T6g",
               "text": "Compiler (split from T6f 2026-10-22): the test-phase, outcome dispatch and lifetime pieces (compileTestDefinition, boundedTestOutcome, specializedTestOutcome, diceGraphDefinition, modifierGrantEntryPlan, maintenance and duration plans) move into their own modules below the compiler; the transitional ZoneCompilerPieces injection is deleted and the zone module imports them directly. Golden unchanged; budgets drop.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 3,
@@ -4042,8 +4042,8 @@
                 "size": 5,
                 "after": ["RULES-2.T6f", "RULES-2.T6e2", "RULES-2.T6e3"]
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39836780695"
+              "mergedAt": "2026-10-22T19:16:00Z",
+              "note": "Merged in m347."
             },
             {
               "id": "RULES-2.T6e3b1a",
