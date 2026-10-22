@@ -12,7 +12,7 @@ import {
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
-import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const followUpSaveTimings = Object.values(FOLLOW_UP_SAVE_TIMING) as [
   FollowUpSaveTiming,
@@ -72,7 +72,7 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
       ),
       repeatRollInfluence: z.optional(
         z.object({
-          influence: systemVocabularyCodeSchema,
+          influence: systemCoreCodeSchema,
           when: repeatPerceptionDtoSchema
         })
       ),
@@ -88,7 +88,7 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
             kind: z.literal('DAMAGE_TAKEN'),
             by: pathLifecycleEndTriggerBySchema,
             damageTypeIds: z.optional(damageTypeFilterDtoSchema),
-            rollInfluence: z.optional(systemVocabularyCodeSchema)
+            rollInfluence: z.optional(systemCoreCodeSchema)
           })
         ).check(z.minLength(1))
       ),

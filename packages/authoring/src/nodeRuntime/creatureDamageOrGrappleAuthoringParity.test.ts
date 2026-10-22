@@ -8,7 +8,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
-import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
+import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 /**
  * SPELLS-33 T3a6 (D148): the Vampire Spawn's Claws and the Vampire's Unarmed Strike deal damage or
@@ -17,7 +17,7 @@ import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runti
  * with another grapple escape DC.
  */
 
-const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
+const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
 const cases = [
   { creature: vampireSpawn, feature: 'Claws' },

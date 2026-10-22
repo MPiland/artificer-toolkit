@@ -19,7 +19,7 @@ import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-dat
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
-import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
+import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 /**
  * SPELLS-31.T3a-T3c and T5s (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets,
@@ -31,7 +31,7 @@ import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runti
  * and Superior Inspiration (T5o) are a RESTORE_RESOURCE outcome on a ROLL_INITIATIVE passive.
  */
 
-const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
+const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
 function normalize(values: ClassAuthored) {
   return normalizeNodeRuntimeValues(reader, {

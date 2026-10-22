@@ -32,7 +32,7 @@ import {
   rollModeKeepFaceCount,
   rollModeKeptFace,
   type RollModeKeep
-} from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+} from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { EncounterConflictError } from './encounterErrors.js'
 import { withOwnedTemporaryHitPoints } from './encounterEndedEffectRelease.js'
 import {

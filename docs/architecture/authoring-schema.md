@@ -129,7 +129,7 @@ Placed zones (SPELLS-17, [ADR 0038](../adr/0038-rules-authored-from-core-options
 
 Relationship execution is in `relationshipExecutor.ts`; it evaluates table/column plans, local values, parent/ancestor references, filters, and stream transformations. The shared `schema/api/nodeRuntimeSources` contract owns the exact table-to-column pairs reachable from the 11 active roots, re-exported by `nodeRuntimeSourceManifest.ts`. Its parity test derives shipped `DATA` descriptors and fails if a schema adds or removes a source without updating the adapter boundary. Trust is pairwise—a column allowed for one table is not allowed for every table. Add new relationship behavior here rather than embedding ad-hoc queries in a route.
 
-System-supplied vocabulary options (SPELLS-31.T5p, D175): a node whose codes belong to the Game System, not the platform (the spell slot pool `slotCost.poolCode`), reads a `DATA` source table (`spell_slot_pools`) that `systemVocabularyRows` serves from the `policyVocabulary` the caller injects (`apps/apis/convex/authoring/systemSources.ts`, from the rules-runtime vocabulary registry). `packages/authoring` does not depend on `rules-runtime`.
+System-supplied vocabulary options (SPELLS-31.T5p, D175): a node whose codes belong to the Game System, not the platform (the spell slot pool `slotCost.poolCode`), reads a `DATA` source table (`spell_slot_pools`) that `systemCoreCodeRows` serves from the `coreCodes` the caller injects (`apps/apis/convex/authoring/systemSources.ts`, from the rules-runtime vocabulary registry). `packages/authoring` does not depend on `rules-runtime`.
 
 ## Frontend contract
 

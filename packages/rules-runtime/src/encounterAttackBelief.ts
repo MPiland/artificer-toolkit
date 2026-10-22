@@ -19,7 +19,7 @@ import {
   type EncounterRelationshipD20Contributor
 } from './encounterRelationshipActionFacts.js'
 import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
-import { systemVocabularyRegistry } from './platformSystemVocabulary.js'
+import { systemCoreCodeRegistry } from './platformSystemCoreCodes.js'
 
 type D20Policy = Pick<
   ServerRuleExecutionD20PolicyDto,
@@ -160,7 +160,7 @@ export function encounterSaveSightCaptions(
   const held = (from: readonly EncounterRelationshipD20Contributor[]) =>
     from.map(
       ({ influence }) =>
-        systemVocabularyRegistry.requireCode(sight.gameSystemId, 'rollInfluence', influence).label
+        systemCoreCodeRegistry.requireCode(sight.gameSystemId, 'rollInfluence', influence).label
     )
   const missing = (
     side: readonly EncounterRelationshipD20Contributor[],

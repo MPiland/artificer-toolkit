@@ -20,6 +20,6 @@ export { authoredSourceFacts, authoredSourceKindsByTable } from './authoredSourc
 export {
   createNodeRuntimeSourceReader,
   sortAuthoredSourceRows,
-  systemVocabularyRows,
+  systemCoreCodeRows,
   type NodeRuntimePolicyVocabulary
 } from './systemSourceRows.js'

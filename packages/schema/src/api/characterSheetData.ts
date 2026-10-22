@@ -32,7 +32,7 @@ import {
   activeGrantListingDtoSchema,
   concentrationListingDtoSchema
 } from '../shared/activeGrantListing.js'
-import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 export { characterSheetReadInputSchema, type CharacterSheetReadInput } from './characterSheet.js'
 
@@ -101,7 +101,7 @@ export const characterSheetAbilityDtoSchema = lazySchema(() =>
     ability: abilityCodeSchema,
     score: integerSchema,
     modifier: integerSchema,
-    rollMode: systemVocabularyCodeSchema
+    rollMode: systemCoreCodeSchema
   })
 )
 
@@ -149,7 +149,7 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
     facts: z.array(characterSheetFactDtoSchema),
     armorClass: integerSchema,
     initiative: integerSchema,
-    initiativeRollMode: systemVocabularyCodeSchema,
+    initiativeRollMode: systemCoreCodeSchema,
     proficiencyBonus: integerSchema,
     inspiration: z.optional(booleanSchema),
     currentHitPoints: integerSchema,
@@ -184,7 +184,7 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
         ability: abilityCodeSchema,
         label: stringSchema,
         total: integerSchema,
-        rollMode: systemVocabularyCodeSchema,
+        rollMode: systemCoreCodeSchema,
         proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
       })
     ),
@@ -195,7 +195,7 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
         label: stringSchema,
         ability: abilityCodeSchema,
         total: integerSchema,
-        rollMode: systemVocabularyCodeSchema,
+        rollMode: systemCoreCodeSchema,
         proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
       })
     ),
@@ -256,7 +256,7 @@ export const characterSheetMechanicDtoSchema = lazySchema(() =>
     ),
     rangeLabel: z.optional(stringSchema),
     attackBonus: z.optional(integerSchema),
-    attackRollMode: z.optional(systemVocabularyCodeSchema),
+    attackRollMode: z.optional(systemCoreCodeSchema),
     save: z.optional(
       z.object({
         ability: abilityCodeSchema,
@@ -738,7 +738,7 @@ export const characterSheetResponseDtoSchema = lazySchema(() =>
     spells: z.object({
       saveDc: z.nullable(integerSchema),
       attackBonus: z.nullable(integerSchema),
-      attackRollMode: z.optional(systemVocabularyCodeSchema),
+      attackRollMode: z.optional(systemCoreCodeSchema),
       slots: z.array(characterSheetSpellSlotDtoSchema),
       activeGroups: z.array(characterSheetActiveSpellGroupDtoSchema),
       spells: z.array(characterSheetSpellDtoSchema),

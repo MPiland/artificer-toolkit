@@ -1,6 +1,6 @@
 import type { CompiledDuration } from '@artificer-toolkit/shared/compilers'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import {
   FORCED_MOVEMENT_DIRECTION,
   type ForcedMovementDirection
