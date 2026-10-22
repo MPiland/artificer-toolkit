@@ -16,7 +16,6 @@ import {
 import type { MovementReactionTimelineDto } from '@artificer-toolkit/schema/shared/reaction'
 import type { SceneGrid, SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import {
-  collectSpatialMovementCandidates,
   compareSpatialMovementCandidates,
   effectiveSpatialGeometry,
   spatialGeometryOverlapsTokenFootprint,
@@ -48,6 +47,7 @@ import {
   type SpatialMovementTarget,
   type SpatialTargetState
 } from './encounterSpatialCandidateExecution.js'
+import { zoneMovementContacts } from './encounterZoneContacts.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import { checksumSpatialCurrentness } from './encounterSpatialMovementCurrentness.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
@@ -364,7 +364,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   const collect = (effects: readonly EncounterSpatialRuleEffectRecord[]) =>
     walks
       .flatMap((walk) =>
-        collectSpatialMovementCandidates({
+        zoneMovementContacts({
           actorIdByTokenId: input.actorIdByTokenId,
           effects: toSpatialInstances(effects, input.encounter.actors),
           movementKind: walk.movementKind,
@@ -388,7 +388,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   const releasesOnExit = (candidate: SpatialMovementCandidate) =>
     candidate.trigger === 'EXIT' && releasingZoneIds.has(candidate.effectId)
   const exitDistances = new Map(
-    collectSpatialMovementCandidates({
+    zoneMovementContacts({
       actorIdByTokenId: input.actorIdByTokenId,
       effects: toSpatialInstances(
         snapshotEffects.filter(({ id }) => releasingZoneIds.has(id)),

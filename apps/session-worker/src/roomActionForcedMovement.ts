@@ -9,6 +9,7 @@ import {
 import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import { toSpatialInstances } from '@artificer-toolkit/rules-runtime/encounterSpatialCandidateExecution'
+import { zoneMovementContacts } from '@artificer-toolkit/rules-runtime/encounterZoneContacts'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -17,7 +18,6 @@ import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredL
 import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '@artificer-toolkit/schema/shared/spatial'
 import {
-  collectSpatialMovementCandidates,
   convertSceneDistance,
   deriveSquareGridForcedMovementDestinations,
   feetInSceneUnit,
@@ -316,7 +316,7 @@ export async function applyRoomForcedMovements(input: {
     )
     const touchesEffect =
       state.automationMode !== 'MANUAL' &&
-      collectSpatialMovementCandidates({
+      zoneMovementContacts({
         actorIdByTokenId,
         effects,
         movementKind: 'FORCED',
