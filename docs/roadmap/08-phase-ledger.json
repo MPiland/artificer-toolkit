@@ -954,7 +954,8 @@
                 "tc": 1,
                 "rr": 3,
                 "size": 1
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-9-t1.md"
             }
           ]
         },
@@ -10144,7 +10145,7 @@
             {
               "id": "SPELLS-4.T1k",
               "text": "Drag through a zone: a grappler dragging a creature through or into a zone settles its zone contacts with the T1j forced-movement settlement (D170), with undo evidence; drag is no longer refused for zone contact.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -10152,7 +10153,8 @@
                 "rr": 1,
                 "size": 2,
                 "after": ["SPELLS-4.T1j"]
-              }
+              },
+              "note": "Merged m323 (99eb7e77e)."
             }
           ]
         },
@@ -14733,6 +14735,19 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["RULES-2.T6e"]
+              }
+            },
+            {
+              "id": "SPELLS-33.T4i3e",
+              "text": "Timed conditions in a gated multi-outcome band (split from T4i3c 2026-10-22): every CONDITION outcome in a gated band carries its duration, and a condition can be scoped to last while another from the same band holds (Giant Centipede: stable, poisoned for 1 hour, paralyzed while poisoned this way). Re-author Centipede with the timing; generic, parity proof.",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-33.T4i3c", "RULES-2.T6f"]
               }
             }
           ]
