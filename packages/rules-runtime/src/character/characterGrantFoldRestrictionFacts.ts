@@ -214,6 +214,12 @@ function normalizeCreatureCondition(
         requiredIds:
           condition.authoringModeKind === 'SELECTED' ? [...condition.creatureTypeIds] : []
       }
+    case 'SOURCE_CREATURE_TYPE':
+      return {
+        ...baseCondition(condition, 'SOURCE_CREATURE_TYPE'),
+        requiredIds:
+          condition.authoringModeKind === 'SELECTED' ? [...condition.creatureTypeIds] : []
+      }
     default:
       return baseCondition(condition, 'UNSUPPORTED')
   }
@@ -296,11 +302,17 @@ export function normalizeCharacterGrantRestrictions(
           ]
         case 'EQUIPMENT':
           return normalizeItemContext(context)
-        case 'CREATURE':
+        case 'CREATURE': {
+          const conditions = context.conditions ?? []
+          // A context that only names the source creature describes no holder, so any holder qualifies.
+          const sourceOnly =
+            conditions.length > 0 &&
+            conditions.every((condition) => condition.predicateCode === 'SOURCE_CREATURE_TYPE')
           return [
-            holderKindCondition(context, 'CREATURE'),
-            ...(context.conditions ?? []).map(normalizeCreatureCondition)
+            ...(sourceOnly ? [] : [holderKindCondition(context, 'CREATURE')]),
+            ...conditions.map(normalizeCreatureCondition)
           ]
+        }
         case 'SPELL':
         case 'RESOURCE':
           return []

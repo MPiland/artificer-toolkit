@@ -9,6 +9,7 @@ import type {
   ShapeKind,
   ValueDomainCode,
   CoreMeta,
+  DamageDefenseBypassCode,
   LengthUnitCode,
   MovementPassageOption,
   ValueDomainOptionPayloadByDomain,
@@ -399,9 +400,16 @@ export type ModifierKindsByDomain<V extends ValueDomainCode> =
  */
 
 export type ModifierValueDomainOptionPayloadByDomain = {
-  DAMAGE_RESISTANCE: { damageTypeId: string }
-  /** `sourceEffectIds` limits the immunity to damage from actions owned by that authored content. */
-  DAMAGE_IMMUNITY: { damageTypeId: string; sourceEffectIds?: string[] }
+  DAMAGE_RESISTANCE: { damageTypeId: string; bypassedBy?: DamageDefenseBypassCode[] }
+  /**
+   * `sourceEffectIds` limits the immunity to damage from actions owned by that authored content.
+   * `bypassedBy` limits a defense to attacks without any of those traits (nonmagical attacks).
+   */
+  DAMAGE_IMMUNITY: {
+    damageTypeId: string
+    sourceEffectIds?: string[]
+    bypassedBy?: DamageDefenseBypassCode[]
+  }
   DAMAGE_VULNERABILITY: { damageTypeId: string }
 
   CONDITION: { conditionTypeId: string }

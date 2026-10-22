@@ -16,6 +16,7 @@ import {
   modifierRollInfluence,
   type AttackDomainCode,
   type AttackOccasionCode,
+  type DamageDefenseBypassCode,
   type ValueDomainCode
 } from '@artificer-toolkit/shared/core'
 import {
@@ -323,6 +324,62 @@ export function holderStateRestrictionsHold(
   )
 }
 
+type SourceCreatureTypeCondition = Pick<
+  ModifierRestrictions[number]['conditions'][number],
+  'constraint' | 'mode' | 'requiredIds'
+>
+
+/**
+ * What a grant requires of its source creature once the holder's own restrictions hold: alternative
+ * groups of `SOURCE_CREATURE_TYPE` conditions, any one of which admits a source. Empty admits
+ * every source.
+ */
+export type SourceCreatureQualifier = readonly (readonly SourceCreatureTypeCondition[])[]
+
+/**
+ * The source qualifier of a modifier whose holder restrictions hold now, or `null` when none
+ * does. The source (the attacker, the effect's origin) is unknown when the holder is prepared, so
+ * its conditions travel with the grant to where it is (`sourceQualifierAdmits`).
+ */
+export function holderStateSourceQualifier(
+  restrictions: ModifierRestrictions,
+  holderState: EncounterHolderState
+): SourceCreatureQualifier | null {
+  if (restrictions.length === 0) return []
+  const qualifier: SourceCreatureTypeCondition[][] = []
+  for (const group of restrictions) {
+    const holderConditions = group.conditions.filter(({ kind }) => kind !== 'SOURCE_CREATURE_TYPE')
+    if (!holderStateRestrictionsHold([{ conditions: holderConditions }], holderState)) continue
+    if (holderConditions.length === group.conditions.length) return []
+    qualifier.push(group.conditions.filter(({ kind }) => kind === 'SOURCE_CREATURE_TYPE'))
+  }
+  return qualifier.length > 0 ? qualifier : null
+}
+
+/** Whether a source creature of these types meets the qualifier; a source with no type meets only a type exclusion. */
+export function sourceQualifierAdmits(
+  qualifier: SourceCreatureQualifier,
+  sourceCreatureTypeIds: readonly string[]
+): boolean {
+  return (
+    qualifier.length === 0 ||
+    qualifier.some((group) =>
+      group.every(
+        (condition) =>
+          (condition.mode === 'ALL' ||
+            condition.requiredIds.some((id) => sourceCreatureTypeIds.includes(id))) ===
+          (condition.constraint === 'INCLUDE')
+      )
+    )
+  )
+}
+
+function hasSourceRestriction(restrictions: ModifierRestrictions): boolean {
+  return restrictions.some((group) =>
+    group.conditions.some(({ kind }) => kind === 'SOURCE_CREATURE_TYPE')
+  )
+}
+
 function hasHolderStateRestriction(restrictions: ModifierRestrictions): boolean {
   return restrictions.some((group) =>
     group.conditions.some(
@@ -339,7 +396,8 @@ export function hasEncounterDefensiveGrants(
     modifiers.some(
       (modifier) =>
         modifier.valueDomainCode === 'ATTACKS_AGAINST' ||
-        hasHolderStateRestriction(modifier.restrictions)
+        hasHolderStateRestriction(modifier.restrictions) ||
+        hasSourceRestriction(modifier.restrictions)
     )
   )
 }
@@ -375,6 +433,8 @@ export type EncounterAttackAgainstContributor = {
   attackOccasion?: AttackOccasionCode
   /** The attackers, and the turn, the grant's effect admits; a feature's grant admits every one. */
   eventScope: EffectEventScope
+  /** The attacker types the grant admits (Protection from Evil and Good); empty: every attacker. */
+  sourceQualifier: SourceCreatureQualifier
   /** The influence the grant gives, or null when it suppresses one instead (Elusive). */
   contributor: EncounterRelationshipD20Contributor | null
   /** The System roll-influence code the grant takes from the attack, whatever its source. */
@@ -432,9 +492,12 @@ export function encounterAttackAgainstContributors(input: {
   const fromFeatures = (grantFold?.modifierGroups ?? []).flatMap(({ contributions }) =>
     contributions.flatMap(({ acceptedModifierIndex, grantId }) => {
       const modifier = grantFold!.modifiers[acceptedModifierIndex]!
+      const sourceQualifier =
+        modifier.source.kind === 'ACTIVE_EFFECT'
+          ? null
+          : holderStateSourceQualifier(modifier.deferredRequirements, holderState)
       const entry =
-        modifier.source.kind === 'ACTIVE_EFFECT' ||
-        !holderStateRestrictionsHold(modifier.deferredRequirements, holderState)
+        sourceQualifier === null
           ? null
           : attacksAgainstEntry(modifier, (influence) => ({
               sourceId: modifier.sourceId,
@@ -443,7 +506,9 @@ export function encounterAttackAgainstContributors(input: {
               influence,
               source: rollModeContributorSourceOfMechanicSource(modifier.source, holderActorId)
             }))
-      return entry ? [{ ...entry, eventScope: EVERY_EVENT }] : []
+      return entry && sourceQualifier
+        ? [{ ...entry, eventScope: EVERY_EVENT, sourceQualifier }]
+        : []
     })
   )
   const fromEffects = listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) => {
@@ -451,14 +516,17 @@ export function encounterAttackAgainstContributors(input: {
     const eventScope = effect ? effectEventScope(effect, holderActorId) : null
     if (eventScope === null) return []
     return modifiers.flatMap((modifier) => {
+      const sourceQualifier =
+        modifier.scope === 'GLOBAL'
+          ? holderStateSourceQualifier(modifier.restrictions, holderState)
+          : null
       const entry =
-        modifier.scope !== 'GLOBAL' ||
-        !holderStateRestrictionsHold(modifier.restrictions, holderState)
+        sourceQualifier === null
           ? null
           : attacksAgainstEntry(modifier, (influence) =>
               activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)
             )
-      return entry ? [{ ...entry, eventScope }] : []
+      return entry && sourceQualifier ? [{ ...entry, eventScope, sourceQualifier }] : []
     })
   })
   return [...fromFeatures, ...fromEffects]
@@ -519,6 +587,90 @@ export function encounterFeatureSkillCheckContributors(input: {
             }
           ]
         : []
+  )
+}
+
+/** A holder's condition immunity that holds only against sources of certain creature types. */
+export type EncounterSourceConditionImmunity = {
+  conditionTypeId: string
+  sourceQualifier: SourceCreatureQualifier
+}
+
+/**
+ * The condition immunities a holder's active effects and, for a Character, its own features give
+ * only against sources of certain creature types (Protection from Evil and Good, Purity of
+ * Spirit), whose holder restrictions hold now. Unqualified immunities fold as plain ones.
+ */
+export function encounterSourceConditionImmunities(input: {
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
+  holderState: EncounterHolderState
+}): EncounterSourceConditionImmunity[] {
+  const grants = [
+    ...listActiveEffectGrants(input.effects).flatMap(({ modifiers }) =>
+      modifiers.flatMap((modifier) =>
+        modifier.scope === 'GLOBAL' ? [{ modifier, restrictions: modifier.restrictions }] : []
+      )
+    ),
+    ...(input.grantFold?.modifiers ?? []).flatMap((modifier) =>
+      modifier.source.kind === 'ACTIVE_EFFECT'
+        ? []
+        : [{ modifier, restrictions: modifier.deferredRequirements }]
+    )
+  ]
+  return grants.flatMap(({ modifier, restrictions }) => {
+    const { payload } = modifier
+    if (
+      modifier.valueDomainCode !== 'CONDITION_IMMUNITY' ||
+      modifier.modifierKind !== 'ADD_OPTION' ||
+      !hasSourceRestriction(restrictions) ||
+      payload === undefined ||
+      !('conditionTypeId' in payload)
+    )
+      return []
+    const sourceQualifier = holderStateSourceQualifier(restrictions, input.holderState)
+    return sourceQualifier ? [{ conditionTypeId: payload.conditionTypeId, sourceQualifier }] : []
+  })
+}
+
+/** The condition immunities that hold against a source of these creature types. */
+export function conditionImmunityIdsAgainstSource(
+  conditionImmunityIds: readonly string[],
+  sourceConditionImmunities: readonly EncounterSourceConditionImmunity[],
+  sourceCreatureTypeIds: readonly string[]
+): readonly string[] {
+  const admitted = sourceConditionImmunities.filter(({ sourceQualifier }) =>
+    sourceQualifierAdmits(sourceQualifier, sourceCreatureTypeIds)
+  )
+  return admitted.length === 0
+    ? conditionImmunityIds
+    : [
+        ...new Set([
+          ...conditionImmunityIds,
+          ...admitted.map(({ conditionTypeId }) => conditionTypeId)
+        ])
+      ]
+}
+
+/** Whether any active effect carries a global grant that holds only against certain source creatures. */
+export function hasEffectSourceRestrictedGrants(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+): boolean {
+  return listActiveEffectGrants(effects).some(({ modifiers }) =>
+    modifiers.some(
+      (modifier) => modifier.scope === 'GLOBAL' && hasSourceRestriction(modifier.restrictions)
+    )
+  )
+}
+
+/** Whether a Character's own features carry a grant that holds only against certain source creatures. */
+export function hasFeatureSourceRestrictedGrants(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
+): boolean {
+  return (grantFold?.modifiers ?? []).some(
+    (modifier) =>
+      modifier.source.kind !== 'ACTIVE_EFFECT' &&
+      hasSourceRestriction(modifier.deferredRequirements)
   )
 }
 
@@ -720,6 +872,12 @@ const defenseKey = (defense: {
   sourceEffectIds?: readonly string[]
 }) => `${defense.kind}:${defense.damageTypeId}:${(defense.sourceEffectIds ?? []).join(',')}`
 
+const qualifiedDefenseKey = (defense: {
+  kind: string
+  damageTypeId: string
+  bypassedBy: readonly string[]
+}) => `${defense.kind}:${defense.damageTypeId}:${[...defense.bypassedBy].sort().join(',')}`
+
 /**
  * A Creature holder's damage defenses and condition immunities with its active grants' options
  * added or removed (Protection from Energy's resistance, Heroism's immunity to Frightened); defenses
@@ -733,6 +891,11 @@ export function withCreatureActiveGrantProtection<
       damageTypeId: string
       sourceEffectIds?: readonly string[]
     }[]
+    qualifiedDefenses: readonly {
+      kind: 'RESISTANCE' | 'IMMUNITY'
+      damageTypeId: string
+      bypassedBy: DamageDefenseBypassCode[]
+    }[]
     conditionImmunityIds: readonly string[]
     spellSchoolImmunityIds: readonly string[]
   }
@@ -742,6 +905,9 @@ export function withCreatureActiveGrantProtection<
   featureModifiers: CharacterGrantFoldOutput['modifiers']
 ): TProtection {
   const defenses = new Map(protection.defenses.map((defense) => [defenseKey(defense), defense]))
+  const qualifiedDefenses = new Map(
+    protection.qualifiedDefenses.map((defense) => [qualifiedDefenseKey(defense), defense])
+  )
   const conditionImmunityIds = new Set(protection.conditionImmunityIds)
   const spellSchoolImmunityIds = new Set(protection.spellSchoolImmunityIds)
   const foldSpellSchoolImmunity = (modifier: {
@@ -770,6 +936,7 @@ export function withCreatureActiveGrantProtection<
       if (
         (!adding && modifier.modifierKind !== 'REMOVE_OPTION') ||
         modifier.scope !== 'GLOBAL' ||
+        hasSourceRestriction(modifier.restrictions) ||
         payload === undefined
       )
         continue
@@ -783,7 +950,13 @@ export function withCreatureActiveGrantProtection<
           ? payload.conditionTypeId
           : undefined
       if (option === undefined) continue
-      if (kind) {
+      const bypassedBy = 'bypassedBy' in payload ? payload.bypassedBy : undefined
+      if (kind && bypassedBy?.length) {
+        if (kind === 'VULNERABILITY') continue
+        const defense = { kind, damageTypeId: option, bypassedBy }
+        if (adding) qualifiedDefenses.set(qualifiedDefenseKey(defense), defense)
+        else qualifiedDefenses.delete(qualifiedDefenseKey(defense))
+      } else if (kind) {
         const sourceEffectIds =
           'sourceEffectIds' in payload ? [...(payload.sourceEffectIds ?? [])].sort() : []
         const defense = {
@@ -804,6 +977,12 @@ export function withCreatureActiveGrantProtection<
         left.damageTypeId.localeCompare(right.damageTypeId) ||
         left.kind.localeCompare(right.kind) ||
         defenseKey(left).localeCompare(defenseKey(right))
+    ),
+    qualifiedDefenses: [...qualifiedDefenses.values()].sort(
+      (left, right) =>
+        left.damageTypeId.localeCompare(right.damageTypeId) ||
+        left.kind.localeCompare(right.kind) ||
+        qualifiedDefenseKey(left).localeCompare(qualifiedDefenseKey(right))
     ),
     conditionImmunityIds: [...conditionImmunityIds],
     spellSchoolImmunityIds: [...spellSchoolImmunityIds]

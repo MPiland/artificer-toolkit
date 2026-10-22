@@ -1,6 +1,23 @@
 # Slice SPELLS-4.T2j: attacker and source qualifiers on grants
 
-Status: **design, awaiting ruling** (nothing coded).
+Status: **T2j1 implemented (D179)**; T2j2 (Holy Aura rider, Dispel Evil and Good) is a later card.
+
+## Ruling D179 and what T2j1 built
+
+Option A, split. T2j1 covers the qualifier, qualified effect defenses, Protection from Evil and Good (the spell and Purity of Spirit), Stoneskin and Wind Walk; the `PROTECTION_FROM_EVIL_AND_GOOD`, `STONESKIN` and `WIND_WALK` closed rule kinds are deleted. Wind Walk's "nonmagical weapons" is bludgeoning, piercing and slashing resistance from attacks without the `MAGICAL` trait; Possession, the flying speed and Dismissal stay description-only.
+
+- **Qualifier:** a `SOURCE_CREATURE_TYPE` facet predicate (selectable `creatureTypeIds`, subject `CREATURE`, INCLUDE or EXCLUDE) names the source creature's type. The source is the attacker for `ATTACKS_AGAINST`, the effect's origin for condition immunity. The fold keeps it as a deferred requirement (`DEFERRED_CONDITION_KINDS`); `holderStateSourceQualifier` splits a grant's holder conditions (checked when the holder is prepared) from its source conditions, which travel with the grant (`sourceQualifier`) and are decided by `sourceQualifierAdmits` where the source is known (`prepareEncounterActionMechanics`).
+- **Qualified effect defenses:** `DAMAGE_RESISTANCE` and `DAMAGE_IMMUNITY` payloads take an optional `bypassedBy`. Characters fold them into `qualifiedDefenses` on the policy output; Creature holders merge them in `withCreatureActiveGrantProtection`. Both feed the one `dnd5eAttackDamageDefenses` evaluator.
+- **Condition immunity by source:** `encounterSourceConditionImmunities` collects them per holder (`MovementTarget.sourceConditionImmunities`); `conditionImmunityIdsAgainstSource` adds those admitting the acting source at action preparation.
+- **Shared builders:** `protectionFromEvilAndGoodGrants` (spell and Purity of Spirit), `nonmagicalWeaponResistanceGrants` (Stoneskin, Wind Walk), `sourceCreatureTypeRestriction`.
+
+### Deviations from D179
+
+- A separate `SOURCE_CREATURE_TYPE` predicate instead of a `subject` on `CREATURE_TYPE` (no stored-plan change for existing `CREATURE_TYPE` restrictions).
+- `attackDomains` omitted (redundant with the per-domain `ATTACKS_AGAINST` grants); `SOURCE_TRAIT` is not built and waits for T2j2.
+- Source-qualified condition immunity applies at action preparation only. Turn and spatial effects (`encounterTurnEffects`, `encounterSpatialCandidateExecution`) bind the holder's unqualified immunities, because their origin actor's type is not on those paths.
+- The Protection from Evil and Good clause "advantage on a new saving throw against an existing charm or fright from such a creature" stays description-only: it needs an effect-imposes-condition qualifier beside the source type.
+
 Class (D156): new generic option, class B. Unblocks SPELLS-31.T4j/T4r/T5k, SPELLS-32.T4j (Fey Ancestry, Gnome Cunning, Dwarven Resilience) and SPELLS-33.T4j.
 
 ## Brief
@@ -18,22 +35,22 @@ Convert `PROTECTION_FROM_EVIL_AND_GOOD`, `HOLY_AURA`, `DISPEL_EVIL_AND_GOOD`, `S
 
 ## SRD clauses per spell
 
-| Spell | Clause | Resolved state | Authored as (proposed) |
-| --- | --- | --- | --- |
-| Protection from Evil and Good | Aberrations, celestials, elementals, fey, fiends, undead have disadvantage on attack rolls against the target | attack roll | `ATTACKS_AGAINST` disadvantage, **attacker** creature types |
-| | Target can't be charmed, frightened or possessed by them | condition application | `CONDITION_IMMUNITY` charmed, frightened, **origin** creature types. "Possessed" has no System condition: description-only, registered |
-| | Already charmed/frightened/possessed by such a creature: advantage on new saves against the effect | save | `SAVING_THROW_MODIFIER` advantage keyed by `conditionTypeId` charmed/frightened, **source** creature types |
-| Holy Aura | Creatures of your choice in 30 ft: advantage on all saves | save | `SAVING_THROW_MODIFIER` advantage, no ability, on a chosen-creatures area (existing targeting). No qualifier |
-| | Other creatures have disadvantage on attack rolls against them | attack roll | `ATTACKS_AGAINST` disadvantage, no qualifier |
-| | Fiend or undead hits with a melee attack: Con save or blinded until the spell ends | save, condition | `MANIFEST` `MELEE_HIT_ON_SOURCE` with **attacker** creature types fiend/undead, Con save, condition blinded for the effect's duration |
-| | Shed dim light in 5 ft | light | description-only (no resolved state), registered |
-| Dispel Evil and Good | Disadvantage on attacks against you from celestials, elementals, fey, fiends, undead | attack roll | as Protection from Evil and Good |
-| | Break Enchantment: end charm, fright, possession by those types | condition | granted action, `END_EFFECTS` `CONDITION` selector with **origin** creature types |
-| | Dismissal: melee spell attack, Cha save or sent to home plane | removal | description-only, same as the `BANISHMENT` kind it would reuse (its own T2 task) |
-| Stoneskin | Resistance to nonmagical bludgeoning, piercing, slashing | damage | `DAMAGE_RESISTANCE` x3, `bypassedBy: [MAGICAL]`, on an **active-effect** grant |
-| Wind Walk | Flying speed 300 ft | speed | `SPEED SET_VALUE` fly (exists) |
-| | Resistance to damage from nonmagical weapons | damage | `DAMAGE_RESISTANCE` bludgeoning/piercing/slashing, `bypassedBy: [MAGICAL]`, `attackDomains: [MELEE, RANGED, UNARMED]` (a weapon attack, not a spell) |
-| | Only Dash or revert; 1-minute reversion; 60 ft/round descent; up to ten willing targets | actions, movement | action restriction and 10-target willing selection if existing options carry them; else description-only, registered |
+| Spell                         | Clause                                                                                                        | Resolved state        | Authored as (proposed)                                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Protection from Evil and Good | Aberrations, celestials, elementals, fey, fiends, undead have disadvantage on attack rolls against the target | attack roll           | `ATTACKS_AGAINST` disadvantage, **attacker** creature types                                                                                          |
+|                               | Target can't be charmed, frightened or possessed by them                                                      | condition application | `CONDITION_IMMUNITY` charmed, frightened, **origin** creature types. "Possessed" has no System condition: description-only, registered               |
+|                               | Already charmed/frightened/possessed by such a creature: advantage on new saves against the effect            | save                  | `SAVING_THROW_MODIFIER` advantage keyed by `conditionTypeId` charmed/frightened, **source** creature types                                           |
+| Holy Aura                     | Creatures of your choice in 30 ft: advantage on all saves                                                     | save                  | `SAVING_THROW_MODIFIER` advantage, no ability, on a chosen-creatures area (existing targeting). No qualifier                                         |
+|                               | Other creatures have disadvantage on attack rolls against them                                                | attack roll           | `ATTACKS_AGAINST` disadvantage, no qualifier                                                                                                         |
+|                               | Fiend or undead hits with a melee attack: Con save or blinded until the spell ends                            | save, condition       | `MANIFEST` `MELEE_HIT_ON_SOURCE` with **attacker** creature types fiend/undead, Con save, condition blinded for the effect's duration                |
+|                               | Shed dim light in 5 ft                                                                                        | light                 | description-only (no resolved state), registered                                                                                                     |
+| Dispel Evil and Good          | Disadvantage on attacks against you from celestials, elementals, fey, fiends, undead                          | attack roll           | as Protection from Evil and Good                                                                                                                     |
+|                               | Break Enchantment: end charm, fright, possession by those types                                               | condition             | granted action, `END_EFFECTS` `CONDITION` selector with **origin** creature types                                                                    |
+|                               | Dismissal: melee spell attack, Cha save or sent to home plane                                                 | removal               | description-only, same as the `BANISHMENT` kind it would reuse (its own T2 task)                                                                     |
+| Stoneskin                     | Resistance to nonmagical bludgeoning, piercing, slashing                                                      | damage                | `DAMAGE_RESISTANCE` x3, `bypassedBy: [MAGICAL]`, on an **active-effect** grant                                                                       |
+| Wind Walk                     | Flying speed 300 ft                                                                                           | speed                 | `SPEED SET_VALUE` fly (exists)                                                                                                                       |
+|                               | Resistance to damage from nonmagical weapons                                                                  | damage                | `DAMAGE_RESISTANCE` bludgeoning/piercing/slashing, `bypassedBy: [MAGICAL]`, `attackDomains: [MELEE, RANGED, UNARMED]` (a weapon attack, not a spell) |
+|                               | Only Dash or revert; 1-minute reversion; 60 ft/round descent; up to ten willing targets                       | actions, movement     | action restriction and 10-target willing selection if existing options carry them; else description-only, registered                                 |
 
 Verify each "if existing" at coding; a gap is reported, never special-cased.
 
@@ -43,13 +60,13 @@ Two parts, because the spells use two different kinds of question.
 
 **1. Who or what imposes it (creature type, magic).** Extend the existing modifier **restriction** condition `CREATURE_TYPE` with a `subject: 'HOLDER' | 'SOURCE'` (default `HOLDER`, so existing data is unchanged), and add a sibling condition `SOURCE_TRAIT { traits: MAGICAL... }` (the existing bypass-code vocabulary). `SOURCE` means the other party of the event the grant reads:
 
-| Grant domain | `SOURCE` is | Decided in |
-| --- | --- | --- |
-| `ATTACKS_AGAINST`, `ATTACK_ROLL` against the holder | the attacker; magical = the attack's trait | the `attacksAgainst` filter in `encounterActionMechanicsPreparation.ts` (attacker and attack traits already in hand) |
-| `SAVING_THROW_MODIFIER` | the actor whose effect forces the save; magical = a spell or magic-item source | the save preparation beside `sourceSightSaves` |
-| `CONDITION_IMMUNITY` | the origin actor of the condition's owning effect; a GM-set condition has none and never matches | the condition binding in `encounterActionExecution.ts` (the folded list becomes entries with restrictions) |
-| `END_EFFECTS` `CONDITION` selector | the owning effect's source actor | `selectedEndedEffects` |
-| `MANIFEST` interaction trigger | the attacker | the retaliation filter |
+| Grant domain                                        | `SOURCE` is                                                                                      | Decided in                                                                                                           |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `ATTACKS_AGAINST`, `ATTACK_ROLL` against the holder | the attacker; magical = the attack's trait                                                       | the `attacksAgainst` filter in `encounterActionMechanicsPreparation.ts` (attacker and attack traits already in hand) |
+| `SAVING_THROW_MODIFIER`                             | the actor whose effect forces the save; magical = a spell or magic-item source                   | the save preparation beside `sourceSightSaves`                                                                       |
+| `CONDITION_IMMUNITY`                                | the origin actor of the condition's owning effect; a GM-set condition has none and never matches | the condition binding in `encounterActionExecution.ts` (the folded list becomes entries with restrictions)           |
+| `END_EFFECTS` `CONDITION` selector                  | the owning effect's source actor                                                                 | `selectedEndedEffects`                                                                                               |
+| `MANIFEST` interaction trigger                      | the attacker                                                                                     | the retaliation filter                                                                                               |
 
 A restriction that names a `SOURCE` condition and is read where no source exists fails closed, the existing rule in `holderConditionMatches`.
 
@@ -59,12 +76,12 @@ Waiting tasks reuse it without further options: Fey Ancestry ("advantage on save
 
 ## Alternatives
 
-| | Idea | For | Against |
-| --- | --- | --- | --- |
-| **A (recommended)** | Restriction conditions with `subject: SOURCE` + `SOURCE_TRAIT`, and `bypassedBy`/`attackDomains` on defense payloads | One vocabulary for holder and source questions, OR-of-AND and `EXCLUDE` for free ("not celestials"), reuses the D152 authoring UI and fail-closed rule, no per-domain field; every waiting task is data only | Touches the restriction fold and three evaluation sites; the fold output of `CREATURE_TYPE` gains a field (stored plans migrate, dev data reseeded) |
-| B | Per-domain fields: `attackerCreatureTypeIds` on `ATTACKS_AGAINST`, `sourceCreatureTypeIds` on `SAVING_THROW_MODIFIER` and `CONDITION_IMMUNITY`, copying the Nature's Ward precedent | Smallest diff per site, no restriction-fold change | Three-plus copies of one rule, no `EXCLUDE`, no OR, each new waiting task needs another field (`magical`, `poison`), exactly the drift D156 forbids |
-| C | One new grant domain `SOURCE_QUALIFIED_GRANT` wrapping any modifier with a qualifier | Uniform wrapper | A second grant shape beside `APPLY_GRANT` modifiers, every consumer must unwrap it; plan-shape change ADR 0039 rejects |
-| D | Keep the kinds closed, hard-code per spell | Zero engine work | Rejected by D156 |
+|                     | Idea                                                                                                                                                                                | For                                                                                                                                                                                                          | Against                                                                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A (recommended)** | Restriction conditions with `subject: SOURCE` + `SOURCE_TRAIT`, and `bypassedBy`/`attackDomains` on defense payloads                                                                | One vocabulary for holder and source questions, OR-of-AND and `EXCLUDE` for free ("not celestials"), reuses the D152 authoring UI and fail-closed rule, no per-domain field; every waiting task is data only | Touches the restriction fold and three evaluation sites; the fold output of `CREATURE_TYPE` gains a field (stored plans migrate, dev data reseeded) |
+| B                   | Per-domain fields: `attackerCreatureTypeIds` on `ATTACKS_AGAINST`, `sourceCreatureTypeIds` on `SAVING_THROW_MODIFIER` and `CONDITION_IMMUNITY`, copying the Nature's Ward precedent | Smallest diff per site, no restriction-fold change                                                                                                                                                           | Three-plus copies of one rule, no `EXCLUDE`, no OR, each new waiting task needs another field (`magical`, `poison`), exactly the drift D156 forbids |
+| C                   | One new grant domain `SOURCE_QUALIFIED_GRANT` wrapping any modifier with a qualifier                                                                                                | Uniform wrapper                                                                                                                                                                                              | A second grant shape beside `APPLY_GRANT` modifiers, every consumer must unwrap it; plan-shape change ADR 0039 rejects                              |
+| D                   | Keep the kinds closed, hard-code per spell                                                                                                                                          | Zero engine work                                                                                                                                                                                             | Rejected by D156                                                                                                                                    |
 
 Recommend A. It is the only one where the waiting tasks need no new option.
 

@@ -1232,7 +1232,10 @@ function createFacetPredicateNodeMap(
             order: 3,
             requiredIf: true,
             showIf: and([
-              local.field(['predicateCode']).eq('CREATURE_TYPE'),
+              or([
+                local.field(['predicateCode']).eq('CREATURE_TYPE'),
+                local.field(['predicateCode']).eq('SOURCE_CREATURE_TYPE')
+              ]),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }

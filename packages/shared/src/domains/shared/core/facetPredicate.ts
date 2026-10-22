@@ -173,6 +173,7 @@ export type PredicatePayloadByCode = {
   WHILE_SOURCE_ATTUNED: EmptyObject
   CREATURE_CATEGORY: Selectable<{ categories: CreatureCategoryCode[] }>
   CREATURE_TYPE: Selectable<{ creatureTypeIds: string[] }>
+  SOURCE_CREATURE_TYPE: Selectable<{ creatureTypeIds: string[] }>
   CREATURE_SIZE: Selectable<{ sizes: SizeCode[] }>
   CREATURE_IS_MOUNT: EmptyObject
   CREATURE_IS_COMPANION: EmptyObject
@@ -212,6 +213,7 @@ export const SELECTABLE_PREDICATE_CODES = [
   'SAVING_THROW_ABILITY_BONUS',
   'CREATURE_CATEGORY',
   'CREATURE_TYPE',
+  'SOURCE_CREATURE_TYPE',
   'CREATURE_SIZE',
   'VEHICLE_CATEGORY',
   'VEHICLE_SIZE'
@@ -604,6 +606,14 @@ export const PREDICATE_REGISTRY = {
     code: 'CREATURE_TYPE',
     label: 'Creature Type',
     description: 'Narrows selection to creature types.',
+    subjects: ['CREATURE']
+  },
+
+  SOURCE_CREATURE_TYPE: {
+    code: 'SOURCE_CREATURE_TYPE',
+    label: 'Source Creature Type',
+    description:
+      'Narrows the grant to the creature that is its source: the attacker for attacks against the holder, the effect source for saves, conditions and ended effects.',
     subjects: ['CREATURE']
   },
 
