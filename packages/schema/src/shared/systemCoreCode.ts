@@ -5,19 +5,19 @@ import { z, lazySchema } from '../zod.js'
  * wire checks its shape only; the System vocabulary capability in `rules-runtime` decides membership
  * wherever the `gameSystemId` is known.
  */
-export const systemVocabularyCodeSchema = lazySchema(() =>
+export const systemCoreCodeSchema = lazySchema(() =>
   z.string().check(z.regex(/^[A-Z][A-Z0-9_]{0,63}$/))
 )
 
 /** One entry of a System-supplied vocabulary list: its code and the label shown for it. */
-export const systemVocabularyEntrySchema = lazySchema(() =>
+export const systemCoreCodeEntrySchema = lazySchema(() =>
   z.strictObject({
-    code: systemVocabularyCodeSchema,
+    code: systemCoreCodeSchema,
     label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80))
   })
 )
 
-export type SystemVocabularyEntryDto = z.infer<typeof systemVocabularyEntrySchema>
+export type SystemCoreCodeEntryDto = z.infer<typeof systemCoreCodeEntrySchema>
 
 /**
  * Which face a d20 test keeps: the one face it rolls (FIRST), or the higher or lower of two. The
@@ -34,7 +34,7 @@ export type RollModeKeep = z.infer<typeof rollModeKeepSchema>
  * the one kept without interpreting the code.
  */
 export const offeredRollModeSchema = lazySchema(() =>
-  z.extend(systemVocabularyEntrySchema, { keep: rollModeKeepSchema })
+  z.extend(systemCoreCodeEntrySchema, { keep: rollModeKeepSchema })
 )
 
 export type OfferedRollModeDto = z.infer<typeof offeredRollModeSchema>

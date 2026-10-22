@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 
 import { buildCharacterSpellRuleFacts } from '../character/characterSpellRuleFacts.js'
-import { systemVocabularyRegistry } from '../platformSystemVocabulary.js'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import {
   SRD,
@@ -52,7 +52,7 @@ function registryWithPool(poolCode: string): CharacterAssemblyRegistry {
 
 describe('spell slot pool vocabulary', () => {
   it('lists the System pools the dnd5e System defines', () => {
-    expect(systemVocabularyRegistry.entries(DND5E_SYSTEM_ID, 'spellSlotPool')).toEqual([
+    expect(systemCoreCodeRegistry.entries(DND5E_SYSTEM_ID, 'spellSlotPool')).toEqual([
       { code: 'PACT', label: 'Pact Magic' }
     ])
   })

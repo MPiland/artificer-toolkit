@@ -21,7 +21,7 @@ import type { MaintenanceLinkCapabilityAdapter } from '../../maintenanceLinkCapa
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { derivedAddedDice, dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 

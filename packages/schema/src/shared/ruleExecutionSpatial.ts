@@ -27,8 +27,8 @@ import {
   rollModeKeepFaceCount,
   rollModeKeepSchema,
   rollModeKeptFace,
-  systemVocabularyCodeSchema
-} from './systemVocabularyCode.js'
+  systemCoreCodeSchema
+} from './systemCoreCode.js'
 
 const spatialTargetCurrentnessPinDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -76,7 +76,7 @@ const spatialCandidateEvidenceFields = lazySchemaParts(() => ({
   /** The resolved d20 of a candidate now answering its damage dice (a placed zone's failed entry save). */
   diceStage: z.nullable(
     z.strictObject({
-      rollMode: systemVocabularyCodeSchema,
+      rollMode: systemCoreCodeSchema,
       keep: rollModeKeepSchema,
       rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
       addedDice: d20RolledAddedDiceDtoSchema
@@ -146,7 +146,7 @@ export const pendingD20FaceSchema = lazySchema(() => integerSchema.check(z.gte(1
 const movementPassageContestParticipantReceiptDtoSchema = lazySchema(() =>
   z
     .strictObject({
-      rollMode: systemVocabularyCodeSchema,
+      rollMode: systemCoreCodeSchema,
       keep: rollModeKeepSchema,
       rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
       selectedNatural: pendingD20FaceSchema,

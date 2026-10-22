@@ -8,7 +8,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
-import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
+import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 /**
  * SPELLS-33 T6d3b (D156, D165): Assassinate is a standing attack roll advantage gated by a
@@ -17,7 +17,7 @@ import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runti
  * excluded variant. The Bugbear's Surprise Attack is a description with no mechanic.
  */
 
-const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
+const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
 function normalize(creature: CreatureAuthored) {
   return normalizeNodeRuntimeValues(reader, {

@@ -3,7 +3,7 @@ import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntime
 import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
 
 /**
- * The code-owned policy vocabulary of the System (rules-runtime `systemVocabularyRegistry`). The
+ * The code-owned policy vocabulary of the System (rules-runtime `systemCoreCodeRegistry`). The
  * caller supplies it, so this package never depends on rules-runtime.
  */
 export type NodeRuntimePolicyVocabulary = Readonly<
@@ -21,14 +21,14 @@ const policyRows = (entries: NodeRuntimePolicyVocabulary['rollMode']) =>
   }))
 
 /** The System vocabulary behind each resolver source table that the System, not a root, owns. */
-export function systemVocabularyRows(
+export function systemCoreCodeRows(
   system: SystemAuthoredDto,
-  policyVocabulary: NodeRuntimePolicyVocabulary
+  coreCodes: NodeRuntimePolicyVocabulary
 ): Readonly<Record<string, readonly NodeRuntimeQueryRow[]>> {
   return {
-    roll_influences: policyRows(policyVocabulary.rollInfluence),
-    roll_modes: policyRows(policyVocabulary.rollMode),
-    spell_slot_pools: policyRows(policyVocabulary.spellSlotPool),
+    roll_influences: policyRows(coreCodes.rollInfluence),
+    roll_modes: policyRows(coreCodes.rollMode),
+    spell_slot_pools: policyRows(coreCodes.spellSlotPool),
     ability_definitions: 'abilities' in system ? system.abilities : [],
     alignments: system.alignments,
     challenge_ratings: system.challengeRatings,
@@ -66,17 +66,17 @@ export function createNodeRuntimeSourceReader({
   readAuthoredRows,
   readReusableDefinitions,
   system,
-  policyVocabulary
+  coreCodes
 }: {
   readAuthoredRows: (
     table: NodeRuntimeSourceTable
   ) => readonly NodeRuntimeQueryRow[] | Promise<readonly NodeRuntimeQueryRow[]>
   readReusableDefinitions: () => Promise<readonly { id: string; label: string }[]>
   system: SystemAuthoredDto
-  policyVocabulary: NodeRuntimePolicyVocabulary
+  coreCodes: NodeRuntimePolicyVocabulary
 }): NodeRuntimeSourceReader {
   const systemId = system.id.toLowerCase()
-  const vocabulary = systemVocabularyRows(system, policyVocabulary)
+  const vocabulary = systemCoreCodeRows(system, coreCodes)
   // Nested feature maps share this read for the life of one reader.
   let definitions: Promise<NodeRuntimeQueryRow[]> | undefined
 

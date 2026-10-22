@@ -17,7 +17,7 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
 import { facetDtoSchema } from '../shared/facet.js'
-import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const stringSchema = lazySchema(() => z.string())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -411,7 +411,7 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
     // The ability the attack is made with, which an ability-scoped attack grant is read against.
     attackAbility: z.nullable(abilityCodeSchema),
     attackBonus: z.nullable(integerSchema),
-    attackRollMode: z.nullable(systemVocabularyCodeSchema),
+    attackRollMode: z.nullable(systemCoreCodeSchema),
     save: z.nullable(
       z.strictObject({
         ability: abilityCodeSchema,
@@ -695,7 +695,7 @@ const characterSpellCastCandidateSchema = lazySchema(() =>
     baseEntry: booleanSchema,
     resourceOwnerKey: z.nullable(characterResourcePoolIdentitySchema),
     /** The slot pool the cast also spends a slot from (D175); null when it spends none. */
-    slotPoolCode: z._default(z.nullable(systemVocabularyCodeSchema), null)
+    slotPoolCode: z._default(z.nullable(systemCoreCodeSchema), null)
   })
 )
 

@@ -7,7 +7,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
-import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
+import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 /**
  * SPELLS-20 T5a (ADR 0038, D155): the SRD paladin's Aura of Protection is a passive source zone that
@@ -16,7 +16,7 @@ import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runti
  * with a fixed bonus and an unscaled radius.
  */
 
-const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
+const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
 function normalize(values: ClassAuthored) {
   return normalizeNodeRuntimeValues(reader, {

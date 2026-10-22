@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
 import { createRollModeCapabilityRegistry } from '../rollModeCapabilityRegistry.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
-import { systemVocabularyRegistry } from '../platformSystemVocabulary.js'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import {
   dnd5eRollModeCapabilityAdapter,
   resolveDnd5eRollMode
@@ -98,7 +98,7 @@ describe('roll-mode capability registry', () => {
     expect(() =>
       createRollModeCapabilityRegistry(
         [dnd5eRollModeCapabilityAdapter, dnd5eRollModeCapabilityAdapter],
-        systemVocabularyRegistry
+        systemCoreCodeRegistry
       )
     ).toThrow(`Duplicate roll-mode System adapter: ${DND5E_SYSTEM_ID}.`)
   })
@@ -107,7 +107,7 @@ describe('roll-mode capability registry', () => {
     expect(() =>
       createRollModeCapabilityRegistry(
         [{ ...dnd5eRollModeCapabilityAdapter, gameSystemId: 'dnd5e' }],
-        systemVocabularyRegistry
+        systemCoreCodeRegistry
       )
     ).toThrow('Roll-mode System identity must be a PostgreSQL UUID.')
   })

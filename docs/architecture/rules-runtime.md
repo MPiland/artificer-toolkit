@@ -68,7 +68,7 @@ package before tests that import newly added modules.
 | Area                          | Modules                                                                                                                                                                                             | Owns                                                                                                                                                                         |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Execution wrapper             | `rulesRuntimeService`, `platformRulesRuntime`, `platformPolicyModules`, `systemCapabilityRegistry`, `*Capability*`, `platformEncounterPolicy`, `platformCharacterPolicy`, `random`                  | Schema-aware Kernel execution, frozen-graph admission, installed System lookup by System UUID, fail-closed System capability registries                                      |
-| System vocabulary             | `platformSystemVocabulary`                                                                                                                                                                          | The installed Systems' code lists (`systemVocabularyRegistry`); loads no play execution, so authoring reads it                                                               |
+| System vocabulary             | `platformSystemCoreCodes`                                                                                                                                                                           | The installed Systems' code lists (`systemCoreCodeRegistry`); loads no play execution, so authoring reads it                                                                 |
 | Systems                       | `systems/dnd5e/*`                                                                                                                                                                                   | D&D 2014 policy, action compiler, grant fold, modifier scope, concentration, lifecycle and optional-combat policy                                                            |
 | Character                     | `character/*`                                                                                                                                                                                       | Context and Sheet preparation, Builder catalogue/eligibility/reconciliation/readiness/payload, snapshot readers, Sheet commands, rest, roll, projection, rule-fact composers |
 | Encounter actions             | `encounterAction*`, `encounterBasicActions`, `encounterDisarmPreparation`, `encounterWieldConflict`, `encounterCleaving*`, `encounterConcentration*`                                                | Source resolution, mechanics preparation, economy, target policy, effects, receipts, warnings                                                                                |
@@ -339,10 +339,10 @@ duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollMode
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
 `resolveDnd5eRollMode` directly.
 **System vocabulary (RULES-2.T9a, current).** Policy vocabulary is System code strings, not UUID rows:
-the wire types a code as `systemVocabularyCodeSchema` (`schema/shared/systemVocabularyCode.ts`, shape
-only), and the one seam that decides membership is `systemVocabularyRegistry.requireCode(gameSystemId,
-kind, code)` (`systemVocabularyCapability.ts`, installed in `platformSystemVocabulary.ts`; the D&D lists in
-`systems/dnd5e/vocabulary.ts`). Lists today: `rollInfluence`, `rollMode`, each code with its display
+the wire types a code as `systemCoreCodeSchema` (`schema/shared/systemCoreCode.ts`, shape
+only), and the one seam that decides membership is `systemCoreCodeRegistry.requireCode(gameSystemId,
+kind, code)` (`systemCoreCodeCapability.ts`, installed in `platformSystemCoreCodes.ts`; the D&D lists in
+`systems/dnd5e/coreCodes.ts`). Lists today: `rollInfluence`, `rollMode`, each code with its display
 label. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
 settlement) validates through it; capability registries call it before an adapter sees a code. A
 rule-execution d20 DTO carries `keep` beside its `rollMode`, and `keep` is derived once, by the

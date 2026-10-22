@@ -7,7 +7,7 @@ import type {
   ServerRuleExecutionD20EvidenceDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { z } from 'zod'
 
 import type { PendingNativeActionGraphs } from './encounterActionExecution.js'

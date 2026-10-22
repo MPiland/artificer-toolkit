@@ -15,7 +15,7 @@ import {
 } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { dnd5eRollModeCapabilityAdapter } from './rollModePolicy.js'
-import { DND5E_ROLL_MODES } from './vocabulary.js'
+import { DND5E_ROLL_MODES } from './coreCodes.js'
 
 const DND5E_SPEED_FACTOR_INITIATIVE_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000eb'
 

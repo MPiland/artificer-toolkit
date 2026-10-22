@@ -1,4 +1,4 @@
-import type { SystemVocabularyCapabilityAdapter } from '../../systemVocabularyCapability.js'
+import type { SystemCoreCodeAdapter } from '../../systemCoreCodeCapability.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
 
 export const DND5E_ROLL_INFLUENCES = [
@@ -17,7 +17,7 @@ export const DND5E_SPELL_SLOT_POOLS = [{ code: 'PACT', label: 'Pact Magic' }] as
 export type Dnd5eRollInfluence = (typeof DND5E_ROLL_INFLUENCES)[number]['code']
 export type Dnd5eRollMode = (typeof DND5E_ROLL_MODES)[number]['code']
 
-export const dnd5eVocabularyCapabilityAdapter: SystemVocabularyCapabilityAdapter = {
+export const dnd5eCoreCodeAdapter: SystemCoreCodeAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   lists: {
     rollInfluence: DND5E_ROLL_INFLUENCES,
