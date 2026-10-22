@@ -17,12 +17,10 @@ import {
   SRD_MEDICINE_SKILL_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
-import { evictDurableObject, runInDurableObject } from 'cloudflare:test'
-import { RETIRED_CHECK_RECEIPT } from '@artificer-toolkit/encounter-persistence/actionRevert'
+import { runInDurableObject } from 'cloudflare:test'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { DurableCommandJournal } from '../src/durableCommandJournal.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
@@ -119,62 +117,6 @@ function fighterDeathSaves(room: Awaited<ReturnType<typeof firstAidRoom>>) {
     if (!row) throw new Error('Missing room Character play state.')
     return readCharacterPlay(row).hitpoints.deathSaves
   })
-}
-
-/**
- * Rewrites the settled check's stored receipt into the bespoke First Aid shape this version
- * retired (D173), as a room persisted by an older version holds it, then restarts the room.
- */
-async function storeRetiredFirstAidReceipt(room: Awaited<ReturnType<typeof firstAidRoom>>) {
-  await runInDurableObject(room.room.base.stub, async (_instance, context) => {
-    const journal = new DurableCommandJournal(context.storage)
-    const store = new RoomEncounterStore(context.storage)
-    const current = journal.readCurrent()
-    if (current?.status !== 'ACTIVE') throw new Error('The room holds no active authority.')
-    const [receipt, execution] = store.documents('encounterRuleReceipts').flatMap((candidate) => {
-      const stored = parseReceiptExecution(candidate)
-      return stored.status === 'COMPLETE' && stored.applicationOutputs?.kind === 'CHECK_ACTION'
-        ? [[candidate, stored] as const]
-        : []
-    })[0] ?? [null, null]
-    if (execution?.status !== 'COMPLETE' || execution.applicationOutputs?.kind !== 'CHECK_ACTION')
-      throw new Error('Missing the settled check receipt.')
-    const { actorId, targetActorId, check, d20 } = execution.applicationOutputs
-    const retired = {
-      ...execution,
-      applicationOutputs: {
-        kind: 'BASIC_ACTION_CHECK',
-        helperActorId: actorId,
-        targetActorId,
-        check,
-        d20,
-        transition: 'STABILIZED'
-      }
-    }
-    await store.transact(
-      async () => {
-        await store.store.patch(receipt._id, {
-          resultJson: JSON.stringify(retired),
-          resultChecksum: checksumRuleDocument(retired)
-        })
-      },
-      (entry) => {
-        journal.commitInTransaction({
-          actorId: current.authorityEpoch,
-          authorityEpoch: current.authorityEpoch,
-          commandId: crypto.randomUUID(),
-          fingerprint: 'retired-first-aid-receipt',
-          expectedSequence: current.sequence,
-          expectedStateChecksum: current.stateChecksum,
-          nextStateChecksum: entry.chainChecksum,
-          nextStateJson: current.stateJson,
-          receiptJson: JSON.stringify({ sequence: entry.sequence })
-        })
-        return undefined
-      }
-    )
-  })
-  await evictDurableObject(room.room.base.stub)
 }
 
 const STEADY_ID = testUuid(0xf10)
@@ -385,18 +327,42 @@ describe('First Aid, a System basic action with a check, in the room', () => {
     expect(again.answer.type, JSON.stringify(again.answer)).toBe('COMMAND_COMMITTED')
   })
 
-  it('refuses, by name, to undo a check whose stored receipt has a retired shape', async () => {
-    const room = await firstAidRoom({ currentHitPoints: 0, autoRoll: true, faces: [20] })
+  it('spends the Help the helper holds: the check rolls with advantage, the grant ends, and undo gives it back', async () => {
+    const help = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HELP)
+    if (help?.document.kind !== 'BASIC_ACTION') throw new Error('Missing Help fixture.')
+    const room = (await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [2, 9].map(draw),
+      characterPlay: { currentHitPoints: 0 },
+      actors: [medicWolf(), characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })],
+      ownerFeatureId: creatureFeature(biteWolf('ATTACK', { damage: 1, reachFeet: 5 }), 'Bite').id,
+      seed: seedModifierGrant({
+        sourceActorId: FIGHTER_ACTOR_ID,
+        holderActorId: WOLF_ID,
+        lifecycle: {},
+        effect: help.document.effects[0],
+        sourceLabel: help.label
+      })
+    })) as Awaited<ReturnType<typeof firstAidRoom>>
+    const [held] = (await readRoomHistory(room.room.base.stub)).activeEffects
+    expect(held).toBeDefined()
+
     const { answer } = await useFirstAid(room)
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-    await storeRetiredFirstAidReceipt(room)
-    const before = await room.version()
+    expect((await settledCheck(room)).outputs).toMatchObject([
+      {
+        d20: { rollMode: 'ADVANTAGE', selectedNatural: 9, total: 12 },
+        outcome: 'SUCCESS',
+        stateTransition: { kind: 'TARGET_OUTCOME' }
+      }
+    ])
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toEqual([])
 
     const reverted = await undo(room)
-    expect(reverted.type).toBe('COMMAND_REJECTED')
-    expect(JSON.stringify(reverted)).toContain(RETIRED_CHECK_RECEIPT)
-    expect(await room.version()).toBe(before)
-    expect((await fighterDeathSaves(room)).stable).toBe(true)
+    expect(reverted.type, JSON.stringify(reverted)).toBe('COMMAND_COMMITTED')
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toMatchObject([
+      { id: held!.id }
+    ])
   })
 
   it('waits for the helper’s d20 when they roll by hand, then settles the frozen check with it', async () => {

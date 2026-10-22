@@ -1331,8 +1331,8 @@ before any roll (`TARGET_NOT_DYING` for `DYING`, in place of `TARGET_DEFEATED`),
 roll (`TARGET_PRECONDITION_WARNING_CODES`, D173 Q1). Touch range reuses the Healer's Kit warnings. The helper's one-roll
 `ON_ABILITY_CHECK` grants (a Help) are consumed with the Action. The roll card is credited to the helper, never hidden from the
 GM, and de-duplicated by the app-roll attempt identity. GM undo, through the generic check receipt, restores the Action, the used
-Help and the target's death saves and keeps the roll on the record; a stored receipt of the retired bespoke shape is refused as
-`RETIRED_CHECK_RECEIPT` (`packages/rules-runtime/src/encounterBasicActionCheck.ts`, `packages/encounter-persistence/src/actionRevert.ts`).
+Help and the target's death saves and keeps the roll on the record (`packages/rules-runtime/src/encounterBasicActionCheck.ts`,
+`packages/encounter-persistence/src/actionRevert.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
 **d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20

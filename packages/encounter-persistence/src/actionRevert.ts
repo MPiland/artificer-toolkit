@@ -1109,10 +1109,6 @@ async function revertCheckAction(
   return commitRevert(ctx, { ...input, actors, nextActors, updatedAt })
 }
 
-/** Undo's refusal of a check receipt this build no longer reads. */
-export const RETIRED_CHECK_RECEIPT =
-  "Undo can't read this check's receipt, which this version no longer supports; adjust manually."
-
 const FEATURE_CHARGES_CHANGED =
   "The actor's feature charges changed after this action; adjust manually."
 
@@ -1198,10 +1194,7 @@ async function readCheckReceiptOutputs(
     .take(RECEIPT_SCAN_LIMIT)
   const receipt = receipts.find((entry) => entry.occurrenceId === input.occurrenceId)
   if (!receipt) throw new Error('Stored check receipt is missing.')
-  const parsed = storedRuleExecutionResultDtoSchema.safeParse(JSON.parse(receipt.resultJson))
-  // A receipt of a retired shape (a bespoke First Aid check, D173) is refused, never approximated.
-  if (!parsed.success) revertUnavailable(RETIRED_CHECK_RECEIPT)
-  const result = parsed.data
+  const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
   if (checksumRuleDocument(result) !== receipt.resultChecksum)
     throw new Error('Stored Encounter rule receipt mismatch.')
   if (result.status !== 'COMPLETE') throw new Error('Stored check receipt is invalid.')

@@ -830,6 +830,15 @@ describe('encounter action rule warning gate', () => {
       kind: 'ACCEPTED',
       overrides: [notDying]
     })
+    // A Character above 0 hit points has no death saves to stabilize.
+    const healthy = {
+      actor: { kind: 'CHARACTER' as const },
+      state: { current: 4, deathSaves: null }
+    }
+    expect(gate(['STABILIZE'], healthy, [])).toEqual({
+      kind: 'UNACKNOWLEDGED',
+      warnings: [notDying]
+    })
     // A Creature at 0 hit points is defeated rather than dying.
     const creature = {
       actor: { kind: 'CREATURE' as const },
