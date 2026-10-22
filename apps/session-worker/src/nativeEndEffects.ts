@@ -1,5 +1,10 @@
 import { TARGET_NOTHING_TO_END_WARNING } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
+  encounterBasicActionDefinitionId,
+  isEncounterBasicActionId
+} from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import {
+  actionUsedOnHolderEndedEffects,
   offerEndEffects,
   selectedEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -15,22 +20,19 @@ import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
  * picked for the caster, several need the caster's pick (a cast without one is rejected), none is
  * an overridable warning.
  */
-export function planEndEffects(input: {
+export function planEndEffects(
+  gameSystemId: string,
   outcomes: readonly {
     kind: string
     endEffects?: { scope: 'ALL' | 'ONE_CHOSEN'; conditionIds: readonly string[] }
-  }[]
-  held: readonly ActiveRuleEffectRecord[]
-  chosenEffectId: string | undefined
-}) {
-  const [endEffects] = input.outcomes.flatMap((outcome) =>
+  }[],
+  held: readonly ActiveRuleEffectRecord[],
+  target: { kind: string; chosenEffectId?: string }
+) {
+  const [endEffects] = outcomes.flatMap((outcome) =>
     outcome.kind === 'EFFECT' && outcome.endEffects ? [outcome.endEffects] : []
   )
-  const offer = offerEndEffects({
-    endEffects,
-    held: input.held,
-    chosenEffectId: input.chosenEffectId
-  })
+  const offer = offerEndEffects({ endEffects, held, chosenEffectId: target.chosenEffectId })
   if (offer.pick?.kind === 'UNCHOSEN')
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
@@ -39,25 +41,34 @@ export function planEndEffects(input: {
     })
   const warnings: EncounterRuleWarningDto[] =
     endEffects && offer.candidates.length === 0 ? [TARGET_NOTHING_TO_END_WARNING] : []
-  return { endEffects, offer, warnings }
+  return { gameSystemId, endEffects, offer, warnings }
 }
 
-/** The effects the committed action ends, when the System says its execution ends effects. */
-export function committedEndEffects(
+/**
+ * The effects the committed action ends: what a basic action used on the holder ends (rousing a
+ * sleeper), else what the action's own end-effects outcome selects when the System says its
+ * execution ends effects.
+ */
+export function endedByAction(
   plan: ReturnType<typeof planEndEffects>,
-  input: {
-    gameSystemId: string
-    execution: CommittedExecutionTrace
-    holderActorId: string
-    held: readonly ActiveRuleEffectRecord[]
-  }
+  command: { actorId: string; actionId: string },
+  execution: CommittedExecutionTrace,
+  held: readonly ActiveRuleEffectRecord[],
+  { actor, target }: { actor: { id: string }; target: { id: string } }
 ) {
+  if (isEncounterBasicActionId(command.actorId, command.actionId))
+    return actionUsedOnHolderEndedEffects({
+      holderActorId: target.id,
+      held,
+      usedByActorId: actor.id,
+      basicActionDefinitionId: encounterBasicActionDefinitionId(command.actionId)
+    })
   const { endEffects, offer } = plan
   return endEffects &&
-    executionOutcomeCapabilityRegistry.require(input.gameSystemId).endsEffects(input.execution)
+    executionOutcomeCapabilityRegistry.require(plan.gameSystemId).endsEffects(execution)
     ? selectedEndedEffects({
-        holderActorId: input.holderActorId,
-        held: input.held,
+        holderActorId: target.id,
+        held,
         selectors: offer.selectors,
         scope: endEffects.scope,
         chosenEffectId: offer.pick?.kind === 'CHOSEN' ? offer.pick.effectId : undefined

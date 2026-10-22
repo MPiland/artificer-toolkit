@@ -40,7 +40,6 @@ import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persist
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { resolveCheckActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
-  encounterBasicActionDefinitionId,
   isEncounterBasicActionId,
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
@@ -55,7 +54,6 @@ import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/e
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   actionEndedEffects,
-  actionUsedOnHolderEndedEffects,
   actsAgainstEnemy,
   attackHitEndedEffects,
   targetEndedEffects,
@@ -98,7 +96,7 @@ import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import { committedEndEffects, planEndEffects } from './nativeEndEffects.js'
+import { endedByAction, planEndEffects } from './nativeEndEffects.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import {
@@ -738,11 +736,13 @@ export async function planNativeLiveEncounterAction(
     prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.candidate.mechanicFacts
       : prepared.source.capability.mechanicFacts
-  const endEffectsPlan = planEndEffects({
-    outcomes: mechanicFacts.outcomes,
-    held: activeEffectsByActorId.get(prepared.target.id) ?? [],
-    chosenEffectId: command.target.kind === 'ACTOR' ? command.target.chosenEffectId : undefined
-  })
+  const heldOnTarget = activeEffectsByActorId.get(prepared.target.id) ?? []
+  const endPlan = planEndEffects(
+    state.gameSystemId,
+    mechanicFacts.outcomes,
+    heldOnTarget,
+    command.target
+  )
   const fleeWarnings = encounterFleeActionWarnings({
     sourceActorIds: encounterConditionFleeSources(actorTarget),
     activationCode,
@@ -757,7 +757,7 @@ export async function planNativeLiveEncounterAction(
     preparedWarnings: [
       ...prepared.ruleWarnings,
       ...fleeWarnings,
-      ...endEffectsPlan.warnings,
+      ...endPlan.warnings,
       ...(suppressed ? [encounterActionSuppressedWarning(activationCode)] : [])
     ],
     target: {
@@ -1434,7 +1434,7 @@ export async function planNativeLiveEncounterAction(
   const decoyStrike = decoyStrikeEffects(prepared.attackDecoy, execution.d20?.resultPath)
   // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
   // that end on damage; the conditions only they held are released in the target's own batch.
-  const targetHeld = (activeEffectsByActorId.get(prepared.target.id) ?? []).filter(
+  const targetHeld = heldOnTarget.filter(
     ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
   )
   const damageEnded = targetEndedEffects({
@@ -1456,19 +1456,7 @@ export async function planNativeLiveEncounterAction(
     })
   })
   // A basic action another creature uses on the target (rousing a sleeper) ends what names it.
-  const actionEnded = isEncounterBasicActionId(command.actorId, command.actionId)
-    ? actionUsedOnHolderEndedEffects({
-        holderActorId: prepared.target.id,
-        held: targetHeld,
-        usedByActorId: prepared.actor.id,
-        basicActionDefinitionId: encounterBasicActionDefinitionId(command.actionId)
-      })
-    : committedEndEffects(endEffectsPlan, {
-        gameSystemId: state.gameSystemId,
-        execution: execution.execution,
-        holderActorId: prepared.target.id,
-        held: targetHeld
-      })
+  const actionEnded = endedByAction(endPlan, command, execution.execution, targetHeld, prepared)
   const gateImmunity = passedWardImmunityPlan({
     gameSystemId: state.gameSystemId,
     ward: gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null

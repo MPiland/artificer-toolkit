@@ -2,6 +2,13 @@ import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type { CompiledActionZonePlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { CompiledManifestComponent } from '@artificer-toolkit/shared/compilers'
+import type {
+  SpatialEffectInstance,
+  SpatialTriggerMode,
+  SpatialTurnTrigger
+} from '@artificer-toolkit/shared/vtt'
 
 /**
  * The events an Encounter raises on the creature that holds effects or reactions (ADR 0039 decision
@@ -92,6 +99,14 @@ export type EncounterEvent =
   | { kind: 'SPELL_CAST_BY_OTHER' }
   /** The holder is chosen as a target of a cast of `castOwnerId` (the spell cast). */
   | { kind: 'TARGETED_BY_CAST'; castOwnerId: string }
+  /**
+   * A creature's footprint meets a zone, which holds the subscription: as it moves (enters and stays,
+   * leaves, or passes through), at a turn boundary while it stands inside (its own turn's start or
+   * end, or the zone source's turn start), or as it hits the zone's source with a melee attack.
+   */
+  | { kind: 'ZONE_MOVEMENT'; movement: SpatialTriggerMode }
+  | { kind: 'ZONE_TURN'; boundary: SpatialTurnTrigger }
+  | { kind: 'ZONE_SOURCE_MELEE_HIT' }
 
 /** What an authored subscription listens for: an event kind and the filters it adds. */
 export type EncounterEventSubscription =
@@ -178,6 +193,15 @@ export type IncomingGateSubscription = {
   payload: { attackerCreatureTypeIds?: readonly string[] | undefined }
 }
 
+/**
+ * A placed zone's compiled interactions, which are its subscription: the movements, the turn
+ * boundaries and the melee hit on its source it acts on.
+ */
+export type ZoneEventSubscription = Pick<
+  SpatialEffectInstance,
+  'triggerModes' | 'turnTriggers' | 'retaliatesMeleeHits'
+>
+
 /** The recurrence a stored effect authors its subscriptions in. */
 export type EncounterEffectRecurrence = Extract<
   ActiveRuleEffectRecord['definition'],
@@ -189,4 +213,14 @@ export interface EventVocabularyCapabilityAdapter {
   readonly gameSystemId: string
   /** The hooks an effect's recurrence authors, in authored order; a code the System lacks throws. */
   effectHooks(recurrence: EncounterEffectRecurrence): readonly EncounterEffectHook[]
+  /**
+   * The subscription a zone component's authored interactions compile to, in canonical order; null
+   * when it names none, or one the System does not model.
+   */
+  zoneSubscription(
+    interactionKinds: CompiledManifestComponent['interactionKinds']
+  ): Pick<
+    CompiledActionZonePlacement,
+    'triggerModes' | 'turnTriggers' | 'retaliatesMeleeHits'
+  > | null
 }
